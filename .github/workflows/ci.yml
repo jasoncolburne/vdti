@@ -10,7 +10,7 @@ env:
   CARGO_TERM_COLOR: always
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -21,54 +21,56 @@ jobs:
       - uses: actions/checkout@v4
       - run: make lint-terminology
 
-  fmt:
-    name: Format
-    runs-on: ubuntu-latest
-    if: hashFiles('Cargo.toml') != ''
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt
-      - run: cargo fmt --all --check
-
-  deny:
-    name: Deny
-    runs-on: ubuntu-latest
-    if: hashFiles('Cargo.toml') != ''
-    steps:
-      - uses: actions/checkout@v4
-      - uses: taiki-e/install-action@cargo-deny
-      - run: cargo deny check -A no-license-field
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    if: hashFiles('Cargo.toml') != ''
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --workspace --all-targets -- -D warnings
-
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    if: hashFiles('Cargo.toml') != ''
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace --release
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    if: hashFiles('Cargo.toml') != ''
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo build --workspace --release
+  # Code-dependent jobs are commented out until the Cargo workspace lands in
+  # Phase 1. Uncomment and adapt as each becomes meaningful. The conditional
+  # `hashFiles('Cargo.toml') != ''` gate isn't supported at job level
+  # (validator: "Unrecognized function: 'hashFiles'") — when re-enabling,
+  # either gate on a `check-workspace` job + `needs: / if:` outputs pattern,
+  # or just unconditionally run them (the Cargo workspace will exist).
+  #
+  # fmt:
+  #   name: Format
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         components: rustfmt
+  #     - run: cargo fmt --all --check
+  #
+  # deny:
+  #   name: Deny
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: taiki-e/install-action@cargo-deny
+  #     - run: cargo deny check -A no-license-field
+  #
+  # clippy:
+  #   name: Clippy
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@stable
+  #       with:
+  #         components: clippy
+  #     - uses: Swatinem/rust-cache@v2
+  #     - run: cargo clippy --workspace --all-targets -- -D warnings
+  #
+  # test:
+  #   name: Test
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@stable
+  #     - uses: Swatinem/rust-cache@v2
+  #     - run: cargo test --workspace --release
+  #
+  # build:
+  #   name: Build
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: dtolnay/rust-toolchain@stable
+  #     - uses: Swatinem/rust-cache@v2
+  #     - run: cargo build --workspace --release
