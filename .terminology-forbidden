@@ -1,0 +1,39 @@
+# vdti enforces these patterns to prevent kels-era terminology and
+# rejected-design-direction terms from leaking back into the codebase.
+# Each line is a regex (grep -E). The lint-terminology script walks all
+# .terminology-forbidden files in the tree; deeper files REPLACE
+# shallower ones for their subtree.
+
+# === Removed primitives (post-kels#214 simplification) ===
+# Cnt removed; per-node Contested removed; upgrade rule removed.
+\bCnt\b
+\bis_contested\b
+\bupgrade[ _]rule\b
+
+# === Removed identifiers (post-kels#218 federation trust model) ===
+# Static trusted prefix list replaced with federation Fcp SAID set.
+\bTRUSTED_REGISTRY_PREFIXES\b
+\bTRUSTED_REGISTRY_MEMBERS\b
+
+# === Rejected design directions (post-kels#218) ===
+# Federation-Dip / Fip ruled out — federation IEL uses Fcp self-signing carve-out.
+\bFederation-Dip\b
+\bFip\b
+
+# === Renamed services (kels consolidation) ===
+# sadstore + kels-service consolidated into vdtid; gossip-service → witnessd.
+\bsadstore\b
+\bkels-service\b
+\bgossip-service\b
+\bkels-sadstore\b
+
+# === kels-internal tool / agent names (out-of-context in vdti) ===
+# Distinctive enough to forbid; common words ("max", "min") rely on review.
+\bclaudit\b
+\bxhigh\b
+
+# === kels protocol namespace leakage ===
+# vdti has its own namespace: vdti/witness/v1/topics/*, vdti/sad/v1/*, etc.
+kels/gossip/
+kels/witness/
+kels/sad/
