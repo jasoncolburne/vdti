@@ -21,7 +21,7 @@ Detailed doctrine lives in `docs/design/` — primitive specs (KEL / IEL / SEL),
 
 See [vdti#1](https://github.com/jasoncolburne/vdti/issues/1) (the v1 roadmap) for the full layout and Phase 0–9 sequencing. Quick orientation:
 
-- `encoding/`, `storage/`, `cache/` — absorbed reusable libs (CESR-conformant encoding, verifiable storage, cacheable).
+- `lib/encoding/`, `lib/storage/`, `lib/cache/` — absorbed reusable libs (CESR-conformant encoding, verifiable storage, cacheable).
 - `lib/core/` — protocol kitchen sink: KEL / IEL / SEL primitives, gossip (Cargo feature flag), policy DSL.
 - `lib/mail/`, `lib/exchange/`, `lib/creds/` — application shims; depend on `core/`.
 - `lib/derive/` — KEL signed-events repo derive macros. KEL only — IEL and SEL events anchor in KEL events, not directly signed.
