@@ -15,7 +15,7 @@ Read [`system-thesis.md`](system-thesis.md) first. The thesis is the framing —
   - [Event-class taxonomy](#event-class-taxonomy)
   - [One Divergent Generation at a Time](#one-divergent-generation-at-a-time)
   - [Anchor Tier Elevation](#anchor-tier-elevation)
-  - [Three-kind KEL inception (Fcp / Icp / Dip)](#three-kind-kel-inception-fcp--icp--dip)
+  - [KEL Inception](#kel-inception)
   - [Sea-after-Upd ratchet (application pattern)](#sea-after-upd-ratchet-application-pattern)
   - [Decommission and clean retirement](#decommission-and-clean-retirement)
   - [Limit of the doctrine — current-state compromise](#limit-of-the-doctrine)
@@ -95,11 +95,11 @@ The structural mechanism that enforces "current-state-only authority" is the cha
 
 Each primitive tracks `lastSealAdvancingEvent` — the SAID of the chain's most recent advancing event (per the per-primitive list below) that landed cleanly on the linear chain. The seal never forks: privileged events that would create or join a divergent set are rejected at the merge layer (see [§Privileged Divergence is Terminal](#privileged-divergence-is-terminal)), so seal-advancing landings are linear-chain extensions by construction. Archiving events (`Rec` on KEL, `Rpr` on SEL) route through the discriminator and resolve divergence rather than create or join it, advancing the seal when they land. The advancing kinds differ:
 
-- **KEL**: `Rec` / `Ror` / `Rot` / `Fed`. (`Fed` is the federation-binding mutation event; tier-3 and seal-advancing — see [§Three-kind KEL inception](#three-kind-kel-inception-fcp--icp--dip).)
-- **IEL**: `Evl` only. Inception (`Fcp` for federation IEL, `Icp` for identity / other IEL) is excluded — the seal-advance machinery is meaningful only after the first non-inception event lands, since the seal-cap rule it gates (`parent_serial >= seal_serial`) is structurally vacuous against an inception event (which has no parent).
-- **SEL**: `Est` (at v=1) / `Sea` / `Rpr`.
+- **KEL**: `Rec` / `Ror` / `Rot` / `Fed`.
+- **IEL**: `Evl`.
+- **SEL**: `Est` / `Sea` / `Rpr`.
 
-`Icp` is also excluded on SEL — only `Est` at v=1 enters the SEL set; SEL `Icp` is permissionless and unanchored, and the seal becomes meaningful starting at v=1.
+Seal-advance machinery is meaningful only after the first non-inception event lands, since the seal-cap rule it gates (`parent_serial >= seal_serial`) is structurally vacuous against an inception event (which has no parent).
 
 The terminal kind (`Dec` everywhere) enforces the seal but does not advance it.
 
@@ -143,7 +143,7 @@ The protocol's terminal-authority mechanism is two composable rules. Read them i
 **1. Privileged-divergence-is-terminal.** A privileged event that would land in a divergent set — by extending the divergence ancestor `v_{d-1}.said` while the chain has an existing event at `v_d`, or by colliding at the same serial on a linear chain — is rejected at the merge layer. The seal never forks: divergent sets contain only non-privileged events by construction. Privileged kinds differ per primitive:
 
 - **KEL privileged-or-archiving**: `Rot`, `Rec`, `Ror`, `Fed`, `Dec`. The privileged subset (`Rot`, `Ror`, `Fed`, `Dec`) is rejected when its landing would create or join a divergent set; the archiving event (`Rec`) routes through the discriminator instead. The recovery-revealing sub-class (`Rec`, `Ror`, `Fed`, `Dec`) is dual-signed; `Rot` is single-signed and seal-advancing but not recovery-revealing.
-- **IEL privileged-or-inception**: every event kind — `Fcp` (federation IEL inception), `Icp` (identity / other IEL inception), `Evl`, `Dec` — is governance-authorized and never appears in a divergent set. Post-inception events (`Evl`, `Dec`) are privileged per rule 1; inception events (`Fcp`, `Icp`) cannot form divergent sets at v=0 because prefix derivation forces identical-content events to the same SAID, so two distinct inceptions for the same prefix are structurally impossible. IEL chain state reduces to `{Active, Decommissioned}` locally.
+- **IEL privileged**: every event kind — `Fcp`, `Icp`, `Evl`, `Dec` (all governance-authorized including inception). Since every IEL event is privileged, no divergent set can ever form locally on IEL: a second event at the same serial would have to be privileged, and rule 1 rejects it at merge. Inception events (`Fcp`, `Icp`) are additionally non-divergent by prefix derivation — two distinct inceptions for the same prefix are structurally impossible. IEL chain state reduces to `{Active, Decommissioned}` locally.
 - **SEL privileged-or-archiving**: `Est`, `Sea`, `Rpr`, `Dec`. The privileged subset (`Est`, `Sea`, `Dec`) is rejected when its landing would create or join a divergent set; the archiving event (`Rpr`) routes through the discriminator. `Est` is privileged at v=1 (tier-2 anchored, governance-authorized seal-advance — see [§Anchor Tier Elevation](#anchor-tier-elevation)).
 
 Archiving events (`Rec` / `Rpr`) route through the discriminator before any divergent-set check fires — they resolve rather than create divergence. Non-privileged events at the same serial form (or extend) a divergent set, which is recoverable via the archiving primitive of the same chain.
@@ -263,22 +263,18 @@ The verifier signals this via `policy_satisfied`: queries against SAIDs anchored
 
 The protocol's events fall into orthogonal axes: **class** (chain-state effect when landing in a divergent set) and **tier** (key material required to forge the anchor). The table below names every event kind across all three primitives; the structural pattern that emerges is cited from elsewhere in the doctrine.
 
+**Inception events** (KEL `Fcp` / `Icp` / `Dip`; IEL `Fcp` / `Icp`; SEL `Icp`) are structurally outside this classification — they have no parent, and prefix derivation forces unique chains. Enumerated in [§KEL Inception](#kel-inception).
+
 | Chain | Event | Class | Tier | Anchor relationship |
 |-------|-------|-------|------|---------------------|
-| KEL | `Fcp` | inception | special | founder pre-federation KEL — no anchor field, no witnessing |
-| KEL | `Icp` | inception | special | end-user federated inception — anchor = federation IEL SAID, witnessed under federation |
-| KEL | `Dip` | inception | special | delegated end-user inception — anchor = federation IEL SAID, witnessed under federation; ineligible for federation membership (see [§Three-kind KEL inception](#three-kind-kel-inception-fcp--icp--dip)) |
 | KEL | `Ixn` | content | 1 | hosts tier-1 anchors |
 | KEL | `Rot` | privileged | 2 | hosts tier-2 anchors |
 | KEL | `Ror` | privileged | 3 | hosts tier-3 anchors (and satisfies tier-2 anchor requirements per [§Anchor Tier Elevation](#anchor-tier-elevation)) |
 | KEL | `Fed` | privileged | 3 | federation-binding mutation (founder binding, re-binding, or witness-params update); hosts tier-3 anchors |
 | KEL | `Rec` | archiving | 3 | — |
 | KEL | `Dec` | privileged | 3 | — |
-| IEL | `Fcp` | inception | special | federation IEL inception; self-attesting at v=0 via the kind-dispatched carve-out (see [`federation-bootstrap.md`](federation-bootstrap.md)) |
-| IEL | `Icp` | inception | 2 | identity (or other non-federation) IEL inception; requires tier-2-capable KEL anchor per member |
 | IEL | `Evl` | privileged | 2 | requires tier-2-capable KEL anchor per member |
 | IEL | `Dec` | privileged | 3 | requires tier-3-capable KEL anchor per member |
-| SEL | `Icp` | inception | — | unanchored (permissionless); dedup-equivalent across submitters at v=0 |
 | SEL | `Est` | privileged | 2 | requires tier-2-capable KEL anchor per member |
 | SEL | `Upd` | content | 1 | requires `Ixn` per member |
 | SEL | `Sea` | privileged | 2 | requires tier-2-capable KEL anchor per member |
@@ -288,20 +284,17 @@ The protocol's events fall into orthogonal axes: **class** (chain-state effect w
 **Legend.**
 
 - **Class.** Chain-state effect on the event's own chain.
-  - **Inception** — first event at v=0 establishing the chain's prefix. KEL has three inception kinds (`Fcp` / `Icp` / `Dip`) dispatched by structural context (see [§Three-kind KEL inception](#three-kind-kel-inception-fcp--icp--dip)); IEL has two (`Fcp` for federation, `Icp` for identity / other); SEL has one (`Icp`). Inception events have no parent and are excluded from the seal-advance machinery.
   - **Content** — does not advance the seal; landing in a divergent set leaves the chain Divergent, recoverable via the chain's archiving primitive (`Rec` on KEL, `Rpr` on SEL).
-  - **Privileged** — advances the seal on a clean linear landing; rejected at the merge layer if its landing would create or join a divergent set. Privileged events never appear in divergent sets.
+  - **Privileged** — advances the seal on a clean linear landing; rejected at the merge layer if its landing would create or join a divergent set (see [§Privileged Divergence is Terminal](#privileged-divergence-is-terminal)). Privileged events never appear in divergent sets.
   - **Archiving** — advances the seal AND archives the discriminator-losing branch when landing in a divergent set. The archiving-precedence rule fires the discriminator BEFORE the divergent-set check, so archiving events resolve rather than create divergence.
 - **Tier.** Key material required to forge.
   - For KEL events: which preimages the event reveals (1: signing key only; 2: + rotation preimage; 3: + recovery preimage; tier-3 KEL events are dual-signed).
   - For IEL / SEL events: tier of KEL anchor required per contributing policy member.
 - **Anchor relationship.** For KEL events: which IEL / SEL anchor tier this kind hosts. For IEL / SEL events: which KEL anchor capability is required per contributing policy member to satisfy authorization.
-- **SEL `Icp`** is the only unanchored event — permissionless, dedup-equivalent across submitters; the v=1 `Est` in the same inception batch carries the actual binding and authorization. Its inception-class assignment reflects the structural fact that `Icp` dedups to a single SAID across all submitters and cannot form a divergent set at v=0.
 
 **Structural pattern.**
 
-- **Inception** events populate the special slot for prefix-establishing events; they are excluded from divergent-set rules by construction (no parent to fork; prefix derivation forces identical-content events to the same SAID).
-- **Content** events populate tier 1 (non-inception extension events that do not advance the seal).
+- **Content** events populate tier 1.
 - **Privileged** events populate tier 2 or tier 3.
 - **Archiving** events populate tier 3 (exclusively).
 
@@ -390,7 +383,7 @@ Composition fragility is a structural property of the policy itself, derivable b
 
 The verifier itself accepts any threshold ≥ 1: single-KEL policies are protocol-valid, and remain useful for narrow roles where a single custody domain is the deployment shape. They simply have a threshold buffer of zero and produce `policy_satisfied = false` for any IEL / SEL event whose contributing KEL has been recovered or whose prefix has surfaced as federation-irreconcilable. The chain mathematics surface this; consumers act on it.
 
-#### Three-kind KEL inception (Fcp / Icp / Dip)
+#### KEL Inception
 
 KEL inception is one of three structurally distinct kinds, dispatched by the kind discriminator at v=0. The kind determines whether the chain is pre-federation or federation-bound, whether the chain may be a federation member, and what witnessing applies.
 
