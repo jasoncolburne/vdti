@@ -31,6 +31,22 @@ Compaction is the structural prerequisite for selective disclosure of nested con
 
 The SAID-preservation invariant is what lets disclosed and undisclosed positions coexist in one verifiable structure without forcing the producer to commit to a separate compacted-shape SAID.
 
+## Privacy contract
+
+Compaction interacts with custody. Under canonical form every sub-SAD is represented by SAID — meaning every sub-SAD is a separately-addressable stored unit, fetchable by anyone who has its SAID. **A parent SAD's `readPolicy` does not transitively protect its referenced sub-SADs.** If a parent has `readPolicy` but a referenced sub-SAD does not, the sub-SAD's content is publicly fetchable by SAID, even though the parent gates read access to its own content.
+
+### The propagation rule
+
+A sub-SAD inherits no protection from its parent's `readPolicy`. To be private, it MUST declare its own `readPolicy`. Otherwise it is publicly fetchable by SAID.
+
+### Intentional disconnection
+
+The permissive rule is by design. A client MAY deliberately leave a sub-SAD without `readPolicy` under a parent with `readPolicy`, intending the child to be publicly addressable independently of the parent's gate — "disconnecting" the child from the parent's protection. Use cases include selectively publishing a previously-gated artifact, attaching a public commitment alongside private content, or any pattern where the child SHOULD be accessible without the parent's gate.
+
+### App-builder responsibility
+
+Apps built on VDTI SHOULD bake the propagation rule into their compaction and SAD-construction logic so end users do not have to choose. The pattern: when an app constructs a sub-SAD whose content the parent semantically owns, the app automatically applies an equivalent `readPolicy` to the child unless the application explicitly intends disconnection. End users compose data; the app handles the privacy propagation. This is a thin contract — the framework provides the mechanism; correct privacy semantics in user-facing apps live in those apps' construction logic.
+
 ## Adversarial framing
 
 Compaction does not weaken tamper-evidence. The reference graph composes the same way it does for any SAID-referenced sub-SAD ([`sad.md` §Composition by reference](sad.md#composition-by-reference)):

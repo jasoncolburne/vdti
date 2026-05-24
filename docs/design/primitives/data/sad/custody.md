@@ -20,7 +20,7 @@ The fields are inline on the SAD wrapper (no separate SAID per field). Chain eve
 The two fields are intentionally asymmetric:
 
 - **Writes are single-identity-bound.** `ownerIelEvent` is one IEL event SAID, naming one identity at one moment. A SAD object has at most one writer attestation.
-- **Reads are composable.** `readPolicy` is a policy SAID; the policy DSL composes identities and thresholds arbitrarily. A SAD object can be readable to "any 2 of 3 named identities" without those identities forming a shared IEL, and the read set can include identities that did not participate in the write.
+- **Reads are composable.** `readPolicy` is a policy SAID; the policy DSL composes identities and thresholds arbitrarily. A SAD object can be readable to "any 2 of 3 named identities" without those identities forming a shared IEL, and the read set can include identities that did not participate in the write. `readPolicy` gates only the SAD that declares it — referenced sub-SADs do not transitively inherit the parent's read protection. See [`compaction.md` §Privacy contract](compaction.md#privacy-contract) for how privacy propagates (or doesn't) across the SAD graph.
 
 This matches how custody is actually used in practice. A write is an act by one party at one moment — the writer's identity and the policy in force at that moment are determinate. Reads can be policy-shaped: a private message between two parties, a credential gated by issuer-or-subject, a drop-box that anyone can write but only the operator can drain.
 
