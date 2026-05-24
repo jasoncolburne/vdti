@@ -8,7 +8,7 @@ This doc states the compaction rule, the SAID-preservation invariant that makes 
 
 A SAD that nests another SAD as a field value can carry that child either inline (the full child object embedded in the parent) or by reference (only the child's SAID embedded in the parent). Compaction is the rewrite that replaces an inline child with its SAID; expansion is the reverse, re-fetching the child by SAID and substituting it back in.
 
-Both shapes are valid SAD representations of the same logical content. A consumer that needs only the SAIDs of nested children can stop at the compacted form; a consumer that needs full content of a specific child walks the reference and fetches it from the SAD object store (or from gossip, or from a peer). Other children stay compacted — disclosure is selective at the granularity of individual sub-SADs.
+Both shapes are valid SAD representations of the same logical content. A consumer that needs only the SAIDs of nested children can stop at the compacted form; a consumer that needs full content of a specific child walks the reference and fetches it from the SAD object store (or from gossip, or from a peer). Other children stay compacted — disclosure is partial at the granularity of individual sub-SADs.
 
 ## SAID-preservation invariant
 
@@ -21,9 +21,9 @@ The invariant is a direct corollary of the two rules in [`said.md` §Canonical f
 
 A verifier handed a compacted SAD recomputes the parent's SAID directly from the SAID-referenced form. A verifier handed an expanded SAD walks the embedded children (verifying each per Rule 2), substitutes their SAIDs into the canonical form, and recomputes the same parent SAID. The two wire forms are interchangeable as far as SAID-level tamper-evidence is concerned.
 
-## Selective disclosure
+## Partial disclosure
 
-Compaction is the structural prerequisite for selective disclosure of nested content.
+Compaction is the structural prerequisite for partial disclosure of nested content.
 
 - **Credentials.** A credential SAD can carry nested claim SADs; a disclosure presents the credential's claims in compacted form, with only the disclosed claims expanded. The verifier checks the credential's SAID (matching the issuer's anchor in a KEL) and then verifies that each expanded claim is the SAD whose SAID appears at that position. Undisclosed claims remain represented by their SAIDs alone, revealing nothing about the disclosed content beyond what is presented.
 - **Policy SADs.** A policy declaration with nested sub-policies can be transmitted compacted; verifiers expand only the leaves they need to evaluate.
