@@ -32,7 +32,7 @@ This is the property that justifies the architecture. **End-verifiability over d
 End-verifiability is two-layer:
 
 - **Protocol layer.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes where the protocol layer *can* converge. Privileged-divergence (concurrent privileged-event races) is *terminal* at the protocol layer — there is no merge for it.
-- **Federation layer.** Cross-node privileged-vs-privileged races surface via divergent witness receipts at the federation layer (see [`federation-witnessing.md`](federation-witnessing.md)). The federation provides convergence where the protocol cannot, by attestation rather than fork merging.
+- **Federation layer.** Cross-node privileged-vs-privileged races surface via divergent witness receipts at the federation layer (see [`federation/witnessing.md`](federation/witnessing.md)). The federation provides convergence where the protocol cannot, by attestation rather than fork merging.
 
 Single-node deployments forfeit this property. Federations are not optional for end-verifiability.
 
@@ -95,7 +95,7 @@ KEL dual-signature on `Rec` / `Ror` / `Dec` (recover, rotate-recovery, decommiss
 
 Two-layer: protocol-layer convergence where possible, federation-layer divergent witness receipts where the protocol cannot converge (priv-vs-priv races). End-verifiability over data-from-any-source depends on both layers.
 
-→ [`federation-witnessing.md`](federation-witnessing.md).
+→ [`federation/witnessing.md`](federation/witnessing.md).
 
 ### Operational hardening composes on top
 
