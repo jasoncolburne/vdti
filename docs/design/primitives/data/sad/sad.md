@@ -4,6 +4,8 @@ A **Self-Addressed Data** record (SAD) is a serializable object whose own identi
 
 This doc states the SAD shape and the structural patterns that follow from it. The derivation algorithm itself lives in [`said.md`](said.md); compaction and disclosure in [`compaction.md`](compaction.md); per-object authority in [`custody.md`](custody.md).
 
+**Reading order for the SAD primitive group**: this doc → [`said.md`](said.md) → [`custody.md`](custody.md) and [`compaction.md`](compaction.md) (either order — they're parallel and both depend on `said.md`).
+
 ## Structural shapes
 
 Every SAD carries a `said` field. From there, one specialization matters at this layer:
