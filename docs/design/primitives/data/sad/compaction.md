@@ -1,6 +1,6 @@
 # SAD Compaction
 
-**SAD compaction** is the structural transform between a fully-expanded SAD and a compacted representation that replaces nested sub-SADs with their SAIDs. The transform is SAID-preserving: a SAD's [SAID](said.md) is the same in expanded and compacted form, so a verifier can validate the compacted shape and fetch sub-SADs on demand when full content is needed.
+**SAD compaction** is the structural transform between a fully-expanded SAD and a compacted representation that replaces nested sub-SADs with their SAIDs. The transform is SAID-preserving — by Rule 1 in [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation), a SAD's [SAID](said.md), computed from the canonical form rather than the wire form, is the same in expanded and compacted shapes. A verifier can validate the compacted shape and fetch sub-SADs on demand when full content is needed.
 
 This doc states the compaction rule, the SAID-preservation invariant that makes the rule load-bearing, and the resource-amplification defense that constrains compactor implementations.
 
@@ -39,6 +39,10 @@ Compaction interacts with custody. Under canonical form every sub-SAD is represe
 
 A sub-SAD inherits no protection from its parent's `readPolicy`. To be private, it MUST declare its own `readPolicy`. Otherwise it is publicly fetchable by SAID.
 
+### Expansion-time enforcement
+
+When the storage service serves a SAD in expanded form, each sub-SAD reference resolved during expansion is independently subject to that sub-SAD's own `readPolicy`. Expansion is operationally a sequence of per-SAD fetches; a requester satisfying the parent's `readPolicy` does not automatically gain access to children's gated content. Sub-SADs whose `readPolicy` is not satisfied by the request remain represented by their SAID in the expanded response — the same shape the requester would see if they fetched the parent compacted and walked the references themselves. Expansion is a round-trip convenience, not a privilege-escalation surface.
+
 ### Intentional disconnection
 
 The permissive rule is by design. A client MAY deliberately leave a sub-SAD without `readPolicy` under a parent with `readPolicy`, intending the child to be publicly addressable independently of the parent's gate — "disconnecting" the child from the parent's protection. Use cases include selectively publishing a previously-gated artifact, attaching a public commitment alongside private content, or any pattern where the child SHOULD be accessible without the parent's gate.
@@ -54,6 +58,7 @@ Compaction does not weaken tamper-evidence. The reference graph composes the sam
 - **Substitution at a compacted position is structurally infeasible.** Replacing a sub-SAD's SAID with a different SAID changes the parent's canonical bytes at that position, which changes the parent's SAID. The parent's SAID is committed to upstream (in `previous`, in anchors, in signatures), so the substitution surfaces at the next verifier walk.
 - **Expansion is recompute-and-check.** A verifier expanding a compacted position fetches the named sub-SAD from any source — local store, peer, gossip — and re-derives the sub-SAD's SAID from its content. The expansion is accepted only when the recomputed SAID equals the named one. A hostile expansion source can deliver the wrong bytes; the verifier rejects them.
 - **Undisclosed positions reveal no content.** A SAID is a 32-byte hash output; the only information a non-expanding consumer learns is that some content with that SAID exists somewhere. The content itself is not derivable from the SAID.
+- **Sub-SAD reachability is per-SAD-policy-gated, not parent-policy-gated.** A parent's `readPolicy` does not transitively protect referenced sub-SADs (see [§Privacy contract](#privacy-contract)). The attack surface — an adversary learning a sub-SAD's SAID can fetch it directly, even when its parent is gated — is structural and acknowledged. Protection composes one layer up: apps SHOULD attach `readPolicy` to children where the parent semantically owns them, so the policy gates ride with the content. The framework provides the mechanism (per-SAD `readPolicy`); apps provide the policy.
 
 ## Resource-amplification defense
 
@@ -65,4 +70,4 @@ Compactor implementations defend by enforcing structural bounds at the storage l
 - **Existence-check before write.** A SAID already present in the object store is idempotently accepted without re-storing; an adversary cannot inflate storage by repeatedly submitting the same SAD.
 - **Bounded fan-out per request.** Replication and expansion paths cap the number of sub-SADs traversed in any one operation. A consumer requesting expansion gets the named SAD plus a bounded set of its immediate referents; deeper traversal requires further explicit requests.
 
-These bounds are implementation surfaces on the SAD object store and on expanders; they do not change the structural model in this doc. The model is: compact form and expanded form share a SAID; expansion is a verifier-controlled operation that fetches named sub-SADs and checks each SAID before accepting. Which side performs each transform — compaction by the submitting client; expansion served by the storage service as a convenience — is a service-architecture decision documented in [`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md) (forward-ref; lands in a subsequent sub-issue).
+These bounds are implementation surfaces on the SAD object store and on expanders; they do not change the structural model in this doc. The model is: compact form and expanded form share a SAID; expansion is a verifier-controlled operation that fetches named sub-SADs and checks each SAID before accepting. Which side performs each transform — compaction by the submitting client; expansion served by the storage service as a convenience — is a service-architecture decision documented in [`../../../infrastructure/sadd.md`](../../../infrastructure/sadd.md) (forward-ref; lands in a subsequent sub-issue).

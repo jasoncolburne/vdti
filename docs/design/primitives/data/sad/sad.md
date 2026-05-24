@@ -34,11 +34,6 @@ The fixed-value placeholder for `said` (and `prefix`, when prefix-deriving) is t
 
 A SAD that depends on another SAD commits to that child by SAID. The canonical form for SAID computation always uses SAIDs at sub-SAD positions, never inline content (see [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)). Over-the-wire representations MAY embed children inline for atomicity or transport efficiency (see [`compaction.md`](compaction.md)); the canonical bytes the parent's SAID hashes over are the same regardless of wire form.
 
-Two composition patterns at the wire layer:
-
-- **Hard references** — a SAID-typed field on the parent names the SAID of a child SAD. The parent commits to the child's SAID exactly; substituting a different child would require a Blake3-256 collision against the named SAID.
-- **Compaction** — a SAD containing nested SADs MAY be transmitted with children embedded inline (expanded form) or with children replaced by their SAIDs (compacted form). The parent's SAID is identical in either form. See [`compaction.md`](compaction.md).
-
 The reference graph composes: a parent SAD's SAID commits to the SAIDs of its referenced children, which commit to their own children, and so on. An adversary cannot substitute any node in the graph without changing every SAID at-and-above that node.
 
 ## Adversarial framing
