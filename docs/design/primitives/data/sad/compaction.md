@@ -12,7 +12,7 @@ Both shapes are valid SAD representations of the same logical content. A consume
 
 ## SAID-preservation invariant
 
-A SAD's SAID is the **same** in fully-expanded form and in any partially- or fully-compacted form derived from it. This is what makes compaction operationally useful: the parent's SAID — already committed to in `previous` pointers, anchor SAIDs, signatures, and custody references — does not change when sub-SADs are compacted or re-expanded.
+All wire forms of a SAD canonicalize to the same bytes — wire forms embed sub-SADs differently, but Rule 1 (canonical form represents nested SADs by SAID) in [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation) makes the canonical bytes invariant across wire forms. The SAID — computed from the canonical form, not from the wire form — is therefore the same. This is what makes compaction operationally useful: the parent's SAID — already committed to in `previous` pointers, anchor SAIDs, signatures, and custody references — does not change when sub-SADs are compacted or re-expanded.
 
 The invariant is a direct corollary of the two rules in [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation):
 
