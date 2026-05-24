@@ -1,24 +1,24 @@
 # SAD Availability
 
-**Availability** is the per-SAD declaration of where the bytes live, how long they live, and whether retrieval is destructive. It is a top-level `availability` field on the standalone-SAD wrapper, sibling to the custody fields ([`custody.md`](custody.md)), and is one of the per-object policy axes the wrapper carries.
+**Availability** is the per-SAD declaration of where the bytes live, how long they live, and whether retrieval is destructive. It is a top-level `availability` field on the standalone-SAD wrapper, sibling to the [`custody`](custody.md) field, and is one of the per-object policy axes the wrapper carries.
 
-This doc states the structural role of `availability` and its three sub-axes. Per-axis policy expression — concrete encoding for witness references, TTL representation, one-shot semantics — and storage-side enforcement live in [`../../../infrastructure/sadd.md`](../../../infrastructure/sadd.md) (forward-ref; lands in a subsequent sub-issue).
+This doc states the structural role of `availability` and its three sub-axes. Per-axis policy expression — concrete encoding for replica references, TTL representation, one-shot semantics — and storage-side enforcement live in [`../../../infrastructure/sadd.md`](../../../infrastructure/sadd.md) (forward-ref; lands in a subsequent sub-issue).
 
 ## What availability declares
 
 `availability` is a sibling top-level inline struct on the SAD wrapper:
 
 ```
-availability { witnesses, ttl, once }
+availability { replicas, ttl, once }
 ```
 
 Each sub-field is independently optional and covers one operational axis:
 
-- **`witnesses`** — replication scope. Names which witnesses (nodes in the witness mesh) hold the bytes. Absent → broadcast to all witnesses (default; the SAD is replicated across the mesh). Present → references a WitnessSet SAD listing eligible witnesses; only those witnesses participate in replication for this SAD.
+- **`replicas`** — replication scope. Names which storage replicas hold the bytes. Absent → broadcast to all replicas (default; the SAD is replicated everywhere). Present → carries the SAID of a ReplicaSet SAD listing eligible replicas; only those replicas participate in replication for this SAD. The ReplicaSet is a separately-stored SAD per the canonical-form rule (see [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)).
 - **`ttl`** — time-to-live. How long the bytes are retained at the storage boundary. Expired SADs are garbage-collected; fetches against an expired SAID return the same "not present" response a never-existed SAID would.
 - **`once`** — one-shot delivery. Whether retrieval is destructive. A `once` SAD is removed from storage after the first successful read; subsequent fetches by the same or any other consumer fail.
 
-The three sub-fields compose freely — a SAD MAY declare any combination (e.g., witness-scoped replication + bounded TTL + non-destructive read; or default replication + no TTL + one-shot delivery).
+The three sub-fields compose freely — a SAD MAY declare any combination (e.g., replica-scoped replication + bounded TTL + non-destructive read; or default replication + no TTL + one-shot delivery).
 
 ## Scope
 
@@ -35,14 +35,14 @@ Either axis composes independently with the other. The four-corners composition 
 
 ## SAID commitment
 
-`availability` is a top-level field on the SAD wrapper and participates in canonical serialization, so the availability declaration is committed by the SAD's SAID. An adversary cannot substitute a different `availability` value (extending a TTL, converting one-shot to non-destructive, broadening a witness scope) without changing the SAD's SAID — and the new SAID would not match any reference that names the original.
+`availability` is a top-level field on the SAD wrapper and participates in canonical serialization, so the availability declaration is committed by the SAD's SAID. An adversary cannot substitute a different `availability` value (extending a TTL, converting one-shot to non-destructive, broadening a replica scope) without changing the SAD's SAID — and the new SAID would not match any reference that names the original.
 
 ## Adversarial framing
 
 The structural guarantees follow from the SAID commitment and from where enforcement lives.
 
 - **Availability declarations are tamper-evident.** The SAID commitment makes substitution at the wrapper boundary surface as a SAID mismatch at the next verifier walk. An adversary cannot quietly upgrade a SAD's replication scope or extend its TTL.
-- **Enforcement is at the storage boundary.** TTL, witness scope, and one-shot semantics are applied by `sadd`. A consumer fetching an expired or already-consumed one-shot SAD receives a uniform "not present" response; the absence does not distinguish "expired" from "one-shot consumed" from "never existed."
+- **Enforcement is at the storage boundary.** TTL, replica scope, and one-shot semantics are applied by `sadd`. A consumer fetching an expired or already-consumed one-shot SAD receives a uniform "not present" response; the absence does not distinguish "expired" from "one-shot consumed" from "never existed."
 - **One-shot is operational, not cryptographic.** A consumer who has retrieved a one-shot SAD can persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior. Cryptographic deletion is not a property the protocol offers.
-- **Witness-scope enforcement is fail-secure.** When `witnesses` references a WitnessSet that cannot be resolved (fetch failure, parse error), replication MUST default to skip rather than to broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's author declared.
+- **Replica-scope enforcement is fail-secure.** When `replicas` references a ReplicaSet that cannot be resolved (fetch failure, parse error), replication MUST default to skip rather than to broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's author declared.
 - **Forbidden on chain events is enforced structurally.** Chain-event kind-schemas have no slot for `availability`, so a chain-event submission carrying inline `availability` is rejected by the structural-validation pass at the merge layer (see [`../../../protocol-doctrine.md` §Routing order](../../../protocol-doctrine.md#routing-order)).

@@ -1,6 +1,6 @@
 # SAD — Self-Addressed Data
 
-A **Self-Addressed Data** record (SAD) is a serializable object whose own identifier — its [SAID](said.md) — is derived from its content. Every content-bearing primitive in VDTI is a SAD: chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, WitnessSets, and the content payloads SEL events anchor.
+A **Self-Addressed Data** record (SAD) is a serializable object whose own identifier — its [SAID](said.md) — is derived from its content. Every content-bearing primitive in VDTI is a SAD: chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, ReplicaSets, and the content payloads SEL events anchor.
 
 This doc states the SAD shape and the structural patterns that follow from it. The derivation algorithm itself lives in [`said.md`](said.md); compaction and disclosure in [`compaction.md`](compaction.md); per-object authority in [`custody.md`](custody.md).
 
@@ -11,7 +11,7 @@ This doc states the SAD shape and the structural patterns that follow from it. T
 Every SAD carries a `said` field. From there, one specialization matters at this layer:
 
 - **Chain events** are SADs with chain-linkage fields — `prefix` (chain identifier) + `previous` (parent SAID) + `serial` (monotonic position) + kind-specific fields, including a `content` SAID that points to the SAD where the event's payload lives. Chain events live on a KEL, IEL, or SEL chain and replicate as indivisible units. Their kind-specific schemas have no slots for custody or availability fields, so those fields cannot appear on a chain event.
-- **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes, WitnessSets, and the content payloads chain events anchor. Stored in the SAD object store and retrieved by SAID. MAY carry per-object authority via the custody fields ([`custody.md`](custody.md)) and per-object replication scope via an independent [`availability`](availability.md) field on the same wrapper.
+- **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes, ReplicaSets, and the content payloads chain events anchor. Stored in the SAD object store and retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field and per-object replication scope via an independent [`availability`](availability.md) field on the same wrapper.
 
 A chain event is a SAD with additional structural commitments — chain identity, monotonic position, continuity via `previous`. A standalone SAD is independently addressable and carries its content directly. The doctrine that follows uses "SAD" as the general term and specializes to "chain event" or "standalone SAD" where the distinction matters.
 
