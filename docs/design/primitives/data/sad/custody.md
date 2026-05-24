@@ -1,6 +1,6 @@
 # Custody
 
-**Custody** is the per-SAD authority model for standalone (non-chain-event) [SADs](sad.md): two independent top-level fields on the SAD wrapper that declare who may write the object and who may read it. Custody is decoupled from **availability** (replication and lifecycle), which lives in a sibling top-level field on the same wrapper.
+**Custody** is the per-SAD authority model for standalone (non-chain-event) [SADs](sad.md): two independent top-level fields on the SAD wrapper that declare who may write the object and who may read it. Custody is decoupled from **[availability](availability.md)** (replication and lifecycle), which lives in a sibling top-level field on the same wrapper.
 
 Custody is scoped to the standalone-SAD subset because chain events have a fixed kind-specific schema with no slots for custody or availability fields (see [`sad.md` §Structural shapes](sad.md#structural-shapes)).
 
@@ -53,7 +53,7 @@ The combinations are doctrine, not just enumeration. They name distinct applicat
 
 ## Decoupling from availability
 
-Custody and `availability` (a sibling top-level field declaring replication scope, TTL, and one-shot delivery) are independent axes:
+Custody and [`availability`](availability.md) (a sibling top-level field declaring replication scope, TTL, and one-shot delivery) are independent axes:
 
 - A SAD object can be **widely replicated and custody-gated**: the bytes live on many nodes but every read fetch enforces `readPolicy`.
 - A SAD object can be **unreplicated and permissive**: it lives on one node, but anyone who has its SAID can fetch and read.
