@@ -161,7 +161,7 @@ Above-seal events that landed under valid policy at the time they were processed
 
 ## Cross-node priv-vs-priv races
 
-Two federation nodes can each accept a competing privileged event extending `v_{d-1}` via independent linear-chain extensions: each event lands cleanly on its submitting node (the seal advances locally), gossip then delivers each event to the other node, and the seal-cap rejects each late arrival (the gossip-arriving event's parent sits in the locked portion behind the now-advanced seal).
+Two federation nodes can each accept a competing privileged event extending `v_{d-1}` via independent linear-chain extensions: each event lands cleanly on its submitting node (the seal advances locally), gossip then delivers each event to the other node, and the seal-cap rejects each late arrival with `SiblingLocked` — the locally-landed first-receive already occupies the target serial behind the now-advanced seal.
 
 Per-node, each chain stays linear with its own first-receive as tip. Cross-node, the federation does not converge at the protocol layer for these races. Federation-level convergence is provided by **divergent witness receipts** at the federation layer: federation members witness every structurally-valid event they observe (always-witness), and adjacent receipts at the same chain position carrying different `witnessedSaid` values are the structural evidence that the federation cannot agree at that position. The prefix surfaces as **federation-irreconcilable** at-and-beyond the divergent serial. See [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) and [§Limit of the doctrine — concurrent privileged event races](../../../../protocol-doctrine.md#concurrent-privileged-event-races).
 
