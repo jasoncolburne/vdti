@@ -42,6 +42,8 @@ The placeholder mechanism — populating `said` (and `prefix`) with a fixed-valu
 - **No re-serialization on verification.** A verifier with the SAD in hand performs the substitution in place — replace the bytes at the `said` position with the placeholder, hash, compare. No reconstruction from a stripped or rewritten form is needed.
 - **Deterministic across producers.** Two parties producing the same logical content arrive at the same canonical bytes, the same placeholder substitution, and the same SAID — without coordinating on which producer "owns" the SAID.
 
+The same three properties hold for prefix derivation on chain inception events, with both `said` and `prefix` blanked simultaneously per [§Derivation](#derivation) step 1. The placeholder mechanism is identical; the set of blanked positions differs by algorithm.
+
 Per-primitive prefix derivation rules — what content the prefix commits to (whole-SAD-content for KEL; `(authPolicy, governancePolicy, nonce)` for IEL; `(identity, topic)` for SEL) — are documented in the corresponding event-log primitive docs. They differ in which fields are populated and which are left content-bearing, but they share this same fixed-value mechanism.
 
 ## Canonical form for SAID computation
@@ -73,5 +75,7 @@ The SAID's adversarial properties follow from Blake3-256's collision resistance 
 - **Substitution is structurally infeasible.** Replacing a SAD with a different content payload while preserving the SAID would require a Blake3-256 collision. The protocol treats this as out of scope under standard cryptographic assumptions.
 - **Producer ambiguity does not break verification.** Two honest parties producing the same content arrive at the same SAID; an adversary producing different content arrives at a different SAID. The protocol cares about which SAID is referenced (by `previous`, by `content`, by an anchor, by a policy SAID, by a custody field), not about who computed it.
 - **Canonicalization is part of the security argument.** A non-deterministic serializer would let an adversary produce two byte sequences with the same logical content but different SAIDs. JCS removes that degree of freedom — the canonical bytes are a function of the logical content alone.
+
+For chain inception events the prefix is independently content-derived via the second algorithm in [§Derivation](#derivation) and carries the same adversarial properties as the SAID — content-authenticity by recomputation, substitution-infeasibility under Blake3-256 collision resistance, producer-ambiguity-immunity, canonicalization-as-security. An adversary substituting content on an inception event while preserving both `said` AND `prefix` would need to produce a Blake3-256 collision against each — two independent collisions, not one. The bullets above describe the SAID-side argument; the parallel prefix-side argument holds by construction.
 
 The SAID is the load-bearing handle every reference in the system uses to commit to a SAD: `previous` pointers, `ielEvent` bindings, KEL anchor SAIDs, policy SAIDs, content SAIDs on chain events, `ownerIelEvent` references (see [`custody.md`](custody.md)). When the doctrine talks about "a SAID anchored in a KEL `Ixn`" or "the `previous` SAID matches the parent," it is talking about this 44-byte identifier and the recomputable derivation that backs it.

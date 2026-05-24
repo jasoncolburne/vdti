@@ -28,7 +28,7 @@ What content the prefix commits to is per-primitive — KEL prefix commits to th
 
 Canonicalization uses JSON Canonicalization Scheme (JCS, RFC 8785): deterministic key ordering, no insignificant whitespace, a stable number representation. Two parties starting from the same logical content produce the same canonical bytes — and therefore the same SAID — independently.
 
-The fixed-value placeholder for `said` (and `prefix`, when prefix-deriving) is the same shape and byte-length as a real SAID. The canonical serialization's byte layout during SAID computation matches the byte layout a verifier sees when reading the SAD with its real SAID in place. This is what lets a SAID be embedded inside its own SAD without circularity: every consumer re-applies the fixed-value rule, re-hashes the same bytes, and arrives at the same digest.
+The fixed-value placeholder for `said` (and `prefix`, when prefix-deriving) is the same shape and byte-length as a real SAID. The canonical serialization's byte layout during SAID computation matches the byte layout a verifier sees when reading the SAD with its real SAID in place. This is what lets a SAID be embedded inside its own SAD without circularity: every consumer re-applies the fixed-value rule, re-hashes the same bytes, and arrives at the same digest. For chain inception events the same property holds for the prefix derivation as for the SAID derivation — two parties starting from the same logical content arrive at the same prefix and the same SAID via two independent hashes (see [`said.md` §Derivation](said.md#derivation)).
 
 ## Composition by reference
 
