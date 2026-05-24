@@ -11,7 +11,7 @@ This doc states the SAD shape and the structural patterns that follow from it. T
 Every SAD carries a `said` field. From there, one specialization matters at this layer:
 
 - **Chain events** are SADs with chain-linkage fields — `prefix` (chain identifier) + `previous` (parent SAID) + `serial` (monotonic position) + kind-specific fields, including a `content` SAID that points to the SAD where the event's payload lives. Chain events live on a KEL, IEL, or SEL chain and replicate as indivisible units. Their kind-specific schemas have no slots for custody or availability fields, so those fields cannot appear on a chain event.
-- **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes, NodeSets, and the content payloads chain events anchor. Stored in the `vdtid` SAD object store and retrieved by SAID. MAY carry per-object authority via the custody fields ([`custody.md`](custody.md)) and per-object replication scope via an independent availability field on the same wrapper.
+- **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes, NodeSets, and the content payloads chain events anchor. Stored in the SAD object store and retrieved by SAID. MAY carry per-object authority via the custody fields ([`custody.md`](custody.md)) and per-object replication scope via an independent availability field on the same wrapper.
 
 A chain event is a SAD with additional structural commitments — chain identity, monotonic position, continuity via `previous`. A standalone SAD is independently addressable and carries its content directly. The doctrine that follows uses "SAD" as the general term and specializes to "chain event" or "standalone SAD" where the distinction matters.
 
