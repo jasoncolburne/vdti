@@ -6,7 +6,7 @@ This doc states the compaction rule, the SAID-preservation invariant that makes 
 
 ## The transform
 
-A SAD that nests another SAD as a field value can carry that child either inline (the full child object embedded in the parent) or by reference (only the child's SAID — a 44-character string — embedded in the parent). Compaction is the rewrite that replaces an inline child with its SAID; expansion is the reverse, re-fetching the child by SAID and substituting it back in.
+A SAD that nests another SAD as a field value can carry that child either inline (the full child object embedded in the parent) or by reference (only the child's SAID embedded in the parent). Compaction is the rewrite that replaces an inline child with its SAID; expansion is the reverse, re-fetching the child by SAID and substituting it back in.
 
 Both shapes are valid SAD representations of the same logical content. A consumer that needs only the SAIDs of nested children can stop at the compacted form; a consumer that needs full content of a specific child walks the reference and fetches it from the SAD object store (or from gossip, or from a peer). Other children stay compacted — disclosure is selective at the granularity of individual sub-SADs.
 
@@ -57,7 +57,7 @@ Compaction does not weaken tamper-evidence. The reference graph composes the sam
 
 - **Substitution at a compacted position is structurally infeasible.** Replacing a sub-SAD's SAID with a different SAID changes the parent's canonical bytes at that position, which changes the parent's SAID (and, for chain inception events with nested sub-SADs, also the parent's prefix). The parent's SAID is committed to upstream (in `previous`, in anchors, in signatures), so the substitution surfaces at the next verifier walk.
 - **Expansion is recompute-and-check.** A verifier expanding a compacted position fetches the named sub-SAD from any source — local store, peer, gossip — and re-derives the sub-SAD's SAID from its content. The expansion is accepted only when the recomputed SAID equals the named one. A hostile expansion source can deliver the wrong bytes; the verifier rejects them.
-- **Undisclosed positions reveal no content.** A SAID is a 32-byte hash output; the only information a non-expanding consumer learns is that some content with that SAID exists somewhere. The content itself is not derivable from the SAID.
+- **Undisclosed positions reveal no content.** A SAID is a hash output; the only information a non-expanding consumer learns is that some content with that SAID exists somewhere. The content itself is not derivable from the SAID.
 - **Sub-SAD reachability is per-SAD-policy-gated, not parent-policy-gated.** A parent's `readPolicy` does not transitively protect referenced sub-SADs (see [§Privacy contract](#privacy-contract)). The attack surface — an adversary learning a sub-SAD's SAID can fetch it directly, even when its parent is gated — is structural and acknowledged. Protection composes one layer up: apps SHOULD attach `readPolicy` to children where the parent semantically owns them, so the policy gates ride with the content. The framework provides the mechanism (per-SAD `readPolicy`); apps provide the policy.
 
 ## Resource-amplification defense

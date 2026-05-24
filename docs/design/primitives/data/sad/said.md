@@ -1,6 +1,6 @@
 # SAID — Self-Addressing Identifier
 
-A **Self-Addressing Identifier** (SAID) is the content-derived handle that names a [SAD](sad.md). It is the 44-character CESR-encoded Blake3-256 hash of the SAD's canonical serialization with the SAID field populated with a fixed value.
+A **Self-Addressing Identifier** (SAID) is the content-derived handle that names a [SAD](sad.md). It is a type-qualified base64 encoding of the Blake3-256 hash of the SAD's canonical serialization with the SAID field populated with a fixed value.
 
 This doc states the SAID derivation algorithm, the fixed-value placeholder rule that makes self-embedding work, and the consequences for signing and verification. The SAD shape this algorithm hashes over is documented in [`sad.md`](sad.md).
 
@@ -10,17 +10,17 @@ SAID derivation differs slightly for chain inception events (which carry a `pref
 
 **Canonicalization is RFC 8785 (JSON Canonicalization Scheme), pinned normatively.** Implementing crates MUST conform to RFC 8785's key ordering, number representation, and escape rules. Any divergence is a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only under a single canonicalization spec, and the design pins that spec here.
 
-CESR-encoding the 32-byte Blake3-256 digest produces a 44-character text token. The CESR encoding carries the algorithm code in its leading characters, so any consumer can re-derive without out-of-band agreement on the hash function.
+Base64-encoding and qualifying the Blake3-256 digest produces a fixed-length text token. The qualifier carries the algorithm code in its leading characters, so any consumer can re-derive without out-of-band agreement on the hash function.
 
 ### Standalone and non-inception SADs
 
 For any SAD that is not a chain inception event:
 
 1. Take the SAD as a structured value (its logical content, including every field except `said` being derived).
-2. Populate the `said` field with the **fixed-value placeholder** — a 44-byte ASCII string of the same shape as a real SAID.
+2. Populate the `said` field with the **fixed-value placeholder** — an ASCII string of the same shape and byte-length as a real SAID.
 3. Serialize the result with JSON Canonicalization Scheme (JCS, RFC 8785).
 4. Compute Blake3-256 over the canonical bytes.
-5. CESR-encode the 32-byte digest.
+5. Base64 encode and qualify the digest.
 6. Write the result back into the SAD's `said` field.
 
 Non-inception chain events inherit their `prefix` value from the chain (copied forward from the inception event) before `said` is derived; the inherited prefix is part of the canonical bytes the hash sees.
@@ -29,8 +29,8 @@ Non-inception chain events inherit their `prefix` value from the chain (copied f
 
 A chain inception event derives **two** values — first `prefix`, then `said` — via two separate hashes:
 
-1. **Derive the prefix.** Populate **both** `said` and `prefix` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256. CESR-encode. Write the result into the SAD's `prefix` field.
-2. **Derive the SAID.** With `prefix` now populated with its real (just-derived) value, populate **only** `said` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256. CESR-encode. Write the result into the SAD's `said` field.
+1. **Derive the prefix.** Populate **both** `said` and `prefix` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256. Base64 encode and qualify. Write the result into the SAD's `prefix` field.
+2. **Derive the SAID.** With `prefix` now populated with its real (just-derived) value, populate **only** `said` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256. Base64 encode and qualify. Write the result into the SAD's `said` field.
 
 The two hashes see different canonical bytes, so on the inception event `prefix ≠ said`. The prefix is the stable chain identifier — copied forward on every subsequent event of the chain. The SAID is the per-event content hash that turns over each event.
 
@@ -50,7 +50,7 @@ Per-primitive prefix derivation rules — what content the prefix commits to (wh
 
 Two rules govern the canonical form a SAD presents to the SAID-computation hash. They are jointly load-bearing: together they make the SAID identity-invariant under wire-form choices and propagate tamper-evidence downward through any inline embedding.
 
-**Rule 1 — Canonical form represents nested SADs by SAID.** The canonical form used for SAID computation always represents nested SADs by their SAIDs (44-character CESR strings), regardless of wire form. A SAD MAY be transmitted with sub-SADs embedded inline (an expanded wire form; see [`compaction.md`](compaction.md)) or with sub-SADs referenced by SAID (a compacted wire form); the SAID computation sees the SAID-referenced form in either case. The canonical bytes the hash sees do not change when wire form does, so the SAD's SAID is the same in either form.
+**Rule 1 — Canonical form represents nested SADs by SAID.** The canonical form used for SAID computation always represents nested SADs by their SAIDs (type-qualified base64 strings), regardless of wire form. A SAD MAY be transmitted with sub-SADs embedded inline (an expanded wire form; see [`compaction.md`](compaction.md)) or with sub-SADs referenced by SAID (a compacted wire form); the SAID computation sees the SAID-referenced form in either case. The canonical bytes the hash sees do not change when wire form does, so the SAD's SAID is the same in either form.
 
 **Recognition rule.** A nested object is a nested SAD iff it carries a `said` field. The `said` field is reserved at every nesting level; its presence is the structural marker by which a canonicalizer identifies a sub-SAD position. The canonical form substitutes such an object with the value of its `said` field. The recognition rule is schema-free — generic walkers compose without per-payload schemas — and naturally surfaces submission errors: an inline nested object carrying a `said` field is not in canonical form, its byte-hash does not match the declared SAID, and the storage service rejects via the existing SAID-match check without a new code path.
 
@@ -62,9 +62,9 @@ Canonical form is a global property. A SAD does not get to redefine it per-conte
 
 ## Signing surface
 
-Signatures throughout VDTI are produced over the SAID's CESR-encoded bytes, not over the SAD's serialized content. The SAID is the cryptographic commitment to the content; signing the SAID transitively commits the signer to the canonical bytes that produced it.
+Signatures throughout VDTI are produced over the SAID bytes, not over the SAD's serialized content. The SAID is the cryptographic commitment to the content; signing the SAID transitively commits the signer to the canonical bytes that produced it.
 
-- **Stable signing surface under extension.** When a SAD's schema gains new fields under extension discipline (see [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md#extension-discipline)), the SAID computation absorbs the new fields into the digest. The signing surface is still the SAID's 44 bytes, even though the underlying canonical-byte stream changed shape.
+- **Stable signing surface under extension.** When a SAD's schema gains new fields under extension discipline (see [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md#extension-discipline)), the SAID computation absorbs the new fields into the digest. The signing surface is still the SAID, even though the underlying canonical-byte stream changed shape.
 - **Unambiguous signature subject.** Signatures over serialized payloads are ambiguous about which canonicalization the verifier should reapply; signatures over a SAID are unambiguous — the SAID names exactly one content. A verifier checks the signature against the SAID, then independently re-derives the SAID from the content and checks equality.
 
 ## Adversarial framing
@@ -78,4 +78,4 @@ The SAID's adversarial properties follow from Blake3-256's collision resistance 
 
 For chain inception events the prefix is independently content-derived via the second algorithm in [§Derivation](#derivation) and carries the same adversarial properties as the SAID — content-authenticity by recomputation, substitution-infeasibility under Blake3-256 collision resistance, producer-ambiguity-immunity, canonicalization-as-security. An adversary substituting content on an inception event while preserving both `said` AND `prefix` would need to produce a Blake3-256 collision against each — two independent collisions, not one. The bullets above describe the SAID-side argument; the parallel prefix-side argument holds by construction.
 
-The SAID is the load-bearing handle every reference in the system uses to commit to a SAD: `previous` pointers, `ielEvent` bindings, KEL anchor SAIDs, policy SAIDs, content SAIDs on chain events, `ownerIelEvent` references (see [`custody.md`](custody.md)). When the doctrine talks about "a SAID anchored in a KEL `Ixn`" or "the `previous` SAID matches the parent," it is talking about this 44-byte identifier and the recomputable derivation that backs it.
+The SAID is the load-bearing handle every reference in the system uses to commit to a SAD: `previous` pointers, `ielEvent` bindings, KEL anchor SAIDs, policy SAIDs, content SAIDs on chain events, `ownerIelEvent` references (see [`custody.md`](custody.md)). When the doctrine talks about "a SAID anchored in a KEL `Ixn`" or "the `previous` SAID matches the parent," it is talking about this identifier and the recomputable derivation that backs it.
