@@ -148,7 +148,7 @@ The argument has three legs:
 
 Consumers and dependents that resolve to at-or-below-seal state get the strongest protocol guarantee:
 
-- **Anchors hosted at-or-below the seal stay anchored.** A KEL `Ixn` that anchored an IEL or SEL event at-or-below the seal continues to satisfy the cross-chain anchor check, regardless of subsequent divergence or federation-layer irreconcilability above the seal.
+- **Anchors hosted at-or-below the seal stay anchored.** A KEL `Ixn` that anchored an IEL or SEL event at-or-below the seal continues to satisfy the anchor check, regardless of subsequent divergence or federation-layer irreconcilability above the seal.
 - **Credentials issued under an IEL state at-or-below the seal remain verifiable.** An issuance pinned to a KEL anchor in the locked portion stays trust-evaluable forever.
 - **SELs bound to at-or-below-seal `ielEvent` stay trust-evaluable.** The cross-primitive bound that enforces this is checked by IEL / SEL verifiers; the KEL primitive's contribution is the locked-portion immutability.
 - **Audit and forensic queries against the locked portion are truthful.** Above-seal events appear in the forensic record but are not structurally trustworthy (they may have been authored under captured tier-1 authority); the locked-portion events are.

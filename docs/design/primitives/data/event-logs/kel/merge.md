@@ -34,7 +34,7 @@ Per-kind field rules (per [`events.md` §Per-kind field rules](events.md#per-kin
 
 - SAID recomputation matches the declared SAID (per [`../../sad/said.md`](../../sad/said.md#derivation)).
 - For the inception event: prefix recomputes from the canonical bytes with `said` and `prefix` blanked.
-- Per-kind required / forbidden field presence per [`events.md` §Structural fields](events.md#structural-fields), [§Anchor field](events.md#anchor-field), and [§Witness params](events.md#witness-params).
+- Per-kind required / forbidden field presence per [`events.md` §Structural fields](events.md#structural-fields), [§Anchors](events.md#anchors) (including the per-kind anchor-list count / positional schema), and [§Witness params](events.md#witness-params).
 - Signature shape (single-sig versus dual-sig per kind) per [`events.md` §Authorization and signature shapes](events.md#authorization-and-signature-shapes).
 - Chain linkage: `previous` resolves to an event in the verifier's branch state.
 - **Kind-schema predecessor rule.** No kind admits a `Dec` parent. A submission whose parent's kind is `Dec` is rejected with `KelDecommissioned`. This is `Dec`-terminality expressed as a kind-schema property — the same class of structural rejection as a `custody` field appearing on a chain event ([§Routing order](../../../../protocol-doctrine.md#routing-order)), not a routing-order outcome. `Dec`'s kind semantics mean "no more events"; the kind-schema forbids any successor, so the rejection is caught here at merge entry rather than by a downstream rule.
