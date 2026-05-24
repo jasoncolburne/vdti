@@ -6,12 +6,12 @@ This doc states the SAD shape and the structural patterns that follow from it. T
 
 ## Structural shapes
 
-VDTI has two SAD shapes. Both carry a `said` field; they serve different roles.
+Every SAD carries a `said` field. From there, one specialization matters at this layer:
 
-- **SAD objects.** Standalone content-addressed records — credentials, policy SADs, exchange envelopes, NodeSets, and the content payloads chain events anchor. Stored in the `vdtid` SAD object store and retrieved by SAID. MAY carry per-object authority via the custody fields ([`custody.md`](custody.md)) and per-object replication scope via an independent availability field on the same wrapper.
-- **Chain events.** Events on a KEL, IEL, or SEL chain. Carry `said` + `prefix` (chain identifier) + `previous` (chain linkage) + `serial` (monotonic position) + kind-specific fields, including a `content` SAID that points to a SAD object where the event's payload lives. Custody and availability fields are **forbidden on chain events** — chain events replicate as an indivisible unit and cannot carry differential authority or replication scope across links.
+- **Chain events** are SADs with chain-linkage fields — `prefix` (chain identifier) + `previous` (parent SAID) + `serial` (monotonic position) + kind-specific fields, including a `content` SAID that points to the SAD where the event's payload lives. Chain events live on a KEL, IEL, or SEL chain and replicate as indivisible units. Their kind-specific schemas have no slots for custody or availability fields, so those fields cannot appear on a chain event.
+- **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes, NodeSets, and the content payloads chain events anchor. Stored in the `vdtid` SAD object store and retrieved by SAID. MAY carry per-object authority via the custody fields ([`custody.md`](custody.md)) and per-object replication scope via an independent availability field on the same wrapper.
 
-The asymmetry is structural. A SAD object is an independently addressable unit of content; a chain event is positioned in an authoritative chain whose identity is the `prefix` and whose continuity is established by walking and verifying the chain.
+A chain event is a SAD with additional structural commitments — chain identity, monotonic position, continuity via `previous`. A standalone SAD is independently addressable and carries its content directly. The doctrine that follows uses "SAD" as the general term and specializes to "chain event" or "standalone SAD" where the distinction matters.
 
 ## Required fields
 

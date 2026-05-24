@@ -1,6 +1,8 @@
 # Custody
 
-**Custody** is the per-SAD-object authority model: two independent top-level fields on a [SAD object's](sad.md) wrapper that declare who may write the object and who may read it. Custody is decoupled from **availability** (replication and lifecycle), which lives in a sibling top-level field on the same wrapper.
+**Custody** is the per-SAD authority model for standalone (non-chain-event) [SADs](sad.md): two independent top-level fields on the SAD wrapper that declare who may write the object and who may read it. Custody is decoupled from **availability** (replication and lifecycle), which lives in a sibling top-level field on the same wrapper.
+
+Custody is scoped to the standalone-SAD subset because chain events have a fixed kind-specific schema with no slots for custody or availability fields (see [`sad.md` §Structural shapes](sad.md#structural-shapes)).
 
 This doc states the two custody fields, the asymmetry between them, the four combinations they produce, and the adversarial framing the model is designed against. Identity resolution behind the IEL-event reference is treated as a forward-reference to [`../event-logs/identity-rooting.md`](../event-logs/identity-rooting.md).
 
@@ -11,7 +13,7 @@ Custody is the logical grouping of two optional fields on the SAD object wrapper
 - **`ownerIelEvent`** — an [IEL event SAID](said.md) declaring the writer's identity at the moment of the write. A one-time anchored attestation: the writer's identity is fixed by the IEL prefix the event belongs to, and the IEL state authorizing the write is fixed by the event's tracked `authPolicy`. `None` for anonymous writes.
 - **`readPolicy`** — a policy SAID that gates read access at fetch time. The referenced policy is fetched and evaluated against the verified prefix set from a signed read request. Composable via the policy DSL — `identity(X)`, `threshold(N, [...])`, and nested `Policy` nodes are all permitted, so a single `readPolicy` can authorize arbitrary multi-identity read sets without those identities having to share an IEL. `None` for publicly readable content.
 
-The fields are inline on the SAD wrapper (no separate SAID per field). They are forbidden on chain events — chain events replicate as an indivisible unit and cannot carry per-event differential authority across links ([`sad.md` §Structural shapes](sad.md#structural-shapes)). Custody applies to SAD objects only.
+The fields are inline on the SAD wrapper (no separate SAID per field). Chain events have no schema slot for either field — chain-event kinds replicate as indivisible units and cannot carry per-event differential authority across links (see [`sad.md` §Structural shapes](sad.md#structural-shapes)). Custody therefore applies to standalone (non-chain-event) SADs.
 
 ## Asymmetric semantics
 
