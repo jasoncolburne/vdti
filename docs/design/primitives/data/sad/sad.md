@@ -18,7 +18,7 @@ A chain event is a SAD with additional structural commitments — chain identity
 Every SAD carries:
 
 - `said` — the SAD's self-addressing identifier. Computed per [`said.md`](said.md): the SAD is canonicalized with `said` populated to a fixed-value placeholder, Blake3-256 is computed over the canonical bytes, and the digest is CESR-encoded.
-- For **prefix-derived SADs** (chain inception events and any other SAD whose `prefix` derives from its content rather than being inherited from a parent): a `prefix` field. The prefix is computed by populating BOTH `said` and `prefix` with fixed-value placeholders, canonicalizing, and hashing. The result is shared as both `prefix` and `said` on the inception event. Subsequent events on the chain inherit `prefix` from inception and derive only `said`.
+- For **chain inception events** (the prefix-deriving SADs): a `prefix` field. The prefix is computed by populating BOTH `said` and `prefix` with fixed-value placeholders, canonicalizing, and hashing. The result is shared as both `prefix` and `said` on the inception event. Subsequent events on the chain inherit `prefix` from inception and derive only `said`.
 
 What content the prefix commits to is per-primitive — KEL prefix commits to the whole inception SAD; IEL prefix commits to `(authPolicy, governancePolicy, nonce)`; SEL prefix commits to `(identity, topic)`. The shared rule is the fixed-value mechanism; the per-primitive shapes are documented in the corresponding event-log primitive docs.
 
@@ -30,12 +30,12 @@ The fixed-value placeholder for `said` (and `prefix`, when prefix-deriving) is t
 
 ## Composition by reference
 
-A SAD that depends on another SAD references it by SAID, not by inline embedding. The referenced SAD is retrieved by the verifier on demand from the local SAD object store, from gossip, or from a peer.
+A SAD that depends on another SAD commits to that child by SAID. The canonical form for SAID computation always uses SAIDs at sub-SAD positions, never inline content (see [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)). Over-the-wire representations MAY embed children inline for atomicity or transport efficiency (see [`compaction.md`](compaction.md)); the canonical bytes the parent's SAID hashes over are the same regardless of wire form.
 
-Two composition patterns:
+Two composition patterns at the wire layer:
 
-- **Hard references** — a SAID-typed field on the parent names the SAID of a child SAD. The parent's SAID commits to the child's SAID exactly; substituting a different child would require a Blake3-256 collision against the named SAID.
-- **Compaction** — a SAD containing nested SADs MAY be transmitted with sub-SADs replaced by their SAIDs and expanded later. The transform preserves the parent's SAID: a compacted SAD and its fully-expanded counterpart have the same SAID. See [`compaction.md`](compaction.md).
+- **Hard references** — a SAID-typed field on the parent names the SAID of a child SAD. The parent commits to the child's SAID exactly; substituting a different child would require a Blake3-256 collision against the named SAID.
+- **Compaction** — a SAD containing nested SADs MAY be transmitted with children embedded inline (expanded form) or with children replaced by their SAIDs (compacted form). The parent's SAID is identical in either form. See [`compaction.md`](compaction.md).
 
 The reference graph composes: a parent SAD's SAID commits to the SAIDs of its referenced children, which commit to their own children, and so on. An adversary cannot substitute any node in the graph without changing every SAID at-and-above that node.
 

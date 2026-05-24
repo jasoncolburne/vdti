@@ -14,12 +14,12 @@ Both shapes are valid SAD representations of the same logical content. A consume
 
 A SAD's SAID is the **same** in fully-expanded form and in any partially- or fully-compacted form derived from it. This is what makes compaction operationally useful: the parent's SAID — already committed to in `previous` pointers, anchor SAIDs, signatures, and custody references — does not change when sub-SADs are compacted or re-expanded.
 
-The mechanism is structural. Every reference between SADs is by [SAID](said.md), and the SAID computation hashes canonical bytes in which a sub-SAD position is — in both forms — the sub-SAD's SAID:
+The invariant is a direct corollary of the two rules in [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation):
 
-- In the **compacted form**, the field literally contains the sub-SAD's SAID (a 44-character CESR string).
-- In the **expanded form**, the field contains the sub-SAD object. When the parent's canonical serialization for SAID derivation rolls over that field, the sub-SAD's own `said` field carries the same SAID — and canonicalization rules order the bytes such that the parent's hash input is determined by the sub-SAD's SAID, not by its full canonical bytes.
+- **Rule 1** says the canonical form the hash sees always represents nested SADs by SAID. Wire form does not affect which bytes the hash sees — both compacted and expanded wire forms yield the same canonical bytes, and therefore the same SAID.
+- **Rule 2** says a verifier receiving an expanded form must verify each embedded child's declared SAID against the child's own bytes before substituting it into the parent's canonical form. Tamper-evidence recurses down through inline embedding, so an expanded form cannot lie about what its children are.
 
-A verifier handed a compacted SAD recomputes the parent's SAID directly. A verifier handed the expanded form does the same and arrives at the same digest. The two forms are interchangeable as far as SAID-level tamper-evidence is concerned.
+A verifier handed a compacted SAD recomputes the parent's SAID directly from the SAID-referenced form. A verifier handed an expanded SAD walks the embedded children (verifying each per Rule 2), substitutes their SAIDs into the canonical form, and recomputes the same parent SAID. The two wire forms are interchangeable as far as SAID-level tamper-evidence is concerned.
 
 ## Selective disclosure
 

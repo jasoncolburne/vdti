@@ -10,12 +10,14 @@ The algorithm is the same across all primitives and all SAD shapes:
 
 1. Take the SAD as a structured value (its logical content, including every field except the SAID being derived).
 2. Populate the `said` field with the **fixed-value placeholder** — a 44-byte ASCII string of the same shape as a real SAID.
-3. For a **prefix-deriving** SAD (an inception event, or any SAD whose `prefix` derives from its own content rather than being inherited), also populate the `prefix` field with the fixed-value placeholder.
+3. For a **chain inception event** (the prefix-deriving SAD shape), also populate the `prefix` field with the fixed-value placeholder.
 4. Serialize the result with JSON Canonicalization Scheme (JCS, RFC 8785).
 5. Compute Blake3-256 over the canonical bytes.
 6. CESR-encode the 32-byte digest as a 44-character text token. The CESR encoding carries the algorithm code in its leading characters, so any consumer can re-derive without out-of-band agreement on the hash function.
 
 The result is written back into the SAD's `said` field. For a prefix-deriving SAD, the same value is written into `prefix` (the inception event's prefix equals its SAID).
+
+**Canonicalization is RFC 8785 (JSON Canonicalization Scheme), pinned normatively.** Implementing crates MUST conform to RFC 8785's key ordering, number representation, and escape rules. Any divergence is a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only under a single canonicalization spec, and the design pins that spec here.
 
 ## The fixed-value placeholder rule
 
@@ -26,6 +28,18 @@ The placeholder mechanism — populating `said` (and `prefix`) with a fixed-valu
 - **Deterministic across producers.** Two parties producing the same logical content arrive at the same canonical bytes, the same placeholder substitution, and the same SAID — without coordinating on which producer "owns" the SAID.
 
 Per-primitive prefix derivation rules — what content the prefix commits to (whole-SAD-content for KEL; `(authPolicy, governancePolicy, nonce)` for IEL; `(identity, topic)` for SEL) — are documented in the corresponding event-log primitive docs. They differ in which fields are populated and which are left content-bearing, but they share this same fixed-value mechanism.
+
+## Canonical form for SAID computation
+
+Two rules govern the canonical form a SAD presents to the SAID-computation hash. They are jointly load-bearing: together they make the SAID identity-invariant under wire-form choices and propagate tamper-evidence downward through any inline embedding.
+
+**Rule 1 — Canonical form represents nested SADs by SAID.** The canonical form used for SAID computation always represents nested SADs by their SAIDs (44-character CESR strings), regardless of wire form. A SAD MAY be transmitted with sub-SADs embedded inline (an expanded wire form; see [`compaction.md`](compaction.md)) or with sub-SADs referenced by SAID (a compacted wire form); the SAID computation sees the SAID-referenced form in either case. The canonical bytes the hash sees do not change when wire form does, so the SAD's SAID is the same in either form.
+
+**Rule 2 — Inline embedding requires verification before substitution.** When a sub-SAD is embedded inline, the verifier MUST verify the embedded child's declared SAID against the child's own bytes — re-deriving the child's SAID per the algorithm above — before substituting that SAID into the parent's canonical form. If a child's declared SAID does not recompute from its content, the parent's SAID computation rejects. The rule recurses: verifying a parent SAID requires that every inline-embedded child verify down to leaves.
+
+Without Rule 2 the design has a gap: an adversary could submit an expanded SAD whose embedded child claims a SAID that does not actually hash to the child's content; the verifier would substitute the lying SAID into the parent's canonical form, the parent's hash would match what the parent declared, and the parent would appear to verify while committing to a fake child. Rule 2 closes the gap by requiring downward recursion — tamper-evidence propagates down through inline embedding, symmetric with the upward propagation [`sad.md` §Adversarial framing](sad.md#adversarial-framing) describes.
+
+Canonical form is a global property. A SAD does not get to redefine it per-context — there is one canonicalization (RFC 8785 plus the SAID-substitution rule above), and the SAID-computation hash sees only that form.
 
 ## Signing surface
 
