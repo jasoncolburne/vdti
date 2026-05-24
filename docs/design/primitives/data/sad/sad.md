@@ -20,7 +20,7 @@ A chain event is a SAD with additional structural commitments — chain identity
 Every SAD carries:
 
 - `said` — the SAD's self-addressing identifier. Computed per [`said.md`](said.md): the SAD is canonicalized with `said` populated to a fixed-value placeholder, Blake3-256 is computed over the canonical bytes, and the digest is CESR-encoded.
-- For **chain inception events** (the prefix-deriving SADs): a `prefix` field. The prefix is computed by populating BOTH `said` and `prefix` with fixed-value placeholders, canonicalizing, and hashing. The result is shared as both `prefix` and `said` on the inception event. Subsequent events on the chain inherit `prefix` from inception and derive only `said`.
+- For **chain inception events** (the prefix-deriving SADs): a `prefix` field in addition to `said`. The inception event derives the two values via two separate hashes, in order — first `prefix` (with both `said` and `prefix` blanked), then `said` (with `prefix` populated with its just-derived real value, and only `said` blanked). On the inception event, `prefix` and `said` are different values. Subsequent events on the chain inherit `prefix` from the inception event and derive only `said`; the inherited prefix is part of the canonical bytes the `said` hash sees. See [`said.md` §Derivation](said.md#derivation) for the algorithms.
 
 What content the prefix commits to is per-primitive — KEL prefix commits to the whole inception SAD; IEL prefix commits to `(authPolicy, governancePolicy, nonce)`; SEL prefix commits to `(identity, topic)`. The shared rule is the fixed-value mechanism; the per-primitive shapes are documented in the corresponding event-log primitive docs.
 

@@ -6,18 +6,33 @@ This doc states the SAID derivation algorithm, the fixed-value placeholder rule 
 
 ## Derivation
 
-The algorithm is the same across all primitives and all SAD shapes:
-
-1. Take the SAD as a structured value (its logical content, including every field except the SAID being derived).
-2. Populate the `said` field with the **fixed-value placeholder** — a 44-byte ASCII string of the same shape as a real SAID.
-3. For a **chain inception event** (the prefix-deriving SAD shape), also populate the `prefix` field with the fixed-value placeholder.
-4. Serialize the result with JSON Canonicalization Scheme (JCS, RFC 8785).
-5. Compute Blake3-256 over the canonical bytes.
-6. CESR-encode the 32-byte digest as a 44-character text token. The CESR encoding carries the algorithm code in its leading characters, so any consumer can re-derive without out-of-band agreement on the hash function.
-
-The result is written back into the SAD's `said` field. For a prefix-deriving SAD, the same value is written into `prefix` (the inception event's prefix equals its SAID).
+SAID derivation differs slightly for chain inception events (which carry a `prefix` field) and for all other SADs. Both algorithms share the same fixed-value placeholder mechanism, the same JCS canonicalization, and the same Blake3-256 hash; they differ in which fields are blanked and how many hashes are computed.
 
 **Canonicalization is RFC 8785 (JSON Canonicalization Scheme), pinned normatively.** Implementing crates MUST conform to RFC 8785's key ordering, number representation, and escape rules. Any divergence is a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only under a single canonicalization spec, and the design pins that spec here.
+
+CESR-encoding the 32-byte Blake3-256 digest produces a 44-character text token. The CESR encoding carries the algorithm code in its leading characters, so any consumer can re-derive without out-of-band agreement on the hash function.
+
+### Standalone and non-inception SADs
+
+For any SAD that is not a chain inception event:
+
+1. Take the SAD as a structured value (its logical content, including every field except `said` being derived).
+2. Populate the `said` field with the **fixed-value placeholder** — a 44-byte ASCII string of the same shape as a real SAID.
+3. Serialize the result with JSON Canonicalization Scheme (JCS, RFC 8785).
+4. Compute Blake3-256 over the canonical bytes.
+5. CESR-encode the 32-byte digest.
+6. Write the result back into the SAD's `said` field.
+
+Non-inception chain events inherit their `prefix` value from the chain (copied forward from the inception event) before `said` is derived; the inherited prefix is part of the canonical bytes the hash sees.
+
+### Chain inception events (prefix-deriving SADs)
+
+A chain inception event derives **two** values — first `prefix`, then `said` — via two separate hashes:
+
+1. **Derive the prefix.** Populate **both** `said` and `prefix` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256. CESR-encode. Write the result into the SAD's `prefix` field.
+2. **Derive the SAID.** With `prefix` now populated with its real (just-derived) value, populate **only** `said` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256. CESR-encode. Write the result into the SAD's `said` field.
+
+The two hashes see different canonical bytes, so on the inception event `prefix ≠ said`. The prefix is the stable chain identifier — copied forward on every subsequent event of the chain. The SAID is the per-event content hash that turns over each event.
 
 ## The fixed-value placeholder rule
 
