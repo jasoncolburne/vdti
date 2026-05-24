@@ -1,0 +1,52 @@
+# SAD Compaction
+
+**SAD compaction** is the structural transform between a fully-expanded SAD and a compacted representation that replaces nested sub-SADs with their SAIDs. The transform is SAID-preserving: a SAD's [SAID](said.md) is the same in expanded and compacted form, so a verifier can validate the compacted shape and fetch sub-SADs on demand when full content is needed.
+
+This doc states the compaction rule, the SAID-preservation invariant that makes the rule load-bearing, and the resource-amplification defense that constrains compactor implementations.
+
+## The transform
+
+A SAD that nests another SAD as a field value can carry that child either inline (the full child object embedded in the parent) or by reference (only the child's SAID — a 44-character string — embedded in the parent). Compaction is the rewrite that replaces an inline child with its SAID; expansion is the reverse, re-fetching the child by SAID and substituting it back in.
+
+Both shapes are valid SAD representations of the same logical content. A consumer that needs only the SAIDs of nested children can stop at the compacted form; a consumer that needs full content of a specific child walks the reference and fetches it from the SAD object store (or from gossip, or from a peer). Other children stay compacted — disclosure is selective at the granularity of individual sub-SADs.
+
+## SAID-preservation invariant
+
+A SAD's SAID is the **same** in fully-expanded form and in any partially- or fully-compacted form derived from it. This is what makes compaction operationally useful: the parent's SAID — already committed to in `previous` pointers, anchor SAIDs, signatures, and custody references — does not change when sub-SADs are compacted or re-expanded.
+
+The mechanism is structural. Every reference between SADs is by [SAID](said.md), and the SAID computation hashes canonical bytes in which a sub-SAD position is — in both forms — the sub-SAD's SAID:
+
+- In the **compacted form**, the field literally contains the sub-SAD's SAID (a 44-character CESR string).
+- In the **expanded form**, the field contains the sub-SAD object. When the parent's canonical serialization for SAID derivation rolls over that field, the sub-SAD's own `said` field carries the same SAID — and canonicalization rules order the bytes such that the parent's hash input is determined by the sub-SAD's SAID, not by its full canonical bytes.
+
+A verifier handed a compacted SAD recomputes the parent's SAID directly. A verifier handed the expanded form does the same and arrives at the same digest. The two forms are interchangeable as far as SAID-level tamper-evidence is concerned.
+
+## Selective disclosure
+
+Compaction is the structural prerequisite for selective disclosure of nested content.
+
+- **Credentials.** A credential SAD can carry nested claim SADs; a disclosure presents the credential's claims in compacted form, with only the disclosed claims expanded. The verifier checks the credential's SAID (matching the issuer's anchor in a KEL) and then verifies that each expanded claim is the SAD whose SAID appears at that position. Undisclosed claims remain represented by their SAIDs alone, revealing nothing about the disclosed content beyond what is presented.
+- **Policy SADs.** A policy declaration with nested sub-policies can be transmitted compacted; verifiers expand only the leaves they need to evaluate.
+- **Exchange envelopes.** An envelope containing a payload SAD plus metadata SADs can be transmitted in any partially-compacted shape; receivers expand on demand.
+
+The SAID-preservation invariant is what lets disclosed and undisclosed positions coexist in one verifiable structure without forcing the producer to commit to a separate compacted-shape SAID.
+
+## Adversarial framing
+
+Compaction does not weaken tamper-evidence. The reference graph composes the same way it does for any SAID-referenced sub-SAD ([`sad.md` §Composition by reference](sad.md#composition-by-reference)):
+
+- **Substitution at a compacted position is structurally infeasible.** Replacing a sub-SAD's SAID with a different SAID changes the parent's canonical bytes at that position, which changes the parent's SAID. The parent's SAID is committed to upstream (in `previous`, in anchors, in signatures), so the substitution surfaces at the next verifier walk.
+- **Expansion is recompute-and-check.** A verifier expanding a compacted position fetches the named sub-SAD from any source — local store, peer, gossip — and re-derives the sub-SAD's SAID from its content. The expansion is accepted only when the recomputed SAID equals the named one. A hostile expansion source can deliver the wrong bytes; the verifier rejects them.
+- **Undisclosed positions reveal no content.** A SAID is a 32-byte hash output; the only information a non-expanding consumer learns is that some content with that SAID exists somewhere. The content itself is not derivable from the SAID.
+
+## Resource-amplification defense
+
+A deeply-nested adversarial SAD — one whose expansion graph fans out across many levels with high branching — can be used as an amplification vector against a naive expander. A submit handler or replicating peer that recursively expands every nested SAD on receipt would do unbounded fetch / parse / store work for one submitted byte of input.
+
+Compactor implementations defend by enforcing structural bounds at the storage layer:
+
+- **Two-phase storage.** A SAD object received for storage is parsed and validated in one pass without recursive expansion of its sub-SAD references; the second pass dedupes against already-stored SAIDs and persists only what is new. Recursive expansion of children is deferred until a consumer explicitly requests them.
+- **Existence-check before write.** A SAID already present in the object store is idempotently accepted without re-storing; an adversary cannot inflate storage by repeatedly submitting the same SAD.
+- **Bounded fan-out per request.** Replication and expansion paths cap the number of sub-SADs traversed in any one operation. A consumer requesting expansion gets the named SAD plus a bounded set of its immediate referents; deeper traversal requires further explicit requests.
+
+These bounds are implementation surfaces on the `vdtid` SAD object store and on client expanders; they do not change the structural model in this doc. The model is: compact form and expanded form share a SAID; expansion is a verifier-controlled operation that fetches named sub-SADs and checks each SAID before accepting.
