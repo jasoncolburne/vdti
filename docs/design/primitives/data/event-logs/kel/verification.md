@@ -14,7 +14,7 @@ For every event the verifier walks, it ensures:
 - All event prefixes match the chain's prefix (set at inception).
 - All events have valid SAIDs (the SAID re-derives from the canonical bytes with `said` blanked).
 - Events chain correctly from inception to tip via `previous` links.
-- Pre-rotation commitments are honored: each `Rot` / `Ror` / `Fed` / `Rec` reveals a `publicKey` whose digest matches the prior establishment's `rotationHash`.
+- Pre-rotation commitments are honored: each `Rot` / `Ror` / `Fed` / `Rec` / `Dec` reveals a `publicKey` whose digest matches the prior establishment's `rotationHash`.
 - Recovery commitments are honored: each tier-3 event (`Ror` / `Fed` / `Rec` / `Dec`) reveals a `recoveryKey` whose digest matches the prior establishment's `recoveryHash`.
 - All signatures verify against the SAID bytes — single-signature for tier-1 / tier-2 kinds, dual-signature for tier-3 kinds.
 
@@ -293,7 +293,7 @@ The walker is single-pass forward; generation-aligned page boundaries mean a div
 | Serial monotonicity | Each event's serial equals previous event's serial + 1. |
 | Inception serial | Inception events (no `previous`) have serial 0. |
 | Inception kind dispatch | Verifier branches on `Fcp` / `Icp` / `Dip` per [§Inception kind dispatch](#inception-kind-dispatch). |
-| Pre-rotation commitment | `digest(publicKey) == prior.rotationHash` on each `Rot` / `Ror` / `Fed` / `Rec`. |
+| Pre-rotation commitment | `digest(publicKey) == prior.rotationHash` on each `Rot` / `Ror` / `Fed` / `Rec` / `Dec`. |
 | Recovery commitment | `digest(recoveryKey) == prior.recoveryHash` on each `Ror` / `Fed` / `Rec` / `Dec`. |
 | Single-signature validity | `Ixn` / `Rot` / `Fcp` / `Icp` / `Dip`: signature verifies against the appropriate key per [§Signature verification](#signature-verification). |
 | Dual-signature validity | `Ror` / `Fed` / `Rec` / `Dec`: primary signature against revealed `publicKey`; recovery signature against revealed `recoveryKey`. |

@@ -69,7 +69,7 @@ This is what makes the divergence-ancestor-extending shape the structural primit
 
 The merge layer enforces the repair-event bound: `Rec.previous.serial >= seal_serial`. The bound prevents revival attacks where a party holding stale authority (a recovery preimage revealed by an earlier `Rec` / `Ror` / `Fed`, or a key that has since been rotated out) constructs a `Rec` targeting the locked portion to rearrange the chain. Only current authority gates repair events.
 
-When the bound holds vacuously — no privileged event has landed yet on the chain (only inception plus non-privileged events) — `Rec.previous` may be any chain event including the inception. Once any privileged event advances the seal past `v_{N-1}`, a `Rec` targeting `v_{N-1}` is rejected as `ParentLocked`.
+When the bound holds vacuously — no privileged event has landed yet on the chain (only inception plus non-privileged events) — `Rec.previous` may be any chain event including the inception. Once any privileged event advances the seal past `v_{N-1}`, a `Rec` targeting `v_{N-1}` is rejected as `SiblingLocked`.
 
 See [§Privileged Divergence is Terminal](../../../../protocol-doctrine.md#privileged-divergence-is-terminal) for the structural rule and [§Forks are Seal-Bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) for the seal-cap that derives from it.
 

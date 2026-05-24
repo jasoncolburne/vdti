@@ -256,7 +256,7 @@ s0..sN   normal chain
 sN+1     kind=dec   ← Dec ends the KEL cleanly; dual-signed (kN + recovery key)
 ```
 
-After `Dec`, the chain is fully terminal. The seal-cap rejects every subsequent submission whose parent sits at-or-before `v_{N}`. Concurrent priv-vs-priv races at the federation layer surface via divergent witness receipts — see [`recovery.md` §Cross-node priv-vs-priv races](recovery.md#cross-node-priv-vs-priv-races) and [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+After `Dec`, the chain is fully terminal. Two independent merge-layer mechanisms reject every subsequent submission: a sibling to the `Dec` (sharing parent `v_{N}`) is rejected by the seal-cap (`SiblingLocked`), and a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned` — no kind admits a `Dec` parent). See [`merge.md` §Routing order](merge.md#routing-order). Concurrent priv-vs-priv races at the federation layer surface via divergent witness receipts — see [`recovery.md` §Cross-node priv-vs-priv races](recovery.md#cross-node-priv-vs-priv-races) and [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
 
 ## Cross-references
 

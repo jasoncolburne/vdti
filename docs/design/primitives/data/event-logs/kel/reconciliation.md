@@ -19,7 +19,7 @@ All three matrices depend on the same protocol-enforced invariants, stated next.
 The cases below depend on these protocol-enforced invariants. They are stated structurally — the protocol's safety claims hold *by construction*, not by observation.
 
 1. **Seal-advance cap compliance.** Every KEL has a seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`) at least every `MINIMUM_PAGE_SIZE − 2 = 62` non-seal-advancing events. Surfaced by the verifier and enforced by the merge handler. See [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
-2. **Bounded divergence.** An adversary can only fork after the last seal-advancing event (forking before triggers `ParentLocked` per the locked-portion bound). Combined with invariant 1, divergence spans at most 62 events from the fork point. An adversary holding less than the rotation-key preimage can only submit `Ixn` events, so the seal-advance cap limits them to at most 62 events before they need a seal-advancing primitive — which requires tier-2 or tier-3 capability per [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model).
+2. **Bounded divergence.** An adversary can only fork after the last seal-advancing event (forking before triggers `SiblingLocked` per the locked-portion bound). Combined with invariant 1, divergence spans at most 62 events from the fork point. An adversary holding less than the rotation-key preimage can only submit `Ixn` events, so the seal-advance cap limits them to at most 62 events before they need a seal-advancing primitive — which requires tier-2 or tier-3 capability per [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model).
 3. **Bounded operations.** Recovery batch (`[Rec, ?Rot]` plus the surviving-branch context) is at most 64 events; the archival window is at most 62 events. Both fit in one `MINIMUM_PAGE_SIZE`-bounded page.
 4. **Privileged divergence is terminal at merge.** Privileged events (`Rot` / `Ror` / `Fed` / `Dec`) that would create or join a divergent set are rejected at the merge layer per [§Privileged Divergence is Terminal](../../../../protocol-doctrine.md#privileged-divergence-is-terminal). Divergent sets contain only non-privileged events by construction.
 5. **Locked-portion bound is unconditional.** Every event class is subject to the seal-cap: `event.parent.serial >= seal_serial`. Stale-authority revival is structurally impossible.
@@ -36,7 +36,7 @@ The state enumeration covers every per-node shape that can arise under the merge
 |---|---|
 | **Empty** | No events for this prefix on this node. |
 | **Active** | Linear chain; the current tip extends cleanly via `previous`. |
-| **Active, sealed** | Sub-state of Active where a submitter's view lands at-or-before `lastSealAdvancingEvent`. Any extension whose parent sits in the locked portion returns `ParentLocked`. |
+| **Active, sealed** | Sub-state of Active where a submitter's view lands at-or-before `lastSealAdvancingEvent`. Any extension whose parent sits in the locked portion returns `SiblingLocked`. |
 | **Divergent** | Fork detected; two non-privileged events at the same serial. Privileged events extending `v_{d-1}` are rejected at merge per invariant 4. |
 | **Divergent (sealed)** | Sub-state of Divergent where the seal has advanced past the divergence point — typically via a `Rec` / `Ror` / `Rot` / `Fed` that landed in a branch extension before resolution. The locked-portion bound rejects competing `Rec` against `v_{d-1}`. |
 | **Recovered** | Clean chain after synchronous archival in the merge transaction. Equivalent to Active in subsequent rules — the discriminator-losing branch is removed from live storage. |
@@ -49,18 +49,18 @@ What happens when a client submits events to the merge engine on a single node. 
 | Chain state | `Ixn` | `Rot` | `Ror` / `Fed` | `Rec` (with optional `Rot`) | `Dec` |
 |---|---|---|---|---|---|
 | **Empty** | Reject (no KEL) | Reject | Reject | Reject | Reject |
-| **Active** | Append ✓ | Append ✓ (linear extension; `ParentLocked` if extending `v_{d-1}` while an event exists at `v_d` per invariant 4) | Append ✓ (linear extension; `ParentLocked` on divergent-set-creating parent shape) | Append ✓ (gossip-sync of recovered chains lands cleanly) | Append ✓ → Decommissioned (linear); `ParentLocked` on divergent-set-creating parent shape |
-| **Active, sealed** (parent at-or-before `lastSealAdvancingEvent`) | `ParentLocked` (seal-cap) | `ParentLocked` (seal-cap) | `ParentLocked` (seal-cap) | `ParentLocked` (locked-portion bound condition 2b) | `ParentLocked` (seal-cap) |
-| **Divergent** | `RecoverRequired` | `ParentLocked` (invariant 4 — privileged event extending `v_{d-1}`) | `ParentLocked` (invariant 4) | **Recovered** ✓ (discriminator runs; `RecoveryRecord` created) | `ParentLocked` (invariant 4) |
-| **Divergent (sealed)** | `ParentLocked` | `ParentLocked` (seal-cap) | `ParentLocked` (seal-cap) | `ParentLocked` (locked-portion bound) | `ParentLocked` (seal-cap) |
+| **Active** | Append ✓ | Append ✓ (linear extension; `SiblingLocked` if extending `v_{d-1}` while an event exists at `v_d` per invariant 4) | Append ✓ (linear extension; `SiblingLocked` on divergent-set-creating parent shape) | Append ✓ (gossip-sync of recovered chains lands cleanly) | Append ✓ → Decommissioned (linear); `SiblingLocked` on divergent-set-creating parent shape |
+| **Active, sealed** (parent at-or-before `lastSealAdvancingEvent`) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound condition 2b) | `SiblingLocked` (seal-cap) |
+| **Divergent** | `RecoverRequired` | `SiblingLocked` (invariant 4 — privileged event extending `v_{d-1}`) | `SiblingLocked` (invariant 4) | **Recovered** ✓ (discriminator runs; `RecoveryRecord` created) | `SiblingLocked` (invariant 4) |
+| **Divergent (sealed)** | `SiblingLocked` | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
 | **Recovered** | Same as Active | Same as Active | Same as Active | Same as Active | Same as Active |
-| **Decommissioned** | `ParentLocked` | `ParentLocked` | `ParentLocked` | `ParentLocked` | `ParentLocked` |
+| **Decommissioned** | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` |
 
 ### Notes on cell routing
 
-- **Privileged event extending `v_{d-1}` (any chain state).** A privileged event (`Rot`, `Ror`, `Fed`, or `Dec`) with `previous = v_{d-1}.said` whose landing would create or join a divergent set is rejected at the merge layer per invariant 4. The merge engine returns `ParentLocked`. When the rejected submission originated from another federation peer's locally-landed privileged event (a cross-node priv-vs-priv race), the chain does not structurally converge with that peer; federation-level convergence runs at the federation-witnessing layer — see [§Matrix 3: Race matrix](#matrix-3-race-matrix).
-- **Active, sealed and Divergent (sealed).** The seal-cap (`parent_serial >= seal_serial`) rejects every submission whose parent sits in the locked portion. All extensions of `v_{seal-1}` / `v_{d-1}` return `ParentLocked`. The pre-seal verifiability guarantee (per [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability)) is what makes this rejection sound: the chain segment at-or-below the seal stays structurally trustworthy regardless of subsequent above-seal disruption.
-- **Decommissioned.** Fully terminal. All submissions are rejected with `ParentLocked` — the seal-cap treats a Decommissioned chain as sealed at its `Dec` (see [`merge.md` §Routing order](merge.md#2-seal-cap)). Federation races between concurrent competing privileged submissions resolve at the federation-witnessing layer (see [§Matrix 3](#matrix-3-race-matrix)).
+- **Privileged event extending `v_{d-1}` (any chain state).** A privileged event (`Rot`, `Ror`, `Fed`, or `Dec`) with `previous = v_{d-1}.said` whose landing would create or join a divergent set is rejected at the merge layer per invariant 4. The merge engine returns `SiblingLocked`. When the rejected submission originated from another federation peer's locally-landed privileged event (a cross-node priv-vs-priv race), the chain does not structurally converge with that peer; federation-level convergence runs at the federation-witnessing layer — see [§Matrix 3: Race matrix](#matrix-3-race-matrix).
+- **Active, sealed and Divergent (sealed).** The seal-cap (`parent_serial >= seal_serial`) rejects every submission whose parent sits in the locked portion. All extensions of `v_{seal-1}` / `v_{d-1}` return `SiblingLocked`. The pre-seal verifiability guarantee (per [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability)) is what makes this rejection sound: the chain segment at-or-below the seal stays structurally trustworthy regardless of subsequent above-seal disruption.
+- **Decommissioned.** Fully terminal. A local submission extends the chain's tip — the `Dec` — so its parent kind is `Dec` and the kind-schema rule rejects it with `KelDecommissioned` (see [`merge.md` §Routing order](merge.md#routing-order) rule 1). The distinct **sibling-to-`Dec`** case — a competing event sharing the `Dec`'s parent, which arises in cross-node races rather than local tip-extension — is rejected by the seal-cap with `SiblingLocked` (see [§Matrix 3](#matrix-3-race-matrix)). Federation races between concurrent competing privileged submissions resolve at the federation-witnessing layer.
 
 ### Batch submissions
 
@@ -78,14 +78,14 @@ When node A propagates a KEL to node B, the transfer reads from A's local chain 
 
 | Source | Sink: Empty | Sink: Active (surviving) | Sink: Active (alternate) | Sink: Divergent | Sink: Decommissioned |
 |---|---|---|---|---|---|
-| **Active** | Full chain appended ✓ | Duplicates; no-op ✓ | Overlap → Divergence | `RecoverRequired` | `ParentLocked` |
-| **Recovered** | Full clean chain ✓ | `Rec` + optional `Rot` append ✓ | Overlap → `Rec` in batch → Recovery ✓ | `RecoverRequired` (sink awaiting recovery) | `ParentLocked` |
-| **Divergent (unrecovered)** | Reordered: longer chain plus fork event ✓ | Fork event creates overlap → Divergence | Fork event creates overlap → Divergence | Effective SAIDs match (`hash_effective_said("divergent:{prefix}")`) ✓ | `ParentLocked` |
+| **Active** | Full chain appended ✓ | Duplicates; no-op ✓ | Overlap → Divergence | `RecoverRequired` | `SiblingLocked` |
+| **Recovered** | Full clean chain ✓ | `Rec` + optional `Rot` append ✓ | Overlap → `Rec` in batch → Recovery ✓ | `RecoverRequired` (sink awaiting recovery) | `SiblingLocked` |
+| **Divergent (unrecovered)** | Reordered: longer chain plus fork event ✓ | Fork event creates overlap → Divergence | Fork event creates overlap → Divergence | Effective SAIDs match (`hash_effective_said("divergent:{prefix}")`) ✓ | `SiblingLocked` |
 | **Decommissioned** | Full chain plus `Dec` ✓ | `Dec` appends ✓ | Overlap; `Dec` in chain ✓ | `RecoverRequired` | Effective SAIDs match (`Dec.said`) ✓ |
 
 ### Notes on cell routing
 
-- **Sink terminal state** (Decommissioned). Gossip ignored once the sink is terminal; the cell shows the error the sink returns. Federation-level convergence between a Decommissioned sink and an Active source (or any other state where the source has not retired) resolves at the federation-witnessing layer.
+- **Sink terminal state** (Decommissioned). The source branched before the sink's `Dec`, so its competing event shares the `Dec`'s parent — it is a **sibling to the `Dec`**, not a chain *from* the `Dec`. The seal-cap rejects it with `SiblingLocked`. (The `KelDecommissioned` diagnostic — a chain-from-`Dec`, parent kind `Dec` — arises for local tip-extension as in [Matrix 1](#matrix-1-local-submissions), not for gossiped chains, which never carry an event built on the sink's `Dec`.) Federation-level convergence between a Decommissioned sink and a non-retired source resolves at the federation-witnessing layer.
 - **Send-side partitioning** (Source: Divergent). The source partitions the chain into sub-batches the sink will accept under its routing rules. The structural requirement is on the sender: receive-side ordering can sort what arrived, but cannot fix composition problems where the sink's merge handler will reject a particular batch composition. See [`merge.md` §Gossip send-side partitioning](merge.md#gossip-send-side-partitioning) and [§Transfer ordering](#transfer-ordering) below.
 - **Divergent → Divergent sink.** Effective SAIDs match by construction (both compute the synthetic `hash_effective_said("divergent:{prefix}")`). Full anti-entropy may reconcile any missing branch events even when SAIDs already match.
 - **Cross-node priv-vs-priv races.** When the source and sink hold different competing privileged events at the same serial, the seal-cap rejects each peer's gossip-arriving event. Federation-level convergence resolves at the federation-witnessing layer via divergent witness receipts — see [§Matrix 3](#matrix-3-race-matrix).
@@ -118,7 +118,7 @@ Concurrent priv-vs-priv races between federation peers — both submitting privi
 The race participants — any pairing across `{Rec, Ror, Rot, Fed, Dec}` — produce identical structural outcomes per-node:
 
 - Each node keeps its locally-landed first-receive.
-- The gossip-arriving competing event is rejected by the seal-cap with `ParentLocked`. On the Dec'd side the rejection is identical — a Decommissioned chain is sealed at its `Dec`, so the seal-cap rejects per [§Forks are Seal-Bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
+- The gossip-arriving competing event is rejected by the seal-cap with `SiblingLocked`. On the Dec'd side the rejection is identical — a Decommissioned chain is sealed at its `Dec`, so the seal-cap rejects per [§Forks are Seal-Bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 - Federation-level convergence runs at the federation-witnessing layer.
 
 ### Worked race: `Dec` versus `Ror` / `Dec` at `v_d`
@@ -141,12 +141,12 @@ Gossip propagates:
 
   Node A (Decommissioned at v_d via dec) receives ror_alt:
     ror_alt.parent_serial = d-1 < seal_serial = d
-    → rejected by seal-cap with ParentLocked (chain sealed at its dec).
+    → rejected by seal-cap with SiblingLocked (chain sealed at its dec).
     Node A state unchanged: Decommissioned.
 
   Node B (Active at v_d via ror_alt) receives dec:
     dec.parent_serial = d-1 < seal_serial = d
-    → rejected by seal-cap with ParentLocked.
+    → rejected by seal-cap with SiblingLocked.
     Node B state unchanged: Active with ror_alt as tip.
 
   Effective SAIDs:
@@ -191,7 +191,7 @@ Pre-state (linear chain through v_N):
 A recovery-key holder submits rec with previous = v_N.said (dual-sig satisfied):
   v_0 → ... → v_N → rec_x  (v_{N+1}; seal advances to N+1)
 
-Effect: chain stays linear; seal advances to N+1; recovery key now spent for this chain. A privileged event extending v_N.said arriving via gossip is rejected at merge per invariant 4 — its acceptance would create a divergent set containing a privileged event. Cross-node priv-vs-priv races resolve at the federation-witnessing layer. Competing Rec against v_N is rejected by the locked-portion bound; non-privileged extensions submitted at serial ≤ N+1 are rejected with ParentLocked (seal-cap).
+Effect: chain stays linear; seal advances to N+1; recovery key now spent for this chain. A privileged event extending v_N.said arriving via gossip is rejected at merge per invariant 4 — its acceptance would create a divergent set containing a privileged event. Cross-node priv-vs-priv races resolve at the federation-witnessing layer. Competing Rec against v_N is rejected by the locked-portion bound; non-privileged extensions submitted at serial ≤ N+1 are rejected with SiblingLocked (seal-cap).
 ```
 
 ### 2. Multiple competing non-privileged events injected across nodes

@@ -22,7 +22,7 @@ A KEL is in exactly one of three states on any given node. State is computed fro
 |---|---|---|
 | **Active** | Linear chain; the current tip extends cleanly via `previous`. | Yes — `Ixn`, `Rot`, `Ror`, `Rec`, `Fed`, `Dec` per their respective authorization and seal-cap requirements. |
 | **Divergent** | Two non-privileged events (`Ixn`-`Ixn`) at the same serial sharing a common `previous`. Privileged events that would create or join a divergent set are rejected at the merge layer per [§Privileged Divergence is Terminal](../../../../protocol-doctrine.md#privileged-divergence-is-terminal). | `Rec` only (archives one branch; chain returns to Active). |
-| **Decommissioned** | Linear chain terminated by `Dec`. The `Dec` event sits at the chain's tip; the seal sits at the `Dec`'s serial. | None. All submissions rejected by the seal-cap. |
+| **Decommissioned** | Linear chain terminated by `Dec`. The `Dec` event sits at the chain's tip; the chain is sealed at the `Dec`'s serial. | None. A sibling to the `Dec` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`). |
 
 State names are precise and not interchangeable. "Divergent" describes a chain shape (two events at the same serial); "federation-irreconcilable" — surfaced at the federation layer via divergent witness receipts (see [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)) — is a federation-layer property, not a per-node chain state.
 
@@ -46,7 +46,7 @@ The membership sets diverge. `Rot` advances the seal without revealing the recov
 The **locked portion** of a KEL is the segment at-or-below `lastSealAdvancingEvent`. Events in this segment are structurally immutable within the chain:
 
 - `Rec` cannot target the locked portion. The repair-event bound (condition 2b in [§Privileged Divergence is Terminal](../../../../protocol-doctrine.md#privileged-divergence-is-terminal)) requires `Rec.previous.serial ≥ seal_serial`.
-- New events submitted with `previous` pointing into the locked portion are rejected at the merge layer with `ParentLocked`.
+- New events submitted with `previous` pointing into the locked portion are rejected at the merge layer with `SiblingLocked`.
 - The seal-cap's role is to deny revival attacks: a party holding stale authority (a recovery preimage already revealed by an earlier `Rec` / `Ror` / `Fed`, or a key that has since been rotated out) cannot construct an event targeting the locked portion to rearrange the chain. Only current authority gates further extension.
 
 ### Pre-seal verifiability
@@ -83,7 +83,7 @@ The structural rules above produce three lifecycle paths per node.
 
 - **Active extension.** Each new event extends the linear chain via `previous = tip.said`. Seal-advancing kinds (`Rec` / `Ror` / `Rot` / `Fed`) advance `lastSealAdvancingEvent` to their own serial; non-seal-advancing kinds (`Ixn`) leave the seal where it was.
 - **Divergence and recovery.** Two `Ixn` events at the same serial form a divergent set; `Rec` archives the discriminator-losing branch and returns the chain to Active. The archival window is bounded by the seal-advance cap and fits in one page. See [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a `Rec` can attach.
-- **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes Decommissioned. The seal does not advance (`Dec` is terminal), and the seal-cap rejects every subsequent submission. Past content keeps its meaning under the locked-portion bound.
+- **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes Decommissioned. `Dec` is not a seal-advancing kind in the `lastSealAdvancingEvent` tracking sense, but its terminality seals the chain at its serial. Subsequent submissions are rejected by two independent mechanisms — the seal-cap rejects a sibling to the `Dec`; the kind-schema rule rejects a submission chaining from the `Dec` (see [`merge.md` §Routing order](merge.md#routing-order)). Past content keeps its meaning under the locked-portion bound.
 
 Cross-node priv-vs-priv races — two federation nodes accepting different privileged events at the same serial via independent linear-chain extensions — are not a per-node state. Each node's seal-cap rejects the gossip-arriving competing event; the federation surfaces the disagreement via divergent witness receipts at the federation layer. See [`recovery.md` §Cross-node priv-vs-priv races](recovery.md#cross-node-priv-vs-priv-races), [§Limit of the doctrine — concurrent privileged event races](../../../../protocol-doctrine.md#concurrent-privileged-event-races), and [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
 
