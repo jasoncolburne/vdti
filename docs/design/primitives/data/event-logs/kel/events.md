@@ -12,7 +12,7 @@ For chain lifecycle (states, locked-portion bound, page model), see [`log.md`](l
 | `Icp` | `vdti/kel/v1/events/icp` | inception | 1 | Standard inception (member or end-user KEL) bound to an existing federation. |
 | `Ixn` | `vdti/kel/v1/events/ixn` | content | 1 | Interaction. Hosts tier-1 anchors. Does not change keys. |
 | `Rot` | `vdti/kel/v1/events/rot` | privileged | 2 | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. |
-| `Ror` | `vdti/kel/v1/events/ror` | privileged | 3 | Rotate-recovery. May host tier-3 anchors. Dual-signed; proactively rotates both signing and recovery keys. |
+| `Ror` | `vdti/kel/v1/events/ror` | privileged | 3 | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. |
 | `Fed` | `vdti/kel/v1/events/fed` | privileged | 3 | Federation-binding mutation. Dual-signed; founder binding (v=1 after `Fcp`), inter-federation re-binding (v>1), or witness-params update. Must change at least one of (federation binding, witness params). |
 | `Rec` | `vdti/kel/v1/events/rec` | archiving | 3 | Recovery. Dual-signed; resolves a divergent chain by archiving the discriminator-losing branch. |
 | `Dec` | `vdti/kel/v1/events/dec` | privileged | 3 | Decommission. Dual-signed; terminal event ending the chain on a clean linear landing. |
