@@ -10,9 +10,9 @@ This doc states the chain primitive: prefix derivation, the three-state per-node
 
 A KEL inception event is a [prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): the prefix and SAID are derived via two separate Blake3-256 hashes over the canonical bytes. The prefix commits to the **whole inception SAD content** with both `said` and `prefix` blanked to the fixed-value placeholder; the SAID then commits to the same SAD with `prefix` populated and only `said` blanked.
 
-Whole-content prefix commitment means an inception event's `publicKey`, `rotationHash`, `recoveryHash`, kind discriminator, and `anchors` (the federation binding, plus the delegator at `anchors[1]` for `Dip`) are all bound into the prefix. Two distinct inception events cannot share a prefix without producing a Blake3-256 collision. Subsequent events inherit the inception's `prefix` and derive only `said`.
+Whole-content prefix commitment means an inception event's `publicKey`, `rotationHash`, `recoveryHash`, kind discriminator, and `anchors` (the federation binding, when present) are all bound into the prefix. Two distinct inception events cannot share a prefix without producing a Blake3-256 collision. Subsequent events inherit the inception's `prefix` and derive only `said`.
 
-KEL inception is dispatched by **kind** at v=0 — see [`events.md` §Three-kind inception](events.md#three-kind-inception). The kind determines whether the chain is pre-federation (`Fcp`), federation-bound from inception (`Icp`), or delegated under another KEL (`Dip`). The verifier dispatches structural behavior on the kind; consumer trust composes through the [trusted federation `Fcp` SAID set](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
+KEL inception is dispatched by **kind** at v=0 — see [`events.md` §Two-kind inception](events.md#two-kind-inception). The kind determines whether the chain is pre-federation (`Fcp`) or federation-bound from inception (`Icp`). The verifier dispatches structural behavior on the kind; consumer trust composes through the [trusted federation `Fcp` SAID set](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 
 ## Three-state per-node machine
 
@@ -93,7 +93,7 @@ KEL's contribution to end-verifiability over data-from-any-source is two structu
 
 ## Cross-references
 
-- [`events.md`](events.md) — per-kind reference: three-kind inception, privileged and non-privileged kinds, three-tier capability model, anchor requirements, seal-advance cap.
+- [`events.md`](events.md) — per-kind reference: two-kind inception, privileged and non-privileged kinds, three-tier capability model, anchor requirements, seal-advance cap.
 - [`merge.md`](merge.md) — merge handler routing: routing order, outcomes, locked-portion enforcement.
 - [`recovery.md`](recovery.md) — recovery doctrine: three-tier compromise model, dual-signature defense, pre-seal verifiability.
 - [`verification.md`](verification.md) — verifier walk algorithm, kind dispatch at inception, signature verification, anchor checking.

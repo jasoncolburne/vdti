@@ -66,7 +66,7 @@ The event's `(parent_said, serial)` is checked against the chain's existing even
 
 For events admitted past rule 3, kind-specific authorization fires:
 
-- **Single-sig signature verification** for `Ixn` / `Rot` / `Fcp` / `Icp` / `Dip` against the appropriate key (current signing key for `Ixn`; new signing key revealed by `rotationHash` preimage for `Rot`; declared `publicKey` for inception kinds).
+- **Single-sig signature verification** for `Ixn` / `Rot` / `Fcp` / `Icp` against the appropriate key (current signing key for `Ixn`; new signing key revealed by `rotationHash` preimage for `Rot`; declared `publicKey` for inception kinds).
 - **Dual-sig signature verification** for `Ror` / `Fed` / `Rec` / `Dec` against the parent's `rotationHash` AND `recoveryHash` commitments.
 - **Forward-key commitment checks** for establishment events (see [`events.md` §Forward-key commitments](events.md#forward-key-commitments)).
 - **Seal-advance cap enforcement** — between successive seal-advancing events the count of non-seal-advancing events must not exceed `MINIMUM_PAGE_SIZE − 2 = 62`. See [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
@@ -97,7 +97,7 @@ A privileged event extending `v_{d-1}` (rather than the tip) is not a normal app
 
 ### New KEL
 
-The submitted events start from inception (`previous` is absent on the first event) and no KEL exists yet for the prefix. The verifier walks from inception via [`KelVerifier::new`](verification.md#constructors), runs the inception kind dispatch (Fcp / Icp / Dip), and inserts. Outcome: **Accepted**.
+The submitted events start from inception (`previous` is absent on the first event) and no KEL exists yet for the prefix. The verifier walks from inception via [`KelVerifier::new`](verification.md#constructors), runs the inception kind dispatch (Fcp / Icp), and inserts. Outcome: **Accepted**.
 
 ### Full path (divergence, recovery, overlap)
 

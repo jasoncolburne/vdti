@@ -1,6 +1,6 @@
 # KEL Events — Per-Kind Reference
 
-Per-kind structural reference for the KEL event taxonomy: nine event kinds across three inception variants, two non-archiving extension kinds, two recovery-revealing kinds, one federation-mutation kind, and one terminal kind. This doc states the per-kind fields, authorization, anchor relationships, the three-tier capability model, and the seal-advance cap.
+Per-kind structural reference for the KEL event taxonomy: eight event kinds across two inception variants, two non-archiving extension kinds, two recovery-revealing kinds, one federation-mutation kind, and one terminal kind. This doc states the per-kind fields, authorization, anchor relationships, the three-tier capability model, and the seal-advance cap.
 
 For chain lifecycle (states, locked-portion bound, page model), see [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For recovery doctrine, [`recovery.md`](recovery.md). For the verifier walk, [`verification.md`](verification.md).
 
@@ -10,7 +10,6 @@ For chain lifecycle (states, locked-portion bound, page model), see [`log.md`](l
 |---|---|---|---|---|
 | `Fcp` | `vdti/kel/v1/events/fcp` | inception | special | Founder pre-federation inception (no federation exists yet). |
 | `Icp` | `vdti/kel/v1/events/icp` | inception | special | Standard inception (member or end-user KEL) bound to an existing federation. |
-| `Dip` | `vdti/kel/v1/events/dip` | inception | special | Delegated inception. Same shape as `Icp` plus a delegator declared at `anchors[1]`. |
 | `Ixn` | `vdti/kel/v1/events/ixn` | content | 1 | Interaction. Hosts tier-1 anchors. Does not change keys. |
 | `Rot` | `vdti/kel/v1/events/rot` | privileged | 2 | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. |
 | `Ror` | `vdti/kel/v1/events/ror` | privileged | 3 | Rotate-recovery. May host tier-3 anchors. Dual-signed; proactively rotates both signing and recovery keys. |
@@ -20,30 +19,19 @@ For chain lifecycle (states, locked-portion bound, page model), see [`log.md`](l
 
 The **class** column names the event's chain-state effect on its own chain when its landing would create or join a divergent set (per [§Event-class taxonomy](../../../../protocol-doctrine.md#event-class-taxonomy)). The **tier** column names which key material is required to forge the event — see [§Three-tier capability model](#three-tier-capability-model) below.
 
-## Three-kind inception
+## Two-kind inception
 
-KEL inception is one of three structurally distinct kinds dispatched by the kind discriminator at v=0. The kind determines whether the chain is pre-federation or federation-bound, what witnessing applies, and whether the chain may serve as a federation member.
+KEL inception is one of two structurally distinct kinds dispatched by the kind discriminator at v=0. The kind determines whether the chain is pre-federation or federation-bound, and what witnessing applies. KEL is concerned with key state only; delegation is an identity-layer concern handled at the IEL primitive (see [`../iel/`](../iel/)), not a KEL inception kind.
 
 | Kind | When used | `anchors` at v=0 | Witness params at v=0 | Eligible as federation member |
 |---|---|---|---|---|
 | `Fcp` | Founder pre-federation inception (no federation exists yet). | absent / empty | forbidden | yes — founder KELs become federation-bound via `Fed` at v=1 in the bootstrap atomic batch. |
 | `Icp` | Standard inception (member or end-user KEL) under an existing federation. | `[federation_iel_said]` | required | yes. |
-| `Dip` | Delegated inception. The chain declares its delegator as `anchors[1]`; the delegator's KEL anchors the inception. | `[federation_iel_said, delegator_kel_prefix]` | required | **no** — see [§No-Dip-federation-member rule](#no-dip-federation-member-rule). |
 
 The verifier dispatches at v=0 on kind:
 
 - `Fcp` → pre-federation chain. No witnessing applies until a subsequent `Fed` at v=1 declares federation binding. The federation Fcp itself is brought into existence in the same atomic bootstrap batch (see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
-- `Icp` / `Dip` → federation-bound from inception. `anchors[0]` declares which federation (it is the federation IEL SAID — see [§Anchors](#anchors)); witness params declare the chain's witnessing policy.
-
-### No-Dip-federation-member rule
-
-A `Dip` event declares its delegator at `anchors[1]`; the delegator has structural authority over the delegate's KEL — the delegator can withhold or revoke the anchoring `Ixn` events that authorize the delegate. This authority lives **outside** the federation's `authPolicy` / `governancePolicy` surface, so a Dip-based federation member would appear peer-equal in the federation IEL's `authPolicy.identity_leaves` while being structurally subordinate to its delegator in a way the federation cannot see or govern.
-
-The constraint is verifier-enforced at federation IEL `Evl` time: an `Evl` that would add an identity IEL endorsing a `Dip`-based KEL to `authPolicy.identity_leaves` is rejected. End-user (non-member) KELs may be any of the three inception kinds; the constraint applies only to federation membership. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
-
-### Dip delegation resolution
-
-`Dip` declares its delegator at `anchors[1]`, captured into the verification token but not checked at submit time. The delegation relationship is verified at **policy-evaluation time** via a `Delegate(delegator)` policy node: any KEL whose `anchors[1]` equals `delegator` and which the delegator anchors (via an `Ixn` in the delegator's KEL) satisfies the node. The single-argument form (`Delegate(delegator)`) lets the delegator rotate their delegate fleet — decommission, replace, add — without changing any policy that references them.
+- `Icp` → federation-bound from inception. `anchors[0]` declares which federation (it is the federation IEL SAID — see [§Anchors](#anchors)); witness params declare the chain's witnessing policy.
 
 ## Per-kind field rules
 
@@ -55,7 +43,6 @@ The constraint is verifier-enforced at federation IEL `Evl` time: an `Evl` that 
 |---|---|---|---|---|---|---|
 | `Fcp` | `== 0` | forbidden | required | required | forbidden | required |
 | `Icp` | `== 0` | forbidden | required | required | forbidden | required |
-| `Dip` | `== 0` | forbidden | required | required | forbidden | required |
 | `Ixn` | `>= 1` | required | forbidden | forbidden | forbidden | forbidden |
 | `Rot` | `>= 1` | required | required | required | forbidden | forbidden |
 | `Ror` | `>= 1` | required | required | required | required | required |
@@ -63,7 +50,7 @@ The constraint is verifier-enforced at federation IEL `Evl` time: an `Evl` that 
 | `Rec` | `>= 1` | required | required | required | required | required |
 | `Dec` | `>= 1` | required | required | forbidden | required | forbidden |
 
-The forward-key commitment fields (`rotationHash`, `recoveryKey`, `recoveryHash`) drive the dual-signature mechanic — see [§Forward-key commitments](#forward-key-commitments). The `anchors` array and witness params are separate fields — see [§Anchors](#anchors) and [§Witness params](#witness-params). A `Dip`'s delegator is `anchors[1]`, not a standalone field.
+The forward-key commitment fields (`rotationHash`, `recoveryKey`, `recoveryHash`) drive the dual-signature mechanic — see [§Forward-key commitments](#forward-key-commitments). The `anchors` array and witness params are separate fields — see [§Anchors](#anchors) and [§Witness params](#witness-params).
 
 ### Anchors
 
@@ -79,7 +66,6 @@ The verifier dispatches the array's interpretation by event kind via per-kind po
 |---|---|---|---|
 | `Fcp` | absent / empty | 0 | — (pre-federation) |
 | `Icp` | `[federation_iel_said]` | exactly 1 | `[0]` federation binding |
-| `Dip` | `[federation_iel_said, delegator_kel_prefix]` | exactly 2 | `[0]` federation binding; `[1]` delegator |
 | `Fed` | `[federation_iel_said]` | exactly 1 | `[0]` federation binding |
 | `Ixn` | `[generic, ...]` | ≥ 1 | all generic; tier-1 host |
 | `Rot` | `[generic, ...]` | ≥ 0 | all generic; tier-2 host |
@@ -87,7 +73,7 @@ The verifier dispatches the array's interpretation by event kind via per-kind po
 | `Rec` | absent / empty | 0 | — |
 | `Dec` | absent / empty | 0 | — |
 
-**Identity-binding events (`Fcp` / `Icp` / `Dip` / `Fed`) are structural-only** — they carry exactly their binding declaration(s) and admit no generic batching, keeping binding declarations minimal. **Chain-extension events (`Ixn` / `Rot` / `Ror`) carry generic anchors** for batching. **Archival / terminal events (`Rec` / `Dec`) carry none** — `Rec`'s role is divergence resolution, `Dec` ends the chain; the protocol does not conflate anchor emission with the recovery or terminal primitives. Each event kind carries one explicit purpose; operators compose them rather than combining behaviors in a single event.
+**Identity-binding events (`Fcp` / `Icp` / `Fed`) are structural-only** — they carry exactly their binding declaration(s) and admit no generic batching, keeping binding declarations minimal. **Chain-extension events (`Ixn` / `Rot` / `Ror`) carry generic anchors** for batching. **Archival / terminal events (`Rec` / `Dec`) carry none** — `Rec`'s role is divergence resolution, `Dec` ends the chain; the protocol does not conflate anchor emission with the recovery or terminal primitives. Each event kind carries one explicit purpose; operators compose them rather than combining behaviors in a single event.
 
 A generic anchor is **any SAID** — an IEL event SAID, a SEL event SAID, a credential SAID, a policy SAID, a custody pointer, or any other content-addressable target. IEL/SEL anchoring is the canonical use case named at the cross-primitive layer ([§Anchor Tier Elevation](../../../../protocol-doctrine.md#anchor-tier-elevation)), but an `anchors` entry is generic; the KEL does not constrain what a generic SAID points at.
 
@@ -101,9 +87,9 @@ Witness params (`witnessThreshold`, `witnessSelectionSize`) declare the chain's 
 
 | Kind | Witness params |
 |---|---|
-| `Icp` / `Dip` | required (at inception) |
+| `Icp` | required (at inception) |
 | `Fed` | required |
-| `Rot` / `Ror` | inherited from the most-recent prior `Icp` / `Dip` / `Fed` |
+| `Rot` / `Ror` | inherited from the most-recent prior `Icp` / `Fed` |
 | `Fcp` / `Ixn` / `Rec` / `Dec` | forbidden |
 
 A `Fed` event **mutates federation context** and MUST change at least one of (federation binding, witness params); a `Fed` whose federation binding (`anchors[0]`) matches the chain's current binding AND whose witness params match the current params is a no-op and is rejected. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap ceremony, the founder Fed-at-v=1 pattern, and the inter-federation re-binding mechanics.
@@ -116,7 +102,6 @@ The **authorization** column names which signature(s) the verifier requires for 
 |---|---|---|
 | `Fcp` | new signing key (declared `publicKey`; self-authenticating against prefix derivation) | — |
 | `Icp` | new signing key (declared `publicKey`; self-authenticating against prefix derivation) | — |
-| `Dip` | new signing key (declared `publicKey`); delegator (`anchors[1]`) checked at policy-evaluation time | — |
 | `Ixn` | current signing key (most recent establishment's `publicKey`) | — |
 | `Rot` | new signing key revealed by `publicKey` (preimage of prior `rotationHash`) | — |
 | `Ror` | new signing key (preimage of prior `rotationHash`) | recovery key revealed by `recoveryKey` (preimage of prior `recoveryHash`) |
@@ -150,7 +135,7 @@ Establishment events (every kind except `Ixn`) commit one or both forward-key di
 
 | Kind | `rotationHash` | `recoveryHash` |
 |---|---|---|
-| `Fcp` / `Icp` / `Dip` | required | required |
+| `Fcp` / `Icp` | required | required |
 | `Rot` | required | forbidden (`Rot` does not change the recovery commitment) |
 | `Ror` / `Fed` / `Rec` | required | required |
 | `Dec` | forbidden (terminal) | forbidden (terminal) |
@@ -176,13 +161,12 @@ The merge layer orders events at the same serial deterministically by `(serial A
 |---|---|
 | `Fcp` | 0 |
 | `Icp` | 1 |
-| `Dip` | 2 |
-| `Ixn` | 3 |
-| `Rot` | 4 |
-| `Ror` | 5 |
-| `Fed` | 6 |
-| `Rec` | 7 |
-| `Dec` | 8 |
+| `Ixn` | 2 |
+| `Rot` | 3 |
+| `Ror` | 4 |
+| `Fed` | 5 |
+| `Rec` | 6 |
+| `Dec` | 7 |
 
 The ordering matters for adversarial-input diagnostics. Two competing `Ixn` events in a divergent fork get the same priority and break the tie by SAID — identical ordering across all nodes, so deduplication and divergence detection produce the same result on every node. The privileged sort priorities keep privileged events ordered after `Ixn` within a batch for consistent merge-layer evaluation: a batch ending in a privileged event whose landing would create or join a divergent set is rejected per [§Privileged Divergence is Terminal](../../../../protocol-doctrine.md#privileged-divergence-is-terminal); a clean linear-extension privileged event lands normally.
 
@@ -211,16 +195,6 @@ s0  kind=icp  publicKey=k0, rotationHash=h(k1), recoveryHash=h(r0),
 ```
 
 The Icp binds to an existing federation at v=0; its `anchors[0]` is the federation IEL SAID. End-user chains and post-bootstrap federation-member chains use this shape.
-
-### Delegated inception
-
-```
-s0  kind=dip  publicKey=k0, rotationHash=h(k1), recoveryHash=h(r0),
-              anchors=[federation_iel.said, delegator_kel_prefix],
-              witnessParams={threshold, selectionSize}
-```
-
-Acceptance: structural (SAID and prefix re-derive; signature by `k0`; `anchors` has exactly 2 entries) AND the delegator's KEL contains an `Ixn` anchoring the Dip's prefix. Verifiers check the delegator (`anchors[1]`) at policy-evaluation time per [§Dip delegation resolution](#dip-delegation-resolution).
 
 ### Normal lifecycle
 
@@ -268,5 +242,6 @@ After `Dec`, the chain is fully terminal. Two independent merge-layer mechanisms
 - [`verification.md`](verification.md) — verifier algorithm and kind dispatch.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — anchor tier elevation, event-class taxonomy, forks-are-seal-bounded, privileged-divergence-is-terminal, KEL inception.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
+- [`../iel/`](../iel/) — IEL primitive (subsequent sub-issue). Delegation is an identity-layer concern and lives here (delegated IEL inception; declare / rescind delegation); the `Delegate(delegator)` policy node operates on IEL prefixes, not KEL prefixes.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation witnessing (subsequent sub-issue).
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation bootstrap atomic batch (subsequent sub-issue).
