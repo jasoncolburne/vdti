@@ -68,7 +68,7 @@ KEL inception is one of two kinds — `Fcp`, `Icp` (see [`events.md` §Two-kind 
 | `Fcp` | empty | Pre-federation chain. No federation binding; no witnessing applies. The chain must be followed by a `Fed` event at v=1 to enter the federation-bound lifecycle (founder bootstrap). |
 | `Icp` | `[federation_iel_said]` | Federation-bound chain. The verifier reads `anchors[0]` as the federation context and records it per event; witnessing applies per the inherited witness params. |
 
-The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the carve-out from chain data alone rather than consulting consumer configuration. Consumer trust composes through the [trusted federation `Fcp` SAID set](../../../../protocol-doctrine.md#federation-witnessing-in-verification) as a separate trust decision.
+The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the carve-out from chain data alone rather than consulting consumer configuration. Consumer trust composes through the [trusted federation prefixes](../../../../protocol-doctrine.md#federation-witnessing-in-verification) as a separate trust decision.
 
 ### Anchor-list dispatch
 
@@ -254,11 +254,11 @@ A federation node that is **not** sort-selected as a witness for event `E` MUST 
 
 IEL and SEL events do not carry a federation context field; they inherit federation context via their KEL anchors. KEL is the leaf of trust composition: each IEL or SEL leaf-anchor check resolves to a KEL event, which carries the federation context declared in the most-recent `Fcp` / `Icp` / `Fed` at-or-before that anchor's serial. The KEL token surfaces `federation_context_per_event` so cross-chain verifiers can apply the right federation state per anchor.
 
-### Trust composition through trusted federation `Fcp` SAIDs
+### Trust composition through trusted federation prefixes
 
-For each event the verifier walks the chain's current federation context back to the federation IEL's `Fcp`. If the `Fcp` SAID is in the verifier's trusted set (compile-time-baked + runtime override), the federation is trusted for that event. Multi-federation chains (KELs that have transferred federations via `Fed` events) require each federation in the chain's history to be independently in the verifier's trusted set — no transitive trust. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent sub-issue).
+For each event the verifier walks the chain's current federation context back to the federation IEL's `Fcp`. If the federation's prefix is among the trusted prefixes (compile-time-baked + runtime override), the federation is trusted for that event. Multi-federation chains (KELs that have transferred federations via `Fed` events) require each federation in the chain's history to be independently trusted — no transitive trust. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent sub-issue).
 
-Consumers refuse to bind under `divergent = true` (federation cannot agree at this position) or `witnessed = false` (insufficient attestation), and consult the trusted federation `Fcp` SAID set as the trust ground. Anchors at serials strictly below the federation-divergent serial remain canonical per [§Pre-seal verifiability](../../../../protocol-doctrine.md#pre-seal-verifiability).
+Consumers refuse to bind under `divergent = true` (federation cannot agree at this position) or `witnessed = false` (insufficient attestation), and consult the trusted federation prefixes as the trust ground. Anchors at serials strictly below the federation-divergent serial remain canonical per [§Pre-seal verifiability](../../../../protocol-doctrine.md#pre-seal-verifiability).
 
 ## Streaming
 
@@ -332,4 +332,4 @@ The walker is single-pass forward; generation-aligned page boundaries mean a div
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
 - [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; stability under extension.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation witnessing mechanics (subsequent sub-issue).
-- [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation bootstrap and trusted federation `Fcp` SAID set (subsequent sub-issue).
+- [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation bootstrap and trusted federation prefixes (subsequent sub-issue).

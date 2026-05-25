@@ -23,7 +23,7 @@ Credentials are verifiable claims issued under policies anchored in KELs and IEL
 
 ## End-verifiability
 
-Any verifier, given **data from any source** plus the **trusted federation set** (compile-time-baked, runtime-overridable), can determine system-wide state — including which prefixes are divergent, decommissioned, or irreconcilable. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
+Any verifier, given **data from any source** plus the **trusted federation prefixes** (compile-time-baked, runtime-overridable), can determine system-wide state — including which prefixes are divergent, decommissioned, or irreconcilable. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
 
 This is the property that justifies the architecture. **End-verifiability over data-from-any-source** is what differentiates VDTI from systems that require trusted-watcher infrastructure to infer system state.
 

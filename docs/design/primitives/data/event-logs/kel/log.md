@@ -12,7 +12,7 @@ A KEL inception event is a [prefix-deriving SAD](../../sad/said.md#chain-incepti
 
 Whole-content prefix commitment means an inception event's `publicKey`, `rotationHash`, `recoveryHash`, kind discriminator, and `anchors` (the federation binding, when present) are all bound into the prefix. Two distinct inception events cannot share a prefix without producing a Blake3-256 collision. Subsequent events inherit the inception's `prefix` and derive only `said`.
 
-KEL inception is dispatched by **kind** at v=0 — see [`events.md` §Two-kind inception](events.md#two-kind-inception). The kind determines whether the chain is pre-federation (`Fcp`) or federation-bound from inception (`Icp`). The verifier dispatches structural behavior on the kind; consumer trust composes through the [trusted federation `Fcp` SAID set](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
+KEL inception is dispatched by **kind** at v=0 — see [`events.md` §Two-kind inception](events.md#two-kind-inception). The kind determines whether the chain is pre-federation (`Fcp`) or federation-bound from inception (`Icp`). The verifier dispatches structural behavior on the kind; consumer trust composes through the [trusted federation prefixes](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 
 ## Three-state per-node machine
 
