@@ -212,7 +212,7 @@ The repair-event bound (condition 2b) together with the merge-layer's rejection 
 
 No primitive has a dedicated termination-by-contest event. The event taxonomies are:
 
-- **KEL**: `Fcp`, `Icp`, `Dip`, `Rot`, `Ixn`, `Rec`, `Ror`, `Fed`, `Dec`.
+- **KEL**: `Fcp`, `Icp`, `Rot`, `Ixn`, `Rec`, `Ror`, `Fed`, `Dec`.
 - **IEL**: `Fcp`, `Icp`, `Evl`, `Dec`.
 - **SEL**: `Icp`, `Est`, `Upd`, `Sea`, `Rpr`, `Dec`.
 
@@ -270,7 +270,7 @@ The protocol's events fall into orthogonal axes: **class** (chain-state effect w
 | KEL | `Ixn` | content | 1 | hosts tier-1 anchors |
 | KEL | `Rot` | privileged | 2 | hosts tier-2 anchors |
 | KEL | `Ror` | privileged | 3 | hosts tier-3 anchors (and satisfies tier-2 anchor requirements per [§Anchor Tier Elevation](#anchor-tier-elevation)) |
-| KEL | `Fed` | privileged | 3 | federation-binding mutation (founder binding, re-binding, or witness-params update); hosts tier-3 anchors |
+| KEL | `Fed` | privileged | 3 | federation-binding mutation (founder binding, re-binding, or witness-params update); carries the federation binding at `anchors[0]` — not a generic-anchor host |
 | KEL | `Rec` | archiving | 3 | — |
 | KEL | `Dec` | privileged | 3 | — |
 | IEL | `Evl` | privileged | 2 | requires tier-2-capable KEL anchor per member |
@@ -385,17 +385,14 @@ The verifier itself accepts any threshold ≥ 1: single-KEL policies are protoco
 
 #### KEL Inception
 
-KEL inception is one of three structurally distinct kinds, dispatched by the kind discriminator at v=0. The kind determines whether the chain is pre-federation or federation-bound, whether the chain may be a federation member, and what witnessing applies.
+KEL inception is one of two structurally distinct kinds, dispatched by the kind discriminator at v=0. The kind determines whether the chain is pre-federation or federation-bound and what witnessing applies. KEL is concerned with key state only; delegation is an identity-layer concern handled at the IEL primitive (see [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/)), not a KEL inception kind.
 
-| Kind | When used | Anchor at v=0 | Witness params at v=0 | Eligible as federation member |
-|------|----------|---------------|----------------------|------------------------------|
-| `Fcp` | Founder pre-federation inception (no federation exists yet) | forbidden | forbidden | yes — founder KELs become federation-bound via `Fed` at v=1 in the bootstrap atomic batch |
-| `Icp` | End-user federated inception | required (= federation IEL SAID) | required | yes |
-| `Dip` | Delegated end-user inception (delegator declared via `delegatingPrefix`) | required (= federation IEL SAID) | required | **no** |
+| Kind | When used | `anchors` at v=0 | Witness params at v=0 |
+|------|----------|------------------|----------------------|
+| `Fcp` | Founder pre-federation inception (no federation exists yet) | absent / empty | forbidden |
+| `Icp` | Standard inception (member or end-user KEL) under an existing federation | `[federation_iel_said]` | required |
 
-**No-Dip-federation-member rule.** A `Dip` event declares a `delegatingPrefix`; the delegator has structural authority over the delegate's KEL — it can withhold or revoke anchors, neutralizing the delegate. This authority lives **outside** the federation's `authPolicy` / `governancePolicy` surface, so a Dip-based federation member would appear peer-equal in the federation IEL's `authPolicy.identity_leaves` while being structurally subordinate to its delegator in a way the federation cannot see or govern. The constraint is **verifier-enforced at federation IEL `Evl` time**: an `Evl` that would add an identity IEL endorsing a `Dip`-based KEL to `authPolicy.identity_leaves` is rejected. End-user (non-member) KELs may be any of the three inception kinds; the constraint applies only to federation membership. See [`federation/bootstrap.md`](federation/bootstrap.md).
-
-**Fed event.** A separate `Fed` event kind (tier-3, dual-signed; seal-advancing and recovery-revealing) is the federation-binding mutation event. Three use cases: founder binding at v=1 after `Fcp` at v=0 (declares `anchor = federation_fcp.said`); re-binding at v > 1 (inter-federation transfer, subject to the "members cannot re-bind while members" constraint); params-only update (changes `witness_threshold` / `witness_selection_size` without changing federation). A `Fed` event MUST change at least one of (federation anchor, witness params); a no-op `Fed` is rejected. See [`federation/bootstrap.md`](federation/bootstrap.md) for the bootstrap ceremony, re-binding mechanics, and federation membership vs federation binding distinction.
+**Fed event.** A separate `Fed` event kind (tier-3, dual-signed; seal-advancing and recovery-revealing) is the federation-binding mutation event. Three use cases: founder binding at v=1 after `Fcp` at v=0 (declares `anchors = [federation_fcp.said]`); re-binding at v > 1 (inter-federation transfer, subject to the "members cannot re-bind while members" constraint); params-only update (changes `witness_threshold` / `witness_selection_size` without changing federation). A `Fed` event MUST change at least one of (federation binding, witness params); a no-op `Fed` is rejected. See [`federation/bootstrap.md`](federation/bootstrap.md) for the bootstrap ceremony, re-binding mechanics, and federation membership vs federation binding distinction.
 
 **Trusted federation `Fcp` SAID set.** Consumer-side trust composes from a configured set of trusted federation IEL `Fcp` SAIDs (compile-time-baked + runtime override). For each event the verifier walks back to the federation IEL's `Fcp`; if the `Fcp` SAID is in the trusted set, the federation is trusted for that event. Multi-federation chains (KELs that have transferred federations via `Fed` events) require each federation in the chain's history to be independently in the consumer's trusted set — no transitive trust. See [`federation/bootstrap.md`](federation/bootstrap.md) for the trust-chain walk.
 
@@ -679,7 +676,7 @@ Federation witnessing surfaces in verification two ways: as the witnessed / dive
 
 **Acceptance gating for non-witnesses.** A federation node that is **not** sort-selected as a witness for event `E` MUST NOT accept `E` into the chain's live state until `E` has accumulated threshold receipts. Witness nodes accept `E` upon their own signing (direct evidence of structural validity and self-attestation). Non-witnesses hold `E` in deferred-pending state until receipts arrive via witness gossip.
 
-**Inheritance via anchor walk.** IEL and SEL events do not carry a federation context field; they inherit federation context via their KEL anchors. KEL is the leaf of trust composition. Each IEL / SEL leaf-anchor check resolves to a KEL event, which carries the federation context declared in the most-recent `Icp` / `Dip` / `Fed` at-or-before that anchor's serial. The IEL / SEL verifier consults the KEL token's `witnessed_anchors` set during policy satisfaction — only witnessed anchors count toward threshold.
+**Inheritance via anchor walk.** IEL and SEL events do not carry a federation context field; they inherit federation context via their KEL anchors. KEL is the leaf of trust composition. Each IEL / SEL leaf-anchor check resolves to a KEL event, which carries the federation context declared in the most-recent `Icp` / `Fed` at-or-before that anchor's serial. The IEL / SEL verifier consults the KEL token's `witnessed_anchors` set during policy satisfaction — only witnessed anchors count toward threshold.
 
 **Trust composition through trusted federation `Fcp` SAIDs.** For each event the verifier walks the chain's current federation context back to the federation IEL's `Fcp`. If the `Fcp` SAID is in the verifier's trusted set (compile-time-baked + runtime override), the federation is trusted for that event. Multi-federation chains (KELs that have transferred federations via `Fed` events) require each federation in the chain's history to be independently in the verifier's trusted set — no transitive trust. See [`federation/bootstrap.md`](federation/bootstrap.md).
 
