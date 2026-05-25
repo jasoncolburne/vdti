@@ -263,7 +263,7 @@ The verifier signals this via `policy_satisfied`: queries against SAIDs anchored
 
 The protocol's events fall into orthogonal axes: **class** (chain-state effect when landing in a divergent set) and **tier** (key material required to forge the anchor). The table below names every event kind across all three primitives; the structural pattern that emerges is cited from elsewhere in the doctrine.
 
-**Inception events** (KEL `Fcp` / `Icp` / `Dip`; IEL `Fcp` / `Icp`; SEL `Icp`) are structurally outside this classification — they have no parent, and prefix derivation forces unique chains. Enumerated in [§KEL Inception](#kel-inception).
+**Inception events** (KEL `Fcp` / `Icp`; IEL `Fcp` / `Icp`; SEL `Icp`) are structurally outside this classification — they have no parent, and prefix derivation forces unique chains. Enumerated in [§KEL Inception](#kel-inception).
 
 | Chain | Event | Class | Tier | Anchor relationship |
 |-------|-------|-------|------|---------------------|
@@ -324,13 +324,13 @@ KEL closes this surface intrinsically: KEL `Rec` / `Ror` / `Fed` / `Dec` are dua
 | 2 | Governance declaration or evolution; binding establishment; seal advance | `Rot` (or any tier-3 KEL event) | Rotation-key preimage (1 hidden preimage; committed by prior establishment) |
 | 3 | Recovery; terminal | `Ror` or `Fed` | Rotation-key preimage AND recovery-key preimage (2 hidden preimages; both committed by prior establishment) |
 
-**Tier-3 events satisfy tier-2 anchor requirements.** A tier-3 KEL event (`Ror` or `Fed`) reveals both the rotation preimage and the recovery preimage; either one already satisfies the rotation-preimage requirement that tier-2 anchoring is checking against. The verifier-side leaf-anchor check is *minimum-tier-capability*, not *exact-event-kind*: any KEL event of at-least the required capability tier matches. This matters at the bootstrap ceremony where founder `Fed` events at v=1 are the tier-2 anchors for the in-batch federation IEL `Fcp` (see [`federation/bootstrap.md`](federation/bootstrap.md)).
+**Tier-3 events satisfy tier-2 anchor requirements.** A tier-3 KEL event (`Ror` or `Fed`) reveals both the rotation preimage and the recovery preimage; either one already satisfies the rotation-preimage requirement that tier-2 anchoring is checking against. The verifier-side leaf-anchor check is *minimum-tier-capability*, not *exact-event-kind*: any KEL event of at-least the required capability tier matches.
 
 **Per-primitive anchor rules.**
 
 | IEL Event | Minimum anchor tier | Notes |
 |-----------|--------------------|-------|
-| `Fcp` | special — see notes | Federation IEL inception. Self-attesting at v=0 via the kind-dispatched verifier carve-out (pool source = `Fcp`'s own `authPolicy.identity_leaves`). Founder Fed events on founder KELs anchor the federation Fcp from the KEL side; see [`federation/bootstrap.md`](federation/bootstrap.md). |
+| `Fcp` | 3 | Federation IEL inception. Self-attesting at v=0 via the kind-dispatched verifier carve-out (pool source = `Fcp`'s own `authPolicy.identity_leaves`). Founder Fed events on founder KELs anchor the federation Fcp from the KEL side; see [`federation/bootstrap.md`](federation/bootstrap.md). |
 | `Icp` | 2 | Identity / other non-federation IEL inception. Anchored by tier-2-capable KEL event per contributing member. |
 | `Evl` | 2 | Anchored by tier-2-capable KEL event per contributing member. |
 | `Dec` | 3 | Anchored by tier-3-capable KEL event per contributing member. |

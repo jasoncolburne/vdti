@@ -8,8 +8,8 @@ For chain lifecycle (states, locked-portion bound, page model), see [`log.md`](l
 
 | Kind | Topic | Class | Tier | Purpose |
 |---|---|---|---|---|
-| `Fcp` | `vdti/kel/v1/events/fcp` | inception | special | Founder pre-federation inception (no federation exists yet). |
-| `Icp` | `vdti/kel/v1/events/icp` | inception | special | Standard inception (member or end-user KEL) bound to an existing federation. |
+| `Fcp` | `vdti/kel/v1/events/fcp` | inception | 1 | Founder pre-federation inception (no federation exists yet). |
+| `Icp` | `vdti/kel/v1/events/icp` | inception | 1 | Standard inception (member or end-user KEL) bound to an existing federation. |
 | `Ixn` | `vdti/kel/v1/events/ixn` | content | 1 | Interaction. Hosts tier-1 anchors. Does not change keys. |
 | `Rot` | `vdti/kel/v1/events/rot` | privileged | 2 | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. |
 | `Ror` | `vdti/kel/v1/events/ror` | privileged | 3 | Rotate-recovery. May host tier-3 anchors. Dual-signed; proactively rotates both signing and recovery keys. |
@@ -77,7 +77,7 @@ The verifier dispatches the array's interpretation by event kind via per-kind po
 
 A generic anchor is **any SAID** — an IEL event SAID, a SEL event SAID, a credential SAID, a policy SAID, a custody pointer, or any other content-addressable target. IEL/SEL anchoring is the canonical use case named at the cross-primitive layer ([§Anchor Tier Elevation](../../../../protocol-doctrine.md#anchor-tier-elevation)), but an `anchors` entry is generic; the KEL does not constrain what a generic SAID points at.
 
-`Fed`'s anchor is the federation binding, **not** a generic anchor. A chain that needs to both change federation and anchor a SAID uses two events — a `Fed` for the binding change plus an `Ixn` / `Rot` / `Ror` for the anchor. The bootstrap special case follows directly: founder `Fed` events anchor the federation IEL `Fcp` precisely because `Fed`'s federation-binding entry (= the federation IEL `Fcp` SAID) is itself an IEL event SAID, and a tier-3 `Fed` satisfies the federation IEL's tier-2 anchor requirement (see [§Tier-3 events satisfy tier-2 anchor requirements](#tier-3-events-satisfy-tier-2-anchor-requirements)). See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
+`Fed`'s anchor is the federation binding, **not** a generic anchor. A chain that needs to both change federation and anchor a SAID uses two events — a `Fed` for the binding change plus an `Ixn` / `Rot` / `Ror` for the anchor. The bootstrap special case follows directly: founder `Fed` events anchor the federation IEL `Fcp` precisely because `Fed`'s federation-binding entry (= the federation IEL `Fcp` SAID) is itself an IEL event SAID; Fed is structurally tier-3, matching the federation IEL `Fcp`'s tier-3 anchor requirement. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
 
 KEL verification validates anchor **format** only — each entry is a SAID-shaped token, and the count / positional schema above holds. Anchor **satisfaction** — what a SAID points to, and which tier-elevation rules apply — is downstream-verifier responsibility. Anchor *kind* and *tier* validation are cross-chain: IEL and SEL verifiers enforce them per [§Anchor Tier Elevation](../../../../protocol-doctrine.md#anchor-tier-elevation) when resolving policy satisfaction against KEL anchors.
 
@@ -96,7 +96,7 @@ A `Fed` event **mutates federation context** and MUST change at least one of (fe
 
 ## Authorization and signature shapes
 
-The **authorization** column names which signature(s) the verifier requires for the event to be accepted. Tier 1 events are single-signed by the current signing key; tier 2 events are single-signed by the new signing key the rotation preimage reveals; tier 3 events are dual-signed by the new signing key AND the recovery key.
+The **authorization** column names which signature(s) the verifier requires for the event to be accepted. Tier 1 events are single-signed by the signing key in effect at this chain position — declared by the event itself for inception (`Fcp` / `Icp`), inherited from the most recent prior establishment for `Ixn`. Tier 2 events are single-signed by the new signing key the rotation preimage reveals. Tier 3 events are dual-signed by the new signing key AND the recovery key.
 
 | Kind | Primary signature | Recovery signature |
 |---|---|---|
@@ -117,7 +117,7 @@ The **authorization** column names which signature(s) the verifier requires for 
 
 KEL events are classified by **tier** — the cryptographic material an adversary must hold to forge the event. The tier names the captured material, not the number of signatures on the event.
 
-- **Tier 1 — signing key alone.** Adversary holds the current signing key. They can land `Ixn`. No hidden preimage is revealed.
+- **Tier 1 — signing key alone.** Adversary holds the current signing key. They can land `Ixn`. Inception (`Fcp` / `Icp`) sits at tier 1 by signature shape — single-sig by the inception's declared signing key — but isn't a forge-target against an existing chain: the prefix derives from the whole-SAD-content (see [`log.md` §Prefix derivation](log.md#prefix-derivation)), so a specific prefix's inception cannot be forged without a Blake3-256 collision. No hidden preimage is revealed.
 - **Tier 2 — rotation-key preimage alone.** Adversary holds the preimage of the prior establishment's `rotationHash`. They can land `Rot`. The rotation preimage reveals what *becomes* the new signing key for `Rot`'s single signature — the old signing key is **not** a prerequisite for tier 2. Rotation exists precisely so an operator can recover when the old signing key is compromised; requiring the old signing key to authorize rotation would defeat the purpose.
 - **Tier 3 — rotation-key preimage AND recovery-key preimage.** Adversary holds both preimages: the preimage of the prior `rotationHash` AND the preimage of the prior `recoveryHash`. They can land `Ror` / `Fed` / `Rec` / `Dec`. The dual signature is over (new signing key revealed by the rotation preimage) + (recovery key revealed by the recovery preimage) — two signatures, two roles, neither requiring the old signing key.
 
@@ -127,7 +127,7 @@ The three tiers define the [anchor-tier-elevation surface](../../../../protocol-
 
 ### Tier-3 events satisfy tier-2 anchor requirements
 
-A tier-3 KEL event (`Ror` or `Fed`) reveals both the rotation preimage and the recovery preimage; either one already satisfies the rotation-preimage requirement that tier-2 anchoring is checking against. The verifier-side leaf-anchor check is **minimum-tier-capability**, not **exact-event-kind**: any KEL event of at-least the required capability tier matches. This matters at the bootstrap ceremony, where founder `Fed` events at v=1 are the tier-2 anchors for the in-batch federation IEL `Fcp`.
+A tier-3 KEL event (`Ror` or `Fed`) reveals both the rotation preimage and the recovery preimage; either one already satisfies the rotation-preimage requirement that tier-2 anchoring is checking against. The verifier-side leaf-anchor check is **minimum-tier-capability**, not **exact-event-kind**: any KEL event of at-least the required capability tier matches.
 
 ## Forward-key commitments
 
