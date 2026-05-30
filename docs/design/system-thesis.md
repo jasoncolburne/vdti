@@ -17,7 +17,7 @@ System state lives in **append-only chains of cryptographically-linked events** 
 - **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via authorization-policy and governance-policy declarations on its event chain. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. Each SEL binds at inception to an IEL prefix; auth resolves through that IEL.
 
-Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized; cross-federation interop is by user-initiated transfer rather than implicit trust.
+Federation is itself an identity, governed by a shared IEL. Membership is governed by the federation IEL's `policies["governance"]`; cross-federation interop is by user-initiated transfer rather than implicit trust.
 
 Credentials are verifiable claims issued under policies anchored in KELs and IELs; they permit access to resources based on authenticated identity.
 
