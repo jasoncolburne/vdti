@@ -2,7 +2,7 @@
 
 Canonical specification of vdti's policy DSL — the expression language used to encode authorization rules across the event-log primitives.
 
-A **policy** is a [SAD](sad/sad.md) whose content is a DSL expression. The IEL primitive references policies (governance and delegation); the SEL primitive references policies (governance); applications reference policies for their own authorization needs. The DSL is the language; Policy SADs are the storage format; the verifier evaluates DSL expressions against signed requests and the relevant chain state.
+A **policy** is a [SAD](sad/sad.md) whose content is a DSL expression. The IEL primitive references policies (governance, delegation, and authentication); the SEL primitive references policies (governance); applications reference policies for their own authorization needs. The DSL is the language; Policy SADs are the storage format; the verifier evaluates DSL expressions against signed requests and the relevant chain state.
 
 This doc states the surface (the primitives that make up the DSL), their semantics, and how composition works. It does not enumerate per-primitive doctrine (which lives in [`event-logs/event-shape.md`](event-logs/event-shape.md), the per-primitive specs, and [`../../protocol-doctrine.md`](../../protocol-doctrine.md)) and does not specify the verifier implementation algorithm (which lives in `lib/vdti` planning material).
 
@@ -10,7 +10,8 @@ This doc states the surface (the primitives that make up the DSL), their semanti
 
 Policies are referenced by Policy SAD SAIDs from chain-event fields:
 
-- **IEL `governance`** (required at inception; evolved via `Evl`) — gates IEL self-mutation events.
+- **IEL `governance`** (required at inception; evolved via `Evl`) — gates IEL self-mutation events (key rotation, policy/roster changes, decommission).
+- **IEL `authentication`** (required at inception; evolved via `Evl`) — the entity's act-as policy: what every `iel(prefix)` leaf (and each `mem` member) evaluates against. Outward-facing — it never gates the IEL's own chain events.
 - **IEL `delegation`** (optional at inception; evolved via `Evl`) — gates IEL delegation events (`Del` / `Rsc`).
 - **SEL `governance`** (declared at SEL `Icp`; evolved via SEL `Evl`) — gates SEL events (`Est` / `Ixn` / `Evl` / `Rpr` / `Dec`).
 - **Application-defined policy references** — applications may attach policy SAIDs to their own data structures (credentials, signed requests, custody SADs) following the same pattern.
@@ -32,7 +33,7 @@ and resolves to one `iel(member_i)` leaf per member of that class. It is only le
 composer's `[...]`**, where it flattens in place. The `[...]` is a concat container, so
 member-arrays and single expressions mix freely (`[mem(org, staff), kel(K)]` = org's staff
 members followed by `kel(K)`). Members are IELs (individuals are IELs; devices are KELs), so each
-flattened member authenticates via their own governance (`iel(mi)`), while the referencing policy
+flattened member authenticates via their own authentication policy (`iel(mi)`), while the referencing policy
 composes over them at the threshold/weights it chooses (see *Leaf semantics*). The grammar:
 
 ```
@@ -50,11 +51,12 @@ these primitives.
 ### Shape
 
 Take the policy `thr(2, [pol(A_said), iel(X_prefix), kel(Y_prefix)])`, where the nested
-policy `A_said` is `kel(A_prefix)` and IEL `X_prefix`'s governance is `kel(Y_prefix)`. The
-verifier *expands the whole graph* — descending through `pol()` and through each `iel`/`del`'s
-governance — to the *multiset* of prefixes it references: `{A_prefix, X_prefix, Y_prefix,
-Y_prefix}`. `Y_prefix` appears twice — once as the top-level `kel(Y_prefix)` branch, once
-reached through `X`'s governance — and each occurrence gets its own slot. The issuer pins one
+policy `A_said` is `kel(A_prefix)` and IEL `X_prefix`'s authentication is `kel(Y_prefix)`. The
+verifier *expands the whole graph* — descending through `pol()` and through each `iel`'s
+authentication (and each `del`'s delegating IEL) — to the *multiset* of prefixes it references:
+`{A_prefix, X_prefix, Y_prefix, Y_prefix}`. `Y_prefix` appears twice — once as the top-level
+`kel(Y_prefix)` branch, once reached through `X`'s authentication — and each occurrence gets its
+own slot. The issuer pins one
 SAID per prefix occurrence; satisfying 2 of the 3 top-level branches is enough to clear the
 threshold.
 
@@ -70,24 +72,24 @@ threshold.
 #### Pinning (evidence pins)
 
 Expanding `thr(2, [pol(A_said), iel(X_prefix), kel(Y_prefix)])` — descend through `pol()` and
-through each `iel`/`del` governance, taking one slot per prefix occurrence:
+through each `iel` authentication, taking one slot per prefix occurrence:
 
 ```
   thr(2)
   ├─ pol(A_said) ──▶ kel(A_prefix)        ▷ A_prefix   (pol → kel)
   ├─ iel(X_prefix)                         ▷ X_prefix   (the iel leaf itself)
-  │    └─ governance ──▶ kel(Y_prefix)     ▷ Y_prefix   (via X's governance)
+  │    └─ authentication ──▶ kel(Y_prefix) ▷ Y_prefix   (via X's authentication)
   └─ kel(Y_prefix)                         ▷ Y_prefix   (top-level branch)
 
   sort the occurrences into the pin multiset:
 
-    slot 0     slot 1     slot 2              slot 3
-    A_prefix   X_prefix   Y_prefix            Y_prefix
-    pol→kel    iel event  via X's governance  top-level kel
+    slot 0     slot 1     slot 2                  slot 3
+    A_prefix   X_prefix   Y_prefix                Y_prefix
+    pol→kel    iel event  via X's authentication  top-level kel
 ```
 
-`iel(X)` contributes two slots — its own (the IEL event) and `Y_prefix` from its governance —
-and `Y_prefix` lands twice, the via-governance occurrence ordered before the top-level one.
+`iel(X)` contributes two slots — its own (the IEL event) and `Y_prefix` from its authentication —
+and `Y_prefix` lands twice, the via-authentication occurrence ordered before the top-level one.
 
 A Pinning SAD carries `pins`: one `Option<Digest256>` per *prefix occurrence* in the expanded
 policy graph, with the prefixes held as a **sorted multiset** (a prefix reached through two
@@ -106,17 +108,17 @@ its position in the policy:
   anchoring event carries the credential, so its own SAID is unconstructable here (see the
   SAID-cycle note under *Verifier behavior*); the verifier resolves it as the unique child
   `S` where `S.previous == pin` and checks the credential anchor on `S`.
-- **iel prefix** → the SAID of the IEL event itself. This fixes the IEL's governance at that
-  state; satisfaction recurses into that governance, whose leaves carry their own pins. An
-  IEL event doesn't carry the credential anchor, so there's no cycle and no prior-event trick.
+- **iel prefix** → the SAID of the IEL event itself. This fixes the IEL's authentication at that
+  state; satisfaction recurses into that authentication policy, whose leaves carry their own pins.
+  An IEL event doesn't carry the credential anchor, so there's no cycle and no prior-event trick.
 - **del prefix** → the SAID of the *delegating* IEL's own event, fixing which delegation state
   the membership is tested against. The verifier walks that IEL's chain and confirms the
   delegate identifier (supplied by verifier context — in the credential flow, the issuer) is
-  currently in its delegated set. The delegate's own governance is *not* reached here: the
+  currently in its delegated set. The delegate's own authentication is *not* reached here: the
   delegate isn't named by the policy, so it's evidence-shaped and can't occupy a fixed, sortable
   slot. When a
   credential needs to prove both delegation and where it's anchored, the anchor rides in a
-  separate anchor pinning over the issuer's governance (see *Policies and Pinnings*).
+  separate anchor pinning over the issuer's authentication (see *Policies and Pinnings*).
 
 Pinning eliminates the verifier's search-for-evidence step — slot position names the prefix
 occurrence, the pinned SAID names the chain position — while the verifier still walks each
@@ -182,9 +184,9 @@ The public evaluation entry points are `evaluate_anchored_policy` (pinned, walks
 // token. A chain referenced by several pinnings is still walked once. The `anchor`
 // binding is the anchoring hop: gather records `expected_anchors` as the required-
 // anchor set on the ANCHOR CURSOR — every kel leaf reached under the issuer's
-// governance is an anchoring leaf (one chain each, several under a multi-KEL threshold).
+// authentication is an anchoring leaf (one chain each, several under a multi-KEL threshold).
 // Every other binding's cursor carries an empty required set, so an issuance-policy kel
-// leaf that names a chain the issuer's governance also reaches never inherits the
+// leaf that names a chain the issuer's authentication also reaches never inherits the
 // requirement. `satisfies_kel` reads the required set off the cursor it evaluates under
 // and the hosted anchors off the walked chain's token — the requirement is scoped to the
 // issuer's binding, never a property of the shared chain. Returns the bound per-leaf
@@ -262,9 +264,9 @@ pub fn evaluate_current_policy(
 ) -> Result<bool, PolicyError>;
 ```
 
-`evaluate_anchored_policy` returns `Ok(true)` iff the issuer is reached through the full delegation path AND the expected anchors are each hosted on the issuer's governance at its required tier or above AND no satisfying withdrawal anchor was found (see *Withdrawal*). `evaluate_current_policy` returns `Ok(true)` iff the provided signatures over `challenge` cover the policy's leaves at current chain state with the required tier. Both return `Ok(false)` for clean unsatisfied; `Err(_)` for malformed inputs / fetch failures.
+`evaluate_anchored_policy` returns `Ok(true)` iff the issuer is reached through the full delegation path AND the expected anchors are each hosted on the issuer's authentication at its required tier or above AND no satisfying withdrawal anchor was found (see *Withdrawal*). `evaluate_current_policy` returns `Ok(true)` iff the provided signatures over `challenge` cover the policy's leaves at current chain state with the required tier. Both return `Ok(false)` for clean unsatisfied; `Err(_)` for malformed inputs / fetch failures.
 
-The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: internally it builds the hop policies, calls `gather_evidence` once — walking each referenced chain a single time across *all* of the credential's pinnings — then folds the per-hop evaluations over that shared `Evidence`: one **delegation** hop per step (the **issuance pinning** confirms the first delegate; each subsequent hop's `del` pinning confirms the next), then one terminal **anchoring** hop over the issuer's `iel` (the **anchor pinning**) proving the cred is anchored on the issuer's governance (see *Policies and Pinnings*). Because every hop reads the shared `Evidence`, a chain referenced by several pinnings is still walked once. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it reuses the same delegation machinery over current chain state and then verifies the challenge signed under current state.
+The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: internally it builds the hop policies, calls `gather_evidence` once — walking each referenced chain a single time across *all* of the credential's pinnings — then folds the per-hop evaluations over that shared `Evidence`: one **delegation** hop per step (the **issuance pinning** confirms the first delegate; each subsequent hop's `del` pinning confirms the next), then one terminal **anchoring** hop over the issuer's `iel` (the **anchor pinning**) proving the cred is anchored on the issuer's authentication (see *Policies and Pinnings*). Because every hop reads the shared `Evidence`, a chain referenced by several pinnings is still walked once. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it reuses the same delegation machinery over current chain state and then verifies the challenge signed under current state.
 
 ### Policies and Pinnings
 
@@ -293,17 +295,18 @@ sized against a policy whose shape is known up front:
 - an **issuance pinning** over the server's issuance policy — proves *delegation* (the issuer is
   a current delegate of one of the delegating IELs);
 - an **anchor pinning** over the issuer's own **IEL**, `iel(dlg_prefix)` — proves the *anchor*
-  while binding identity to governance: the issuer's IEL names its governance KEL, and the
-  credential is anchored on that KEL at the required tier. Routing through the IEL (rather than
-  naming the governance KEL directly) is what ties the anchoring KEL to the *delegated*
-  identity — otherwise the issuer's governance would be an unbound, credential-supplied claim.
+  while binding identity to authentication: the issuer's IEL names its authentication KEL, and the
+  credential is anchored on that KEL at the required tier (issuing a credential is the issuer
+  acting *as* itself, so the anchor rides the authentication KEL). Routing through the IEL (rather
+  than naming the authentication KEL directly) is what ties the anchoring KEL to the *delegated*
+  identity — otherwise the issuer's authentication would be an unbound, credential-supplied claim.
 
 Both ride on the credential. Say the credential is issued by `dlg_prefix`, a delegate of
-`iel_prefix_2`, whose IEL governance is `kel(dlg_kel_prefix)`.
+`iel_prefix_2`, whose IEL authentication is `kel(dlg_kel_prefix)`.
 
 Two graphs, two pinnings. The issuance policy expands to one slot per `del` and STOPS — `del`
 never descends into the delegate. Proving where the credential is anchored is a separate graph
-rooted at the issuer's own IEL, `iel(dlg_prefix)`, which expands through the issuer's governance
+rooted at the issuer's own IEL, `iel(dlg_prefix)`, which expands through the issuer's authentication
 to the anchoring KEL event:
 
 ```
@@ -319,16 +322,16 @@ to the anchoring KEL event:
   iel_prefix_2's delegated set. Its anchor rides in a separate pinning, rooted at the
   issuer's own IEL so the anchoring KEL is bound to the delegated identity:
 
-  iel(dlg_prefix)  (identity → governance → anchor)      anchor pinning
+  iel(dlg_prefix)  (identity → authentication → anchor)  anchor pinning
   ─────────────────────────────────────────────────     ────────────────
-  iel(dlg_prefix)                    ▷ dlg_prefix        {dlg_iel_event_said}
-  └─ governance kel(dlg_kel_prefix)  ▷ dlg_kel_prefix    {dlg_kel_prior_kel_said}
+  iel(dlg_prefix)                       ▷ dlg_prefix     {dlg_iel_event_said}
+  └─ authentication kel(dlg_kel_prefix) ▷ dlg_kel_prefix {dlg_kel_prior_kel_said}
         └─ prior event; its child anchors the credential at the required tier
 ```
 
 **Issuance pinning.** The issuance policy `thr(1, del(iel_prefix_1), del(iel_prefix_2),
 del(iel_prefix_3))` expands to one slot per `del` — the *delegating* IEL's own event, fixing which
-delegation state the issuer claims membership against. (The delegate's governance is not
+delegation state the issuer claims membership against. (The delegate's authentication is not
 expanded here; it's evidence-shaped, so it lives in the anchor pinning.) The issuer evidences
 only the `iel_prefix_2` branch:
 
@@ -344,7 +347,7 @@ only the `iel_prefix_2` branch:
 ```
 
 **Anchor pinning.** The issuer's IEL policy `iel(dlg_prefix)` expands to two slots — the
-issuer's IEL event (fixing which governance state applies) and, through that governance
+issuer's IEL event (fixing which authentication state applies) and, through that authentication
 `kel(dlg_kel_prefix)`, the KEL event just *prior* to the anchoring event (the anchoring event
 commits to the credential, so its own SAID is unconstructable here; see the SAID-cycle note):
 
@@ -352,7 +355,7 @@ commits to the credential, so its own SAID is unconstructable here; see the SAID
 {
     "said": "{anchor_pinning_said}",
     "pins": [
-        "{dlg_iel_event_said}",      // dlg_prefix — IEL event fixing the governance state
+        "{dlg_iel_event_said}",      // dlg_prefix — IEL event fixing the authentication state
         "{dlg_kel_prior_kel_said}"   // dlg_kel_prefix — prior event; its child anchors the credential
     ]
 }
@@ -367,8 +370,8 @@ commits to the credential, so its own SAID is unconstructable here; see the SAID
   confirms `dlg_prefix` (the issuer, supplied by verifier context) is currently in that IEL's
   delegated set. A single satisfied delegate branch clears the `thr(1, ...)`.
 - **Anchor** — evaluating `iel(dlg_prefix)` against the anchor pinning, the `iel(dlg_prefix)`
-  leaf reads its pinned IEL event (binding the issuer to its governance `kel(dlg_kel_prefix)`)
-  and recurses into that governance; the `kel(dlg_kel_prefix)` leaf resolves the anchoring event
+  leaf reads its pinned IEL event (binding the issuer to its authentication `kel(dlg_kel_prefix)`)
+  and recurses into that authentication policy; the `kel(dlg_kel_prefix)` leaf resolves the anchoring event
   `S` (`S.previous == dlg_kel_prior_kel_said`) and checks `S` is at the required tier and anchors
   the credential SAID. Because the anchor is reached *through* the delegated issuer's IEL, the
   anchoring KEL is bound to the delegated identity rather than asserted by the credential.
@@ -415,17 +418,17 @@ let satisfied = evaluate_anchored_policy(
 )?;
 ```
 
-> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — two-pinning model, the gather/evaluate split (`gather_evidence` walks; `evaluate_*` are pure over `Evidence`), the multi-hop delegation-path fold (delegation hops + one terminal anchor hop, anchor checked only on the terminal), sorted-multiset slotting / `PinCursor`, `delegate` threading, `del` as membership-only, and the supply-SAIDs-up-front / one-walk-per-log / token mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the iel `governance` field name and its recursion, the `del` delegated-set construction (`Del`/`Rsc` walk, `delegated_set_contains`), the membership **roster** field on the IEL that `mem(prefix, class)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
+> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — two-pinning model, the gather/evaluate split (`gather_evidence` walks; `evaluate_*` are pure over `Evidence`), the multi-hop delegation-path fold (delegation hops + one terminal anchor hop, anchor checked only on the terminal), sorted-multiset slotting / `PinCursor`, `delegate` threading, `del` as membership-only, and the supply-SAIDs-up-front / one-walk-per-log / token mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the iel `governance` / `authentication` field names (`iel(X)` recurses into `authentication`; `governance` gates the IEL's own events), the `del` delegated-set construction (`Del`/`Rsc` walk, `delegated_set_contains`), the membership **roster** field on the IEL that `mem(prefix, class)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
 
 Implementation:
 
 ```rust
 // gather_evidence binds and walks. For each (policy, pinning): expand the policy
-// graph — descending through pol() and through each iel governance — to its multiset
+// graph — descending through pol() and through each iel authentication — to its multiset
 // of referenced prefix occurrences, sort into wire slot order (by prefix, equal
 // prefixes kept in traversal order), then zip with `pinning.pins` to bind each
 // occurrence to its pinned SAID. A `del` leaf contributes exactly one occurrence — its
-// delegating IEL prefix — and does NOT descend into the delegate's governance: the
+// delegating IEL prefix — and does NOT descend into the delegate's authentication: the
 // delegate is evidence-shaped (not named by the policy), so its subtree can't be sized
 // here; it rides in a separate anchor pinning. Union the `delegations` bindings with
 // the single `anchor` binding, group the bound SAIDs across ALL pinnings by the chain
@@ -434,10 +437,10 @@ Implementation:
 // chain as `Evidence`. The expansion mirrors the eval walk below, so issuer and verifier
 // agree on slot order. The `anchor` binding is the anchoring hop: gather attaches
 // `expected_anchors` to the ANCHOR CURSOR as its required-anchor set — every kel leaf
-// reached under the issuer's governance is an anchoring leaf (one chain each, several
+// reached under the issuer's authentication is an anchoring leaf (one chain each, several
 // under a multi-KEL threshold); every other binding's cursor gets an empty required set.
 // The requirement travels with the cursor, scoped to the issuer's binding, so an issuance-
-// policy kel leaf naming a chain the issuer's governance also reaches never inherits it.
+// policy kel leaf naming a chain the issuer's authentication also reaches never inherits it.
 // The hosted anchors come from the walked chain's token regardless; `satisfies_kel` reads
 // the required set off the cursor and the anchors off the token, so the requirement is
 // never a property of the shared chain.
@@ -507,7 +510,7 @@ pub fn evaluate_anchored_policy(
         }
     }
 
-    // Terminal — the issuer's governance anchors the credential. `satisfies_kel` reads the
+    // Terminal — the issuer's authentication anchors the credential. `satisfies_kel` reads the
     // anchor requirement off the anchor cursor; no anchor arg threaded in here.
     evaluate_single_policy(&issuer_iel, &evidence, None, required_tier)
 }
@@ -588,7 +591,7 @@ fn eval_expr(
 // boundary principle); `S` is its unique child (`S.previous == prior_said`), and its
 // facts (prefix, tier, anchors) are read from the chain's token. The anchor requirement
 // (`required`) is supplied by the caller off the binding's cursor — `expected_anchors`
-// under the issuer's governance, empty otherwise — so an issuance-policy kel leaf naming
+// under the issuer's authentication, empty otherwise — so an issuance-policy kel leaf naming
 // the same chain never inherits it. Check anchor + tier.
 fn satisfies_kel(
     prior_said: &Digest256,
@@ -609,10 +612,10 @@ fn satisfies_kel(
 
 // iel(prefix): `iel_event_said` is the IEL event itself — NOT an anchoring event,
 // so it carries no credential anchor and needs no prior-event trick. It fixes the
-// IEL's governance at that state; satisfaction recurses into that governance, whose
-// leaves carry their own pins (the credential anchor is checked at the terminal kel
-// leaves the recursion reaches). The IEL event was verified during gather; its facts
-// come from the chain's token.
+// IEL's authentication at that state; satisfaction recurses into that authentication
+// policy, whose leaves carry their own pins (the credential anchor is checked at the
+// terminal kel leaves the recursion reaches). The IEL event was verified during gather;
+// its facts come from the chain's token.
 fn satisfies_iel(
     iel_event_said: &Digest256,
     leaf_prefix: &Digest256,
@@ -625,14 +628,14 @@ fn satisfies_iel(
     if iel.prefix != *leaf_prefix {
         return Ok(false);
     }
-    let governance = parse_policy_sad(&sadd_fetch(&iel.governance)?)?;
-    eval_expr(&governance.expr, pins, evidence, delegate, required_tier)
+    let authentication = parse_policy_sad(&sadd_fetch(&iel.authentication)?)?;
+    eval_expr(&authentication.expr, pins, evidence, delegate, required_tier)
 }
 
 // del(prefix): `iel_event_said` is the DELEGATING IEL's own event (its prefix == leaf_prefix),
 // fixing which delegation state membership is tested against. Confirm the delegate (the
 // issuer, from verifier context) is in that IEL's delegated set as of the pinned event. No
-// anchor check and no governance recursion: the delegate's governance and the credential
+// anchor check and no authentication recursion: the delegate's authentication and the credential
 // anchor are proven separately, by the anchor pinning. The delegating IEL's chain was
 // verified to this event during gather; its facts come from the chain's token.
 fn satisfies_del(
@@ -692,25 +695,25 @@ When the verifier finds a satisfying withdrawal anchor, `evaluate_anchored_polic
 
 Each leaf evaluates against chain state and a signed request (or delegate identifier, for `del`). Leaves return satisfied / unsatisfied.
 
-### `iel(prefix)` — IEL governance
+### `iel(prefix)` — IEL authentication
 
-The leaf is satisfied iff the signing party satisfies the IEL's own **governance** policy at the IEL's current chain tip. `iel(X)` *defers to X's governance*: it treats X as an autonomous entity and accepts X's own rule for who acts as X. You don't reach inside X's factors, and you inherit X's threshold — if X's governance is 2-of-3, `iel(X)` demands 2-of-3.
+The leaf is satisfied iff the signing party satisfies the IEL's own **authentication** policy at the IEL's current chain tip. `iel(X)` *defers to X's authentication*: it treats X as an autonomous entity and accepts X's own rule for who acts as X. You don't reach inside X's factors, and you inherit X's threshold — if X's authentication is 2-of-3, `iel(X)` demands 2-of-3. (Authentication is the entity's outward-facing act-as policy — distinct from its **governance**, which gates X's own self-mutation and is never what an external `iel(X)` evaluates.)
 
-This is recursive — `iel(P)`'s check evaluates P's governance policy, which may itself contain `iel(...)`. The recursion terminates at non-`iel` leaves (`kel`, `del`).
+This is recursive — `iel(P)`'s check evaluates P's authentication policy, which may itself contain `iel(...)`. The recursion terminates at non-`iel` leaves (`kel`, `del`).
 
-`iel(X)` and `mem(X, class)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own governance, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, class)`, by contrast, takes X's **published roster** for the named class and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem(prefix, class)`](#memprefix-class--membership-roster-array). Both are first-class for foreign X; the difference is *who sets the bar* (X's governance vs. the referencing policy).
+`iel(X)` and `mem(X, class)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, class)`, by contrast, takes X's **published roster** for the named class and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem(prefix, class)`](#memprefix-class--membership-roster-array). Both are first-class for foreign X; the difference is *who sets the bar* (X's authentication vs. the referencing policy).
 
 ### `mem(prefix, class)` — membership-roster array
 
-`mem(prefix, class)` names the **`class`** class of the membership roster published by **IEL `prefix`**, and resolves to one `iel(member_i)` leaf per member of that class. The roster is a SAD that IEL commits to — its SAID burned into the IEL, distinct from `governance` / `delegation` — mapping class labels to sets of member IEL prefixes (a member may sit in several classes). The reference is **explicit** (both the IEL prefix and the class): a roster is referenced by *multiple* policies — the owning entity's own governance and any number of foreign policies — so the policy must name which IEL's roster and which class. Foreign reach is first-class: any policy may splice IEL X's `executives` class via `mem(X, executives)`. This is distinct from `iel(X)`, which defers to X's whole governance; `mem(X, class)` takes X's published class and composes over it at the referencing policy's own bar.
+`mem(prefix, class)` names the **`class`** class of the membership roster published by **IEL `prefix`**, and resolves to one `iel(member_i)` leaf per member of that class. The roster is a SAD that IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping class labels to sets of member IEL prefixes (a member may sit in several classes). The reference is **explicit** (both the IEL prefix and the class): a roster is referenced by *multiple* policies — the owning entity's own policies and any number of foreign policies — so the policy must name which IEL's roster and which class. Foreign reach is first-class: any policy may splice IEL X's `executives` class via `mem(X, executives)`. This is distinct from `iel(X)`, which defers to X's whole authentication; `mem(X, class)` takes X's published class and composes over it at the referencing policy's own bar.
 
 `mem(prefix, class)` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
 
-- inside `thr(k, [mem(prefix, class)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of that class's members*, with **k chosen by the referencing policy**, not by that entity's governance threshold. Each member still authenticates via their own governance (`iel(mi)`).
+- inside `thr(k, [mem(prefix, class)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of that class's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`iel(mi)`).
 - inside `wgt(M, [(mem(prefix, class), w), …])` → each member becomes `(iel(mi), w)` — every member of the class carries weight `w`.
 - the enclosing `[...]` is a **concat container**: multiple `mem` classes and single expressions mix freely — `thr(2, [mem(org, execs), mem(org, board), kel(K)])` flattens to one child list (`execs` members ++ `board` members ++ `kel(K)`).
 
-This is the membership/composition split. Two levels compose: the **roster level** (which class, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` governance). The roster lives with the entity (who is in each class); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
+This is the membership/composition split. Two levels compose: the **roster level** (which class, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` authentication). The roster lives with the entity (who is in each class); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
 
 **Rosters carry classes, not weights.** A roster maps class → member set; weight is the *referencing policy's* per-class assignment on the `wgt` branch. So weight only exists post-flatten — which is also when overlap resolves: if a member sits in two spliced classes (e.g. `mem(org, admins)` at weight 2 and `mem(org, members)` at weight 1), the flattened leaves are **deduplicated by member prefix, keeping the maximum weight** — that member counts once, at its highest class. (In a `thr` splice there are no weights, so dedup simply collapses duplicate members — standard threshold.)
 
@@ -747,48 +750,43 @@ The verifier evaluates inside-out: each leaf evaluates against its chain state; 
 
 ## Worked examples
 
-**Single-key authorization** — used by simple SEL governance where one device controls the SEL:
+**Single-key authorization** — prove a device attested to something:
 ```
-kel(operator_kel_prefix)
-```
-
-**IEL membership** — used by IEL governance for a basic identity:
-```
-iel(self_iel_prefix)
+kel(prefix)
 ```
 
-**Multi-IEL threshold** — federation governance with 3-of-5:
+**IEL authentication** — prove a link to a basic identity:
 ```
-thr(3, [iel(member1), iel(member2), iel(member3), iel(member4), iel(member5)])
+iel(prefix)
 ```
 
-**Federation weighted with emergency override**:
+**Membership threshold** — k-of-a-class authentication, with k chosen by this policy (not by the org or its members):
 ```
-wgt(60, [
-    (iel(member1), 40),
-    (iel(member2), 40),
-    (iel(member3), 40),
-    (kel(emergency_key), 100)
+thr(2, [mem(prefix, staff)])
+```
+
+With org `prefix`'s `staff` class = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [iel(m1), iel(m2), iel(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate classes by listing them: `thr(2, [mem(prefix, staff), mem(prefix, board)])` pools both into one flat child list.
+
+**Emergency override**:
+```
+thr(1, [
+    thr(3, [mem(prefix, members)]),
+    kel(emergency)
 ])
 ```
 
-Any two members satisfy (80 ≥ 60), or the emergency key alone (100 ≥ 60).
-
-**Membership threshold** — k-of-a-class authentication, with k chosen by this policy (not the org's governance):
-```
-thr(2, [mem(org_iel, staff)])
-```
-With org `org_iel`'s `staff` class = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [iel(m1), iel(m2), iel(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate classes by listing them: `thr(2, [mem(org_iel, staff), mem(org_iel, board)])` pools both into one flat child list.
+Any three members satisfy, or the emergency key alone.
 
 **Weighted membership classes** — an org weights executive / admin / member classes at 3 / 2 / 1, threshold 3 (the classes live in the org's one roster; weight is this policy's per-class valuation):
 ```
 wgt(3, [
-    (mem(org_iel, executives), 3),
-    (mem(org_iel, admins),     2),
-    (mem(org_iel, members),    1)
+    (mem(prefix, executives), 3),
+    (mem(prefix, admins),     2),
+    (mem(prefix, members),    1)
 ])
 ```
-With `org_iel`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each class — a stricter resource could set `member → 0`; the roster is unchanged. A member in two classes is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
+
+With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each class — a stricter resource could set `member → 0`; the roster is unchanged. A member in two classes is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
 
 ## Composition semantics
 
@@ -799,7 +797,7 @@ With `org_iel`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `membe
 
 ## Verifier behavior
 
-The verifier first **gathers evidence**: `gather_evidence` expands each policy graph to its sorted prefix *multiset*, zips that with the corresponding `pinning.pins` to bind each prefix occurrence to its pinned SAID, groups the bound SAIDs across all pinnings by chain, and walks each chain once into a verification token. It then **evaluates** each policy as a pure tree walk over that `Evidence`: each leaf takes the next pin for its prefix (a `null`/absent slot fails that leaf) and consults the chain's token — kel prefixes read the anchoring child and check the credential anchor at the required tier; iel prefixes read the named IEL event and recurse into its governance; del prefixes read the delegating IEL event and confirm the delegate is in its delegated set (no governance recursion — the delegate's governance and the credential anchor are proven by a separate anchor pinning). The anchored entry point `evaluate_anchored_policy` **folds** these single-policy evaluations across the delegation path: one delegation hop per step (each hop's `del` policy constructed from the prefix the prior hop established, which is the linkage check), then one terminal anchor hop over the issuer's `iel` — ANDed, with the credential anchor checked only on the terminal hop.
+The verifier first **gathers evidence**: `gather_evidence` expands each policy graph to its sorted prefix *multiset*, zips that with the corresponding `pinning.pins` to bind each prefix occurrence to its pinned SAID, groups the bound SAIDs across all pinnings by chain, and walks each chain once into a verification token. It then **evaluates** each policy as a pure tree walk over that `Evidence`: each leaf takes the next pin for its prefix (a `null`/absent slot fails that leaf) and consults the chain's token — kel prefixes read the anchoring child and check the credential anchor at the required tier; iel prefixes read the named IEL event and recurse into its authentication policy; del prefixes read the delegating IEL event and confirm the delegate is in its delegated set (no authentication recursion — the delegate's authentication and the credential anchor are proven by a separate anchor pinning). The anchored entry point `evaluate_anchored_policy` **folds** these single-policy evaluations across the delegation path: one delegation hop per step (each hop's `del` policy constructed from the prefix the prior hop established, which is the linkage check), then one terminal anchor hop over the issuer's `iel` — ANDed, with the credential anchor checked only on the terminal hop.
 
 High-level pseudo-code matching `gather_evidence` + `evaluate_anchored_policy` + `evaluate_single_policy`:
 
@@ -810,7 +808,7 @@ gather_evidence(delegations, anchor, expected_anchors, source) -> Evidence:
     group all bound SAIDs by chain      # a bare SAID needs its leaf's prefix to know which chain it's on
     walk each chain ONCE                 # register its SAIDs up front; read them out of the verification token
     set expected_anchors as the anchor cursor's required-anchor set
-                                         # every kel leaf under the issuer's governance is an anchoring leaf; other cursors get {}
+                                         # every kel leaf under the issuer's authentication is an anchoring leaf; other cursors get {}
     return Evidence { per-policy cursors (anchor cursor carries required-anchor set), one token per chain }
 
 # Orchestrator: build the hop policies + issuer iel, gather ONCE (the only walking), then fold
@@ -855,18 +853,18 @@ eval_expr(expr, pins, evidence, delegate, required_tier) -> bool:
 
 # kel: `prior` is the event before the anchoring event; S is its child (S.previous ==
 # prior), which dodges the SAID cycle. The anchor requirement comes from the cursor
-# (expected_anchors under the issuer's governance, {} elsewhere). iel: the pin is an
-# IEL event (not an anchoring event, so cycle-free); recurse into its governance — the credential
+# (expected_anchors under the issuer's authentication, {} elsewhere). iel: the pin is an
+# IEL event (not an anchoring event, so cycle-free); recurse into its authentication — the credential
 # anchor is checked at the terminal kel leaves the recursion reaches. del: the pin is the
-# DELEGATING IEL's own event; confirm the delegate is in its delegated set — no governance
-# recursion (the delegate's governance / the credential anchor ride in a separate anchor
+# DELEGATING IEL's own event; confirm the delegate is in its delegated set — no authentication
+# recursion (the delegate's authentication / the credential anchor ride in a separate anchor
 # pinning). All chains were walked in gather per the trust-boundary principle; pinning names the
 # chain position so no search.
 
 satisfies_kel(prior, leaf_prefix, required, evidence, required_tier):
     S = evidence.anchoring_child(leaf_prefix, prior)     # child where S.previous == prior, verified in gather
     # `required` is the cursor's set of (anchor, min-tier) pairs: expected_anchors under the
-    # issuer's governance, {} elsewhere. required_tier is the baseline floor for the event.
+    # issuer's authentication, {} elsewhere. required_tier is the baseline floor for the event.
     return S.prefix == leaf_prefix
         AND S.tier >= required_tier
         AND for all (anchor, tier) in required: S.anchors.contains(anchor) AND S.tier >= tier
@@ -874,7 +872,7 @@ satisfies_kel(prior, leaf_prefix, required, evidence, required_tier):
 satisfies_iel(iel_event, leaf_prefix, pins, evidence, delegate, required_tier):
     E = evidence.iel_event(leaf_prefix, iel_event)       # the IEL event itself, verified in gather
     return E.prefix == leaf_prefix
-        AND eval_expr(parse_dsl(sadd.fetch(E.governance).content).expr,
+        AND eval_expr(parse_dsl(sadd.fetch(E.authentication).content).expr,
                       pins, evidence, delegate, required_tier)
 
 satisfies_del(iel_event, leaf_prefix, evidence, delegate):
@@ -886,11 +884,11 @@ satisfies_del(iel_event, leaf_prefix, evidence, delegate):
 
 **Semantics notes:**
 
-- **Pinning context propagates uniformly.** A `pol(said)` recursion — and an `iel` governance recursion — uses the same `pins` cursor, `evidence`, `delegate`, and `required_tier` as the outer evaluation. The credential-anchor requirement rides on the `pins` cursor itself (gather set it on the anchor cursor, empty on the others), so it propagates with that recursion to every kel leaf reached under the issuer's governance — and, being cursor-scoped rather than chain-scoped, never leaks onto an issuance-policy kel leaf that names the same chain. The whole expanded graph evaluates against one evidence set, each occurrence consuming its own slot in traversal order. A `del` leaf does not recurse: it consumes its one slot (the delegating IEL's event), tests delegate membership, and stops — the delegate's governance and the credential anchor are proven by a separate anchor pinning, not this cursor.
-- **The SAID cycle, and why kel prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a kel prefix pins the event *just prior* and the verifier rederives the anchoring child. iel/del prefixes are cycle-free: they pin governance/delegation IEL events, which never carry the credential anchor. This is orthogonal to the sorted-multiset slotting, which only decides slot order; avoiding a second walk of a shared log is handled by gather locating all of that log's pinned SAIDs in one verified walk (supplied up front, reported found in the walk's token), not by the wire format.
+- **Pinning context propagates uniformly.** A `pol(said)` recursion — and an `iel` authentication recursion — uses the same `pins` cursor, `evidence`, `delegate`, and `required_tier` as the outer evaluation. The credential-anchor requirement rides on the `pins` cursor itself (gather set it on the anchor cursor, empty on the others), so it propagates with that recursion to every kel leaf reached under the issuer's authentication — and, being cursor-scoped rather than chain-scoped, never leaks onto an issuance-policy kel leaf that names the same chain. The whole expanded graph evaluates against one evidence set, each occurrence consuming its own slot in traversal order. A `del` leaf does not recurse: it consumes its one slot (the delegating IEL's event), tests delegate membership, and stops — the delegate's authentication and the credential anchor are proven by a separate anchor pinning, not this cursor.
+- **The SAID cycle, and why kel prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a kel prefix pins the event *just prior* and the verifier rederives the anchoring child. iel/del prefixes are cycle-free: they pin IEL events (fixing the authentication / delegation state), which never carry the credential anchor. This is orthogonal to the sorted-multiset slotting, which only decides slot order; avoiding a second walk of a shared log is handled by gather locating all of that log's pinned SAIDs in one verified walk (supplied up front, reported found in the walk's token), not by the wire format.
 - **`pol(said)` reference cycles are structurally impossible.** Content-addressed references can't form a cycle without a Blake3-256 collision (two Policy SADs mutually containing each other's SAIDs). No runtime cycle check needed.
 - **Depth bound.** Implementations should impose a soft depth limit on `pol()` recursion (e.g., 16 levels) and deny on exceeding — implementation concern, out of scope here.
-- **Tier check is in the leaf helpers, not the composers.** A kel prefix's `satisfies_kel` rejects an anchoring event hosted below `required_tier`; the tier requirement propagates unchanged through iel/del governance recursion to the terminal kel leaves. Composers aggregate satisfied/unsatisfied results; they don't see tier directly.
+- **Tier check is in the leaf helpers, not the composers.** A kel prefix's `satisfies_kel` rejects an anchoring event hosted below `required_tier`; the tier requirement propagates unchanged through the iel authentication recursion to the terminal kel leaves. Composers aggregate satisfied/unsatisfied results; they don't see tier directly.
 - **Unrecognized expression kinds → deny.** Forward-compatibility: older verifiers encountering newer DSL primitives return unsatisfied for that sub-expression; composer aggregation propagates this as a clean deny rather than a verification crash.
 
 The detailed verifier evaluation algorithm (chain-walk caching, parallelism, recursion termination, etc.) lives in the implementation specs — out of scope here.
@@ -939,8 +937,8 @@ fn authorize(
     }
 
     // 2. Identity — the bearer presently controls the credential's SUBJECT. The subject is
-    //    an IEL; `iel(subject)` defers to the subject's own governance, so a rotated or
-    //    multi-sig subject still authenticates correctly. The challenge defeats replay.
+    //    an IEL; `iel(subject)` defers to the subject's own authentication policy, so a rotated
+    //    or multi-sig subject still authenticates correctly. The challenge defeats replay.
     let subject_policy = parse_policy(&format!("iel({})", cred.subject))?;
     let is_holder = evaluate_current_policy(
         &subject_policy,
@@ -988,6 +986,6 @@ credential is still bounded by the app's role→permission map (authorization fa
 
 ## Forward-refs
 
-- [`event-logs/iel/`](event-logs/iel/) — IEL primitive (subsequent sub-issue); references this doc for governance / delegation policy evaluation
+- [`event-logs/iel/`](event-logs/iel/) — IEL primitive (subsequent sub-issue); references this doc for governance / delegation / authentication policy evaluation
 - [`event-logs/sel/`](event-logs/sel/) — SEL primitive (subsequent sub-issue); references this doc for SEL governance
 - `lib/vdti` — verifier implementation; evaluates DSL expressions per this spec
