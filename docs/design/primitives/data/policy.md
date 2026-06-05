@@ -20,28 +20,32 @@ In each case the field holds a `Digest256` pointing at a Policy SAD. The verifie
 ## The DSL surface — 7 primitives
 
 ```
-kel(prefix)        iel(prefix)        del(prefix)        mem(prefix)
+kel(prefix)        iel(prefix)        del(prefix)        mem(prefix, class)
 pol(said)
 thr(M, [...])      wgt(M, [...])
 ```
 
-Four chain-state **leaves** (`kel`, `iel`, `del`, `mem`), one policy reference **leaf** (`pol`),
-two **composers** (`thr`, `wgt`). `mem` is special: it is a **membership-roster splice**, legal
-only as a direct child of a composer. A membership roster is a set of **IEL prefixes**
-(individuals are IELs; devices are KELs), so at evaluation `mem(X)` expands in place into the
-enclosing `thr`/`wgt`, contributing one `iel(member_i)` leaf per member of the named entity's
-membership set (see *Leaf semantics*) — each member authenticates via their own governance,
-while the policy composes over the roster at a threshold it chooses. The grammar:
+Three chain-state **leaves** (`kel`, `iel`, `del`), one policy-reference **leaf** (`pol`), one
+**membership array** (`mem`), two **composers** (`thr`, `wgt`). `mem(prefix, class)` is not a
+leaf: it is an **array value** — it names the *`class`* class of IEL `prefix`'s membership roster
+and resolves to one `iel(member_i)` leaf per member of that class. It is only legal **inside a
+composer's `[...]`**, where it flattens in place. The `[...]` is a concat container, so
+member-arrays and single expressions mix freely (`[mem(org, staff), kel(K)]` = org's staff
+members followed by `kel(K)`). Members are IELs (individuals are IELs; devices are KELs), so each
+flattened member authenticates via their own governance (`iel(mi)`), while the referencing policy
+composes over them at the threshold/weights it chooses (see *Leaf semantics*). The grammar:
 
 ```
 expr     ::= leaf | composer
 leaf     ::= kel(prefix) | iel(prefix) | del(prefix) | pol(said)
-splice   ::= mem(prefix)                       # only as a composer child; expands to iel leaves
-composer ::= thr(M, [child, ...]) | wgt(M, [(child, w), ...])
-child    ::= expr | splice
+array    ::= mem(prefix, class)                 # IEL prefix's `class` roster: an array of iel(member) leaves
+composer ::= thr(M, [elem, ...]) | wgt(M, [(elem, w), ...])
+elem     ::= expr | array                       # an array element flattens its members in place
 ```
 
-Every well-formed policy is built from these primitives.
+`mem` appears only as an `elem` (inside `[...]`), never as a standalone `expr`. In a `wgt` pair
+`(array, w)`, the weight grafts onto each flattened member. Every well-formed policy is built from
+these primitives.
 
 ### Shape
 
@@ -147,7 +151,7 @@ pub enum PolicyExpr {
     Iel(Digest256),                       // chain prefix
     Kel(Digest256),                       // chain prefix
     Del(Digest256),                       // delegator IEL prefix
-    Mem(Digest256),                       // entity prefix; membership-roster splice (only valid as a thr/wgt child)
+    Mem(Digest256, String),               // (IEL prefix, class label); an array of iel(member) leaves — only valid as a composer element (inside [...]), flattens in place
     Pol(Digest256),                       // nested Policy SAD SAID
     Thr(u64, Vec<PolicyExpr>),            // threshold M, sub-expressions
     Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M, (sub, weight) pairs
@@ -411,7 +415,7 @@ let satisfied = evaluate_anchored_policy(
 )?;
 ```
 
-> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — two-pinning model, the gather/evaluate split (`gather_evidence` walks; `evaluate_*` are pure over `Evidence`), the multi-hop delegation-path fold (delegation hops + one terminal anchor hop, anchor checked only on the terminal), sorted-multiset slotting / `PinCursor`, `delegate` threading, `del` as membership-only, and the supply-SAIDs-up-front / one-walk-per-log / token mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the iel `governance` field name and its recursion, the `del` delegated-set construction (`Del`/`Rsc` walk, `delegated_set_contains`), and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
+> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — two-pinning model, the gather/evaluate split (`gather_evidence` walks; `evaluate_*` are pure over `Evidence`), the multi-hop delegation-path fold (delegation hops + one terminal anchor hop, anchor checked only on the terminal), sorted-multiset slotting / `PinCursor`, `delegate` threading, `del` as membership-only, and the supply-SAIDs-up-front / one-walk-per-log / token mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the iel `governance` field name and its recursion, the `del` delegated-set construction (`Del`/`Rsc` walk, `delegated_set_contains`), the membership **roster** field on the IEL that `mem(prefix, class)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
 
 Implementation:
 
@@ -694,20 +698,23 @@ The leaf is satisfied iff the signing party satisfies the IEL's own **governance
 
 This is recursive — `iel(P)`'s check evaluates P's governance policy, which may itself contain `iel(...)`. The recursion terminates at non-`iel` leaves (`kel`, `del`).
 
-Use `iel(X)` when you want to respect X's autonomy (X authorizes as an institution). When you instead want to compose over X's *members* at a strength **you** choose — rather than X's governance threshold — use `mem(X)`.
+`iel(X)` and `mem(X, class)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own governance, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, class)`, by contrast, takes X's **published roster** for the named class and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem(prefix, class)`](#memprefix-class--membership-roster-array). Both are first-class for foreign X; the difference is *who sets the bar* (X's governance vs. the referencing policy).
 
-### `mem(prefix)` — membership-roster splice
+### `mem(prefix, class)` — membership-roster array
 
-`mem(X)` injects X's **membership** — an explicit roster of member IEL prefixes, distinct from X's governance — into the enclosing composer. It is not a standalone leaf; it is a *splice*, legal only as a direct child of `thr`/`wgt`. At evaluation the verifier resolves X's current membership set `{m1, …, mn}` and expands the splice in place, one `iel(mi)` leaf per member:
+`mem(prefix, class)` names the **`class`** class of the membership roster published by **IEL `prefix`**, and resolves to one `iel(member_i)` leaf per member of that class. The roster is a SAD that IEL commits to — its SAID burned into the IEL, distinct from `governance` / `delegation` — mapping class labels to sets of member IEL prefixes (a member may sit in several classes). The reference is **explicit** (both the IEL prefix and the class): a roster is referenced by *multiple* policies — the owning entity's own governance and any number of foreign policies — so the policy must name which IEL's roster and which class. Foreign reach is first-class: any policy may splice IEL X's `executives` class via `mem(X, executives)`. This is distinct from `iel(X)`, which defers to X's whole governance; `mem(X, class)` takes X's published class and composes over it at the referencing policy's own bar.
 
-- inside `thr(k, [mem(X)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of X's members*, with **k chosen by the referencing policy**, not by X's governance. Each member still authenticates via their own governance (`iel(mi)`).
-- inside `wgt(M, [(mem(X), w), …])` → each member becomes `(iel(mi), w)` — every member of class X carries weight `w`.
+`mem(prefix, class)` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
 
-This is the membership/composition split. Two levels compose: the **roster level** (how many members, or which weighted classes — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` governance). The roster lives with X (who is in); the threshold/weights live with the referencing policy (how much each member counts here). Adding a member edits X's roster, never the policy; changing the bar edits the policy, never the roster. The same roster injects into a strict `thr` for X's governance and a loose `thr`/`wgt` for authentication.
+- inside `thr(k, [mem(prefix, class)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of that class's members*, with **k chosen by the referencing policy**, not by that entity's governance threshold. Each member still authenticates via their own governance (`iel(mi)`).
+- inside `wgt(M, [(mem(prefix, class), w), …])` → each member becomes `(iel(mi), w)` — every member of the class carries weight `w`.
+- the enclosing `[...]` is a **concat container**: multiple `mem` classes and single expressions mix freely — `thr(2, [mem(org, execs), mem(org, board), kel(K)])` flattens to one child list (`execs` members ++ `board` members ++ `kel(K)`).
 
-**Rosters carry classes, not weights.** A roster is just a set of IEL prefixes; weight is the *referencing policy's* per-class assignment on the `wgt` branch. So weight only exists post-splice — which is also when overlap is resolved: if a member appears in two spliced rosters (e.g. listed in both `mem(admins)` at weight 2 and `mem(members)` at weight 1), the expanded leaves are **deduplicated by member prefix, keeping the maximum weight** — that member counts once, at its highest class. (In a plain `thr` splice there are no weights, so dedup simply collapses duplicate members — standard threshold.)
+This is the membership/composition split. Two levels compose: the **roster level** (which class, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` governance). The roster lives with the entity (who is in each class); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
 
-Whether `mem(X)` names X's whole membership or a *named class within* X's membership (so one entity can expose executive/admin/member sub-rosters) is an event-shape question; at the DSL level each `mem(prefix)` injects the roster named by `prefix`, and a multi-class policy that needs three weights names three rosters. The roster's point-in-time resolution mirrors `del` — taken as of a pinned membership event in the anchored flow, at the tip in the current-state flow.
+**Rosters carry classes, not weights.** A roster maps class → member set; weight is the *referencing policy's* per-class assignment on the `wgt` branch. So weight only exists post-flatten — which is also when overlap resolves: if a member sits in two spliced classes (e.g. `mem(org, admins)` at weight 2 and `mem(org, members)` at weight 1), the flattened leaves are **deduplicated by member prefix, keeping the maximum weight** — that member counts once, at its highest class. (In a `thr` splice there are no weights, so dedup simply collapses duplicate members — standard threshold.)
+
+The roster's point-in-time resolution mirrors `del`. The DSL leaf names a **prefix**, not a SAID; the pinning supplies the point-in-time IEL event the roster is resolved against — taken as of the pinned IEL event in the anchored flow, at the IEL tip in the current-state flow. (The pin already fixes the IEL state, and the roster rides that state, so the policy need not bake a roster SAID in.)
 
 ### `kel(prefix)` — KEL signing-key match
 
@@ -767,21 +774,21 @@ wgt(60, [
 
 Any two members satisfy (80 ≥ 60), or the emergency key alone (100 ≥ 60).
 
-**Membership threshold** — k-of-roster authentication, with k chosen by this policy (not the org's governance):
+**Membership threshold** — k-of-a-class authentication, with k chosen by this policy (not the org's governance):
 ```
-thr(2, [mem(org_iel)])
+thr(2, [mem(org_iel, staff)])
 ```
-With `org_iel`'s membership `{m1, m2, m3}`, expands to `thr(2, [iel(m1), iel(m2), iel(m3)])` — any two members. Adding a fourth member edits the roster; this policy is unchanged.
+With org `org_iel`'s `staff` class = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [iel(m1), iel(m2), iel(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate classes by listing them: `thr(2, [mem(org_iel, staff), mem(org_iel, board)])` pools both into one flat child list.
 
-**Weighted membership classes** — an org authorizes access with executive / admin / member tiers worth 3 / 2 / 1, threshold 3 (each class is its own roster; weight is per class):
+**Weighted membership classes** — an org weights executive / admin / member classes at 3 / 2 / 1, threshold 3 (the classes live in the org's one roster; weight is this policy's per-class valuation):
 ```
 wgt(3, [
-    (mem(executives), 3),
-    (mem(admins),     2),
-    (mem(members),    1)
+    (mem(org_iel, executives), 3),
+    (mem(org_iel, admins),     2),
+    (mem(org_iel, members),    1)
 ])
 ```
-With `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this expands to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each class — a stricter resource could set `member → 0`; the rosters are unchanged. A member listed in two classes is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
+With `org_iel`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each class — a stricter resource could set `member → 0`; the roster is unchanged. A member in two classes is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
 
 ## Composition semantics
 
@@ -977,7 +984,7 @@ credential is still bounded by the app's role→permission map (authorization fa
 
 1. **Verifier evaluation algorithm.** Recursion semantics (`iel(P)` evaluating against P's own policy, which may itself contain `iel(...)`), cycle detection, depth limits, caching strategies. Belongs in implementation specs once `lib/vdti` planning advances.
 
-2. **Extension points.** The DSL is closed at the primitive level (7 primitives — leaves, composers). Future primitives (new chain types; new leaf semantics) would require DSL extension. The forward-compat deny rule (§Verifier behavior) makes additions soft-compatible — old verifiers safely deny on unrecognized expressions.
+2. **Extension points.** The DSL is closed at the primitive level (7 primitives — leaves, the `mem` membership array, composers). Future primitives (new chain types; new leaf semantics) would require DSL extension. The forward-compat deny rule (§Verifier behavior) makes additions soft-compatible — old verifiers safely deny on unrecognized expressions.
 
 ## Forward-refs
 
