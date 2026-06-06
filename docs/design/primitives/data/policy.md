@@ -124,9 +124,9 @@ Pinning eliminates the verifier's search-for-evidence step — slot position nam
 occurrence, the pinned SAID names the chain position — while the verifier still walks each
 chain to verify integrity (per the trust-boundary principle). Listing a prefix twice doesn't
 force two full walks: the verifier collects every pinned SAID that falls on a given log and
-locates them in a single verified walk — the SAIDs to find are supplied before the walk, the
-walk's verification token reports which were found, and the caller confirms every required SAID
-was found.
+checks them inline in that log's single paged verification walk — the SAIDs to check are the
+positions supplied before the walk, the walk validates each event as it pages through, and the
+caller confirms every required SAID was reached.
 
 For the policy above, the prefixes sort to `[A_prefix, X_prefix, Y_prefix, Y_prefix]`. An
 issuer satisfying all three branches pins every slot — kel prefixes → prior-event SAIDs, the
@@ -174,44 +174,41 @@ pub struct Pinning {
 
 ## API Surface
 
-The public evaluation entry points are `evaluate_anchored_policy` (pinned, walks chains) and `evaluate_current_policy` (live signatures). The anchored entry is fed by a `gather_evidence` phase and composes a single-policy helper, `evaluate_single_policy`.
+The public evaluation entry points are `evaluate_anchored_policy` (pinned, reads chains via the verification walk) and `evaluate_current_policy` (live signatures). The anchored entry is fed by a pure `bind_pins` phase and composes a single-policy helper, `evaluate_single_policy`. The leaf checks ride inline on the verifier's verification walk (`source`) — the single paged pass each referenced log gets for end-verifiability; there is no separate evidence-gathering walk.
 
 ```rust
-// Gather phase — walk each referenced chain exactly once. Binds every (policy,
-// pinning) pair's slots to their pinned SAIDs (`bind_pins`), groups those SAIDs by
-// the chain they fall on, and walks each chain a single time — registering the
-// chain's SAIDs up front and reading them back out of the walk's verification
-// token. A chain referenced by several pinnings is still walked once. The `anchor`
-// binding is the anchoring hop: gather records `expected_anchors` as the required-
-// anchor set on the ANCHOR CURSOR — every kel leaf reached under the issuer's
-// authentication is an anchoring leaf (one chain each, several under a multi-KEL threshold).
-// Every other binding's cursor carries an empty required set, so an issuance-policy kel
-// leaf that names a chain the issuer's authentication also reaches never inherits the
-// requirement. `satisfies_kel` reads the required set off the cursor it evaluates under
-// and the hosted anchors off the walked chain's token — the requirement is scoped to the
-// issuer's binding, never a property of the shared chain. Returns the bound per-leaf
-// SAIDs and one token per chain, packaged as `Evidence`.
-pub fn gather_evidence(
+// Bind phase — PURE, no I/O, no log traversal. Binds every (policy, pinning)
+// pair's slots to their pinned SAIDs: it expands each policy graph to its sorted
+// prefix multiset and zips with `pinning.pins`, producing one cursor per policy.
+// The `anchor` binding is the anchoring hop: `bind_pins` records `expected_anchors`
+// as the required-anchor set on the ANCHOR CURSOR — every kel leaf reached under the
+// issuer's authentication is an anchoring leaf (one chain each, several under a
+// multi-KEL threshold). Every other binding's cursor carries an empty required set,
+// so an issuance-policy kel leaf that names a chain the issuer's authentication also
+// reaches never inherits the requirement. `satisfies_kel` reads the required set off
+// the cursor it evaluates under and the hosted anchors off the event the verification
+// walk validates — the requirement is scoped to the issuer's binding, never a property
+// of the shared chain. Bounded by policy size; returns the per-policy `Cursors`.
+pub fn bind_pins(
     delegations: &[(&Policy, &Pinning)],
     anchor: (&Policy, &Pinning),
     expected_anchors: &HashSet<(Digest256, Tier)>,
-    source: &impl EventSource,
-) -> Result<Evidence, PolicyError>;
+) -> Result<Cursors, PolicyError>;
 
 // Anchored check (public entry) — delegation + anchoring for a credential whose issuer
 // may sit at the end of a delegation chain. Self-contained: it builds the hop policies,
-// gathers `Evidence` (the only walking happens here), folds the per-hop evaluations, and
-// returns the verdict — the caller just supplies the credential's pinnings, not a
-// pre-gathered `Evidence` or a bindings list. `delegation_path` is the ordered list of
-// delegation hops `(prefix, membership_pinning)`: hop 0 is delegated by `issuance_policy`
-// (its pinning is the issuance pinning), each later hop by `del(prior_prefix)` (the linkage
-// check), and the last hop's prefix is the issuer. `anchor_pinning` anchors the credential
-// through the issuer's `iel`. `expected_anchors` is the set of (SAID, minimum-tier) pairs the
-// anchoring event must host (e.g. the credential SAID, plus any co-anchored SADs, each with the
-// tier its hosting event must meet); it is handed to `gather_evidence`
-// as the anchor hop's requirement — gather records it on the anchor cursor and
-// `satisfies_kel` reads it from there, so it is scoped to the issuer and never threaded
-// through the per-hop walks.
+// binds the pins (pure), folds the per-hop evaluations — whose leaves read their pinned
+// events inline from the verification walk (`source`) — and returns the verdict. The
+// caller just supplies the credential's pinnings, not pre-bound `Cursors` or a bindings
+// list. `delegation_path` is the ordered list of delegation hops
+// `(prefix, membership_pinning)`: hop 0 is delegated by `issuance_policy` (its pinning is
+// the issuance pinning), each later hop by `del(prior_prefix)` (the linkage check), and the
+// last hop's prefix is the issuer. `anchor_pinning` anchors the credential through the
+// issuer's `iel`. `expected_anchors` is the set of (SAID, minimum-tier) pairs the anchoring
+// event must host (e.g. the credential SAID, plus any co-anchored SADs, each with the tier
+// its hosting event must meet); it is handed to `bind_pins` as the anchor hop's requirement —
+// `bind_pins` records it on the anchor cursor and `satisfies_kel` reads it from there, so it
+// is scoped to the issuer and never threaded through the per-hop checks.
 // Single-hop case: `delegation_path == [(issuer, issuance_pinning)]`.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
@@ -222,17 +219,18 @@ pub fn evaluate_anchored_policy(
     required_tier: Tier,
 ) -> Result<bool, PolicyError>;
 
-// Single-policy helper (internal) — pure tree walk over gathered `Evidence` for ONE policy.
-// `evaluate_anchored_policy` calls this once per hop; not a public entry. No walking: each
-// leaf reads its slot's pinned SAID and consults the relevant chain's token; composers
-// aggregate. The Pinning is consumed in the gather phase, not here. The anchor requirement
-// is not threaded in: it rides on the cursor (gather set it on the anchor cursor) and
-// `satisfies_kel` reads it from there. `delegate` is the identifier under test for `del` membership
-// (the prefix the hop must confirm is delegated); pass `None` when the policy has no `del`
-// leaves (e.g. the terminal `iel` anchor hop).
+// Single-policy helper (internal) — tree walk over the bound `Cursors` for ONE policy.
+// `evaluate_anchored_policy` calls this once per hop; not a public entry. Each leaf takes
+// its slot's pinned SAID and reads that event inline from the verification walk (`source`);
+// composers aggregate. The Pinning was consumed in the bind phase, not here. The anchor
+// requirement is not threaded in: it rides on the cursor (`bind_pins` set it on the anchor
+// cursor) and `satisfies_kel` reads it from there. `delegate` is the identifier under test
+// for `del` membership (the prefix the hop must confirm is delegated); pass `None` when the
+// policy has no `del` leaves (e.g. the terminal `iel` anchor hop).
 fn evaluate_single_policy(
     policy: &Policy,
-    evidence: &Evidence,
+    cursors: &Cursors,
+    source: &impl EventSource,
     delegate: Option<&Digest256>,
     required_tier: Tier,
 ) -> Result<bool, PolicyError>;
@@ -266,7 +264,7 @@ pub fn evaluate_current_policy(
 
 `evaluate_anchored_policy` returns `Ok(true)` iff the issuer is reached through the full delegation path AND the expected anchors are each hosted on the issuer's authentication at its required tier or above AND no satisfying withdrawal anchor was found (see *Withdrawal*). `evaluate_current_policy` returns `Ok(true)` iff the provided signatures over `challenge` cover the policy's leaves at current chain state with the required tier. Both return `Ok(false)` for clean unsatisfied; `Err(_)` for malformed inputs / fetch failures.
 
-The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: internally it builds the hop policies, calls `gather_evidence` once — walking each referenced chain a single time across *all* of the credential's pinnings — then folds the per-hop evaluations over that shared `Evidence`: one **delegation** hop per step (the **issuance pinning** confirms the first delegate; each subsequent hop's `del` pinning confirms the next), then one terminal **anchoring** hop over the issuer's `iel` (the **anchor pinning**) proving the cred is anchored on the issuer's authentication (see *Policies and Pinnings*). Because every hop reads the shared `Evidence`, a chain referenced by several pinnings is still walked once. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it reuses the same delegation machinery over current chain state and then verifies the challenge signed under current state.
+The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: internally it builds the hop policies, calls `bind_pins` once (pure — binds every pinning's slots across *all* of the credential's pinnings), then folds the per-hop evaluations over the shared `Cursors`, their leaves reading pinned events inline from the verification walk (`source`): one **delegation** hop per step (the **issuance pinning** confirms the first delegate; each subsequent hop's `del` pinning confirms the next), then one terminal **anchoring** hop over the issuer's `iel` (the **anchor pinning**) proving the cred is anchored on the issuer's authentication (see *Policies and Pinnings*). The verification walk pages each referenced log once, so a chain referenced by several pinnings is checked inline in that one pass. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it reuses the same delegation machinery over current chain state and then verifies the challenge signed under current state.
 
 ### Policies and Pinnings
 
@@ -377,10 +375,10 @@ commits to the credential, so its own SAID is unconstructable here; see the SAID
   anchoring KEL is bound to the delegated identity rather than asserted by the credential.
 
 The two pinnings exist only to make each policy's slot count self-determining. Verification
-groups the pinned SAIDs from both pinnings by the log they fall on and locates each log's set in
-a single verified walk: the SAIDs to find are supplied up front, the walk's verification token
-reports which were found, and the caller confirms every required SAID was found. So a chain
-reached on both paths is walked once, not twice.
+groups the pinned SAIDs from both pinnings by the log they fall on and checks each log's set
+inline in that log's single paged verification walk: the SAIDs to check are the positions
+supplied up front, the walk validates each event as it pages through, and the caller confirms
+every required SAID was reached. So a chain reached on both paths is paged once, not twice.
 
 ```rust
 let iel_prefix_1 = Digest256::from_qb64("KAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")?;
@@ -401,11 +399,11 @@ let anchor_pinning = parse_pinning_sad(&sadd_fetch(&cred.anchor_pinning_said)?)?
 // each required anchor names the minimum tier its hosting event must satisfy
 let cred_anchor: HashSet<(Digest256, Tier)> = [(credential_said, Tier::One)].into_iter().collect();
 
-// One self-contained call: it builds the issuer's `iel` policy internally, gathers
-// Evidence once (every referenced chain walked a single time), folds the per-hop
-// delegation checks, and confirms the credential anchor off the anchor chain's token. The
-// caller supplies only the credential's pinnings and the anchor set — no manual gather,
-// no pre-built `iel(dlg_prefix)`. Single-hop here: dlg_prefix is delegated directly by
+// One self-contained call: it builds the issuer's `iel` policy internally, binds the pins
+// once (pure), folds the per-hop delegation checks — their leaves reading pinned events
+// inline from the verification walk — and confirms the credential anchor off the anchoring
+// event the walk validates. The caller supplies only the credential's pinnings and the anchor
+// set — no manual bind, no pre-built `iel(dlg_prefix)`. Single-hop here: dlg_prefix is delegated directly by
 // the issuance policy and is itself the issuer. For a delegate-of-a-delegate, extend
 // `delegation_path` with that hop's `(prefix, del_pinning)`.
 let satisfied = evaluate_anchored_policy(
@@ -418,54 +416,50 @@ let satisfied = evaluate_anchored_policy(
 )?;
 ```
 
-> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — two-pinning model, the gather/evaluate split (`gather_evidence` walks; `evaluate_*` are pure over `Evidence`), the multi-hop delegation-path fold (delegation hops + one terminal anchor hop, anchor checked only on the terminal), sorted-multiset slotting / `PinCursor`, `delegate` threading, `del` as membership-only, and the supply-SAIDs-up-front / one-walk-per-log / token mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the iel `governance` / `authentication` field names (`iel(X)` recurses into `authentication`; `governance` gates the IEL's own events), the `del` delegated-set construction (`Del`/`Rsc` walk, `delegated_set_contains`), the membership **roster** field on the IEL that `mem(prefix, class)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
+> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — two-pinning model, the bind/evaluate split (`bind_pins` is pure and produces `Cursors`; `evaluate_*` read pinned events inline from the verifier's verification walk), the multi-hop delegation-path fold (delegation hops + one terminal anchor hop, anchor checked only on the terminal), sorted-multiset slotting / `PinCursor`, `delegate` threading, `del` as membership-only, and the supply-SAIDs-up-front / one-paged-walk-per-log / inline-check mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the iel `governance` / `authentication` field names (`iel(X)` recurses into `authentication`; `governance` gates the IEL's own events), the `del` delegated-set construction (`Del`/`Rsc` walk, `delegated_set_contains`), the membership **roster** field on the IEL that `mem(prefix, class)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
 
 Implementation:
 
 ```rust
-// gather_evidence binds and walks. For each (policy, pinning): expand the policy
-// graph — descending through pol() and through each iel authentication — to its multiset
-// of referenced prefix occurrences, sort into wire slot order (by prefix, equal
-// prefixes kept in traversal order), then zip with `pinning.pins` to bind each
+// bind_pins is PURE — no source arg, no log traversal. For each (policy, pinning):
+// expand the policy graph — descending through pol() and through each iel authentication —
+// to its multiset of referenced prefix occurrences, sort into wire slot order (by prefix,
+// equal prefixes kept in traversal order), then zip with `pinning.pins` to bind each
 // occurrence to its pinned SAID. A `del` leaf contributes exactly one occurrence — its
 // delegating IEL prefix — and does NOT descend into the delegate's authentication: the
 // delegate is evidence-shaped (not named by the policy), so its subtree can't be sized
-// here; it rides in a separate anchor pinning. Union the `delegations` bindings with
-// the single `anchor` binding, group the bound SAIDs across ALL pinnings by the chain
-// they fall on, walk each chain once (registering its SAIDs up front, reading them back
-// out of the verification token), and return the per-policy cursors plus one token per
-// chain as `Evidence`. The expansion mirrors the eval walk below, so issuer and verifier
-// agree on slot order. The `anchor` binding is the anchoring hop: gather attaches
-// `expected_anchors` to the ANCHOR CURSOR as its required-anchor set — every kel leaf
-// reached under the issuer's authentication is an anchoring leaf (one chain each, several
-// under a multi-KEL threshold); every other binding's cursor gets an empty required set.
-// The requirement travels with the cursor, scoped to the issuer's binding, so an issuance-
-// policy kel leaf naming a chain the issuer's authentication also reaches never inherits it.
-// The hosted anchors come from the walked chain's token regardless; `satisfies_kel` reads
-// the required set off the cursor and the anchors off the token, so the requirement is
-// never a property of the shared chain.
-pub fn gather_evidence(
+// here; it rides in a separate anchor pinning. Produce one cursor per policy (the
+// `delegations` plus the single `anchor`). The expansion mirrors the eval walk below, so
+// issuer and verifier agree on slot order. The `anchor` binding is the anchoring hop:
+// `bind_pins` attaches `expected_anchors` to the ANCHOR CURSOR as its required-anchor set —
+// every kel leaf reached under the issuer's authentication is an anchoring leaf (one chain
+// each, several under a multi-KEL threshold); every other binding's cursor gets an empty
+// required set. The requirement travels with the cursor, scoped to the issuer's binding, so
+// an issuance-policy kel leaf naming a chain the issuer's authentication also reaches never
+// inherits it. The hosted anchors are read later off the event the verification walk
+// validates; `satisfies_kel` reads the required set off the cursor and the anchors off that
+// event, so the requirement is never a property of the shared chain. Bounded by policy size.
+pub fn bind_pins(
     delegations: &[(&Policy, &Pinning)],
     anchor: (&Policy, &Pinning),
     expected_anchors: &HashSet<(Digest256, Tier)>,
-    source: &impl EventSource,
-) -> Result<Evidence, PolicyError> {
-    // bind_pins each pair (delegations + anchor) -> group bound SAIDs by chain ->
-    // walk each chain once -> tokens; attach expected_anchors to the anchor cursor
+) -> Result<Cursors, PolicyError> {
+    // for each pair (delegations + anchor): expand graph -> sorted prefix multiset ->
+    // zip with pinning.pins -> per-policy cursor; attach expected_anchors to the anchor cursor
 }
 
-// evaluate_anchored_policy is self-contained: it builds the hop policies, gathers Evidence
-// ONCE (the only walking), then folds the delegation chain into one conjunction of pure
-// single-policy evaluations and returns the verdict. `delegation_path` is the ordered list
-// of delegation hops `(prefix, membership_pinning)`: hop 0 is delegated by issuance_policy
-// (its pinning is the issuance pinning), each later hop by `del(prior_prefix)`, and the last
-// hop's prefix is the issuer; `anchor_pinning` anchors through the issuer's `iel`. Each hop
-// is a term: delegation hops test the next delegate; the terminal hop tests no delegate. The
-// anchor is checked ONLY on the terminal hop, but not here — `gather_evidence` records
-// `expected_anchors` on the anchor cursor and `satisfies_kel` confirms it. The
-// linkage invariant — hop k's policy names the prefix the prior hop established — is enforced
-// here by CONSTRUCTING `del(prior_prefix)` from the path, not by trusting a policy lifted off
-// the cred.
+// evaluate_anchored_policy is self-contained: it builds the hop policies, binds the pins
+// ONCE (pure), then folds the delegation chain into one conjunction of single-policy
+// evaluations — whose leaves read pinned events inline from the verification walk (`source`) —
+// and returns the verdict. `delegation_path` is the ordered list of delegation hops
+// `(prefix, membership_pinning)`: hop 0 is delegated by issuance_policy (its pinning is the
+// issuance pinning), each later hop by `del(prior_prefix)`, and the last hop's prefix is the
+// issuer; `anchor_pinning` anchors through the issuer's `iel`. Each hop is a term: delegation
+// hops test the next delegate; the terminal hop tests no delegate. The anchor is checked ONLY
+// on the terminal hop, but not here — `bind_pins` records `expected_anchors` on the anchor
+// cursor and `satisfies_kel` confirms it. The linkage invariant — hop k's policy names the
+// prefix the prior hop established — is enforced here by CONSTRUCTING `del(prior_prefix)` from
+// the path, not by trusting a policy lifted off the cred.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
     delegation_path: &[(Digest256, &Pinning)],
@@ -480,9 +474,9 @@ pub fn evaluate_anchored_policy(
     };
 
     // Build hop policies (linkage: hop k names the prefix the prior hop established) and the
-    // terminal anchor policy, then bind every (policy, pinning) into ONE gather so each
-    // referenced chain is walked exactly once. The anchor binding is passed distinctly
-    // so gather knows which chain carries the credential's anchor.
+    // terminal anchor policy, then bind every (policy, pinning) in ONE pure pass. The anchor
+    // binding is passed distinctly so `bind_pins` knows which cursor carries the credential's
+    // anchor requirement.
     let issuer_iel = parse_policy(&format!("iel({})", issuer))?;
     let hop_policies: Vec<Policy> = (1..delegation_path.len())
         .map(|k| parse_policy(&format!("del({})", delegation_path[k - 1].0)))
@@ -493,18 +487,19 @@ pub fn evaluate_anchored_policy(
         delegations.push((hop_policy, delegation_path[k + 1].1)); // membership pinning for hop k+1
     }
 
-    let evidence = gather_evidence(&delegations, (&issuer_iel, anchor_pinning),
-                                   expected_anchors, source)?;
+    let cursors = bind_pins(&delegations, (&issuer_iel, anchor_pinning),
+                            expected_anchors)?;
 
-    // Fold over the gathered evidence. Hop 0 — issuance policy delegates the first prefix.
-    if !evaluate_single_policy(issuance_policy, &evidence,
+    // Fold over the bound cursors; leaves read pinned events inline from `source`. Hop 0 —
+    // issuance policy delegates the first prefix.
+    if !evaluate_single_policy(issuance_policy, &cursors, source,
                                Some(&delegation_path[0].0), required_tier)? {
         return Ok(false);
     }
 
     // Hops 1..n — each delegator (the prefix the prior hop established) must delegate the next.
     for (k, hop_policy) in hop_policies.iter().enumerate() {
-        if !evaluate_single_policy(hop_policy, &evidence,
+        if !evaluate_single_policy(hop_policy, &cursors, source,
                                    Some(&delegation_path[k + 1].0), required_tier)? {
             return Ok(false);
         }
@@ -512,32 +507,34 @@ pub fn evaluate_anchored_policy(
 
     // Terminal — the issuer's authentication anchors the credential. `satisfies_kel` reads the
     // anchor requirement off the anchor cursor; no anchor arg threaded in here.
-    evaluate_single_policy(&issuer_iel, &evidence, None, required_tier)
+    evaluate_single_policy(&issuer_iel, &cursors, source, None, required_tier)
 }
 
 fn evaluate_single_policy(
     policy: &Policy,
-    evidence: &Evidence,
+    cursors: &Cursors,
+    source: &impl EventSource,
     delegate: Option<&Digest256>,
     required_tier: Tier,
 ) -> Result<bool, PolicyError> {
-    // Pure tree walk over already-gathered evidence. `evidence` carries this policy's
-    // leaf->SAID cursor (bound during gather) and one verification token per chain; each
-    // leaf reads its slot's SAID and consults the chain's token. No walking here.
-    let mut pins = evidence.cursor_for(&policy.said)?;
-    eval_expr(&policy.expr, &mut pins, evidence, delegate, required_tier)
+    // Tree walk over the bound cursors. `cursors` carries this policy's leaf->SAID cursor
+    // (fixed during bind); each leaf reads its slot's SAID and reads that event inline from
+    // the verification walk (`source`). No traversal is triggered here.
+    let mut pins = cursors.cursor_for(&policy.said)?;
+    eval_expr(&policy.expr, &mut pins, source, delegate, required_tier)
 }
 
 // `pins` is a cursor: per prefix, the pins for that prefix's occurrences in traversal
-// order. Each leaf takes the NEXT pin for its prefix and consults `evidence` (the
-// chain's already-built token); composers aggregate sub-results. The walk is exhaustive
+// order. Each leaf takes the NEXT pin for its prefix and reads that event inline from
+// `source` (the verification walk); composers aggregate sub-results. The walk is exhaustive
 // (composers evaluate every branch — no short-circuit) so the k-th leaf reaching a
-// prefix consumes that prefix's k-th slot, matching the order gather laid them down. No
-// chain walking happens here — every referenced log was walked once during gather.
+// prefix consumes that prefix's k-th slot, matching the order bind_pins laid them down. No
+// traversal is triggered here beyond the verifier's one paged verification walk per log,
+// against which these checks run inline.
 fn eval_expr(
     expr: &PolicyExpr,
     pins: &mut PinCursor,
-    evidence: &Evidence,
+    source: &impl EventSource,
     delegate: Option<&Digest256>,
     required_tier: Tier,
 ) -> Result<bool, PolicyError> {
@@ -545,28 +542,28 @@ fn eval_expr(
         PolicyExpr::Kel(prefix) => match pins.take(prefix) {
             Some(prior_said) => {
                 let required = pins.required_anchors(); // this binding's set: expected_anchors on the anchor cursor, {} elsewhere
-                satisfies_kel(&prior_said, prefix, required, evidence, required_tier)
+                satisfies_kel(&prior_said, prefix, required, source, required_tier)
             }
             None => Ok(false),
         },
         PolicyExpr::Iel(prefix) => match pins.take(prefix) {
             Some(iel_event_said) => {
-                satisfies_iel(&iel_event_said, prefix, pins, evidence, delegate, required_tier)
+                satisfies_iel(&iel_event_said, prefix, pins, source, delegate, required_tier)
             }
             None => Ok(false),
         },
         PolicyExpr::Del(delegating_prefix) => match pins.take(delegating_prefix) {
-            Some(iel_event_said) => satisfies_del(&iel_event_said, delegating_prefix, evidence, delegate),
+            Some(iel_event_said) => satisfies_del(&iel_event_said, delegating_prefix, source, delegate),
             None => Ok(false),
         },
         PolicyExpr::Pol(said) => {
             let nested = parse_policy_sad(&sadd_fetch(said)?)?;
-            eval_expr(&nested.expr, pins, evidence, delegate, required_tier)
+            eval_expr(&nested.expr, pins, source, delegate, required_tier)
         }
         PolicyExpr::Thr(m, subs) => {
             let mut count: u64 = 0;
             for sub in subs {
-                if eval_expr(sub, pins, evidence, delegate, required_tier)? {
+                if eval_expr(sub, pins, source, delegate, required_tier)? {
                     count += 1;
                 }
             }
@@ -575,7 +572,7 @@ fn eval_expr(
         PolicyExpr::Wgt(m, weighted) => {
             let mut sum: u64 = 0;
             for (sub, w) in weighted {
-                if eval_expr(sub, pins, evidence, delegate, required_tier)? {
+                if eval_expr(sub, pins, source, delegate, required_tier)? {
                     sum += *w as u64;
                 }
             }
@@ -587,20 +584,20 @@ fn eval_expr(
 // kel(prefix): the credential is anchored on this KEL itself. `prior_said` names
 // the event JUST BEFORE the anchoring event — the anchoring event commits to the
 // credential, so its own SAID is unconstructable here (see the SAID-cycle note).
-// The chain was walked and verified to the anchoring event during gather (trust-
-// boundary principle); `S` is its unique child (`S.previous == prior_said`), and its
-// facts (prefix, tier, anchors) are read from the chain's token. The anchor requirement
-// (`required`) is supplied by the caller off the binding's cursor — `expected_anchors`
-// under the issuer's authentication, empty otherwise — so an issuance-policy kel leaf naming
-// the same chain never inherits it. Check anchor + tier.
+// `S` is its unique child (`S.previous == prior_said`) — the next event the verification
+// walk reaches after the pinned `prior_said` — validated inline by that walk (trust-
+// boundary principle); its facts (prefix, tier, anchors) are read from that event. The
+// anchor requirement (`required`) is supplied by the caller off the binding's cursor —
+// `expected_anchors` under the issuer's authentication, empty otherwise — so an issuance-
+// policy kel leaf naming the same chain never inherits it. Check anchor + tier.
 fn satisfies_kel(
     prior_said: &Digest256,
     leaf_prefix: &Digest256,
     required: &HashSet<(Digest256, Tier)>,
-    evidence: &Evidence,
+    source: &impl EventSource,
     required_tier: Tier,
 ) -> Result<bool, PolicyError> {
-    let s = evidence.anchoring_child(leaf_prefix, prior_said)?; // S where S.previous == prior_said
+    let s = source.anchoring_child(leaf_prefix, prior_said)?; // S where S.previous == prior_said, validated by the walk
     // required_tier is the baseline floor for the hosting event; each required anchor may
     // additionally demand a higher tier (a high-assurance SAD co-anchored with a routine one).
     Ok(
@@ -614,41 +611,41 @@ fn satisfies_kel(
 // so it carries no credential anchor and needs no prior-event trick. It fixes the
 // IEL's authentication at that state; satisfaction recurses into that authentication
 // policy, whose leaves carry their own pins (the credential anchor is checked at the
-// terminal kel leaves the recursion reaches). The IEL event was verified during gather;
-// its facts come from the chain's token.
+// terminal kel leaves the recursion reaches). The IEL event is read inline from the
+// verification walk, which validates it.
 fn satisfies_iel(
     iel_event_said: &Digest256,
     leaf_prefix: &Digest256,
     pins: &mut PinCursor,
-    evidence: &Evidence,
+    source: &impl EventSource,
     delegate: Option<&Digest256>,
     required_tier: Tier,
 ) -> Result<bool, PolicyError> {
-    let iel = evidence.iel_event(leaf_prefix, iel_event_said)?;
+    let iel = source.iel_event(leaf_prefix, iel_event_said)?;
     if iel.prefix != *leaf_prefix {
         return Ok(false);
     }
     let authentication = parse_policy_sad(&sadd_fetch(&iel.authentication)?)?;
-    eval_expr(&authentication.expr, pins, evidence, delegate, required_tier)
+    eval_expr(&authentication.expr, pins, source, delegate, required_tier)
 }
 
 // del(prefix): `iel_event_said` is the DELEGATING IEL's own event (its prefix == leaf_prefix),
 // fixing which delegation state membership is tested against. Confirm the delegate (the
 // issuer, from verifier context) is in that IEL's delegated set as of the pinned event. No
 // anchor check and no authentication recursion: the delegate's authentication and the credential
-// anchor are proven separately, by the anchor pinning. The delegating IEL's chain was
-// verified to this event during gather; its facts come from the chain's token.
+// anchor are proven separately, by the anchor pinning. The delegating IEL's event is read
+// inline from the verification walk, which validates it.
 fn satisfies_del(
     iel_event_said: &Digest256,
     leaf_prefix: &Digest256,
-    evidence: &Evidence,
+    source: &impl EventSource,
     delegate: Option<&Digest256>,
 ) -> Result<bool, PolicyError> {
     let delegate = match delegate {
         Some(c) => c,
         None => return Ok(false), // no identifier to test membership against
     };
-    let iel = evidence.iel_event(leaf_prefix, iel_event_said)?; // delegating IEL's event, verified in gather
+    let iel = source.iel_event(leaf_prefix, iel_event_said)?; // delegating IEL's event, validated by the walk
     Ok(iel.prefix == *leaf_prefix && iel.delegated_set_contains(delegate))
 }
 ```
@@ -790,32 +787,34 @@ With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `member
 
 ## Composition semantics
 
-- **Leaves evaluate independently.** One leaf's satisfaction never depends on another's. The shared pin cursor and the per-log single-walk evidence gathering are plumbing (slot assignment, walk reuse), not satisfaction coupling.
+- **Leaves evaluate independently.** One leaf's satisfaction never depends on another's. The shared pin cursor and the per-log single paged verification walk are plumbing (slot assignment, walk reuse), not satisfaction coupling.
 - **Composers are pure aggregators.** They take leaf / sub-composer results and produce satisfaction signals. No side effects.
-- **Boundedness.** Bounded cost — a finite expression tree, and one chain walk per referenced chain in gather (not per leaf). Million-event chains walk in O(chain length) once, parallelizable across chains; evaluation itself is a cheap tree walk over the resulting tokens.
+- **Boundedness.** Bounded cost. `bind_pins` is pure and bounded by policy size (it expands the expression trees and zips pins — no log access). The leaf checks ride inline on the verifier's verification walk, the single paged pass each referenced log gets for end-verifiability anyway: a log referenced by several leaves is paged once, and a million-event log is paged through once in O(chain length), parallelizable across logs (resident cost bounded by the page — the chain is never materialized whole). Evaluation itself is a cheap tree walk.
 - **Deterministic.** Given a fixed chain state and signed request, evaluation is deterministic. Verifiers across nodes converge.
 
 ## Verifier behavior
 
-The verifier first **gathers evidence**: `gather_evidence` expands each policy graph to its sorted prefix *multiset*, zips that with the corresponding `pinning.pins` to bind each prefix occurrence to its pinned SAID, groups the bound SAIDs across all pinnings by chain, and walks each chain once into a verification token. It then **evaluates** each policy as a pure tree walk over that `Evidence`: each leaf takes the next pin for its prefix (a `null`/absent slot fails that leaf) and consults the chain's token — kel prefixes read the anchoring child and check the credential anchor at the required tier; iel prefixes read the named IEL event and recurse into its authentication policy; del prefixes read the delegating IEL event and confirm the delegate is in its delegated set (no authentication recursion — the delegate's authentication and the credential anchor are proven by a separate anchor pinning). The anchored entry point `evaluate_anchored_policy` **folds** these single-policy evaluations across the delegation path: one delegation hop per step (each hop's `del` policy constructed from the prefix the prior hop established, which is the linkage check), then one terminal anchor hop over the issuer's `iel` — ANDed, with the credential anchor checked only on the terminal hop.
+The verifier first **binds pins**: `bind_pins` expands each policy graph to its sorted prefix *multiset* and zips that with the corresponding `pinning.pins` to bind each prefix occurrence to its pinned SAID, producing one cursor per policy. This is pure — it derives the prefix positions from the policy graph and touches no log. It then **evaluates** each policy as a tree walk over those cursors, whose leaves read their pinned events inline from the verifier's **verification walk** (`source`), the single paged pass each referenced log gets for end-verifiability anyway: each leaf takes the next pin for its prefix (a `null`/absent slot fails that leaf) and reads that event as the walk reaches it — kel prefixes read the anchoring child and check the credential anchor at the required tier; iel prefixes read the named IEL event and recurse into its authentication policy; del prefixes read the delegating IEL event and confirm the delegate is in its delegated set (no authentication recursion — the delegate's authentication and the credential anchor are proven by a separate anchor pinning). The anchored entry point `evaluate_anchored_policy` **folds** these single-policy evaluations across the delegation path: one delegation hop per step (each hop's `del` policy constructed from the prefix the prior hop established, which is the linkage check), then one terminal anchor hop over the issuer's `iel` — ANDed, with the credential anchor checked only on the terminal hop.
 
-High-level pseudo-code matching `gather_evidence` + `evaluate_anchored_policy` + `evaluate_single_policy`:
+High-level pseudo-code matching `bind_pins` + `evaluate_anchored_policy` + `evaluate_single_policy`:
 
 ```
-gather_evidence(delegations, anchor, expected_anchors, source) -> Evidence:
+bind_pins(delegations, anchor, expected_anchors) -> Cursors:        # PURE: no source arg, no log traversal
+    cursors = {}
     for (policy, pinning) in delegations + [anchor]:
-        bind_pins(policy, pinning)      # expand graph -> sorted prefix multiset -> zip with pinning.pins -> per-prefix cursor
-    group all bound SAIDs by chain      # a bare SAID needs its leaf's prefix to know which chain it's on
-    walk each chain ONCE                 # register its SAIDs up front; read them out of the verification token
-    set expected_anchors as the anchor cursor's required-anchor set
-                                         # every kel leaf under the issuer's authentication is an anchoring leaf; other cursors get {}
-    return Evidence { per-policy cursors (anchor cursor carries required-anchor set), one token per chain }
+        cursors[policy.said] = zip(sorted_prefix_multiset(policy), pinning.pins)   # expand graph -> sorted prefix multiset -> zip with pins -> per-prefix cursor
+    cursors[anchor.policy.said].required_anchors = expected_anchors                # anchor cursor only; every other cursor's set is {}
+                                         # every kel leaf under the issuer's authentication is an anchoring leaf
+    return cursors                       # just the positions of the prefixes in the policy graph, bound to their pinned SAIDs
 
-# Orchestrator: build the hop policies + issuer iel, gather ONCE (the only walking), then fold
-# the delegation path [P0 .. Pn] into one conjunction of single-policy evaluations over that
-# evidence. Linkage: hop k's policy is del(P_{k-1}), CONSTRUCTED from the prefix the prior hop
-# established. Anchor checked ONLY on the terminal hop — and not here: gather set it on the anchor
-# cursor, satisfies_kel confirms it off that cursor.
+# Orchestrator: build the hop policies + issuer iel, bind the pins (pure), then fold the delegation
+# path [P0 .. Pn] into one conjunction of single-policy evaluations. The events the leaves read are
+# validated INLINE by the verifier's verification walk (`source`): each referenced log is paged
+# through once — that walk runs anyway for end-verifiability — and the pinned SAIDs are the positions
+# it checks as it iterates, so a log referenced by several leaves is paged once and nothing
+# materializes the whole chain (resident cost is bounded by the page, not the chain length). Linkage:
+# hop k's policy is del(P_{k-1}), CONSTRUCTED from the prefix the prior hop established. Anchor checked
+# ONLY on the terminal hop — bind_pins tagged it onto the anchor cursor, satisfies_kel confirms it.
 evaluate_anchored_policy(issuance_policy, delegation_path, anchor_pinning, expected_anchors, source, required_tier) -> bool:
     if delegation_path is empty: return false
     issuer = delegation_path[last].prefix
@@ -824,68 +823,69 @@ evaluate_anchored_policy(issuance_policy, delegation_path, anchor_pinning, expec
     for k in 1 .. len(delegation_path):
         hop = parse_policy("del(" + delegation_path[k-1].prefix + ")")   # linkage: prefix the prior hop established
         delegations.append((hop, delegation_path[k].pinning))
-    evidence = gather_evidence(delegations, (issuer_iel, anchor_pinning), expected_anchors, source)
+    cursors = bind_pins(delegations, (issuer_iel, anchor_pinning), expected_anchors)   # pure; no walking
 
-    if not evaluate_single_policy(issuance_policy, evidence, Some(delegation_path[0].prefix), required_tier): return false
+    if not evaluate_single_policy(issuance_policy, cursors, source, Some(delegation_path[0].prefix), required_tier): return false
     for k in 1 .. len(delegation_path):
         hop = delegations[k].policy
-        if not evaluate_single_policy(hop, evidence, Some(delegation_path[k].prefix), required_tier): return false
-    return evaluate_single_policy(issuer_iel, evidence, None, required_tier)
+        if not evaluate_single_policy(hop, cursors, source, Some(delegation_path[k].prefix), required_tier): return false
+    return evaluate_single_policy(issuer_iel, cursors, source, None, required_tier)
 
-evaluate_single_policy(policy, evidence, delegate, required_tier) -> bool:
-    pins = evidence.cursor_for(policy.said)
-    return eval_expr(policy.expr, pins, evidence, delegate, required_tier)
+evaluate_single_policy(policy, cursors, source, delegate, required_tier) -> bool:
+    pins = cursors.cursor_for(policy.said)
+    return eval_expr(policy.expr, pins, source, delegate, required_tier)
 
-# Leaves take the NEXT pin for their prefix and consult `evidence` (the chain's token);
-# composers aggregate. A prefix reached k times reads its k-th slot (occurrences ordered
-# by traversal); the walk is exhaustive so that ordering holds. No chain walking here —
-# every log was walked once in gather. `bind_pins` (in gather) is the only place slot
-# order matters.
-eval_expr(expr, pins, evidence, delegate, required_tier) -> bool:
+# Leaves take the NEXT pin for their prefix (slot order fixed by bind_pins) and read that event
+# from the verification walk (`source`); composers aggregate. A prefix reached k times reads its
+# k-th slot (occurrences ordered by traversal); the walk is exhaustive so that ordering holds. No
+# walking is triggered here beyond the verifier's one paged verification walk per log, against which
+# these checks run inline.
+eval_expr(expr, pins, source, delegate, required_tier) -> bool:
     match expr:
-        kel(prefix) => pins.take(prefix) is Some(prior) ? satisfies_kel(prior, prefix, pins.required_anchors(), evidence, required_tier) : false
-        iel(prefix) => pins.take(prefix) is Some(ev)    ? satisfies_iel(ev, prefix, pins, evidence, delegate, required_tier) : false
-        del(prefix) => pins.take(prefix) is Some(ev)    ? satisfies_del(ev, prefix, evidence, delegate) : false
+        kel(prefix) => pins.take(prefix) is Some(prior) ? satisfies_kel(prior, prefix, pins.required_anchors(), source, required_tier) : false
+        iel(prefix) => pins.take(prefix) is Some(ev)    ? satisfies_iel(ev, prefix, pins, source, delegate, required_tier) : false
+        del(prefix) => pins.take(prefix) is Some(ev)    ? satisfies_del(ev, prefix, source, delegate) : false
         pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr,
-                                 pins, evidence, delegate, required_tier)
-        thr(M, ss)  => count(eval_expr(s, pins, evidence, delegate, required_tier) for s in ss) >= M
-        wgt(M, ws)  => sum(w for (s, w) in ws if eval_expr(s, pins, evidence, delegate, required_tier)) >= M
+                                 pins, source, delegate, required_tier)
+        thr(M, ss)  => count(eval_expr(s, pins, source, delegate, required_tier) for s in ss) >= M
+        wgt(M, ws)  => sum(w for (s, w) in ws if eval_expr(s, pins, source, delegate, required_tier)) >= M
 
-# kel: `prior` is the event before the anchoring event; S is its child (S.previous ==
-# prior), which dodges the SAID cycle. The anchor requirement comes from the cursor
-# (expected_anchors under the issuer's authentication, {} elsewhere). iel: the pin is an
-# IEL event (not an anchoring event, so cycle-free); recurse into its authentication — the credential
-# anchor is checked at the terminal kel leaves the recursion reaches. del: the pin is the
-# DELEGATING IEL's own event; confirm the delegate is in its delegated set — no authentication
-# recursion (the delegate's authentication / the credential anchor ride in a separate anchor
-# pinning). All chains were walked in gather per the trust-boundary principle; pinning names the
-# chain position so no search.
+# kel: `prior` is the pinned event just before the anchoring event; its child S
+# (S.previous == prior) is the next event the verification walk reaches — checking it there, inline,
+# both dodges the SAID cycle and needs no search. The anchor requirement comes from the cursor
+# (expected_anchors under the issuer's authentication, {} elsewhere). iel: the pin is an IEL event
+# (not an anchoring event, so cycle-free); recurse into its authentication — the credential anchor is
+# checked at the terminal kel leaves the recursion reaches. del: the pin is the DELEGATING IEL's own
+# event; confirm the delegate is in its delegated set — no authentication recursion (the delegate's
+# authentication / the credential anchor ride in a separate anchor pinning). Every event a leaf reads
+# is validated by the paged verification walk per the trust-boundary principle; the pin names the
+# position, so there is no search.
 
-satisfies_kel(prior, leaf_prefix, required, evidence, required_tier):
-    S = evidence.anchoring_child(leaf_prefix, prior)     # child where S.previous == prior, verified in gather
+satisfies_kel(prior, leaf_prefix, required, source, required_tier):
+    S = source.anchoring_child(leaf_prefix, prior)       # the anchoring child S where S.previous == prior, validated by the walk
     # `required` is the cursor's set of (anchor, min-tier) pairs: expected_anchors under the
     # issuer's authentication, {} elsewhere. required_tier is the baseline floor for the event.
     return S.prefix == leaf_prefix
         AND S.tier >= required_tier
         AND for all (anchor, tier) in required: S.anchors.contains(anchor) AND S.tier >= tier
 
-satisfies_iel(iel_event, leaf_prefix, pins, evidence, delegate, required_tier):
-    E = evidence.iel_event(leaf_prefix, iel_event)       # the IEL event itself, verified in gather
+satisfies_iel(iel_event, leaf_prefix, pins, source, delegate, required_tier):
+    E = source.iel_event(leaf_prefix, iel_event)         # the IEL event, validated by the walk
     return E.prefix == leaf_prefix
         AND eval_expr(parse_dsl(sadd.fetch(E.authentication).content).expr,
-                      pins, evidence, delegate, required_tier)
+                      pins, source, delegate, required_tier)
 
-satisfies_del(iel_event, leaf_prefix, evidence, delegate):
+satisfies_del(iel_event, leaf_prefix, source, delegate):
     if delegate is None: return false                   # no identifier to test membership against
-    E = evidence.iel_event(leaf_prefix, iel_event)       # the DELEGATING IEL's own event, verified in gather
+    E = source.iel_event(leaf_prefix, iel_event)         # the DELEGATING IEL's own event, validated by the walk
     return E.prefix == leaf_prefix
         AND E.delegated_set_contains(delegate)
 ```
 
 **Semantics notes:**
 
-- **Pinning context propagates uniformly.** A `pol(said)` recursion — and an `iel` authentication recursion — uses the same `pins` cursor, `evidence`, `delegate`, and `required_tier` as the outer evaluation. The credential-anchor requirement rides on the `pins` cursor itself (gather set it on the anchor cursor, empty on the others), so it propagates with that recursion to every kel leaf reached under the issuer's authentication — and, being cursor-scoped rather than chain-scoped, never leaks onto an issuance-policy kel leaf that names the same chain. The whole expanded graph evaluates against one evidence set, each occurrence consuming its own slot in traversal order. A `del` leaf does not recurse: it consumes its one slot (the delegating IEL's event), tests delegate membership, and stops — the delegate's authentication and the credential anchor are proven by a separate anchor pinning, not this cursor.
-- **The SAID cycle, and why kel prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a kel prefix pins the event *just prior* and the verifier rederives the anchoring child. iel/del prefixes are cycle-free: they pin IEL events (fixing the authentication / delegation state), which never carry the credential anchor. This is orthogonal to the sorted-multiset slotting, which only decides slot order; avoiding a second walk of a shared log is handled by gather locating all of that log's pinned SAIDs in one verified walk (supplied up front, reported found in the walk's token), not by the wire format.
+- **Pinning context propagates uniformly.** A `pol(said)` recursion — and an `iel` authentication recursion — uses the same `pins` cursor, `source`, `delegate`, and `required_tier` as the outer evaluation. The credential-anchor requirement rides on the `pins` cursor itself (`bind_pins` set it on the anchor cursor, empty on the others), so it propagates with that recursion to every kel leaf reached under the issuer's authentication — and, being cursor-scoped rather than chain-scoped, never leaks onto an issuance-policy kel leaf that names the same chain. The whole expanded graph evaluates against one set of cursors, each occurrence consuming its own slot in traversal order. A `del` leaf does not recurse: it consumes its one slot (the delegating IEL's event), tests delegate membership, and stops — the delegate's authentication and the credential anchor are proven by a separate anchor pinning, not this cursor.
+- **The SAID cycle, and why kel prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a kel prefix pins the event *just prior* and the verifier rederives the anchoring child. iel/del prefixes are cycle-free: they pin IEL events (fixing the authentication / delegation state), which never carry the credential anchor. This is orthogonal to the sorted-multiset slotting, which only decides slot order; avoiding a second walk of a shared log is handled by the verification walk paging that log once and checking all of its pinned positions inline (the pinned SAIDs are supplied up front as the positions to check), not by the wire format. `bind_pins` itself only fixes slot order and touches no log.
 - **`pol(said)` reference cycles are structurally impossible.** Content-addressed references can't form a cycle without a Blake3-256 collision (two Policy SADs mutually containing each other's SAIDs). No runtime cycle check needed.
 - **Depth bound.** Implementations should impose a soft depth limit on `pol()` recursion (e.g., 16 levels) and deny on exceeding — implementation concern, out of scope here.
 - **Tier check is in the leaf helpers, not the composers.** A kel prefix's `satisfies_kel` rejects an anchoring event hosted below `required_tier`; the tier requirement propagates unchanged through the iel authentication recursion to the terminal kel leaves. Composers aggregate satisfied/unsatisfied results; they don't see tier directly.
@@ -965,8 +965,9 @@ fn authorize(
 The three checks are deliberately separable, each answering a different question:
 
 - **Validity** (`evaluate_anchored_policy`) is about the *issuer* — did a recognized authority
-  anchor this credential at the required tier, and is it still withdrawal-free? It walks chains
-  against pinned evidence; it says nothing about who is holding the credential right now.
+  anchor this credential at the required tier, and is it still withdrawal-free? It checks the
+  pinned events inline in the verification walk; it says nothing about who is holding the
+  credential right now.
 - **Identity** (`evaluate_current_policy`) is about the *bearer* — does whoever is presenting the
   credential currently control its subject identity? It checks live attestations over a fresh
   challenge at the chain tip; it says nothing about whether the credential was validly issued.
