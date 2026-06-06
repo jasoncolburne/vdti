@@ -2,7 +2,7 @@
 
 Canonical specification of vdti's policy DSL — the expression language used to encode authorization rules across the event-log primitives.
 
-A **policy** is a [SAD](sad/sad.md) whose content is a DSL expression. The IEL primitive references policies (governance, delegation, and authentication); the SEL primitive references policies (governance); applications reference policies for their own authorization needs. The DSL is the language; Policy SADs are the storage format; the verifier evaluates DSL expressions against signed requests and the relevant chain state.
+A **policy** is a [SAD](sad/sad.md) whose content is a DSL expression. The IEL primitive references policies (governance, delegation, and authentication); the SEL primitive references policies (governance and operation); applications reference policies for their own authorization needs. The DSL is the language; Policy SADs are the storage format; the verifier evaluates DSL expressions against signed requests and the relevant chain state.
 
 This doc states the surface (the primitives that make up the DSL), their semantics, and how composition works. It does not enumerate per-primitive doctrine (which lives in [`event-logs/event-shape.md`](event-logs/event-shape.md), the per-primitive specs, and [`../../protocol-doctrine.md`](../../protocol-doctrine.md)) and does not specify the verifier implementation algorithm (which lives in `lib/vdti` planning material).
 
@@ -13,7 +13,8 @@ Policies are referenced by Policy SAD SAIDs from chain-event fields:
 - **IEL `governance`** (required at inception; evolved via `Evl`) — gates IEL self-mutation events (key rotation, policy/roster changes, decommission).
 - **IEL `authentication`** (required at inception; evolved via `Evl`) — the entity's act-as policy: what every `iel(prefix)` leaf (and each `mem` member) evaluates against. Outward-facing — it never gates the IEL's own chain events.
 - **IEL `delegation`** (optional at inception; evolved via `Evl`) — gates IEL delegation events (`Del` / `Rsc`).
-- **SEL `governance`** (declared at SEL `Icp`; evolved via SEL `Evl`) — gates SEL events (`Est` / `Ixn` / `Evl` / `Rpr` / `Dec`).
+- **SEL `governance`** (declared at SEL `Icp`; evolved via `Evl`) — gates SEL events (`Evl` / `Rpr` / `Dec`).
+- **SEL `operation`** (declared at SEL `Icp`; evolved via `Evl`) — gates SEL operational events (`Est` / `Ixn`).
 - **Application-defined policy references** — applications may attach policy SAIDs to their own data structures (credentials, signed requests, custody SADs) following the same pattern.
 
 In each case the field holds a `Digest256` pointing at a Policy SAD. The verifier dereferences, parses the DSL expression, and evaluates it.
@@ -899,7 +900,8 @@ Policy DSL evaluations gate the following event kinds (per [`event-logs/event-sh
 
 - **IEL `Evl` / `Dec`** — gated by `governance`
 - **IEL `Del` / `Rsc`** — gated by `delegation`
-- **SEL `Est` / `Ixn` / `Evl` / `Rpr` / `Dec`** — gated by `governance`
+- **SEL `Evl` / `Rpr` / `Dec`** — gated by `governance`
+- **SEL `Est` / `Ixn`** — gated by `operation`
 - **Application-defined gates** — credentials, signed requests, etc. — gated by application-specific policy references
 
 ## End-to-end access example
@@ -988,5 +990,5 @@ credential is still bounded by the app's role→permission map (authorization fa
 ## Forward-refs
 
 - [`event-logs/iel/`](event-logs/iel/) — IEL primitive (subsequent sub-issue); references this doc for governance / delegation / authentication policy evaluation
-- [`event-logs/sel/`](event-logs/sel/) — SEL primitive (subsequent sub-issue); references this doc for SEL governance
+- [`event-logs/sel/`](event-logs/sel/) — SEL primitive (subsequent sub-issue); references this doc for SEL governance / operation
 - `lib/vdti` — verifier implementation; evaluates DSL expressions per this spec
