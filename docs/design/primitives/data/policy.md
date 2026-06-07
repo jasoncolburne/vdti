@@ -17,6 +17,8 @@ Policies are referenced by Policy SAD SAIDs from chain-event fields:
 - **SEL `operation`** (declared at SEL `Icp`; evolved via `Evl`) — gates SEL operational events (`Est` / `Ixn`).
 - **Application-defined policy references** — applications may attach policy SAIDs to their own data structures (credentials, signed requests, custody SADs) following the same pattern.
 
+An IEL's three policies — `governance` / `authentication` / `delegation` — are further constrained in *what they may contain* by whether the IEL is **aggregate** or **singleton**; see [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
+
 In each case the field holds a `Digest256` pointing at a Policy SAD. The verifier dereferences, parses the DSL expression, and evaluates it.
 
 ## The DSL surface — 7 primitives
@@ -41,13 +43,17 @@ composes over them at the threshold/weights it chooses (see *Leaf semantics*). T
 expr     ::= leaf | composer
 leaf     ::= kel(prefix) | iel(prefix) | del(prefix) | pol(said)
 array    ::= mem(prefix, class)                 # IEL prefix's `class` roster: an array of iel(member) leaves
-composer ::= thr(M, [elem, ...]) | wgt(M, [(elem, w), ...])
+composer ::= thr(M, [elem, ...]) | wgt(M, [([elem, ...], w), ...])
 elem     ::= expr | array                       # an array element flattens its members in place
 ```
 
-`mem` appears only as an `elem` (inside `[...]`), never as a standalone `expr`. In a `wgt` pair
-`(array, w)`, the weight grafts onto each flattened member. Every well-formed policy is built from
-these primitives.
+`mem` appears only as an `elem` (inside `[...]`), never as a standalone `expr`. A `wgt` entry's
+subject is itself a bracketed array `[elem, ...]` — the same concat container as `thr`'s, but
+paired with a weight `w` that every one of its flattened children carries. So `([mem(staff)], w)`
+weights each staff member at `w`, and a single leaf is just the one-element case `([kel(K)], w)`.
+The bracket carries no bloc semantics: `([a, b], w)` desugars losslessly to `(a, w), (b, w)`, so
+the array is purely a concise way to attach one weight to several subjects. Every well-formed
+policy is built from these primitives.
 
 ### Shape
 
@@ -61,7 +67,27 @@ own slot. The issuer pins one
 SAID per prefix occurrence; satisfying 2 of the 3 top-level branches is enough to clear the
 threshold.
 
-#### Policy (resource holder's gate)
+#### Policies (resource holder's gate)
+
+A
+
+```json
+{
+    "said": "A_said",
+    "policy": "kel(A_prefix)"
+}
+```
+
+IEL(X).authentication
+
+```json
+{
+    "said": "...",
+    "policy": "kel(Y_prefix)"
+}
+```
+
+Policy
 
 ```json
 {
@@ -77,7 +103,7 @@ through each `iel` authentication, taking one slot per prefix occurrence:
 
 ```
   thr(2)
-  ├─ pol(A_said) ──▶ kel(A_prefix)        ▷ A_prefix   (pol → kel)
+  ├─ pol(A_said) ──▶ kel(A_prefix)         ▷ A_prefix   (pol → kel)
   ├─ iel(X_prefix)                         ▷ X_prefix   (the iel leaf itself)
   │    └─ authentication ──▶ kel(Y_prefix) ▷ Y_prefix   (via X's authentication)
   └─ kel(Y_prefix)                         ▷ Y_prefix   (top-level branch)
@@ -154,10 +180,10 @@ pub enum PolicyExpr {
     Iel(Digest256),                       // chain prefix
     Kel(Digest256),                       // chain prefix
     Del(Digest256),                       // delegator IEL prefix
-    Mem(Digest256, String),               // (IEL prefix, class label); an array of iel(member) leaves — only valid as a composer element (inside [...]), flattens in place
+    Mem(Digest256, String),               // (IEL prefix, class label ^[a-z_-]{1,16}$); an array of iel(member) leaves — only valid as a composer element (inside [...]), flattens in place
     Pol(Digest256),                       // nested Policy SAD SAID
     Thr(u64, Vec<PolicyExpr>),            // threshold M, sub-expressions
-    Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M, (sub, weight) pairs
+    Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M; (sub, weight) pairs. Source brackets desugar to per-element pairs (each element carries w); a Mem sub expands to per-member (iel, w) at flatten
 }
 
 pub struct Policy {
@@ -699,16 +725,18 @@ The leaf is satisfied iff the signing party satisfies the IEL's own **authentica
 
 This is recursive — `iel(P)`'s check evaluates P's authentication policy, which may itself contain `iel(...)`. The recursion terminates at non-`iel` leaves (`kel`, `del`).
 
-`iel(X)` and `mem(X, class)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, class)`, by contrast, takes X's **published roster** for the named class and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem(prefix, class)`](#memprefix-class--membership-roster-array). Both are first-class for foreign X; the difference is *who sets the bar* (X's authentication vs. the referencing policy).
+`iel(X)` and `mem(X, class)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, class)`, by contrast, takes X's **published roster** for the named class and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem(prefix, class)`](#memprefix-class--membership-roster-array). Both are first-class for foreign X in **general** policies (application, issuance, withdrawal); the difference is *who sets the bar* (X's authentication vs. the referencing policy).
+
+Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `iel` is **never hand-written**. Those policies use only `mem(self, class)` (aggregate) or `kel()` (singleton); `iel` appears solely as what `mem(self, class)` expands into and as the resolution primitive each member recurses through — see [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
 
 ### `mem(prefix, class)` — membership-roster array
 
-`mem(prefix, class)` names the **`class`** class of the membership roster published by **IEL `prefix`**, and resolves to one `iel(member_i)` leaf per member of that class. The roster is a SAD that IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping class labels to sets of member IEL prefixes (a member may sit in several classes). The reference is **explicit** (both the IEL prefix and the class): a roster is referenced by *multiple* policies — the owning entity's own policies and any number of foreign policies — so the policy must name which IEL's roster and which class. Foreign reach is first-class: any policy may splice IEL X's `executives` class via `mem(X, executives)`. This is distinct from `iel(X)`, which defers to X's whole authentication; `mem(X, class)` takes X's published class and composes over it at the referencing policy's own bar.
+`mem(prefix, class)` names the **`class`** class of the membership roster published by **IEL `prefix`**, and resolves to one `iel(member_i)` leaf per member of that class. The `class` label matches `^[a-z_-]{1,16}$` (lowercase `a`–`z`, underscore, hyphen; 1–16 characters; no digits, no uppercase). The roster is a SAD that IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping class labels to sets of member IEL prefixes (a member may sit in several classes). The reference is **explicit** (both the IEL prefix and the class): a roster is referenced by *multiple* policies — the owning entity's own policies and any number of foreign policies — so the policy must name which IEL's roster and which class. Foreign reach (`mem(X, class)` with X ≠ self) is first-class in **general** policies: any application/issuance policy may splice IEL X's `executives` class via `mem(X, executives)`. This is distinct from `iel(X)`, which defers to X's whole authentication; `mem(X, class)` takes X's published class and composes over it at the referencing policy's own bar. Inside an IEL's *own* three policies, only `mem(self, class)` — its own roster — is permitted (no foreign rosters); see [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
 
 `mem(prefix, class)` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
 
 - inside `thr(k, [mem(prefix, class)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of that class's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`iel(mi)`).
-- inside `wgt(M, [(mem(prefix, class), w), …])` → each member becomes `(iel(mi), w)` — every member of the class carries weight `w`.
+- inside `wgt(M, [([mem(prefix, class)], w), …])` → each member becomes `(iel(mi), w)` — every member of the class carries weight `w`.
 - the enclosing `[...]` is a **concat container**: multiple `mem` classes and single expressions mix freely — `thr(2, [mem(org, execs), mem(org, board), kel(K)])` flattens to one child list (`execs` members ++ `board` members ++ `kel(K)`).
 
 This is the membership/composition split. Two levels compose: the **roster level** (which class, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` authentication). The roster lives with the entity (who is in each class); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
@@ -740,11 +768,67 @@ Composers can wrap any expression — leaves, or other composers:
 ```
 thr(2, [
     iel(P1),
-    wgt(50, [(kel(K1), 30), (kel(K2), 30)])
+    wgt(50, [([kel(K1)], 30), ([kel(K2)], 30)])
 ])
 ```
 
 The verifier evaluates inside-out: each leaf evaluates against its chain state; composers aggregate results.
+
+## IEL policy structure — aggregate vs. singleton
+
+An IEL is one of two kinds, fixed at inception by an optional boolean **`aggregate`** flag on its
+`Icp` event — absent or `false` ⇒ **singleton**, `true` ⇒ **aggregate**. The flag is **immutable**:
+an identity does not change kind over its life ("it's an identity, not a choose-your-own-adventure").
+The kind constrains what the IEL's three policies (`governance`, `authentication`, `delegation`)
+may contain. (This is a constraint on an IEL's *own* three policies only; general policies —
+application, issuance, withdrawal — keep the full DSL surface, including `iel(X)` and foreign
+`mem(X, class)`.)
+
+- **Singleton** — bottoms out at device keys; it has **no roster** (the `Icp` simply omits the
+  roster field). Its three policies may contain only `kel()` leaves, composed with `thr` / `wgt` —
+  no `mem`, `iel`, `del`, or `pol`. A singleton is the **base case** that `iel(...)` resolution
+  terminates at: every chain of member resolution ends at some singleton's `kel()`. Its
+  `authentication` must be non-empty (≥ 1 satisfiable `kel`), or the identity can never act.
+
+- **Aggregate** — composed of other identities (its members). It carries a **roster**: a SAD
+  mapping class labels to sets of member IEL prefixes (see [`mem`](#memprefix-class--membership-roster-array)).
+  Its three policies may contain only `mem(self, class)` arrays, composed with `thr` / `wgt`, where
+  **`self`** is a literal sentinel resolving to the host IEL — its **own** roster only, never a
+  foreign one. No bare `iel` / `kel` / `del`, no `pol`. An aggregate must be **born with a
+  non-empty roster**, or it is ungovernable. (Because `self` carries no prefix, IEL policies stay
+  prefix-free — reducing to a smaller complete set, and under content-addressed dedup identical
+  expressions like `thr(2, [mem(self, directors)])` collapse to a single Policy SAD shared across
+  every IEL of that shape, saving stored bytes.)
+
+`iel(member)` is **never hand-written** in an IEL policy. It exists only as the form
+`mem(self, class)` **expands into** — one `iel(member_i)` per current member of the class — and as
+the recursion primitive each member resolves through: `iel(member)` defers to that member's
+`authentication`, which (if the member is itself an aggregate) is again `mem(self, …)` → `iel(…)`,
+terminating at a singleton's `kel()`. So each IEL policy kind has exactly **one** writable leaf —
+`kel` for singletons, `mem` for aggregates — and `iel` is purely the internal resolution form. The
+DSL itself is unchanged: `iel` remains a first-class leaf elsewhere (general policies, and the
+verifier-constructed `iel(subject)` / `iel(issuer)` of the identity and anchor flows).
+
+**Naming one specific member** uses a **one-element class**: to single out `alice`, give her a class
+(`founder = {alice}`) and reference `mem(self, founder)`. Every individual reference therefore goes
+through a labelled roster entry rather than a bare prefix — a policy can never name a non-member,
+and because `mem(self, class)` yields in-roster members *by construction*, no reference can dangle.
+(The residual caution is the generic threshold one: shrinking a class below a threshold that gates
+it self-bricks — true of any threshold — not a dangling-reference hazard.)
+
+**Class labels** match `^[a-z_-]{1,16}$` — lowercase `a`–`z`, underscore, hyphen; 1–16 characters;
+no digits, no uppercase.
+
+**Cycles.** Aggregate-of-aggregate membership forms a graph that must be **acyclic**. The verifier
+carries a visited-set / cycle guard in its `iel(...)`-resolution walk so a membership cycle denies
+rather than loops; roster-write may additionally forbid self-membership as a first line.
+
+The `aggregate` flag, the roster field, and the roster-less singleton `Icp` shape are **event-shape
+facts** (VDTI-10) — provisional here pending [`event-shape.md`](event-logs/event-shape.md). This
+section states only the **DSL-level constraint** the two kinds impose on policy contents.
+
+> SELs have no identity and no roster — only `governance` + `operation` policies — so the
+> aggregate/singleton distinction is **IEL-only**.
 
 ## Worked examples
 
@@ -778,13 +862,19 @@ Any three members satisfy, or the emergency key alone.
 **Weighted membership classes** — an org weights executive / admin / member classes at 3 / 2 / 1, threshold 3 (the classes live in the org's one roster; weight is this policy's per-class valuation):
 ```
 wgt(3, [
-    (mem(prefix, executives), 3),
-    (mem(prefix, admins),     2),
-    (mem(prefix, members),    1)
+    ([mem(prefix, executives)], 3),
+    ([mem(prefix, admins)],     2),
+    ([mem(prefix, members)],    1)
 ])
 ```
 
 With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each class — a stricter resource could set `member → 0`; the roster is unchanged. A member in two classes is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
+
+**Aggregate IEL authentication** — an aggregate's own `authentication` composes only over its own roster (`self`), never bare prefixes:
+```
+thr(2, [mem(self, directors)])
+```
+"Any 2 current directors authenticate as the aggregate." To require a specific individual, give them a one-element class — `mem(self, founder)` with `founder = {alice}`. A **singleton's** authentication, by contrast, is `kel`-only — e.g. `thr(2, [kel(device_a), kel(device_b)])` — the base case the `iel(...)` recursion bottoms out at (see *[IEL policy structure](#iel-policy-structure--aggregate-vs-singleton)*).
 
 ## Composition semantics
 
