@@ -14,7 +14,7 @@ Terms used throughout, briefly:
 System state lives in **append-only chains of cryptographically-linked events** that entities throughout the network hold and verify independently — no central authority, no trust by fiat. Each chain primitive plays a distinct structural role:
 
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
-- **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via authorization-policy and governance-policy declarations on its event chain. Identity is the unit at which credentials are issued.
+- **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via governance, authentication, and delegation policy declarations on its event chain. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. Each SEL binds at inception to an IEL prefix; auth resolves through that IEL.
 
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized; cross-federation interop is by user-initiated transfer rather than implicit trust.
