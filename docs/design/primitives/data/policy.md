@@ -25,7 +25,7 @@ In each case the field holds a `Digest256` pointing at a Policy SAD. The verifie
 
 ```
 kel(prefix)        iel(prefix)        pol(said)
-mem(prefix, class)        del(prefix, N)
+mem(group)   mem(prefix, group)   del(prefix, N)
 thr(M, [...])      wgt(M, [...])      and([...])
 ```
 
@@ -33,9 +33,12 @@ Two chain-state **leaves** (`kel`, `iel`), one policy-reference **leaf** (`pol`)
 **bracket-only** forms — a **membership array** (`mem`) and a **delegation placeholder** (`del`)
 — and three **composers** (`thr`, `wgt`, `and`). Neither bracket-only form is a leaf:
 
-- `mem(prefix, class)` is an **array value** — it names the *`class`* class of IEL `prefix`'s
-  membership roster and resolves to one `iel(member_i)` leaf per member of that class. It
-  flattens in place inside a composer's `[...]`.
+- `mem(group)` / `mem(prefix, group)` is an **array value** — it names a *`group`* of a
+  membership roster and resolves to one `iel(member_i)` leaf per member of that group. The
+  **two-arg** form names a *foreign* IEL `prefix`'s roster; the **one-arg** form names the
+  **host** IEL's own roster (the prefix is implicit — the enclosing `iel(X)` descent supplies it),
+  and is the only form an IEL's own three policies may use. It flattens in place inside a
+  composer's `[...]`.
 - `del(prefix, N)` is a **non-enumerable placeholder** — it names a *delegating* IEL `prefix` and
   a maximum delegation **depth** `N` (a natural number ≥ 1, counting hops; `del(X)` is sugar for
   `del(X, 1)` = direct delegate). It is **never expanded** (a delegator's delegated set is
@@ -54,10 +57,12 @@ composes over them at the threshold/weights it chooses (see *Leaf semantics*). T
 ```
 expr      ::= leaf | composer
 leaf      ::= kel(prefix) | iel(prefix) | pol(said)
-bracketed ::= mem(prefix, class)            # IEL prefix's `class` roster: flattens to iel(member) leaves
+bracketed ::= mem(group)                    # host IEL's own `group` roster (one-arg; prefix implicit): flattens to iel(member) leaves
+            | mem(prefix, group)            # foreign IEL prefix's `group` roster: flattens to iel(member) leaves
             | del(prefix, N)                # delegation placeholder: never expanded; matched by distinct presented issuers
-composer  ::= thr(M, [elem, ...]) | wgt(M, [([elem, ...], w), ...]) | and([expr, ...])
+composer  ::= thr(M, [elem, ...]) | wgt(M, [([wgt_elem, ...], w), ...]) | and([expr, ...])
 elem      ::= expr | bracketed              # a bracketed form appears only here; mem flattens its members in place
+wgt_elem  ::= kel(prefix) | iel(prefix) | mem(group) | mem(prefix, group) | del(prefix, N)   # wgt subjects are membership-style ONLY — no pol, no composer (NEW-E)
 ```
 
 `mem` and `del` appear only as an `elem` (inside `[...]`), never as a standalone `expr`. Every
@@ -66,11 +71,14 @@ gate), so the parser rejects `M = 0`. `and([expr, ...])` is the **conjunction** 
 threshold (it is all-of), but its children are full `expr`s (a bracketed `mem` / `del` must be
 wrapped in a `thr` / `wgt` first) and it requires **≥ 2** of them (a one-child `and` is just the
 child; an empty `and([])` is a vacuous no-op gate, rejected); see
-[`and`](#andexpr----conjunction-separation-of-duties). A `wgt` entry's subject is itself a bracketed
-array `[elem, ...]`
-— the same concat container as `thr`'s, but paired with a weight `w` that every one of its
-flattened children carries. So `([mem(staff)], w)` weights each staff member at `w`, and a single
-leaf is just the one-element case `([kel(K)], w)`. The bracket carries no bloc semantics:
+[`and`](#andexpr----conjunction-separation-of-duties). A `wgt` entry's subject is a bracketed
+array `[wgt_elem, ...]` paired with a weight `w` that every one of its flattened children carries,
+**but `wgt` subjects are restricted to the membership-style forms `kel` / `iel` / `mem` / `del`** —
+**no `pol`, no composer** (NEW-E). A composer or `pol` subject would let one weight spread per
+*credited prefix* across a nested set (threshold-easing), whereas these four credit a clear
+membership-style set; the parser **rejects** a composer/`pol` `wgt` subject (fail-secure — see
+*Composition semantics*). So `([mem(group)], w)` weights each member of that group at `w`, and a
+single leaf is just the one-element case `([kel(K)], w)`. The bracket carries no bloc semantics:
 `([a, b], w)` desugars losslessly to `(a, w), (b, w)`, so the array is purely a concise way to
 attach one weight to several subjects. Every well-formed policy is built from these primitives.
 
@@ -134,12 +142,12 @@ walk reaches it**:
 
   slots follow the walk — pre-order, depth-first, no sort:
 
-    slot 0     slot 1     slot 2                  slot 3
-    A_prefix   X_prefix   Y_prefix                Y_prefix
-    pol→kel    iel event  via X's authentication  top-level kel
+    slot 0     slot 1       slot 2                  slot 3
+    A_prefix   X_prefix     Y_prefix                Y_prefix
+    pol→kel    state-marker via X's authentication  top-level kel
 ```
 
-`iel(X)` contributes two slots — its own (the IEL event) and `Y_prefix` from its authentication,
+`iel(X)` contributes two slots — its own (the state-marker) and `Y_prefix` from its authentication,
 in that descent order — and `Y_prefix` lands twice, the via-authentication occurrence ordered
 before the top-level one because the walk reaches it first.
 
@@ -154,9 +162,9 @@ the branches it satisfies.
 
 **Consumption is driven by the structural walk, not by satisfaction.** Each leaf consumes exactly
 one slot when the walk reaches it, whether or not it ends up satisfied — so a failed leaf cannot
-desync the slots of later leaves. An `iel` leaf whose pinned IEL event is *present but
+desync the slots of later leaves. An `iel` leaf whose pinned state-marker is *present but
 unsatisfied* still descends into its authentication and drains that subtree's slots; a `null`
-`iel` slot consumes its one slot and does **not** descend (the IEL event is un-evidenced, so its
+`iel` slot consumes its one slot and does **not** descend (the state-marker is un-evidenced, so its
 authentication subtree is unreachable — its subtree's slots are *omitted*, see *Issuer-side
 construction* below). After the walk, **any leftover pins are a malformed pinning and deny** (the
 issuer pinned more slots than the policy has occurrences).
@@ -169,9 +177,9 @@ the two stay aligned by construction:
   verifier descends into that subtree, so the issuer must supply its slots.
 - A **null `iel` slot is terminal** — emit exactly one `null` and **omit that `iel`'s
   authentication-subtree slots entirely**, because the verifier does not descend a null `iel` and
-  so consumes no slots for the subtree. (A null `iel` cannot drain a subtree: with no IEL event its
-  authentication policy is unresolvable, so the subtree's slot count is unknowable; the only sound
-  rule is to lay no slots for it.)
+  so consumes no slots for the subtree. (A null `iel` cannot drain a subtree: with no state-marker
+  its authentication policy is unresolvable, so the subtree's slot count is unknowable; the only
+  sound rule is to lay no slots for it.)
 
 These two rules are exact complements of the verifier's branch above. An issuer that lays
 subtree slots under a null `iel` overruns the policy's occurrences and trips the leftover-pins
@@ -186,10 +194,15 @@ its position in the policy:
   SAID-cycle note under *Verifier behavior*); the verifier resolves the anchoring child
   `S` (`S.previous == pin`) **on the surviving branch** and checks the credential anchor on `S`.
   An anchor on a divergent or later-archived branch is invalid (see [`kel`](#kelprefix--kel-key-match-tier-agnostic)).
-- **iel prefix** → the SAID of the IEL event itself. This fixes the IEL's authentication at that
-  state; satisfaction recurses into that authentication policy, whose leaves consume the following
-  slots in walk order. An IEL event doesn't carry the credential anchor, so there's no cycle and
-  no prior-event trick.
+- **iel prefix** → the SAID of the IEL's most-recent `Evl`/`Icp` **state-marker** (the last event
+  that changed its authentication or roster; `Del`/`Rsc` don't move it). This fixes the IEL's
+  **state snapshot** — both authentication *and* roster — as-of that marker (NEW-B): the verifier
+  reconstructs the snapshot as-of the pinned marker, satisfaction recurses into the snapshot's
+  authentication policy, whose leaves consume the following slots in walk order, and a one-arg
+  `mem(group)` under that authentication reads its roster from this **same** reconstructed snapshot
+  (reuse of the marker, no second pin — closing the authentication-recent / roster-stale
+  resurrection gap). A state-marker doesn't carry the credential anchor, so there's no cycle and no
+  prior-event trick.
 
 There is **no del slot**: `del(prefix, N)` is never expanded and carries no pin — delegation is
 proven by the verifier self-traversing the issuer's own delegation chain (bounded by `N`), not by
@@ -206,14 +219,14 @@ caller confirms every required SAID was reached.
 
 For the policy above, the occurrences walk to `[A_prefix, X_prefix, Y_prefix, Y_prefix]`. An
 issuer satisfying all three branches pins every slot — kel prefixes → prior-event SAIDs, the
-iel prefix → its IEL event SAID; a `null` would appear for any prefix left un-evidenced:
+iel prefix → its state-marker SAID; a `null` would appear for any prefix left un-evidenced:
 
 ```json
 {
     "said": "{pinning_said}",
     "pins": [
         "{A_prior_kel_event_said}",
-        "{X_iel_event_said}",
+        "{X_iel_marker_said}",
         "{Y_prior_kel_event_said_1}",
         "{Y_prior_kel_event_said_2}"
     ]
@@ -231,11 +244,11 @@ pub struct Said(Digest256);               // SAID of a specific event or SAD (po
 pub enum PolicyExpr {
     Kel(Prefix),                          // chain prefix — device key (tier-agnostic; required_tier picks the role)
     Iel(Prefix),                          // chain prefix — IEL authentication
-    Mem(Prefix, String),                  // (IEL prefix, class label ^[a-z_-]{1,16}$); roster array — only valid as a composer element (inside [...]), flattens in place
+    Mem(Option<Prefix>, String),          // (roster owner, group label ^[a-z_-]{1,16}$); None = own/host-implicit (one-arg mem(group)), Some(p) = foreign (two-arg mem(p, group)); roster array — only valid as a composer element (inside [...]), flattens in place
     Del(Prefix, u32),                     // (delegator IEL prefix, max delegation depth N ≥ 1 in hops); placeholder — only valid as a composer element, never expanded
     Pol(Said),                            // nested Policy SAD SAID
     Thr(u64, Vec<PolicyExpr>),            // threshold M ≥ 1, sub-expressions
-    Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M ≥ 1; (sub, weight) pairs. Source brackets desugar to per-element pairs (each element carries w); a Mem sub expands to per-member (iel, w) at flatten
+    Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M ≥ 1; (sub, weight) pairs. Each sub is membership-style ONLY — kel/iel/mem/del, no pol/composer (NEW-E). Source brackets desugar to per-element pairs (each element carries w); a Mem sub expands to per-member (iel, w) at flatten
     And(Vec<PolicyExpr>),                 // conjunction — satisfied iff EVERY child satisfied; ≥ 2 children (separation of duties). Children are full exprs, never bare mem/del
 }
 
@@ -258,11 +271,47 @@ pub struct Pinning {
 The public evaluation entry points are `evaluate_anchored_policy` (anchored validity of a credential — reads chains via the verification walk) and `evaluate_current_policy` (live challenge-response control). Both run their leaf checks **inline on the verifier's verification walk** (`source`) — the single paged pass each referenced log gets for end-verifiability — and both resolve `del(prefix, N)` by **self-traversal** (no delegation pin: the candidate walks *up* its own delegation chain to the named delegator). There is no separate pure bind phase and no evidence-gathering walk: pins are consumed positionally as the one walk descends (see *Pinning*). `evaluate_single_policy` is the internal pin-walk helper for a del-free sub-policy (the issuer's authentication during the anchor check).
 
 ```rust
-// Hard cap on the number of presented issuers (anchored mode) / claimed delegates (current mode) a
-// verifier will consider in one evaluation. Both entry points refuse > MAX_PRESENTED up front, at
-// the trust boundary, before any chain work — an unbounded presented set cannot amplify cost. See
-// §Boundedness and NEW-5.
+// Hard cap on the number of caller-supplied items a verifier will consider in one evaluation:
+// presented issuers (anchored mode), and BOTH claimed delegates and presented attestations (current
+// mode — NEW-A; each kel(K) leaf verifies against every matching attestation, so the set is an
+// amplifier). Both entry points refuse > MAX_PRESENTED up front, at the trust boundary, before any
+// chain work — an unbounded presented set cannot amplify cost. See §Boundedness, NEW-5, NEW-A.
 const MAX_PRESENTED: usize = 128;
+
+// Proof-of-verification token for a policy evaluation (NEW-F / Q3). It CANNOT be constructed
+// directly — the ONLY way to obtain one is to run a policy verifier (`evaluate_anchored_policy` /
+// `evaluate_current_policy`) to a SATISFIED result. Possession therefore PROVES the policy was
+// satisfied against verified chain state: the credited parties, the SADs proven anchored, and the
+// marker state snapshot(s) the evaluation fixed all ride in the token, so a downstream consumer
+// reads data-AS-VERIFIED — no re-fetch, no TOCTOU. A function taking `&PolicyVerification` is
+// compiler-guaranteed its policy already passed. Fields are PRIVATE with NO public constructor; the
+// verifier builds one only after consuming the underlying chain verification tokens
+// (`IelVerification` / `KelVerification`) surfaced by `source` during the walk — so chain -> policy
+// -> authorize is verify-before-use end to end. (Mirrors the kels chain-verifier token pattern —
+// `KelVerifier::into_verification()` -> `KelVerification` — NOT kels' submit-handler
+// `AnchorEvaluation` / `PolicyChecker` deferral surface, which vdti's end-verification path does not
+// need.)
+pub struct PolicyVerification {
+    said: Said,                              // content digest of the verified result (equal SAID ⇒ same result)
+    credited: HashSet<Prefix>,               // the distinct parties that satisfied the policy
+    anchored_saids: BTreeSet<Said>,          // SADs proven anchored on the surviving branch (anchored mode; empty in current mode)
+    snapshots: Vec<IelStateSnapshot>,        // the Evl/Icp-marker state snapshot(s) the walk reconstructed (NEW-B); provisional shape pending event-shape.md
+}
+
+impl PolicyVerification {
+    pub fn credited(&self) -> &HashSet<Prefix> { &self.credited }        // who satisfied the policy
+    pub fn is_said_anchored(&self, said: &Said) -> bool { self.anchored_saids.contains(said) }
+    pub fn said(&self) -> &Said { &self.said }
+    // No PUBLIC constructor — `new` is crate-private, so only the verifier in this module builds a
+    // token (verifier-only construction is the whole guarantee). Derives the content SAID over the
+    // verified result, so an equal SAID means the same credited set + anchored SADs + snapshot(s).
+    fn new(credited: HashSet<Prefix>, anchored_saids: BTreeSet<Said>,
+           snapshots: Vec<IelStateSnapshot>) -> Self {
+        let mut token = Self { said: Said::placeholder(), credited, anchored_saids, snapshots };
+        token.said = token.derive_said();    // SelfAddressed — bind the SAID over the fields above
+        token
+    }
+}
 
 // Anchored validity (public entry) — is `cred` validly issued by enough recognized issuers and
 // not withdrawn? The credential NAMES its issuers and carries one anchor pinning per issuer; it
@@ -274,10 +323,14 @@ const MAX_PRESENTED: usize = 128;
 // placeholder. Self-contained: builds each issuer's `iel` policy internally, walks delegation
 // chains + anchor pinnings inline on `source`, then runs the withdrawal scan.
 //
-//  issuers          presented issuers + their anchor pinnings, SOURCED FROM THE CREDENTIAL'S
-//                   committed issuer set (not untrusted request input — the verifier is the trust
-//                   boundary; the issuer<->content<->anchor binding never depends on caller
-//                   bookkeeping). The verifier confirms the presented prefixes equal that set.
+//  issuers          presented issuers + their anchor pinnings. The verifier asserts (NEW-D, inside,
+//                   at the trust boundary) that the presented prefixes equal `committed_issuers`
+//                   before crediting any of them — the issuer<->content<->anchor binding never
+//                   depends on caller bookkeeping.
+//  committed_issuers the issuer set the credential COMMITS to, read from the SAID-verified
+//                   credential (content-addressed, trusted) — NOT a second untrusted caller arg. The
+//                   verifier compares the presented `issuers` prefixes against this and refuses on
+//                   mismatch (NEW-D); only then does it credit.
 //  expected_anchors (SAID, minimum-tier) pairs each contributing issuer's anchoring event must
 //                   host: the credential SAID, plus any co-anchored SADs, each with its tier floor.
 //  withdrawal,      the credential's withdrawal config (see Withdrawal). immune ⇒ skip the
@@ -287,25 +340,35 @@ const MAX_PRESENTED: usize = 128;
 //  max_depth        the always-passed safety cap on every recursion/walk depth — delegation hops
 //                   (sourced from the del placeholder's N), pol/iel nesting (a sensible default,
 //                   e.g. 16). Exceeding it denies (fail-secure).
+//
+// Returns Err(PolicyError) on structural/source failure (malformed input, fetch failure, leftover
+// pins, max_depth breach, presented != committed); Ok(None) on a clean unsatisfied result; and
+// Ok(Some(PolicyVerification)) on satisfaction — the token carries the credited issuer set, the
+// anchored credential SAID(s), and the marker snapshot(s) the walk fixed, consuming the underlying
+// chain verification tokens `source` surfaced (verify-before-use end to end).
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
     issuers: &[(Prefix, &Pinning)],
+    committed_issuers: &HashSet<Prefix>,     // from the SAID-verified credential (NEW-D)
     expected_anchors: &HashSet<(Said, Tier)>,
     withdrawal: Option<&Policy>,
     immune: bool,
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
-) -> Result<bool, PolicyError>;
+) -> Result<Option<PolicyVerification>, PolicyError>;
 
 // Single-policy pin-walk (internal) — tree walk over ONE del-free policy (the issuer's
 // authentication during the anchor check, or a nested pol()), consuming `pinning.pins`
 // positionally in pre-order walk order. Each non-del leaf takes the next pin and reads that event
-// inline from `source`; composers aggregate. `self_context` resolves `mem(self, class)` inside an
-// aggregate member's authentication — it is the prefix of the enclosing `iel()` descent (None at
+// inline from `source`; composers aggregate. `self_context` resolves one-arg `mem(group)` inside
+// an aggregate member's authentication — it is the prefix of the enclosing `iel()` descent (None at
 // the top, set to X when recursing into iel(X)'s authentication). `expected_anchors` is the
 // credential-anchor requirement scoped to this walk (the issuer's authentication carries it; a
-// nested pol inherits it). Bounded by `max_depth`.
+// nested pol inherits it). Bounded by `max_depth`. Returns Ok(None) when this issuer's
+// authentication is unsatisfied; Ok(Some(token)) — carrying the anchored SAD(s) proven on this walk
+// and the Evl/Icp-marker snapshot it reconstructed (folded into the caller's token) — on success;
+// Err on a structural/source failure (leftover pins, fetch failure, max_depth breach).
 fn evaluate_single_policy(
     policy: &Policy,
     pinning: &Pinning,
@@ -314,7 +377,7 @@ fn evaluate_single_policy(
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
-) -> Result<bool, PolicyError>;
+) -> Result<Option<PolicyVerification>, PolicyError>;
 ```
 
 ```rust
@@ -326,9 +389,10 @@ fn evaluate_single_policy(
 //   - kel(K)         satisfied by an attestation whose signer == K, valid against K's CURRENT
 //                    signing key (and recovery key, when required) at K's tip.
 //   - iel(X) / mem   satisfied by attestation(s) meeting X's authentication at its tip (recurse;
-//                    `self` resolves to the enclosing iel descent, as in the anchored walk). X is
-//                    NAMED in the policy — no claim needed; crediting is by the LEAF's prefix, so
-//                    thr(2, [iel(A), iel(B)]) counts both identities even under one controlling key.
+//                    one-arg mem(group) resolves to the enclosing iel descent's roster, as in the
+//                    anchored walk). X is NAMED in the policy — no claim needed; crediting is by the
+//                    LEAF's prefix, so thr(2, [iel(A), iel(B)]) counts both identities even under
+//                    one controlling key.
 //   - del(X, N)      the bearer NAMES the delegate IEL D it acts as (presented up front in
 //                    `named_delegates`, capped at 128 — del is non-enumerable and there is no
 //                    credential here to carry the name, and there is NO del-pin); credit each
@@ -338,6 +402,14 @@ fn evaluate_single_policy(
 // and valid — primary alone vs. primary+recovery), not an anchoring-event tier; see *Leaf
 // semantics* (precise tier→shape mapping in the deviations log). `challenge` must be unpredictable,
 // single-use, and context-bound (see *Verifier behavior — challenge binding*).
+//
+// Both `attestations` and `named_delegates` are refused up front if longer than MAX_PRESENTED (128)
+// (NEW-A / NEW-5) — each kel(K) leaf signature-verifies against every matching attestation, so an
+// unbounded attestation set is a crypto-verify amplifier; the cap stops it before any chain work.
+// Returns Err(PolicyError) on structural/source failure (over-cap input, fetch failure, max_depth
+// breach); Ok(None) on a clean unsatisfied result; Ok(Some(PolicyVerification)) on satisfaction —
+// the token carries the credited prefix set (anchored_saids empty, no snapshot: current mode reads
+// the tip live and pins no marker).
 pub struct Attestation {
     signer: Prefix,                          // signer's KEL prefix
     signature: Signature,                    // signature by current signing key
@@ -354,10 +426,10 @@ pub fn evaluate_current_policy(
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
-) -> Result<bool, PolicyError>;
+) -> Result<Option<PolicyVerification>, PolicyError>;
 ```
 
-`evaluate_anchored_policy` returns `Ok(true)` iff the presented issuers (equal to the credential's committed set) satisfy `issuance_policy` — each self-traversing to a named delegator within depth and anchoring the credential on its authentication at the required tier on the surviving branch — AND no satisfying withdrawal anchor was found (see *Withdrawal*). `evaluate_current_policy` returns `Ok(true)` iff the attestations over `challenge` cover `policy`'s leaves at current chain state with the required attestation shape. Both return `Ok(false)` for a clean unsatisfied — including an unknown primitive, which fails the **whole** policy closed (see *Verifier behavior*); `Err(_)` for malformed inputs / fetch failures, including leftover pins (more pins than the policy has occurrences) or a `max_depth` breach.
+Both entry points are **policy verifiers**: a satisfied evaluation yields a `PolicyVerification` proof token, not a bare `true`. `evaluate_anchored_policy` returns `Ok(Some(token))` iff the presented issuers (asserted equal to the credential's committed set, NEW-D) satisfy `issuance_policy` — each self-traversing to a named delegator within depth and anchoring the credential on its authentication at the required tier on the surviving branch — AND no satisfying withdrawal anchor was found (see *Withdrawal*); the token carries the credited issuer set, the anchored credential SAID(s), and the marker snapshot(s) the walk fixed. `evaluate_current_policy` returns `Ok(Some(token))` iff the attestations over `challenge` cover `policy`'s leaves at current chain state with the required attestation shape; the token carries the credited prefixes (no anchored SAIDs, no snapshot — current mode is tip-live). Both return `Ok(None)` for a clean unsatisfied — including an unknown primitive, which fails the **whole** policy closed (see *Verifier behavior*); `Err(_)` for malformed inputs / fetch failures, including leftover pins (more pins than the policy has occurrences), a presented≠committed mismatch, an over-cap presented set, or a `max_depth` breach. Token-existence *is* the proof of satisfaction — a caller holding a `PolicyVerification` cannot have reached it on an unsatisfied policy.
 
 The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: it confirms each named issuer is a current delegate by **self-traversing that issuer's own delegation chain** up to a delegator named by the issuance policy (no cred-supplied path — the chain self-records the linkage; see *Delegation handshake*), proves each issuer's anchor through its `iel` (the **anchor pinning**), counts distinct issuers against the issuance policy's thresholds, then runs the withdrawal scan. The verification walk pages each referenced log once, so a chain reached by several anchor pinnings or self-traversals is checked inline in that one pass. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it matches live attestations over a fresh challenge against the policy's leaves at the chain tip (`del` leaves self-traverse from a **named delegate** the bearer presents, as in the anchored flow).
 
@@ -436,7 +508,7 @@ rooted at the issuer's own IEL:
 
   iel(dlg_prefix)  (identity → authentication → anchor)  anchor pinning
   ─────────────────────────────────────────────────     ────────────────
-  iel(dlg_prefix)                       ▷ slot 0  {dlg_iel_event_said}
+  iel(dlg_prefix)                       ▷ slot 0  {dlg_iel_marker_said}
   └─ authentication kel(dlg_kel_prefix) ▷ slot 1  {dlg_kel_prior_kel_said}
         └─ prior event (surviving branch); its child anchors the credential at the required tier
 ```
@@ -447,16 +519,16 @@ self-traversing `dlg_prefix`'s own chain (above). The only pinning the credentia
 anchor pinning.
 
 **Anchor pinning.** The issuer's IEL policy `iel(dlg_prefix)` walks to two slots in pre-order —
-the issuer's IEL event (fixing which authentication state applies) and, through that
-authentication `kel(dlg_kel_prefix)`, the KEL event just *prior* to the anchoring event (the
-anchoring event commits to the credential, so its own SAID is unconstructable here; see the
-SAID-cycle note):
+the issuer's `Evl`/`Icp` state-marker (the verifier reconstructs the snapshot that fixes which
+authentication state applies) and, through that authentication `kel(dlg_kel_prefix)`, the KEL event
+just *prior* to the anchoring event (the anchoring event commits to the credential, so its own SAID
+is unconstructable here; see the SAID-cycle note):
 
 ```
 {
     "said": "{anchor_pinning_said}",
     "pins": [
-        "{dlg_iel_event_said}",      // slot 0 — dlg_prefix IEL event fixing the authentication state
+        "{dlg_iel_marker_said}",     // slot 0 — dlg_prefix state-marker fixing the authentication snapshot
         "{dlg_kel_prior_kel_said}"   // slot 1 — dlg_kel_prefix prior event; its surviving-branch child anchors the credential
     ]
 }
@@ -474,8 +546,9 @@ SAID-cycle note):
   `thr(1, ...)`. Under `del(X, N)` with `N > 1` the verifier keeps walking up (`X`'s own
   delegator, …) until it reaches the named delegator within `N` hops or denies.
 - **Anchor** — evaluating `iel(dlg_prefix)` against the anchor pinning, the `iel(dlg_prefix)`
-  leaf reads its pinned IEL event (binding the issuer to its authentication `kel(dlg_kel_prefix)`)
-  and recurses into that authentication policy; the `kel(dlg_kel_prefix)` leaf resolves the
+  leaf reads its pinned `Evl`/`Icp` state-marker (reconstructing the snapshot that binds the issuer
+  to its authentication `kel(dlg_kel_prefix)`) and recurses into that authentication policy; the
+  `kel(dlg_kel_prefix)` leaf resolves the
   anchoring event `S` (`S.previous == dlg_kel_prior_kel_said`) **on the surviving branch** and
   checks `S` is at the required tier and anchors the credential SAID. Because the anchor is
   reached *through* the delegated issuer's IEL, the anchoring KEL is bound to the delegated
@@ -510,13 +583,20 @@ let issuers: Vec<(Prefix, &Pinning)> = cred
 // each required anchor names the minimum tier its hosting event must satisfy
 let cred_anchor: HashSet<(Said, Tier)> = [(cred.said, Tier::One)].into_iter().collect();
 
+// The issuer set the credential COMMITS to, read from the SAID-verified credential (NEW-D). The
+// verifier asserts the presented `issuers` prefixes equal this INSIDE the call, at the trust
+// boundary, before crediting — the equality is not the caller's to vouch for.
+let committed: HashSet<Prefix> = cred.committed_issuers().into_iter().collect();
+
 // One self-contained call: for each named issuer it self-traverses the issuer's own delegation
 // chain up to a delegator named by the issuance policy (≤ N hops, bounded by max_depth), proves
 // the issuer's anchor through its `iel` (the anchor pinning), counts distinct issuers against the
 // issuance policy's thresholds, and runs the withdrawal scan. No cred-supplied delegation path.
-let satisfied = evaluate_anchored_policy(
+// On success it returns Some(PolicyVerification) — the proof token downstream steps consume.
+let verification = evaluate_anchored_policy(
     &issuance_policy,
     &issuers,
+    &committed,                                  // NEW-D: asserted == presented, inside the verifier
     &cred_anchor,
     cred.withdrawal.as_deref().map(parse_policy).transpose()?.as_ref(),  // None = soft default
     cred.immune,
@@ -526,7 +606,7 @@ let satisfied = evaluate_anchored_policy(
 )?;
 ```
 
-> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — credential-names-issuers + per-issuer anchor pinning, the self-traversing delegation walk (each issuer walks *up* its own chain via the serial-1 `Evl` back-pointer; `del` never expanded), pre-order pin slotting consumed inline on the one verification walk, `self`-context threading, distinct-issuer counting, and the supply-SAIDs-up-front / one-paged-walk-per-log / inline-check mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the surviving-branch resolution of the anchoring child (per `kel/reconciliation.md` / `merge.md`), the iel `governance` / `authentication` field names (`iel(X)` recurses into `authentication`; `governance` gates the IEL's own events), the self-recording delegation fields (`Icp.delegating` = delegator prefix; serial-1 `Evl.delegating` = the `Del`-event SAID; the `Del`/`Rsc` walk to tip), the membership **roster** field on the IEL that `mem(prefix, class)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
+> **TODO (pending [event-shape.md](event-logs/event-shape.md)).** The evaluation architecture below — credential-names-issuers + per-issuer anchor pinning, the self-traversing delegation walk (each issuer walks *up* its own chain via the serial-1 `Evl` back-pointer; `del` never expanded), pre-order pin slotting consumed inline on the one verification walk, `self`-context threading, distinct-issuer counting, and the supply-SAIDs-up-front / one-paged-walk-per-log / inline-check mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the kel anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the surviving-branch resolution of the anchoring child (per `kel/reconciliation.md` / `merge.md`), the iel `governance` / `authentication` field names (`iel(X)` recurses into `authentication`; `governance` gates the IEL's own events), the self-recording delegation fields (`Icp.delegating` = delegator prefix; serial-1 `Evl.delegating` = the `Del`-event SAID; the `Del`/`Rsc` walk to tip), the membership **roster** field on the IEL that `mem(prefix, group)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `mem` elements into `iel(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
 
 Implementation:
 
@@ -538,44 +618,56 @@ Implementation:
 //   (b) DELEGATION — it self-traverses UP its own delegation chain to a delegator the issuance
 //       policy names, within that placeholder's depth.
 // The issuance policy's composers then count DISTINCT anchored issuers per `del(X, N)`. The
-// issuer<->content<->anchor binding never depends on caller bookkeeping: the presented prefixes
-// are the credential's committed issuer set (confirmed by the caller that sourced them from the
-// cred — the verifier is the trust boundary).
+// issuer<->content<->anchor binding never depends on caller bookkeeping: the presented prefixes are
+// asserted equal to the credential's COMMITTED issuer set (NEW-D) here, at the trust boundary,
+// before any crediting. On satisfaction the verifier emits a PolicyVerification proof token,
+// FOLDING the per-issuer tokens it walked (verify-before-use end to end).
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
     issuers: &[(Prefix, &Pinning)],
+    committed_issuers: &HashSet<Prefix>,
     expected_anchors: &HashSet<(Said, Tier)>,
     withdrawal: Option<&Policy>,
     immune: bool,
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
-) -> Result<bool, PolicyError> {
-    if issuers.is_empty() {
-        return Ok(false);             // no committed issuer — nothing to anchor or delegate-check
-    }
+) -> Result<Option<PolicyVerification>, PolicyError> {
     if issuers.len() > MAX_PRESENTED {           // K ≤ 128 (NEW-5) — up-front trust-boundary pre-check,
-        return Err(PolicyError::TooManyIssuers); // alongside the presented==committed check; zero work done
+        return Err(PolicyError::TooManyIssuers); // before the equality check; zero chain work done
+    }
+    // NEW-D: the presented prefixes MUST equal the credential's committed set, asserted HERE from
+    // SAID-verified data — never trusted from caller bookkeeping. A mismatch is a structural failure.
+    let presented: HashSet<Prefix> = issuers.iter().map(|(p, _)| p.clone()).collect();
+    if presented != *committed_issuers {
+        return Err(PolicyError::IssuerSetMismatch);
+    }
+    if issuers.is_empty() {
+        return Ok(None);              // no committed issuer — nothing to anchor or delegate-check
     }
 
-    // (a) Anchor proof per issuer. `iel(issuer)` walks to the issuer's IEL event and, through its
-    // authentication, the anchoring KEL(s); `expected_anchors` rides this walk so the credential
+    // (a) Anchor proof per issuer. `iel(issuer)` walks to the issuer's `Evl`/`Icp` state-marker and,
+    // through its reconstructed authentication, the anchoring KEL(s); `expected_anchors` rides this walk so the credential
     // anchor is checked on the ISSUER'S authentication (surviving branch, required tier) — never on
-    // a chain a `del` placeholder names. An issuer whose anchor fails is not a contributor.
+    // a chain a `del` placeholder names. An issuer that anchors yields a per-issuer token (its
+    // proven anchored SAD(s) + reconstructed marker snapshot); Ok(None) ⇒ not a contributor.
     let mut anchored: Vec<&Prefix> = Vec::new();
+    let mut issuer_tokens: Vec<PolicyVerification> = Vec::new();
     for (issuer, anchor_pinning) in issuers {
         let issuer_iel = parse_policy(&format!("iel({})", issuer))?;
-        if evaluate_single_policy(&issuer_iel, anchor_pinning, expected_anchors,
-                                  None, source, required_tier, max_depth)? {
+        if let Some(token) = evaluate_single_policy(&issuer_iel, anchor_pinning, expected_anchors,
+                                                    None, source, required_tier, max_depth)? {
             anchored.push(issuer);
+            issuer_tokens.push(token);
         }
     }
 
     // (b) + composition. Evaluate the issuance policy: each `del(X, N)` placeholder is matched by
     // the distinct anchored issuers that self-traverse up to `X` within `N` hops; composers count
-    // DISTINCT issuer prefixes. `eval_issuance` returns true iff the issuance threshold is met.
-    if !eval_issuance(&issuance_policy.expr, &anchored, source, max_depth)? {
-        return Ok(false);
+    // DISTINCT issuer prefixes. An empty credited set is a clean unsatisfied (Ok(None)).
+    let credited = issuance_credited(&issuance_policy.expr, &anchored, source, max_depth)?;
+    if credited.is_empty() {
+        return Ok(None);
     }
 
     // Withdrawal. `immune` skips THIS scan only — the F rescission tip-walk inside `self_traverses`
@@ -584,10 +676,18 @@ pub fn evaluate_anchored_policy(
     if !immune
         && is_withdrawn(expected_anchors, &anchored, withdrawal, source, required_tier, max_depth)?
     {
-        return Ok(false);
+        return Ok(None);
     }
 
-    Ok(true)
+    // Satisfied. Build the proof token, CONSUMING the per-issuer tokens — their anchored SADs and
+    // marker snapshots fold up, so possession of the result proves every walked chain verified.
+    let mut anchored_saids = BTreeSet::new();
+    let mut snapshots = Vec::new();
+    for t in issuer_tokens {                       // moves each sub-token (consumed, not borrowed)
+        anchored_saids.extend(t.anchored_saids);
+        snapshots.extend(t.snapshots);
+    }
+    Ok(Some(PolicyVerification::new(credited, anchored_saids, snapshots)))
 }
 
 // Self-traversal: does `candidate` reach `delegator` walking UP its own delegation chain within
@@ -636,8 +736,8 @@ fn self_traverses(
 // subexpression, the SET of distinct issuers that subexpression credits IF satisfied (else empty) —
 // so a containing composer dedups by prefix when it unions children. An issuance policy accepts both
 // DELEGATED issuers (`del(X, N)` — anchored issuers self-traversing up to `X` within `N`, delegation
-// is for scaling) and DIRECT named issuers (`iel(X)` / `mem(X, class)` — anchored issuers matching
-// the named prefix / `X`'s class roster at `X`'s tip). `pol` recurses; `thr` / `wgt` / `and` compose
+// is for scaling) and DIRECT named issuers (`iel(X)` / `mem(prefix, group)` — anchored issuers
+// matching the named prefix / the owner's `group` roster at its tip). `pol` recurses; `thr`/`wgt`/`and` compose
 // (union / max-weight / conjunction); a bare `kel` credits nobody (issuers are IELs, not bare
 // devices). `thr(M, …)` is met iff the child union holds ≥ M distinct issuers; `wgt` sums per-issuer
 // weight (dedup-by-max, mirroring `mem` — weighted delegation composes identically).
@@ -680,38 +780,45 @@ fn issuance_credited(
         } else {
             HashSet::new()
         }),
-        // mem(X, class): flatten to iel(member) and credit the anchored members of X's `class` ("any
-        // of X's executives may issue directly"). Roster resolved at X's TIP (identity-current — the
-        // issuance policy is the resource's live config, unpinned).
-        PolicyExpr::Mem(prefix, class) => {
+        // mem(prefix, group): flatten to iel(member) and credit the anchored members of `prefix`'s
+        // `group` ("any of X's executives may issue directly"). Roster resolved at the owner's TIP
+        // (identity-current — the issuance policy is the resource's live config, unpinned). The
+        // one-arg own-form mem(group) (Mem(None, _)) has NO host context in an issuance policy
+        // (a general policy — `issuance_credited` threads no self-context and never descends an
+        // `iel`), so it credits nobody (fail-secure).
+        PolicyExpr::Mem(Some(prefix), group) => {
             let mut set = HashSet::new();
-            for member in source.roster_members(prefix, class)? {
+            for member in source.roster_members(prefix, group)? {
                 if anchored.iter().any(|a| **a == member) {
                     set.insert(member);
                 }
             }
             Ok(set)
         }
+        PolicyExpr::Mem(None, _) => Ok(HashSet::new()),   // one-arg own-form — no host here
         // pol(said): recurse (pure factoring — propagate the nested credited set). Decrement depth.
         PolicyExpr::Pol(said) => {
             let nested = parse_policy_sad(&sadd_fetch(said)?)?;
             issuance_credited(&nested.expr, anchored, source, max_depth - 1)
         }
-        // thr(M, …): union the credited children; met iff ≥ M distinct issuers, then return the union.
+        // thr(M, …): union the credited children; met iff ≥ M distinct issuers, then return the
+        // union. Children recurse at `max_depth - 1` (NEW-C — decrement on every composer, matching
+        // eval_expr / current_credited, so composer-tree depth is bounded too).
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
             for sub in subs {
-                union.extend(issuance_credited(sub, anchored, source, max_depth)?);
+                union.extend(issuance_credited(sub, anchored, source, max_depth - 1)?);
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
         // wgt(M, …): per-issuer weight, dedup-by-max across branches (mirrors `mem`; weighted
         // DELEGATION composes identically — an issuer matching several `del`/`mem` placeholders is
         // credited once at its MAX weight, distinct issuers summed); met iff the summed weight ≥ M.
+        // Children recurse at `max_depth - 1` (NEW-C).
         PolicyExpr::Wgt(m, weighted) => {
             let mut best: HashMap<Prefix, u32> = HashMap::new();
             for (sub, w) in weighted {
-                for p in issuance_credited(sub, anchored, source, max_depth)? {
+                for p in issuance_credited(sub, anchored, source, max_depth - 1)? {
                     best.entry(p).and_modify(|cur| *cur = (*cur).max(*w)).or_insert(*w);
                 }
             }
@@ -720,11 +827,12 @@ fn issuance_credited(
         }
         // and(…): conjunction — every child must credit ≥ 1 issuer; on success return the union, else
         // ∅ (separation of duties over issuers; distinct only over disjoint pools — see §`and`).
+        // Children recurse at `max_depth - 1` (NEW-C).
         PolicyExpr::And(children) => {
             let mut union = HashSet::new();
             let mut all_satisfied = true;
             for child in children {
-                let credited = issuance_credited(child, anchored, source, max_depth)?;
+                let credited = issuance_credited(child, anchored, source, max_depth - 1)?;
                 if credited.is_empty() {
                     all_satisfied = false;
                 }
@@ -742,6 +850,9 @@ fn issuance_credited(
 // check, or a nested `pol`). Consumes `pinning.pins` POSITIONALLY in pre-order walk order: a single
 // cursor advances one slot per leaf the walk reaches. After the walk any LEFTOVER pins are a
 // malformed pinning and deny (`Err`) — the issuer pinned more slots than the policy has occurrences.
+// On satisfaction it emits a per-issuer PolicyVerification — the SAD(s) this walk proved anchored
+// and the iel marker snapshot(s) it reconstructed — which the anchored entry point folds into its
+// own token. Ok(None) ⇒ this issuer's authentication is unsatisfied.
 fn evaluate_single_policy(
     policy: &Policy,
     pinning: &Pinning,
@@ -750,14 +861,24 @@ fn evaluate_single_policy(
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
-) -> Result<bool, PolicyError> {
+) -> Result<Option<PolicyVerification>, PolicyError> {
     let mut cur = PinCursor::new(&pinning.pins);     // positional; `take_next()` advances one slot
     let credited = eval_expr(&policy.expr, &mut cur, expected_anchors, self_context,
                              source, required_tier, max_depth)?;
     if cur.remaining() > 0 {
         return Err(PolicyError::LeftoverPins);       // more pins than occurrences — malformed
     }
-    Ok(!credited.is_empty())                         // satisfied iff the policy credits ≥ 1 prefix
+    if credited.is_empty() {
+        return Ok(None);                             // authentication unsatisfied — not a contributor
+    }
+    // Satisfied. The walk proved every `expected_anchors` SAID hosted at its tier floor on the
+    // surviving branch (satisfies_kel) and reconstructed the iel marker snapshot(s) (NEW-B); both
+    // ride in the token so the caller folds them without re-fetching. How the walk surfaces each
+    // reconstructed marker state settles with event-shape/pagination — provisional, like the leaf
+    // accessors.
+    let anchored_saids = expected_anchors.iter().map(|(said, _)| said.clone()).collect();
+    let snapshots = source.reconstructed_snapshots();   // marker states this walk fixed (provisional, NEW-B)
+    Ok(Some(PolicyVerification::new(credited, anchored_saids, snapshots)))
 }
 
 // `cur` is a SINGLE positional cursor; each leaf takes the NEXT slot (`take_next`) when the walk
@@ -801,15 +922,16 @@ fn eval_expr(
             }
             _ => Ok(HashSet::new()),                  // null slot / exhausted — slot still consumed
         },
-        // iel: take this leaf's slot (the IEL event). A present SAID fixes the IEL's authentication
-        // state; recurse into it, threading `self = prefix` so an aggregate member's `mem(self, …)`
-        // resolves, and draining the subtree's slots even if the member fails. Satisfied ⇒ credit
-        // {prefix} (the boundary is opaque — X's internal members do NOT propagate). A null slot
-        // consumes ONE slot and does NOT descend (the IEL event is un-evidenced, so its
+        // iel: take this leaf's slot (the Evl/Icp state-marker). A present SAID fixes the IEL's state;
+        // reconstruct the snapshot as-of it and recurse into the snapshot's authentication, threading
+        // the host context = prefix so an aggregate member's one-arg `mem(group)` resolves against the
+        // SAME snapshot's roster (NEW-B), and draining the subtree's slots even if the member fails.
+        // Satisfied ⇒ credit {prefix} (the boundary is opaque — X's internal members do NOT propagate).
+        // A null slot consumes ONE slot and does NOT descend (the state-marker is un-evidenced, so its
         // authentication subtree is unreachable — see *Pinning → Issuer-side construction*).
         PolicyExpr::Iel(prefix) => match cur.take_next() {
-            Some(Some(iel_event_said)) => {
-                if satisfies_iel(&iel_event_said, prefix, cur, expected_anchors,
+            Some(Some(marker_said)) => {
+                if satisfies_iel(&marker_said, prefix, cur, expected_anchors,
                                  source, required_tier, max_depth)? {
                     Ok(HashSet::from([prefix.clone()]))
                 } else {
@@ -820,17 +942,20 @@ fn eval_expr(
         },
         // pol: dereference + recurse; pure factoring — propagate the nested credited set UNCHANGED
         // (so a prefix reached through two `pol`s dedups in the enclosing union). `expected_anchors`
-        // and `self` are inherited.
+        // and the host context (`self_context`) are inherited.
         PolicyExpr::Pol(said) => {
             let nested = parse_policy_sad(&sadd_fetch(said)?)?;
             eval_expr(&nested.expr, cur, expected_anchors, self_context,
                       source, required_tier, max_depth - 1)
         }
-        // thr: evaluate every element (Mem children expand inline into iel(member) leaves — resolved
-        // against `self`/named-prefix roster, members in canonical order; see §Leaf semantics).
-        // UNION the children's credited sets; met iff ≥ M DISTINCT prefixes, then return the union
-        // (recursive dedup). `del` is not a single-policy element (no slot, no self-traversal here):
-        // it appears only in the issuance policy, evaluated by `eval_issuance`.
+        // thr: evaluate every element (Mem children expand inline into iel(member) leaves). In this
+        // pinned own-authentication walk a member is always one-arg `mem(group)`, resolved against the
+        // enclosing iel(X) marker's reconstructed roster snapshot (FROZEN, NEW-B) — a foreign two-arg
+        // `mem(prefix, group)` does not appear here (it lives only in tip-resolved general policies).
+        // Members flatten in canonical order; see §Leaf semantics. UNION the children's credited sets;
+        // met iff ≥ M DISTINCT prefixes, then return the union (recursive dedup). `del` is not a
+        // single-policy element (no slot, no self-traversal here): it appears only in the issuance
+        // policy, evaluated by `eval_issuance`.
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
             for child in flatten(subs, self_context, source)? {
@@ -903,18 +1028,24 @@ fn satisfies_kel(
     )
 }
 
-// iel(prefix): `iel_event_said` is the IEL event itself — NOT an anchoring event, so it carries no
-// credential anchor and needs no prior-event trick. It fixes the IEL's authentication at that
-// state; satisfaction recurses into that authentication policy (threading `self = leaf_prefix` so an
-// aggregate member's `mem(self, …)` resolves), whose leaves consume the FOLLOWING slots in walk
-// order — the credential anchor is checked at the terminal `kel` leaves the recursion reaches. The
+// iel(prefix): `marker_said` pins the IEL's most-recent `Evl`/`Icp` **state-marker** — NOT an
+// anchoring event, so it carries no credential anchor and needs no prior-event trick. The verifier
+// reconstructs X's **state snapshot** (authentication AND roster) AS-OF that marker (NEW-B) — the
+// same running snapshot the walk already builds; `Del`/`Rsc` don't move it, so the marker is the
+// last state-changing event. Satisfaction recurses into the snapshot's authentication policy
+// (threading the host context = leaf_prefix so a member's one-arg `mem(group)` resolves), whose
+// leaves consume the FOLLOWING slots in walk order — the credential anchor is checked at the
+// terminal `kel` leaves the recursion reaches. A one-arg `mem(group)` in X's authentication reads
+// its roster FROM THIS SAME reconstructed snapshot — REUSE of the `iel(X)` marker, no second pin —
+// so the authentication-recent / roster-stale split is structurally impossible (a free roster slot
+// would let an issuer pin authentication-recent + roster-stale and resurrect a removed member). The
 // descent runs regardless of prefix match so the subtree's slots always DRAIN (structural
-// consumption); the leaf is satisfied only if the pinned event really is this prefix and its
+// consumption); the leaf is satisfied only if the marker really is this prefix's and its
 // authentication holds. Returns whether to credit `leaf_prefix` upward — the inner credited set
 // (X's members/keys) is X's PRIVATE evidence, consumed at this boundary, never propagated (the
-// caller credits `{X}`). The IEL event is read inline from the verification walk, which validates it.
+// caller credits `{X}`). The marker is read inline from the verification walk, which validates it.
 fn satisfies_iel(
-    iel_event_said: &Said,
+    marker_said: &Said,
     leaf_prefix: &Prefix,
     cur: &mut PinCursor,
     expected_anchors: &HashSet<(Said, Tier)>,
@@ -922,11 +1053,16 @@ fn satisfies_iel(
     required_tier: Tier,
     max_depth: u32,
 ) -> Result<bool, PolicyError> {
-    let iel = source.iel_event(leaf_prefix, iel_event_said)?;   // validated inline by the walk
-    let authentication = parse_policy_sad(&sadd_fetch(&iel.authentication)?)?;
+    // Reconstruct X's snapshot as-of the marker — authentication AND roster from this one snapshot.
+    // How the verifier walks back to the marker (a `before`-pagination read + reversed sort) is an
+    // EventSource/pagination concern, provisional like the other source accessors.
+    let snapshot = source.snapshot_as_of(leaf_prefix, marker_said)?;  // validated inline by the walk
+    let authentication = parse_policy_sad(&sadd_fetch(&snapshot.authentication)?)?;
+    // The descent threads `leaf_prefix` as the host context; a one-arg `mem(group)` it reaches
+    // resolves against THIS snapshot's roster (`snapshot.roster`) — reuse, not a fresh pin.
     let sub = eval_expr(&authentication.expr, cur, expected_anchors, Some(leaf_prefix),
                         source, required_tier, max_depth - 1)?; // drains the subtree's slots
-    Ok(iel.prefix == *leaf_prefix && !sub.is_empty())           // X's authentication met ⇒ credit X
+    Ok(snapshot.prefix == *leaf_prefix && !sub.is_empty())      // X's authentication met ⇒ credit X
 }
 
 // del has NO single-policy helper: `del(X, N)` is never a pinned leaf and never appears in an
@@ -945,13 +1081,19 @@ union| ≥ M`, `wgt` = per-prefix max-weight summed `≥ M`, `and` = all branche
 with the same recursive dedup. The one structural addition is the **named-delegates input**: `del` is
 non-enumerable and there is no credential here to carry the issuer's name, so the bearer **names the
 delegate IEL it acts as** (the live analogue of the credential naming its issuer), capped at 128
-(NEW-5).
+(NEW-5). The presented **`attestations`** are capped at the same 128 (NEW-A): each `kel(K)` leaf
+verifies against *every* matching attestation, so an uncapped set is a cost amplifier — the
+up-front `TooManyAttestations` pre-check refuses it before any chain work, a sibling to the
+delegate cap. On satisfaction the entry point returns `Ok(Some(PolicyVerification))` (credited set
+only — current mode pins no marker and proves nothing anchored); `Ok(None)` when cleanly
+unsatisfied; `Err(_)` on a cap breach or source failure.
 
 ```rust
 // Current-state evaluation (challenge-response at the chain TIP). `current_credited` returns the set
-// of distinct prefixes an expression credits if satisfied at tip, else ∅; the public entry returns
-// whether the top-level set is non-empty. Crediting is by the LEAF's prefix (kel(K)→K, iel(X)→X), so
-// an iel boundary is opaque and distinct identities count even under one controlling key.
+// of distinct prefixes an expression credits if satisfied at tip, else ∅; the public entry wraps a
+// non-empty set into a PolicyVerification token (Ok(None) if empty). Crediting is by the LEAF's
+// prefix (kel(K)→K, iel(X)→X), so an iel boundary is opaque and distinct identities count even under
+// one controlling key.
 pub fn evaluate_current_policy(
     policy: &Policy,
     challenge: &Digest256,
@@ -960,13 +1102,21 @@ pub fn evaluate_current_policy(
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
-) -> Result<bool, PolicyError> {
+) -> Result<Option<PolicyVerification>, PolicyError> {
+    if attestations.len() > MAX_PRESENTED {          // NEW-A — each kel(K) leaf verifies against EVERY
+        return Err(PolicyError::TooManyAttestations); // matching attestation; cap the amplifier up front
+    }
     if named_delegates.len() > MAX_PRESENTED {       // K ≤ 128 (NEW-5) — same cap as presented issuers;
         return Err(PolicyError::TooManyDelegates);   // up-front pre-check, fail-secure, zero work done
     }
     let credited = current_credited(&policy.expr, challenge, attestations, named_delegates,
                                     None, source, required_tier, max_depth)?;
-    Ok(!credited.is_empty())
+    if credited.is_empty() {
+        return Ok(None);                             // cleanly unsatisfied
+    }
+    // Current mode proves nothing anchored and pins no marker, so the token carries only the credited
+    // set (anchored_saids + snapshots empty). Token-existence still proves satisfaction.
+    Ok(Some(PolicyVerification::new(credited, BTreeSet::new(), Vec::new())))
 }
 
 // Mirrors `eval_expr` / `issuance_credited`; the leaf base cases are live attestation at the tip.
@@ -985,16 +1135,25 @@ fn current_credited(
     }
     match expr {
         // kel(K): credit {K} iff an attestation by K validates against K's CURRENT signing key (and
-        // recovery key, per the required_tier ATTESTATION SHAPE) over the challenge.
-        PolicyExpr::Kel(prefix) => Ok(
-            if attestations.iter().any(|a| a.signer == *prefix
-                && source.verify_current_attestation(a, challenge, required_tier).unwrap_or(false)) {
-                HashSet::from([prefix.clone()])
-            } else {
-                HashSet::new()
-            }),
+        // recovery key, per the required_tier ATTESTATION SHAPE) over the challenge. NEW-F: the prior
+        // `.unwrap_or(false)` that swallowed errors is gone. `verify_current_attestation` returns
+        // Ok(false) for a non-verifying EXTERNAL attestation-over-challenge signature — junk, not
+        // credited, so a flood of bad attestations can't grief the eval into an error — and Err only
+        // for a CHAIN-integrity / source failure (can't resolve K's current key state), which `?`
+        // propagates.
+        PolicyExpr::Kel(prefix) => {
+            let mut credited = HashSet::new();
+            for a in attestations {
+                if a.signer == *prefix
+                    && source.verify_current_attestation(a, challenge, required_tier)? {
+                    credited.insert(prefix.clone());
+                    break;
+                }
+            }
+            Ok(credited)
+        }
         // iel(X): credit {X} iff the attestation set meets X's authentication at X's TIP (recurse,
-        // self = X; terminal kels matched by attestation signer). X is named in the policy.
+        // host context = X; terminal kels matched by attestation signer). X is named in the policy.
         PolicyExpr::Iel(prefix) => {
             let auth = parse_policy_sad(&sadd_fetch(&source.iel_tip(prefix)?.authentication)?)?;
             let sub = current_credited(&auth.expr, challenge, attestations, named_delegates,
@@ -1007,7 +1166,8 @@ fn current_credited(
             current_credited(&nested.expr, challenge, attestations, named_delegates,
                              self_context, source, required_tier, max_depth - 1)
         }
-        // thr: flatten mem at the named/`self` roster's TIP, union the children; met iff ≥ M distinct.
+        // thr: flatten mem at the host (one-arg) / named-prefix (two-arg) roster's TIP (current mode is
+        // tip-live, NEW-B), union the children; met iff ≥ M distinct.
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
             for child in flatten(subs, self_context, source)? {
@@ -1108,8 +1268,9 @@ performed, even for an immune credential. The two are independent tip-walks — 
 validity check that never opts out; the withdrawal scan is the one and only thing `immune` skips.
 
 When the verifier finds a satisfying withdrawal anchor (soft: enough to cross the issuer's
-authentication threshold; hard: `expr` satisfied), `evaluate_anchored_policy` returns `Ok(false)`:
-the credential is structurally well-formed and validly issued, but withdrawn.
+authentication threshold; hard: `expr` satisfied), `evaluate_anchored_policy` returns `Ok(None)`:
+the credential is structurally well-formed and validly issued, but withdrawn — so no proof token is
+minted (a withdrawn credential must not yield a `PolicyVerification`).
 
 > **TODO (pending [event-shape.md](event-logs/event-shape.md) and the credential shape).** The
 > withdrawal-digest label (`"vdti/withdrawal:"`), the anchor-scan step (reading the issuer-KEL
@@ -1123,25 +1284,30 @@ Each leaf evaluates against chain state and a signed request. Leaves return sati
 
 ### `iel(prefix)` — IEL authentication
 
-The leaf is satisfied iff the controlling party satisfies the IEL's own **authentication** policy at the IEL state the flow fixes — the **pinned IEL event** in the anchored flow (the pin fixes which authentication state applies), the **IEL tip** in the current-state flow. `iel(X)` *defers to X's authentication*: it treats X as an autonomous entity and accepts X's own rule for who acts as X. You don't reach inside X's factors, and you inherit X's threshold — if X's authentication is 2-of-3, `iel(X)` demands 2-of-3. (Authentication is the entity's outward-facing act-as policy — distinct from its **governance**, which gates X's own self-mutation and is never what an external `iel(X)` evaluates.)
+The leaf is satisfied iff the controlling party satisfies the IEL's own **authentication** policy at the IEL state the flow fixes — the **pinned `Evl`/`Icp` state-marker** in the anchored flow (the verifier reconstructs the authentication state as-of that marker), the **IEL tip** in the current-state flow. `iel(X)` *defers to X's authentication*: it treats X as an autonomous entity and accepts X's own rule for who acts as X. You don't reach inside X's factors, and you inherit X's threshold — if X's authentication is 2-of-3, `iel(X)` demands 2-of-3. (Authentication is the entity's outward-facing act-as policy — distinct from its **governance**, which gates X's own self-mutation and is never what an external `iel(X)` evaluates.)
 
-This is recursive — `iel(P)`'s check evaluates P's authentication policy, which may itself contain `iel(...)` (directly, or via `mem(self, class)` in an aggregate). The recursion terminates at a singleton's `kel` leaves — the base case of member resolution.
+This is recursive — `iel(P)`'s check evaluates P's authentication policy, which may itself contain `iel(...)` (directly, or via a one-arg `mem(group)` in an aggregate). The recursion terminates at a singleton's `kel` leaves — the base case of member resolution.
 
-`iel(X)` and `mem(X, class)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, class)`, by contrast, takes X's **published roster** for the named class and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem(prefix, class)`](#memprefix-class--membership-roster-array). Both are first-class for foreign X in **general** policies (application, issuance, withdrawal); the difference is *who sets the bar* (X's authentication vs. the referencing policy).
+`iel(X)` and `mem(X, group)` both reach entity X, but differently. `iel(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `mem(X, group)`, by contrast, takes X's **published roster** for the named group and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`mem`](#mem--membership-roster-array). Both are first-class for foreign X in **general** policies (application, issuance, withdrawal); the difference is *who sets the bar* (X's authentication vs. the referencing policy).
 
-Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `iel` is **never hand-written**. Those policies use only `mem(self, class)` (aggregate) or `kel()` (singleton); `iel` appears solely as what `mem(self, class)` expands into and as the resolution primitive each member recurses through — see [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
+Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `iel` is **never hand-written**. Those policies use only a one-arg `mem(group)` (aggregate) or `kel()` (singleton); `iel` appears solely as what `mem(group)` expands into and as the resolution primitive each member recurses through — see [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
 
-### `mem(prefix, class)` — membership-roster array
+### `mem` — membership-roster array
 
-`mem(prefix, class)` names the **`class`** class of the membership roster published by **IEL `prefix`**, and resolves to one `iel(member_i)` leaf per member of that class. The `class` label matches `^[a-z_-]{1,16}$` (lowercase `a`–`z`, underscore, hyphen; 1–16 characters; no digits, no uppercase). The roster is a SAD that IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping class labels to sets of member IEL prefixes (a member may sit in several classes). The reference is **explicit** (both the IEL prefix and the class): a roster is referenced by *multiple* policies — the owning entity's own policies and any number of foreign policies — so the policy must name which IEL's roster and which class. Foreign reach (`mem(X, class)` with X ≠ self) is first-class in **general** policies: any application/issuance policy may splice IEL X's `executives` class via `mem(X, executives)`. This is distinct from `iel(X)`, which defers to X's whole authentication; `mem(X, class)` takes X's published class and composes over it at the referencing policy's own bar. Inside an IEL's *own* three policies, only `mem(self, class)` — its own roster — is permitted (no foreign rosters); see [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
+`mem` names a **group** of a membership roster and resolves to one `iel(member_i)` leaf per member of that group. It has two arities:
 
-`mem(prefix, class)` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
+- **two-arg `mem(prefix, group)`** — names the `group` group of the roster published by **foreign IEL `prefix`**. The reference is **explicit** (both the IEL prefix and the group) because a foreign roster is referenced from outside the owning entity, so the policy must name which IEL's roster and which group. First-class in **general** policies (application, issuance, withdrawal): any such policy may splice IEL X's `executives` group via `mem(X, executives)`.
+- **one-arg `mem(group)`** — names the `group` group of the **host** IEL's own roster, with the prefix **implicit**: it is supplied by the enclosing `iel(X)` descent (the marker the anchored walk pinned, or the tip in the current flow). It is the **only** `mem` form an IEL's own three policies may use (its own roster only, never a foreign one), and it is **cycle-forced**, not mere sugar: the IEL's prefix commits to its `(authentication, governance, …)` policies, so an own-policy that named its own prefix would close a content-address cycle (the prefix depends on the policy that would have to name it). See [IEL policy structure — aggregate vs. singleton](#iel-policy-structure--aggregate-vs-singleton).
 
-- inside `thr(k, [mem(prefix, class)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of that class's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`iel(mi)`).
-- inside `wgt(M, [([mem(prefix, class)], w), …])` → each member becomes `(iel(mi), w)` — every member of the class carries weight `w`.
-- the enclosing `[...]` is a **concat container**: multiple `mem` classes and single expressions mix freely — `thr(2, [mem(org, execs), mem(org, board), kel(K)])` flattens to one child list (`execs` members ++ `board` members ++ `kel(K)`).
+The `group` label matches `^[a-z_-]{1,16}$` (lowercase `a`–`z`, underscore, hyphen; 1–16 characters; no digits, no uppercase). The roster is a SAD that the IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping group labels to sets of member IEL prefixes (a member may sit in several groups). `mem(X, group)` is distinct from `iel(X)`: `iel(X)` defers to X's whole authentication, while `mem(X, group)` takes X's published group and composes over it at the referencing policy's own bar.
 
-This is the membership/composition split. Two levels compose: the **roster level** (which class, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` authentication). The roster lives with the entity (who is in each class); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
+`mem` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
+
+- inside `thr(k, [mem(prefix, group)])` → `thr(k, [iel(m1), …, iel(mn)])` — *k of that group's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`iel(mi)`).
+- inside `wgt(M, [([mem(prefix, group)], w), …])` → each member becomes `(iel(mi), w)` — every member of the group carries weight `w`.
+- the enclosing `[...]` is a **concat container**: multiple `mem` groups and single expressions mix freely — `thr(2, [mem(org, execs), mem(org, board), kel(K)])` flattens to one child list (`execs` members ++ `board` members ++ `kel(K)`).
+
+This is the membership/composition split. Two levels compose: the **roster level** (which group, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `iel` authentication). The roster lives with the entity (who is in each group); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
 
 **Canonical flatten order.** A `mem` array flattens its members in a **canonical order — member
 prefix ascending (qb64 byte order)** — so the issuer and verifier lay down identical pin slots and
@@ -1149,12 +1315,12 @@ the [walk-order pinning](#pinning-evidence-pins) stays deterministic across part
 the enclosing `[...]` is preserved between siblings (each `mem` expands in place); only the members
 *within* one `mem` are canonically ordered.
 
-**Rosters carry classes, not weights.** A roster maps class → member set; weight is the *referencing
-policy's* per-class assignment on the `wgt` branch. So weight only exists post-flatten. Overlap
-resolves at **satisfaction**, not expansion: if a member sits in two spliced classes (e.g.
+**Rosters carry groups, not weights.** A roster maps group → member set; weight is the *referencing
+policy's* per-group assignment on the `wgt` branch. So weight only exists post-flatten. Overlap
+resolves at **satisfaction**, not expansion: if a member sits in two spliced groups (e.g.
 `mem(org, admins)` at weight 2 and `mem(org, members)` at weight 1), each occurrence still lays down
 its own pin slot, but the member is **credited once, at its maximum weight** — it counts once, at its
-highest class, toward the threshold. (In a `thr` splice there are no weights, so the member simply
+highest group, toward the threshold. (In a `thr` splice there are no weights, so the member simply
 counts once — standard distinct-party threshold.)
 
 **Crediting is recursive; pins are not.** Deduplication is a **satisfaction-counting** operation, not
@@ -1169,7 +1335,7 @@ on a `wgt`), never double toward the threshold, while still occupying every pin 
 lay down. This is the fail-secure choice — one identity reached two ways cannot clear a multi-party
 gate alone.
 
-The roster's point-in-time resolution mirrors `del`. The DSL leaf names a **prefix**, not a SAID; the pinning supplies the point-in-time IEL event the roster is resolved against — taken as of the pinned IEL event in the anchored flow, at the IEL tip in the current-state flow. (The pin already fixes the IEL state, and the roster rides that state, so the policy need not bake a roster SAID in.)
+The roster's point-in-time resolution rides the IEL state the flow already fixes. The DSL leaf names a **group** (and, for the foreign form, a **prefix**), not a roster SAID. In the anchored flow a **two-arg `mem(prefix, group)`** resolves against `prefix`'s tip-current roster; a **one-arg `mem(group)`** resolves against the roster in the **reconstructed snapshot of the enclosing `iel(X)` state-marker** — the *same* snapshot that marker fixed the authentication from, **reused** rather than separately pinned (NEW-B). Reuse is the security choice: a dedicated roster slot would let an issuer pin an authentication-recent marker against a roster-stale one and resurrect a removed member, so the one-arg roster is bound to the same marker the authentication came from. In the current-state flow both forms resolve at the IEL tip.
 
 ### `kel(prefix)` — KEL key match (tier-agnostic)
 
@@ -1227,7 +1393,7 @@ weight delegators: `wgt(M, [([del(A, N)], wA), ([del(B, K)], wB), …])` credits
 `A` within `N` at `wA`, by `B` within `K` at `wB`. An issuer matching several placeholders — e.g. a
 deep delegate satisfying both `del(A, ≥1)` and `del(B, ≥2)` on one lineage — is credited **once at its
 maximum weight**, distinct issuers summed, `sum ≥ M` (identical dedup-by-max to a member in two `mem`
-classes; one issuer cannot stack delegators' weights — fail-secure). The self-traversals are driven by
+groups; one issuer cannot stack delegators' weights — fail-secure). The self-traversals are driven by
 which `del` placeholders exist, not by weights; weight is aggregation-side metadata applied at the
 composer, so weighted delegation adds no extra walk cost.
 
@@ -1282,7 +1448,7 @@ author is responsible for ensuring the branches' pools are disjoint.**
 
 **Scope.** Allowed wherever any composer is (general, IEL/SEL `governance` / `authentication` /
 `delegation` / `operation`, issuance, withdrawal, current-mode), under the same leaf constraints as
-`thr` / `wgt` (an aggregate's own policy may use only `mem(self, …)`; a singleton only `kel`). Child
+`thr` / `wgt` (an aggregate's own policy may use only one-arg `mem(group)`; a singleton only `kel`). Child
 order is preserved (author-meaningful for pin slots, like `thr` siblings), and the
 [canonical DSL string form](#verifier-behavior) applies.
 
@@ -1294,7 +1460,7 @@ an identity does not change kind over its life ("it's an identity, not a choose-
 The kind constrains what the IEL's three policies (`governance`, `authentication`, `delegation`)
 may contain. (This is a constraint on an IEL's *own* three policies only; general policies —
 application, issuance, withdrawal — keep the full DSL surface, including `iel(X)` and foreign
-`mem(X, class)`.)
+`mem(X, group)`.)
 
 - **Singleton** — bottoms out at device keys; it has **no roster** (the `Icp` simply omits the
   roster field). Its three policies may contain only `kel()` leaves, composed with `thr` / `wgt` —
@@ -1303,32 +1469,36 @@ application, issuance, withdrawal — keep the full DSL surface, including `iel(
   `authentication` must be non-empty (≥ 1 satisfiable `kel`), or the identity can never act.
 
 - **Aggregate** — composed of other identities (its members). It carries a **roster**: a SAD
-  mapping class labels to sets of member IEL prefixes (see [`mem`](#memprefix-class--membership-roster-array)).
-  Its three policies may contain only `mem(self, class)` arrays, composed with `thr` / `wgt`, where
-  **`self`** is a literal sentinel resolving to the host IEL — its **own** roster only, never a
-  foreign one. No bare `iel` / `kel` / `del`, no `pol`. An aggregate must be **born with a
-  non-empty roster**, or it is ungovernable. (Because `self` carries no prefix, IEL policies stay
-  prefix-free — reducing to a smaller complete set, and under content-addressed dedup identical
-  expressions like `thr(2, [mem(self, directors)])` collapse to a single Policy SAD shared across
-  every IEL of that shape, saving stored bytes.)
+  mapping group labels to sets of member IEL prefixes (see [`mem`](#mem--membership-roster-array)).
+  Its three policies may contain only one-arg `mem(group)` arrays, composed with `thr` / `wgt` — the
+  **host** IEL's **own** roster only, never a foreign one. No bare `iel` / `kel` / `del`, no `pol`.
+  An aggregate must be **born with a non-empty roster**, or it is ungovernable. The one-arg form is
+  **cycle-forced, not mere convenience**: the IEL's prefix is the content-address of its
+  `(authentication, governance, …)` commitment, so an own-policy that named its own prefix
+  (`mem(own_prefix, group)`) would close a content-address cycle — the prefix would depend on a
+  policy that names it. The prefix is therefore left implicit and supplied by the enclosing `iel(X)`
+  descent. (Because the one-arg form carries no prefix, IEL policies stay prefix-free — reducing to
+  a smaller complete set, and under content-addressed dedup identical expressions like
+  `thr(2, [mem(directors)])` collapse to a single Policy SAD shared across every IEL of that shape,
+  saving stored bytes.)
 
 `iel(member)` is **never hand-written** in an IEL policy. It exists only as the form
-`mem(self, class)` **expands into** — one `iel(member_i)` per current member of the class — and as
+one-arg `mem(group)` **expands into** — one `iel(member_i)` per current member of the group — and as
 the recursion primitive each member resolves through: `iel(member)` defers to that member's
-`authentication`, which (if the member is itself an aggregate) is again `mem(self, …)` → `iel(…)`,
+`authentication`, which (if the member is itself an aggregate) is again `mem(group)` → `iel(…)`,
 terminating at a singleton's `kel()`. So each IEL policy kind has exactly **one** writable leaf —
 `kel` for singletons, `mem` for aggregates — and `iel` is purely the internal resolution form. The
 DSL itself is unchanged: `iel` remains a first-class leaf elsewhere (general policies, and the
 verifier-constructed `iel(subject)` / `iel(issuer)` of the identity and anchor flows).
 
-**Naming one specific member** uses a **one-element class**: to single out `alice`, give her a class
-(`founder = {alice}`) and reference `mem(self, founder)`. Every individual reference therefore goes
+**Naming one specific member** uses a **one-element group**: to single out `alice`, give her a group
+(`founder = {alice}`) and reference `mem(founder)`. Every individual reference therefore goes
 through a labelled roster entry rather than a bare prefix — a policy can never name a non-member,
-and because `mem(self, class)` yields in-roster members *by construction*, no reference can dangle.
-(The residual caution is the generic threshold one: shrinking a class below a threshold that gates
+and because `mem(group)` yields in-roster members *by construction*, no reference can dangle.
+(The residual caution is the generic threshold one: shrinking a group below a threshold that gates
 it self-bricks — true of any threshold — not a dangling-reference hazard.)
 
-**Class labels** match `^[a-z_-]{1,16}$` — lowercase `a`–`z`, underscore, hyphen; 1–16 characters;
+**Group labels** match `^[a-z_-]{1,16}$` — lowercase `a`–`z`, underscore, hyphen; 1–16 characters;
 no digits, no uppercase.
 
 **Cycles.** Aggregate-of-aggregate membership forms a graph that must be **acyclic**. The verifier
@@ -1354,12 +1524,12 @@ kel(prefix)
 iel(prefix)
 ```
 
-**Membership threshold** — k-of-a-class authentication, with k chosen by this policy (not by the org or its members):
+**Membership threshold** — k-of-a-group authentication, with k chosen by this policy (not by the org or its members):
 ```
 thr(2, [mem(prefix, staff)])
 ```
 
-With org `prefix`'s `staff` class = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [iel(m1), iel(m2), iel(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate classes by listing them: `thr(2, [mem(prefix, staff), mem(prefix, board)])` pools both into one flat child list.
+With org `prefix`'s `staff` group = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [iel(m1), iel(m2), iel(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate groups by listing them: `thr(2, [mem(prefix, staff), mem(prefix, board)])` pools both into one flat child list.
 
 **Emergency override**:
 ```
@@ -1371,7 +1541,7 @@ thr(1, [
 
 Any three members satisfy, or the emergency key alone.
 
-**Weighted membership classes** — an org weights executive / admin / member classes at 3 / 2 / 1, threshold 3 (the classes live in the org's one roster; weight is this policy's per-class valuation):
+**Weighted membership groups** — an org weights executive / admin / member groups at 3 / 2 / 1, threshold 3 (the groups live in the org's one roster; weight is this policy's per-group valuation):
 ```
 wgt(3, [
     ([mem(prefix, executives)], 3),
@@ -1380,13 +1550,13 @@ wgt(3, [
 ])
 ```
 
-With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each class — a stricter resource could set `member → 0`; the roster is unchanged. A member in two classes is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
+With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(iel(E1), 3), (iel(E2), 3), (iel(A1), 2), (iel(A2), 2), (iel(A3), 2), (iel(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each group — a stricter resource could set `member → 0`; the roster is unchanged. A member in two groups is deduplicated to its highest weight (see *Leaf semantics → `mem`*).
 
-**Aggregate IEL authentication** — an aggregate's own `authentication` composes only over its own roster (`self`), never bare prefixes:
+**Aggregate IEL authentication** — an aggregate's own `authentication` composes only over its own roster (one-arg `mem`), never bare prefixes:
 ```
-thr(2, [mem(self, directors)])
+thr(2, [mem(directors)])
 ```
-"Any 2 current directors authenticate as the aggregate." To require a specific individual, give them a one-element class — `mem(self, founder)` with `founder = {alice}`. A **singleton's** authentication, by contrast, is `kel`-only — e.g. `thr(2, [kel(device_a), kel(device_b)])` — the base case the `iel(...)` recursion bottoms out at (see *[IEL policy structure](#iel-policy-structure--aggregate-vs-singleton)*).
+"Any 2 current directors authenticate as the aggregate." To require a specific individual, give them a one-element group — `mem(founder)` with `founder = {alice}`. A **singleton's** authentication, by contrast, is `kel`-only — e.g. `thr(2, [kel(device_a), kel(device_b)])` — the base case the `iel(...)` recursion bottoms out at (see *[IEL policy structure](#iel-policy-structure--aggregate-vs-singleton)*).
 
 **Separation of duties** — `and` requires *each* branch independently, which a union threshold cannot:
 ```
@@ -1406,7 +1576,7 @@ kel(break_glass)])` = (a **and** b) **or** break-glass.
 
 - **Leaves evaluate independently.** One leaf's satisfaction never depends on another's. The shared pin cursor and the per-log single paged verification walk are plumbing (slot assignment, walk reuse), not satisfaction coupling.
 - **Composers are pure aggregators.** They take their children's **credited sets** (the distinct prefixes each child satisfied) and produce a credited set of their own — `thr`/`and` union the children, `wgt` sums per-prefix max weights — emitting that union iff the threshold is met, else `∅`. Crediting is by *structural* prefix and dedups recursively (a prefix counts once toward every ancestor), so the same identity reached two ways satisfies once, not twice. Pins are never deduped. No side effects (see §Leaf semantics, §Composition).
-- **Boundedness.** Bounded cost. There is no separate pure bind phase: the policy graph is *expanded as it is walked* (descending through `pol`, `iel` authentication, and `mem` rosters), consuming pins positionally and running leaf checks inline on the verifier's verification walk — the single paged pass each referenced log gets for end-verifiability anyway. A log referenced by several leaves is paged once, and a million-event log is paged through once in O(chain length), parallelizable across logs (resident cost bounded by the page — the chain is never materialized whole). Every recursion/walk depth is capped by the always-passed `max_depth`, and `mem` foreign-roster expansion is capped by a roster-width bound, so a malicious foreign roster cannot amplify cost without bound. The **presented-issuer count** (anchored mode) and **claimed-delegate count** (current mode) are each capped at `MAX_PRESENTED` (128) by an up-front trust-boundary pre-check — a sibling bound to `max_depth` and roster-width — so a caller cannot amplify cost by presenting an unbounded issuer/delegate set; exceeding it refuses (`TooManyIssuers` / `TooManyDelegates`) before any chain work. Self-traversal of a `del` chain is bounded by the placeholder's `N`. Evaluation itself is a cheap tree walk.
+- **Boundedness.** Bounded cost. There is no separate pure bind phase: the policy graph is *expanded as it is walked* (descending through `pol`, `iel` authentication, and `mem` rosters), consuming pins positionally and running leaf checks inline on the verifier's verification walk — the single paged pass each referenced log gets for end-verifiability anyway. A log referenced by several leaves is paged once, and a million-event log is paged through once in O(chain length), parallelizable across logs (resident cost bounded by the page — the chain is never materialized whole). Every recursion/walk depth is capped by the always-passed `max_depth`; `mem` foreign-roster expansion is capped by a roster-width bound; and a **per-policy expansion cap** (NEW-G) bounds the *total* post-flatten leaf count across all rosters, `pol` nesting, and `iel` recursion — so neither a malicious foreign roster nor many moderate ones can amplify cost without bound. The **presented-issuer count** (anchored mode) and the **claimed-delegate count** *and* **attestation count** (current mode) are each capped at `MAX_PRESENTED` (128) by an up-front trust-boundary pre-check — a sibling bound to `max_depth`, roster-width, and the per-policy expansion cap — so a caller cannot amplify cost by presenting an unbounded issuer / delegate / attestation set; exceeding it refuses (`TooManyIssuers` / `TooManyDelegates` / `TooManyAttestations`) before any chain work. Self-traversal of a `del` chain is bounded by the placeholder's `N`. Evaluation itself is a cheap tree walk.
 - **Deterministic.** Given a fixed chain state and signed request, evaluation is deterministic. Verifiers across nodes converge.
 
 ## Verifier behavior
@@ -1416,16 +1586,17 @@ first confirms the presented `issuers` equal the credential's **committed issuer
 issuer↔content↔anchor binding must not depend on caller bookkeeping — the verifier is the trust
 boundary), and refuses up front if more than `MAX_PRESENTED` (128) issuers are presented
 (`TooManyIssuers`) — a count cap enforced at the trust boundary before any chain work, sibling to
-`max_depth` and the roster-width bound (current mode applies the same cap to `named_delegates`, see
-*Current-mode evaluation*). Then, for each issuer, two independent checks ride inline on the
-**verification walk** (`source`), the single paged pass each referenced log gets for
-end-verifiability anyway:
+`max_depth`, the roster-width bound, and the per-policy expansion cap (NEW-G). Current mode applies
+the same `MAX_PRESENTED` cap to **both** `named_delegates` (`TooManyDelegates`) and the presented
+`attestations` (`TooManyAttestations`, NEW-A) — see *Current-mode evaluation*. Then, for each issuer,
+two independent checks ride inline on the **verification walk** (`source`), the single paged pass each
+referenced log gets for end-verifiability anyway:
 
 - **Anchor** — evaluate `iel(issuer)` against that issuer's **anchor pinning**, consuming pins
   positionally in pre-order walk order (a single cursor advances one slot per leaf; a `null`/absent
   slot fails that leaf but still consumes its slot; *leftover pins after the walk deny*). The `iel`
-  leaf reads the named IEL event (fixing the authentication state) and recurses into its
-  authentication; the terminal `kel` leaves resolve the anchoring child **on the surviving branch**
+  leaf reads the pinned `Evl`/`Icp` state-marker (the verifier reconstructs the snapshot fixing the
+  authentication state) and recurses into that authentication; the terminal `kel` leaves resolve the anchoring child **on the surviving branch**
   and check the credential anchor at the required tier. `expected_anchors` rides this walk, so the
   anchor is checked on the issuer's *own* authentication.
 - **Delegation** — `self_traverses` walks **up** the issuer's own delegation chain to a delegator
@@ -1435,37 +1606,44 @@ end-verifiability anyway:
 `evaluate_anchored_policy` then evaluates the issuance policy, where each `del(X, N)` placeholder is
 matched by the **distinct anchored issuers** that self-traverse to `X` within `N`; composers count
 distinct issuers. Finally it scans each issuer KEL to tip for a withdrawal anchor — skipped **only**
-when the credential is `immune` (the F rescission walk above is never skipped). The full Rust under
-[*Policies and Pinnings → Implementation*](#policies-and-pinnings) is canonical; the sketch below is
-the shape:
+when the credential is `immune` (the F rescission walk above is never skipped). The public entry
+points are **policy verifiers**: on satisfaction they return `Ok(Some(PolicyVerification))` — the
+unforgeable proof token — `Ok(None)` for a clean unsatisfied, and `Err(_)` for a structural/source
+failure (see *API Surface*). The full Rust under
+[*Policies and Pinnings → Implementation*](#policies-and-pinnings) is canonical; the sketch below
+shows the shape — the internal helpers elide the token (returning sets / bools) for readability, but
+the public `evaluate_anchored_policy` returns it:
 
 ```
-evaluate_anchored_policy(issuance_policy, issuers, expected_anchors, withdrawal, immune,
-                         source, required_tier, max_depth) -> bool:
-    if issuers is empty: return false
+evaluate_anchored_policy(issuance_policy, issuers, committed_issuers, expected_anchors, withdrawal,
+                         immune, source, required_tier, max_depth)
+        -> Result<Option<PolicyVerification>>:
     if len(issuers) > MAX_PRESENTED: error(TooManyIssuers)                       # count cap, up front
-    assert {prefix for (prefix, _) in issuers} == credential.committed_issuers   # trust boundary
+    assert {prefix for (prefix, _) in issuers} == committed_issuers             # trust boundary (NEW-D)
+    if issuers is empty: return Ok(None)
 
-    anchored = []                                                # (a) anchor proof per issuer
+    anchored = []; issuer_tokens = []                            # (a) anchor proof per issuer
     for (issuer, anchor_pinning) in issuers:
-        if evaluate_single_policy(parse_policy("iel(" + issuer + ")"), anchor_pinning,
+        if let Some(t) = evaluate_single_policy(parse_policy("iel(" + issuer + ")"), anchor_pinning,
                                   expected_anchors, None, source, required_tier, max_depth):
-            anchored.append(issuer)
+            anchored.append(issuer); issuer_tokens.append(t)
 
-    if not eval_issuance(issuance_policy.expr, anchored, source, max_depth):       # (b) + count distinct
-        return false
+    credited = issuance_credited(issuance_policy.expr, anchored, source, max_depth)  # (b) count distinct
+    if credited is empty: return Ok(None)
 
     if not immune and is_withdrawn(expected_anchors, anchored, withdrawal,         # withdrawal at tip
                                    source, required_tier, max_depth):
-        return false
-    return true
+        return Ok(None)
+    # fold/CONSUME the issuer tokens' anchored SAIDs + reconstructed marker snapshots into the result —
+    # possession of the returned token proves every walked chain verified.
+    return Ok(Some(PolicyVerification::new(credited, fold_anchored_saids(issuer_tokens),
+                                           fold_snapshots(issuer_tokens))))
 
-# eval_issuance: del(X, N) credited by distinct anchored issuers self-traversing up to X within N;
-# DIRECT issuers credited by iel(X) (X in anchored) / mem(X, class) (anchored members at X's tip);
+# issuance_credited: del(X, N) credited by distinct anchored issuers self-traversing up to X within N;
+# DIRECT issuers credited by iel(X) (X in anchored) / mem(X, group) (anchored members at X's tip);
 # pol recurses; thr/wgt/and count DISTINCT issuer prefixes (set union; wgt dedups by max weight;
-# and = all branches non-empty). kel credits nobody. Never expands del.
-eval_issuance(expr, anchored, source, max_depth) -> bool:
-    return not issuance_credited(expr, anchored, source, max_depth).is_empty()
+# and = all branches non-empty). kel credits nobody. Never expands del. (eval_issuance wraps it as a
+# bool — `not issuance_credited(...).is_empty()` — where only a yes/no is needed.)
 
 # self_traverses: walk UP candidate's chain to delegator, <= max_hops, F-rescission-to-tip ALWAYS.
 self_traverses(candidate, delegator, max_hops, source, max_depth) -> bool:
@@ -1481,12 +1659,17 @@ self_traverses(candidate, delegator, max_hops, source, max_depth) -> bool:
     return false
 
 # evaluate_single_policy: positional pin-walk over ONE del-free policy (the issuer's authentication).
-# Leftover pins deny. self_context threads `self` for an aggregate member's mem(self, class).
-evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, required_tier, max_depth) -> bool:
+# Leftover pins deny. self_context threads the HOST prefix for an aggregate member's one-arg mem(group).
+# Returns Some(token) (credited set + anchored SAIDs + reconstructed marker snapshots) on satisfaction,
+# None on a clean miss — the anchored entry folds the token into its result.
+evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, required_tier, max_depth)
+        -> Option<PolicyVerification>:
     cur = PinCursor(pinning.pins)
     credited = eval_expr(policy.expr, cur, expected_anchors, self_context, source, required_tier, max_depth)
     if cur.remaining() > 0: error(LeftoverPins)              # more pins than occurrences — malformed
-    return not credited.is_empty()                          # satisfied iff ≥ 1 prefix credited
+    if credited is empty: return None                       # satisfied iff ≥ 1 prefix credited
+    return Some(PolicyVerification::new(credited, anchored_saids(expected_anchors),
+                                        source.reconstructed_snapshots()))
 
 # Leaves take the NEXT slot (positional, pre-order order) and read that event from the verification
 # walk; consumption is structural (a failed/present-unsatisfied iel still drains its subtree). Returns
@@ -1495,22 +1678,24 @@ evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, 
 # (recursive dedup — a prefix counts once toward every ancestor; an iel boundary is opaque). del is NOT
 # a single-policy element (no slot, no self-traversal here). Unknown primitive => whole policy denies
 # (fail-secure), handled by the caller.
-eval_expr(expr, cur, expected_anchors, self, source, required_tier, max_depth) -> set<Prefix>:
+eval_expr(expr, cur, expected_anchors, host, source, required_tier, max_depth) -> set<Prefix>:
     if max_depth == 0: error(MaxDepthExceeded)
     match expr:
-        kel(prefix) => cur.take_next() is Some(Some(prior)) and satisfies_kel(prior, prefix, expected_anchors, source, required_tier) ? {prefix} : {}
-        iel(prefix) => cur.take_next() is Some(Some(ev))    and satisfies_iel(ev, prefix, cur, expected_anchors, source, required_tier, max_depth) ? {prefix} : {}
-        pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr, cur, expected_anchors, self, source, required_tier, max_depth - 1)   # propagate nested set
-        thr(M, ss)  => U = union(eval_expr(s, cur, …) for s in flatten(ss, self, source));            |U| >= M ? U : {}
-        wgt(M, ws)  => B = per-prefix MAX weight over (s, w) in flatten_weighted(ws, self, source);   sum(B.values) >= M ? B.keys : {}
+        kel(prefix) => cur.take_next() is Some(Some(prior))  and satisfies_kel(prior, prefix, expected_anchors, source, required_tier) ? {prefix} : {}
+        iel(prefix) => cur.take_next() is Some(Some(marker)) and satisfies_iel(marker, prefix, cur, expected_anchors, source, required_tier, max_depth) ? {prefix} : {}
+        pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr, cur, expected_anchors, host, source, required_tier, max_depth - 1)   # propagate nested set
+        thr(M, ss)  => U = union(eval_expr(s, cur, …) for s in flatten(ss, host, source));            |U| >= M ? U : {}
+        wgt(M, ws)  => B = per-prefix MAX weight over (s, w) in flatten_weighted(ws, host, source);   sum(B.values) >= M ? B.keys : {}
         and(cs)     => sets = [eval_expr(c, cur, …) for c in cs];   all(s nonempty for s in sets) ? union(sets) : {}   # eval ALL (drain slots)
         _           => {}                                    # del/mem standing alone are bracket-only
 
 # kel: `prior` is the pinned event just before the anchoring event; resolve its SURVIVING-BRANCH
 # child S (S.previous == prior) — checking it there, inline, both dodges the SAID cycle and needs no
-# search. A divergent / archived branch has no valid anchor. iel: the pin is an IEL event (cycle-free);
-# recurse into its authentication (threading self = prefix) — the credential anchor is checked at the
-# terminal kel leaves; the descent drains the subtree's slots even on mismatch (structural consumption).
+# search. A divergent / archived branch has no valid anchor. iel: the pin is the Evl/Icp state-marker
+# (cycle-free); reconstruct the snapshot AS-OF it and recurse into the snapshot's authentication
+# (threading host = prefix; a one-arg mem(group) under it REUSES this same snapshot's roster, NEW-B) —
+# the credential anchor is checked at the terminal kel leaves; the descent drains the subtree's slots
+# even on mismatch (structural consumption).
 satisfies_kel(prior, leaf_prefix, expected_anchors, source, required_tier):
     S = source.anchoring_child_on_surviving_branch(leaf_prefix, prior)    # None if divergent/archived
     if S is None: return false
@@ -1518,11 +1703,11 @@ satisfies_kel(prior, leaf_prefix, expected_anchors, source, required_tier):
         AND S.tier >= required_tier
         AND for all (anchor, tier) in expected_anchors: S.anchors.contains(anchor) AND S.tier >= tier
 
-satisfies_iel(iel_event, leaf_prefix, cur, expected_anchors, source, required_tier, max_depth):
-    E = source.iel_event(leaf_prefix, iel_event)                          # the IEL event, validated by the walk
-    sub = eval_expr(parse_dsl(sadd.fetch(E.authentication).content).expr,
+satisfies_iel(marker_said, leaf_prefix, cur, expected_anchors, source, required_tier, max_depth):
+    snap = source.snapshot_as_of(leaf_prefix, marker_said)               # reconstruct state AS-OF the Evl/Icp marker (NEW-B)
+    sub  = eval_expr(parse_dsl(sadd.fetch(snap.authentication).content).expr,  # one-arg mem(group) reuses snap.roster
                     cur, expected_anchors, Some(leaf_prefix), source, required_tier, max_depth - 1)
-    return E.prefix == leaf_prefix AND sub nonempty                       # X's authentication met ⇒ credit X; drains subtree regardless of match
+    return snap.prefix == leaf_prefix AND sub nonempty                   # X's authentication met ⇒ credit X; drains subtree regardless of match
 ```
 
 **Semantics notes:**
@@ -1535,14 +1720,15 @@ satisfies_iel(iel_event, leaf_prefix, cur, expected_anchors, source, required_ti
   them; an issuance-policy `del(X, N)` is matched separately by self-traversal and never carries the
   anchor requirement. The whole expanded graph consumes one positional pin cursor, each occurrence
   taking its own slot in pre-order order; leftover pins after the walk deny.
-- **The SAID cycle, and why kel prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a kel prefix pins the event *just prior* and the verifier rederives the anchoring child on the surviving branch. iel prefixes are cycle-free: they pin IEL events (fixing the authentication state), which never carry the credential anchor. Avoiding a second walk of a shared log is handled by the verification walk paging that log once and checking all of its pinned positions inline (the pinned SAIDs are supplied up front as the positions to check), not by the pin array order.
+- **The SAID cycle, and why kel prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a kel prefix pins the event *just prior* and the verifier rederives the anchoring child on the surviving branch. iel prefixes are cycle-free: they pin `Evl`/`Icp` state-markers (the verifier reconstructs the authentication snapshot as-of them), which never carry the credential anchor. Avoiding a second walk of a shared log is handled by the verification walk paging that log once and checking all of its pinned positions inline (the pinned SAIDs are supplied up front as the positions to check), not by the pin array order.
 - **`pol(said)` reference cycles are structurally impossible.** Content-addressed references can't form a cycle without a Blake3-256 collision (two Policy SADs mutually containing each other's SAIDs). No runtime cycle check needed.
 - **Hard depth cap (`max_depth`, always passed).** Every recursive/walk depth in evaluation — `del` self-traversal, `pol` nesting, `iel` authentication recursion — is bounded by an **explicit `max_depth` the caller always passes**; never implicit or unbounded. It is sourced from data where a governing bound exists (a `del(X, N)` chain caps at `N`) and from a sensible default otherwise (`pol`/`iel` nesting, e.g. 16). Exceeding it **denies** (fail-secure). This also backstops the aggregate-membership cycle guard.
-- **Roster-width bound (foreign `mem`).** `mem(X, class)` with foreign `X` expands to one leaf per roster member, and `X` controls its roster. Expansion is capped by a **width bound**; a roster exceeding it denies with an "expansion truncated" signal (fail-secure) — a large or malicious foreign class cannot amplify verifier cost without bound.
+- **Roster-width bound (foreign `mem`).** `mem(X, group)` with foreign `X` expands to one leaf per roster member, and `X` controls its roster. Expansion is capped by a **width bound**; a roster exceeding it denies with an "expansion truncated" signal (fail-secure) — a large or malicious foreign group cannot amplify verifier cost without bound.
+- **Per-policy expansion cap (NEW-G).** Beyond the per-roster width bound, the **total** number of leaves a single policy expands to — summed across every `mem` flatten, `pol` nesting, and `iel` authentication recursion — is capped by a per-policy expansion bound, a sibling to `max_depth`, the roster-width bound, and `MAX_PRESENTED`. A policy whose post-flatten leaf count exceeds it denies (fail-secure) before the walk completes, so neither a deeply nested composition nor many moderate rosters can multiply past the cap even when no single roster is over-wide.
 - **Tier check is in the leaf helpers, not the composers.** A kel prefix's `satisfies_kel` rejects an anchoring event hosted below `required_tier`; the tier requirement propagates unchanged through the iel authentication recursion to the terminal kel leaves. Composers aggregate satisfied/unsatisfied results; they don't see tier directly.
-- **Unrecognized primitive → the WHOLE policy denies (fail-secure).** An older verifier encountering a newer DSL primitive must **not** treat it as a merely-unsatisfied sub-expression: `thr(1, [new_restrictive_thing, old_permissive_thing])` would then silently ignore the restriction and pass. Instead an unknown primitive fails the **entire** policy closed (`Ok(false)` for the whole evaluation). Greenfield ships one DSL version, but this keeps safety intact under any skew.
-- **Pinned canonical DSL string form.** Policies are stored as DSL **strings** inside a SAD, and JCS canonicalizes the surrounding JSON but treats the DSL as opaque — so `thr(2,[a,b])` and `thr(2, [a, b])` would otherwise produce different SAIDs. The DSL has a **pinned canonical string form** (the analog of `said.md`'s normatively-pinned JCS): no insignificant whitespace, arguments comma-separated without spaces, `mem` members emitted in canonical order, and **`wgt` entries fully split to single-element brackets** (next bullet). Every cross-party-agreement and content-addressed dedup claim (the `self`-sharing collapse; two parties independently authoring "the same" policy) depends on it.
-- **Canonical `wgt` desugar.** A multi-element `wgt` bracket and its split equivalent parse to the *same* AST — `wgt(M, [([a, b], w), …])` and `wgt(M, [([a], w), ([b], w), …])` both yield two weight-`w` entries (the array is lossless concise sugar — `([a, b], w)` desugars to `(a, w), (b, w)`). They must therefore canonicalize to one string, or their SADs' SAIDs diverge and `wgt`'s cross-party agreement breaks. **Canonical form splits every entry to single-element brackets `([elem], w)`, in source order**: `([a, b], w)` → `([a], w), ([b], w)`; a composer/`mem` element stays whole inside its own single-element bracket (`([mem(X, c)], w)`, `([thr(...)], w)`). Only the bracket grouping is normalized — source/sibling order is preserved (the analog of the `mem`-order rule).
+- **Unrecognized primitive → the WHOLE policy denies (fail-secure).** An older verifier encountering a newer DSL primitive must **not** treat it as a merely-unsatisfied sub-expression: `thr(1, [new_restrictive_thing, old_permissive_thing])` would then silently ignore the restriction and pass. Instead an unknown primitive fails the **entire** policy closed (`Ok(None)` for the whole evaluation — no proof token is produced). Greenfield ships one DSL version, but this keeps safety intact under any skew.
+- **Pinned canonical DSL string form.** Policies are stored as DSL **strings** inside a SAD, and JCS canonicalizes the surrounding JSON but treats the DSL as opaque — so `thr(2,[a,b])` and `thr(2, [a, b])` would otherwise produce different SAIDs. The DSL has a **pinned canonical string form** (the analog of `said.md`'s normatively-pinned JCS): no insignificant whitespace, arguments comma-separated without spaces, `mem` members emitted in canonical order, and **`wgt` entries fully split to single-element brackets** (next bullet). Every cross-party-agreement and content-addressed dedup claim (the prefix-free one-arg `mem` collapse, where identical own-policies share a Policy SAD; two parties independently authoring "the same" policy) depends on it.
+- **Canonical `wgt` desugar.** A multi-element `wgt` bracket and its split equivalent parse to the *same* AST — `wgt(M, [([a, b], w), …])` and `wgt(M, [([a], w), ([b], w), …])` both yield two weight-`w` entries (the array is lossless concise sugar — `([a, b], w)` desugars to `(a, w), (b, w)`). They must therefore canonicalize to one string, or their SADs' SAIDs diverge and `wgt`'s cross-party agreement breaks. **Canonical form splits every entry to single-element brackets `([elem], w)`, in source order**: `([a, b], w)` → `([a], w), ([b], w)`; a `mem` / `del` element stays whole inside its own single-element bracket (`([mem(X, g)], w)`, `([del(X, N)], w)`) — `wgt` subjects are membership-style only, no composer/`pol` (NEW-E). Only the bracket grouping is normalized — source/sibling order is preserved (the analog of the `mem`-order rule).
 - **Issuer-set trust boundary.** The verifier confirms the presented `issuers` equal the credential's **committed issuer set** before crediting any of them — the issuer↔content↔anchor binding never depends on caller bookkeeping (the verifier is the trust boundary).
 - **Challenge binding (current-state flow).** The `challenge` `evaluate_current_policy` verifies must be **unpredictable, single-use, and context-bound** (to the resource, action, and credential at hand) — otherwise an attestation over a reused challenge replays across contexts. The server constructs it (e.g. a random nonce hashed with the request context); the verifier rejects a stale or context-mismatched challenge before checking signatures.
 
@@ -1579,43 +1765,52 @@ fn authorize(
 ) -> Result<bool, PolicyError> {
     // 1. Validity — each named issuer self-traverses to a delegator the issuance policy names and
     //    anchors the credential on its own authentication at the required tier; enough DISTINCT
-    //    issuers clear the issuance threshold; and no satisfying withdrawal anchor was found.
+    //    issuers clear the issuance threshold; and no satisfying withdrawal anchor was found. The
+    //    presented issuers are asserted equal to the credential's committed set INSIDE the verifier
+    //    (NEW-D). On success it returns a PolicyVerification proof token.
     let cred_anchor: HashSet<(Said, Tier)> =
         [(cred.said, Tier::One)].into_iter().collect();
     let issuers: Vec<(Prefix, &Pinning)> = cred.issuers();   // committed set, sourced from the cred
-    let valid = evaluate_anchored_policy(
+    let committed: HashSet<Prefix> = cred.committed_issuers().into_iter().collect();
+    let Some(validity) = evaluate_anchored_policy(
         issuance_policy,
         &issuers,
+        &committed,                  // NEW-D: asserted == presented, inside the verifier
         &cred_anchor,
         cred.withdrawal.as_deref().map(parse_policy).transpose()?.as_ref(),  // None = soft default
         cred.immune,
         source,
         Tier::One,
         16,                          // max_depth (del's N bounds the delegation walk; this caps nesting)
-    )?;
-    if !valid {
+    )? else {
         return Ok(false);            // not issued by a recognized authority, or withdrawn
-    }
+    };
 
-    // 2. Identity — the bearer presently controls the credential's SUBJECT. The subject is
-    //    an IEL; `iel(subject)` defers to the subject's own authentication policy, so a rotated
-    //    or multi-sig subject still authenticates correctly. The challenge defeats replay.
+    // 2. Identity — the bearer presently controls the credential's SUBJECT. The subject is an IEL;
+    //    `iel(subject)` defers to the subject's own authentication policy, so a rotated or multi-sig
+    //    subject still authenticates correctly. The challenge defeats replay. `iel(subject)` has no
+    //    `del`, so no delegates are claimed (&[]).
     let subject_policy = parse_policy(&format!("iel({})", cred.subject))?;
-    let is_holder = evaluate_current_policy(
+    let Some(identity) = evaluate_current_policy(
         &subject_policy,
         challenge,
         attestations,
+        &[],                         // no del leaves in iel(subject) → no claimed delegates
         source,
         Tier::One,
         16,                          // max_depth
-    )?;
-    if !is_holder {
+    )? else {
         return Ok(false);            // credential presented by someone who isn't the subject
-    }
+    };
 
-    // 3. Authorization — the application maps the credential's roles to permissions and
-    //    grants iff the action's required permission is covered. This step is pure
-    //    application policy; the DSL's job ended once validity + identity were established.
+    // 3. Authorization — the application maps the credential's roles to permissions and grants iff
+    //    the action's required permission is covered. Pure application policy; the DSL's job ended
+    //    once validity + identity were established. Both proof tokens are now in hand: a downstream
+    //    capability that takes `&PolicyVerification` is compiler-guaranteed its policy already passed
+    //    (verify-before-use end to end, no TOCTOU — the verified credited set / anchored SAID(s)
+    //    ride in `validity`, the live-control proof in `identity`). The grant below reads only the
+    //    app's role map; a real system threads `validity`/`identity` into the capability it mints.
+    let _carried = (&validity, &identity);
     let granted = cred.roles
         .iter()
         .flat_map(permissions_for_role)              // application-defined role → permissions
