@@ -44,7 +44,7 @@ Two chain-state **leaves** (`kel`, `iel`), one policy-reference **leaf** (`pol`)
   `del(X, 1)` = direct delegate). It is **never expanded** (a delegator's delegated set is
   unbounded and delegate-side, so the verifier cannot materialize it); instead it is matched by
   the **distinct presented issuers** that self-traverse up to `prefix` within `N` hops (see
-  [`del`](#delprefix-n--iel-delegated-set-membership) and *Policies and Pinnings*). `del(X)` is
+  [`del`](#delprefix-n--delegation-placeholder-self-traversing) and *Policies and Pinnings*). `del(X)` is
   not the same as naming `X`: it authorizes `X`'s *delegates*, not `X` itself.
 
 Both `mem` and `del` are legal only **inside a composer's `[...]`**, never as a standalone
@@ -95,7 +95,7 @@ order; satisfying 2 of the 3 top-level branches is enough to clear the threshold
 
 `del(prefix, N)` is the one bracket form that contributes **no** slot — it is never expanded and
 carries no pin. Its issuers prove delegation by self-traversing their own delegation chains, not
-by a pinned slot (see [`del`](#delprefix-n--iel-delegated-set-membership) and *Policies and
+by a pinned slot (see [`del`](#delprefix-n--delegation-placeholder-self-traversing) and *Policies and
 Pinnings*).
 
 #### Policies (resource holder's gate)
@@ -280,19 +280,26 @@ const MAX_PRESENTED: usize = 128;
 
 // Proof-of-verification token for a policy evaluation (NEW-F / Q3). It CANNOT be constructed
 // directly — the ONLY way to obtain one is to run a policy verifier (`evaluate_anchored_policy` /
-// `evaluate_current_policy`) to a SATISFIED result. Possession therefore PROVES the policy was
-// satisfied against verified chain state: the credited parties, the SADs proven anchored, and the
-// marker state snapshot(s) the evaluation fixed all ride in the token, so a downstream consumer
-// reads data-AS-VERIFIED — no re-fetch, no TOCTOU. A function taking `&PolicyVerification` is
-// compiler-guaranteed its policy already passed. Fields are PRIVATE with NO public constructor; the
-// verifier builds one only after consuming the underlying chain verification tokens
-// (`IelVerification` / `KelVerification`) surfaced by `source` during the walk — so chain -> policy
-// -> authorize is verify-before-use end to end. (Mirrors the kels chain-verifier token pattern —
-// `KelVerifier::into_verification()` -> `KelVerification` — NOT kels' submit-handler
-// `AnchorEvaluation` / `PolicyChecker` deferral surface, which vdti's end-verification path does not
-// need.)
+// `evaluate_current_policy`) to a SATISFIED result. The token BINDS the evaluated policy's SAID
+// (both modes) and, in current mode, the `challenge` digest (A) into its own content/SAID, so
+// possession PROVES that THE BOUND policy was satisfied against verified chain state — not merely
+// that SOME policy passed: the credited parties, the SADs proven anchored, the marker state
+// snapshot(s) the evaluation fixed, the policy SAID, and the challenge all ride in the token, so a
+// downstream consumer reads data-AS-VERIFIED for the SPECIFIC policy/challenge — no re-fetch, no
+// TOCTOU, no policy-confusion. A function taking `&PolicyVerification` is compiler-guaranteed its
+// policy already passed. Fields are PRIVATE with NO public constructor; the verifier is the only
+// builder. Verify-before-use is type-enforced FROM THE POLICY TOKEN ONWARD; making the verifier
+// also CONSUME the underlying chain verification tokens (`IelVerification` / `KelVerification`) — so
+// the chain -> policy -> authorize hand-off is token-enforced end to end — is the planned Phase-3
+// token-architecture rewrite (`.working/vdti-12-policy-dsl-phase3-token-architecture.md`); the
+// current `source`-based walk is provisional pending it. (Mirrors the kels chain-verifier token
+// pattern — `KelVerifier::into_verification()` -> `KelVerification`, and its `prefix()` context
+// binding — NOT kels' submit-handler `AnchorEvaluation` / `PolicyChecker` deferral surface, which
+// vdti's end-verification path does not need.)
 pub struct PolicyVerification {
     said: Said,                              // content digest of the verified result (equal SAID ⇒ same result)
+    policy_said: Said,                       // SAID of the evaluated policy — binds the token to THIS policy (A)
+    challenge: Option<Digest256>,            // challenge digest bound in current mode; None in anchored mode (A)
     credited: HashSet<Prefix>,               // the distinct parties that satisfied the policy
     anchored_saids: BTreeSet<Said>,          // SADs proven anchored on the surviving branch (anchored mode; empty in current mode)
     snapshots: Vec<IelStateSnapshot>,        // the Evl/Icp-marker state snapshot(s) the walk reconstructed (NEW-B); provisional shape pending event-shape.md
@@ -302,12 +309,17 @@ impl PolicyVerification {
     pub fn credited(&self) -> &HashSet<Prefix> { &self.credited }        // who satisfied the policy
     pub fn is_said_anchored(&self, said: &Said) -> bool { self.anchored_saids.contains(said) }
     pub fn said(&self) -> &Said { &self.said }
-    // No PUBLIC constructor — `new` is crate-private, so only the verifier in this module builds a
-    // token (verifier-only construction is the whole guarantee). Derives the content SAID over the
-    // verified result, so an equal SAID means the same credited set + anchored SADs + snapshot(s).
-    fn new(credited: HashSet<Prefix>, anchored_saids: BTreeSet<Said>,
-           snapshots: Vec<IelStateSnapshot>) -> Self {
-        let mut token = Self { said: Said::placeholder(), credited, anchored_saids, snapshots };
+    pub fn policy_said(&self) -> &Said { &self.policy_said }             // the policy this token proves (A)
+    pub fn challenge(&self) -> Option<&Digest256> { self.challenge.as_ref() }  // bound challenge, current mode (A)
+    // `new` is crate-private (no public constructor) — verifier-only construction is the whole
+    // guarantee. Derives the content SAID over the verified result INCLUDING `policy_said` and
+    // `challenge` (A), so an equal SAID means the same policy + challenge + credited set + anchored
+    // SADs + snapshot(s); the token cannot be re-pointed at a different policy without changing its SAID.
+    fn new(policy_said: Said, challenge: Option<Digest256>, credited: HashSet<Prefix>,
+           anchored_saids: BTreeSet<Said>, snapshots: Vec<IelStateSnapshot>) -> Self {
+        let mut token = Self {
+            said: Said::placeholder(), policy_said, challenge, credited, anchored_saids, snapshots,
+        };
         token.said = token.derive_said();    // SelfAddressed — bind the SAID over the fields above
         token
     }
@@ -326,11 +338,15 @@ impl PolicyVerification {
 //  issuers          presented issuers + their anchor pinnings. The verifier asserts (NEW-D, inside,
 //                   at the trust boundary) that the presented prefixes equal `committed_issuers`
 //                   before crediting any of them — the issuer<->content<->anchor binding never
-//                   depends on caller bookkeeping.
+//                   depends on caller bookkeeping. (INTERIM: Phase 3 takes `&Credential` and reads
+//                   the committed set INTERNALLY, dissolving both this scaffolding and the assert — see NEW-D.)
 //  committed_issuers the issuer set the credential COMMITS to, read from the SAID-verified
-//                   credential (content-addressed, trusted) — NOT a second untrusted caller arg. The
-//                   verifier compares the presented `issuers` prefixes against this and refuses on
-//                   mismatch (NEW-D); only then does it credit.
+//                   credential (content-addressed, trusted). The verifier compares the presented
+//                   `issuers` prefixes against this and refuses on mismatch (NEW-D); only then does it
+//                   credit. INTERIM scaffolding only: it is a separate arg until the Phase-3
+//                   credential-input model (`.working/vdti-12-policy-dsl-phase3-token-architecture.md`)
+//                   takes a single `&Credential` and reads `committed` internally — after which there
+//                   is no caller-supplied set to compare and the equality assert disappears (NEW-D dissolved).
 //  expected_anchors (SAID, minimum-tier) pairs each contributing issuer's anchoring event must
 //                   host: the credential SAID, plus any co-anchored SADs, each with its tier floor.
 //  withdrawal,      the credential's withdrawal config (see Withdrawal). immune ⇒ skip the
@@ -344,8 +360,17 @@ impl PolicyVerification {
 // Returns Err(PolicyError) on structural/source failure (malformed input, fetch failure, leftover
 // pins, max_depth breach, presented != committed); Ok(None) on a clean unsatisfied result; and
 // Ok(Some(PolicyVerification)) on satisfaction — the token carries the credited issuer set, the
-// anchored credential SAID(s), and the marker snapshot(s) the walk fixed, consuming the underlying
-// chain verification tokens `source` surfaced (verify-before-use end to end).
+// anchored credential SAID(s), and the marker snapshot(s) the walk fixed. Verify-before-use is
+// type-enforced FROM THE POLICY TOKEN ONWARD; having the verifier also CONSUME the underlying chain
+// verification tokens (so the chain -> policy hand-off is token-enforced too) is the planned Phase-3
+// token-architecture rewrite (`.working/vdti-12-policy-dsl-phase3-token-architecture.md`) — the
+// current `source`-based walk is provisional pending it.
+//
+// NOTE (E1, Phase 3): today a single issuer's chain-verification failure propagates as a global Err
+// (the `?` on `evaluate_single_policy` below). Phase 3 SOFTENS this — a single unverifiable issuer
+// becomes UNCREDITED (not a global error) and the issuance threshold runs over the credited set;
+// only STRUCTURAL failures (leftover pins, max_depth, malformed input, a NEW-B roster desync) stay
+// hard `Err`. Fail-secure: softening can only SHRINK the credited set, never validate spuriously.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
     issuers: &[(Prefix, &Pinning)],
@@ -361,9 +386,11 @@ pub fn evaluate_anchored_policy(
 // Single-policy pin-walk (internal) — tree walk over ONE del-free policy (the issuer's
 // authentication during the anchor check, or a nested pol()), consuming `pinning.pins`
 // positionally in pre-order walk order. Each non-del leaf takes the next pin and reads that event
-// inline from `source`; composers aggregate. `self_context` resolves one-arg `mem(group)` inside
-// an aggregate member's authentication — it is the prefix of the enclosing `iel()` descent (None at
-// the top, set to X when recursing into iel(X)'s authentication). `expected_anchors` is the
+// inline from `source`; composers aggregate. `self_context` (a `HostContext`) resolves one-arg
+// `mem(group)` inside an aggregate member's authentication — it carries the enclosing `iel()`
+// descent's prefix AND its roster source (None at the top; set to `{X, AtMarker(snapshot)}` when
+// recursing into iel(X)'s authentication, so the member roster is read from the SAME frozen marker
+// snapshot the descent fixed, NEW-B). `expected_anchors` is the
 // credential-anchor requirement scoped to this walk (the issuer's authentication carries it; a
 // nested pol inherits it). Bounded by `max_depth`. Returns Ok(None) when this issuer's
 // authentication is unsatisfied; Ok(Some(token)) — carrying the anchored SAD(s) proven on this walk
@@ -373,7 +400,7 @@ fn evaluate_single_policy(
     policy: &Policy,
     pinning: &Pinning,
     expected_anchors: &HashSet<(Said, Tier)>,
-    self_context: Option<&Prefix>,
+    self_context: Option<HostContext>,
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
@@ -585,7 +612,8 @@ let cred_anchor: HashSet<(Said, Tier)> = [(cred.said, Tier::One)].into_iter().co
 
 // The issuer set the credential COMMITS to, read from the SAID-verified credential (NEW-D). The
 // verifier asserts the presented `issuers` prefixes equal this INSIDE the call, at the trust
-// boundary, before crediting — the equality is not the caller's to vouch for.
+// boundary, before crediting — the equality is not the caller's to vouch for. (INTERIM: Phase 3
+// passes the `&Credential` itself and reads `committed` internally, dissolving this separate arg.)
 let committed: HashSet<Prefix> = cred.committed_issuers().into_iter().collect();
 
 // One self-contained call: for each named issuer it self-traverses the issuer's own delegation
@@ -620,8 +648,10 @@ Implementation:
 // The issuance policy's composers then count DISTINCT anchored issuers per `del(X, N)`. The
 // issuer<->content<->anchor binding never depends on caller bookkeeping: the presented prefixes are
 // asserted equal to the credential's COMMITTED issuer set (NEW-D) here, at the trust boundary,
-// before any crediting. On satisfaction the verifier emits a PolicyVerification proof token,
-// FOLDING the per-issuer tokens it walked (verify-before-use end to end).
+// before any crediting (INTERIM — Phase 3 reads the committed set from a `&Credential` input and
+// drops the assert). On satisfaction the verifier emits a PolicyVerification proof token, FOLDING
+// the per-issuer PolicyVerification SUB-tokens it walked; having it ALSO consume the underlying
+// chain verification tokens (verify-before-use chain -> policy too) is the Phase-3 rewrite.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
     issuers: &[(Prefix, &Pinning)],
@@ -638,6 +668,9 @@ pub fn evaluate_anchored_policy(
     }
     // NEW-D: the presented prefixes MUST equal the credential's committed set, asserted HERE from
     // SAID-verified data — never trusted from caller bookkeeping. A mismatch is a structural failure.
+    // INTERIM: Phase 3 (`.working/vdti-12-policy-dsl-phase3-token-architecture.md`) takes a single
+    // `&Credential` and reads `committed` internally, so there is no caller set to compare — this
+    // whole check dissolves (NEW-D superseded). Kept until the token-architecture rewrite lands.
     let presented: HashSet<Prefix> = issuers.iter().map(|(p, _)| p.clone()).collect();
     if presented != *committed_issuers {
         return Err(PolicyError::IssuerSetMismatch);
@@ -679,15 +712,19 @@ pub fn evaluate_anchored_policy(
         return Ok(None);
     }
 
-    // Satisfied. Build the proof token, CONSUMING the per-issuer tokens — their anchored SADs and
-    // marker snapshots fold up, so possession of the result proves every walked chain verified.
+    // Satisfied. Build the proof token, CONSUMING the per-issuer PolicyVerification sub-tokens —
+    // their anchored SADs and marker snapshots fold up, so possession of the result carries every
+    // sub-walk's proven facts. (Consuming the underlying chain verification tokens themselves — so
+    // the result proves every walked CHAIN verified, not just every sub-policy — is the Phase-3
+    // token-architecture rewrite; the current `source`-based walk is provisional pending it.)
     let mut anchored_saids = BTreeSet::new();
     let mut snapshots = Vec::new();
     for t in issuer_tokens {                       // moves each sub-token (consumed, not borrowed)
         anchored_saids.extend(t.anchored_saids);
         snapshots.extend(t.snapshots);
     }
-    Ok(Some(PolicyVerification::new(credited, anchored_saids, snapshots)))
+    // Bind the issuance policy's SAID (A); anchored mode has no challenge.
+    Ok(Some(PolicyVerification::new(issuance_policy.said.clone(), None, credited, anchored_saids, snapshots)))
 }
 
 // Self-traversal: does `candidate` reach `delegator` walking UP its own delegation chain within
@@ -846,6 +883,31 @@ fn issuance_credited(
     }
 }
 
+// Host context for resolving a one-arg `mem(group)` inside an `iel(X)` descent (NEW-B): the host
+// prefix plus WHERE that host's roster is read. `AtMarker` pins the roster to the `iel(X)`
+// `Evl`/`Icp` marker's reconstructed snapshot (FROZEN — reused, no second pin, closing the
+// authentication-recent / roster-stale split that a free roster slot would open). `AtTip` reads the
+// owner's LIVE roster (the current/issuance tip-live flows, and a foreign two-arg `mem`). A `None`
+// `self_context` means no enclosing iel descent — a one-arg `mem(group)` there credits nobody
+// (fail-secure). The struct carries the snapshot to the expansion site so `flatten` can reach it;
+// the as-of-marker roster READ itself stays provisional (EventSource/pagination), like `snapshot_as_of`.
+#[derive(Clone, Copy)]                 // all-reference fields — Copy, so it threads through the
+struct HostContext<'a> {              // recursive composer arms (flatten + the child eval) freely
+    prefix: &'a Prefix,
+    roster: RosterSource<'a>,
+}
+#[derive(Clone, Copy)]
+enum RosterSource<'a> {
+    AtMarker(&'a IelStateSnapshot),   // roster frozen at the iel(X) Evl/Icp marker (NEW-B)
+    AtTip,                            // owner's live roster (tip)
+}
+
+// `flatten` / `flatten_weighted` expand each `mem` element to `iel(member)` leaves in canonical
+// order, reading the roster via `self_context`. A two-arg `mem(prefix, group)` ALWAYS reads
+// `source.roster_members(prefix, group)` at the foreign owner's tip. A one-arg `mem(group)` reads
+// the HOST's roster: `AtMarker(snap)` ⇒ `snap.roster` (the frozen marker snapshot, NEW-B); `AtTip`
+// ⇒ `source.roster_members(host.prefix, group)`; `None` ⇒ credits nobody (no enclosing host).
+
 // Single-policy pin-walk over ONE del-free policy (the issuer's authentication during the anchor
 // check, or a nested `pol`). Consumes `pinning.pins` POSITIONALLY in pre-order walk order: a single
 // cursor advances one slot per leaf the walk reaches. After the walk any LEFTOVER pins are a
@@ -857,7 +919,7 @@ fn evaluate_single_policy(
     policy: &Policy,
     pinning: &Pinning,
     expected_anchors: &HashSet<(Said, Tier)>,
-    self_context: Option<&Prefix>,
+    self_context: Option<HostContext>,
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
@@ -878,7 +940,8 @@ fn evaluate_single_policy(
     // accessors.
     let anchored_saids = expected_anchors.iter().map(|(said, _)| said.clone()).collect();
     let snapshots = source.reconstructed_snapshots();   // marker states this walk fixed (provisional, NEW-B)
-    Ok(Some(PolicyVerification::new(credited, anchored_saids, snapshots)))
+    // Bind the issuer's authentication policy SAID (A); this per-issuer sub-token has no challenge.
+    Ok(Some(PolicyVerification::new(policy.said.clone(), None, credited, anchored_saids, snapshots)))
 }
 
 // `cur` is a SINGLE positional cursor; each leaf takes the NEXT slot (`take_next`) when the walk
@@ -900,7 +963,7 @@ fn eval_expr(
     expr: &PolicyExpr,
     cur: &mut PinCursor,
     expected_anchors: &HashSet<(Said, Tier)>,
-    self_context: Option<&Prefix>,
+    self_context: Option<HostContext>,
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
@@ -1058,9 +1121,11 @@ fn satisfies_iel(
     // EventSource/pagination concern, provisional like the other source accessors.
     let snapshot = source.snapshot_as_of(leaf_prefix, marker_said)?;  // validated inline by the walk
     let authentication = parse_policy_sad(&sadd_fetch(&snapshot.authentication)?)?;
-    // The descent threads `leaf_prefix` as the host context; a one-arg `mem(group)` it reaches
-    // resolves against THIS snapshot's roster (`snapshot.roster`) — reuse, not a fresh pin.
-    let sub = eval_expr(&authentication.expr, cur, expected_anchors, Some(leaf_prefix),
+    // The descent threads `leaf_prefix` as the host context, with the roster pinned AT THE MARKER
+    // (`AtMarker(&snapshot)`, NEW-B); a one-arg `mem(group)` it reaches resolves against THIS
+    // snapshot's roster (`snapshot.roster`) — reuse of the same marker, not a fresh pin.
+    let host = HostContext { prefix: leaf_prefix, roster: RosterSource::AtMarker(&snapshot) };
+    let sub = eval_expr(&authentication.expr, cur, expected_anchors, Some(host),
                         source, required_tier, max_depth - 1)?; // drains the subtree's slots
     Ok(snapshot.prefix == *leaf_prefix && !sub.is_empty())      // X's authentication met ⇒ credit X
 }
@@ -1115,8 +1180,10 @@ pub fn evaluate_current_policy(
         return Ok(None);                             // cleanly unsatisfied
     }
     // Current mode proves nothing anchored and pins no marker, so the token carries only the credited
-    // set (anchored_saids + snapshots empty). Token-existence still proves satisfaction.
-    Ok(Some(PolicyVerification::new(credited, BTreeSet::new(), Vec::new())))
+    // set (anchored_saids + snapshots empty). It DOES bind the policy SAID and the `challenge` (A), so
+    // the token proves control over THIS policy under THIS challenge. Token-existence still proves satisfaction.
+    Ok(Some(PolicyVerification::new(policy.said.clone(), Some(challenge.clone()), credited,
+                                    BTreeSet::new(), Vec::new())))
 }
 
 // Mirrors `eval_expr` / `issuance_credited`; the leaf base cases are live attestation at the tip.
@@ -1125,7 +1192,7 @@ fn current_credited(
     challenge: &Digest256,
     attestations: &[Attestation],
     named_delegates: &[Prefix],
-    self_context: Option<&Prefix>,
+    self_context: Option<HostContext>,
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
@@ -1153,11 +1220,13 @@ fn current_credited(
             Ok(credited)
         }
         // iel(X): credit {X} iff the attestation set meets X's authentication at X's TIP (recurse,
-        // host context = X; terminal kels matched by attestation signer). X is named in the policy.
+        // host context = {X, AtTip} — current mode reads the roster LIVE, NEW-B; terminal kels
+        // matched by attestation signer). X is named in the policy.
         PolicyExpr::Iel(prefix) => {
             let auth = parse_policy_sad(&sadd_fetch(&source.iel_tip(prefix)?.authentication)?)?;
+            let host = HostContext { prefix, roster: RosterSource::AtTip };
             let sub = current_credited(&auth.expr, challenge, attestations, named_delegates,
-                                       Some(prefix), source, required_tier, max_depth - 1)?;
+                                       Some(host), source, required_tier, max_depth - 1)?;
             Ok(if sub.is_empty() { HashSet::new() } else { HashSet::from([prefix.clone()]) })
         }
         // pol: dereference + recurse; propagate the nested credited set unchanged.
@@ -1209,8 +1278,9 @@ fn current_credited(
             let mut set = HashSet::new();
             for d in named_delegates {
                 let d_auth = parse_policy_sad(&sadd_fetch(&source.iel_tip(d)?.authentication)?)?;
+                let d_host = HostContext { prefix: d, roster: RosterSource::AtTip };  // tip-live (NEW-B)
                 let met = current_credited(&d_auth.expr, challenge, attestations, named_delegates,
-                                           Some(d), source, required_tier, max_depth - 1)?;
+                                           Some(d_host), source, required_tier, max_depth - 1)?;
                 if !met.is_empty() && self_traverses(d, delegator, *n, source, max_depth)? {
                     set.insert(d.clone());
                 }
@@ -1620,6 +1690,8 @@ evaluate_anchored_policy(issuance_policy, issuers, committed_issuers, expected_a
         -> Result<Option<PolicyVerification>>:
     if len(issuers) > MAX_PRESENTED: error(TooManyIssuers)                       # count cap, up front
     assert {prefix for (prefix, _) in issuers} == committed_issuers             # trust boundary (NEW-D)
+    # INTERIM: Phase 3 reads `committed_issuers` from a `&Credential` input rather than as a separate
+    # arg (`.working/vdti-12-policy-dsl-phase3-token-architecture.md`); the boundary check stays.
     if issuers is empty: return Ok(None)
 
     anchored = []; issuer_tokens = []                            # (a) anchor proof per issuer
@@ -1634,9 +1706,12 @@ evaluate_anchored_policy(issuance_policy, issuers, committed_issuers, expected_a
     if not immune and is_withdrawn(expected_anchors, anchored, withdrawal,         # withdrawal at tip
                                    source, required_tier, max_depth):
         return Ok(None)
-    # fold/CONSUME the issuer tokens' anchored SAIDs + reconstructed marker snapshots into the result —
-    # possession of the returned token proves every walked chain verified.
-    return Ok(Some(PolicyVerification::new(credited, fold_anchored_saids(issuer_tokens),
+    # fold the issuer tokens' anchored SAIDs + reconstructed marker snapshots into the result — the
+    # returned token carries every sub-walk's proven facts. (CONSUMING the underlying chain
+    # verification tokens themselves — so the result proves every walked CHAIN verified, not just every
+    # sub-policy — is the Phase-3 rewrite: `.working/vdti-12-policy-dsl-phase3-token-architecture.md`.)
+    return Ok(Some(PolicyVerification::new(issuance_policy.said, None, credited,        # bind policy SAID (A)
+                                           fold_anchored_saids(issuer_tokens),
                                            fold_snapshots(issuer_tokens))))
 
 # issuance_credited: del(X, N) credited by distinct anchored issuers self-traversing up to X within N;
@@ -1659,7 +1734,8 @@ self_traverses(candidate, delegator, max_hops, source, max_depth) -> bool:
     return false
 
 # evaluate_single_policy: positional pin-walk over ONE del-free policy (the issuer's authentication).
-# Leftover pins deny. self_context threads the HOST prefix for an aggregate member's one-arg mem(group).
+# Leftover pins deny. self_context threads the host context (prefix + roster source: AtMarker(snapshot)
+# inside an iel descent, AtTip otherwise) for an aggregate member's one-arg mem(group).
 # Returns Some(token) (credited set + anchored SAIDs + reconstructed marker snapshots) on satisfaction,
 # None on a clean miss — the anchored entry folds the token into its result.
 evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, required_tier, max_depth)
@@ -1668,7 +1744,8 @@ evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, 
     credited = eval_expr(policy.expr, cur, expected_anchors, self_context, source, required_tier, max_depth)
     if cur.remaining() > 0: error(LeftoverPins)              # more pins than occurrences — malformed
     if credited is empty: return None                       # satisfied iff ≥ 1 prefix credited
-    return Some(PolicyVerification::new(credited, anchored_saids(expected_anchors),
+    return Some(PolicyVerification::new(policy.said, None, credited,                    # bind policy SAID (A)
+                                        anchored_saids(expected_anchors),
                                         source.reconstructed_snapshots()))
 
 # Leaves take the NEXT slot (positional, pre-order order) and read that event from the verification
@@ -1693,7 +1770,7 @@ eval_expr(expr, cur, expected_anchors, host, source, required_tier, max_depth) -
 # child S (S.previous == prior) — checking it there, inline, both dodges the SAID cycle and needs no
 # search. A divergent / archived branch has no valid anchor. iel: the pin is the Evl/Icp state-marker
 # (cycle-free); reconstruct the snapshot AS-OF it and recurse into the snapshot's authentication
-# (threading host = prefix; a one-arg mem(group) under it REUSES this same snapshot's roster, NEW-B) —
+# (threading host = {prefix, AtMarker(snap)}; a one-arg mem(group) under it REUSES this same snapshot's roster, NEW-B) —
 # the credential anchor is checked at the terminal kel leaves; the descent drains the subtree's slots
 # even on mismatch (structural consumption).
 satisfies_kel(prior, leaf_prefix, expected_anchors, source, required_tier):
@@ -1705,8 +1782,9 @@ satisfies_kel(prior, leaf_prefix, expected_anchors, source, required_tier):
 
 satisfies_iel(marker_said, leaf_prefix, cur, expected_anchors, source, required_tier, max_depth):
     snap = source.snapshot_as_of(leaf_prefix, marker_said)               # reconstruct state AS-OF the Evl/Icp marker (NEW-B)
+    host = HostContext{ prefix: leaf_prefix, roster: AtMarker(snap) }          # NEW-B — roster frozen at the marker
     sub  = eval_expr(parse_dsl(sadd.fetch(snap.authentication).content).expr,  # one-arg mem(group) reuses snap.roster
-                    cur, expected_anchors, Some(leaf_prefix), source, required_tier, max_depth - 1)
+                    cur, expected_anchors, Some(host), source, required_tier, max_depth - 1)
     return snap.prefix == leaf_prefix AND sub nonempty                   # X's authentication met ⇒ credit X; drains subtree regardless of match
 ```
 
@@ -1729,7 +1807,7 @@ satisfies_iel(marker_said, leaf_prefix, cur, expected_anchors, source, required_
 - **Unrecognized primitive → the WHOLE policy denies (fail-secure).** An older verifier encountering a newer DSL primitive must **not** treat it as a merely-unsatisfied sub-expression: `thr(1, [new_restrictive_thing, old_permissive_thing])` would then silently ignore the restriction and pass. Instead an unknown primitive fails the **entire** policy closed (`Ok(None)` for the whole evaluation — no proof token is produced). Greenfield ships one DSL version, but this keeps safety intact under any skew.
 - **Pinned canonical DSL string form.** Policies are stored as DSL **strings** inside a SAD, and JCS canonicalizes the surrounding JSON but treats the DSL as opaque — so `thr(2,[a,b])` and `thr(2, [a, b])` would otherwise produce different SAIDs. The DSL has a **pinned canonical string form** (the analog of `said.md`'s normatively-pinned JCS): no insignificant whitespace, arguments comma-separated without spaces, `mem` members emitted in canonical order, and **`wgt` entries fully split to single-element brackets** (next bullet). Every cross-party-agreement and content-addressed dedup claim (the prefix-free one-arg `mem` collapse, where identical own-policies share a Policy SAD; two parties independently authoring "the same" policy) depends on it.
 - **Canonical `wgt` desugar.** A multi-element `wgt` bracket and its split equivalent parse to the *same* AST — `wgt(M, [([a, b], w), …])` and `wgt(M, [([a], w), ([b], w), …])` both yield two weight-`w` entries (the array is lossless concise sugar — `([a, b], w)` desugars to `(a, w), (b, w)`). They must therefore canonicalize to one string, or their SADs' SAIDs diverge and `wgt`'s cross-party agreement breaks. **Canonical form splits every entry to single-element brackets `([elem], w)`, in source order**: `([a, b], w)` → `([a], w), ([b], w)`; a `mem` / `del` element stays whole inside its own single-element bracket (`([mem(X, g)], w)`, `([del(X, N)], w)`) — `wgt` subjects are membership-style only, no composer/`pol` (NEW-E). Only the bracket grouping is normalized — source/sibling order is preserved (the analog of the `mem`-order rule).
-- **Issuer-set trust boundary.** The verifier confirms the presented `issuers` equal the credential's **committed issuer set** before crediting any of them — the issuer↔content↔anchor binding never depends on caller bookkeeping (the verifier is the trust boundary).
+- **Issuer-set trust boundary.** The verifier confirms the presented `issuers` equal the credential's **committed issuer set** before crediting any of them — the issuer↔content↔anchor binding never depends on caller bookkeeping (the verifier is the trust boundary). (INTERIM: Phase 3 reads the committed set from a `&Credential` input rather than as a separate `committed_issuers` arg — `.working/vdti-12-policy-dsl-phase3-token-architecture.md` — and softens per-issuer failure (E1); the boundary check itself is unchanged.)
 - **Challenge binding (current-state flow).** The `challenge` `evaluate_current_policy` verifies must be **unpredictable, single-use, and context-bound** (to the resource, action, and credential at hand) — otherwise an attestation over a reused challenge replays across contexts. The server constructs it (e.g. a random nonce hashed with the request context); the verifier rejects a stale or context-mismatched challenge before checking signatures.
 
 The detailed verifier evaluation algorithm (chain-walk caching, parallelism, recursion termination, etc.) lives in the implementation specs — out of scope here.
@@ -1805,17 +1883,32 @@ fn authorize(
 
     // 3. Authorization — the application maps the credential's roles to permissions and grants iff
     //    the action's required permission is covered. Pure application policy; the DSL's job ended
-    //    once validity + identity were established. Both proof tokens are now in hand: a downstream
-    //    capability that takes `&PolicyVerification` is compiler-guaranteed its policy already passed
-    //    (verify-before-use end to end, no TOCTOU — the verified credited set / anchored SAID(s)
-    //    ride in `validity`, the live-control proof in `identity`). The grant below reads only the
-    //    app's role map; a real system threads `validity`/`identity` into the capability it mints.
-    let _carried = (&validity, &identity);
-    let granted = cred.roles
+    //    once validity + identity were established. The grant is minted by `mint_grant`, which TAKES
+    //    both proof tokens by reference — so it is type-impossible to reach a grant without having
+    //    run both verifiers to satisfaction (verify-before-use enforced by the SIGNATURE, not a
+    //    comment). No TOCTOU: the verified facts ride in the tokens (E2).
+    Ok(mint_grant(cred, action, &validity, &identity))
+}
+
+// The ONLY path to a grant — and it cannot be called without BOTH proof tokens in hand, so a caller
+// that skipped verification simply has no `&PolicyVerification` to pass (E2). A real system returns a
+// capability object binding `validity`/`identity`; here it returns the bool grant for brevity. The
+// tokens make the verified facts available WITHOUT re-fetching — e.g. `identity.challenge()` confirms
+// the live-control proof is over the challenge this request issued, and `validity.credited()` /
+// `validity.is_said_anchored(&cred.said)` confirm the anchoring issuers — bound before the role map
+// decides. The role→permission map is application policy.
+fn mint_grant(
+    cred: &Credential,
+    action: Action,
+    validity: &PolicyVerification,    // anchored-mode proof: the credential is validly issued
+    identity: &PolicyVerification,    // current-mode proof: the bearer controls the subject
+) -> bool {
+    debug_assert!(validity.is_said_anchored(&cred.said));   // the validity proof covers THIS credential
+    debug_assert!(identity.challenge().is_some());          // the identity proof is challenge-bound (current mode)
+    cred.roles
         .iter()
         .flat_map(permissions_for_role)              // application-defined role → permissions
-        .any(|p| p == action.required_permission()); // application-defined action → permission
-    Ok(granted)
+        .any(|p| p == action.required_permission())  // application-defined action → permission
 }
 ```
 
