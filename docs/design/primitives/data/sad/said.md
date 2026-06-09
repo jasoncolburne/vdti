@@ -44,7 +44,7 @@ The placeholder mechanism — populating `said` (and `prefix`) with a fixed-valu
 
 The same three properties hold for prefix derivation on chain inception events, with both `said` and `prefix` blanked simultaneously per [§Derivation](#derivation) step 1. The placeholder mechanism is identical; the set of blanked positions differs by algorithm.
 
-Per-primitive prefix derivation rules — what content the prefix commits to (whole-SAD-content for KEL; `(authPolicy, governancePolicy, nonce)` for IEL; `(identity, topic)` for SEL) — are documented in the corresponding event-log primitive docs. They differ in which fields are populated and which are left content-bearing, but they share this same fixed-value mechanism.
+Per-primitive prefix derivation rules — what content the prefix commits to (whole-SAD-content for KEL; `(policies, nonce)`, or `(policies, delegating, nonce)` for delegated inception, for IEL; `(identity, topic)` for SEL) — are documented in the corresponding event-log primitive docs. They differ in which fields are populated and which are left content-bearing, but they share this same fixed-value mechanism.
 
 ## Canonical form for SAID computation
 
