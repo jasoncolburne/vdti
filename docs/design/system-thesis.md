@@ -14,8 +14,8 @@ Terms used throughout, briefly:
 System state lives in **append-only chains of cryptographically-linked events** that entities throughout the network hold and verify independently — no central authority, no trust by fiat. Each chain primitive plays a distinct structural role:
 
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
-- **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via authorization-policy and governance-policy declarations on its event chain. Identity is the unit at which credentials are issued.
-- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. Each SEL binds at inception to an IEL prefix; auth resolves through that IEL.
+- **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via policy declarations on its event chain — `governance` (self-mutation), `authentication` (outward act-as), and optional `delegation`. Identity is the unit at which credentials are issued.
+- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is permissionless at inception and binds to an IEL state at its establishing event (`Est`, v=1); auth resolves through that bound IEL.
 
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized; cross-federation interop is by user-initiated transfer rather than implicit trust.
 
@@ -87,7 +87,7 @@ A new event's serial must land at-or-after the chain's most-recent privileged-no
 
 ### Defense against current-state compromise is layered
 
-KEL dual-signature on `Rec` / `Ror` / `Dec` (recover, rotate-recovery, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL policy composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, rotate it out via `Evl` (evolve). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together.
+KEL dual-signature on `Rpr` / `Ror` / `Dec` (repair, rotate-recovery, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL policy composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, rotate it out via `Evl` (evolve). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together.
 
 → [`protocol-doctrine.md` §Defense in Depth](protocol-doctrine.md#defense-in-depth).
 
@@ -99,7 +99,7 @@ Two-layer: protocol-layer convergence where possible, federation-layer divergent
 
 ### Operational hardening composes on top
 
-Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the federation membership); for high-stakes IEL identities this is load-bearing, not optional.
+Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rpr` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the federation membership); for high-stakes IEL identities this is load-bearing, not optional.
 
 → [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md).
 

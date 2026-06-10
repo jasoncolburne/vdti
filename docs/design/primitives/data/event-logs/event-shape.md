@@ -1,6 +1,6 @@
 # Event Shape — KEL / IEL / SEL
 
-Canonical reference for the event-log primitives' event taxonomy, field shape, and per-kind structural-validation rules. KEL, IEL, and SEL primitive docs reference this for the underlying shape; doctrine specific to a primitive (anchor tier elevation, divergence rules, federation mechanics, prefix-derivation specifics) lives in the per-primitive docs and in [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md).
+Canonical reference for the event-log primitives' event taxonomy, field shape, and per-kind structural-validation rules. KEL, IEL, and SEL primitive docs reference this for the underlying shape; doctrine specific to a primitive (anchor tier elevation, divergence rules, federation mechanics, prefix-derivation specifics) lives in the per-primitive docs and in [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md).
 
 This is a **shape reference** — it states what fields exist, which kinds populate them, and how the verifier enforces per-kind field rules. It does not enumerate cross-primitive doctrine (which lives elsewhere).
 
@@ -9,8 +9,9 @@ This is a **shape reference** — it states what fields exist, which kinds popul
 - [`kel/`](kel/) — KEL primitive specs (currently the only filed primitive)
 - [`iel/`](iel/) — IEL primitive (subsequent sub-issue)
 - [`sel/`](sel/) — SEL primitive (subsequent sub-issue)
-- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — cross-primitive doctrine: anchor tier elevation, privileged-divergence rules, federation convergence, event-class taxonomy
-- [`../../sad/sad.md`](../../sad/sad.md) — SAD layer: chain events are SADs
+- [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md) — cross-primitive doctrine: anchor tier elevation, privileged-divergence rules, federation convergence, event-class taxonomy
+- [`../policy/policy.md`](../policy/policy.md) — the policy DSL the `governance` / `authentication` / `delegation` / `operation` fields point at
+- [`../sad/sad.md`](../sad/sad.md) — SAD layer: chain events are SADs
 
 ## Common fields
 
@@ -32,22 +33,63 @@ Signatures are not part of the event content — events are pure SAD content. Th
 
 **IEL / SEL events** carry no adjacent signatures. They authenticate via their **KEL anchor** — each IEL / SEL event is anchored by a KEL `Ixn` / `Rot` / `Ror` event per the per-primitive anchor rules, and the KEL event's adjacent signature provides authentication. The verifier walks from the IEL / SEL event to the anchoring KEL event and validates the KEL event's signatures.
 
-This composition is what makes the three-tier capability model work uniformly across primitives — IEL / SEL operations inherit their authentication tier from the KEL event they anchor in. See [`../../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../../protocol-doctrine.md#anchor-tier-elevation).
+This composition is what makes the three-tier capability model work uniformly across primitives — IEL / SEL operations inherit their authentication tier from the KEL event they anchor in. See [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation).
 
 ## Cross-cutting fields
 
 Beyond the common fields, a small set of fields appears on multiple kinds with consistent semantics across the primitives that use them. The per-kind structural-validation tables (§Per-kind structural validation) define which kinds populate which; this section names the semantic each field carries when present.
 
-- **`governance`** (`Digest256`) — SAID of a governance policy SAD. Declared at IEL inception (`Fcp` / `Icp`) and SEL `Icp`; evolved via IEL `Evl` and SEL `Evl`.
-- **`delegation`** (`Digest256`) — SAID of a delegation policy SAD. Optional at IEL inception; evolved via IEL `Evl`. Gates IEL `Del` / `Rsc`.
-- **`delegating`** (`Digest256`) — SAID of an IEL event on the delegator's chain. Set only at IEL `Icp` (for delegated inception); names the delegator. Immutable post-inception.
-- **`delegated`** (`Digest256`) — pointer to SAD of IEL prefixes being added (`Del`) or removed (`Rsc`) from the delegated set on the IEL declaring the event. `{ said, prefixes: Vec<Digest256> }`
+- **`governance`** (`Digest256`) — SAID of a governance Policy SAD: the chain's **self-mutation** authority. On an IEL it gates the IEL's own lifecycle events (`Evl` / `Dec`, i.e. key, policy, and roster changes, and decommission); on a SEL it gates the SEL's lifecycle events (`Evl` / `Rpr` / `Dec`). Declared at IEL inception (`Fcp` / `Icp`) and SEL `Icp`; evolved via IEL `Evl` and SEL `Evl`. It is **never** what an external `iel(X)` leaf evaluates — that is `authentication`.
+- **`authentication`** (`Digest256`) — SAID of an authentication Policy SAD: an IEL's **outward act-as** authority. It is what every external `iel(prefix)` leaf and each `mem` member resolves to (see [`../policy/leaf-semantics.md`](../policy/leaf-semantics.md)). Required at IEL inception (`Fcp` / `Icp`); evolved via IEL `Evl` (gated by `governance`). Outward-facing — it **never** gates the IEL's own chain events (so there is no circularity: an IEL's log is governance-gated, not authentication-gated). IEL only.
+- **`delegation`** (`Digest256`) — SAID of a delegation Policy SAD. Optional at IEL inception; evolved via IEL `Evl` (gated by `governance`). Gates IEL `Del` / `Rsc`. IEL only.
+- **`operation`** (`Digest256`) — SAID of an operation Policy SAD: a SEL's **operational write** authority over its own log. Gates SEL operational events `Est` / `Ixn`. Declared at SEL `Icp`; evolved via SEL `Evl` (gated by `governance`). SEL only. (Named `operation` — not `authentication` — because it *does* gate the SEL's own events, the opposite of IEL `authentication`'s never-gates-own-log meaning; a SEL has no act-as identity.)
+- **`roster`** (`Digest256`) — SAID of a membership-roster SAD mapping **group label → set of member IEL prefixes** (a member may sit in several groups; group labels match `^[a-z_-]{1,16}$`). Backs the policy DSL's `mem(group)` / `mem(prefix, group)` expansion. Present on **aggregate** IELs (including the federation `Fcp`); evolved via IEL `Evl` (gated by `governance`). Singleton IELs omit it. IEL only.
+- **`delegating`** (`Digest256`) — the self-recording delegation link on a delegated IEL. It holds two values across the two-event handshake (§Delegation handshake): on the delegate's `Icp` it is the **delegator's prefix** (binding the delegate's identity to the delegator through prefix derivation); on the batched serial-1 `Evl` it is the **SAID of the delegator's `Del` event** (the back-pointer that names the authorizing event on the delegator's chain). The verifier disambiguates the two by position. IEL only.
+- **`delegated`** (`Digest256`) — pointer to SAD of IEL prefixes being added (`Del`) or removed (`Rsc`) from the delegated set on the IEL declaring the event. `{ said, prefixes: Vec<Digest256> }`. IEL only.
 - **`policyBinding`** (`Digest256`) — cross-chain binding to a policy state. Appears on KEL `Icp` / `Fed` (federation binding to federation IEL `Fcp`).
-- **`topic`** (`String`) — application-level discriminator. SEL `Icp` only; participates in prefix derivation alongside `governance` to make the SEL prefix deterministic given those two inputs.
-- **`content`** (`Vec<Digest256>`) — generic SAID anchors. Appears on KEL `Ixn` / `Rot` / `Ror` and SEL `Ixn`; the verifier validates each entry as a SAID-shaped token, doesn't constrain what it points at (see [`../../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../../protocol-doctrine.md#anchor-tier-elevation) for downstream-verifier interpretation rules).
+- **`topic`** (`String`) — application-level discriminator. SEL `Icp` only; participates in prefix derivation alongside `governance` and `operation` to make the SEL prefix deterministic given those inputs.
+- **`content`** (`Vec<Digest256>`) — generic SAID anchors. Appears on KEL `Ixn` / `Rot` / `Ror` and SEL `Ixn`; the verifier validates each entry as a SAID-shaped token, doesn't constrain what it points at (see [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation) for downstream-verifier interpretation rules). This is the field the policy DSL reads as `s.anchors` (see [§Policy DSL reconciliations](#policy-dsl-reconciliations)).
+- **`aggregate`** (`bool`) — IEL kind selector, set at `Icp` only; **immutable** (kind is part of identity, never flipped). Absent or `false` ⇒ **singleton** (the `Icp` omits `roster`); `true` ⇒ **aggregate** (the `Icp` carries `roster`). See [§IEL policy fields & membership shape](#iel-policy-fields--membership-shape).
 - **`nonce`** (`Nonce256`) — opaque random bytes chosen by the inceptor; required on IEL inception (`Fcp` / `Icp`). Makes the IEL prefix unpredictable from outside (camping-defense property). Forbidden on non-inception events.
 
 The KEL-specific key-state fields (`publicKey`, `rotationHash`, `recoveryKey`, `recoveryHash`) and witness params (`witnessThreshold`, `witnessSelectionSize`) are not cross-cutting — they appear only on KEL events with kind-specific semantics; see [`kel/events.md`](kel/events.md).
+
+## IEL policy fields & membership shape
+
+An IEL carries **three** policy references with distinct roles — none interchangeable:
+
+- **`governance`** — internal self-mutation gate (`Evl` / `Dec`; key, policy, and roster changes). Required at inception.
+- **`authentication`** — outward act-as policy; the only one an external `iel(X)` evaluates. Required at inception.
+- **`delegation`** — optional `Del` / `Rsc` gate.
+
+The IEL is one of two **kinds**, fixed at inception by the immutable `aggregate` flag, and the kind constrains what those three policies may contain (the constraint is on an IEL's *own* policies only — general application / issuance / withdrawal policies keep the full DSL surface):
+
+- **Singleton** (`aggregate` absent/false) — bottoms out at device keys; **omits `roster`**. Its three policies may contain only `kel()` leaves under `thr` / `wgt` / `and` — no `mem` / `iel` / `del` / `pol`. Its `authentication` must be non-empty (≥ 1 satisfiable `kel`), or the identity can never act. A singleton is the base case the `iel(...)` recursion terminates at.
+- **Aggregate** (`aggregate` true) — composed of member identities; **carries `roster`**. Its three policies may contain only one-arg `mem(group)` arrays (its own roster only, never a foreign `mem(prefix, group)`) under `thr` / `wgt` / `and` — no bare `iel` / `kel` / `del`, no `pol`. An aggregate must be **born with a non-empty roster** (else ungovernable). The federation `Fcp` is aggregate-shaped (its founding members are its roster).
+
+See [`../policy/iel-policy-structure.md`](../policy/iel-policy-structure.md) for the DSL-level constraint these kinds impose; the `aggregate` flag, the `roster` field, and the roster-less singleton `Icp` shape are the **event-shape facts** this doc settles.
+
+**`Evl` co-updates roster and policies atomically.** An `Evl` may change any of {`governance`, `authentication`, `delegation`, `roster`, `delegating`} and **must change at least one**. Because a policy reference (`mem(group)`) resolves against the roster, the two cannot move in separate events without opening a dangling-reference window — so an `Evl` carries a consistent {roster, policies} snapshot and the verifier validates the **post-application pair**: after the `Evl` is applied, every reference in the three policies must still resolve against the post-event roster (referential integrity, a write-time structural check). Shrinking a threshold-gating group and dropping its policy reference in one `Evl` is the clean way to avoid a transient ungovernable state.
+
+**Cycle guard.** Aggregate-of-aggregate membership must be **acyclic**. The verifier carries a visited-set in its `iel(...)`-resolution walk so a membership cycle denies rather than loops; roster-write may additionally forbid self-membership as a first line. (The recursion is also backstopped by the always-passed `max_depth`.)
+
+The exact on-chain roster-SAD schema and the composer-time flatten mechanics that expand `mem` into `iel(member)` leaves are partly an implementation concern — settled in shape here, provisional in detail (as [`../policy/`](../policy/) flags).
+
+## Delegation handshake
+
+Delegated inception is **not** a distinct event kind — it is an `Icp` with `delegating` set, recorded over a **two-event handshake** so the verifier can walk *up* from a delegate `D` to its delegator `X` without enumerating `X`'s (unbounded, delegate-side) delegated set. `D` **self-records** the link on its own chain:
+
+1. **`D.Icp.delegating` = `X`'s prefix.** `X`'s prefix is known a-priori (no SAID cycle) and participates in `D`'s prefix derivation, so `D`'s identity is cryptographically **bound to `X`**.
+2. **A serial-1 `Evl`, batched with the `Icp`,** evolves `delegating` to the **SAID of `X`'s `Del` event** — the event on `X`'s chain that lists `D`'s prefix, known only after `X.Del` exists, and still identifying `X` because the SAID resolves to an event on `X`'s chain. This reuses the privileged `Evl` (no new IEL kind, no local-divergence break); the `Del`-event SAID is one of the things an `Evl` may change.
+
+Two merge-layer rules (parallel to the SEL `[Icp, Est]` pairing) keep the handshake unforgeable and atomic — **neither event is valid on its own**:
+
+- `delegating`-as-SAID appears **only** on a serial-1 `Evl` that follows a `delegating`-`Icp`.
+- A `delegating`-`Icp` **must** batch with that serial-1 `Evl` — they land together or not at all.
+
+**Consistency check (verifier).** The serial-1 `Evl`'s `Del` SAID must resolve to an event on the chain `D.Icp.delegating` names. **Sequencing** needs no cross-chain atomic transaction: `X.Del` (listing `D`'s prefix) lands first, then `D`'s atomic `[Icp, Evl]` batch references it.
+
+The reciprocal authorization lives on `X`'s chain: the delegator's outbound `Del` must list `D`'s prefix (gated by `X`'s `delegation` policy). See [`../policy/delegation.md`](../policy/delegation.md) for the self-traversing verification flow the handshake enables.
 
 ## `ielEvent`'s two interpretations
 
@@ -78,10 +120,10 @@ Same field, two cases. The SAD type discriminator at the dereferenced content te
 | Kind | Class | Tier | KEL anchor | Purpose |
 |---|---|---|---|---|
 | `Fcp` | federation inception | 3 | founder `Fed` at v=1 | Federation IEL inception; self-attesting at v=0 via kind-dispatched verifier carve-out |
-| `Icp` | inception | 2 | `Rot` per `governance` member | Standard IEL inception; optionally delegated (sets `delegating`) |
-| `Evl` | governance mutation | 2 | `Rot` per prior `governance` member | Evolve `governance` and/or `delegation`; must change at least one |
+| `Icp` | inception | 2 | `Rot` per `governance` member | Standard IEL inception; optionally delegated (sets `delegating` to the delegator's prefix) |
+| `Evl` | governance mutation | 2 | `Rot` per prior `governance` member | Evolve `governance` / `authentication` / `delegation` / `roster` / `delegating`; must change at least one |
 | `Del` | delegation declaration | 2 | `Rot` per `delegation` member | Add prefixes to cumulative delegated set |
-| `Rsc` | delegation rescission | 2 | `Rot` per `delegation` member | Remove prefixes from cumulative delegated set. Invalidates any graphs depending on the removed prefixes. To cleanly decomission a delegated IEL, use `Dec` on the delegate IEL |
+| `Rsc` | delegation rescission | 2 | `Rot` per `delegation` member | Remove prefixes from cumulative delegated set. Invalidates any graphs depending on the removed prefixes. To cleanly decommission a delegated IEL, use `Dec` on the delegate IEL |
 | `Dec` | terminal | 3 | `Ror` per `governance` member | Terminal; ends IEL on clean linear landing |
 
 Every IEL event is privileged — no content kind; divergent sets cannot form locally on IEL.
@@ -90,10 +132,10 @@ Every IEL event is privileged — no content kind; divergent sets cannot form lo
 
 | Kind | Class | Tier | KEL anchor | Purpose |
 |---|---|---|---|---|
-| `Icp` | inception | n/a (permissionless) | — | Permissionless, dedup-equivalent inception; declares `governance` and `topic` |
-| `Est` | privileged | 2 | `Rot` per `governance` member | Establishes IEL binding at v=1; carries `ielEvent` |
-| `Ixn` | content | 1 | `Ixn` per `governance` member | Content extension; anchors `content` |
-| `Evl` | privileged | 2 | `Rot` per prior `governance` member | Evolve `governance` (may be a no-op if ratcheting seal) |
+| `Icp` | inception | n/a (permissionless) | — | Permissionless, dedup-equivalent inception; declares `governance`, `operation`, and `topic` |
+| `Est` | privileged | 2 | `Rot` per `operation` member | Establishes IEL binding at v=1; carries `ielEvent` |
+| `Ixn` | content | 1 | `Ixn` per `operation` member | Content extension; anchors `content` |
+| `Evl` | privileged | 2 | `Rot` per prior `governance` member | Evolve `governance` / `operation` and/or re-ratchet `ielEvent`; must change at least one |
 | `Rpr` | archiving | 3 | `Ror` per `governance` member | Repair; resolves a divergent SEL by archiving discriminator-losing branch |
 | `Dec` | terminal | 3 | `Ror` per `governance` member | Terminal; ends SEL on clean linear landing |
 
@@ -132,38 +174,42 @@ Common fields (`said`, `prefix`, `kind`) are always required and not enumerated 
 
 ### IEL
 
-| Kind | nonce | governance | delegation | delegating | delegated |
-|---|---|---|---|---|---|
-| `Fcp` | req | req | opt | fbd | fbd |
-| `Icp` | req | req | opt | opt | fbd |
-| `Evl` | fbd | opt[note 1] | opt[note 1] | fbd | fbd |
-| `Del` | fbd | fbd | fbd | fbd | req |
-| `Rsc` | fbd | fbd | fbd | fbd | req |
-| `Dec` | fbd | fbd | fbd | fbd | fbd |
+| Kind | nonce | authentication | governance | delegation | roster | aggregate | delegating | delegated |
+|---|---|---|---|---|---|---|---|---|
+| `Fcp` | req | req | req | opt | req | fbd | fbd | fbd |
+| `Icp` | req | req | req | opt | opt[note 1] | opt[note 1] | opt | fbd |
+| `Evl` | fbd | opt[note 2] | opt[note 2] | opt[note 2] | opt[note 2] | fbd | opt[note 3] | fbd |
+| `Del` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | req |
+| `Rsc` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | req |
+| `Dec` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | fbd |
 
 Notes:
-1. **`Evl` `governance` / `delegation`** — at least one MUST be set. A no-op `Evl` (neither changes) is rejected. Parallels KEL `Fed`'s "must change one of (federation binding, witness params)" rule.
+1. **`Icp` `roster` / `aggregate`** — the `aggregate` flag is optional (absent/false ⇒ singleton). `roster` is **required iff `aggregate` is true** (aggregate) and **forbidden iff singleton** — the singleton `Icp` omits it. The flag is immutable; an `Evl` cannot set or change it.
+2. **`Evl` `authentication` / `governance` / `delegation` / `roster` / `delegating`** — at least one MUST be set. A no-op `Evl` (none change) is rejected. `roster` may move only on an aggregate IEL (a singleton has none); the co-update is validated against post-application referential integrity (see [§IEL policy fields & membership shape](#iel-policy-fields--membership-shape)). Parallels KEL `Fed`'s "must change one of (federation binding, witness params)" rule.
+3. **`Evl` `delegating`** — set only on a **serial-1 `Evl`** that completes a delegated inception (the back-pointer to the delegator's `Del`-event SAID); `fbd` on any later `Evl`. See [§Delegation handshake](#delegation-handshake).
 
-The `nonce` is required at inception (drives prefix unpredictability per [§Prefix derivation](#prefix-derivation-is-whole-content)). `delegating` is the structural marker for delegated inception — if set, the delegator's outbound `Del` MUST list this prefix (transitively gated by delegator's `delegation` policy).
+The `nonce` is required at inception (drives prefix unpredictability per [§Prefix derivation](#prefix-derivation-is-whole-content)). `delegating` on `Icp` is the structural marker for delegated inception — when set, the delegate's `[Icp, Evl]` batch and the delegator's outbound `Del` (which MUST list this prefix, transitively gated by the delegator's `delegation` policy) complete the handshake.
 
 Authentication is via the KEL anchor per §Authentication & signatures — tier-3 IEL events (`Fcp`, `Dec`) are anchored by a tier-3 KEL event (whose adjacent signatures provide authentication), not by an event-level recovery signature.
 
 ### SEL
 
-| Kind | governance | topic | ielEvent | content |
-|---|---|---|---|---|
-| `Icp` | req | req | fbd | fbd |
-| `Est` | fbd | fbd | req | fbd |
-| `Ixn` | fbd | fbd | fbd | req |
-| `Evl` | opt | fbd | req | fbd |
-| `Rpr` | fbd | fbd | fbd | fbd |
-| `Dec` | fbd | fbd | fbd | fbd |
+| Kind | governance | operation | topic | ielEvent | content |
+|---|---|---|---|---|---|
+| `Icp` | req | req | req | fbd | fbd |
+| `Est` | fbd | fbd | fbd | req | fbd |
+| `Ixn` | fbd | fbd | fbd | fbd | req |
+| `Evl` | opt[note 1] | opt[note 1] | fbd | req | fbd |
+| `Rpr` | fbd | fbd | fbd | fbd | fbd |
+| `Dec` | fbd | fbd | fbd | fbd | fbd |
 
-- `governance` on `Icp` declares the SEL's gating policy (SAID of a policy SAD). For single-IEL bindings, the common case is `governance = kel(iel_prefix)` — degenerate but explicit. For multi-IEL bindings, an arbitrary policy DSL.
+Notes:
+1. **`Evl` `governance` / `operation` / `ielEvent`** — **must change at least one** relative to the prior tracked state; a no-op `Evl` (none change) is rejected. `Evl` always re-states `ielEvent` (required) so the binding ratchet stays explicit, and may co-evolve `governance` and/or `operation`. This collapses what would otherwise be separate events (governance/operation evolution + seal-advance re-ratchet) into one kind. Parallel to KEL `Fed`'s "must change at least one of (federation binding, witness params)" rule.
+
+- `governance` on `Icp` declares the SEL's lifecycle-gating policy (SAID of a Policy SAD); `operation` declares its operational-write policy. For single-IEL bindings, the common case is `governance = kel(iel_prefix)` — degenerate but explicit. For multi-IEL bindings, an arbitrary policy DSL.
 - `ielEvent` on `Est` declares the SEL's first IEL state binding (single IEL event SAID or binding-SAD SAID) at v=1.
-- `Evl` carries optional new `governance` and required `ielEvent`; **must change at least one** of (`governance`, `ielEvent`) relative to the prior tracked state — a no-op `Evl` (neither changes) is rejected. This collapses what would otherwise be two events (governance evolution + seal-advance re-ratchet) into one kind. Parallel to KEL `Fed`'s "must change at least one of (federation binding, witness params)" rule.
 - `Ixn` / `Rpr` / `Dec` don't carry their own `ielEvent` — they inherit the SEL's tracked binding from the most-recent prior `Est` / `Evl`.
-- `topic` on `Icp` is an application-level discriminator; the chain's prefix derives from the whole-Icp content including `governance` and `topic`, so two Icps with the same `(governance, topic)` produce the same prefix (Icp dedup-equivalence).
+- `topic` on `Icp` is an application-level discriminator; the chain's prefix derives from the whole-Icp content — `governance`, `operation`, and `topic` — so two Icps with the same `(governance, operation, topic)` produce the same SAID and prefix (Icp dedup-equivalence). `operation` must participate: were it excluded, two Icps differing only in `operation` would share a prefix but carry different SAIDs, and the merge layer's Icp dedup (which keys on the SAID) would break.
 
 Authentication is via the KEL anchor per §Authentication & signatures — tier-3 SEL events (`Rpr`, `Dec`) are anchored by a tier-3 KEL event (whose adjacent signatures provide authentication), not by an event-level recovery signature.
 
@@ -173,8 +219,9 @@ Some event kinds can only land at merge time as part of a multi-event atomic bat
 
 **Structurally-required batches:**
 
-- **SEL `[Icp, Est, ...]`** — SEL `Icp` is permissionless and dedup-equivalent (any party's Icp for the same `(governance, topic)` produces the same SAID). The merge layer **rejects bare `[Icp]`** — an Est at v=1 must accompany the Icp (or be in a longer batch containing both). The Est is what raises the per-attempt cost to tier-2 anchor; without it, the camping-defense argument doesn't hold.
-- **Federation bootstrap (multi-chain atomic batch)** — interleaves: founder KEL `[Fcp, Fed]` pairs (one per founder KEL), the federation IEL `Fcp` (on the federation IEL chain), and cross-attestation receipts. The federation IEL `Fcp` self-attests via the kind-dispatched verifier carve-out at v=0; founder Fed events at v=1 anchor it from the KEL side. All events land together as a single transaction. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent sub-issue) for the full ceremony.
+- **IEL delegated inception `[Icp, Evl]`** — a `delegating`-`Icp` (whose `delegating` holds the delegator's prefix) **must** batch with the serial-1 `Evl` that evolves `delegating` to the delegator's `Del`-event SAID; the two land together or not at all, and `delegating`-as-SAID appears **only** on that serial-1 `Evl`. Neither event is valid alone. See [§Delegation handshake](#delegation-handshake). (Non-delegated `Icp` is bare — no required batch.)
+- **SEL `[Icp, Est, ...]`** — SEL `Icp` is permissionless and dedup-equivalent (any party's Icp for the same `(governance, operation, topic)` produces the same SAID). The merge layer **rejects bare `[Icp]`** — an Est at v=1 must accompany the Icp (or be in a longer batch containing both). The Est is what raises the per-attempt cost to tier-2 anchor; without it, the camping-defense argument doesn't hold.
+- **Federation bootstrap (multi-chain atomic batch)** — interleaves: founder KEL `[Fcp, Fed]` pairs (one per founder KEL), the federation IEL `Fcp` (on the federation IEL chain), and cross-attestation receipts. The federation IEL `Fcp` self-attests via the kind-dispatched verifier carve-out at v=0; founder Fed events at v=1 anchor it from the KEL side. All events land together as a single transaction. See [`../../../federation/bootstrap.md`](../../../federation/bootstrap.md) (subsequent sub-issue) for the full ceremony.
 
 **Common operational batches (not structurally required, but conventional):**
 
@@ -192,30 +239,41 @@ What each log calls events with the same structural role (after parity renames):
 | Standard inception | `Icp` | `Icp` | `Icp` (permissionless) |
 | Content extension | `Ixn` | — (every event is privileged) | `Ixn` |
 | Key rotation | `Rot` / `Ror` | — | — |
-| Governance evolution | — | `Evl` | `Evl` |
+| Self-mutation / config evolution | — | `Evl` | `Evl` |
 | Federation re-binding | `Fed` | — | — |
 | Cross-chain binding establishment | `Icp` / `Fed` | `Icp` (federation context inherited via parent KEL) | `Est` |
-| Cross-chain binding re-ratchet | (re-`Fed`) | — | `Evl` (re-ratchets `ielEvent`; may also change `governance`) |
+| Cross-chain binding re-ratchet | (re-`Fed`) | — | `Evl` (re-ratchets `ielEvent`; may also change `governance` / `operation`) |
 | Delegation declaration / rescission | — | `Del` / `Rsc` | — |
 | Archival (divergence resolution) | `Rpr` | — | `Rpr` |
 | Terminal | `Dec` | `Dec` | `Dec` |
+
+Governance evolution, authentication / delegation / roster evolution (IEL), and operation evolution (SEL) all ride the one self-mutation kind `Evl` on each log — they are not separate kinds.
 
 ## Prefix derivation is whole-content
 
 Prefix derives from the entire event body (with both `said` and `prefix` blanked). It's not a special tuple. Whatever fields are populated on the inception event participate in the prefix. The verifier reconstructs the prefix from canonical-form serialization and rejects any event whose computed prefix doesn't match its declared prefix.
 
-For chains where prefix unpredictability is required as a structural property (IEL), the inception event includes a `nonce` field whose content is opaque random bytes — this makes the prefix unpredictable to outside observers. For chains where prefix is intentionally derivable by external parties (SEL — to support identity-rooted discovery), the inception event omits `nonce` and the prefix derives deterministically from declared content (`governance` + `topic` for SEL).
+For chains where prefix unpredictability is required as a structural property (IEL), the inception event includes a `nonce` field whose content is opaque random bytes — this makes the prefix unpredictable to outside observers. The IEL prefix therefore commits to the whole inception content — the `authentication` / `governance` / `delegation` policy SAIDs, the `roster` and `aggregate` flag (aggregate IELs), the delegator's prefix in `delegating` (delegated IELs), and the `nonce` — not a fixed tuple. For chains where prefix is intentionally derivable by external parties (SEL — to support identity-rooted discovery), the inception event omits `nonce` and the prefix derives deterministically from declared content (`governance` + `operation` + `topic` for SEL).
 
 ## Tier dispatch
 
 Tier is determined by event kind, not by policy. Tier names the cryptographic capability required to forge the event — see [`kel/events.md` §Three-tier capability model](kel/events.md#three-tier-capability-model). Tier and policy are orthogonal axes:
 
-- **Policy** = who (the member set authorized for this action — defined in IEL `governance` / `delegation`, SEL `governance`, or KEL-intrinsic dual-signing rules)
+- **Policy** = who (the member set authorized for this action — defined in IEL `governance` / `authentication` / `delegation`, SEL `governance` / `operation`, or KEL-intrinsic dual-signing rules)
 - **Tier** = at what auth level (the required KEL anchor capability or dual-signature shape)
 
-The verifier composes both — at every authorization site, it checks the event member is named by the relevant policy AND that they authored at the required tier. The same policy member set may authorize different actions at different tiers (e.g., SEL `governance` members authorize tier-1 `Ixn` AND tier-2 `Est`/`Evl` AND tier-3 `Rpr`/`Dec` under the same member set; SEL event kind dispatches the tier requirement).
+The verifier composes both — at every authorization site, it checks the event member is named by the relevant policy AND that they authored at the required tier. The same policy member set may authorize different actions at different tiers (e.g., SEL `operation` members authorize tier-1 `Ixn` AND tier-2 `Est` under the same member set; SEL event kind dispatches the tier requirement).
 
-See [`../../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../../protocol-doctrine.md#anchor-tier-elevation) for the cross-primitive anchor-tier rules.
+See [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation) for the cross-primitive anchor-tier rules.
+
+## Policy DSL reconciliations
+
+The policy DSL ([`../policy/`](../policy/)) reads several of these fields under its own names; the mappings are concrete (no separate stored field):
+
+- **`s.anchors` == `content`.** The DSL's `satisfies_kel` reads the anchoring event's set of anchored SAIDs as `s.anchors`; that is exactly the `content: Vec<Digest256>` field (on KEL `Ixn` / `Rot` / `Ror` and SEL `Ixn`).
+- **`s.tier` == `tier_of(s.kind)`.** Tier is not stored — it is dispatched from the event kind (§Tier dispatch: `Ixn` → 1, `Rot` → 2, `Ror` → 3). The DSL's `s.tier` is read through that dispatch.
+- **Per-anchor tier == anchor tier elevation.** A required anchor demanding tier ≥ N means the anchored SAID must appear in the `content` of a KEL event whose kind dispatches to ≥ N (a high-assurance SAD co-anchored in a `Rot` / `Ror` rather than an `Ixn`). This is a constraint on *which KEL kind hosts the anchor* — no new field. See [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation).
+- **Surviving-branch anchoring child.** The DSL resolves the unique child `S` where `S.previous == prior_said` **on the surviving (non-divergent / post-repair) branch**; an anchor sitting on a discriminator-losing / archived branch correctly fails to resolve. How a `Rpr`-archived branch interacts with anchor validity (the valid-for-binding cutoff) is KEL-primitive doctrine — see [`kel/`](kel/).
 
 ## Authorization gating per kind
 
@@ -227,12 +285,13 @@ Brief mapping of which policy gates each event kind. For all non-inception event
 | KEL `Ixn` | signing key | Tier-1 |
 | KEL `Rot` | rotation-key preimage of `rotationHash` | Tier-2 |
 | KEL `Ror` / `Fed` / `Rpr` / `Dec` | rotation + recovery preimages of `rotationHash` and `recoveryHash` | Tier-3 dual-signed |
-| IEL `Fcp` | self-attesting at v=0 via kind-dispatched carve-out (pool source = `Fcp`'s declared `governance.identity_leaves`) | Anchored from KEL side by founder `Fed` at v=1 |
-| IEL `Icp` | self-authorized against declared `governance` | Optionally delegated (delegator's outbound `Del` must list this prefix) |
-| IEL `Evl` / `Dec` | `governance` | `Dec` is tier-3 |
+| IEL `Fcp` | self-attesting at v=0 via kind-dispatched carve-out (pool = the `Fcp`'s `governance` policy's DSL expansion to leaf prefixes) | Anchored from KEL side by founder `Fed` at v=1 |
+| IEL `Icp` | self-authorized against declared `governance` | Optionally delegated (`delegating` = delegator's prefix; the delegator's outbound `Del` must list this prefix) |
+| IEL `Evl` / `Dec` | `governance` | `Dec` is tier-3. `authentication` never gates the IEL's own events |
 | IEL `Del` / `Rsc` | `delegation` | Forbidden if `delegation` is unset on IEL state |
 | SEL `Icp` | permissionless (no policy gate) | Dedup-equivalent via prefix derivation |
-| SEL `Est` / `Ixn` / `Evl` | `governance` (resolved at `ielEvent` binding) | Tier dispatched by kind (Ixn tier-1; Est/Evl tier-2) |
+| SEL `Est` / `Ixn` | `operation` (resolved at `ielEvent` binding) | Tier dispatched by kind (Ixn tier-1; Est tier-2) |
+| SEL `Evl` | `governance` (resolved at `ielEvent` binding) | Tier-2 |
 | SEL `Rpr` / `Dec` | `governance` | Tier-3 dual-signed |
 
 ## Naming conventions
@@ -240,8 +299,8 @@ Brief mapping of which policy gates each event kind. For all non-inception event
 - **Three-letter codes.** All event kinds use three-letter abbreviations (Fcp / Icp / Ixn / Rot / Ror / Fed / Rpr / Dec / Evl / Del / Rsc / Est). Consistent across log types.
 - **Inception kinds** all named `Icp` (or `Fcp` for federation-context inceptions). Log type disambiguates structural differences.
 - **Class names** — `inception`, `content`, `privileged`, `archiving`, `terminal`. The class column on per-log taxonomy tables names the event's chain-state effect.
-- **Common names across log types** — events with the same structural role share names: `Ixn` for content extension (KEL + SEL); `Evl` for governance evolution (IEL + SEL); `Rpr` for archival (KEL + SEL); `Dec` for terminal (all three).
-- **`Dip` deprecation** — delegated inception was previously a distinct kind on KEL and IEL. It is now folded into `Icp` with an optional `delegating` field. The verifier dispatches the delegated-vs-non-delegated case from whether `delegating` is set, not from a distinct kind.
+- **Common names across log types** — events with the same structural role share names: `Ixn` for content extension (KEL + SEL); `Evl` for self-mutation / config evolution (IEL + SEL); `Rpr` for archival (KEL + SEL); `Dec` for terminal (all three).
+- **Delegated inception folds into `Icp`.** There is no distinct delegated-inception kind: a delegated IEL is an `Icp` with `delegating` set to the delegator's prefix, completed by a batched serial-1 `Evl` that records the authorizing `Del` SAID (§Delegation handshake). The verifier dispatches the delegated-vs-non-delegated case from whether `delegating` is populated, not from a distinct kind.
 
 ## Open items
 
