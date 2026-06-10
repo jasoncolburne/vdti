@@ -34,7 +34,7 @@ This matches how custody is actually used in practice. A write is an act by one 
 
 The IEL event SAID supports two ways for a verifier to ask "is the writer authorized?":
 
-- **Point-in-time (frozen).** Resolve the bound IEL event directly, read the `authentication` it tracks, and check the write attestation against that policy. The answer reflects the issuance-time governance of the writer's IEL — useful when the verifier wants to know "was this write authorized when it happened?"
+- **Point-in-time (frozen).** Resolve the bound IEL event directly, read the `authentication` it tracks, and check the write attestation against that policy. The answer reflects the issuance-time `authentication` of the writer's IEL — useful when the verifier wants to know "was this write authorized when it happened?"
 - **Identity-current.** Dereference the bound event to its IEL prefix, walk the IEL chain to its current tip, and read the tip's `authentication`. The answer reflects the IEL's current state — useful when the verifier wants to know "is the writer's identity still authorized?"
 
 Both modes derive from the single `ownerIelEvent` SAID. The forward-reference to [`../event-logs/identity-rooting.md`](../event-logs/identity-rooting.md) covers the structural pattern (frozen vs identity-current, edge cases at IEL evolutions) that makes both modes well-defined.

@@ -15,7 +15,7 @@ System state lives in **append-only chains of cryptographically-linked events** 
 
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
 - **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via policy declarations on its event chain — `governance` (self-mutation), `authentication` (outward act-as), and optional `delegation`. Identity is the unit at which credentials are issued.
-- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is permissionless at inception and binds to an IEL state at its establishing event (`Est`, v=1); auth resolves through that bound IEL.
+- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL carries its own policies — `governance` (lifecycle) and `operation` (operational writes) — declared at its permissionless inception; its establishing event (`Est`, v=1) pins the IEL state those policies' leaves resolve against.
 
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized; cross-federation interop is by user-initiated transfer rather than implicit trust.
 
@@ -32,7 +32,7 @@ This is the property that justifies the architecture. **End-verifiability over d
 End-verifiability is two-layer:
 
 - **Protocol layer.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes where the protocol layer *can* converge. Privileged-divergence (concurrent privileged-event races) is *terminal* at the protocol layer — there is no merge for it.
-- **Federation layer.** Cross-node privileged-vs-privileged races surface via divergent witness receipts at the federation layer (see [`federation-witnessing.md`](federation-witnessing.md)). The federation provides convergence where the protocol cannot, by attestation rather than fork merging.
+- **Federation layer.** Cross-node privileged-vs-privileged races surface via divergent witness receipts at the federation layer (see [`federation/witnessing.md`](federation/witnessing.md)). The federation provides convergence where the protocol cannot, by attestation rather than fork merging.
 
 Single-node deployments forfeit this property. Federations are not optional for end-verifiability.
 
@@ -95,7 +95,7 @@ KEL dual-signature on `Rpr` / `Ror` / `Dec` (repair, rotate-recovery, decommissi
 
 Two-layer: protocol-layer convergence where possible, federation-layer divergent witness receipts where the protocol cannot converge (priv-vs-priv races). End-verifiability over data-from-any-source depends on both layers.
 
-→ [`federation-witnessing.md`](federation-witnessing.md).
+→ [`federation/witnessing.md`](federation/witnessing.md).
 
 ### Operational hardening composes on top
 
