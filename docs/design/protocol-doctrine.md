@@ -93,7 +93,7 @@ This closes the **stale-state kill-switch problem**. Without this rule, every pa
 
 The structural mechanism that enforces "current-state-only authority" is the chain's evaluation / recovery seal:
 
-Each primitive tracks `lastSealAdvancingEvent` — the SAID of the chain's most recent advancing event (per the per-primitive list below) that landed cleanly on the linear chain. The seal never forks: privileged events that would create or join a divergent set are rejected at the merge layer (see [§Privileged Divergence is Terminal](#privileged-divergence-is-terminal)), so seal-advancing landings are linear-chain extensions by construction. Archiving events (`Rpr`) route through the discriminator and resolve divergence rather than create or join it, advancing the seal when they land. The advancing kinds differ:
+Each primitive tracks `lastSealAdvancingEvent` — the SAID of the chain's most recent advancing event (a per-primitive window-opening kind listed below, or the terminal `Dec`) that landed cleanly on the linear chain. The seal never forks: privileged events that would create or join a divergent set are rejected at the merge layer (see [§Privileged Divergence is Terminal](#privileged-divergence-is-terminal)), so seal-advancing landings are linear-chain extensions by construction. Archiving events (`Rpr`) route through the discriminator and resolve divergence rather than create or join it, advancing the seal when they land. The **window-opening** advancing kinds differ (the terminal `Dec` is additionally seal-advancing on every primitive — it opens no window; see below):
 
 - **KEL**: `Rpr` / `Ror` / `Rot` / `Fed`.
 - **IEL**: `Evl` / `Del` / `Rsc`.
