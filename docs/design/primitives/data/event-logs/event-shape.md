@@ -46,7 +46,8 @@ Beyond the common fields, a small set of fields appears on multiple kinds with c
 - **`roster`** (`Digest256`) — SAID of a roster SAD mapping **group label → set of member IEL prefixes** (a member may sit in several groups; group labels match `^[a-z_-]{1,16}$`). Backs the policy DSL's `mem(group)` / `mem(prefix, group)` expansion. **Roster-presence is the IEL's immutable kind signal**: an IEL is **aggregate** iff it carries a `roster` (the federation `Fcp` always does), **singleton** iff it has none. Declared at `Icp`, evolved via IEL `Evl` (gated by `governance`); a singleton `Icp` (no roster) can never gain one, and an aggregate's roster may evolve but never be nulled. IEL only.
 - **`delegating`** (`Digest256`) — the self-recording delegation link on a delegated IEL. It holds two values across the two-event handshake (§Delegation handshake): on the delegate's `Icp` it is the **delegator's prefix** (binding the delegate's identity to the delegator through prefix derivation); on the batched serial-1 `Evl` it is the **SAID of the delegator's `Del` event** (the back-pointer that names the authorizing event on the delegator's chain). The verifier disambiguates the two by position. IEL only.
 - **`delegated`** (`Digest256`) — pointer to SAD of IEL prefixes being added (`Del`) or removed (`Rsc`) from the delegated set on the IEL declaring the event. `{ said, prefixes: Vec<Digest256> }`. IEL only.
-- **`policyPin`** (`Digest256`) — cross-chain pin to a policy state. On KEL `Icp` / `Fed`: the federation binding — the federation IEL event SAID the chain binds to (federation binding to federation IEL `Fcp`). On SEL `Est` / `Evl`: the SAID of the SEL's **pin SAD** (see [§`policyPin`](#policypin)).
+- **`federationBinding`** (`Digest256`) — KEL `Icp` / `Fed` only: the federation IEL event SAID the chain binds to (federation binding to federation IEL `Fcp`). A **direct event SAID**, not a pin SAD.
+- **`policyPin`** (`Digest256`) — SEL `Est` / `Evl` only: the SAID of the SEL's **pin SAD** (see [§`policyPin`](#policypin)).
 - **`topic`** (`String`) — application-level discriminator. SEL `Icp` only; participates in prefix derivation alongside `governance` and `operation` to make the SEL prefix deterministic given those inputs.
 - **`content`** (`Vec<Digest256>`) — generic SAID anchors. Appears on KEL `Ixn` / `Rot` / `Ror` and SEL `Ixn`; the verifier validates each entry as a SAID-shaped token, doesn't constrain what it points at (see [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation) for downstream-verifier interpretation rules). This is the field the policy DSL reads as `s.anchors` (see [§Policy DSL reconciliations](#policy-dsl-reconciliations)).
 - **`nonce`** (`Nonce256`) — opaque random bytes chosen by the inceptor; required on IEL inception (`Fcp` / `Icp`). Makes the IEL prefix unpredictable from outside (camping-defense property). Forbidden on non-inception events.
@@ -157,7 +158,7 @@ Common fields (`said`, `prefix`, `kind`) are always required and not enumerated 
 
 ### KEL
 
-| Kind | publicKey | rotationHash | recoveryKey | recoveryHash | policyPin | content | witnessThreshold | witnessSelectionSize |
+| Kind | publicKey | rotationHash | recoveryKey | recoveryHash | federationBinding | content | witnessThreshold | witnessSelectionSize |
 |---|---|---|---|---|---|---|---|---|
 | `Fcp` | req | req | fbd | req | fbd | fbd | fbd | fbd |
 | `Icp` | req | req | fbd | req | req | fbd | req | req |
@@ -170,7 +171,7 @@ Common fields (`said`, `prefix`, `kind`) are always required and not enumerated 
 
 (Tier-3 kinds — `Ror` / `Fed` / `Rpr` / `Dec` — additionally have a recovery signature paired adjacent to the event per §Authentication & signatures; not an event field.)
 
-- `policyPin` on KEL Icp/Fed is the federation IEL event SAID — the federation binding.
+- `federationBinding` on KEL Icp/Fed is the federation IEL event SAID.
 - `content` on KEL Ixn is required (≥ 1 entry); on Rot/Ror is optional (≥ 0 entries).
 - `Fcp` is at v=0; `Icp` is at v=0; `Fed` is at v ≥ 1 (the founder pattern is `Fed` at v=1 on an `Fcp`-rooted chain).
 

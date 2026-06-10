@@ -101,7 +101,7 @@ Each primitive tracks `lastSealAdvancingEvent` — the SAID of the chain's most 
 
 Seal-advance machinery is meaningful only after the first non-inception event lands, since the seal-cap rule it gates (`parent_serial >= seal_serial`) is structurally vacuous against an inception event (which has no parent).
 
-The terminal kind (`Dec` everywhere) enforces the seal but does not advance it.
+The terminal kind (`Dec` everywhere) advances the seal to its own serial and permits no successor — the chain is sealed at the `Dec` event, and the seal-cap rejects any subsequent submission.
 
 KEL additionally tracks `lastRecoveryRevealingEvent` (`Rpr` / `Ror` / `Fed` / `Dec`) for the spent-key / immunity rule. This is a distinct concept from the seal — the seal-advancing kinds bound chain-state changes, while the recovery-revealing kinds track which recovery-key preimage is currently committed (and once spent, cannot be reused to recover against an earlier divergence). Recovery-preimage rotation cadence is operator guidance, not a protocol-enforced cap.
 
@@ -130,7 +130,7 @@ The seal never forks (rule 2 plus rule 3 jointly). Divergent sets contain only n
 
 #### Per-Event Parent-Monotonic Ratchet (SEL-specific)
 
-SEL is the only primitive where authorization context is referenced via a separate field (`policyPin`) pointing at other chains. KEL and IEL have no analog — they resolve authorization from commitments / policy intrinsic to their own chain at the event's parent (`previous`), so there's nothing for a per-event monotonic check to compare across.
+SEL is the only primitive where authorization context is referenced via a separate field (`policyPin`) pointing at other chains. KEL and IEL have no analog — they resolve authorization from commitments / policy intrinsic to their own chain at the event's parent (`previous`), so there's nothing for a per-event monotonic check to compare across. (KEL's `federationBinding` also points at another chain, but it is membership context set under the `Fed` rule, not per-event authorization context — nothing ratchets.)
 
 The pin is parent-monotonic **per IEL entry**: for each IEL prefix named by the parent event's pin SAD, the new event's pin SAD entry for that same IEL must be at-or-after the parent's entry in that IEL's chain order. Applied per branch independently. A new branch's `policyPin` is constrained only by its branch parent (the divergence ancestor on a fork-contest); branches with different parent-chains don't constrain each other.
 

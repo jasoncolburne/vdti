@@ -83,9 +83,13 @@ kels/sad/
 # ============================================================================
 # §Doc-only — policyPin rename (VDTI-14 fold-in)
 # ============================================================================
-# ielEvent → policyPin; the pin is always the SAID of a pin SAD ("binding
-# SAD" superseded); no ielPrefix field exists. \bielEvent\b does not match
-# custody's ownerIelEvent (case differs at the boundary).
+# ielEvent → policyPin (SEL); the pin is always the SAID of a pin SAD
+# ("binding SAD" superseded); no ielPrefix field exists. The KEL
+# federation-binding field is federationBinding (policyBinding retired).
+# \bielEvent\b does not match custody's ownerIelEvent (case differs at
+# the boundary); federationBinding is not caught by [bB]inding[ -]SAD
+# (which requires a following " SAD" / "-SAD").
 \bielEvent\b
 \bielPrefix\b
+\bpolicyBinding\b
 [bB]inding[ -]SAD
