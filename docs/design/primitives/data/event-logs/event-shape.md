@@ -43,13 +43,12 @@ Beyond the common fields, a small set of fields appears on multiple kinds with c
 - **`authentication`** (`Digest256`) — SAID of an authentication Policy SAD: an IEL's **outward act-as** authority. It is what every external `iel(prefix)` leaf and each `mem` member resolves to (see [`../policy/leaf-semantics.md`](../policy/leaf-semantics.md)). Required at IEL inception (`Fcp` / `Icp`); evolved via IEL `Evl` (gated by `governance`). Outward-facing — it **never** gates the IEL's own chain events (so there is no circularity: an IEL's log is governance-gated, not authentication-gated). IEL only.
 - **`delegation`** (`Digest256`) — SAID of a delegation Policy SAD. Optional at IEL inception; evolved via IEL `Evl` (gated by `governance`). Gates IEL `Del` / `Rsc`. IEL only.
 - **`operation`** (`Digest256`) — SAID of an operation Policy SAD: a SEL's **operational write** authority over its own log. Gates SEL operational events `Est` / `Ixn`. Declared at SEL `Icp`; evolved via SEL `Evl` (gated by `governance`). SEL only. (Named `operation` — not `authentication` — because it *does* gate the SEL's own events, the opposite of IEL `authentication`'s never-gates-own-log meaning; a SEL has no act-as identity.)
-- **`roster`** (`Digest256`) — SAID of a membership-roster SAD mapping **group label → set of member IEL prefixes** (a member may sit in several groups; group labels match `^[a-z_-]{1,16}$`). Backs the policy DSL's `mem(group)` / `mem(prefix, group)` expansion. Present on **aggregate** IELs (including the federation `Fcp`); evolved via IEL `Evl` (gated by `governance`). Singleton IELs omit it. IEL only.
+- **`roster`** (`Digest256`) — SAID of a roster SAD mapping **group label → set of member IEL prefixes** (a member may sit in several groups; group labels match `^[a-z_-]{1,16}$`). Backs the policy DSL's `mem(group)` / `mem(prefix, group)` expansion. **Roster-presence is the IEL's immutable kind signal**: an IEL is **aggregate** iff it carries a `roster` (the federation `Fcp` always does), **singleton** iff it has none. Declared at `Icp`, evolved via IEL `Evl` (gated by `governance`); a singleton `Icp` (no roster) can never gain one, and an aggregate's roster may evolve but never be nulled. IEL only.
 - **`delegating`** (`Digest256`) — the self-recording delegation link on a delegated IEL. It holds two values across the two-event handshake (§Delegation handshake): on the delegate's `Icp` it is the **delegator's prefix** (binding the delegate's identity to the delegator through prefix derivation); on the batched serial-1 `Evl` it is the **SAID of the delegator's `Del` event** (the back-pointer that names the authorizing event on the delegator's chain). The verifier disambiguates the two by position. IEL only.
 - **`delegated`** (`Digest256`) — pointer to SAD of IEL prefixes being added (`Del`) or removed (`Rsc`) from the delegated set on the IEL declaring the event. `{ said, prefixes: Vec<Digest256> }`. IEL only.
 - **`policyBinding`** (`Digest256`) — cross-chain binding to a policy state. Appears on KEL `Icp` / `Fed` (federation binding to federation IEL `Fcp`).
 - **`topic`** (`String`) — application-level discriminator. SEL `Icp` only; participates in prefix derivation alongside `governance` and `operation` to make the SEL prefix deterministic given those inputs.
 - **`content`** (`Vec<Digest256>`) — generic SAID anchors. Appears on KEL `Ixn` / `Rot` / `Ror` and SEL `Ixn`; the verifier validates each entry as a SAID-shaped token, doesn't constrain what it points at (see [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation) for downstream-verifier interpretation rules). This is the field the policy DSL reads as `s.anchors` (see [§Policy DSL reconciliations](#policy-dsl-reconciliations)).
-- **`aggregate`** (`bool`) — IEL kind selector, set at `Icp` only; **immutable** (kind is part of identity, never flipped). Absent or `false` ⇒ **singleton** (the `Icp` omits `roster`); `true` ⇒ **aggregate** (the `Icp` carries `roster`). See [§IEL policy fields & membership shape](#iel-policy-fields--membership-shape).
 - **`nonce`** (`Nonce256`) — opaque random bytes chosen by the inceptor; required on IEL inception (`Fcp` / `Icp`). Makes the IEL prefix unpredictable from outside (camping-defense property). Forbidden on non-inception events.
 
 The KEL-specific key-state fields (`publicKey`, `rotationHash`, `recoveryKey`, `recoveryHash`) and witness params (`witnessThreshold`, `witnessSelectionSize`) are not cross-cutting — they appear only on KEL events with kind-specific semantics; see [`kel/events.md`](kel/events.md).
@@ -62,12 +61,12 @@ An IEL carries **three** policy references with distinct roles — none intercha
 - **`authentication`** — outward act-as policy; the only one an external `iel(X)` evaluates. Required at inception.
 - **`delegation`** — optional `Del` / `Rsc` gate.
 
-The IEL is one of two **kinds**, fixed at inception by the immutable `aggregate` flag, and the kind constrains what those three policies may contain (the constraint is on an IEL's *own* policies only — general application / issuance / withdrawal policies keep the full DSL surface):
+The IEL is one of two **kinds**, fixed at inception by whether the `Icp` declares a `roster` (presence is immutable), and the kind constrains what those three policies may contain (the constraint is on an IEL's *own* policies only — general application / issuance / withdrawal policies keep the full DSL surface):
 
-- **Singleton** (`aggregate` absent/false) — bottoms out at device keys; **omits `roster`**. Its three policies may contain only `kel()` leaves under `thr` / `wgt` / `and` — no `mem` / `iel` / `del` / `pol`. Its `authentication` must be non-empty (≥ 1 satisfiable `kel`), or the identity can never act. A singleton is the base case the `iel(...)` recursion terminates at.
-- **Aggregate** (`aggregate` true) — composed of member identities; **carries `roster`**. Its three policies may contain only one-arg `mem(group)` arrays (its own roster only, never a foreign `mem(prefix, group)`) under `thr` / `wgt` / `and` — no bare `iel` / `kel` / `del`, no `pol`. An aggregate must be **born with a non-empty roster** (else ungovernable). The federation `Fcp` is aggregate-shaped (its founding members are its roster).
+- **Singleton** (no `roster`) — bottoms out at device keys. Its three policies may contain only `kel()` leaves under `thr` / `wgt` / `and` — no `mem` / `iel` / `del` / `pol`. Its `authentication` must be non-empty (≥ 1 satisfiable `kel`), or the identity can never act. A singleton is the base case the `iel(...)` recursion terminates at.
+- **Aggregate** (carries a `roster`) — composed of member identities. Its three policies may contain only one-arg `mem(group)` arrays (its own roster only, never a foreign `mem(prefix, group)`) under `thr` / `wgt` / `and` — no bare `iel` / `kel` / `del`, no `pol`. An aggregate must be **born with a non-empty roster** (else ungovernable). The federation `Fcp` is aggregate-shaped (its founding members are its roster).
 
-See [`../policy/iel-policy-structure.md`](../policy/iel-policy-structure.md) for the DSL-level constraint these kinds impose; the `aggregate` flag, the `roster` field, and the roster-less singleton `Icp` shape are the **event-shape facts** this doc settles.
+See [`../policy/iel-policy-structure.md`](../policy/iel-policy-structure.md) for the DSL-level constraint these kinds impose; the `roster` field (whose presence is the immutable singleton/aggregate kind signal) and the roster-less singleton `Icp` shape are the **event-shape facts** this doc settles.
 
 **`Evl` co-updates roster and policies atomically.** An `Evl` may change any of {`governance`, `authentication`, `delegation`, `roster`, `delegating`} and **must change at least one**. Because a policy reference (`mem(group)`) resolves against the roster, the two cannot move in separate events without opening a dangling-reference window — so an `Evl` carries a consistent {roster, policies} snapshot and the verifier validates the **post-application pair**: after the `Evl` is applied, every reference in the three policies must still resolve against the post-event roster (referential integrity, a write-time structural check). Shrinking a threshold-gating group and dropping its policy reference in one `Evl` is the clean way to avoid a transient ungovernable state.
 
@@ -88,6 +87,8 @@ Two merge-layer rules (parallel to the SEL `[Icp, Est]` pairing) keep the handsh
 - A `delegating`-`Icp` **must** batch with that serial-1 `Evl` — they land together or not at all.
 
 **Consistency check (verifier).** The serial-1 `Evl`'s `Del` SAID must resolve to an event on the chain `D.Icp.delegating` names. **Sequencing** needs no cross-chain atomic transaction: `X.Del` (listing `D`'s prefix) lands first, then `D`'s atomic `[Icp, Evl]` batch references it.
+
+**Resting state.** A fully-formed delegated IEL's tracked `delegating` state is the **`Del`-event SAID** (the serial-1 `Evl` value). The `Icp`-prefix value is transient *within* the atomic `[Icp, Evl]` batch and is never the resting state — the two land together, so any formed delegated IEL already has a SAID-valued `delegating`.
 
 The reciprocal authorization lives on `X`'s chain: the delegator's outbound `Del` must list `D`'s prefix (gated by `X`'s `delegation` policy). See [`../policy/delegation.md`](../policy/delegation.md) for the self-traversing verification flow the handshake enables.
 
@@ -174,18 +175,18 @@ Common fields (`said`, `prefix`, `kind`) are always required and not enumerated 
 
 ### IEL
 
-| Kind | nonce | authentication | governance | delegation | roster | aggregate | delegating | delegated |
-|---|---|---|---|---|---|---|---|---|
-| `Fcp` | req | req | req | opt | req | fbd | fbd | fbd |
-| `Icp` | req | req | req | opt | opt[note 1] | opt[note 1] | opt | fbd |
-| `Evl` | fbd | opt[note 2] | opt[note 2] | opt[note 2] | opt[note 2] | fbd | opt[note 3] | fbd |
-| `Del` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | req |
-| `Rsc` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | req |
-| `Dec` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | fbd |
+| Kind | nonce | authentication | governance | delegation | roster | delegating | delegated |
+|---|---|---|---|---|---|---|---|
+| `Fcp` | req | req | req | opt | req | fbd | fbd |
+| `Icp` | req | req | req | opt | opt[note 1] | opt | fbd |
+| `Evl` | fbd | opt[note 2] | opt[note 2] | opt[note 2] | opt[note 2] | opt[note 3] | fbd |
+| `Del` | fbd | fbd | fbd | fbd | fbd | fbd | req |
+| `Rsc` | fbd | fbd | fbd | fbd | fbd | fbd | req |
+| `Dec` | fbd | fbd | fbd | fbd | fbd | fbd | fbd |
 
 Notes:
-1. **`Icp` `roster` / `aggregate`** — the `aggregate` flag is optional (absent/false ⇒ singleton). `roster` is **required iff `aggregate` is true** (aggregate) and **forbidden iff singleton** — the singleton `Icp` omits it. The flag is immutable; an `Evl` cannot set or change it.
-2. **`Evl` `authentication` / `governance` / `delegation` / `roster` / `delegating`** — at least one MUST be set. A no-op `Evl` (none change) is rejected. `roster` may move only on an aggregate IEL (a singleton has none); the co-update is validated against post-application referential integrity (see [§IEL policy fields & membership shape](#iel-policy-fields--membership-shape)). Parallels KEL `Fed`'s "must change one of (federation binding, witness params)" rule.
+1. **`Icp` `roster`** — optional at `Icp`: present ⇒ **aggregate**, absent ⇒ **singleton**. Roster-presence is the immutable kind signal — a later `Evl` may evolve an aggregate's roster but may neither add one to a singleton nor null an aggregate's.
+2. **`Evl` `authentication` / `governance` / `delegation` / `roster` / `delegating`** — at least one MUST be set. A no-op `Evl` (none change) is rejected. `roster` may move only if the `Icp` declared one (i.e. on an aggregate IEL; a singleton declared none and can never gain one, so `roster` stays effectively `fbd` on its `Evl`s); the co-update is validated against post-application referential integrity (see [§IEL policy fields & membership shape](#iel-policy-fields--membership-shape)). Parallels KEL `Fed`'s "must change one of (federation binding, witness params)" rule.
 3. **`Evl` `delegating`** — set only on a **serial-1 `Evl`** that completes a delegated inception (the back-pointer to the delegator's `Del`-event SAID); `fbd` on any later `Evl`. See [§Delegation handshake](#delegation-handshake).
 
 The `nonce` is required at inception (drives prefix unpredictability per [§Prefix derivation](#prefix-derivation-is-whole-content)). `delegating` on `Icp` is the structural marker for delegated inception — when set, the delegate's `[Icp, Evl]` batch and the delegator's outbound `Del` (which MUST list this prefix, transitively gated by the delegator's `delegation` policy) complete the handshake.
@@ -253,7 +254,7 @@ Governance evolution, authentication / delegation / roster evolution (IEL), and 
 
 Prefix derives from the entire event body (with both `said` and `prefix` blanked). It's not a special tuple. Whatever fields are populated on the inception event participate in the prefix. The verifier reconstructs the prefix from canonical-form serialization and rejects any event whose computed prefix doesn't match its declared prefix.
 
-For chains where prefix unpredictability is required as a structural property (IEL), the inception event includes a `nonce` field whose content is opaque random bytes — this makes the prefix unpredictable to outside observers. The IEL prefix therefore commits to the whole inception content — the `authentication` / `governance` / `delegation` policy SAIDs, the `roster` and `aggregate` flag (aggregate IELs), the delegator's prefix in `delegating` (delegated IELs), and the `nonce` — not a fixed tuple. For chains where prefix is intentionally derivable by external parties (SEL — to support identity-rooted discovery), the inception event omits `nonce` and the prefix derives deterministically from declared content (`governance` + `operation` + `topic` for SEL).
+For chains where prefix unpredictability is required as a structural property (IEL), the inception event includes a `nonce` field whose content is opaque random bytes — this makes the prefix unpredictable to outside observers. The IEL prefix therefore commits to the whole inception content — the `authentication` / `governance` / `delegation` policy SAIDs, the `roster` (aggregate IELs), the delegator's prefix in `delegating` (delegated IELs), and the `nonce` — not a fixed tuple. For chains where prefix is intentionally derivable by external parties (SEL — to support identity-rooted discovery), the inception event omits `nonce` and the prefix derives deterministically from declared content (`governance` + `operation` + `topic` for SEL).
 
 ## Tier dispatch
 
