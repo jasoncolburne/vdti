@@ -17,13 +17,13 @@ This is a **shape reference** — it states what fields exist, which kinds popul
 
 Five fields appear on every event across all log types. The per-kind shape (defined in §Per-kind structural validation) adds additional fields per kind.
 
-| Field | Description |
-|---|---|
-| `said` | Blake3-256 hash of the canonical event content with the `said` field blanked (and `prefix` populated with its real value). Identifies the event uniquely. |
-| `prefix` | Blake3-256 hash of the canonical event content with both `said` and `prefix` blanked. Identifies the chain. Derives from the **whole-event content** — not a special tuple. Two distinct inceptions for the same chain are structurally impossible without a Blake3-256 collision. |
-| `serial` | Chain position. Inception events have `serial == 0`; all other events have `serial >= 1` monotonic per branch. |
-| `previous` | SAID of the parent event. Forbidden at inception (no parent); required elsewhere. |
-| `kind` | Log-type × event-kind discriminator. Drives per-kind structural validation, tier dispatch, and authorization rule selection. |
+| Field | Type | Description |
+|---|---|---|
+| `said` | Digest256 | Hash of the canonical event content with the `said` field blanked (and `prefix` populated with its real value). Identifies the event uniquely. |
+| `prefix` | Digest256 | Hash of the canonical event content with both `said` and `prefix` blanked. Identifies the chain. Derives from the **whole-event content** — not a special tuple. Two distinct inceptions for the same chain are structurally impossible without a Blake3-256 collision. |
+| `serial` | u64 | Chain position. Inception events have `serial == 0`; all other events have `serial >= 1` monotonic per branch. |
+| `previous` | Digest256 | SAID of the parent event. Forbidden at inception (no parent); required elsewhere. |
+| `kind` | String | Log-type × event-kind discriminator. Drives per-kind structural validation, tier dispatch, and authorization rule selection. |
 
 Signatures are **not part of event content** — see [§Authentication & signatures](#authentication--signatures).
 
