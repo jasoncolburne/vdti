@@ -95,13 +95,17 @@ The reciprocal authorization lives on `X`'s chain: the delegator's outbound `Del
 
 ## `policyPin`
 
-`policyPin` is a `Digest256` — the SAID of a **pin SAD**. It pins the SEL's policy resolution to IEL state: the as-of IEL event each policy leaf (`iel(X)` / `mem(group)` / `del(...)`, in **both** `governance` and `operation`) resolves against. Pinning a SAID freezes the SEL's authorization to a point-in-time IEL state, so a later IEL divergence or evolution cannot retroactively re-authorize the SEL.
+`policyPin` is a `Digest256` — the SAID of a **pin SAD**. It pins the resolution of the SEL's two policies (`governance` and `operation`) to IEL state: each **`iel(X)`** leaf in either policy resolves against the pin's entry for `X` — `X`'s `authentication` reconstructed as of the pinned event, including the descent-internal one-arg `mem(group)` roster reads, which ride that same marker. The pin entry plays exactly the role of the anchored flow's state-marker in [`../policy/leaf-semantics.md`](../policy/leaf-semantics.md) — the SEL flow *is* the anchored flow with the pin entry as the anchor; there is no separate resolution flow.
+
+Only `iel(X)` leaves resolve against the pin. The rest of the SEL-legal leaf surface (`mem(X, group)` / `del(...)` / `kel(...)`) stays **tip-current**: a foreign two-arg `mem(X, group)` reads `X`'s current roster, and `del(...)`'s rescission check always walks the delegator's chain to tip — revocation is immediate, never pinned. Roster-spliced members (the `iel(member_i)` leaves a `mem(X, group)` expands into) resolve tip-current and are not carried in the pin. (One-arg `mem(group)` is the IEL-own-policy form and cannot appear in a SEL policy — see [§IEL policy fields & membership shape](#iel-policy-fields--membership-shape).)
+
+Pinning freezes the **bound identities' act-as (`iel(X)`) state** to a point in time, so a later compromise or evolution of a bound IEL cannot retroactively re-authorize the SEL's co-governance binding. It does **not** freeze foreign-roster membership or delegation rescission — those stay current, so a removed member or rescinded delegate cannot keep satisfying the policy via a stale pin.
 
 The pin is **always a SAD** — event-log rows hold a fixed-size SAID (events live in PostgreSQL rows, SADs in the SAD store), so the variable-length pin is never inlined in the event.
 
-The pin SAD's content is a set of IEL bindings **keyed by IEL prefix** — each entry names one IEL at one event SAID. A leaf naming IEL `X` resolves against the entry on `X`'s chain. One pin serves both policies — resolution keys on the prefix a leaf names, not on which policy the leaf sits in — and the pin spans the union of IELs the two policies reference; re-pinning moves both policies' as-of state forward together. The common single-identity SEL is a **one-entry** pin SAD (`governance = iel(P)`, `operation = iel(P)`, pin = `{P → e}`).
+The pin SAD's content is a set of IEL bindings **keyed by IEL prefix** — one entry per IEL **directly named by an `iel(X)` leaf** in either policy, each naming that IEL at one event SAID. The verifier rejects an entry whose event SAID does not resolve to an event on the keyed prefix's chain (`{A → event-on-B's-chain}` is structurally invalid). One pin serves both policies — resolution keys on the prefix a leaf names, not on which policy the leaf sits in — and the pin spans the **currently-named** set: when a policy evolves to stop naming an IEL, the pin drops that entry. Re-pinning moves both policies' as-of state forward together. The common single-identity SEL is a **one-entry** pin SAD (`governance = iel(P)`, `operation = iel(P)`, pin = `{P → e}`).
 
-The pin is set at `Est` (v=1) and re-ratcheted forward — parent-monotonic per entry — by the governance-gated `Evl` (see [`../../../protocol-doctrine.md` §Per-Event Parent-Monotonic Ratchet](../../../protocol-doctrine.md#per-event-parent-monotonic-ratchet-sel-specific)). The exact pin-SAD shape and the multi-IEL subset-advance ratchet are [Open Items 1–2](#open-items).
+The pin is set at `Est` (v=1) and re-ratcheted forward — parent-monotonic per entry — by the governance-gated `Evl` (see [`../../../protocol-doctrine.md` §Per-Event Parent-Monotonic Ratchet](../../../protocol-doctrine.md#per-event-parent-monotonic-ratchet-sel-specific)). `Est` **self-supplies its resolution context**: the parent `Icp` carries no pin, so the only pin in existence at `Est` is the one the `Est` itself declares. The only structural bound on that choice is the upper `IelDivergent` rule (each entry at-or-below the bound IEL's seal); there is **no freshness floor** — a pin entry may reference arbitrarily old IEL state (see the ex-member note in [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation)). The exact pin-SAD shape and the multi-IEL subset-advance ratchet are [Open Items 1–2](#open-items).
 
 ## Event taxonomy
 
@@ -209,7 +213,7 @@ Authentication is via the KEL anchor per §Authentication & signatures — tier-
 Notes:
 1. **`Evl` `governance` / `operation` / `policyPin`** — **must change at least one** relative to the prior tracked state; a no-op `Evl` (none change) is rejected. `Evl` always re-states `policyPin` (required) so the binding ratchet stays explicit — the pin is parent-monotonic per entry (see [`../../../protocol-doctrine.md` §Per-Event Parent-Monotonic Ratchet](../../../protocol-doctrine.md#per-event-parent-monotonic-ratchet-sel-specific)) — and may co-evolve `governance` and/or `operation`. This collapses what would otherwise be separate events (governance/operation evolution + seal-advance re-ratchet) into one kind. Parallel to KEL `Fed`'s "must change at least one of (federation binding, witness params)" rule.
 
-- `governance` on `Icp` declares the SEL's lifecycle-gating policy (SAID of a Policy SAD); `operation` declares its operational-write policy. For a one-entry pin (single bound IEL), the common case is `governance = iel(iel_prefix)`, `operation = iel(iel_prefix)` — degenerate but explicit. For multi-IEL pins, an arbitrary policy DSL.
+- `governance` on `Icp` declares the SEL's lifecycle-gating policy (SAID of a Policy SAD); `operation` declares its operational-write policy. The policies determine the pin's span: the common case is the single-identity pair `governance = iel(iel_prefix)`, `operation = iel(iel_prefix)` — degenerate but explicit — yielding a one-entry pin; policies whose `iel(X)` leaves name several IELs yield a multi-entry pin.
 - `policyPin` on `Est` declares the SEL's first policy pin — the SAID of the pin SAD naming the bound IEL event(s) — at v=1.
 - `Ixn` / `Rpr` / `Dec` don't carry their own `policyPin` — they inherit the SEL's tracked `policyPin` from the most-recent prior `Est` / `Evl`.
 - `topic` on `Icp` is an application-level discriminator; the chain's prefix derives from the whole-Icp content — `governance`, `operation`, and `topic` — so two Icps with the same `(governance, operation, topic)` produce the same SAID and prefix (Icp dedup-equivalence). `operation` must participate: were it excluded, two Icps differing only in `operation` would share a prefix but carry different SAIDs, and the merge layer's Icp dedup (which keys on the SAID) would break.
@@ -280,7 +284,7 @@ The policy DSL ([`../policy/`](../policy/)) reads several of these fields under 
 
 ## Authorization gating per kind
 
-Brief mapping of which policy gates each event kind. For all non-inception events, gating evaluates against the chain's tracked policy at the parent event — for evolution events that's the policy before this event changes it; for non-evolution events the policy is simply unchanged from the parent's state. (KEL fields like `rotationHash` / `recoveryHash` work the same way — the commitment is on the prior establishment event.)
+Brief mapping of which policy gates each event kind. For all non-inception events, gating evaluates against the chain's tracked policy at the parent event — for evolution events that's the policy before this event changes it; for non-evolution events the policy is simply unchanged from the parent's state. (KEL fields like `rotationHash` / `recoveryHash` work the same way — the commitment is on the prior establishment event.) On SEL the same parent-state rule covers the pin as resolution state: `Evl` / `Rpr` / `Dec` resolve their gating policy's `iel(X)` leaves against the **parent's tracked `policyPin`**; `Est` is the exception — the parent `Icp` carries no pin, so `Est` resolves against the pin it itself declares (see [§`policyPin`](#policypin)).
 
 | Event kind | Gating policy | Notes |
 |---|---|---|
@@ -293,8 +297,8 @@ Brief mapping of which policy gates each event kind. For all non-inception event
 | IEL `Evl` / `Dec` | `governance` | `Dec` is tier-3. `authentication` never gates the IEL's own events |
 | IEL `Del` / `Rsc` | `delegation` | Forbidden if `delegation` is unset on IEL state |
 | SEL `Icp` | permissionless (no policy gate) | Dedup-equivalent via prefix derivation |
-| SEL `Est` / `Ixn` | `operation` (resolved at the `policyPin`) | Tier dispatched by kind (Ixn tier-1; Est tier-2) |
-| SEL `Evl` | `governance` (resolved at the `policyPin`) | Tier-2 |
+| SEL `Est` / `Ixn` | `operation` (resolved at the `policyPin` — `Est` at its own declared pin; `Ixn` at the tracked pin) | Tier dispatched by kind (Ixn tier-1; Est tier-2) |
+| SEL `Evl` | `governance` (resolved at the parent's tracked `policyPin`) | Tier-2 |
 | SEL `Rpr` / `Dec` | `governance` | Tier-3 dual-signed |
 
 ## Naming conventions
