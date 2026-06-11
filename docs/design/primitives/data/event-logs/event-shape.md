@@ -31,7 +31,7 @@ Signatures are **not part of event content** — see [§Authentication & signatu
 
 Signatures are not part of the event content — events are pure SAD content. The `said` is the Blake3-256 hash of the content; if a signature were embedded, the SAID would change when the signature is added, but the signature would be over the prior SAID — circular. Signatures live **adjacent** to the event as separate data.
 
-**KEL events** are signed at the wire / storage layer — each KEL event SAD is paired with adjacent signatures: a primary signature (all KEL events) and a recovery signature (tier-3 dual-signed kinds: `Ror` / `Fed` / `Rpr` / `Dec`). The pairing is a wrapper concept; the SAD itself stays signature-free.
+**KEL events** are signed by the controller **when authored**. The signatures are carried adjacent to the event SAD (paired with it at the wrapper / storage layer), never embedded in the content: a primary signature (all KEL events) and a recovery signature (tier-3 dual-signed kinds: `Ror` / `Fed` / `Rpr` / `Dec`). The pairing is a wrapper concept; the SAD itself stays signature-free.
 
 **IEL / SEL events** carry no adjacent signatures. They authenticate via their **KEL anchor** — each IEL / SEL event is anchored by a KEL `Ixn` / `Rot` / `Ror` event per the per-primitive anchor rules, and the KEL event's adjacent signature provides authentication. The verifier walks from the IEL / SEL event to the anchoring KEL event and validates the KEL event's signatures.
 
