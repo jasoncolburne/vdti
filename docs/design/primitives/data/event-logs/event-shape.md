@@ -53,7 +53,8 @@ Beyond the common fields, a small set of fields appears on multiple kinds with c
 | `federationBinding` | `Digest256` | KEL | `Icp` / `Fed` | The federation IEL event SAID the chain binds to (federation binding to federation IEL `Fcp`). A **direct event SAID**, not a pin SAD. |
 | `policyPin` | `Digest256` | SEL | `Est` / `Evl` | The SAID of the SEL's **pin SAD** (see [§`policyPin`](#policypin)). |
 | `topic` | `String` | SEL | `Icp` | Application-level discriminator; participates in prefix derivation alongside `governance` and `operation` to make the SEL prefix deterministic given those inputs. |
-| `content` | `Vec<Digest256>` | KEL, SEL | KEL `Ixn` / `Rot` / `Ror`; SEL `Ixn` | Generic SAID anchors. The verifier validates each entry as a SAID-shaped token, doesn't constrain what it points at (see [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation) for downstream-verifier interpretation rules). This is the field the policy DSL reads as `s.anchors` (see [§Policy DSL reconciliations](#policy-dsl-reconciliations)). |
+| `manifest` | `Digest256` | KEL | `Ixn` / `Rot` / `Ror` | SAID of a manifest SAD `{ said, anchors: Vec<Digest256> }` holding the event's generic SAID anchors (the same SAD-reference shape as `delegated`). The event row carries only the SAID; the anchor list lives in the SAD, separately custody-able — the chain log never exposes what the event anchors. The verifier validates each `anchors` entry as a SAID-shaped token, doesn't constrain what it points at (see [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation) for downstream-verifier interpretation rules). This is what the policy DSL reads as `s.anchors` (see [§Policy DSL reconciliations](#policy-dsl-reconciliations)). |
+| `document` | `Digest256` | SEL | `Ixn` | SAID of the published document — a single opaque SAD. The verifier validates it as a SAID-shaped token and does not constrain or inspect its contents. Not anchors; not an `s.anchors` source. |
 | `nonce` | `Nonce256` | IEL | `Fcp` / `Icp` | Opaque random bytes chosen by the inceptor; required at inception. Makes the IEL prefix unpredictable from outside (camping-defense property). Forbidden on non-inception events. |
 
 The KEL-specific key-state fields (`publicKey`, `rotationHash`, `recoveryKey`, `recoveryHash`) and witness params (`witnessThreshold`, `witnessSelectionSize`) are not cross-cutting — they appear only on KEL events with kind-specific semantics; see [`kel/events.md`](kel/events.md).
@@ -119,7 +120,7 @@ The pin is set at `Est` (v=1) and re-ratcheted forward — parent-monotonic per 
 |---|---|---|---|
 | `Fcp` | inception | 1 | Founder pre-federation inception |
 | `Icp` | inception | 1 | Standard inception, federation-bound |
-| `Ixn` | content | 1 | Interaction; anchors generic content SAIDs |
+| `Ixn` | content | 1 | Interaction; anchors generic SAIDs via a `manifest` |
 | `Rot` | privileged | 2 | Rotation; reveals next signing key, commits new |
 | `Ror` | privileged | 3 | Rotate-recovery; dual-signed; rotates signing and recovery keys |
 | `Fed` | privileged | 3 | Federation-binding mutation; dual-signed |
@@ -145,7 +146,7 @@ Every IEL event routes as privileged in the divergence axis — no content kind;
 |---|---|---|---|---|
 | `Icp` | inception | n/a (permissionless) | — | Permissionless, dedup-equivalent inception; declares `governance`, `operation`, and `topic` |
 | `Est` | privileged | 2 | `Rot` per `operation` member | Establishes IEL binding at v=1; carries `policyPin` |
-| `Ixn` | content | 1 | `Ixn` per `operation` member | Content extension; anchors `content` |
+| `Ixn` | content | 1 | `Ixn` per `operation` member | Publishes a `document` SAD |
 | `Evl` | privileged | 2 | `Rot` per prior `governance` member | Evolve `governance` / `operation` and/or re-ratchet `policyPin`; must change at least one |
 | `Rpr` | archiving | 3 | `Ror` per `governance` member | Repair; resolves a divergent SEL by archiving discriminator-losing branch |
 | `Dec` | terminal | 3 | `Ror` per `governance` member | Terminal; ends SEL on clean linear landing |
@@ -166,7 +167,7 @@ Common fields (`said`, `prefix`, `kind`) are always required and not enumerated 
 
 ### KEL
 
-| Kind | publicKey | rotationHash | recoveryKey | recoveryHash | federationBinding | content | witnessThreshold | witnessSelectionSize |
+| Kind | publicKey | rotationHash | recoveryKey | recoveryHash | federationBinding | manifest | witnessThreshold | witnessSelectionSize |
 |---|---|---|---|---|---|---|---|---|
 | `Fcp` | req | req | fbd | req | fbd | fbd | fbd | fbd |
 | `Icp` | req | req | fbd | req | req | fbd | req | req |
@@ -180,7 +181,7 @@ Common fields (`said`, `prefix`, `kind`) are always required and not enumerated 
 (Tier-3 kinds — `Ror` / `Fed` / `Rpr` / `Dec` — additionally have a recovery signature paired adjacent to the event per §Authentication & signatures; not an event field.)
 
 - `federationBinding` on KEL Icp/Fed is the federation IEL event SAID.
-- `content` on KEL Ixn is required (≥ 1 entry); on Rot/Ror is optional (≥ 0 entries).
+- `manifest` on KEL Ixn is required, with ≥ 1 anchor in its `anchors` array; on Rot/Ror it is optional — absent when nothing is anchored.
 - `Fcp` is at v=0; `Icp` is at v=0; `Fed` is at v ≥ 1 (the founder pattern is `Fed` at v=1 on an `Fcp`-rooted chain).
 
 ### IEL
@@ -205,7 +206,7 @@ Authentication is via the KEL anchor per §Authentication & signatures — tier-
 
 ### SEL
 
-| Kind | governance | operation | topic | policyPin | content |
+| Kind | governance | operation | topic | policyPin | document |
 |---|---|---|---|---|---|
 | `Icp` | req | req | req | fbd | fbd |
 | `Est` | fbd | fbd | fbd | req | fbd |
@@ -281,9 +282,9 @@ See [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-
 
 The policy DSL ([`../policy/`](../policy/)) reads several of these fields under its own names; the mappings are concrete (no separate stored field):
 
-- **`s.anchors` == `content`.** The DSL's `satisfies_kel` reads the anchoring event's set of anchored SAIDs as `s.anchors`; that is exactly the `content: Vec<Digest256>` field (on KEL `Ixn` / `Rot` / `Ror` and SEL `Ixn`).
+- **`s.anchors` == `manifest.anchors`.** The DSL's `satisfies_kel` reads the anchoring event's set of anchored SAIDs as `s.anchors`; that is exactly the `anchors: Vec<Digest256>` array of the manifest SAD referenced by the KEL event's `manifest` field (KEL `Ixn` / `Rot` / `Ror` only — a SEL `document` is not an anchor source).
 - **`s.tier` == `tier_of(s.kind)`.** Tier is not stored — it is dispatched from the event kind (§Tier dispatch: `Ixn` → 1, `Rot` → 2, `Ror` → 3). The DSL's `s.tier` is read through that dispatch.
-- **Per-anchor tier == anchor tier elevation.** A required anchor demanding tier ≥ N means the anchored SAID must appear in the `content` of a KEL event whose kind dispatches to ≥ N (a high-assurance SAD co-anchored in a `Rot` / `Ror` rather than an `Ixn`). This is a constraint on *which KEL kind hosts the anchor* — no new field. See [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation).
+- **Per-anchor tier == anchor tier elevation.** A required anchor demanding tier ≥ N means the anchored SAID must appear in the `manifest.anchors` of a KEL event whose kind dispatches to ≥ N (a high-assurance SAD co-anchored in a `Rot` / `Ror` rather than an `Ixn`). This is a constraint on *which KEL kind hosts the anchor* — no new field. See [`../../../protocol-doctrine.md` §Anchor Tier Elevation](../../../protocol-doctrine.md#anchor-tier-elevation).
 - **Surviving-branch anchoring child.** The DSL resolves the unique child `S` where `S.previous == prior_said` **on the surviving (non-divergent / post-repair) branch**; an anchor sitting on a discriminator-losing / archived branch correctly fails to resolve. How a `Rpr`-archived branch interacts with anchor validity (the valid-for-binding cutoff) is KEL-primitive doctrine — see [`kel/`](kel/).
 
 ## Authorization gating per kind
