@@ -27,7 +27,7 @@ Sequencing across the two chains needs **no cross-chain atomic transaction**: `X
 
 Both the issuer set and the per-issuer anchor pinning ride on the credential. Say the credential
 is issued by `dlg_prefix`, a direct delegate of `iel_prefix_2`, whose IEL authentication is
-`kel(dlg_kel_prefix)`.
+`dev(dlg_kel_prefix)`.
 
 #### Self-traversing verification
 
@@ -52,10 +52,10 @@ rooted at the issuer's own IEL:
   rides in a separate pinning, rooted at the issuer's own IEL so the anchoring KEL is
   bound to the delegated identity:
 
-  iel(dlg_prefix)  (identity → authentication → anchor)  anchor pinning
+  id(dlg_prefix)  (identity → authentication → anchor)  anchor pinning
   ─────────────────────────────────────────────────     ────────────────
-  iel(dlg_prefix)                       ▷ slot 0  {dlg_iel_marker_said}
-  └─ authentication kel(dlg_kel_prefix) ▷ slot 1  {dlg_kel_prior_kel_said}
+  id(dlg_prefix)                       ▷ slot 0  {dlg_iel_marker_said}
+  └─ authentication dev(dlg_kel_prefix) ▷ slot 1  {dlg_kel_prior_kel_said}
         └─ prior event (surviving branch); its child anchors the credential at the required tier
 ```
 
@@ -64,9 +64,9 @@ expanded** and pins nothing — the issuer is named, and the verifier confirms d
 self-traversing `dlg_prefix`'s own chain (above). The only pinning the credential carries is the
 anchor pinning.
 
-**Anchor pinning.** The issuer's IEL policy `iel(dlg_prefix)` walks to two slots in pre-order —
+**Anchor pinning.** The issuer's IEL policy `id(dlg_prefix)` walks to two slots in pre-order —
 the issuer's `Evl`/`Icp` state-marker (the verifier reconstructs the snapshot that fixes which
-authentication state applies) and, through that authentication `kel(dlg_kel_prefix)`, the KEL event
+authentication state applies) and, through that authentication `dev(dlg_kel_prefix)`, the KEL event
 just *prior* to the anchoring event (the anchoring event commits to the credential, so its own SAID
 is unconstructable here; see the SAID-cycle note):
 
@@ -91,10 +91,10 @@ is unconstructable here; see the SAID-cycle note):
   `dlg_prefix` (F — always, even for an immune credential). One satisfied delegate clears the
   `thr(1, ...)`. Under `del(X, N)` with `N > 1` the verifier keeps walking up (`X`'s own
   delegator, …) until it reaches the named delegator within `N` hops or denies.
-- **Anchor** — evaluating `iel(dlg_prefix)` against the anchor pinning, the `iel(dlg_prefix)`
+- **Anchor** — evaluating `id(dlg_prefix)` against the anchor pinning, the `id(dlg_prefix)`
   leaf reads its pinned `Evl`/`Icp` state-marker (reconstructing the snapshot that binds the issuer
-  to its authentication `kel(dlg_kel_prefix)`) and recurses into that authentication policy; the
-  `kel(dlg_kel_prefix)` leaf resolves the
+  to its authentication `dev(dlg_kel_prefix)`) and recurses into that authentication policy; the
+  `dev(dlg_kel_prefix)` leaf resolves the
   anchoring event `S` (`S.previous == dlg_kel_prior_kel_said`) **on the surviving branch** and
   checks `S` is at the required tier and anchors the credential SAID. Because the anchor is
   reached *through* the delegated issuer's IEL, the anchoring KEL is bound to the delegated
