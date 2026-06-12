@@ -65,15 +65,23 @@ kels/sad/
 \bdelegatingPrefix\b
 
 # === Old policy-DSL leaf / composer names ===
-# Endorse(prefix) → kel(prefix); Delegate(delegator) → del(prefix);
-# identity(X) → iel(X); threshold(N,[…]) → thr(M,[…]); Weighted → wgt;
-# nested Policy → pol. Call-form patterns where the bare word is common.
+# Canonical leaves: id (identity) / dev (device) / grp (group) / del.
+# Composers: thr / wgt / pol / and. Forbidden = every superseded spelling:
+#   pre-vdti:   Endorse( → dev( ; Delegate( → del( ; identity( → id( ;
+#               threshold( → thr( ; Weighted → wgt ; nested Policy( → pol.
+#   vdti log-names (the DSL surface speaks identity/device/group, not log type):
+#               iel( → id( ; kel( → dev( ; mem( → grp(.
+# Call-form (trailing "(") so the uppercase IEL/KEL/SEL primitives and the
+# kel/ // iel/ doc paths are NOT matched.
 \bEndorse\(
 \bDelegate\(
 \bidentity\(
 \bthreshold\(
 \bWeighted\b
 \bPolicy\(
+\biel\(
+\bkel\(
+\bmem\(
 
 # === Superseded SEL prefix tuples ===
 # Settled tuple is (governance, operation, topic).
