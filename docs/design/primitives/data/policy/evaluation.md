@@ -60,7 +60,8 @@ impl PolicyVerification {
 }
 
 // Anchored validity (public entry) — is `cred` validly issued by enough recognized issuers and
-// not withdrawn? The credential NAMES its issuers and carries one anchor pinning per issuer; it
+// not withdrawn? The credential NAMES its issuers and carries one anchor pinning per issuer plus
+// an ISSUANCE-POLICY pinning (issuing is authoring, so the issuance check is anchored — G5); it
 // carries NO delegation pins. Each presented issuer (a) self-traverses its own delegation chain
 // to show it is a delegate of some del(prefix, N) named in `issuance_policy`, within N hops, every
 // hop authorized + consented + un-rescinded to the delegator's tip; and (b) proves, via its anchor
@@ -69,6 +70,13 @@ impl PolicyVerification {
 // placeholder. Self-contained: builds each issuer's `id` policy internally, walks delegation
 // chains + anchor pinnings inline on `source`, then runs the withdrawal scan.
 //
+//  issuance_pinning the credential-carried pinning over `issuance_policy` (G5): issuing is
+//                   authoring, so the issuance check resolves AS-OF pinned state, never at a
+//                   roster owner's tip. One X-state-marker slot per foreign `grp(X, group)`
+//                   occurrence, pre-order (G1) — the only occurrence kind that reads chain state
+//                   in this evaluator (`id` is matched against the anchored set, `del`
+//                   self-traverses, `dev` credits nobody). The exact pin-SAD serialization is
+//                   implementer/SEL-primitive detail; the as-of principle is fixed.
 //  issuers          presented issuers + their anchor pinnings. The verifier asserts (NEW-D, inside,
 //                   at the trust boundary) that the presented prefixes equal `committed_issuers`
 //                   before crediting any of them — the issuer<->content<->anchor binding never
@@ -107,6 +115,7 @@ impl PolicyVerification {
 // hard `Err`. Fail-secure: softening can only SHRINK the credited set, never validate spuriously.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
+    issuance_pinning: &Pinning,              // cred-carried as-of state for the policy's own leaves (G5)
     issuers: &[(Prefix, &Pinning)],
     committed_issuers: &HashSet<Prefix>,     // from the SAID-verified credential (NEW-D)
     expected_anchors: &HashSet<(Said, Tier)>,
@@ -192,7 +201,7 @@ pub fn evaluate_current_policy(
 
 Both entry points are **policy verifiers**: a satisfied evaluation yields a `PolicyVerification` proof token, not a bare `true`. `evaluate_anchored_policy` returns `Ok(Some(token))` iff the presented issuers (asserted equal to the credential's committed set, NEW-D) satisfy `issuance_policy` — each self-traversing to a named delegator within depth and anchoring the credential on its authentication at the required tier on the surviving branch — AND no satisfying withdrawal anchor was found (see *Withdrawal*); the token carries the credited issuer set, the anchored credential SAID(s), and the marker snapshot(s) the walk fixed. `evaluate_current_policy` returns `Ok(Some(token))` iff the attestations over `challenge` cover `policy`'s leaves at current chain state with the required attestation shape; the token carries the credited prefixes (no anchored SAIDs, no snapshot — current mode is tip-live). Both return `Ok(None)` for a clean unsatisfied — including an unknown primitive, which fails the **whole** policy closed (see *Verifier behavior*); `Err(_)` for malformed inputs / fetch failures, including leftover pins (more pins than the policy has occurrences), a presented≠committed mismatch, an over-cap presented set, or a `max_depth` breach. Token-existence *is* the proof of satisfaction — a caller holding a `PolicyVerification` cannot have reached it on an unsatisfied policy.
 
-The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: it confirms each named issuer is a current delegate by **self-traversing that issuer's own delegation chain** up to a delegator named by the issuance policy (no cred-supplied path — the chain self-records the linkage; see *Delegation handshake*), proves each issuer's anchor through its `id` (the **anchor pinning**), counts distinct issuers against the issuance policy's thresholds, then runs the withdrawal scan. The verification walk pages each referenced log once, so a chain reached by several anchor pinnings or self-traversals is checked inline in that one pass. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it matches live attestations over a fresh challenge against the policy's leaves at the chain tip (`del` leaves self-traverse from a **named delegate** the bearer presents, as in the anchored flow).
+The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: it confirms each named issuer is a current delegate by **self-traversing that issuer's own delegation chain** up to a delegator named by the issuance policy (no cred-supplied path — the chain self-records the linkage; see *Delegation handshake*), proves each issuer's anchor through its `id` (the **anchor pinning**), counts distinct issuers against the issuance policy's thresholds (resolving its foreign `grp` splices as-of the credential's issuance-policy pinning — G1/G5, never a roster owner's tip), then runs the withdrawal scan. The verification walk pages each referenced log once, so a chain reached by several anchor pinnings or self-traversals is checked inline in that one pass. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it matches live attestations over a fresh challenge against the policy's leaves at the chain tip (`del` leaves self-traverse from a **named delegate** the bearer presents, as in the anchored flow).
 
 ### Policies and Pinnings
 
@@ -211,9 +220,12 @@ thr(1, [del(iel_prefix_1, 1), del(iel_prefix_2, 1), del(iel_prefix_3, 1)])
 which says that prefixes 1 through 3 may delegate to issuers, and a single delegate (at depth 1 —
 a direct delegate) of any of them satisfies the policy.
 
-The credential **names its issuer(s)** and carries **one anchor pinning per issuer**. It carries
-**no delegation pinning**: delegation is proven by the verifier self-traversing the issuer's own
-delegation chain, which self-records the link to its delegator. Only the anchor needs a pinning.
+The credential **names its issuer(s)** and carries **one anchor pinning per issuer**, plus **one
+issuance-policy pinning** — issuing is authoring, so the issuance check is anchored (G5): each
+foreign `grp(X, group)` splice in the issuance policy resolves X's roster as-of the X-state-marker
+this pinning supplies (G1), never at X's tip. It carries **no delegation pinning**: delegation is
+proven by the verifier self-traversing the issuer's own delegation chain, which self-records the
+link to its delegator. Only the anchors and the issuance-policy state need pinnings.
 
 ```rust
 let iel_prefix_1 = Prefix::from_qb64("KAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")?;
@@ -233,6 +245,10 @@ let issuers: Vec<(Prefix, &Pinning)> = cred
     .map(|i| (i.prefix, parse_pinning_sad(&sadd_fetch(&i.anchor_pinning_said)?)?))
     .collect::<Result<_, _>>()?;
 
+// G5 — issuing is authoring: the credential carries an issuance-policy pinning fixing the as-of
+// state for the issuance policy's own leaves (one X-state-marker per foreign grp splice, G1).
+let issuance_pinning = parse_pinning_sad(&sadd_fetch(&cred.issuance_pinning_said)?)?;
+
 // each required anchor names the minimum tier its hosting event must satisfy
 let cred_anchor: HashSet<(Said, Tier)> = [(cred.said, Tier::One)].into_iter().collect();
 
@@ -249,6 +265,7 @@ let committed: HashSet<Prefix> = cred.committed_issuers().into_iter().collect();
 // On success it returns Some(PolicyVerification) — the proof token downstream steps consume.
 let verification = evaluate_anchored_policy(
     &issuance_policy,
+    &issuance_pinning,                           // G5: the policy's leaves resolve as-of this, not at tip
     &issuers,
     &committed,                                  // NEW-D: asserted == presented, inside the verifier
     &cred_anchor,
@@ -280,6 +297,7 @@ Implementation:
 // chain verification tokens (verify-before-use chain -> policy too) is the Phase-3 rewrite.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
+    issuance_pinning: &Pinning,              // cred-carried as-of state for the policy's own leaves (G5)
     issuers: &[(Prefix, &Pinning)],
     committed_issuers: &HashSet<Prefix>,
     expected_anchors: &HashSet<(Said, Tier)>,
@@ -323,8 +341,17 @@ pub fn evaluate_anchored_policy(
 
     // (b) + composition. Evaluate the issuance policy: each `del(X, N)` placeholder is matched by
     // the distinct anchored issuers that self-traverse up to `X` within `N` hops; composers count
-    // DISTINCT issuer prefixes. An empty credited set is a clean unsatisfied (Ok(None)).
-    let credited = issuance_credited(&issuance_policy.expr, &anchored, source, max_depth)?;
+    // DISTINCT issuer prefixes. The policy's own leaves resolve AS-OF the credential's
+    // issuance-policy pinning (G5): a foreign `grp(X, group)` consumes its X-state-marker slot and
+    // reads X's roster from the snapshot reconstructed as-of it (G1) — never X's tip. Leftover
+    // slots after the walk deny, mirroring the single-policy discipline. An empty credited set is
+    // a clean unsatisfied (Ok(None)).
+    let mut issuance_pins = PinCursor::new(&issuance_pinning.pins);
+    let credited = issuance_credited(&issuance_policy.expr, &anchored, &mut issuance_pins,
+                                     source, max_depth)?;
+    if issuance_pins.remaining() > 0 {
+        return Err(PolicyError::LeftoverPins);   // more pins than foreign-grp occurrences — malformed
+    }
     if credited.is_empty() {
         return Ok(None);
     }
@@ -400,25 +427,38 @@ fn self_traverses(
 // so a containing composer dedups by prefix when it unions children. An issuance policy accepts both
 // DELEGATED issuers (`del(X, N)` — anchored issuers self-traversing up to `X` within `N`, delegation
 // is for scaling) and DIRECT named issuers (`id(X)` / `grp(prefix, group)` — anchored issuers
-// matching the named prefix / the owner's `group` roster at its tip). `pol` recurses; `thr`/`wgt`/`and` compose
+// matching the named prefix / the owner's `group` roster AS-OF the X-state-marker the credential's
+// issuance-policy pinning supplies for that occurrence (G1/G5 — never the owner's tip)). `pol`
+// recurses; `thr`/`wgt`/`and` compose
 // (union / max-weight / conjunction); a bare `dev` credits nobody (issuers are IELs, not bare
 // devices). `thr(M, …)` is met iff the child union holds ≥ M distinct issuers; `wgt` sums per-issuer
 // weight (dedup-by-max, mirroring `grp` — weighted delegation composes identically).
 fn eval_issuance(
     expr: &PolicyExpr,
     anchored: &[&Prefix],
+    issuance_pinning: &Pinning,
     source: &impl EventSource,
     max_depth: u32,
 ) -> Result<bool, PolicyError> {
-    let credited = issuance_credited(expr, anchored, source, max_depth)?;
+    let mut pins = PinCursor::new(&issuance_pinning.pins);
+    let credited = issuance_credited(expr, anchored, &mut pins, source, max_depth)?;
+    if pins.remaining() > 0 {
+        return Err(PolicyError::LeftoverPins);   // more pins than foreign-grp occurrences — malformed
+    }
     Ok(!credited.is_empty())
 }
 
 // Returns the set of distinct issuers `expr` credits if satisfied, else the empty set. Issuance
 // accepts DELEGATED (`del`) and DIRECT (`id` / `grp`) issuers; `pol` recurses; `dev` credits nobody.
+// `pins` is the positional cursor over the credential's issuance-policy pinning (G5): a foreign
+// `grp(X, group)` is the only occurrence kind that consumes a slot here — one X-state-marker per
+// occurrence, pre-order (G1). Nothing else in this evaluator reads chain state through the policy
+// (`id` is matched against the anchored set, `del` self-traverses, `dev` credits nobody), so
+// nothing else lays a slot.
 fn issuance_credited(
     expr: &PolicyExpr,
     anchored: &[&Prefix],
+    pins: &mut PinCursor,
     source: &impl EventSource,
     max_depth: u32,
 ) -> Result<HashSet<Prefix>, PolicyError> {
@@ -444,25 +484,39 @@ fn issuance_credited(
             HashSet::new()
         }),
         // grp(prefix, group): flatten to id(member) and credit the anchored members of `prefix`'s
-        // `group` ("any of X's executives may issue directly"). Roster resolved at the owner's TIP
-        // (identity-current — the issuance policy is the resource's live config, unpinned). The
+        // `group` ("any of X's executives may issue directly"). The roster is resolved AS-OF the
+        // X-state-marker this occurrence's slot in the issuance-policy pinning supplies (G1/G5):
+        // issuing is authoring, so the issuance check is anchored — the owner's TIP is never read.
+        // Forward-only membership: an issuer later dropped from the group (no `Rsc`) does not
+        // retroactively void a credential issued while it was rostered; loss-of-trust comes from
+        // the rescission/withdrawal walks (to tip in both modes), not from tip-resolving the
+        // roster. A null/absent slot credits nobody (fail-secure; the slot is still consumed). The
         // one-arg own-form grp(group) (Grp(None, _)) has NO host context in an issuance policy
         // (a general policy — `issuance_credited` threads no self-context and never descends an
         // `id`), so it credits nobody (fail-secure).
         PolicyExpr::Grp(Some(prefix), group) => {
             let mut set = HashSet::new();
-            for member in source.roster_members(prefix, group)? {
-                if anchored.iter().any(|a| **a == member) {
-                    set.insert(member);
+            if let Some(Some(marker_said)) = pins.take_next() {
+                // X's snapshot as-of the pinned marker — the same reconstruction `satisfies_id`
+                // uses (NEW-B); the marker must really be X's (cf. `satisfies_id`'s prefix check).
+                let snapshot = source.snapshot_as_of(prefix, &marker_said)?;
+                if snapshot.prefix == *prefix {
+                    for member in snapshot.roster.members(group) {
+                        if anchored.iter().any(|a| **a == member) {
+                            set.insert(member);
+                        }
+                    }
                 }
             }
             Ok(set)
         }
-        PolicyExpr::Grp(None, _) => Ok(HashSet::new()),   // one-arg own-form — no host here
-        // pol(said): recurse (pure factoring — propagate the nested credited set). Decrement depth.
+        PolicyExpr::Grp(None, _) => Ok(HashSet::new()),   // one-arg own-form — no host here (lays no slot)
+        // pol(said): recurse (pure factoring — propagate the nested credited set; the nested
+        // policy's foreign-grp occurrences consume from the SAME cursor, in pre-order, exactly as
+        // `eval_expr`'s `pol` inherits its cursor). Decrement depth.
         PolicyExpr::Pol(said) => {
             let nested = parse_policy_sad(&sadd_fetch(said)?)?;
-            issuance_credited(&nested.expr, anchored, source, max_depth - 1)
+            issuance_credited(&nested.expr, anchored, pins, source, max_depth - 1)
         }
         // thr(M, …): union the credited children; met iff ≥ M distinct issuers, then return the
         // union. Children recurse at `max_depth - 1` (NEW-C — decrement on every composer, matching
@@ -470,7 +524,7 @@ fn issuance_credited(
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
             for sub in subs {
-                union.extend(issuance_credited(sub, anchored, source, max_depth - 1)?);
+                union.extend(issuance_credited(sub, anchored, pins, source, max_depth - 1)?);
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
@@ -481,7 +535,7 @@ fn issuance_credited(
         PolicyExpr::Wgt(m, weighted) => {
             let mut best: HashMap<Prefix, u32> = HashMap::new();
             for (sub, w) in weighted {
-                for p in issuance_credited(sub, anchored, source, max_depth - 1)? {
+                for p in issuance_credited(sub, anchored, pins, source, max_depth - 1)? {
                     best.entry(p).and_modify(|cur| *cur = (*cur).max(*w)).or_insert(*w);
                 }
             }
@@ -490,12 +544,13 @@ fn issuance_credited(
         }
         // and(…): conjunction — every child must credit ≥ 1 issuer; on success return the union, else
         // ∅ (separation of duties over issuers; distinct only over disjoint pools — see §`and`).
-        // Children recurse at `max_depth - 1` (NEW-C).
+        // Every child is evaluated (no short-circuit — children must drain their foreign-grp slots
+        // so the cursor stays deterministic). Children recurse at `max_depth - 1` (NEW-C).
         PolicyExpr::And(children) => {
             let mut union = HashSet::new();
             let mut all_satisfied = true;
             for child in children {
-                let credited = issuance_credited(child, anchored, source, max_depth - 1)?;
+                let credited = issuance_credited(child, anchored, pins, source, max_depth - 1)?;
                 if credited.is_empty() {
                     all_satisfied = false;
                 }
@@ -513,7 +568,10 @@ fn issuance_credited(
 // prefix plus WHERE that host's roster is read. `AtMarker` pins the roster to the `id(X)`
 // `Evl`/`Icp` marker's reconstructed snapshot (FROZEN — reused, no second pin, closing the
 // authentication-recent / roster-stale split that a free roster slot would open). `AtTip` reads the
-// owner's LIVE roster (the current/issuance tip-live flows, and a foreign two-arg `grp`). A `None`
+// owner's LIVE roster (current mode only — the read-time identity proof). A foreign two-arg `grp`
+// never resolves a roster at tip in an anchored evaluator: it consumes its OWN X-state-marker slot
+// (G1 — `issuance_credited` takes it from the credential's issuance-policy pinning; an anchored
+// general-policy walk takes it from that policy's pinning). A `None`
 // `self_context` means no enclosing id descent — a one-arg `grp(group)` there credits nobody
 // (fail-secure). The struct carries the snapshot to the expansion site so `flatten` can reach it;
 // the as-of-marker roster READ itself stays provisional (EventSource/pagination), like `snapshot_as_of`.
@@ -529,8 +587,12 @@ enum RosterSource<'a> {
 }
 
 // `flatten` / `flatten_weighted` expand each `grp` element to `id(member)` leaves in canonical
-// order, reading the roster via `self_context`. A two-arg `grp(prefix, group)` ALWAYS reads
-// `source.roster_members(prefix, group)` at the foreign owner's tip. A one-arg `grp(group)` reads
+// order, reading the roster via `self_context`. A two-arg `grp(prefix, group)` reads
+// `source.roster_members(prefix, group)` at the foreign owner's tip in CURRENT MODE ONLY; in an
+// anchored walk it resolves as-of its own X-state-marker slot (G1) — it never appears in the
+// own-policies this single-policy pin-walk descends (see `eval_expr`'s thr note), and
+// `issuance_credited` resolves it from the issuance-policy pinning in its own arm, without
+// flatten. A one-arg `grp(group)` reads
 // the HOST's roster: `AtMarker(snap)` ⇒ `snap.roster` (the frozen marker snapshot, NEW-B); `AtTip`
 // ⇒ `source.roster_members(host.prefix, group)`; `None` ⇒ credits nobody (no enclosing host).
 
@@ -640,7 +702,9 @@ fn eval_expr(
         // thr: evaluate every element (Grp children expand inline into id(member) leaves). In this
         // pinned own-authentication walk a member is always one-arg `grp(group)`, resolved against the
         // enclosing id(X) marker's reconstructed roster snapshot (FROZEN, NEW-B) — a foreign two-arg
-        // `grp(prefix, group)` does not appear here (it lives only in tip-resolved general policies).
+        // `grp(prefix, group)` does not appear here (own-policies structurally exclude it; where a
+        // general policy is evaluated anchored — the issuance policy, a SEL's pinned policies — it
+        // consumes its own X-state-marker slot, G1).
         // Members flatten in canonical order; see §Leaf semantics. UNION the children's credited sets;
         // met iff ≥ M DISTINCT prefixes, then return the union (recursive dedup). `del` is not a
         // single-policy element (no slot, no self-traversal here): it appears only in the issuance

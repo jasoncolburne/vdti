@@ -33,7 +33,10 @@ referenced log gets for end-verifiability anyway:
 
 `evaluate_anchored_policy` then evaluates the issuance policy, where each `del(X, N)` placeholder is
 matched by the **distinct anchored issuers** that self-traverse to `X` within `N`; composers count
-distinct issuers. Finally it scans each issuer KEL to tip for a withdrawal anchor — skipped **only**
+distinct issuers, and the policy's foreign `grp(X, group)` splices resolve X's roster **as-of the
+X-state-marker the credential's issuance-policy pinning supplies** (G1/G5 — issuing is authoring, so
+the issuance check is anchored; the roster owner's tip is never read). Finally it scans each issuer
+KEL to tip for a withdrawal anchor — skipped **only**
 when the credential is `immune` (the F rescission walk above is never skipped). The public entry
 points are **policy verifiers**: on satisfaction they return `Ok(Some(PolicyVerification))` — the
 unforgeable proof token — `Ok(None)` for a clean unsatisfied, and `Err(_)` for a structural/source
@@ -43,8 +46,8 @@ shows the shape — the internal helpers elide the token (returning sets / bools
 the public `evaluate_anchored_policy` returns it:
 
 ```
-evaluate_anchored_policy(issuance_policy, issuers, committed_issuers, expected_anchors, withdrawal,
-                         immune, source, required_tier, max_depth)
+evaluate_anchored_policy(issuance_policy, issuance_pinning, issuers, committed_issuers,
+                         expected_anchors, withdrawal, immune, source, required_tier, max_depth)
         -> Result<Option<PolicyVerification>>:
     if len(issuers) > MAX_PRESENTED: error(TooManyIssuers)                       # count cap, up front
     assert {prefix for (prefix, _) in issuers} == committed_issuers             # trust boundary (NEW-D)
@@ -58,7 +61,9 @@ evaluate_anchored_policy(issuance_policy, issuers, committed_issuers, expected_a
                                   expected_anchors, None, source, required_tier, max_depth):
             anchored.append(issuer); issuer_tokens.append(t)
 
-    credited = issuance_credited(issuance_policy.expr, anchored, source, max_depth)  # (b) count distinct
+    issuance_pins = PinCursor(issuance_pinning.pins)             # G5 — the cred-carried as-of state
+    credited = issuance_credited(issuance_policy.expr, anchored, issuance_pins, source, max_depth)  # (b) count distinct
+    if issuance_pins.remaining() > 0: error(LeftoverPins)        # malformed issuance pinning
     if credited is empty: return Ok(None)
 
     if not immune and is_withdrawn(expected_anchors, anchored, withdrawal,         # withdrawal at tip
@@ -73,9 +78,11 @@ evaluate_anchored_policy(issuance_policy, issuers, committed_issuers, expected_a
                                            fold_snapshots(issuer_tokens))))
 
 # issuance_credited: del(X, N) credited by distinct anchored issuers self-traversing up to X within N;
-# DIRECT issuers credited by id(X) (X in anchored) / grp(X, group) (anchored members at X's tip);
+# DIRECT issuers credited by id(X) (X in anchored) / grp(X, group) (anchored members of X's `group`
+# AS-OF the X-state-marker its slot in the issuance-policy pinning supplies — G1/G5, never X's tip);
 # pol recurses; thr/wgt/and count DISTINCT issuer prefixes (set union; wgt dedups by max weight;
-# and = all branches non-empty). dev credits nobody. Never expands del. (eval_issuance wraps it as a
+# and = all branches non-empty). dev credits nobody. Never expands del; a foreign grp is the only
+# occurrence kind that consumes an issuance-pinning slot. (eval_issuance wraps it as a
 # bool — `not issuance_credited(...).is_empty()` — where only a yes/no is needed.)
 
 # self_traverses: walk UP candidate's chain to delegator, <= max_hops, F-rescission-to-tip ALWAYS.
@@ -93,7 +100,7 @@ self_traverses(candidate, delegator, max_hops, source, max_depth) -> bool:
 
 # evaluate_single_policy: positional pin-walk over ONE del-free policy (the issuer's authentication).
 # Leftover pins deny. self_context threads the host context (prefix + roster source: AtMarker(snapshot)
-# inside an id descent, AtTip otherwise) for an aggregate member's one-arg grp(group).
+# inside an id descent; AtTip is current-mode only) for an aggregate member's one-arg grp(group).
 # Returns Some(token) (credited set + anchored SAIDs + reconstructed marker snapshots) on satisfaction,
 # None on a clean miss — the anchored entry folds the token into its result.
 evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, required_tier, max_depth)
@@ -201,15 +208,18 @@ fn authorize(
 ) -> Result<bool, PolicyError> {
     // 1. Validity — each named issuer self-traverses to a delegator the issuance policy names and
     //    anchors the credential on its own authentication at the required tier; enough DISTINCT
-    //    issuers clear the issuance threshold; and no satisfying withdrawal anchor was found. The
+    //    issuers clear the issuance threshold (its foreign `grp` splices resolved as-of the cred's
+    //    issuance-policy pinning, G5); and no satisfying withdrawal anchor was found. The
     //    presented issuers are asserted equal to the credential's committed set INSIDE the verifier
     //    (NEW-D). On success it returns a PolicyVerification proof token.
     let cred_anchor: HashSet<(Said, Tier)> =
         [(cred.said, Tier::One)].into_iter().collect();
     let issuers: Vec<(Prefix, &Pinning)> = cred.issuers();   // committed set, sourced from the cred
     let committed: HashSet<Prefix> = cred.committed_issuers().into_iter().collect();
+    let issuance_pinning: &Pinning = cred.issuance_pinning();   // cred-carried as-of state (G5)
     let Some(validity) = evaluate_anchored_policy(
         issuance_policy,
+        issuance_pinning,
         &issuers,
         &committed,                  // NEW-D: asserted == presented, inside the verifier
         &cred_anchor,
