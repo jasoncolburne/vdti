@@ -314,7 +314,7 @@ Brief mapping of which policy gates each event kind. For all non-inception event
 
 ## Open items
 
-1. **Multi-slot ratchet semantics.** When a labeled pinning has multiple slots, does an `Evl` re-pin require **every** slot to advance, or may a **subset** advance (others held)? TBD — SEL primitive doctrine.
+1. **Multi-slot ratchet semantics.** When a labeled pinning has multiple slots, does an `Evl` re-pin require **every** slot to advance, or may a **subset** advance (others held)? And when the same `Evl` changes `governance` / `operation`, what defines **slot correspondence** between the parent's pinning and the new one? ([`../../../protocol-doctrine.md` §Per-Event Parent-Monotonic Ratchet](../../../protocol-doctrine.md#per-event-parent-monotonic-ratchet-sel-specific) defers both here.) The correspondence definition must preserve the **no-backward-ratchet** property across a policy change — `Evl` is governance-gated, so a co-evolved policy + pin must not be able to route a slot to older chain state. TBD — SEL primitive doctrine.
 
 2. **Pin-SAD serialization.** Slot/null encoding and canonical field order for the labeled positional pinning — TBD until SEL primitive doctrine lands. (Weights are policy content — `wgt` composers — never pin content.)
 
