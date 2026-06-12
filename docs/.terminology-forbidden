@@ -1,0 +1,103 @@
+# Mirrors the root .terminology-forbidden (deeper files REPLACE shallower
+# per scripts/lint-terminology.sh, so root patterns must be copied here to
+# stay in force for docs/). The docs-only additions live below the root
+# block. Keep in sync with the root file when root patterns change; add
+# docs-only patterns under §Doc-only below.
+#
+# Scope note: this file is docs/-scoped (not root) so the .working/
+# catalogues that legitimately quote superseded vocabulary don't
+# false-positive; root scope continues to govern them.
+
+# === Removed primitives (post-kels#214 simplification) ===
+# Cnt removed; per-node Contested removed; upgrade rule removed.
+\bCnt\b
+\bis_contested\b
+\bupgrade[ _]rule\b
+
+# === Removed identifiers (post-kels#218 federation trust model) ===
+# Static trusted prefix list replaced with federation Fcp SAID set.
+\bTRUSTED_REGISTRY_PREFIXES\b
+\bTRUSTED_REGISTRY_MEMBERS\b
+
+# === Rejected design directions (post-kels#218) ===
+# Federation-Dip / Fip ruled out — federation IEL uses Fcp self-signing carve-out.
+\bFederation-Dip\b
+\bFip\b
+
+# === Renamed services (kels consolidation) ===
+# sadstore + kels-service consolidated into vdtid; gossip-service → witnessd.
+\bsadstore\b
+\bkels-service\b
+\bgossip-service\b
+\bkels-sadstore\b
+
+# === kels-internal tool / agent names (out-of-context in vdti) ===
+# Distinctive enough to forbid; common words ("max", "min") rely on review.
+\bclaudit\b
+\bxhigh\b
+
+# === kels protocol namespace leakage ===
+# vdti has its own namespace: vdti/witness/v1/topics/*, vdti/sad/v1/*, etc.
+kels/gossip/
+kels/witness/
+kels/sad/
+
+# ============================================================================
+# §Doc-only — event-shape (VDTI-14) superseded vocabulary
+# ============================================================================
+# event-shape.md settled the event taxonomy and field names; these kels-era
+# tokens must not regress into docs. Whole-token word boundaries only —
+# Rec / Upd / Sea are substring-dangerous (Receipt, recovery, SeaweedFS, …).
+
+# === kels-era event kinds (now Rpr / Ixn / Evl; Dip folded into Icp + delegating) ===
+\bRec\b
+\bUpd\b
+\bSea\b
+\bDip\b
+
+# === Renamed policy fields ===
+# authPolicy context-mapped to governance / authentication / operation;
+# governancePolicy → governance; identity_leaves removed (pool = governance
+# DSL expansion); delegatingPrefix → delegating.
+\bauthPolicy\b
+\bgovernancePolicy\b
+\bidentity_leaves\b
+\bdelegatingPrefix\b
+
+# === Old policy-DSL leaf / composer names ===
+# Canonical leaves: id (identity) / dev (device) / grp (group) / del.
+# Composers: thr / wgt / pol / and. Forbidden = every superseded spelling:
+#   pre-vdti:   Endorse( → dev( ; Delegate( → del( ; identity( → id( ;
+#               threshold( → thr( ; Weighted → wgt ; nested Policy( → pol.
+#   vdti log-names (the DSL surface speaks identity/device/group, not log type):
+#               iel( → id( ; kel( → dev( ; mem( → grp(.
+# Call-form (trailing "(") so the uppercase IEL/KEL/SEL primitives and the
+# kel/ // iel/ doc paths are NOT matched.
+\bEndorse\(
+\bDelegate\(
+\bidentity\(
+\bthreshold\(
+\bWeighted\b
+\bPolicy\(
+\biel\(
+\bkel\(
+\bmem\(
+
+# === Superseded SEL prefix tuples ===
+# Settled tuple is (governance, operation, topic).
+\(identity,[[:space:]]*topic\)
+\(governance,[[:space:]]*topic\)
+
+# ============================================================================
+# §Doc-only — policyPin rename (VDTI-14 fold-in)
+# ============================================================================
+# ielEvent → policyPin (SEL); the pin is always the SAID of a pin SAD
+# ("binding SAD" superseded); no ielPrefix field exists. The KEL
+# federation-binding field is federationBinding (policyBinding retired).
+# \bielEvent\b does not match custody's ownerIelEvent (case differs at
+# the boundary); federationBinding is not caught by [bB]inding[ -]SAD
+# (which requires a following " SAD" / "-SAD").
+\bielEvent\b
+\bielPrefix\b
+\bpolicyBinding\b
+[bB]inding[ -]SAD
