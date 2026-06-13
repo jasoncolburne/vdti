@@ -36,7 +36,7 @@ pub struct PolicyVerification {
     challenge: Option<Digest256>,            // challenge digest bound in current mode; None in anchored mode (A)
     credited: HashSet<Prefix>,               // the distinct parties that satisfied the policy
     anchored_saids: BTreeSet<Said>,          // SADs proven anchored on the surviving branch (anchored mode; empty in current mode)
-    snapshots: Vec<IelStateSnapshot>,        // the Evl/Icp-marker state snapshot(s) the walk reconstructed (NEW-B); provisional shape pending event-shape.md
+    snapshots: Vec<IelStateSnapshot>,        // the Evl/Icp-marker state snapshot(s) the walk reconstructed (NEW-B); bundles the IEL state fields settled in event-shape.md, exact struct an implementation detail
 }
 
 impl PolicyVerification {
@@ -227,6 +227,14 @@ this pinning supplies (G1), never at X's tip. It carries **no delegation pinning
 proven by the verifier self-traversing the issuer's own delegation chain, which self-records the
 link to its delegator. Only the anchors and the issuance-policy state need pinnings.
 
+The **gate** and the **evidence** resolve at different times: the issuance-policy *text* is read at
+the resource's **current** state (an author must not grandfather a superseded gate by pinning a
+policy version — the policy in force is whatever the resource holds now), while the *evidence* each
+leaf consumes — the foreign-`grp` roster — resolves **as-of** the cred's pin. So an issuance-policy
+edit that changes the foreign-`grp` occurrence layout desyncs every outstanding credential's
+issuance pinning, whose slots no longer line up with the live policy's leaves — those creds then
+deterministically deny (fail-closed), never silently mis-bind.
+
 ```rust
 let iel_prefix_1 = Prefix::from_qb64("KAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")?;
 let iel_prefix_2 = Prefix::from_qb64("KBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")?;
@@ -276,8 +284,6 @@ let verification = evaluate_anchored_policy(
     16,                                          // max_depth (del's N bounds the delegation walk; this caps nesting)
 )?;
 ```
-
-> **TODO (pending [event-shape.md](../event-logs/event-shape.md)).** The evaluation architecture below — credential-names-issuers + per-issuer anchor pinning, the self-traversing delegation walk (each issuer walks *up* its own chain via the serial-1 `Evl` back-pointer; `del` never expanded), pre-order pin slotting consumed inline on the one verification walk, `self`-context threading, distinct-issuer counting, and the supply-SAIDs-up-front / one-paged-walk-per-log / inline-check mechanism — is stable. What may still shift is the per-primitive **leaf field access** that depends on the settled event shapes: the dev anchor model and prior-event/SAID-cycle rederivation (`s.anchors`, `s.previous`), the surviving-branch resolution of the anchoring child (per `kel/reconciliation.md` / `merge.md`), the id `governance` / `authentication` field names (`id(X)` recurses into `authentication`; `governance` gates the IEL's own events), the self-recording delegation fields (`Icp.delegating` = delegator prefix; serial-1 `Evl.delegating` = the `Del`-event SAID; the `Del`/`Rsc` walk to tip), the membership **roster** field on the IEL that `grp(prefix, group)` resolves against (a roster-SAD SAID the IEL commits to — not yet in `event-shape.md`) and the composer-time flattening that expands `grp` elements into `id(member)` leaves, and where `tier` lives on the event. Treat those specifics as provisional until `event-shape.md` lands.
 
 Implementation:
 
@@ -430,8 +436,10 @@ fn self_traverses(
 // matching the named prefix / the owner's `group` roster AS-OF the X-state-marker the credential's
 // issuance-policy pinning supplies for that occurrence (G1/G5 — never the owner's tip)). `pol`
 // recurses; `thr`/`wgt`/`and` compose
-// (union / max-weight / conjunction); a bare `dev` credits nobody (issuers are IELs, not bare
-// devices). `thr(M, …)` is met iff the child union holds ≥ M distinct issuers; `wgt` sums per-issuer
+// (union / max-weight / conjunction). A bare `dev` is a **policy-validity error** in an issuance
+// policy (a general policy — `dev` is legal only in a singleton IEL's own three policies; validation
+// rejects it, issuers being IELs, not bare devices); the defensive `Dev` arm below is the fail-secure
+// floor. `thr(M, …)` is met iff the child union holds ≥ M distinct issuers; `wgt` sums per-issuer
 // weight (dedup-by-max, mirroring `grp` — weighted delegation composes identically).
 fn eval_issuance(
     expr: &PolicyExpr,
@@ -558,8 +566,9 @@ fn issuance_credited(
             }
             Ok(if all_satisfied { union } else { HashSet::new() })
         }
-        // dev(K): a bare device is not an issuer unit (issuers are IELs; the distinct-issuer count is
-        // over IEL prefixes) — credit nobody. Fail-secure clean line.
+        // dev(K): FORBIDDEN in an issuance policy — `dev` is legal only in a singleton IEL's own three
+        // policies, so validation rejects a bare `dev` here (issuers are IELs; the distinct-issuer count
+        // is over IEL prefixes). Defensive fail-secure floor if one is somehow present: credit nobody.
         PolicyExpr::Dev(_) => Ok(HashSet::new()),
     }
 }
@@ -660,8 +669,10 @@ fn eval_expr(
         return Err(PolicyError::MaxDepthExceeded);   // fail-secure
     }
     match expr {
-        // dev: take this leaf's slot. A present SAID names the event just-prior to the anchoring
-        // event; resolve its surviving-branch child and check the anchor + tier. Satisfied ⇒ credit
+        // dev: reached legitimately ONLY as the base case of `id` recursion into a singleton IEL's own
+        // authentication — an author-written bare `dev` in a general policy is a placement-validity error
+        // and never reaches here. Take this leaf's slot. A present SAID names the event just-prior to the
+        // anchoring event; resolve its surviving-branch child and check the anchor + tier. Satisfied ⇒ credit
         // {prefix}; a null slot (or exhausted cursor) consumes the slot and credits nobody.
         PolicyExpr::Dev(prefix) => match cur.take_next() {
             Some(Some(prior_said)) => {
@@ -891,7 +902,10 @@ fn current_credited(
         return Err(PolicyError::MaxDepthExceeded);   // fail-secure
     }
     match expr {
-        // dev(K): credit {K} iff an attestation by K validates against K's CURRENT signing key (and
+        // dev(K): reached legitimately ONLY as the base case of `id` recursion into a singleton IEL's
+        // own authentication — an author-written bare `dev` in a general policy (application / readPolicy /
+        // withdrawal) is a validation error and never reaches here. Credit {K} iff an attestation by K
+        // validates against K's CURRENT signing key (and
         // recovery key, per the required_tier ATTESTATION SHAPE) over the challenge. NEW-F: the prior
         // `.unwrap_or(false)` that swallowed errors is gone. `verify_current_attestation` returns
         // Ok(false) for a non-verifying EXTERNAL attestation-over-challenge signature — junk, not
@@ -983,7 +997,6 @@ fn current_credited(
 }
 ```
 
-(The tip-state source accessors — `iel_tip`, `verify_current_attestation` — depend on the settled
-event/attestation shapes; treat them as provisional pending [`event-shape.md`](../event-logs/event-shape.md),
-like the anchored leaf accessors above.)
+(The tip-state source accessors — `iel_tip`, `verify_current_attestation` — are illustrative shapes
+over the settled event/attestation event-shapes; their exact signatures are an implementation detail.)
 

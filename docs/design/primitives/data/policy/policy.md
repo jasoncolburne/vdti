@@ -12,7 +12,7 @@ This doc states the surface (the primitives that make up the DSL), their semanti
 
 Policies are referenced by Policy SAD SAIDs from chain-event fields:
 
-- **IEL `governance`** (required at inception; evolved via `Evl`) — gates IEL self-mutation events (key rotation, policy/roster changes, decommission).
+- **IEL `governance`** (required at inception; evolved via `Evl`) — gates IEL self-mutation events (policy and roster changes — including which device keys the policies' `dev()` leaves name — and decommission).
 - **IEL `authentication`** (required at inception; evolved via `Evl`) — the entity's act-as policy: what every `id(prefix)` leaf (and each `grp` member) evaluates against. Outward-facing — it never gates the IEL's own chain events.
 - **IEL `delegation`** (optional at inception; evolved via `Evl`) — gates IEL delegation events (`Del` / `Rsc`).
 - **SEL `governance`** (declared at SEL `Icp`; evolved via `Evl`) — gates SEL events (`Evl` / `Rpr` / `Dec`).
@@ -51,7 +51,11 @@ Two chain-state **leaves** (`dev`, `id`), one policy-reference **leaf** (`pol`),
 
 Both `grp` and `del` are legal only **inside a composer's `[...]`**, never as a standalone
 `expr`. The `[...]` is a concat container, so member-arrays, delegation placeholders, and single
-expressions mix freely (`[grp(org, staff), dev(K)]` = org's staff members followed by `dev(K)`).
+expressions mix freely (`[grp(org, staff), id(member)]` = org's staff members followed by `id(member)`).
+`dev` is **placement-restricted**: it is legal only inside a **singleton** IEL's own three policies
+(the identity base case); in an aggregate IEL's own policies and in every general policy a device is
+named through a singleton `id` that wraps it, and all other authorization is by identity (see
+[`iel-policy-structure.md`](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton)).
 Members are IELs (individuals are IELs; devices are KELs), so each flattened `grp` member
 authenticates via their own authentication policy (`id(mi)`), while the referencing policy
 composes over them at the threshold/weights it chooses (see *Leaf semantics*). The grammar:
@@ -80,7 +84,7 @@ array `[wgt_elem, ...]` paired with a weight `w` that every one of its flattened
 *credited prefix* across a nested set (threshold-easing), whereas these four credit a clear
 membership-style set; the parser **rejects** a composer/`pol` `wgt` subject (fail-secure — see
 *Composition semantics*). So `([grp(group)], w)` weights each member of that group at `w`, and a
-single leaf is just the one-element case `([dev(K)], w)`. The bracket carries no bloc semantics:
+single leaf is just the one-element case `([id(K)], w)`. The bracket carries no bloc semantics:
 `([a, b], w)` desugars losslessly to `(a, w), (b, w)`, so the array is purely a concise way to
 attach one weight to several subjects. Every well-formed policy is built from these primitives.
 

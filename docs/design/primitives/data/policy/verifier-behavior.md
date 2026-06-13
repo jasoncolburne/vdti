@@ -123,6 +123,8 @@ evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, 
 eval_expr(expr, cur, expected_anchors, host, source, required_tier, max_depth) -> set<Prefix>:
     if max_depth == 0: error(MaxDepthExceeded)
     match expr:
+        # dev is reached only as the id-recursion base case (a singleton's own authentication); an
+        # author-written bare dev in a general policy is a placement-validity error and never reaches here.
         dev(prefix) => cur.take_next() is Some(Some(prior))  and satisfies_dev(prior, prefix, expected_anchors, source, required_tier) ? {prefix} : {}
         id(prefix) => cur.take_next() is Some(Some(marker)) and satisfies_id(marker, prefix, cur, expected_anchors, source, required_tier, max_depth) ? {prefix} : {}
         pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr, cur, expected_anchors, host, source, required_tier, max_depth - 1)   # propagate nested set

@@ -43,7 +43,7 @@ Beyond the common fields, a small set of fields appears on multiple kinds with c
 
 | Field | Type | Logs | Events | Description |
 |---|---|---|---|---|
-| `governance` | `Digest256` | IEL, SEL | IEL `Fcp` / `Icp` / `Evl`; SEL `Icp` / `Evl` | SAID of a governance Policy SAD: the chain's **self-mutation** authority. On an IEL it gates the IEL's own lifecycle events (`Evl` / `Dec`, i.e. key, policy, and roster changes, and decommission); on a SEL it gates the SEL's lifecycle events (`Evl` / `Rpr` / `Dec`). Declared at inception; evolved via `Evl`. It is **never** what an external `id(X)` leaf evaluates — that is `authentication`. |
+| `governance` | `Digest256` | IEL, SEL | IEL `Fcp` / `Icp` / `Evl`; SEL `Icp` / `Evl` | SAID of a governance Policy SAD: the chain's **self-mutation** authority. On an IEL it gates the IEL's own lifecycle events (`Evl` / `Dec`, i.e. policy and roster changes — including which device keys the policies' `dev()` leaves name — and decommission); on a SEL it gates the SEL's lifecycle events (`Evl` / `Rpr` / `Dec`). Declared at inception; evolved via `Evl`. It is **never** what an external `id(X)` leaf evaluates — that is `authentication`. |
 | `authentication` | `Digest256` | IEL | `Fcp` / `Icp` / `Evl` | SAID of an authentication Policy SAD: an IEL's **outward act-as** authority. It is what every external `id(prefix)` leaf and each `grp` member resolves to (see [`../policy/leaf-semantics.md`](../policy/leaf-semantics.md)). Required at inception; evolved via `Evl` (gated by `governance`). Outward-facing — it **never** gates the IEL's own chain events (so there is no circularity: an IEL's log is governance-gated, not authentication-gated). |
 | `delegation` | `Digest256` | IEL | `Fcp` / `Icp` / `Evl` | SAID of a delegation Policy SAD. Optional at inception; evolved via `Evl` (gated by `governance`). Gates IEL `Del` / `Rsc`. |
 | `operation` | `Digest256` | SEL | `Icp` / `Evl` | SAID of an operation Policy SAD: a SEL's **operational write** authority over its own log. Gates SEL operational events `Est` / `Ixn`. Declared at `Icp`; evolved via `Evl` (gated by `governance`). (Named `operation` — not `authentication` — because it *does* gate the SEL's own events, the opposite of IEL `authentication`'s never-gates-own-log meaning; a SEL has no act-as identity.) |
@@ -63,7 +63,7 @@ The KEL-specific key-state fields (`publicKey`, `rotationHash`, `recoveryKey`, `
 
 An IEL carries **three** policy references with distinct roles — none interchangeable:
 
-- **`governance`** — internal self-mutation gate (`Evl` / `Dec`; key, policy, and roster changes). Required at inception.
+- **`governance`** — internal self-mutation gate (`Evl` / `Dec`; policy and roster changes, including which device keys the policies' `dev()` leaves name). Required at inception.
 - **`authentication`** — outward act-as policy; the only one an external `id(X)` evaluates. Required at inception.
 - **`delegation`** — optional `Del` / `Rsc` gate.
 

@@ -12,7 +12,8 @@ delegated set:
   event** (the event on `X`'s chain that lists `D`'s prefix — known only after `X.Del` exists, and
   still identifying `X` because the SAID resolves to an event on `X`'s chain). Reusing the
   privileged `Evl` avoids the IEL no-local-divergence break a content event would cause; the `Del`
-  SAID is one of the things an `Evl` may change (alongside `governance` / `delegation`).
+  SAID is the `delegating` field — one of the **five** fields an `Evl` may change (alongside
+  `governance` / `authentication` / `delegation` / `roster`; ≥ 1 must change).
 
 Two structural rules make the handshake unforgeable and keep it atomic (a merge-layer rule
 parallel to the SEL `[Icp, Est]` pairing):

@@ -2,29 +2,40 @@ Part of the policy primitive group — see [`policy.md`](policy.md) for the DSL 
 
 ## IEL policy structure — aggregate vs. singleton
 
-An IEL is one of two kinds, fixed at inception by an optional boolean **`aggregate`** flag on its
-`Icp` event — absent or `false` ⇒ **singleton**, `true` ⇒ **aggregate**. The flag is **immutable**:
-an identity does not change kind over its life ("it's an identity, not a choose-your-own-adventure").
-The kind constrains what the IEL's three policies (`governance`, `authentication`, `delegation`)
-may contain. (This is a constraint on an IEL's *own* three policies only; general policies —
-application, issuance, withdrawal — keep the full DSL surface, including `id(X)` and foreign
-`grp(X, group)`.)
+An IEL is one of two kinds, fixed at inception by **roster presence** on its `Icp` event — an IEL
+is **aggregate** iff it declares a `roster`, **singleton** otherwise. Roster presence is
+**immutable**: an identity does not change kind over its life ("it's an identity, not a
+choose-your-own-adventure"). The kind constrains what the IEL's three policies (`governance`,
+`authentication`, `delegation`) may contain. This is a constraint on an IEL's *own* three policies;
+general policies — application, issuance, withdrawal, `readPolicy` — keep the full DSL surface
+**except bare `dev`** (still including `id(X)` and foreign `grp(X, group)`).
+
+**`dev` is legal only inside a singleton IEL's own three policies** — the identity base case. It is
+forbidden in aggregate IEL own-policies (the rule below) **and** in every general policy
+(application, issuance, withdrawal, `readPolicy`); everywhere else a device is referenced through a
+singleton `id` that wraps it, and all other authorization is by identity. `id(X')` strictly
+**dominates** a bare `dev(K)`: the singleton `X'` wrapping K gives the same terminal key-check
+**plus** identity lifecycle (rotation / recovery / multi-device / decommission), and the system is
+identity-rooted, so there is always an identity to name. A bare `dev(K)` instead tracks K's own KEL
+but **not** the owner's management of K — it would keep granting to a device the owner has rotated
+out or decommissioned, the same lifecycle-bypass flaw that forbids `dev` in aggregate own-policies
+(see [`leaf-semantics.md`](leaf-semantics.md#devprefix--kel-key-match-tier-agnostic)).
 
 - **Singleton** — bottoms out at device keys; it has **no roster** (the `Icp` simply omits the
-  roster field). Its three policies may contain only `dev()` leaves, composed with `thr` / `wgt` —
-  no `grp`, `id`, `del`, or `pol`. A singleton is the **base case** that `id(...)` resolution
+  roster field). Its three policies may contain only `dev()` leaves, composed with `thr` / `wgt` /
+  `and` — no `grp`, `id`, `del`, or `pol`. A singleton is the **base case** that `id(...)` resolution
   terminates at: every chain of member resolution ends at some singleton's `dev()`. Its
   `authentication` must be non-empty (≥ 1 satisfiable `dev`), or the identity can never act.
 
 - **Aggregate** — composed of other identities (its members). It carries a **roster**: a SAD
   mapping group labels to sets of member IEL prefixes (see [`grp`](leaf-semantics.md#grp--membership-roster-array)).
-  Its three policies may contain only one-arg `grp(group)` arrays, composed with `thr` / `wgt` — the
-  **host** IEL's **own** roster only, never a foreign one. No bare `id` / `dev` / `del`, no `pol`.
+  Its three policies may contain only one-arg `grp(group)` arrays, composed with `thr` / `wgt` /
+  `and` — the **host** IEL's **own** roster only, never a foreign one. No bare `id` / `dev` / `del`, no `pol`.
   An aggregate must be **born with a non-empty roster**, or it is ungovernable. The one-arg form is
-  **cycle-forced, not mere convenience**: the IEL's prefix is the content-address of its
-  `(authentication, governance, …)` commitment, so an own-policy that named its own prefix
-  (`grp(own_prefix, group)`) would close a content-address cycle — the prefix would depend on a
-  policy that names it. The prefix is therefore left implicit and supplied by the enclosing `id(X)`
+  **cycle-forced, not mere convenience**: the IEL's prefix commits to its **whole inception
+  content** (the `authentication` / `governance` / `delegation` policy SAIDs, the roster, and the
+  nonce), so an own-policy that named its own prefix (`grp(own_prefix, group)`) would close a
+  content-address cycle — the prefix would depend on a policy that names it. The prefix is therefore left implicit and supplied by the enclosing `id(X)`
   descent. (Because the one-arg form carries no prefix, IEL policies stay prefix-free — reducing to
   a smaller complete set, and under content-addressed dedup identical expressions like
   `thr(2, [grp(directors)])` collapse to a single Policy SAD shared across every IEL of that shape,
@@ -53,9 +64,9 @@ no digits, no uppercase.
 carries a visited-set / cycle guard in its `id(...)`-resolution walk so a membership cycle denies
 rather than loops; roster-write may additionally forbid self-membership as a first line.
 
-The `aggregate` flag, the roster field, and the roster-less singleton `Icp` shape are **event-shape
-facts** (VDTI-10) — provisional here pending [`event-shape.md`](../event-logs/event-shape.md). This
-section states only the **DSL-level constraint** the two kinds impose on policy contents.
+Roster presence as the aggregate/singleton signal, the roster field, and the roster-less singleton
+`Icp` shape are **event-shape facts** — settled in [`event-shape.md`](../event-logs/event-shape.md).
+This section states only the **DSL-level constraint** the two kinds impose on policy contents.
 
 > SELs have no identity and no roster — only `governance` + `operation` policies — so the
 > aggregate/singleton distinction is **IEL-only**.

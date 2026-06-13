@@ -2,7 +2,7 @@ Part of the policy primitive group — see [`policy.md`](policy.md) for the DSL 
 
 ## Worked examples
 
-**Single-key authorization** — prove a device attested to something:
+**Single-device authentication** — a singleton IEL's own `authentication`, naming one device directly. `dev` is legal **only** inside a singleton IEL's own three policies; everywhere else, authorize by identity (`id`, below):
 ```
 dev(prefix)
 ```
@@ -23,11 +23,11 @@ With org `prefix`'s `staff` group = `{m1, m2, m3}` (resolved from that IEL's ros
 ```
 thr(1, [
     thr(3, [grp(prefix, members)]),
-    dev(emergency)
+    id(emergency)
 ])
 ```
 
-Any three members satisfy, or the emergency key alone.
+Any three members satisfy, or the emergency identity alone.
 
 **Weight-based membership groups** — an org weights executive / admin / member groups at 3 / 2 / 1, threshold 3 (the groups live in the org's one roster; weight is this policy's per-group valuation):
 ```
@@ -56,7 +56,7 @@ and([
 ≥1 board member **and** ≥1 executive. If `board` and `execs` are disjoint this is two different
 people; if someone sits on both, that one person satisfies both branches alone — `and` enforces "each
 pool is met," not "distinct people" (see *[`and`](leaf-semantics.md#andexpr----conjunction-separation-of-duties)*). For
-dual control mixing a pool with a named key: `and([thr(2, [grp(org, admins)]), dev(emergency_cosigner)])`
+dual control mixing a pool with a named identity: `and([thr(2, [grp(org, admins)]), id(emergency_cosigner)])`
 — 2 admins **and** the co-signer. `and` composes inside other composers: `thr(1, [and([id(a), id(b)]),
-dev(break_glass)])` = (a **and** b) **or** break-glass.
+id(break_glass)])` = (a **and** b) **or** break-glass.
 

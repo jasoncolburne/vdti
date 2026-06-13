@@ -2,14 +2,17 @@ Part of the policy primitive group — see [`policy.md`](policy.md) for the DSL 
 
 ### Shape
 
-Take the policy `thr(2, [pol(A_said), id(X_prefix), dev(Y_prefix)])`, where the nested
-policy `A_said` is `dev(A_prefix)` and IEL `X_prefix`'s authentication is `dev(Y_prefix)`. The
-verifier *expands the whole graph as it walks it* — descending through `pol()` and through each
-`id`'s authentication — visiting one **pinning slot** per prefix occurrence in **pre-order
-(depth-first) walk order**: `[A_prefix, X_prefix, Y_prefix, Y_prefix]`. `Y_prefix` appears twice
-— once reached through `X`'s authentication, once as the top-level `dev(Y_prefix)` branch — and
-each occurrence gets its own slot. The issuer pins one SAID per occurrence, in that same walk
-order; satisfying 2 of the 3 top-level branches is enough to clear the threshold.
+Take the policy `thr(2, [pol(A_said), id(X_prefix), id(W_prefix)])`, where the nested policy
+`A_said` is `id(B_prefix)`, IELs `X_prefix` and `W_prefix` each authenticate via the same device
+(both authentications are `dev(Y_prefix)`), and `B_prefix`'s authentication is `dev(A_prefix)`.
+Every `dev` sits at the bottom of an `id`→singleton descent — never bare in the general policy
+(the [`dev`-placement rule](leaf-semantics.md#devprefix--kel-key-match-tier-agnostic)). The verifier *expands the whole
+graph as it walks it* — descending through `pol()` and through each `id`'s authentication —
+visiting one **pinning slot** per prefix occurrence in **pre-order (depth-first) walk order**:
+`[B_prefix, A_prefix, X_prefix, Y_prefix, W_prefix, Y_prefix]`. `Y_prefix` appears twice — once
+reached through `X`'s authentication, once through `W`'s — and each occurrence gets its own slot,
+so each can pin a different KEL position. The issuer pins one SAID per occurrence, in that same
+walk order; satisfying 2 of the 3 top-level branches is enough to clear the threshold.
 
 `del(prefix, N)` is the one bracket form that contributes **no** slot — it is never expanded and
 carries no pin. Its issuers prove delegation by self-traversing their own delegation chains, not
@@ -25,11 +28,20 @@ slot kinds below.
 
 #### Policies (resource holder's gate)
 
-A
+A (the nested `pol(A_said)` policy)
 
 ```json
 {
     "said": "A_said",
+    "policy": "id(B_prefix)"
+}
+```
+
+IEL(B).authentication
+
+```json
+{
+    "said": "...",
     "policy": "dev(A_prefix)"
 }
 ```
@@ -43,38 +55,54 @@ IEL(X).authentication
 }
 ```
 
+IEL(W).authentication
+
+```json
+{
+    "said": "...",
+    "policy": "dev(Y_prefix)"
+}
+```
+
 Policy
 
 ```json
 {
     "said": "...",
-    "policy": "thr(2, [pol(A_said), id(X_prefix), dev(Y_prefix)])"
+    "policy": "thr(2, [pol(A_said), id(X_prefix), id(W_prefix)])"
 }
 ```
 
 #### Pinning (evidence pins)
 
-Walking `thr(2, [pol(A_said), id(X_prefix), dev(Y_prefix)])` in pre-order — descend through
+Walking `thr(2, [pol(A_said), id(X_prefix), id(W_prefix)])` in pre-order — descend through
 `pol()` and through each `id` authentication, taking one slot per prefix occurrence **as the
 walk reaches it**:
 
 ```
   thr(2)
-  ├─ pol(A_said) ──▶ dev(A_prefix)         ▷ slot 0  A_prefix   (pol → dev)
-  ├─ id(X_prefix)                         ▷ slot 1  X_prefix   (the id leaf itself)
-  │    └─ authentication ──▶ dev(Y_prefix) ▷ slot 2  Y_prefix   (via X's authentication)
-  └─ dev(Y_prefix)                         ▷ slot 3  Y_prefix   (top-level branch)
+  ├─ pol(A_said) ──▶ id(B_prefix)           ▷ slot 0  B_prefix   (pol → id state-marker)
+  │    └─ authentication ──▶ dev(A_prefix)   ▷ slot 1  A_prefix   (via B's authentication)
+  ├─ id(X_prefix)                           ▷ slot 2  X_prefix   (the id leaf itself)
+  │    └─ authentication ──▶ dev(Y_prefix)   ▷ slot 3  Y_prefix   (via X's authentication)
+  └─ id(W_prefix)                           ▷ slot 4  W_prefix   (the id leaf itself)
+       └─ authentication ──▶ dev(Y_prefix)   ▷ slot 5  Y_prefix   (via W's authentication)
 
   slots follow the walk — pre-order, depth-first, no sort:
 
-    slot 0     slot 1       slot 2                  slot 3
-    A_prefix   X_prefix     Y_prefix                Y_prefix
-    pol→dev    state-marker via X's authentication  top-level dev
+    slot 0  B_prefix   id(B) state-marker (pol → id)
+    slot 1  A_prefix   dev, via B's authentication
+    slot 2  X_prefix   id(X) state-marker
+    slot 3  Y_prefix   dev, via X's authentication
+    slot 4  W_prefix   id(W) state-marker
+    slot 5  Y_prefix   dev, via W's authentication
 ```
 
-`id(X)` contributes two slots — its own (the state-marker) and `Y_prefix` from its authentication,
-in that descent order — and `Y_prefix` lands twice, the via-authentication occurrence ordered
-before the top-level one because the walk reaches it first.
+Each `id` contributes two slots — its own (the state-marker) and the prefix from its authentication
+descent, in that descent order — so `id(X)` lays `[X_prefix, Y_prefix]` and `id(W)` lays
+`[W_prefix, Y_prefix]`. `Y_prefix` lands twice, the via-`X` occurrence ordered before the via-`W`
+one because the walk reaches it first; each occupies its own slot, so the two can pin different
+positions on `Y`'s KEL.
 
 A Pinning SAD carries `pins`: one `Option<Said>` per *prefix occurrence* in the expanded policy
 graph, **ordered by the verifier's pre-order walk** (a prefix reached through two branches gets
@@ -149,7 +177,9 @@ its position in the policy:
   As-of resolution is the point: a document's membership splice is valid relative to the X-state it
   pins — a later roster change on X is forward-only and never reaches back (loss-of-trust comes
   from the rescission/withdrawal walks, which run to tip in both modes). Like an `id` marker, a
-  state-marker carries no credential anchor, so there's no cycle and no prior-event trick.
+  state-marker carries no credential anchor, so there's no cycle and no prior-event trick. In the
+  credential's issuance-policy pinning the marker is the only slot — members lay none; their proofs
+  ride in the per-issuer anchor pinnings (see *Policies and Pinnings*).
 
 There is **no del slot**: `del(prefix, N)` is never expanded and carries no pin — delegation is
 proven by the verifier self-traversing the issuer's own delegation chain (bounded by `N`), not by
@@ -164,17 +194,20 @@ checks them inline in that log's single paged verification walk — the SAIDs to
 positions supplied before the walk, the walk validates each event as it pages through, and the
 caller confirms every required SAID was reached.
 
-For the policy above, the occurrences walk to `[A_prefix, X_prefix, Y_prefix, Y_prefix]`. An
-issuer satisfying all three branches pins every slot — dev prefixes → prior-event SAIDs, the
-id prefix → its state-marker SAID; a `null` would appear for any prefix left un-evidenced:
+For the policy above, the occurrences walk to `[B_prefix, A_prefix, X_prefix, Y_prefix, W_prefix,
+Y_prefix]`. An issuer satisfying all three branches pins every slot — dev prefixes (`A`, `Y`) →
+prior-event SAIDs, id prefixes (`B`, `X`, `W`) → their state-marker SAIDs; a `null` would appear
+for any prefix left un-evidenced:
 
 ```json
 {
     "said": "{pinning_said}",
     "pins": [
+        "{B_iel_marker_said}",
         "{A_prior_kel_event_said}",
         "{X_iel_marker_said}",
         "{Y_prior_kel_event_said_1}",
+        "{W_iel_marker_said}",
         "{Y_prior_kel_event_said_2}"
     ]
 }

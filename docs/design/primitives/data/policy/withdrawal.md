@@ -45,7 +45,7 @@ authentication threshold; hard: `expr` satisfied), `evaluate_anchored_policy` re
 the credential is structurally well-formed and validly issued, but withdrawn — so no proof token is
 minted (a withdrawn credential must not yield a `PolicyVerification`).
 
-> **TODO (pending [event-shape.md](../event-logs/event-shape.md) and the credential shape).** The
+> **TODO (pending the credential shape).** The
 > withdrawal-digest label (`"vdti/withdrawal:"`), the anchor-scan step (reading the issuer-KEL
 > walk's token for the digest), and the `withdrawal` / `immune` field placement on the credential
 > are provisional pending the settled credential shape. The three modes (soft / hard / immune) are
