@@ -72,11 +72,12 @@ impl PolicyVerification {
 //
 //  issuance_pinning the credential-carried pinning over `issuance_policy` (G5): issuing is
 //                   authoring, so the issuance check resolves AS-OF pinned state, never at a
-//                   roster owner's tip. One X-state-marker slot per foreign `grp(X, group)`
-//                   occurrence, pre-order (G1) — the only occurrence kind that reads chain state
+//                   roster owner's tip. One X-state-marker slot per foreign `grp(said, group)`
+//                   occurrence, pre-order (G1), and the marker must clear that occurrence's FLOOR
+//                   (marker ≥ the policy's `said`) — the only occurrence kind that reads chain state
 //                   in this evaluator (`id` is matched against the anchored set, `del`
-//                   self-traverses, `dev` credits nobody). The exact pin-SAD serialization is
-//                   implementer/SEL-primitive detail; the as-of principle is fixed.
+//                   self-traverses, `dev` is a misplaced-dev hard reject — DQ2). The exact pin-SAD serialization is
+//                   implementer/SEL-primitive detail; the as-of principle and the floor are fixed.
 //  issuers          presented issuers + their anchor pinnings. The verifier asserts (NEW-D, inside,
 //                   at the trust boundary) that the presented prefixes equal `committed_issuers`
 //                   before crediting any of them — the issuer<->content<->anchor binding never
@@ -100,7 +101,8 @@ impl PolicyVerification {
 //                   e.g. 16). Exceeding it denies (fail-secure).
 //
 // Returns Err(PolicyError) on structural/source failure (malformed input, fetch failure, leftover
-// pins, max_depth breach, presented != committed); Ok(None) on a clean unsatisfied result; and
+// pins, max_depth breach, presented != committed, a below-floor foreign-`grp` marker, a misplaced
+// `dev`); Ok(None) on a clean unsatisfied result; and
 // Ok(Some(PolicyVerification)) on satisfaction — the token carries the credited issuer set, the
 // anchored credential SAID(s), and the marker snapshot(s) the walk fixed. Verify-before-use is
 // type-enforced FROM THE POLICY TOKEN ONWARD; having the verifier also CONSUME the underlying chain
@@ -111,8 +113,10 @@ impl PolicyVerification {
 // NOTE (E1, Phase 3): today a single issuer's chain-verification failure propagates as a global Err
 // (the `?` on `evaluate_single_policy` below). Phase 3 SOFTENS this — a single unverifiable issuer
 // becomes UNCREDITED (not a global error) and the issuance threshold runs over the credited set;
-// only STRUCTURAL failures (leftover pins, max_depth, malformed input, a NEW-B roster desync) stay
-// hard `Err`. Fail-secure: softening can only SHRINK the credited set, never validate spuriously.
+// only STRUCTURAL failures (leftover pins, max_depth, malformed input, a NEW-B roster desync, a
+// below-floor foreign-`grp` marker, a misplaced `dev`) stay hard `Err` — they are policy-validity /
+// adversarial-pinning errors, not a single issuer's bad luck. Fail-secure: softening can only SHRINK
+// the credited set, never validate spuriously.
 pub fn evaluate_anchored_policy(
     issuance_policy: &Policy,
     issuance_pinning: &Pinning,              // cred-carried as-of state for the policy's own leaves (G5)
@@ -199,7 +203,7 @@ pub fn evaluate_current_policy(
 ) -> Result<Option<PolicyVerification>, PolicyError>;
 ```
 
-Both entry points are **policy verifiers**: a satisfied evaluation yields a `PolicyVerification` proof token, not a bare `true`. `evaluate_anchored_policy` returns `Ok(Some(token))` iff the presented issuers (asserted equal to the credential's committed set, NEW-D) satisfy `issuance_policy` — each self-traversing to a named delegator within depth and anchoring the credential on its authentication at the required tier on the surviving branch — AND no satisfying withdrawal anchor was found (see *Withdrawal*); the token carries the credited issuer set, the anchored credential SAID(s), and the marker snapshot(s) the walk fixed. `evaluate_current_policy` returns `Ok(Some(token))` iff the attestations over `challenge` cover `policy`'s leaves at current chain state with the required attestation shape; the token carries the credited prefixes (no anchored SAIDs, no snapshot — current mode is tip-live). Both return `Ok(None)` for a clean unsatisfied — including an unknown primitive, which fails the **whole** policy closed (see *Verifier behavior*); `Err(_)` for malformed inputs / fetch failures, including leftover pins (more pins than the policy has occurrences), a presented≠committed mismatch, an over-cap presented set, or a `max_depth` breach. Token-existence *is* the proof of satisfaction — a caller holding a `PolicyVerification` cannot have reached it on an unsatisfied policy.
+Both entry points are **policy verifiers**: a satisfied evaluation yields a `PolicyVerification` proof token, not a bare `true`. `evaluate_anchored_policy` returns `Ok(Some(token))` iff the presented issuers (asserted equal to the credential's committed set, NEW-D) satisfy `issuance_policy` — each self-traversing to a named delegator within depth and anchoring the credential on its authentication at the required tier on the surviving branch — AND no satisfying withdrawal anchor was found (see *Withdrawal*); the token carries the credited issuer set, the anchored credential SAID(s), and the marker snapshot(s) the walk fixed. `evaluate_current_policy` returns `Ok(Some(token))` iff the attestations over `challenge` cover `policy`'s leaves at current chain state with the required attestation shape; the token carries the credited prefixes (no anchored SAIDs, no snapshot — current mode is tip-live). Both return `Ok(None)` for a clean unsatisfied — including an unknown primitive, which fails the **whole** policy closed (see *Verifier behavior*); `Err(_)` for malformed inputs / fetch failures, including leftover pins (more pins than the policy has occurrences), a presented≠committed mismatch, an over-cap presented set, a `max_depth` breach, a below-floor foreign-`grp` marker, or a misplaced `dev`. Token-existence *is* the proof of satisfaction — a caller holding a `PolicyVerification` cannot have reached it on an unsatisfied policy.
 
 The auth flow typically calls both kinds of check. `evaluate_anchored_policy` is self-contained: it confirms each named issuer is a current delegate by **self-traversing that issuer's own delegation chain** up to a delegator named by the issuance policy (no cred-supplied path — the chain self-records the linkage; see *Delegation handshake*), proves each issuer's anchor through its `id` (the **anchor pinning**), counts distinct issuers against the issuance policy's thresholds (resolving its foreign `grp` splices as-of the credential's issuance-policy pinning — G1/G5, never a roster owner's tip), then runs the withdrawal scan. The verification walk pages each referenced log once, so a chain reached by several anchor pinnings or self-traversals is checked inline in that one pass. The **current-state** check (`evaluate_current_policy`) validates that the bearer presently controls the policy the cred names — it matches live attestations over a fresh challenge against the policy's leaves at the chain tip (`del` leaves self-traverse from a **named delegate** the bearer presents, as in the anchored flow).
 
@@ -222,8 +226,9 @@ a direct delegate) of any of them satisfies the policy.
 
 The credential **names its issuer(s)** and carries **one anchor pinning per issuer**, plus **one
 issuance-policy pinning** — issuing is authoring, so the issuance check is anchored (G5): each
-foreign `grp(X, group)` splice in the issuance policy resolves X's roster as-of the X-state-marker
-this pinning supplies (G1), never at X's tip. It carries **no delegation pinning**: delegation is
+foreign `grp(said, group)` splice in the issuance policy resolves X's roster as-of the X-state-marker
+this pinning supplies (G1) — which must clear the splice's floor (marker ≥ `said`) — never at X's
+tip. It carries **no delegation pinning**: delegation is
 proven by the verifier self-traversing the issuer's own delegation chain, which self-records the
 link to its delegator. Only the anchors and the issuance-policy state need pinnings.
 
@@ -348,8 +353,9 @@ pub fn evaluate_anchored_policy(
     // (b) + composition. Evaluate the issuance policy: each `del(X, N)` placeholder is matched by
     // the distinct anchored issuers that self-traverse up to `X` within `N` hops; composers count
     // DISTINCT issuer prefixes. The policy's own leaves resolve AS-OF the credential's
-    // issuance-policy pinning (G5): a foreign `grp(X, group)` consumes its X-state-marker slot and
-    // reads X's roster from the snapshot reconstructed as-of it (G1) — never X's tip. Leftover
+    // issuance-policy pinning (G5): a foreign `grp(said, group)` consumes its X-state-marker slot,
+    // enforces the floor (marker ≥ `said`, hard Err below), and reads X's roster from the snapshot
+    // reconstructed as-of the marker (G1) — never X's tip. Leftover
     // slots after the walk deny, mirroring the single-policy discipline. An empty credited set is
     // a clean unsatisfied (Ok(None)).
     let mut issuance_pins = PinCursor::new(&issuance_pinning.pins);
@@ -364,7 +370,13 @@ pub fn evaluate_anchored_policy(
 
     // Withdrawal. `immune` skips THIS scan only — the F rescission tip-walk inside `self_traverses`
     // always ran. Otherwise scan to tip for a satisfying withdrawal anchor (soft per-contribution
-    // default, or hard against `withdrawal`'s expr). See §Withdrawal.
+    // default, or hard against `withdrawal`'s expr). See §Withdrawal. DQ2: `withdrawal: Some(expr)` is
+    // an UNTRUSTED-author general policy (a malicious issuer sets it) evaluated at tip — `is_withdrawn`
+    // roots its credited-set walk over `expr` at dev_legal=FALSE and routes every `dev` through
+    // `check_dev_placement`, so a bare `dev` (directly, or via `pol(said)` → a `dev`-bearing SAD)
+    // HARD-DENIES the credential; the `?` propagates the Err. A legitimate `id(admin)` withdrawal
+    // authority still descends into the admin singleton's `dev` authentication (dev_legal flips true on
+    // that descent), so admin/third-party kill is unaffected.
     if !immune
         && is_withdrawn(expected_anchors, &anchored, withdrawal, source, required_tier, max_depth)?
     {
@@ -427,14 +439,48 @@ fn self_traverses(
     Ok(false)                                                  // ran out of hops without reaching `delegator`
 }
 
+// ── dev-placement enforcement (DQ2) ──────────────────────────────────────────────────────────────
+// The `dev`-placement rule ("a bare `dev` is legal ONLY inside a singleton IEL's own three policies;
+// forbidden in every general / composed policy") is enforced HERE — at the VERIFIER, at EVALUATION,
+// over the FULLY-`pol`-EXPANDED graph — never as an author/submit-time convention. The policy may be
+// authored by an UNTRUSTED party (a malicious issuer's `withdrawal: Some(…)`, an attacker-set
+// `readPolicy`/`pol(said)` → a `dev`-bearing SAD); only the verifier is the trust boundary, so the
+// check rides the ONE eval walk (NOT a separate `validate_policy` pass — that would re-walk chains to
+// re-derive singleton-ness and open a TOCTOU seam). `dev_legal` is a context flag threaded through
+// that walk:
+//   - SEEDED false at every general entry (issuance policy, `readPolicy`, the withdrawal `Some(expr)`,
+//     the `id(issuer)` anchor wrapper). A singleton evaluating its OWN governance/operation as a
+//     TOP-LEVEL policy (future IEL/SEL self-gating — verifier-behavior.md §Authorization gating) seeds
+//     it TRUE (caller-supplied: the caller KNOWS it is a singleton's own policy — trustworthy context,
+//     not caller-vouched authorization), or wraps the check in `id(singleton)` (D2-B);
+//   - flips TRUE only when the walk DESCENDS INTO A SINGLETON's authentication (satisfies_id, and
+//     current_credited's `id` / `del` arms, know roster-presence at the descent point) — the ONE
+//     legitimate base case;
+//   - INHERITED UNCHANGED through `thr`/`wgt`/`and`/`pol`. A singleton's own policy CANNOT use `pol`
+//     (iel-policy-structure.md), so the flag is NEVER carried true into a `pol`; therefore a `dev`
+//     reached via `pol(said)` — from ANY source — always has dev_legal=false → rejected. This is what
+//     makes "fully-`pol`-expanded" sound: `pol` only propagates context; the check sits in the `dev` arm.
+// A misplaced `dev` is a policy-VALIDITY error: `check_dev_placement` returns Err, which `?` propagates
+// to the entry point so the WHOLE policy denies (hard, fail-closed) — NOT credit-nobody, which would
+// let a sibling leg of `thr(1, [dev(K_bad), id(legit)])` clear the gate via the other leg. The legal
+// base case (dev_legal=true at a singleton's own `dev`) passes the check and credits {K} as before.
+fn check_dev_placement(dev_legal: bool) -> Result<(), PolicyError> {
+    if dev_legal {
+        Ok(())
+    } else {
+        Err(PolicyError::MisplacedDev)   // verifier-enforced placement, fail-closed (whole policy denies)
+    }
+}
+
 // eval_issuance walks the issuance policy and reports whether its threshold is met by DISTINCT
 // recognized issuers. It returns satisfaction; the helper `issuance_credited` returns, per
 // subexpression, the SET of distinct issuers that subexpression credits IF satisfied (else empty) —
 // so a containing composer dedups by prefix when it unions children. An issuance policy accepts both
 // DELEGATED issuers (`del(X, N)` — anchored issuers self-traversing up to `X` within `N`, delegation
-// is for scaling) and DIRECT named issuers (`id(X)` / `grp(prefix, group)` — anchored issuers
+// is for scaling) and DIRECT named issuers (`id(X)` / `grp(said, group)` — anchored issuers
 // matching the named prefix / the owner's `group` roster AS-OF the X-state-marker the credential's
-// issuance-policy pinning supplies for that occurrence (G1/G5 — never the owner's tip)). `pol`
+// issuance-policy pinning supplies for that occurrence, which must clear the splice's floor
+// (marker ≥ `said`) (G1/G5 — never the owner's tip)). `pol`
 // recurses; `thr`/`wgt`/`and` compose
 // (union / max-weight / conjunction). A bare `dev` is a **policy-validity error** in an issuance
 // policy (a general policy — `dev` is legal only in a singleton IEL's own three policies; validation
@@ -457,12 +503,13 @@ fn eval_issuance(
 }
 
 // Returns the set of distinct issuers `expr` credits if satisfied, else the empty set. Issuance
-// accepts DELEGATED (`del`) and DIRECT (`id` / `grp`) issuers; `pol` recurses; `dev` credits nobody.
+// accepts DELEGATED (`del`) and DIRECT (`id` / `grp`) issuers; `pol` recurses; `dev` is a misplaced-dev hard reject (DQ2).
 // `pins` is the positional cursor over the credential's issuance-policy pinning (G5): a foreign
-// `grp(X, group)` is the only occurrence kind that consumes a slot here — one X-state-marker per
-// occurrence, pre-order (G1). Nothing else in this evaluator reads chain state through the policy
-// (`id` is matched against the anchored set, `del` self-traverses, `dev` credits nobody), so
-// nothing else lays a slot.
+// `grp(said, group)` is the only occurrence kind that consumes a slot here — one X-state-marker per
+// occurrence, pre-order (G1), and the marker must clear the floor (≥ `said`). Nothing else in this
+// evaluator reads chain state through the policy
+// (`id` is matched against the anchored set, `del` self-traverses, `dev` is a misplaced-dev hard
+// reject — DQ2), so nothing else lays a slot.
 fn issuance_credited(
     expr: &PolicyExpr,
     anchored: &[&Prefix],
@@ -491,30 +538,46 @@ fn issuance_credited(
         } else {
             HashSet::new()
         }),
-        // grp(prefix, group): flatten to id(member) and credit the anchored members of `prefix`'s
-        // `group` ("any of X's executives may issue directly"). The roster is resolved AS-OF the
-        // X-state-marker this occurrence's slot in the issuance-policy pinning supplies (G1/G5):
-        // issuing is authoring, so the issuance check is anchored — the owner's TIP is never read.
-        // Forward-only membership: an issuer later dropped from the group (no `Rsc`) does not
-        // retroactively void a credential issued while it was rostered; loss-of-trust comes from
-        // the rescission/withdrawal walks (to tip in both modes), not from tip-resolving the
-        // roster. A null/absent slot credits nobody (fail-secure; the slot is still consumed). The
-        // one-arg own-form grp(group) (Grp(None, _)) has NO host context in an issuance policy
-        // (a general policy — `issuance_credited` threads no self-context and never descends an
-        // `id`), so it credits nobody (fail-secure).
-        PolicyExpr::Grp(Some(prefix), group) => {
+        // grp(said, group): FLOORED foreign roster. `said` is an IEL event of owner X (the freshness
+        // floor); an event resolves its chain, so `said` carries X's prefix — no separate prefix arg.
+        // Flatten to id(member) and credit the anchored members of X's `group` ("any of X's executives
+        // may issue directly"). Take this occurrence's X-state-marker slot, then ENFORCE THE FLOOR: the
+        // marker must be AT-OR-AFTER `said` on X's chain. `marker_at_or_after_floor` walks X's IEL from
+        // `said` to the marker — two STATIC chain positions, so the floor is end-verifiable and adds NO
+        // tip-read. A marker that orders BELOW the floor, is not on X's chain, or a `said` resolving to
+        // no chain is a HARD Err (fail-closed) — that is an ex-member backdating an old marker to issue
+        // NEW creds, the very exposure the floor closes, not a clean miss. Cleared, the roster resolves
+        // AS-OF THE MARKER (≥ floor, so members X added after `said` issue too; the floor only forbids
+        // going below it). Issuing is authoring, so the check is anchored — the owner's TIP is never
+        // read. Forward-only membership: an issuer later dropped from the group (no `Rsc`) does not
+        // retroactively void a credential issued while it was rostered; loss-of-trust comes from the
+        // rescission/withdrawal walks (to tip in both modes), and the FLOOR stops backdating below it
+        // (raising the floor — gate-current — retroactively kills every sub-floor cred). A null/absent
+        // slot credits nobody (fail-secure; the slot is still consumed — the issuer declined this leg).
+        // The one-arg own-form grp(group) (Grp(None, _)) has NO host context in an issuance policy (a
+        // general policy — `issuance_credited` threads no self-context and never descends an `id`), so
+        // it credits nobody (fail-secure).
+        PolicyExpr::Grp(Some(floor_said), group) => {
             let mut set = HashSet::new();
-            if let Some(Some(marker_said)) = pins.take_next() {
-                // X's snapshot as-of the pinned marker — the same reconstruction `satisfies_id`
-                // uses (NEW-B); the marker must really be X's (cf. `satisfies_id`'s prefix check).
-                let snapshot = source.snapshot_as_of(prefix, &marker_said)?;
-                if snapshot.prefix == *prefix {
+            match pins.take_next() {
+                Some(Some(marker_said)) => {
+                    let x = source.prefix_of(floor_said)?;          // said → its IEL chain (X)
+                    // Floor: marker ≥ `said` on X's chain. Below-floor / off-chain / wrong-chain → hard
+                    // Err (the snapshot.prefix == x check is folded into the walk; defense-in-depth below).
+                    if !source.marker_at_or_after_floor(&x, &marker_said, floor_said)? {
+                        return Err(PolicyError::BelowFloorMarker);  // adversarial backdate, fail-closed
+                    }
+                    let snapshot = source.snapshot_as_of(&x, &marker_said)?;
+                    if snapshot.prefix != x {
+                        return Err(PolicyError::BelowFloorMarker);  // marker not on X's chain (redundant w/ the walk)
+                    }
                     for member in snapshot.roster.members(group) {
                         if anchored.iter().any(|a| **a == member) {
                             set.insert(member);
                         }
                     }
                 }
+                _ => {}                                             // null/absent marker → credit nobody (declined leg)
             }
             Ok(set)
         }
@@ -567,9 +630,15 @@ fn issuance_credited(
             Ok(if all_satisfied { union } else { HashSet::new() })
         }
         // dev(K): FORBIDDEN in an issuance policy — `dev` is legal only in a singleton IEL's own three
-        // policies, so validation rejects a bare `dev` here (issuers are IELs; the distinct-issuer count
-        // is over IEL prefixes). Defensive fail-secure floor if one is somehow present: credit nobody.
-        PolicyExpr::Dev(_) => Ok(HashSet::new()),
+        // policies (issuers are IELs; the distinct-issuer count is over IEL prefixes). issuance_credited
+        // NEVER descends a singleton's authentication (its `id` arm matches against the anchored set, it
+        // does not recurse into an authentication), so dev_legal is invariantly FALSE here — the shared
+        // placement check HARD-REJECTS (DQ2). Fail-closed, never credit-nobody (a sibling leg must not
+        // pass): the `?` denies the whole issuance policy.
+        PolicyExpr::Dev(_) => {
+            check_dev_placement(false)?;     // always Err here — issuance is a general policy
+            Ok(HashSet::new())               // unreachable
+        }
     }
 }
 
@@ -596,10 +665,11 @@ enum RosterSource<'a> {
 }
 
 // `flatten` / `flatten_weighted` expand each `grp` element to `id(member)` leaves in canonical
-// order, reading the roster via `self_context`. A two-arg `grp(prefix, group)` reads
-// `source.roster_members(prefix, group)` at the foreign owner's tip in CURRENT MODE ONLY; in an
-// anchored walk it resolves as-of its own X-state-marker slot (G1) — it never appears in the
-// own-policies this single-policy pin-walk descends (see `eval_expr`'s thr note), and
+// order, reading the roster via `self_context`. A two-arg `grp(said, group)` derives X from `said`
+// (`source.prefix_of(said)`) and reads `source.roster_members(X, group)` at the foreign owner's tip
+// in CURRENT MODE ONLY (the floor is vacuous at tip — the tip is at-or-after any historical `said`);
+// in an anchored walk it resolves as-of its own X-state-marker slot, FLOORED (G1) — it never appears
+// in the own-policies this single-policy pin-walk descends (see `eval_expr`'s thr note), and
 // `issuance_credited` resolves it from the issuance-policy pinning in its own arm, without
 // flatten. A one-arg `grp(group)` reads
 // the HOST's roster: `AtMarker(snap)` ⇒ `snap.roster` (the frozen marker snapshot, NEW-B); `AtTip`
@@ -622,8 +692,13 @@ fn evaluate_single_policy(
     max_depth: u32,
 ) -> Result<Option<PolicyVerification>, PolicyError> {
     let mut cur = PinCursor::new(&pinning.pins);     // positional; `take_next()` advances one slot
+    // Seed dev_legal=false: this walk's top-level policy is always a GENERAL construction (the
+    // `id(issuer)` anchor wrapper, or a nested `pol`), never a singleton's own dev-policy evaluated
+    // top-level. A `dev` becomes legal only when satisfies_id DESCENDS into a singleton's authentication
+    // (DQ2). (A future singleton self-gating entry that evaluates a singleton's OWN policy top-level
+    // would seed true — D2-B — but evaluate_single_policy is never that entry.)
     let credited = eval_expr(&policy.expr, &mut cur, expected_anchors, self_context,
-                             source, required_tier, max_depth)?;
+                             source, required_tier, max_depth, false)?;
     if cur.remaining() > 0 {
         return Err(PolicyError::LeftoverPins);       // more pins than occurrences — malformed
     }
@@ -664,26 +739,33 @@ fn eval_expr(
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
+    dev_legal: bool,                                 // DQ2: true only inside an id→singleton descent
 ) -> Result<HashSet<Prefix>, PolicyError> {
     if max_depth == 0 {
         return Err(PolicyError::MaxDepthExceeded);   // fail-secure
     }
     match expr {
-        // dev: reached legitimately ONLY as the base case of `id` recursion into a singleton IEL's own
-        // authentication — an author-written bare `dev` in a general policy is a placement-validity error
-        // and never reaches here. Take this leaf's slot. A present SAID names the event just-prior to the
-        // anchoring event; resolve its surviving-branch child and check the anchor + tier. Satisfied ⇒ credit
-        // {prefix}; a null slot (or exhausted cursor) consumes the slot and credits nobody.
-        PolicyExpr::Dev(prefix) => match cur.take_next() {
-            Some(Some(prior_said)) => {
-                if satisfies_dev(&prior_said, prefix, expected_anchors, source, required_tier)? {
-                    Ok(HashSet::from([prefix.clone()]))
-                } else {
-                    Ok(HashSet::new())
+        // dev: VERIFIER-ENFORCED PLACEMENT (DQ2). Legal ONLY as the base case of an id→SINGLETON descent
+        // (dev_legal=true); a bare `dev` in any general / composed position (dev_legal=false), including
+        // one reached via `pol(said)` → a `dev`-bearing SAD from any source, is a policy-validity error —
+        // `check_dev_placement` HARD-REJECTS and the WHOLE policy denies (never credit-nobody, which a
+        // sibling leg of `thr(1, [dev(bad), id(ok)])` could exploit). On the LEGAL path (a singleton's own
+        // authentication) it still credits {K}: take this leaf's slot; a present SAID names the event
+        // just-prior to the anchoring event — resolve its surviving-branch child and check the anchor +
+        // tier; a null slot (or exhausted cursor) consumes the slot and credits nobody.
+        PolicyExpr::Dev(prefix) => {
+            check_dev_placement(dev_legal)?;          // reject a misplaced dev before any resolution
+            match cur.take_next() {
+                Some(Some(prior_said)) => {
+                    if satisfies_dev(&prior_said, prefix, expected_anchors, source, required_tier)? {
+                        Ok(HashSet::from([prefix.clone()]))
+                    } else {
+                        Ok(HashSet::new())
+                    }
                 }
+                _ => Ok(HashSet::new()),              // null slot / exhausted — slot still consumed
             }
-            _ => Ok(HashSet::new()),                  // null slot / exhausted — slot still consumed
-        },
+        }
         // id: take this leaf's slot (the Evl/Icp state-marker). A present SAID fixes the IEL's state;
         // reconstruct the snapshot as-of it and recurse into the snapshot's authentication, threading
         // the host context = prefix so an aggregate member's one-arg `grp(group)` resolves against the
@@ -703,19 +785,21 @@ fn eval_expr(
             _ => Ok(HashSet::new()),
         },
         // pol: dereference + recurse; pure factoring — propagate the nested credited set UNCHANGED
-        // (so a prefix reached through two `pol`s dedups in the enclosing union). `expected_anchors`
-        // and the host context (`self_context`) are inherited.
+        // (so a prefix reached through two `pol`s dedups in the enclosing union). `expected_anchors`,
+        // the host context (`self_context`), and `dev_legal` are inherited UNCHANGED — and since a
+        // singleton's own policy can't use `pol`, dev_legal is never carried TRUE into a `pol`, so a
+        // `dev`-bearing SAD reached here always sees dev_legal=false → rejected (DQ2).
         PolicyExpr::Pol(said) => {
             let nested = parse_policy_sad(&sadd_fetch(said)?)?;
             eval_expr(&nested.expr, cur, expected_anchors, self_context,
-                      source, required_tier, max_depth - 1)
+                      source, required_tier, max_depth - 1, dev_legal)
         }
         // thr: evaluate every element (Grp children expand inline into id(member) leaves). In this
         // pinned own-authentication walk a member is always one-arg `grp(group)`, resolved against the
         // enclosing id(X) marker's reconstructed roster snapshot (FROZEN, NEW-B) — a foreign two-arg
-        // `grp(prefix, group)` does not appear here (own-policies structurally exclude it; where a
+        // `grp(said, group)` does not appear here (own-policies structurally exclude it; where a
         // general policy is evaluated anchored — the issuance policy, a SEL's pinned policies — it
-        // consumes its own X-state-marker slot, G1).
+        // consumes its own X-state-marker slot, FLOORED, G1).
         // Members flatten in canonical order; see §Leaf semantics. UNION the children's credited sets;
         // met iff ≥ M DISTINCT prefixes, then return the union (recursive dedup). `del` is not a
         // single-policy element (no slot, no self-traversal here): it appears only in the issuance
@@ -724,7 +808,7 @@ fn eval_expr(
             let mut union = HashSet::new();
             for child in flatten(subs, self_context, source)? {
                 union.extend(eval_expr(&child, cur, expected_anchors, self_context,
-                                       source, required_tier, max_depth - 1)?);
+                                       source, required_tier, max_depth - 1, dev_legal)?);
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
@@ -735,7 +819,7 @@ fn eval_expr(
             let mut best: HashMap<Prefix, u32> = HashMap::new();
             for (child, w) in flatten_weighted(weighted, self_context, source)? {
                 for p in eval_expr(&child, cur, expected_anchors, self_context,
-                                   source, required_tier, max_depth - 1)? {
+                                   source, required_tier, max_depth - 1, dev_legal)? {
                     best.entry(p).and_modify(|e| *e = (*e).max(w)).or_insert(w);
                 }
             }
@@ -752,7 +836,7 @@ fn eval_expr(
             let mut all_satisfied = true;
             for child in children {
                 let credited = eval_expr(child, cur, expected_anchors, self_context,
-                                         source, required_tier, max_depth - 1)?;
+                                         source, required_tier, max_depth - 1, dev_legal)?;
                 if credited.is_empty() {
                     all_satisfied = false;            // keep draining the remaining children's slots
                 }
@@ -826,8 +910,12 @@ fn satisfies_id(
     // (`AtMarker(&snapshot)`, NEW-B); a one-arg `grp(group)` it reaches resolves against THIS
     // snapshot's roster (`snapshot.roster`) — reuse of the same marker, not a fresh pin.
     let host = HostContext { prefix: leaf_prefix, roster: RosterSource::AtMarker(&snapshot) };
+    // DQ2: dev_legal flips TRUE only when descending into a SINGLETON's authentication (the one legal
+    // `dev` placement). `snapshot.is_singleton()` is roster-presence — a singleton has no roster, so its
+    // dev-based authentication credits its devs; an AGGREGATE's grp-based authentication descends with
+    // dev_legal=false (no bare `dev` is legal there — it composes one-arg `grp(group)` → id(member)).
     let sub = eval_expr(&authentication.expr, cur, expected_anchors, Some(host),
-                        source, required_tier, max_depth - 1)?; // drains the subtree's slots
+                        source, required_tier, max_depth - 1, snapshot.is_singleton())?; // drains the subtree's slots
     Ok(snapshot.prefix == *leaf_prefix && !sub.is_empty())      // X's authentication met ⇒ credit X
 }
 
@@ -875,8 +963,13 @@ pub fn evaluate_current_policy(
     if named_delegates.len() > MAX_PRESENTED {       // K ≤ 128 (NEW-5) — same cap as presented issuers;
         return Err(PolicyError::TooManyDelegates);   // up-front pre-check, fail-secure, zero work done
     }
+    // Seed dev_legal=false (DQ2): a `readPolicy` / application policy / `id(subject)` is a GENERAL
+    // policy — a bare `dev` (directly or via `pol(said)` → a `dev`-bearing SAD) is rejected; a `dev`
+    // becomes legal only when the walk descends into a SINGLETON's authentication. (A future singleton
+    // self-gating entry evaluating a singleton's OWN governance/operation top-level would seed true —
+    // D2-B; this entry never does.)
     let credited = current_credited(&policy.expr, challenge, attestations, named_delegates,
-                                    None, source, required_tier, max_depth)?;
+                                    None, source, required_tier, max_depth, false)?;
     if credited.is_empty() {
         return Ok(None);                             // cleanly unsatisfied
     }
@@ -897,15 +990,18 @@ fn current_credited(
     source: &impl EventSource,
     required_tier: Tier,
     max_depth: u32,
+    dev_legal: bool,                                 // DQ2: true only inside an id→singleton descent
 ) -> Result<HashSet<Prefix>, PolicyError> {
     if max_depth == 0 {
         return Err(PolicyError::MaxDepthExceeded);   // fail-secure
     }
     match expr {
-        // dev(K): reached legitimately ONLY as the base case of `id` recursion into a singleton IEL's
-        // own authentication — an author-written bare `dev` in a general policy (application / readPolicy /
-        // withdrawal) is a validation error and never reaches here. Credit {K} iff an attestation by K
-        // validates against K's CURRENT signing key (and
+        // dev(K): VERIFIER-ENFORCED PLACEMENT (DQ2). Legal ONLY as the base case of an id→SINGLETON
+        // descent (dev_legal=true); a bare `dev` in a general policy (application / readPolicy /
+        // withdrawal-expr), including one reached via `pol(said)` → a `dev`-bearing SAD from any source,
+        // is a policy-validity error — `check_dev_placement` HARD-REJECTS and the WHOLE policy denies
+        // (this is exactly the attacker-set-`readPolicy` attack — see *Verifier behavior*). On the LEGAL
+        // path, credit {K} iff an attestation by K validates against K's CURRENT signing key (and
         // recovery key, per the required_tier ATTESTATION SHAPE) over the challenge. NEW-F: the prior
         // `.unwrap_or(false)` that swallowed errors is gone. `verify_current_attestation` returns
         // Ok(false) for a non-verifying EXTERNAL attestation-over-challenge signature — junk, not
@@ -913,6 +1009,7 @@ fn current_credited(
         // for a CHAIN-integrity / source failure (can't resolve K's current key state), which `?`
         // propagates.
         PolicyExpr::Dev(prefix) => {
+            check_dev_placement(dev_legal)?;          // reject a misplaced dev before any verify work
             let mut credited = HashSet::new();
             for a in attestations {
                 if a.signer == *prefix
@@ -925,27 +1022,33 @@ fn current_credited(
         }
         // id(X): credit {X} iff the attestation set meets X's authentication at X's TIP (recurse,
         // host context = {X, AtTip} — current mode reads the roster LIVE, NEW-B; terminal kels
-        // matched by attestation signer). X is named in the policy.
+        // matched by attestation signer). X is named in the policy. DQ2: dev_legal flips TRUE only when
+        // X is a SINGLETON (`tip.is_singleton()` — roster-presence is the kind signal); an aggregate's
+        // grp-based authentication descends dev-illegal.
         PolicyExpr::Id(prefix) => {
-            let auth = parse_policy_sad(&sadd_fetch(&source.iel_tip(prefix)?.authentication)?)?;
+            let tip = source.iel_tip(prefix)?;
+            let auth = parse_policy_sad(&sadd_fetch(&tip.authentication)?)?;
             let host = HostContext { prefix, roster: RosterSource::AtTip };
             let sub = current_credited(&auth.expr, challenge, attestations, named_delegates,
-                                       Some(host), source, required_tier, max_depth - 1)?;
+                                       Some(host), source, required_tier, max_depth - 1, tip.is_singleton())?;
             Ok(if sub.is_empty() { HashSet::new() } else { HashSet::from([prefix.clone()]) })
         }
-        // pol: dereference + recurse; propagate the nested credited set unchanged.
+        // pol: dereference + recurse; propagate the nested credited set unchanged. `dev_legal` is
+        // inherited UNCHANGED — and never carried true into a `pol` (a singleton's own policy can't use
+        // `pol`), so a `dev`-bearing SAD reached via `pol(said)` here is rejected (DQ2).
         PolicyExpr::Pol(said) => {
             let nested = parse_policy_sad(&sadd_fetch(said)?)?;
             current_credited(&nested.expr, challenge, attestations, named_delegates,
-                             self_context, source, required_tier, max_depth - 1)
+                             self_context, source, required_tier, max_depth - 1, dev_legal)
         }
-        // thr: flatten grp at the host (one-arg) / named-prefix (two-arg) roster's TIP (current mode is
-        // tip-live, NEW-B), union the children; met iff ≥ M distinct.
+        // thr: flatten grp at the host (one-arg) / floored-`said`-derived owner (two-arg) roster's TIP
+        // (current mode is tip-live, NEW-B; the floor is vacuous at tip), union the children; met iff
+        // ≥ M distinct.
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
             for child in flatten(subs, self_context, source)? {
                 union.extend(current_credited(&child, challenge, attestations, named_delegates,
-                                              self_context, source, required_tier, max_depth - 1)?);
+                                              self_context, source, required_tier, max_depth - 1, dev_legal)?);
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
@@ -954,7 +1057,7 @@ fn current_credited(
             let mut best: HashMap<Prefix, u32> = HashMap::new();
             for (child, w) in flatten_weighted(weighted, self_context, source)? {
                 for p in current_credited(&child, challenge, attestations, named_delegates,
-                                          self_context, source, required_tier, max_depth - 1)? {
+                                          self_context, source, required_tier, max_depth - 1, dev_legal)? {
                     best.entry(p).and_modify(|e| *e = (*e).max(w)).or_insert(w);
                 }
             }
@@ -967,7 +1070,7 @@ fn current_credited(
             let mut all_satisfied = true;
             for child in children {
                 let credited = current_credited(child, challenge, attestations, named_delegates,
-                                                self_context, source, required_tier, max_depth - 1)?;
+                                                self_context, source, required_tier, max_depth - 1, dev_legal)?;
                 if credited.is_empty() {
                     all_satisfied = false;
                 }
@@ -977,14 +1080,16 @@ fn current_credited(
         }
         // del(X, N): the live analogue of anchored del-matching — NO del-pin. Credit each DISTINCT
         // named delegate D (`named_delegates`) whose attestations meet D's authentication at D's tip
-        // AND that self-traverses up to X within N hops (delegation valid to X's TIP, F).
+        // AND that self-traverses up to X within N hops (delegation valid to X's TIP, F). DQ2: the
+        // descent into D's authentication flips dev_legal TRUE only when D is a SINGLETON.
         PolicyExpr::Del(delegator, n) => {
             let mut set = HashSet::new();
             for d in named_delegates {
-                let d_auth = parse_policy_sad(&sadd_fetch(&source.iel_tip(d)?.authentication)?)?;
+                let d_tip = source.iel_tip(d)?;
+                let d_auth = parse_policy_sad(&sadd_fetch(&d_tip.authentication)?)?;
                 let d_host = HostContext { prefix: d, roster: RosterSource::AtTip };  // tip-live (NEW-B)
                 let met = current_credited(&d_auth.expr, challenge, attestations, named_delegates,
-                                           Some(d_host), source, required_tier, max_depth - 1)?;
+                                           Some(d_host), source, required_tier, max_depth - 1, d_tip.is_singleton())?;
                 if !met.is_empty() && self_traverses(d, delegator, *n, source, max_depth)? {
                     set.insert(d.clone());
                 }

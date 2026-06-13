@@ -8,12 +8,17 @@ is **aggregate** iff it declares a `roster`, **singleton** otherwise. Roster pre
 choose-your-own-adventure"). The kind constrains what the IEL's three policies (`governance`,
 `authentication`, `delegation`) may contain. This is a constraint on an IEL's *own* three policies;
 general policies — application, issuance, withdrawal, `readPolicy` — keep the full DSL surface
-**except bare `dev`** (still including `id(X)` and foreign `grp(X, group)`).
+**except bare `dev`** (still including `id(X)` and the floored foreign `grp(said, group)`).
 
 **`dev` is legal only inside a singleton IEL's own three policies** — the identity base case. It is
 forbidden in aggregate IEL own-policies (the rule below) **and** in every general policy
 (application, issuance, withdrawal, `readPolicy`); everywhere else a device is referenced through a
-singleton `id` that wraps it, and all other authorization is by identity. `id(X')` strictly
+singleton `id` that wraps it, and all other authorization is by identity. This placement is
+**verifier-enforced at evaluation, over the fully-`pol`-expanded graph, fail-closed** — a misplaced
+`dev` (general/composed position, or reached behind a `pol`) denies the whole policy; it is not an
+author/submit-time convention (an untrusted author cannot bypass it — see
+[`leaf-semantics.md` §`dev`](leaf-semantics.md#devprefix--kel-key-match-tier-agnostic) and
+[`verifier-behavior.md`](verifier-behavior.md#verifier-behavior)). `id(X')` strictly
 **dominates** a bare `dev(K)`: the singleton `X'` wrapping K gives the same terminal key-check
 **plus** identity lifecycle (rotation / recovery / multi-device / decommission), and the system is
 identity-rooted, so there is always an identity to name. A bare `dev(K)` instead tracks K's own KEL

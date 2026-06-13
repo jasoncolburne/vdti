@@ -30,7 +30,12 @@ kels poison model:
 - **`withdrawal: Some(expr)`** → **hard.** `expr` is evaluated as a full policy against the
   withdrawal anchors found at tip; if satisfied, the **whole** credential is unsatisfied. This is
   where admin / third-party kill lives ("2-of-3 admins withdraw") — a named authority that is
-  **not** the issuer can hold the withdrawal right.
+  **not** the issuer can hold the withdrawal right. Because the credential's author (an **untrusted**
+  party) writes `expr`, it is a **general policy** subject to verifier-enforced `dev`-placement (DQ2):
+  the withdrawal-expr evaluator roots at `dev_legal=false` and rejects a bare `dev` — written directly
+  or behind a `pol(said)` → a `dev`-bearing SAD — denying the credential (fail-closed). A legitimate
+  `id(admin)` authority still descends into the admin singleton's device, unaffected. See
+  [`verifier-behavior.md` §Worked rejections](verifier-behavior.md#worked-rejections--the-dev-placement-attacks-dq2).
 - **`immune: true`** → **no withdrawal checks ever.** The verifier does not scan for a withdrawal
   digest at all. For credentials whose validity must not depend on a later anchor (e.g. a one-shot
   attestation); permanent and unrevocable, a stated trade-off.

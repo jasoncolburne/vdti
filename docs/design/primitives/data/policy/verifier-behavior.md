@@ -33,9 +33,10 @@ referenced log gets for end-verifiability anyway:
 
 `evaluate_anchored_policy` then evaluates the issuance policy, where each `del(X, N)` placeholder is
 matched by the **distinct anchored issuers** that self-traverse to `X` within `N`; composers count
-distinct issuers, and the policy's foreign `grp(X, group)` splices resolve X's roster **as-of the
-X-state-marker the credential's issuance-policy pinning supplies** (G1/G5 — issuing is authoring, so
-the issuance check is anchored; the roster owner's tip is never read). Finally it scans each issuer
+distinct issuers, and the policy's foreign `grp(said, group)` splices resolve X's roster **as-of the
+X-state-marker the credential's issuance-policy pinning supplies** — which must clear the splice's
+**floor** (marker ≥ `said`) (G1/G5 — issuing is authoring, so the issuance check is anchored; the
+roster owner's tip is never read). Finally it scans each issuer
 KEL to tip for a withdrawal anchor — skipped **only**
 when the credential is `immune` (the F rescission walk above is never skipped). The public entry
 points are **policy verifiers**: on satisfaction they return `Ok(Some(PolicyVerification))` — the
@@ -78,10 +79,11 @@ evaluate_anchored_policy(issuance_policy, issuance_pinning, issuers, committed_i
                                            fold_snapshots(issuer_tokens))))
 
 # issuance_credited: del(X, N) credited by distinct anchored issuers self-traversing up to X within N;
-# DIRECT issuers credited by id(X) (X in anchored) / grp(X, group) (anchored members of X's `group`
-# AS-OF the X-state-marker its slot in the issuance-policy pinning supplies — G1/G5, never X's tip);
+# DIRECT issuers credited by id(X) (X in anchored) / grp(said, group) (anchored members of X's `group`
+# AS-OF the X-state-marker its slot supplies, FLOORED at `said` — marker ≥ `said` or hard Err; G1/G5, never X's tip);
 # pol recurses; thr/wgt/and count DISTINCT issuer prefixes (set union; wgt dedups by max weight;
-# and = all branches non-empty). dev credits nobody. Never expands del; a foreign grp is the only
+# and = all branches non-empty). dev is a misplaced-dev hard reject (DQ2 — issuance never descends a
+# singleton authentication, so dev_legal is invariantly false). Never expands del; a foreign grp is the only
 # occurrence kind that consumes an issuance-pinning slot. (eval_issuance wraps it as a
 # bool — `not issuance_credited(...).is_empty()` — where only a yes/no is needed.)
 
@@ -106,7 +108,7 @@ self_traverses(candidate, delegator, max_hops, source, max_depth) -> bool:
 evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, required_tier, max_depth)
         -> Option<PolicyVerification>:
     cur = PinCursor(pinning.pins)
-    credited = eval_expr(policy.expr, cur, expected_anchors, self_context, source, required_tier, max_depth)
+    credited = eval_expr(policy.expr, cur, expected_anchors, self_context, source, required_tier, max_depth, dev_legal=false)  # DQ2 seed: general wrapper
     if cur.remaining() > 0: error(LeftoverPins)              # more pins than occurrences — malformed
     if credited is empty: return None                       # satisfied iff ≥ 1 prefix credited
     return Some(PolicyVerification::new(policy.said, None, credited,                    # bind policy SAID (A)
@@ -120,17 +122,18 @@ evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, 
 # (recursive dedup — a prefix counts once toward every ancestor; an id boundary is opaque). del is NOT
 # a single-policy element (no slot, no self-traversal here). Unknown primitive => whole policy denies
 # (fail-secure), handled by the caller.
-eval_expr(expr, cur, expected_anchors, host, source, required_tier, max_depth) -> set<Prefix>:
+eval_expr(expr, cur, expected_anchors, host, source, required_tier, max_depth, dev_legal) -> set<Prefix>:
     if max_depth == 0: error(MaxDepthExceeded)
     match expr:
-        # dev is reached only as the id-recursion base case (a singleton's own authentication); an
-        # author-written bare dev in a general policy is a placement-validity error and never reaches here.
-        dev(prefix) => cur.take_next() is Some(Some(prior))  and satisfies_dev(prior, prefix, expected_anchors, source, required_tier) ? {prefix} : {}
-        id(prefix) => cur.take_next() is Some(Some(marker)) and satisfies_id(marker, prefix, cur, expected_anchors, source, required_tier, max_depth) ? {prefix} : {}
-        pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr, cur, expected_anchors, host, source, required_tier, max_depth - 1)   # propagate nested set
-        thr(M, ss)  => U = union(eval_expr(s, cur, …) for s in flatten(ss, host, source));            |U| >= M ? U : {}
-        wgt(M, ws)  => B = per-prefix MAX weight over (s, w) in flatten_weighted(ws, host, source);   sum(B.values) >= M ? B.keys : {}
-        and(cs)     => sets = [eval_expr(c, cur, …) for c in cs];   all(s nonempty for s in sets) ? union(sets) : {}   # eval ALL (drain slots)
+        # dev: VERIFIER-ENFORCED PLACEMENT (DQ2). check_dev_placement(dev_legal) HARD-REJECTS unless this
+        # `dev` sits at the base of an id→singleton descent (dev_legal=true); a bare dev in any general /
+        # composed / pol-reached position denies the WHOLE policy (never credit-nobody). Then resolve as before.
+        dev(prefix) => check_dev_placement(dev_legal); cur.take_next() is Some(Some(prior)) and satisfies_dev(prior, prefix, expected_anchors, source, required_tier) ? {prefix} : {}
+        id(prefix) => cur.take_next() is Some(Some(marker)) and satisfies_id(marker, prefix, cur, expected_anchors, source, required_tier, max_depth) ? {prefix} : {}   # satisfies_id seeds the descent's dev_legal = snap.is_singleton()
+        pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr, cur, expected_anchors, host, source, required_tier, max_depth - 1, dev_legal)   # propagate nested set + dev_legal (never true into a pol)
+        thr(M, ss)  => U = union(eval_expr(s, cur, …, dev_legal) for s in flatten(ss, host, source));            |U| >= M ? U : {}
+        wgt(M, ws)  => B = per-prefix MAX weight over (s, w) in flatten_weighted(ws, host, source);   sum(B.values) >= M ? B.keys : {}   # children inherit dev_legal
+        and(cs)     => sets = [eval_expr(c, cur, …, dev_legal) for c in cs];   all(s nonempty for s in sets) ? union(sets) : {}   # eval ALL (drain slots)
         _           => {}                                    # del/grp standing alone are bracket-only
 
 # dev: `prior` is the pinned event just before the anchoring event; resolve its SURVIVING-BRANCH
@@ -151,7 +154,7 @@ satisfies_id(marker_said, leaf_prefix, cur, expected_anchors, source, required_t
     snap = source.snapshot_as_of(leaf_prefix, marker_said)               # reconstruct state AS-OF the Evl/Icp marker (NEW-B)
     host = HostContext{ prefix: leaf_prefix, roster: AtMarker(snap) }          # NEW-B — roster frozen at the marker
     sub  = eval_expr(parse_dsl(sadd.fetch(snap.authentication).content).expr,  # one-arg grp(group) reuses snap.roster
-                    cur, expected_anchors, Some(host), source, required_tier, max_depth - 1)
+                    cur, expected_anchors, Some(host), source, required_tier, max_depth - 1, snap.is_singleton())  # DQ2: dev_legal TRUE only for a singleton
     return snap.prefix == leaf_prefix AND sub nonempty                   # X's authentication met ⇒ credit X; drains subtree regardless of match
 ```
 
@@ -168,12 +171,13 @@ satisfies_id(marker_said, leaf_prefix, cur, expected_anchors, source, required_t
 - **The SAID cycle, and why dev prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a dev prefix pins the event *just prior* and the verifier rederives the anchoring child on the surviving branch. id prefixes are cycle-free: they pin `Evl`/`Icp` state-markers (the verifier reconstructs the authentication snapshot as-of them), which never carry the credential anchor. Avoiding a second walk of a shared log is handled by the verification walk paging that log once and checking all of its pinned positions inline (the pinned SAIDs are supplied up front as the positions to check), not by the pin array order.
 - **`pol(said)` reference cycles are structurally impossible.** Content-addressed references can't form a cycle without a Blake3-256 collision (two Policy SADs mutually containing each other's SAIDs). No runtime cycle check needed.
 - **Hard depth cap (`max_depth`, always passed).** Every recursive/walk depth in evaluation — `del` self-traversal, `pol` nesting, `id` authentication recursion — is bounded by an **explicit `max_depth` the caller always passes**; never implicit or unbounded. It is sourced from data where a governing bound exists (a `del(X, N)` chain caps at `N`) and from a sensible default otherwise (`pol`/`id` nesting, e.g. 16). Exceeding it **denies** (fail-secure). This also backstops the aggregate-membership cycle guard.
-- **Roster-width bound (foreign `grp`).** `grp(X, group)` with foreign `X` expands to one leaf per roster member, and `X` controls its roster. Expansion is capped by a **width bound**; a roster exceeding it denies with an "expansion truncated" signal (fail-secure) — a large or malicious foreign group cannot amplify verifier cost without bound.
+- **Roster-width bound (foreign `grp`).** `grp(said, group)` with foreign owner `X` (= `said`'s chain) expands to one leaf per roster member, and `X` controls its roster. Expansion is capped by a **width bound**; a roster exceeding it denies with an "expansion truncated" signal (fail-secure) — a large or malicious foreign group cannot amplify verifier cost without bound.
 - **Per-policy expansion cap (NEW-G).** Beyond the per-roster width bound, the **total** number of leaves a single policy expands to — summed across every `grp` flatten, `pol` nesting, and `id` authentication recursion — is capped by a per-policy expansion bound, a sibling to `max_depth`, the roster-width bound, and `MAX_PRESENTED`. A policy whose post-flatten leaf count exceeds it denies (fail-secure) before the walk completes, so neither a deeply nested composition nor many moderate rosters can multiply past the cap even when no single roster is over-wide.
 - **Tier check is in the leaf helpers, not the composers.** A dev prefix's `satisfies_dev` rejects an anchoring event hosted below `required_tier`; the tier requirement propagates unchanged through the id authentication recursion to the terminal dev leaves. Composers aggregate satisfied/unsatisfied results; they don't see tier directly.
 - **Unrecognized primitive → the WHOLE policy denies (fail-secure).** An older verifier encountering a newer DSL primitive must **not** treat it as a merely-unsatisfied sub-expression: `thr(1, [new_restrictive_thing, old_permissive_thing])` would then silently ignore the restriction and pass. Instead an unknown primitive fails the **entire** policy closed (`Ok(None)` for the whole evaluation — no proof token is produced). Greenfield ships one DSL version, but this keeps safety intact under any skew.
+- **`dev` placement is verifier-enforced at evaluation, fail-closed (DQ2).** The rule "a bare `dev` is legal only inside a singleton IEL's own three policies, forbidden in every general / composed policy" is enforced **at the verifier, at evaluation time, over the fully-`pol`-expanded graph** — not as an author/submit-time convention (the policy may be authored by an untrusted party — a malicious issuer's `withdrawal: Some(…)`, an attacker-set `readPolicy`/`pol(said)` → a `dev`-bearing SAD — and only the verifier is the trust boundary). A context flag `dev_legal` threads the one eval walk: seeded **false** at a general entry (or **true** for a singleton self-gating its own governance/operation top-level — D2-B, caller-supplied), flipped **true only on an `id`→singleton descent** (the one legal placement), inherited unchanged through `thr`/`wgt`/`and`/`pol`. Because a singleton's own policy cannot use `pol`, `dev_legal` is never carried true into a `pol`, so a `dev` reached via `pol(said)` from any source always has `dev_legal=false`. A misplaced `dev` is a **policy-validity error** — `check_dev_placement` returns `Err` and the **whole** policy denies (like the unknown-primitive rule, but `Err` not `Ok(None)`, since it must propagate past sibling legs); it is **not** credit-nobody, which would let `thr(1, [dev(K_bad), id(legit)])` pass via the `id(legit)` leg. The legal base case (a singleton's own `dev`) still credits `{K}`. This is the same mechanism in all three evaluators (anchored `eval_expr`, `issuance_credited`, current-mode `current_credited`) and in the withdrawal-expr evaluator.
 - **Pinned canonical DSL string form.** Policies are stored as DSL **strings** inside a SAD, and JCS canonicalizes the surrounding JSON but treats the DSL as opaque — so `thr(2,[a,b])` and `thr(2, [a, b])` would otherwise produce different SAIDs. The DSL has a **pinned canonical string form** (the analog of `said.md`'s normatively-pinned JCS): no insignificant whitespace, arguments comma-separated without spaces, `grp` members emitted in canonical order, and **`wgt` entries fully split to single-element brackets** (next bullet). Every cross-party-agreement and content-addressed dedup claim (the prefix-free one-arg `grp` collapse, where identical own-policies share a Policy SAD; two parties independently authoring "the same" policy) depends on it.
-- **Canonical `wgt` desugar.** A multi-element `wgt` bracket and its split equivalent parse to the *same* AST — `wgt(M, [([a, b], w), …])` and `wgt(M, [([a], w), ([b], w), …])` both yield two weight-`w` entries (the array is lossless concise sugar — `([a, b], w)` desugars to `(a, w), (b, w)`). They must therefore canonicalize to one string, or their SADs' SAIDs diverge and `wgt`'s cross-party agreement breaks. **Canonical form splits every entry to single-element brackets `([elem], w)`, in source order**: `([a, b], w)` → `([a], w), ([b], w)`; a `grp` / `del` element stays whole inside its own single-element bracket (`([grp(X, g)], w)`, `([del(X, N)], w)`) — `wgt` subjects are membership-style only, no composer/`pol` (NEW-E). Only the bracket grouping is normalized — source/sibling order is preserved (the analog of the `grp`-order rule).
+- **Canonical `wgt` desugar.** A multi-element `wgt` bracket and its split equivalent parse to the *same* AST — `wgt(M, [([a, b], w), …])` and `wgt(M, [([a], w), ([b], w), …])` both yield two weight-`w` entries (the array is lossless concise sugar — `([a, b], w)` desugars to `(a, w), (b, w)`). They must therefore canonicalize to one string, or their SADs' SAIDs diverge and `wgt`'s cross-party agreement breaks. **Canonical form splits every entry to single-element brackets `([elem], w)`, in source order**: `([a, b], w)` → `([a], w), ([b], w)`; a `grp` / `del` element stays whole inside its own single-element bracket (`([grp(said, g)], w)`, `([del(X, N)], w)`) — `wgt` subjects are membership-style only, no composer/`pol` (NEW-E). Only the bracket grouping is normalized — source/sibling order is preserved (the analog of the `grp`-order rule).
 - **Issuer-set trust boundary.** The verifier confirms the presented `issuers` equal the credential's **committed issuer set** before crediting any of them — the issuer↔content↔anchor binding never depends on caller bookkeeping (the verifier is the trust boundary). (INTERIM: Phase 3 reads the committed set from a `&Credential` input rather than as a separate `committed_issuers` arg — `.working/vdti-12-policy-dsl-phase3-token-architecture.md` — and softens per-issuer failure (E1); the boundary check itself is unchanged.)
 - **Challenge binding (current-state flow).** The `challenge` `evaluate_current_policy` verifies must be **unpredictable, single-use, and context-bound** (to the resource, action, and credential at hand) — otherwise an attestation over a reused challenge replays across contexts. The server constructs it (e.g. a random nonce hashed with the request context); the verifier rejects a stale or context-mismatched challenge before checking signatures.
 
@@ -298,4 +302,36 @@ The three checks are deliberately separable, each answering a different question
 Splitting them this way keeps each failure mode independent: a stolen credential is useless
 (identity fails), a withdrawn credential is useless (validity fails), and an over-broad
 credential is still bounded by the app's role→permission map (authorization fails).
+
+## Worked rejections — the `dev`-placement attacks (DQ2)
+
+Both attacks supply a policy authored by an **untrusted** party but evaluated by **your** verifier; the
+`dev_legal` check (above) rejects each, fail-closed, at the verifier. Each is a `dev` reached with
+`dev_legal=false`.
+
+**Attack 1 — withdrawal `dev`-bypass (`withdrawal: Some(pol(said_with_bare_dev))`).** A malicious issuer
+sets the credential's hard withdrawal authority to a policy that reaches a bare `dev` — e.g.
+`pol(P)` where `P`'s content is `dev(K_attacker)` (or `thr(1, [dev(K_attacker)])`). When
+`evaluate_anchored_policy` runs the withdrawal scan, `is_withdrawn` evaluates `Some(expr)` at tip rooted
+at **`dev_legal=false`** (a withdrawal policy is a general policy). The walk hits `pol(P)`, fetches `P`,
+recurses **inheriting `dev_legal=false`** (a `pol` never carries it true), reaches `dev(K_attacker)` →
+`check_dev_placement(false)` → `Err(MisplacedDev)`. The `?` propagates out of `is_withdrawn` and out of
+`evaluate_anchored_policy`: the **whole credential denies**. The lifecycle-bypass the rule exists to
+prevent never happens.
+
+**Attack 2 — `readPolicy` `dev`-bypass (attacker-set `readPolicy` reaching a bare `dev`).** A SAD author
+(or an adversary who can set a SAD's custody) writes `readPolicy = dev(K_retired)` — or
+`readPolicy = thr(1, [dev(K_retired), id(legit_reader)])`, hoping the `id(legit_reader)` leg carries the
+read while the bare `dev` slips through. At fetch time the read side runs
+`evaluate_current_policy(readPolicy, …)` rooted at **`dev_legal=false`** (a `readPolicy` is a general
+policy). `current_credited` reaches `dev(K_retired)` → `check_dev_placement(false)` → `Err(MisplacedDev)`,
+which propagates: the **whole read denies** (the `id(legit_reader)` leg cannot rescue it — the `Err`
+short-circuits the composer, which is exactly why the check errors rather than crediting-nobody). A
+retired device can never be granted a read it was rotated out of.
+
+**The legal case still works.** `withdrawal: Some(thr(2, [id(admin_a), id(admin_b)]))` (admins are
+singletons) descends — via `id(admin_a)` / `id(admin_b)` — into each admin's `dev`-based authentication
+with `dev_legal` flipped **true** at the singleton descent, so each admin's `dev` credits `{K_admin}` and
+admin/third-party kill is unaffected; the same holds for a `readPolicy = id(reader)` resolving through a
+singleton's device.
 
