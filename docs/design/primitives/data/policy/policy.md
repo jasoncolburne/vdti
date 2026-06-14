@@ -6,7 +6,7 @@ A **policy** is a [SAD](../sad/sad.md) whose content is a DSL expression. The IE
 
 This doc states the surface (the primitives that make up the DSL), their semantics, and how composition works. It does not enumerate per-primitive doctrine (which lives in [`event-logs/event-shape.md`](../event-logs/event-shape.md), the per-primitive specs, and [`../../protocol-doctrine.md`](../../../protocol-doctrine.md)) and does not specify the verifier implementation algorithm (which lives in `lib/vdti` planning material).
 
-**Reading order for the policy primitive group**: this doc (surface + grammar) → [`leaf-semantics.md`](leaf-semantics.md) → [`iel-policy-structure.md`](iel-policy-structure.md) → [`pinning.md`](pinning.md) → [`delegation.md`](delegation.md) → [`evaluation.md`](evaluation.md) → [`withdrawal.md`](withdrawal.md) → [`examples.md`](examples.md) → [`verifier-behavior.md`](verifier-behavior.md).
+**Reading order for the policy primitive group**: this doc (surface + grammar) → [`leaf-semantics.md`](leaf-semantics.md) → [`iel-policy-structure.md`](iel-policy-structure.md) → [`pinning.md`](pinning.md) → [`delegation.md`](delegation.md) → [`evaluation.md`](evaluation.md) → [`examples.md`](examples.md) → [`verifier-behavior.md`](verifier-behavior.md).
 
 ## Where policies appear
 
@@ -45,8 +45,8 @@ Two chain-state **leaves** (`dev`, `id`), one policy-reference **leaf** (`pol`),
   a maximum delegation **depth** `N` (a natural number ≥ 1, counting hops; `del(X)` is sugar for
   `del(X, 1)` = direct delegate). It is **never expanded** (a delegator's delegated set is
   unbounded and delegate-side, so the verifier cannot materialize it); instead it is matched by
-  the **distinct presented issuers** that self-traverse up to `prefix` within `N` hops (see
-  [`del`](leaf-semantics.md#delprefix-n--delegation-placeholder-self-traversing) and *Policies and Pinnings*). `del(X)` is
+  the **distinct presented parties** that self-traverse up to `prefix` within `N` hops (see
+  [`del`](leaf-semantics.md#delprefix-n--delegation-placeholder-self-traversing) and the anchored evaluator in [`evaluation.md`](evaluation.md)). `del(X)` is
   not the same as naming `X`: it authorizes `X`'s *delegates*, not `X` itself.
 
 Both `grp` and `del` are legal only **inside a composer's `[...]`**, never as a standalone
@@ -111,9 +111,10 @@ pub struct Policy {
     said: Said,
     expr: PolicyExpr,
 }
-// Withdrawal authority and immunity are NOT properties of a generic Policy — they live on the
-// CREDENTIAL (see §Withdrawal): an optional `withdrawal: Option<String>` DSL field and an
-// `immune: bool` flag. A bare Policy carries no withdrawal state.
+// Withdrawal authority and immunity are NOT properties of a generic Policy — they are
+// creds-FEATURE fields on the credential (an optional `withdrawal: Option<String>` DSL expression and
+// an `immune: bool` flag), forthcoming with the creds feature, not the policy primitive. A bare Policy
+// carries no withdrawal state, so identical Policy expressions still dedup to one SAD.
 
 pub struct Pinning {
     said: Said,

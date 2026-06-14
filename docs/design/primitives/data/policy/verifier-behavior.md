@@ -4,181 +4,156 @@ Part of the policy primitive group — see [`policy.md`](policy.md) for the DSL 
 
 - **Leaves evaluate independently.** One leaf's satisfaction never depends on another's. The shared pin cursor and the per-log single paged verification walk are plumbing (slot assignment, walk reuse), not satisfaction coupling.
 - **Composers are pure aggregators.** They take their children's **credited sets** (the distinct prefixes each child satisfied) and produce a credited set of their own — `thr`/`and` union the children, `wgt` sums per-prefix max weights — emitting that union iff the threshold is met, else `∅`. Crediting is by *structural* prefix and dedups recursively (a prefix counts once toward every ancestor), so the same identity reached two ways satisfies once, not twice. Pins are never deduped. No side effects (see §Leaf semantics, §Composition).
-- **Boundedness.** Bounded cost. There is no separate pure bind phase: the policy graph is *expanded as it is walked* (descending through `pol`, `id` authentication, and `grp` rosters), consuming pins positionally and running leaf checks inline on the verifier's verification walk — the single paged pass each referenced log gets for end-verifiability anyway. A log referenced by several leaves is paged once, and a million-event log is paged through once in O(chain length), parallelizable across logs (resident cost bounded by the page — the chain is never materialized whole). Every recursion/walk depth is capped by the always-passed `max_depth`; `grp` foreign-roster expansion is capped by a roster-width bound; and a **per-policy expansion cap** (NEW-G) bounds the *total* post-flatten leaf count across all rosters, `pol` nesting, and `id` recursion — so neither a malicious foreign roster nor many moderate ones can amplify cost without bound. The **presented-issuer count** (anchored mode) and the **claimed-delegate count** *and* **attestation count** (current mode) are each capped at `MAX_PRESENTED` (128) by an up-front trust-boundary pre-check — a sibling bound to `max_depth`, roster-width, and the per-policy expansion cap — so a caller cannot amplify cost by presenting an unbounded issuer / delegate / attestation set; exceeding it refuses (`TooManyIssuers` / `TooManyDelegates` / `TooManyAttestations`) before any chain work. Self-traversal of a `del` chain is bounded by the placeholder's `N`. Evaluation itself is a cheap tree walk.
+- **Boundedness.** Bounded cost. There is no separate pure bind phase: the policy graph is *expanded as it is walked* (descending through `pol`, `id` authentication, and `grp` rosters), consuming pins positionally and reading chain state off the verified chain tokens the provider yields — one paged pass per referenced log, the pass each log gets for end-verifiability anyway. A log referenced by several leaves is paged once, and a million-event log is paged through once in O(chain length), parallelizable across logs (resident cost bounded by the page — the chain is never materialized whole). Every recursion/walk depth is capped by the always-passed `max_depth`; `grp` foreign-roster expansion is capped by a roster-width bound; and a **per-policy expansion cap** (NEW-G) bounds the *total* post-flatten leaf count across all rosters, `pol` nesting, and `id` recursion — so neither a malicious foreign roster nor many moderate ones can amplify cost without bound. The **presented-party count** (anchored mode) and the **claimed-delegate count** *and* **attestation count** (current mode) are each capped at `MAX_PRESENTED` (128) by an up-front trust-boundary pre-check — a sibling bound to `max_depth`, roster-width, and the per-policy expansion cap — so a caller cannot amplify cost by presenting an unbounded party / delegate / attestation set; exceeding it refuses (`TooManyParties` / `TooManyDelegates` / `TooManyAttestations`) before any chain work. Self-traversal of a `del` chain is bounded by the placeholder's `N`. Evaluation itself is a cheap tree walk.
 - **Deterministic.** Given a fixed chain state and signed request, evaluation is deterministic. Verifiers across nodes converge.
 
 ## Verifier behavior
 
-The verifier **expands the policy graph as it walks it** — there is no separate pure bind phase. It
-first confirms the presented `issuers` equal the credential's **committed issuer set** (the
-issuer↔content↔anchor binding must not depend on caller bookkeeping — the verifier is the trust
-boundary), and refuses up front if more than `MAX_PRESENTED` (128) issuers are presented
-(`TooManyIssuers`) — a count cap enforced at the trust boundary before any chain work, sibling to
-`max_depth`, the roster-width bound, and the per-policy expansion cap (NEW-G). Current mode applies
-the same `MAX_PRESENTED` cap to **both** `named_delegates` (`TooManyDelegates`) and the presented
-`attestations` (`TooManyAttestations`, NEW-A) — see *Current-mode evaluation*. Then, for each issuer,
-two independent checks ride inline on the **verification walk** (`source`), the single paged pass each
-referenced log gets for end-verifiability anyway:
+The verifier **expands the policy graph as it walks it** — there is no separate pure bind phase, and it
+reads chain state **only through verified chain tokens** the provider yields (never a live `EventSource`).
+The **multi-party** anchored evaluator (`evaluate_anchored_policy`) refuses up front if more than
+`MAX_PRESENTED` (128) parties are presented (`TooManyParties`) — a count cap at the trust boundary before
+any chain work, sibling to `max_depth`, the roster-width bound, and the per-policy expansion cap (NEW-G).
+Current mode applies the same `MAX_PRESENTED` cap to **both** `named_delegates` (`TooManyDelegates`) and the
+presented `attestations` (`TooManyAttestations`, NEW-A) — see *Current-mode evaluation*. Then, for each
+presented party, two independent checks ride inline on the verification walk:
 
-- **Anchor** — evaluate `id(issuer)` against that issuer's **anchor pinning**, consuming pins
+- **Anchor** — evaluate `id(party)` against that party's **anchor pinning**, consuming pins
   positionally in pre-order walk order (a single cursor advances one slot per leaf; a `null`/absent
   slot fails that leaf but still consumes its slot; *leftover pins after the walk deny*). The `id`
-  leaf reads the pinned `Evl`/`Icp` state-marker (the verifier reconstructs the snapshot fixing the
-  authentication state) and recurses into that authentication; the terminal `dev` leaves resolve the anchoring child **on the surviving branch**
-  and check the credential anchor at the required tier. `expected_anchors` rides this walk, so the
-  anchor is checked on the issuer's *own* authentication.
-- **Delegation** — `self_traverses` walks **up** the issuer's own delegation chain to a delegator
-  the issuance policy names (`del(X, N)`, `≤ N` hops), direct-looking-up each `Del` (no enumeration)
-  and checking authorization + consent + **no `Rsc` to the delegator's tip** (F, always).
+  leaf reads the pinned `Evl`/`Icp` state-marker off the party's `IelVerification` (the verifier
+  reconstructs the snapshot fixing the authentication state) and recurses into that authentication; the
+  terminal `dev` leaves resolve the anchoring child **on the surviving branch** off the `KelVerification`
+  and check the anchor at the required tier. `anchors_to_check` rides this walk, so the anchor is checked
+  on the party's *own* authentication.
+- **Delegation** — `self_traverses` walks **up** the party's own delegation chain to a delegator the
+  policy names (`del(X, N)`, `≤ N` hops), direct-looking-up each `Del` (no enumeration) and checking
+  authorization + consent + **no `Rsc` to the delegator's tip** (F, always).
 
-`evaluate_anchored_policy` then evaluates the issuance policy, where each `del(X, N)` placeholder is
-matched by the **distinct anchored issuers** that self-traverse to `X` within `N`; composers count
-distinct issuers, and a foreign `grp` in an issuance policy credits **nobody** (group issuance
-authority is the creds registry-SEL, not an issuer-pinned issuance splice). Finally it scans each issuer
-KEL to tip for a withdrawal anchor — skipped **only**
-when the credential is `immune` (the F rescission walk above is never skipped). The public entry
-points are **policy verifiers**: on satisfaction they return `Ok(Some(PolicyVerification))` — the
-unforgeable proof token — `Ok(None)` for a clean unsatisfied, and `Err(_)` for a structural/source
-failure (see *API Surface*). The full Rust under
-[*Policies and Pinnings → Implementation*](evaluation.md#policies-and-pinnings) is canonical; the sketch below
-shows the shape — the internal helpers elide the token (returning sets / bools) for readability, but
-the public `evaluate_anchored_policy` returns it:
+`evaluate_anchored_policy` then evaluates the policy, where each `del(X, N)` placeholder is matched by the
+**distinct anchored parties** that self-traverse to `X` within `N`; composers count distinct parties, and a
+foreign `grp` credits **nobody** here (no gate context — group authority is supplied only through a SEL gate;
+see `evaluate_single_policy`). **E1**: a single party's chain-verification failure is **soft** (recorded
+`Unverifiable`, uncredited) and the threshold runs over the `Credited` set; structural failures stay hard
+`Err`. The public entry points are **policy verifiers**: on satisfaction they return
+`Ok(Some(AnchoredPolicyVerification))` / `Ok(Some(CurrentPolicyVerification))` — the unforgeable proof token —
+`Ok(None)` for a clean unsatisfied, and `Err(_)` for a structural / verification failure (see *API Surface*).
+The full Rust under [*evaluation.md → Implementation*](evaluation.md#implementation) is canonical; the sketch
+below shows the shape — the internal helpers elide the token (returning sets / bools) for readability, but the
+public entry points return it:
 
 ```
-evaluate_anchored_policy(issuance_policy, issuance_pinning, issuers, committed_issuers,
-                         expected_anchors, withdrawal, immune, source, required_tier, max_depth)
-        -> Result<Option<PolicyVerification>>:
-    if len(issuers) > MAX_PRESENTED: error(TooManyIssuers)                       # count cap, up front
-    assert {prefix for (prefix, _) in issuers} == committed_issuers             # trust boundary (NEW-D)
-    # INTERIM: Phase 3 reads `committed_issuers` from a `&Credential` input rather than as a separate
-    # arg (`.working/vdti-12-policy-dsl-phase3-token-architecture.md`); the boundary check stays.
-    if issuers is empty: return Ok(None)
+# All three read chain state via the verified-token PROVIDER, never a live source. `walk` records consumed
+# chain-token SAIDs (D2) + reconstructed snapshots (NEW-B). SAD content is fetched content-addressed (sadd_fetch).
 
-    anchored = []; issuer_tokens = []                            # (a) anchor proof per issuer
-    for (issuer, anchor_pinning) in issuers:
-        if let Some(t) = evaluate_single_policy(parse_policy("id(" + issuer + ")"), anchor_pinning,
-                                  expected_anchors, None, source, required_tier, max_depth):
-            anchored.append(issuer); issuer_tokens.append(t)
-
-    issuance_pins = PinCursor(issuance_pinning.pins)             # G5 — the cred-carried as-of state
-    credited = issuance_credited(issuance_policy.expr, anchored, issuance_pins, source, max_depth)  # (b) count distinct
-    if issuance_pins.remaining() > 0: error(LeftoverPins)        # malformed issuance pinning
+# evaluate_single_policy — the GENERAL governance gate (D3a): ONE del-free policy + ONE pinning. `gate_context`
+# supplies a foreign grp's marker (SelGate(sel) -> the SEL's FLOORED policyPin, D3b; Tip; None -> credit nobody).
+evaluate_single_policy(policy, pinning, anchors_to_check, gate_context, provider, required_tier, max_depth)
+        -> Result<Option<AnchoredPolicyVerification>>:
+    walk = Walk(provider)
+    if gate_context is SelGate(sel): walk.register(sel.said())            # bind the gate's SEL token (D2)
+    cur  = PinCursor(pinning.pins)
+    credited = eval_expr(policy.expr, cur, anchors_to_check, None, gate_context, walk, required_tier, max_depth, dev_legal=false)
+    if cur.remaining() > 0: error(LeftoverPins)                           # more pins than occurrences — malformed
     if credited is empty: return Ok(None)
+    return Ok(Some(AnchoredPolicyVerification::new(policy.said, credited,             # bind policy SAID (A)
+                       anchored_saids(anchors_to_check), walk.snapshots(),
+                       {p: Credited for p in credited}, walk.consumed_tokens())))     # party_outcomes (E1) + consumed tokens (D2)
 
-    if not immune and is_withdrawn(expected_anchors, anchored, withdrawal,         # withdrawal at tip
-                                   source, required_tier, max_depth):
-        return Ok(None)
-    # fold the issuer tokens' anchored SAIDs + reconstructed marker snapshots into the result — the
-    # returned token carries every sub-walk's proven facts. (CONSUMING the underlying chain
-    # verification tokens themselves — so the result proves every walked CHAIN verified, not just every
-    # sub-policy — is the Phase-3 rewrite: `.working/vdti-12-policy-dsl-phase3-token-architecture.md`.)
-    return Ok(Some(PolicyVerification::new(issuance_policy.said, None, credited,        # bind policy SAID (A)
-                                           fold_anchored_saids(issuer_tokens),
-                                           fold_snapshots(issuer_tokens))))
+# evaluate_anchored_policy — MULTI-PARTY validity (de-cred: GENERIC anchors, no committed-set / withdrawal /
+# immune). Each party (a) anchors the SADs on its OWN authentication via id(party); (b) self-traverses any del.
+evaluate_anchored_policy(policy, parties, anchors_to_check, provider, required_tier, max_depth)
+        -> Result<Option<AnchoredPolicyVerification>>:
+    if len(parties) > MAX_PRESENTED: error(TooManyParties)                # count cap, up front
+    if parties is empty: return Ok(None)
+    walk = Walk(provider); outcomes = {}
+    anchored = []                                                         # (a) anchor proof per party
+    for (party, anchor_pinning) in parties:
+        match evaluate_single_policy(id(party), anchor_pinning, anchors_to_check, None, provider, required_tier, max_depth):
+            Ok(Some(t)) => walk.fold(t); anchored.append(party); outcomes[party] = Credited
+            Ok(None)    => outcomes[party] = Unsatisfied
+            Err(ChainUnverifiable) => outcomes[party] = Unverifiable      # E1 SOFT — uncredited, not a global error
+            Err(e)      => return Err(e)                                  # structural — HARD
+    credited = anchored_credited(policy.expr, anchored, walk, max_depth)  # (b) del self-traverse / id match; foreign grp credits NOBODY (no gate)
+    if credited is empty: return Ok(None)
+    return Ok(Some(AnchoredPolicyVerification::new(policy.said, credited,
+                       anchored_saids(anchors_to_check), walk.snapshots(), outcomes, walk.consumed_tokens())))
 
-# issuance_credited: del(X, N) credited by distinct anchored issuers self-traversing up to X within N;
-# DIRECT issuers credited by id(X) (X in anchored). A foreign grp in an issuance policy credits NOBODY
-# (group issuance authority is the creds REGISTRY-SEL, not an issuer-pinned issuance splice — the
-# anchored foreign-grp-via-policyPin governance gate is Phase-3); pol recurses; thr/wgt/and count
-# DISTINCT issuer prefixes (set union; wgt dedups by max weight; and = all branches non-empty). dev is
-# a misplaced-dev hard reject (DQ2 — issuance never descends a singleton authentication, so dev_legal is
-# invariantly false). Never expands del; the issuance evaluator reads no chain state through the policy,
-# so it consumes no slots. (eval_issuance wraps it as a bool — `not issuance_credited(...).is_empty()` —
-# where only a yes/no is needed.)
-
-# self_traverses: walk UP candidate's chain to delegator, <= max_hops, F-rescission-to-tip ALWAYS.
-self_traverses(candidate, delegator, max_hops, source, max_depth) -> bool:
+# self_traverses: walk UP candidate's chain to delegator, <= max_hops, F-rescission-to-tip ALWAYS (immune ignored).
+self_traverses(candidate, delegator, max_hops, walk, max_depth) -> bool:
     lower = candidate
     for _ in 0 .. min(max_hops, max_depth):
-        parent   = source.delegating_prefix(lower)           # lower.Icp.delegating       (consent)
-        del_said = source.delegating_del_said(lower)         # lower.Evl[1].delegating     (consent back-ptr)
-        del      = source.del_event(parent, del_said)        # direct lookup; MUST be a `Del` (rejects `Rsc`/other)
+        parent   = walk.iel(lower).delegating_prefix()       # lower.Icp.delegating       (consent)
+        del_said = walk.iel(lower).delegating_del_said()     # lower.Evl[1].delegating     (consent back-ptr)
+        del      = walk.iel(parent).del_event(del_said)      # direct lookup; MUST be a `Del` (rejects `Rsc`/other)
         if del.host != parent or not del.lists(lower):       return false   # authorization (reads `Del` additions)
-        if source.rescinded_by_tip(parent, lower):           return false   # F — ALWAYS (immune ignored)
+        if walk.iel(parent).rescinded_by_tip(lower):         return false   # F — ALWAYS
         if parent == delegator:                              return true
         lower = parent
     return false
 
-# evaluate_single_policy: positional pin-walk over ONE del-free policy (the issuer's authentication).
-# Leftover pins deny. self_context threads the host context (prefix + roster source: AtMarker(snapshot)
-# inside an id descent; AtTip is current-mode only) for an aggregate member's one-arg grp(group).
-# Returns Some(token) (credited set + anchored SAIDs + reconstructed marker snapshots) on satisfaction,
-# None on a clean miss — the anchored entry folds the token into its result.
-evaluate_single_policy(policy, pinning, expected_anchors, self_context, source, required_tier, max_depth)
-        -> Option<PolicyVerification>:
-    cur = PinCursor(pinning.pins)
-    credited = eval_expr(policy.expr, cur, expected_anchors, self_context, source, required_tier, max_depth, dev_legal=false)  # DQ2 seed: general wrapper
-    if cur.remaining() > 0: error(LeftoverPins)              # more pins than occurrences — malformed
-    if credited is empty: return None                       # satisfied iff ≥ 1 prefix credited
-    return Some(PolicyVerification::new(policy.said, None, credited,                    # bind policy SAID (A)
-                                        anchored_saids(expected_anchors),
-                                        source.reconstructed_snapshots()))
-
-# Leaves take the NEXT slot (positional, pre-order order) and read that event from the verification
-# walk; consumption is structural (a failed/present-unsatisfied id still drains its subtree). Returns
-# the SET of distinct prefixes CREDITED if satisfied, else ∅: a satisfied dev(K)/id(X) credits {K}/{X}
-# (the prefix from the STRUCTURE, not the pin); a composer unions its children iff its threshold is met
-# (recursive dedup — a prefix counts once toward every ancestor; an id boundary is opaque). del is NOT
-# a single-policy element (no slot, no self-traversal here). Unknown primitive => whole policy denies
-# (fail-secure), handled by the caller.
-eval_expr(expr, cur, expected_anchors, host, source, required_tier, max_depth, dev_legal) -> set<Prefix>:
+# Leaves take the NEXT slot (positional, pre-order) and read chain state off the walk's tokens; consumption is
+# structural (a failed/present-unsatisfied id still drains its subtree). Returns the SET of distinct prefixes
+# CREDITED if satisfied, else ∅ (recursive dedup; an id boundary is opaque). Unknown primitive => whole policy
+# denies (fail-secure). `gate_context` supplies a foreign grp's marker (SelGate -> floored policyPin, D3b; Tip;
+# None -> credit nobody).
+eval_expr(expr, cur, anchors_to_check, host, gate_context, walk, required_tier, max_depth, dev_legal) -> set<Prefix>:
     if max_depth == 0: error(MaxDepthExceeded)
     match expr:
-        # dev: VERIFIER-ENFORCED PLACEMENT (DQ2). check_dev_placement(dev_legal) HARD-REJECTS unless this
-        # `dev` sits at the base of an id→singleton descent (dev_legal=true); a bare dev in any general /
-        # composed / pol-reached position denies the WHOLE policy (never credit-nobody). Then resolve as before.
-        dev(prefix) => check_dev_placement(dev_legal); cur.take_next() is Some(Some(prior)) and satisfies_dev(prior, prefix, expected_anchors, source, required_tier) ? {prefix} : {}
-        id(prefix) => cur.take_next() is Some(Some(marker)) and satisfies_id(marker, prefix, cur, expected_anchors, source, required_tier, max_depth) ? {prefix} : {}   # satisfies_id seeds the descent's dev_legal = snap.is_singleton()
-        pol(said)   => eval_expr(parse_dsl(sadd.fetch(said).content).expr, cur, expected_anchors, host, source, required_tier, max_depth - 1, dev_legal)   # propagate nested set + dev_legal (never true into a pol)
-        thr(M, ss)  => U = union(eval_expr(s, cur, …, dev_legal) for s in flatten(ss, host, source));            |U| >= M ? U : {}
-        wgt(M, ws)  => B = per-prefix MAX weight over (s, w) in flatten_weighted(ws, host, source);   sum(B.values) >= M ? B.keys : {}   # children inherit dev_legal
-        and(cs)     => sets = [eval_expr(c, cur, …, dev_legal) for c in cs];   all(s nonempty for s in sets) ? union(sets) : {}   # eval ALL (drain slots)
+        # dev: VERIFIER-ENFORCED PLACEMENT (DQ2). check_dev_placement(dev_legal) HARD-REJECTS unless this `dev`
+        # sits at the base of an id→singleton descent; a bare dev in any general / composed / pol-reached position
+        # denies the WHOLE policy (never credit-nobody). Then resolve the anchor as before.
+        dev(prefix) => check_dev_placement(dev_legal); cur.take_next() is Some(Some(prior)) and satisfies_dev(prior, prefix, anchors_to_check, walk, required_tier) ? {prefix} : {}
+        id(prefix)  => cur.take_next() is Some(Some(marker)) and satisfies_id(marker, prefix, cur, anchors_to_check, gate_context, walk, required_tier, max_depth) ? {prefix} : {}
+        pol(said)   => eval_expr(parse_dsl(sadd_fetch(said)).expr, cur, anchors_to_check, host, gate_context, walk, required_tier, max_depth - 1, dev_legal)   # never carries dev_legal true into a pol
+        thr(M, ss)  => U = union(eval_expr(s, …) for s in flatten(ss, host, gate_context, walk));            |U| >= M ? U : {}
+        wgt(M, ws)  => B = per-prefix MAX weight over flatten_weighted(ws, host, gate_context, walk);   sum(B.values) >= M ? B.keys : {}   # children inherit dev_legal
+        and(cs)     => sets = [eval_expr(c, …) for c in cs];   all(s nonempty for s in sets) ? union(sets) : {}   # eval ALL (drain slots)
         _           => {}                                    # del/grp standing alone are bracket-only
 
-# dev: `prior` is the pinned event just before the anchoring event; resolve its SURVIVING-BRANCH
-# child S (S.previous == prior) — checking it there, inline, both dodges the SAID cycle and needs no
-# search. A divergent / archived branch has no valid anchor. id: the pin is the Evl/Icp state-marker
-# (cycle-free); reconstruct the snapshot AS-OF it and recurse into the snapshot's authentication
-# (threading host = {prefix, AtMarker(snap)}; a one-arg grp(group) under it REUSES this same snapshot's roster, NEW-B) —
-# the credential anchor is checked at the terminal dev leaves; the descent drains the subtree's slots
+# dev: `prior` is the pinned event just before the anchoring event; resolve its SURVIVING-BRANCH child S
+# (S.previous == prior) off the KelVerification — dodges the SAID cycle, needs no search. A divergent / archived
+# branch has no valid anchor. id: the pin is the Evl/Icp state-marker (cycle-free); reconstruct the snapshot
+# AS-OF it off the IelVerification and recurse into the snapshot's authentication (host = {prefix, AtMarker(snap)};
+# a one-arg grp(group) under it REUSES this same snapshot's roster, NEW-B); the descent drains the subtree's slots
 # even on mismatch (structural consumption).
-satisfies_dev(prior, leaf_prefix, expected_anchors, source, required_tier):
-    S = source.anchoring_child_on_surviving_branch(leaf_prefix, prior)    # None if divergent/archived
+satisfies_dev(prior, leaf_prefix, anchors_to_check, walk, required_tier):
+    S = walk.kel(leaf_prefix).anchoring_child_on_surviving_branch(prior)  # None if divergent/archived
     if S is None: return false
     return S.prefix == leaf_prefix
         AND S.tier >= required_tier
-        AND for all (anchor, tier) in expected_anchors: S.anchors.contains(anchor) AND S.tier >= tier
+        AND for all (anchor, tier) in anchors_to_check: S.anchors.contains(anchor) AND S.tier >= tier
 
-satisfies_id(marker_said, leaf_prefix, cur, expected_anchors, source, required_tier, max_depth):
-    snap = source.snapshot_as_of(leaf_prefix, marker_said)               # reconstruct state AS-OF the Evl/Icp marker (NEW-B)
+satisfies_id(marker_said, leaf_prefix, cur, anchors_to_check, gate_context, walk, required_tier, max_depth):
+    snap = walk.snapshot_as_of(leaf_prefix, marker_said)                 # reconstruct state AS-OF the Evl/Icp marker (NEW-B)
     host = HostContext{ prefix: leaf_prefix, roster: AtMarker(snap) }          # NEW-B — roster frozen at the marker
-    sub  = eval_expr(parse_dsl(sadd.fetch(snap.authentication).content).expr,  # one-arg grp(group) reuses snap.roster
-                    cur, expected_anchors, Some(host), source, required_tier, max_depth - 1, snap.is_singleton())  # DQ2: dev_legal TRUE only for a singleton
+    sub  = eval_expr(parse_dsl(sadd_fetch(snap.authentication)).expr,          # one-arg grp(group) reuses snap.roster
+                    cur, anchors_to_check, Some(host), gate_context, walk, required_tier, max_depth - 1, snap.is_singleton())  # DQ2: dev_legal TRUE only for a singleton
     return snap.prefix == leaf_prefix AND sub nonempty                   # X's authentication met ⇒ credit X; drains subtree regardless of match
 ```
 
 **Semantics notes:**
 
 - **Anchor requirement propagates uniformly.** A `pol(said)` recursion — and an `id`
-  authentication recursion — threads the same positional `cur` cursor, `expected_anchors`, `source`,
-  `required_tier`, and `max_depth` as the outer evaluation (and `self_context` set to the enclosing
-  `id` prefix). Because `evaluate_single_policy` is only ever called for an issuer's *anchor* walk,
-  every `dev` leaf reached under it is an anchoring leaf, so `expected_anchors` flows down to all of
-  them; an issuance-policy `del(X, N)` is matched separately by self-traversal and never carries the
-  anchor requirement. The whole expanded graph consumes one positional pin cursor, each occurrence
-  taking its own slot in pre-order order; leftover pins after the walk deny.
-- **The SAID cycle, and why dev prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors credential `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a dev prefix pins the event *just prior* and the verifier rederives the anchoring child on the surviving branch. id prefixes are cycle-free: they pin `Evl`/`Icp` state-markers (the verifier reconstructs the authentication snapshot as-of them), which never carry the credential anchor. Avoiding a second walk of a shared log is handled by the verification walk paging that log once and checking all of its pinned positions inline (the pinned SAIDs are supplied up front as the positions to check), not by the pin array order.
+  authentication recursion — threads the same positional `cur` cursor, `anchors_to_check`, `gate_context`,
+  `walk`, `required_tier`, and `max_depth` as the outer evaluation (and `self_context` set to the enclosing
+  `id` prefix). When `evaluate_single_policy` is used for a party's *anchor* walk, every `dev` leaf reached
+  under it is an anchoring leaf, so `anchors_to_check` flows down to all of them; a multi-party `del(X, N)` is
+  matched separately by self-traversal and never carries the anchor requirement. The whole expanded graph
+  consumes one positional pin cursor, each occurrence taking its own slot in pre-order order; leftover pins
+  after the walk deny.
+- **The SAID cycle, and why dev prefixes pin the *prior* event.** A SAID is the hash of the SAD with its own said-field zeroed, so it depends on every other field. The event that anchors an anchored SAD `C` lists `said(C)` in its `anchors`; `C` commits to the Pinning (`said(P)`); `P` lists the pinned event's SAID. Pinning the anchoring event directly would close the loop `said(anchor) → said(C) → said(P) → said(anchor)` — unconstructable. So a dev prefix pins the event *just prior* and the verifier rederives the anchoring child on the surviving branch. id prefixes are cycle-free: they pin `Evl`/`Icp` state-markers (the verifier reconstructs the authentication snapshot as-of them), which never carry an anchored SAD. Avoiding a second walk of a shared log is handled by the verification walk paging that log once and checking all of its pinned positions inline (the pinned SAIDs are supplied up front as the positions to check), not by the pin array order.
 - **`pol(said)` reference cycles are structurally impossible.** Content-addressed references can't form a cycle without a Blake3-256 collision (two Policy SADs mutually containing each other's SAIDs). No runtime cycle check needed.
 - **Hard depth cap (`max_depth`, always passed).** Every recursive/walk depth in evaluation — `del` self-traversal, `pol` nesting, `id` authentication recursion — is bounded by an **explicit `max_depth` the caller always passes**; never implicit or unbounded. It is sourced from data where a governing bound exists (a `del(X, N)` chain caps at `N`) and from a sensible default otherwise (`pol`/`id` nesting, e.g. 16). Exceeding it **denies** (fail-secure). This also backstops the aggregate-membership cycle guard.
 - **Roster-width bound (foreign `grp`).** `grp(prefix, group)` with foreign owner `X` expands to one leaf per roster member, and `X` controls its roster. Expansion is capped by a **width bound**; a roster exceeding it denies with an "expansion truncated" signal (fail-secure) — a large or malicious foreign group cannot amplify verifier cost without bound.
 - **Per-policy expansion cap (NEW-G).** Beyond the per-roster width bound, the **total** number of leaves a single policy expands to — summed across every `grp` flatten, `pol` nesting, and `id` authentication recursion — is capped by a per-policy expansion bound, a sibling to `max_depth`, the roster-width bound, and `MAX_PRESENTED`. A policy whose post-flatten leaf count exceeds it denies (fail-secure) before the walk completes, so neither a deeply nested composition nor many moderate rosters can multiply past the cap even when no single roster is over-wide.
 - **Tier check is in the leaf helpers, not the composers.** A dev prefix's `satisfies_dev` rejects an anchoring event hosted below `required_tier`; the tier requirement propagates unchanged through the id authentication recursion to the terminal dev leaves. Composers aggregate satisfied/unsatisfied results; they don't see tier directly.
 - **Unrecognized primitive → the WHOLE policy denies (fail-secure).** An older verifier encountering a newer DSL primitive must **not** treat it as a merely-unsatisfied sub-expression: `thr(1, [new_restrictive_thing, old_permissive_thing])` would then silently ignore the restriction and pass. Instead an unknown primitive fails the **entire** policy closed (`Ok(None)` for the whole evaluation — no proof token is produced). Greenfield ships one DSL version, but this keeps safety intact under any skew.
-- **`dev` placement is verifier-enforced at evaluation, fail-closed (DQ2).** The rule "a bare `dev` is legal only inside a singleton IEL's own three policies, forbidden in every general / composed policy" is enforced **at the verifier, at evaluation time, over the fully-`pol`-expanded graph** — not as an author/submit-time convention (the policy may be authored by an untrusted party — a malicious issuer's `withdrawal: Some(…)`, an attacker-set `readPolicy`/`pol(said)` → a `dev`-bearing SAD — and only the verifier is the trust boundary). A context flag `dev_legal` threads the one eval walk: seeded **false** at a general entry (or **true** for a singleton self-gating its own governance/operation top-level — D2-B, caller-supplied), flipped **true only on an `id`→singleton descent** (the one legal placement), inherited unchanged through `thr`/`wgt`/`and`/`pol`. Because a singleton's own policy cannot use `pol`, `dev_legal` is never carried true into a `pol`, so a `dev` reached via `pol(said)` from any source always has `dev_legal=false`. A misplaced `dev` is a **policy-validity error** — `check_dev_placement` returns `Err` and the **whole** policy denies (like the unknown-primitive rule, but `Err` not `Ok(None)`, since it must propagate past sibling legs); it is **not** credit-nobody, which would let `thr(1, [dev(K_bad), id(legit)])` pass via the `id(legit)` leg. The legal base case (a singleton's own `dev`) still credits `{K}`. This is the same mechanism in all three evaluators (anchored `eval_expr`, `issuance_credited`, current-mode `current_credited`) and in the withdrawal-expr evaluator.
+- **`dev` placement is verifier-enforced at evaluation, fail-closed (DQ2).** The rule "a bare `dev` is legal only inside a singleton IEL's own three policies, forbidden in every general / composed policy" is enforced **at the verifier, at evaluation time, over the fully-`pol`-expanded graph** — not as an author/submit-time convention (the policy may be authored by an untrusted party — an attacker-set `readPolicy`/`pol(said)` → a `dev`-bearing SAD, a creds-feature withdrawal policy — and only the verifier is the trust boundary). A context flag `dev_legal` threads the one eval walk: seeded **false** at a general entry (or **true** for a singleton self-gating its own governance/operation top-level — D2-B, caller-supplied), flipped **true only on an `id`→singleton descent** (the one legal placement), inherited unchanged through `thr`/`wgt`/`and`/`pol`. Because a singleton's own policy cannot use `pol`, `dev_legal` is never carried true into a `pol`, so a `dev` reached via `pol(said)` from any source always has `dev_legal=false`. A misplaced `dev` is a **policy-validity error** — `check_dev_placement` returns `Err` and the **whole** policy denies (like the unknown-primitive rule, but `Err` not `Ok(None)`, since it must propagate past sibling legs); it is **not** credit-nobody, which would let `thr(1, [dev(K_bad), id(legit)])` pass via the `id(legit)` leg. The legal base case (a singleton's own `dev`) still credits `{K}`. This is the same mechanism in all three evaluators (anchored `eval_expr`, `anchored_credited`, current-mode `current_credited`) and in any untrusted-authored general policy a feature evaluates through them (e.g. a creds withdrawal policy).
 - **Pinned canonical DSL string form.** Policies are stored as DSL **strings** inside a SAD, and JCS canonicalizes the surrounding JSON but treats the DSL as opaque — so `thr(2,[a,b])` and `thr(2, [a, b])` would otherwise produce different SAIDs. The DSL has a **pinned canonical string form** (the analog of `said.md`'s normatively-pinned JCS): no insignificant whitespace, arguments comma-separated without spaces, `grp` members emitted in canonical order, and **`wgt` entries fully split to single-element brackets** (next bullet). Every cross-party-agreement and content-addressed dedup claim (the prefix-free one-arg `grp` collapse, where identical own-policies share a Policy SAD; two parties independently authoring "the same" policy) depends on it.
 - **Canonical `wgt` desugar.** A multi-element `wgt` bracket and its split equivalent parse to the *same* AST — `wgt(M, [([a, b], w), …])` and `wgt(M, [([a], w), ([b], w), …])` both yield two weight-`w` entries (the array is lossless concise sugar — `([a, b], w)` desugars to `(a, w), (b, w)`). They must therefore canonicalize to one string, or their SADs' SAIDs diverge and `wgt`'s cross-party agreement breaks. **Canonical form splits every entry to single-element brackets `([elem], w)`, in source order**: `([a, b], w)` → `([a], w), ([b], w)`; a `grp` / `del` element stays whole inside its own single-element bracket (`([grp(X, g)], w)`, `([del(X, N)], w)`) — `wgt` subjects are membership-style only, no composer/`pol` (NEW-E). Only the bracket grouping is normalized — source/sibling order is preserved (the analog of the `grp`-order rule).
-- **Issuer-set trust boundary.** The verifier confirms the presented `issuers` equal the credential's **committed issuer set** before crediting any of them — the issuer↔content↔anchor binding never depends on caller bookkeeping (the verifier is the trust boundary). (INTERIM: Phase 3 reads the committed set from a `&Credential` input rather than as a separate `committed_issuers` arg — `.working/vdti-12-policy-dsl-phase3-token-architecture.md` — and softens per-issuer failure (E1); the boundary check itself is unchanged.)
-- **Challenge binding (current-state flow).** The `challenge` `evaluate_current_policy` verifies must be **unpredictable, single-use, and context-bound** (to the resource, action, and credential at hand) — otherwise an attestation over a reused challenge replays across contexts. The server constructs it (e.g. a random nonce hashed with the request context); the verifier rejects a stale or context-mismatched challenge before checking signatures.
+- **The trust boundary is the verified token.** The evaluator reads chain state **only** through the verified chain tokens the provider yields — never a live source — so it cannot be made to trust a substituted or leaked chain state; possession of a token is the proof the chain verified. The presented parties + their anchor pinnings are caller-supplied, but a foreign `grp` credits nobody without a gate context, the multi-party threshold counts only `Credited` parties (E1), and a misplaced `dev` denies — so an over-broad presented set can only **shrink** the credited set, never validate spuriously. Binding the presented set to a **document's committed authors** (e.g. a credential's committed issuer set) is a **feature** concern: the creds feature's `verify_credential` reads the committed set from the SAID-verified credential itself and requires every committed issuer `Credited` — no caller-supplied set for the primitive to mistrust.
+- **Challenge binding (current-state flow).** The `challenge` `evaluate_current_policy` verifies must be **unpredictable, single-use, and context-bound** (to the resource, action, and request at hand) — otherwise an attestation over a reused challenge replays across contexts. The server constructs it (e.g. a random nonce hashed with the request context); the verifier rejects a stale or context-mismatched challenge before checking signatures.
 
 The detailed verifier evaluation algorithm (chain-walk caching, parallelism, recursion termination, etc.) lives in the implementation specs — out of scope here.
 
@@ -192,116 +167,30 @@ Policy DSL evaluations gate the following event kinds (per [`event-logs/event-sh
 - **SEL `Est` / `Ixn`** — gated by `operation`
 - **Application-defined gates** — credentials, signed requests, etc. — gated by application-specific policy references
 
-## End-to-end access example
+## Composing the entry points
 
-Putting the two entry points together: a resource grants an action iff the presented credential
-is **validly issued and not withdrawn** AND the bearer **currently controls the credential's
-subject** AND the credential's **roles cover the action's permission**. Three independent checks,
-three different mechanisms:
+The two entry points compose: an **anchored** check (authority *as authored* — a governance gate via
+`evaluate_single_policy`, or multi-party validity via `evaluate_anchored_policy`) and a **current** check
+(control *now* — `evaluate_current_policy`) yield **distinct typed tokens** (`AnchoredPolicyVerification` vs
+`CurrentPolicyVerification`) a consumer combines. The two types make it compile-impossible to pass a
+current-control proof where an anchored-validity proof is required (and vice versa), so verify-before-use is
+type-enforced and the runtime `debug_assert!`s an unsplit token needed disappear. A worked general example —
+an SEL governance gate composed with a current-control check, minting a capability from the two tokens — is in
+[*evaluation.md → General governance-gate + current-control example*](evaluation.md#general-governance-gate--current-control-example).
 
-```rust
-// A bearer requests `action` on a resource, presenting `cred` (which NAMES its issuers and
-// carries one anchor pinning per issuer) and a fresh signature over `challenge` (a context-bound,
-// single-use nonce digest).
-fn authorize(
-    cred: &Credential,
-    action: Action,
-    challenge: &Digest256,
-    attestations: &[Attestation],
-    issuance_policy: &Policy,       // the resource's configured issuance policy
-    source: &impl EventSource,
-) -> Result<bool, PolicyError> {
-    // 1. Validity — each named issuer self-traverses to a delegator the issuance policy names and
-    //    anchors the credential on its own authentication at the required tier; enough DISTINCT
-    //    issuers clear the issuance threshold (a foreign `grp` in the issuance policy credits
-    //    NOBODY — group issuance authority is the creds registry-SEL); and no satisfying withdrawal
-    //    anchor was found. The
-    //    presented issuers are asserted equal to the credential's committed set INSIDE the verifier
-    //    (NEW-D). On success it returns a PolicyVerification proof token.
-    let cred_anchor: HashSet<(Said, Tier)> =
-        [(cred.said, Tier::One)].into_iter().collect();
-    let issuers: Vec<(Prefix, &Pinning)> = cred.issuers();   // committed set, sourced from the cred
-    let committed: HashSet<Prefix> = cred.committed_issuers().into_iter().collect();
-    let issuance_pinning: &Pinning = cred.issuance_pinning();   // cred-carried as-of state (G5)
-    let Some(validity) = evaluate_anchored_policy(
-        issuance_policy,
-        issuance_pinning,
-        &issuers,
-        &committed,                  // NEW-D: asserted == presented, inside the verifier
-        &cred_anchor,
-        cred.withdrawal.as_deref().map(parse_policy).transpose()?.as_ref(),  // None = soft default
-        cred.immune,
-        source,
-        Tier::One,
-        16,                          // max_depth (del's N bounds the delegation walk; this caps nesting)
-    )? else {
-        return Ok(false);            // not issued by a recognized authority, or withdrawn
-    };
+The three-question split is general:
 
-    // 2. Identity — the bearer presently controls the credential's SUBJECT. The subject is an IEL;
-    //    `id(subject)` defers to the subject's own authentication policy, so a rotated or multi-sig
-    //    subject still authenticates correctly. The challenge defeats replay. `id(subject)` has no
-    //    `del`, so no delegates are claimed (&[]).
-    let subject_policy = parse_policy(&format!("id({})", cred.subject))?;
-    let Some(identity) = evaluate_current_policy(
-        &subject_policy,
-        challenge,
-        attestations,
-        &[],                         // no del leaves in id(subject) → no claimed delegates
-        source,
-        Tier::One,
-        16,                          // max_depth
-    )? else {
-        return Ok(false);            // credential presented by someone who isn't the subject
-    };
+- **Authority as authored** (anchored) — was this authorization validly produced (the right parties anchored
+  it as-of the pinned state)? It checks pinned events inline; it says nothing about who is acting now.
+- **Control now** (current) — does whoever is acting presently control the named identity? Live attestations
+  over a fresh challenge at tip; it says nothing about how the authorization was produced.
+- **Application authorization** — given a valid authorization held by its rightful controller, does it grant
+  the requested action? Outside the DSL — the app's role→permission vocabulary.
 
-    // 3. Authorization — the application maps the credential's roles to permissions and grants iff
-    //    the action's required permission is covered. Pure application policy; the DSL's job ended
-    //    once validity + identity were established. The grant is minted by `mint_grant`, which TAKES
-    //    both proof tokens by reference — so it is type-impossible to reach a grant without having
-    //    run both verifiers to satisfaction (verify-before-use enforced by the SIGNATURE, not a
-    //    comment). No TOCTOU: the verified facts ride in the tokens (E2).
-    Ok(mint_grant(cred, action, &validity, &identity))
-}
-
-// The ONLY path to a grant — and it cannot be called without BOTH proof tokens in hand, so a caller
-// that skipped verification simply has no `&PolicyVerification` to pass (E2). A real system returns a
-// capability object binding `validity`/`identity`; here it returns the bool grant for brevity. The
-// tokens make the verified facts available WITHOUT re-fetching — e.g. `identity.challenge()` confirms
-// the live-control proof is over the challenge this request issued, and `validity.credited()` /
-// `validity.is_said_anchored(&cred.said)` confirm the anchoring issuers — bound before the role map
-// decides. The role→permission map is application policy.
-fn mint_grant(
-    cred: &Credential,
-    action: Action,
-    validity: &PolicyVerification,    // anchored-mode proof: the credential is validly issued
-    identity: &PolicyVerification,    // current-mode proof: the bearer controls the subject
-) -> bool {
-    debug_assert!(validity.is_said_anchored(&cred.said));   // the validity proof covers THIS credential
-    debug_assert!(identity.challenge().is_some());          // the identity proof is challenge-bound (current mode)
-    cred.roles
-        .iter()
-        .flat_map(permissions_for_role)              // application-defined role → permissions
-        .any(|p| p == action.required_permission())  // application-defined action → permission
-}
-```
-
-The three checks are deliberately separable, each answering a different question:
-
-- **Validity** (`evaluate_anchored_policy`) is about the *issuer* — did a recognized authority
-  anchor this credential at the required tier, and is it still withdrawal-free? It checks the
-  pinned events inline in the verification walk; it says nothing about who is holding the
-  credential right now.
-- **Identity** (`evaluate_current_policy`) is about the *bearer* — does whoever is presenting the
-  credential currently control its subject identity? It checks live attestations over a fresh
-  challenge at the chain tip; it says nothing about whether the credential was validly issued.
-- **Authorization** is the *application's* — given a valid credential held by its rightful
-  subject, does the carried role grant the requested action? This is outside the DSL: roles and
-  permissions are the app's vocabulary, not the chain's.
-
-Splitting them this way keeps each failure mode independent: a stolen credential is useless
-(identity fails), a withdrawn credential is useless (validity fails), and an over-broad
-credential is still bounded by the app's role→permission map (authorization fails).
+Splitting them keeps each failure mode independent. The credential `authorize` 3-check flow (validity +
+identity + role→permission, with a credential's withdrawal scan) is a **creds-feature** application of this
+pattern — `verify_credential` wraps `evaluate_anchored_policy`, the role map is the application's — and is
+forward-pointed to the creds feature, not the policy primitive.
 
 ## Worked rejections — the `dev`-placement attacks (DQ2)
 
@@ -309,14 +198,14 @@ Both attacks supply a policy authored by an **untrusted** party but evaluated by
 `dev_legal` check (above) rejects each, fail-closed, at the verifier. Each is a `dev` reached with
 `dev_legal=false`.
 
-**Attack 1 — withdrawal `dev`-bypass (`withdrawal: Some(pol(said_with_bare_dev))`).** A malicious issuer
-sets the credential's hard withdrawal authority to a policy that reaches a bare `dev` — e.g.
-`pol(P)` where `P`'s content is `dev(K_attacker)` (or `thr(1, [dev(K_attacker)])`). When
-`evaluate_anchored_policy` runs the withdrawal scan, `is_withdrawn` evaluates `Some(expr)` at tip rooted
-at **`dev_legal=false`** (a withdrawal policy is a general policy). The walk hits `pol(P)`, fetches `P`,
-recurses **inheriting `dev_legal=false`** (a `pol` never carries it true), reaches `dev(K_attacker)` →
-`check_dev_placement(false)` → `Err(MisplacedDev)`. The `?` propagates out of `is_withdrawn` and out of
-`evaluate_anchored_policy`: the **whole credential denies**. The lifecycle-bypass the rule exists to
+**Attack 1 — untrusted-authored policy `dev`-bypass (e.g. a creds-feature hard withdrawal policy).** A
+feature evaluates an untrusted-authored general policy that reaches a bare `dev` — for instance a credential's
+hard withdrawal authority `withdrawal: Some(pol(P))` where `P`'s content is `dev(K_attacker)` (or
+`thr(1, [dev(K_attacker)])`). The feature runs it through the general evaluator, rooted at **`dev_legal=false`**
+(a withdrawal policy is a general policy). The walk hits `pol(P)`, fetches `P`, recurses **inheriting
+`dev_legal=false`** (a `pol` never carries it true), reaches `dev(K_attacker)` → `check_dev_placement(false)`
+→ `Err(MisplacedDev)`. The `?` propagates: the **whole policy denies**. Because DQ2 is enforced in the
+**primitive's** evaluator, the feature gets this protection for free — the lifecycle-bypass the rule exists to
 prevent never happens.
 
 **Attack 2 — `readPolicy` `dev`-bypass (attacker-set `readPolicy` reaching a bare `dev`).** A SAD author

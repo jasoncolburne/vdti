@@ -1,5 +1,43 @@
 Part of the policy primitive group — see [`policy.md`](policy.md) for the DSL surface, grammar, and reading order.
 
+### As-of resolution — grandfather, not freeze
+
+Anchored evaluation resolves **as-of** the state a document pinned, and an authorization stays valid
+**permanently** once a then-authorized party anchored it. The only thing that invalidates it is explicit
+**withdrawal** (revocation) — never a later roster or policy change (**grandfather**). Resolution is as-of
+**the inherited pin, never the owner's tip**; a tip-resolving branch would retroactively invalidate old
+authorizations on a roster change, which the design rejects.
+
+Grandfather does **not** reopen any ex-member backdating exposure, because the marker a document resolves
+against is **never a free choice**:
+
+- A credential's issuer anchored it by **adding a real event to its own chain** — a **self-dating position**
+  you cannot insert in the past. The credential resolves its issuer's authority as-of that position.
+- Where a group gates issuance, the gating event **inherits** the **governance-ratcheted, floored
+  `policyPin`** (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)) — also never
+  issuer-chosen.
+
+So "old stays valid" uses *the event's own position*; backdating would need *a freely chosen old one* —
+different things, never in tension. The forward floor blocks backdating; **recovery** (an `Rpr` archiving
+forged anchors — [`evaluation.md`](evaluation.md)) handles compromise. Neither alters a valid
+authorization's validity.
+
+### Two pinnings, one positional mechanism
+
+The positional mechanism described below serves **two distinct pinnings** — do not conflate them:
+
+- The **SEL `policyPin`** (standing; event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)) is
+  **shallow**: one slot per `id` / `grp` occurrence in the SEL's `governance` / `operation` policy **text**,
+  every entry an IEL state-marker, **full — no nulls**, ratcheted forward along the per-chain floor. It fixes
+  *which version of each directly-named IEL* an event resolves against — the membership / state layer.
+- The **per-event evidence pinning** (this doc's subject) is **deep**: it walks the fully-expanded policy
+  graph (`id`-recursion + roster expansion) down to the terminal `dev` anchors, with `null` slots for
+  occurrences the issuer doesn't evidence. It proves *who actually signed*, as-of authoring.
+
+Everything below — the full graph walk, the `dev` prior-event slots, the `null` discipline — is the **deep
+evidence** pinning. `null` slots live **only** here, never in a `policyPin`. The shallow `policyPin` is the
+membership/state layer that *supplies a foreign `grp`'s context marker* into this deep walk.
+
 ### Shape
 
 Take the policy `thr(2, [pol(A_said), id(X_prefix), id(W_prefix)])`, where the nested policy
@@ -16,14 +54,15 @@ walk order; satisfying 2 of the 3 top-level branches is enough to clear the thre
 
 `del(prefix, N)` is the one bracket form that contributes **no** slot — it is never expanded and
 carries no pin. Its issuers prove delegation by self-traversing their own delegation chains, not
-by a pinned slot (see [`del`](leaf-semantics.md#delprefix-n--delegation-placeholder-self-traversing) and *Policies and
-Pinnings*).
+by a pinned slot (see [`del`](leaf-semantics.md#delprefix-n--delegation-placeholder-self-traversing) and the
+anchored evaluator in [`evaluation.md`](evaluation.md)).
 
 `grp`, the other bracket form, does lay slots: its flatten lays one `id(mi)` occurrence per
 member, and a foreign **two-arg `grp(prefix, group)` additionally lays its own X-state-marker slot
 first** (G1) — in pre-order where the `grp` occurs, before its members' slots. A foreign splice
 has no enclosing `id(X)` descent to ride, so it pins its own roster source; that marker is
-**context-supplied** (the gating SEL's ratcheted `policyPin`), not invoker-chosen. A one-arg
+**context-supplied** (the gating SEL's **governance-ratcheted, floored** `policyPin`, resolved as-of —
+never the invoker's choice, never X's tip). A one-arg
 `grp(group)` lays no slot of its own — it rides the enclosing `id(X)` marker (NEW-B). See the slot
 kinds below.
 
@@ -156,9 +195,10 @@ What each non-null entry holds depends on the prefix's kind, which the verifier 
 its position in the policy:
 
 - **dev prefix** → the SAID of the KEL event *just prior* to the anchoring event. The
-  anchoring event carries the credential, so its own SAID is unconstructable here (see the
+  anchoring event carries the anchored authorization (a credential is the canonical example), so its
+  own SAID is unconstructable here (see the
   SAID-cycle note under *Verifier behavior*); the verifier resolves the anchoring child
-  `S` (`S.previous == pin`) **on the surviving branch** and checks the credential anchor on `S`.
+  `S` (`S.previous == pin`) **on the surviving branch** and checks the anchor on `S`.
   An anchor on a divergent or later-archived branch is invalid (see [`dev`](leaf-semantics.md#devprefix--kel-key-match-tier-agnostic)).
 - **id prefix** → the SAID of the IEL's most-recent `Evl`/`Icp` **state-marker** (the last event
   that changed its authentication or roster; `Del`/`Rsc` don't move it). This fixes the IEL's
@@ -167,16 +207,20 @@ its position in the policy:
   authentication policy, whose leaves consume the following slots in walk order, and a one-arg
   `grp(group)` under that authentication reads its roster from this **same** reconstructed snapshot
   (reuse of the marker, no second pin — closing the authentication-recent / roster-stale
-  resurrection gap). A state-marker doesn't carry the credential anchor, so there's no cycle and no
+  resurrection gap). A state-marker doesn't carry an anchored authorization, so there's no cycle and no
   prior-event trick.
 - **foreign-`grp` X-state-marker** (G1) → for a two-arg `grp(prefix, group)`, the SAID of **X**'s
   most-recent `Evl`/`Icp` state-marker — the same marker kind an `id` slot pins, laid by the `grp`
   itself in pre-order where it occurs, before its member slots (a foreign splice has no enclosing
   `id(X)` descent to ride, so it pins its own roster source; contrast the one-arg form's reuse,
   NEW-B). That marker is **context-supplied** — in an anchored SEL-gated policy it is the gating
-  SEL's governance-ratcheted `policyPin`, **not** a credential's issuer-chosen issuance pin. Sourcing
+  SEL's **governance-ratcheted, floored** `policyPin`
+  (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)), **not** a credential's
+  issuer-chosen issuance pin. Sourcing
   the marker from context (rather than letting an issuer pick it) is what forecloses the ex-member
-  backdate: there is no issuer-supplied marker to choose, so the slot needs **no freshness floor**
+  backdate: there is no issuer-supplied marker to choose, so the **leaf** needs no freshness floor of
+  its own — the marker it consumes is the gating SEL's `policyPin` entry for X, which the SEL layer
+  already ratcheted forward along the per-chain floor
   (see [`grp`](leaf-semantics.md#grp--membership-roster-array)). The verifier reconstructs X's
   snapshot as-of the marker and reads the **roster** from it; the flatten expands that roster's
   members in canonical order, whose `id(mi)` slots follow. As-of resolution is the point: a
@@ -186,9 +230,10 @@ its position in the policy:
   so there's no cycle and no prior-event trick.
 
 There is **no del slot**: `del(prefix, N)` is never expanded and carries no pin — delegation is
-proven by the verifier self-traversing the issuer's own delegation chain (bounded by `N`), not by
-a pinned slot. When a credential is issued by a delegate, the issuer is *named* (not pinned) and
-its anchor rides in a separate anchor pinning over its authentication (see *Policies and Pinnings*).
+proven by the verifier self-traversing the authorizing party's own delegation chain (bounded by `N`),
+not by a pinned slot. When an authorizing party is reached via delegation, the party is *named* (not
+pinned) and its anchor rides in a separate anchor pinning over its authentication (see the anchored
+evaluator in [`evaluation.md`](evaluation.md)).
 
 Pinning eliminates the verifier's search-for-evidence step — slot position (walk order) names the
 prefix occurrence, the pinned SAID names the chain position — while the verifier still walks each
