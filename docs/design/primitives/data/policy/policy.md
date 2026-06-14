@@ -27,7 +27,7 @@ In each case the field holds a `Digest256` pointing at a Policy SAD. The verifie
 
 ```
 dev(prefix)        id(prefix)        pol(said)
-grp(group)   grp(said, group)   del(prefix, N)
+grp(group)   grp(prefix, group)   del(prefix, N)
 thr(M, [...])      wgt(M, [...])      and([...])
 ```
 
@@ -35,12 +35,9 @@ Two chain-state **leaves** (`dev`, `id`), one policy-reference **leaf** (`pol`),
 **bracket-only** forms — a **membership array** (`grp`) and a **delegation placeholder** (`del`)
 — and three **composers** (`thr`, `wgt`, `and`). Neither bracket-only form is a leaf:
 
-- `grp(group)` / `grp(said, group)` is an **array value** — it names a *`group`* of a
+- `grp(group)` / `grp(prefix, group)` is an **array value** — it names a *`group`* of a
   membership roster and resolves to one `id(member_i)` leaf per member of that group. The
-  **two-arg** form names a *foreign* roster by a **floor `said`** — a specific IEL event of the
-  owning entity X (an event resolves its chain, so the `said` carries X's prefix too); it is a
-  **freshness floor**, and the issuer's pinned X-state-marker must be **at-or-after** it (see
-  [`grp`](leaf-semantics.md#grp--membership-roster-array)). The **one-arg** form names the
+  **two-arg** form names a *foreign* IEL `prefix`'s roster; the **one-arg** form names the
   **host** IEL's own roster (the prefix is implicit — the enclosing `id(X)` descent supplies it),
   and is the only form an IEL's own three policies may use. It flattens in place inside a
   composer's `[...]`.
@@ -54,7 +51,7 @@ Two chain-state **leaves** (`dev`, `id`), one policy-reference **leaf** (`pol`),
 
 Both `grp` and `del` are legal only **inside a composer's `[...]`**, never as a standalone
 `expr`. The `[...]` is a concat container, so member-arrays, delegation placeholders, and single
-expressions mix freely (`[grp(org_said, staff), id(member)]` = org's staff members followed by `id(member)`).
+expressions mix freely (`[grp(org, staff), id(member)]` = org's staff members followed by `id(member)`).
 `dev` is **placement-restricted**: it is legal only inside a **singleton** IEL's own three policies
 (the identity base case); in an aggregate IEL's own policies and in every general policy a device is
 named through a singleton `id` that wraps it, and all other authorization is by identity (see
@@ -67,11 +64,11 @@ composes over them at the threshold/weights it chooses (see *Leaf semantics*). T
 expr      ::= leaf | composer
 leaf      ::= dev(prefix) | id(prefix) | pol(said)
 bracketed ::= grp(group)                    # host IEL's own `group` roster (one-arg; prefix implicit): flattens to id(member) leaves
-            | grp(said, group)              # foreign roster, floored: `said` is an IEL event of owner X (the freshness floor; carries X's prefix); flattens to id(member) leaves
+            | grp(prefix, group)            # foreign IEL prefix's `group` roster: flattens to id(member) leaves
             | del(prefix, N)                # delegation placeholder: never expanded; matched by distinct presented issuers
 composer  ::= thr(M, [elem, ...]) | wgt(M, [([wgt_elem, ...], w), ...]) | and([expr, ...])
 elem      ::= expr | bracketed              # a bracketed form appears only here; grp flattens its members in place
-wgt_elem  ::= dev(prefix) | id(prefix) | grp(group) | grp(said, group) | del(prefix, N)   # wgt subjects are membership-style ONLY — no pol, no composer (NEW-E)
+wgt_elem  ::= dev(prefix) | id(prefix) | grp(group) | grp(prefix, group) | del(prefix, N)   # wgt subjects are membership-style ONLY — no pol, no composer (NEW-E)
 ```
 
 `grp` and `del` appear only as an `elem` (inside `[...]`), never as a standalone `expr`. Every
@@ -102,7 +99,7 @@ pub struct Said(Digest256);               // SAID of a specific event or SAD (po
 pub enum PolicyExpr {
     Dev(Prefix),                          // chain prefix — device key (tier-agnostic; required_tier picks the role)
     Id(Prefix),                          // chain prefix — IEL authentication
-    Grp(Option<Said>, String),            // (foreign roster FLOOR, group label ^[a-z_-]{1,16}$); None = own/host-implicit (one-arg grp(group)), Some(said) = foreign FLOORED (two-arg grp(said, group)) — `said` is an IEL event of owner X = the freshness floor (carries X's prefix; the issuer's pinned X-state-marker must be ≥ said); roster array — only valid as a composer element (inside [...]), flattens in place
+    Grp(Option<Prefix>, String),          // (roster owner, group label ^[a-z_-]{1,16}$); None = own/host-implicit (one-arg grp(group)), Some(p) = foreign (two-arg grp(p, group)); roster array — only valid as a composer element (inside [...]), flattens in place
     Del(Prefix, u32),                     // (delegator IEL prefix, max delegation depth N ≥ 1 in hops); placeholder — only valid as a composer element, never expanded
     Pol(Said),                            // nested Policy SAD SAID
     Thr(u64, Vec<PolicyExpr>),            // threshold M ≥ 1, sub-expressions

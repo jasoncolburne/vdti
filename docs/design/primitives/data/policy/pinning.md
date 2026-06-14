@@ -20,12 +20,12 @@ by a pinned slot (see [`del`](leaf-semantics.md#delprefix-n--delegation-placehol
 Pinnings*).
 
 `grp`, the other bracket form, does lay slots: its flatten lays one `id(mi)` occurrence per
-member, and a foreign **two-arg `grp(said, group)` additionally lays its own X-state-marker slot
+member, and a foreign **two-arg `grp(prefix, group)` additionally lays its own X-state-marker slot
 first** (G1) — in pre-order where the `grp` occurs, before its members' slots. A foreign splice
-has no enclosing `id(X)` descent to ride, so it pins its own roster source; the pinned marker must
-sit **at-or-after the policy's floor `said`** (the freshness floor — see the slot kinds below). A
-one-arg `grp(group)` lays no slot of its own — it rides the enclosing `id(X)` marker (NEW-B). See
-the slot kinds below.
+has no enclosing `id(X)` descent to ride, so it pins its own roster source; that marker is
+**context-supplied** (the gating SEL's ratcheted `policyPin`), not invoker-chosen. A one-arg
+`grp(group)` lays no slot of its own — it rides the enclosing `id(X)` marker (NEW-B). See the slot
+kinds below.
 
 #### Policies (resource holder's gate)
 
@@ -124,10 +124,7 @@ construction* below). A foreign two-arg `grp`'s X-state-marker slot follows the 
 **present** marker fixes the roster the flatten expands, and the member `id(mi)` slots follow
 (draining structurally whether or not each member satisfies); a **null** marker consumes its one
 slot and the expansion is omitted entirely — with no marker the roster is unresolvable, so the
-member subtree's slot count is unknowable, the same fail-closed rule as a null `id`. A **present
-but below-floor** marker (ordering before the policy's `said`, or not on X's chain) is the one
-case that **hard-denies** rather than credit-nobody — it is an adversarial backdate, not a declined
-leg (see the floored slot kind below). After the
+member subtree's slot count is unknowable, the same fail-closed rule as a null `id`. After the
 walk, **any leftover pins are a malformed pinning and deny** (the issuer pinned more slots than
 the policy has occurrences).
 
@@ -145,9 +142,7 @@ the two stay aligned by construction:
 - A foreign two-arg **`grp`'s X-state-marker slot follows the same two rules**: present ⇒ followed
   by the member `id(mi)` slots of the roster read as-of that marker, in canonical member order
   (each member then subject to the `id` rules above); null ⇒ terminal — one `null`, the member
-  slots omitted (no marker ⇒ no roster ⇒ unknowable member count). The marker the issuer pins must
-  be **at-or-after the policy's floor `said`**; an issuer that pins a sub-floor (or off-chain)
-  marker is rejected by the verifier (a hard deny, not a null-style declined leg). Because both
+  slots omitted (no marker ⇒ no roster ⇒ unknowable member count). Because both
   parties expand the member set from the **same pinned marker**, the expansion — and so the slot
   layout — is identical by construction; a tip-read roster could change between authoring and
   verification and desync every later slot.
@@ -174,25 +169,21 @@ its position in the policy:
   (reuse of the marker, no second pin — closing the authentication-recent / roster-stale
   resurrection gap). A state-marker doesn't carry the credential anchor, so there's no cycle and no
   prior-event trick.
-- **foreign-`grp` X-state-marker** (G1) → for a two-arg `grp(said, group)`, the SAID of **X**'s
+- **foreign-`grp` X-state-marker** (G1) → for a two-arg `grp(prefix, group)`, the SAID of **X**'s
   most-recent `Evl`/`Icp` state-marker — the same marker kind an `id` slot pins, laid by the `grp`
   itself in pre-order where it occurs, before its member slots (a foreign splice has no enclosing
   `id(X)` descent to ride, so it pins its own roster source; contrast the one-arg form's reuse,
-  NEW-B). X's prefix is **derived from the policy's `said`** (an event resolves its chain), so the
-  marker carries no prefix of its own. The marker is subject to the **floor**: the verifier walks
-  X's IEL from `said` to the pinned marker and **rejects a marker that orders before `said`** (or is
-  not on X's chain, or a `said` resolving to no chain) — a **hard deny**, fail-closed, since the
-  marker is then an adversarial backdate, not a declined leg. The floor walk runs between two
-  **static** chain positions, so it adds **no tip-read** and stays end-verifiable. Having cleared
-  the floor, the verifier reconstructs X's snapshot as-of the marker and reads the **roster** from
-  it; the flatten expands that roster's members in canonical order, whose `id(mi)` slots follow.
-  As-of resolution is the point: a document's membership splice is valid relative to the X-state it
-  pins — a later roster change on X is forward-only and never reaches back (loss-of-trust comes
-  from the rescission/withdrawal walks, which run to tip in both modes); the floor is what stops an
-  ex-member from backdating *below* it (see [`grp` freshness floor](leaf-semantics.md#grp--membership-roster-array)).
-  Like an `id` marker, a state-marker carries no credential anchor, so there's no cycle and no
-  prior-event trick. In the credential's issuance-policy pinning the marker is the only slot —
-  members lay none; their proofs ride in the per-issuer anchor pinnings (see *Policies and Pinnings*).
+  NEW-B). That marker is **context-supplied** — in an anchored SEL-gated policy it is the gating
+  SEL's governance-ratcheted `policyPin`, **not** a credential's issuer-chosen issuance pin. Sourcing
+  the marker from context (rather than letting an issuer pick it) is what forecloses the ex-member
+  backdate: there is no issuer-supplied marker to choose, so the slot needs **no freshness floor**
+  (see [`grp`](leaf-semantics.md#grp--membership-roster-array)). The verifier reconstructs X's
+  snapshot as-of the marker and reads the **roster** from it; the flatten expands that roster's
+  members in canonical order, whose `id(mi)` slots follow. As-of resolution is the point: a
+  document's membership splice is valid relative to the X-state it pins — a later roster change on X
+  is forward-only and never reaches back (loss-of-trust comes from the rescission/withdrawal walks,
+  which run to tip in both modes). Like an `id` marker, a state-marker carries no credential anchor,
+  so there's no cycle and no prior-event trick.
 
 There is **no del slot**: `del(prefix, N)` is never expanded and carries no pin — delegation is
 proven by the verifier self-traversing the issuer's own delegation chain (bounded by `N`), not by

@@ -8,7 +8,7 @@ is **aggregate** iff it declares a `roster`, **singleton** otherwise. Roster pre
 choose-your-own-adventure"). The kind constrains what the IEL's three policies (`governance`,
 `authentication`, `delegation`) may contain. This is a constraint on an IEL's *own* three policies;
 general policies — application, issuance, withdrawal, `readPolicy` — keep the full DSL surface
-**except bare `dev`** (still including `id(X)` and the floored foreign `grp(said, group)`).
+**except bare `dev`** (still including `id(X)` and foreign `grp(X, group)`).
 
 **`dev` is legal only inside a singleton IEL's own three policies** — the identity base case. It is
 forbidden in aggregate IEL own-policies (the rule below) **and** in every general policy

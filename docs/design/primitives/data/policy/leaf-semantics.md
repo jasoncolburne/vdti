@@ -10,7 +10,7 @@ The leaf is satisfied iff the controlling party satisfies the IEL's own **authen
 
 This is recursive — `id(P)`'s check evaluates P's authentication policy, which may itself contain `id(...)` (directly, or via a one-arg `grp(group)` in an aggregate). The recursion terminates at a singleton's `dev` leaves — the base case of member resolution.
 
-`id(X)` and `grp(said, group)` (with `said` an IEL event of X) both reach entity X, but differently. `id(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `grp(said, group)`, by contrast, takes X's **published roster** for the named group and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`grp`](#grp--membership-roster-array). Both are first-class for foreign X in **general** policies (application, issuance, withdrawal); the difference is *who sets the bar* (X's authentication vs. the referencing policy). That difference is exactly why the foreign `grp` form carries a **freshness floor** (the `said`) and `id(X)` does not — the foreign form bypasses X's own authentication threshold, so it needs the floor; `id(X)` retains it (see [`grp`](#grp--membership-roster-array)).
+`id(X)` and `grp(X, group)` both reach entity X, but differently. `id(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `grp(X, group)`, by contrast, takes X's **published roster** for the named group and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`grp`](#grp--membership-roster-array). Both are first-class for foreign X in **general** policies (application, issuance, withdrawal); the difference is *who sets the bar* (X's authentication vs. the referencing policy).
 
 Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `id` is **never hand-written**. Those policies use only a one-arg `grp(group)` (aggregate) or `dev()` (singleton); `id` appears solely as what `grp(group)` expands into and as the resolution primitive each member recurses through — see [IEL policy structure — aggregate vs. singleton](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton).
 
@@ -18,16 +18,16 @@ Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `
 
 `grp` names a **group** of a membership roster and resolves to one `id(member_i)` leaf per member of that group. It has two arities:
 
-- **two-arg `grp(said, group)`** — names the `group` group of the roster published by **foreign entity X**, *floored* at the IEL event `said`. The first argument is a **`said`** — a specific IEL event of X — not a bare prefix: an event resolves its chain, so `said` carries X's prefix, *and* it pins a **freshness floor**. The issuer's pinned X-state-marker (G1) must be **at-or-after `said`** in X's chain order — enforced by walking X's IEL from `said` to the marker (a static chain position; end-verifiable, **no tip-read**) — and the roster then resolves **at the marker** (≥ `said`), so members X adds after `said` issue too; the floor only forbids going *below* `said`. First-class in **general** policies (application, issuance, withdrawal): any such policy may splice X's `executives` group, floored, via `grp(x_said, executives)`. **Why floored (and why only this form):** the foreign `grp` composes over X's **raw roster members at the *referencing* policy's bar**, so it **bypasses X's own authentication threshold** — the referencing author inherits X's roster history with no other recourse, so without a floor a member X *removed* could issue **new** valid credentials indefinitely by pinning an old marker where they were still rostered (the ex-member exposure, stated honestly below). `id(X)` and the one-arg `grp(group)` reached through it **retain X's own authentication threshold** (the backdating is bounded by X's own choice), so they are left **unfloored by design** — the same accepted residual the doctrine documents for SEL `Est`'s `id(P)` (`../../../protocol-doctrine.md` §SEL `Est`, "no freshness floor"). The floor reason is the **threshold-bypass**, *not* the NEW-B "rides the `id(X)` marker" reuse (that governs the one-arg form's pinning, below).
-- **one-arg `grp(group)`** — names the `group` group of the **host** IEL's own roster, with the prefix **implicit**: it is supplied by the enclosing `id(X)` descent (the marker the anchored walk pinned, or the tip in the current flow). It is the **only** `grp` form an IEL's own three policies may use (its own roster only, never a foreign one), and it is **cycle-forced**, not mere sugar: the IEL's prefix commits to its **whole inception content** (its `authentication` / `governance` / `delegation` policy SAIDs, roster, and nonce), so an own-policy that named its own prefix would close a content-address cycle (the prefix depends on the policy that would have to name it). It is **unfloored** (the SEL-`Est` residual class above). See [IEL policy structure — aggregate vs. singleton](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton).
+- **two-arg `grp(prefix, group)`** — names the `group` group of the roster published by **foreign IEL `prefix`**. The reference is **explicit** (both the IEL prefix and the group) because a foreign roster is referenced from outside the owning entity, so the policy must name which IEL's roster and which group. It composes over X's **raw roster members at the *referencing* policy's bar** — it does **not** inherit X's own authentication threshold (that is the membership/composition split, below; contrast `id(X)`, which defers to X's threshold). First-class in **general** policies (application, issuance, withdrawal): any such policy may splice IEL X's `executives` group via `grp(X, executives)`.
+- **one-arg `grp(group)`** — names the `group` group of the **host** IEL's own roster, with the prefix **implicit**: it is supplied by the enclosing `id(X)` descent (the marker the anchored walk pinned, or the tip in the current flow). It is the **only** `grp` form an IEL's own three policies may use (its own roster only, never a foreign one), and it is **cycle-forced**, not mere sugar: the IEL's prefix commits to its **whole inception content** (its `authentication` / `governance` / `delegation` policy SAIDs, roster, and nonce), so an own-policy that named its own prefix would close a content-address cycle (the prefix depends on the policy that would have to name it). See [IEL policy structure — aggregate vs. singleton](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton).
 
-The `group` label matches `^[a-z_-]{1,16}$` (lowercase `a`–`z`, underscore, hyphen; 1–16 characters; no digits, no uppercase). The roster is a SAD that the IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping group labels to sets of member IEL prefixes (a member may sit in several groups). `grp(said, group)` is distinct from `id(X)`: `id(X)` defers to X's whole authentication, while `grp(said, group)` takes X's published group (floored at `said`) and composes over it at the referencing policy's own bar.
+The `group` label matches `^[a-z_-]{1,16}$` (lowercase `a`–`z`, underscore, hyphen; 1–16 characters; no digits, no uppercase). The roster is a SAD that the IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping group labels to sets of member IEL prefixes (a member may sit in several groups). `grp(X, group)` is distinct from `id(X)`: `id(X)` defers to X's whole authentication, while `grp(X, group)` takes X's published group and composes over it at the referencing policy's own bar.
 
 `grp` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
 
-- inside `thr(k, [grp(said, group)])` → `thr(k, [id(m1), …, id(mn)])` — *k of that group's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`id(mi)`).
-- inside `wgt(M, [([grp(said, group)], w), …])` → each member becomes `(id(mi), w)` — every member of the group carries weight `w`.
-- the enclosing `[...]` is a **concat container**: multiple `grp` groups and single expressions mix freely — `thr(2, [grp(org_said, execs), grp(org_said, board), id(X)])` flattens to one child list (`execs` members ++ `board` members ++ `id(X)`).
+- inside `thr(k, [grp(prefix, group)])` → `thr(k, [id(m1), …, id(mn)])` — *k of that group's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`id(mi)`).
+- inside `wgt(M, [([grp(prefix, group)], w), …])` → each member becomes `(id(mi), w)` — every member of the group carries weight `w`.
+- the enclosing `[...]` is a **concat container**: multiple `grp` groups and single expressions mix freely — `thr(2, [grp(org, execs), grp(org, board), id(X)])` flattens to one child list (`execs` members ++ `board` members ++ `id(X)`).
 
 This is the membership/composition split. Two levels compose: the **roster level** (which group, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `id` authentication). The roster lives with the entity (who is in each group); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
 
@@ -40,7 +40,7 @@ the enclosing `[...]` is preserved between siblings (each `grp` expands in place
 **Rosters carry groups, not weights.** A roster maps group → member set; weight is the *referencing
 policy's* per-group assignment on the `wgt` branch. So weight only exists post-flatten. Overlap
 resolves at **satisfaction**, not expansion: if a member sits in two spliced groups (e.g.
-`grp(org_said, admins)` at weight 2 and `grp(org_said, members)` at weight 1), each occurrence still lays down
+`grp(org, admins)` at weight 2 and `grp(org, members)` at weight 1), each occurrence still lays down
 its own pin slot, but the member is **credited once, at its maximum weight** — it counts once, at its
 highest group, toward the threshold. (In a `thr` splice there are no weights, so the member simply
 counts once — standard distinct-party threshold.)
@@ -52,48 +52,24 @@ roster overlap*), and a duplicate occurrence the issuer doesn't rely on is simpl
 by contrast, collapses same-prefix duplicates across the **whole recursive credited set** — every
 flattened member of the composer's `[...]`, any explicit `id(member)` sibling in the same bracket,
 *and* the same prefix reached through a nested `thr` / `wgt` / `pol` / `and`. So a member reachable
-both via `grp(org_said, staff)` and as an explicit `id(alice)` sibling is credited **once** (max weight
+both via `grp(org, staff)` and as an explicit `id(alice)` sibling is credited **once** (max weight
 on a `wgt`), never double toward the threshold, while still occupying every pin slot its occurrences
 lay down. This is the fail-secure choice — one identity reached two ways cannot clear a multi-party
 gate alone.
 
-The roster's point-in-time resolution rides the IEL state the flow fixes — and in the anchored flow **both forms resolve as-of pinned state** (authored data is anchored; nothing in it reads a live roster). The DSL leaf names a **group** (and, for the foreign form, a floor **`said`**), not a roster SAID. A **one-arg `grp(group)`** resolves against the roster in the **reconstructed snapshot of the enclosing `id(X)` state-marker** — the *same* snapshot that marker fixed the authentication from, **reused** rather than separately pinned (NEW-B). Reuse is the security choice: a dedicated roster slot would let an issuer pin an authentication-recent marker against a roster-stale one and resurrect a removed member, so the one-arg roster is bound to the same marker the authentication came from. A **two-arg `grp(said, group)`** has no enclosing `id(X)` descent to ride, so it pins its own marker (G1): it consumes one **X-state-marker slot** — laid in pre-order where the `grp` occurs, before the member `id(mi)` slots its flatten lays down (see [*Pinning*](pinning.md#pinning-evidence-pins)) — and reads the roster from the snapshot reconstructed as-of that marker, **subject to the floor**: the verifier walks X's IEL from the policy's `said` to the pinned marker and **rejects a marker below `said`** (a below-floor / off-chain / wrong-chain marker fails closed — see *Foreign `grp` freshness floor* below). (In the credential's issuance-policy pinning the marker is the *only* slot — members lay none; their proofs ride in the per-issuer anchor pinnings, see [*Policies and Pinnings*](evaluation.md#policies-and-pinnings).) Membership change stays **forward-only**: a later roster change on X never reaches back to invalidate a document authored against the pinned state — loss-of-trust is carried by the rescission and withdrawal walks, which run to tip in both flows, never by tip-resolving a roster. Only in the current-state flow (the live read-time identity proof) do both forms resolve at the IEL tip (where the floor is vacuously met — the tip is at-or-after any historical `said`).
+The roster's point-in-time resolution rides the IEL state the flow fixes — and in the anchored flow **both forms resolve as-of pinned state** (authored data is anchored; nothing in it reads a live roster). The DSL leaf names a **group** (and, for the foreign form, a **prefix**), not a roster SAID. A **one-arg `grp(group)`** resolves against the roster in the **reconstructed snapshot of the enclosing `id(X)` state-marker** — the *same* snapshot that marker fixed the authentication from, **reused** rather than separately pinned (NEW-B). Reuse is the security choice: a dedicated roster slot would let an issuer pin an authentication-recent marker against a roster-stale one and resurrect a removed member, so the one-arg roster is bound to the same marker the authentication came from. A **two-arg `grp(prefix, group)`** has no enclosing `id(prefix)` descent to ride, so it resolves X's roster as-of a **context-supplied** marker — one the *evaluation context* fixes, never one the invoking party chooses. In the **current-state** flow that marker is X's **tip** (the live read-time identity proof). In an **anchored SEL-gated** policy it is the gating SEL's **governance-ratcheted `policyPin`**: the foreign-`grp` X-state-marker slot (G1) survives — laid in pre-order where the `grp` occurs, before the member `id(mi)` slots its flatten lays down (see [*Pinning*](pinning.md#pinning-evidence-pins)) — but it is filled from the SEL's tracked `policyPin`, **not** from a credential's issuer-supplied issuance pin. (The full general-governance-gate wiring of foreign-`grp`-via-`policyPin` is later-phase; this primitive fixes the *semantics* — the marker is context-supplied.) Membership change stays **forward-only**: a later roster change on X never reaches back to invalidate a document authored against the pinned state — loss-of-trust is carried by the rescission and withdrawal walks, which run to tip in both flows, never by tip-resolving a roster.
 
-**Foreign `grp` freshness floor — the ex-member exposure, stated honestly.** Without the floor,
-`grp(said, group)` resolved at an issuer-chosen marker would mean **"anyone *ever* in `group`"**, not
-"current members": a member X *removed* still holds their own KEL, so they could issue a **new** valid
-credential today by pinning an **old** marker where they were still rostered —
-[`issuance_credited`](evaluation.md#policies-and-pinnings) reconstructs X's roster as-of that old marker,
-finds them, credits them. **No loss-of-trust walk catches a roster removal** (it is not an `Rsc`, not a
-withdrawal anchor; both to-tip walks key off those, not roster membership). This is the **same class**
-as the SEL `Est` ex-member exposure the doctrine documents honestly (`../../../protocol-doctrine.md`
-§SEL `Est` — "the residual single-target exposure is the ex-member … the pin has no freshness floor").
-The `said` floor **bounds** it: the issuer's marker must be `≥ said`, so an ex-member can backdate only
-**down to the floor**, never below it. The genuinely-unbounded "anyone *ever*" intent is still
-expressible — but **explicitly** — as `grp(genesis_said, group)` (a floor at X's inception event
-accepts a marker anywhere in X's history); naming the inception event makes the "ever" intent
-**auditable** rather than hiding it in a bare prefix. (There is **no** unfloored two-arg form: the
-grammar has only `grp(said, group)`.)
-
-**Floor-advance is a retroactive kill (the owner-revocation lever).** The floor lives in the
-issuance-policy **text**, which is read at the resource's **current** configuration (the gate is
-gate-current; only the *evidence* resolves as-of — see [*Policies and Pinnings*](evaluation.md#policies-and-pinnings)).
-So the *current* floor governs **all** outstanding credentials: advancing the floor (re-config to a
-newer `said`) makes `marker ≥ said` **fail** for every credential pinned below the new floor — they
-deny at once. This is the resource-side revocation lever a bare-prefix foreign `grp` lacked (raise the
-floor → expire stale-roster credentials), at a blunt cost: **legitimate sub-floor credentials die
-too** — a credential's validity is bounded by floor advance, so long-lived credentials must sit above
-the floor, and an auto-advance template will expire them. Operators wanting "effectively current
-members" run a template that re-configs the floor to X's current tip `said`; the re-template cadence
-sets the freshness window (see [operations](../../../../operations/credential-issuance-freshness.md)).
-
-**Off-chain / wrong-chain fails closed.** Because the floored form **derives X's prefix from `said`**,
-a pinned marker that is not on X's chain (`snapshot.prefix != X`), one that orders **before** `said`,
-or a `said` that resolves to no chain at all is a malformed / adversarial pinning — the issuance
-evaluator returns a **hard error** and the credential denies; it is **not** a clean "credit-nobody"
-miss (only a *null* marker, where the issuer declined this leg, credits nobody). The floor check is a
-bounded walk between two **static** chain positions (`said` and the marker), so it adds **no tip-read**
-and stays end-verifiable.
+**Foreign `grp` is not an issuer-pinned issuance leaf.** Because the two-arg marker is context-supplied
+(X's tip, or the gating SEL's governance-ratcheted `policyPin`) and **never chosen by the invoking
+party**, no one can pick the X-state a foreign `grp` resolves against — so a member X *removed* cannot
+backdate an old marker where they were still rostered to credit themselves. This is the structural fix
+for the ex-member exposure: there is no issuer-supplied marker to backdate, so the leaf needs **no
+freshness floor**. **Group issuance authority** — letting a member of X issue credentials while X
+rotates membership without reissuing and cuts off a removed member — is therefore **not** this leaf;
+it is a credentials-feature **registry-SEL** governed by `iel(X)`, where each issuance `Ixn` inherits
+the SEL's governance-ratcheted `policyPin` (forward-only, per-event) rather than any issuer-chosen pin.
+That is creds-feature work, not the policy primitive (see `.working/vdti-credentials-design-notes.md`
+§Group issuance authority).
 
 **Thresholds count distinct *identities*, not distinct *controllers* (C6).** Every counting composer
 (`thr`, `wgt`) credits by **prefix**, and the protocol **cannot** tell whether two named identities
@@ -199,7 +175,7 @@ only way to require *each* pool independently.
 
 - **No threshold / weight argument** — it is all-of. Its children are full `expr`s (a leaf or a
   composer), **never** a bare `grp` / `del`: set-valued forms flatten only inside `thr` / `wgt`, so to
-  conjunct a pool you wrap it (`and([thr(1, [grp(org_said, board)]), thr(1, [grp(org_said, execs)])])`).
+  conjunct a pool you wrap it (`and([thr(1, [grp(org, board)]), thr(1, [grp(org, execs)])])`).
 - **At least two children.** A one-child `and` is just the child; an empty `and([])` is vacuously
   satisfied (a no-op gate, the same hazard as `thr(0)`) — the parser **rejects** fewer than 2 children.
 - **Evaluation.** Every child is evaluated (no short-circuit — children must drain their pin slots so
@@ -211,7 +187,7 @@ only way to require *each* pool independently.
 **Distinctness caveat — `and` does not force distinct people over overlapping pools.** `and`
 guarantees each *branch* is satisfied; it guarantees the *satisfiers* are **distinct only when the
 branches draw from disjoint identity pools** (board ∩ execs = ∅). If the pools **overlap**, one party
-who sits in both branches **satisfies both alone** — `and([thr(1, [grp(org_said, board)]), thr(1, [grp(org_said,
+who sits in both branches **satisfies both alone** — `and([thr(1, [grp(org, board)]), thr(1, [grp(org,
 execs)])])` is cleared by a single person who is both a board member and an executive (the credited
 union is just `{alice}`). An author must **not** assume `and` enforces "two different people"; it
 enforces "each pool is met." Guaranteed-distinct separation of duties over *overlapping* pools needs a
