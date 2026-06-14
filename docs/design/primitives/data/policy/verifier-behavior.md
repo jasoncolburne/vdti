@@ -213,8 +213,9 @@ fn authorize(
 ) -> Result<bool, PolicyError> {
     // 1. Validity — each named issuer self-traverses to a delegator the issuance policy names and
     //    anchors the credential on its own authentication at the required tier; enough DISTINCT
-    //    issuers clear the issuance threshold (its foreign `grp` splices resolved as-of the cred's
-    //    issuance-policy pinning, G5); and no satisfying withdrawal anchor was found. The
+    //    issuers clear the issuance threshold (a foreign `grp` in the issuance policy credits
+    //    NOBODY — group issuance authority is the creds registry-SEL); and no satisfying withdrawal
+    //    anchor was found. The
     //    presented issuers are asserted equal to the credential's committed set INSIDE the verifier
     //    (NEW-D). On success it returns a PolicyVerification proof token.
     let cred_anchor: HashSet<(Said, Tier)> =

@@ -577,10 +577,10 @@ fn issuance_credited(
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
-        // wgt(M, …): per-issuer weight, dedup-by-max across branches (mirrors `grp`; weighted
-        // DELEGATION composes identically — an issuer matching several `del`/`grp` placeholders is
-        // credited once at its MAX weight, distinct issuers summed); met iff the summed weight ≥ M.
-        // Children recurse at `max_depth - 1` (NEW-C).
+        // wgt(M, …): per-issuer weight, dedup-by-max across branches — weighted DELEGATION composes
+        // identically: an issuer matching several `del` placeholders is credited once at its MAX
+        // weight, distinct issuers summed; met iff the summed weight ≥ M. Children recurse at
+        // `max_depth - 1` (NEW-C).
         PolicyExpr::Wgt(m, weighted) => {
             let mut best: HashMap<Prefix, u32> = HashMap::new();
             for (sub, w) in weighted {
@@ -625,9 +625,10 @@ fn issuance_credited(
 // `Evl`/`Icp` marker's reconstructed snapshot (FROZEN — reused, no second pin, closing the
 // authentication-recent / roster-stale split that a free roster slot would open). `AtTip` reads the
 // owner's LIVE roster (current mode only — the read-time identity proof). A foreign two-arg `grp`
-// never resolves a roster at tip in an anchored evaluator: it consumes its OWN X-state-marker slot
-// (G1 — `issuance_credited` takes it from the credential's issuance-policy pinning; an anchored
-// general-policy walk takes it from that policy's pinning). A `None`
+// never resolves a roster at tip in an anchored evaluator: in `issuance_credited` it credits NOBODY
+// and consumes no slot (group issuance authority is the creds registry-SEL); in an anchored
+// general-policy walk — the SEL-gated governance gate, Phase-3 — it consumes its OWN X-state-marker
+// slot (G1), filled from that gating SEL's `policyPin`. A `None`
 // `self_context` means no enclosing id descent — a one-arg `grp(group)` there credits nobody
 // (fail-secure). The struct carries the snapshot to the expansion site so `flatten` can reach it;
 // the as-of-marker roster READ itself stays provisional (EventSource/pagination), like `snapshot_as_of`.
