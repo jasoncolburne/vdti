@@ -19,6 +19,14 @@ thr(2, [grp(prefix, staff)])
 
 With org `prefix`'s `staff` group = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [id(m1), id(m2), id(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate groups by listing them: `thr(2, [grp(prefix, staff), grp(prefix, board)])` pools both into one flat child list.
 
+> **Reach (foreign `grp`).** A two-arg `grp(prefix, group)` resolves its roster only where its X-state
+> marker is **context-supplied**: a **current-mode** policy (X's tip) or an **SEL-gated anchored** policy
+> (the SEL's floored `policyPin`). In a credential's **issuance** policy a foreign `grp` credits **nobody** —
+> group issuance authority is the creds registry-SEL (see *[leaf semantics →
+> `grp`](leaf-semantics.md#grp--membership-roster-array)*). The foreign-`grp` examples below illustrate
+> **flatten / composition**, which is identical across contexts; they are not, on their own, all valid
+> issuance policies.
+
 **Emergency override**:
 ```
 thr(1, [

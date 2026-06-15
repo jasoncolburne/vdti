@@ -8,19 +8,34 @@ Anchored evaluation resolves **as-of** the state a document pinned, and an autho
 **the inherited pin, never the owner's tip**; a tip-resolving branch would retroactively invalidate old
 authorizations on a roster change, which the design rejects.
 
-Grandfather does **not** reopen any ex-member backdating exposure, because the marker a document resolves
-against is **never a free choice**:
+Grandfather does **not** reopen ex-member backdating **when the authority-resolution marker is floored** —
+and a sound document never resolves against a freely chosen one. Two distinct markers must not be conflated:
 
-- A credential's issuer anchored it by **adding a real event to its own chain** — a **self-dating position**
-  you cannot insert in the past. The credential resolves its issuer's authority as-of that position.
-- Where a group gates issuance, the gating event **inherits** the **governance-ratcheted, floored
-  `policyPin`** (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)) — also never
-  issuer-chosen.
+- The credential's **anchor** — the issuer added a real event to its own chain, a **self-dating position**
+  you cannot insert in the past. This fixes *when* the document was authored; it is genuinely
+  non-backdatable.
+- The **authority-resolution marker** — *which* roster / authentication state `id(issuer)` resolves
+  against. This is a **separate** slot, and a self-dating anchor does **not** constrain it. It is safe only
+  when it is **floored**, not issuer-chosen. In the **SEL-gated** path it is: the gating event resolves a
+  foreign `grp` against the SEL's **governance-ratcheted, floored `policyPin`**
+  (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)), already ratcheted forward along its
+  per-chain floor.
 
-So "old stays valid" uses *the event's own position*; backdating would need *a freely chosen old one* —
-different things, never in tension. The forward floor blocks backdating; **recovery** (an `Rpr` archiving
-forged anchors — [`evaluation.md`](evaluation.md)) handles compromise. Neither alters a valid
-authorization's validity.
+A **freely chosen** authority-resolution marker is **unsafe** and is **not** how issuance works: a document
+allowed to pin `id(issuer)` as-of an issuer-supplied, unfloored marker would let a departed member of an
+aggregate issuer backdate to an epoch where they were still rostered and forge a credential "issued by" that
+aggregate — recursively, one level per nesting tier. Issuance authority therefore resolves against **floored
+state on each entity's own registry-SEL, composed by reference** — never a free-floating chosen marker. Every
+IEL has a discoverable registry-SEL that floors its **own** marker *shallow* (forward-only, the per-chain
+floor below), and an aggregate **references** each member's registry-SEL rather than re-pinning the subtree,
+so the floor holds at **every depth** (the depth is the tree of those floored chains, each shallow-floored).
+Grandfather then rides **floored positions** (immutable, each at-or-above its own chain's floor): old
+authorizations stay valid until explicitly withdrawn, while no backdated marker can be introduced. This
+registry-SEL composition is a **credentials-feature** mechanism (layer 5), forward-pointed — this primitive
+states only the rule (*floored composition by reference, never a chosen marker*); the registry-SEL machinery
+is specified with the credentials feature. The forward floor blocks backdating; **recovery** (an `Rpr`
+archiving forged anchors — [`evaluation.md`](evaluation.md)) handles the terminal residual — a leaked
+**current** key. None of this alters a valid authorization's validity.
 
 ### Two pinnings, one positional mechanism
 
@@ -37,6 +52,18 @@ The positional mechanism described below serves **two distinct pinnings** — do
 Everything below — the full graph walk, the `dev` prior-event slots, the `null` discipline — is the **deep
 evidence** pinning. `null` slots live **only** here, never in a `policyPin`. The shallow `policyPin` is the
 membership/state layer that *supplies a foreign `grp`'s context marker* into this deep walk.
+
+**Deep does not mean unfloored.** Each IEL state-marker the deep walk reaches — at every level of the
+`id`-recursion — must reference a **floored position on that entity's own chain**, never a bare prefix at tip
+and never an issuer's free choice. The model is *shallow per chain, deep by composition*: every entity floors
+its **own** marker shallow (its registry-SEL, forward-only along the per-chain floor), and the depth is the
+**tree of those floored chains, composed by reference** — an aggregate references each member's registry-SEL
+rather than re-pinning the subtree. So the as-of grandfather rides **floored positions all the way down**;
+the only marker genuinely never floored is the terminal **`dev`** anchor (per-event and self-dating — a
+leaked *current* device key is the recovery residual, [`evaluation.md`](evaluation.md), not a backdating
+surface). The registry-SEL composition that carries this is a **credentials-feature** mechanism (layer 5),
+forward-pointed; this doc specifies the per-event evidence pinning's *shape*, under the rule that every
+state-marker it pins is a floored position.
 
 ### Shape
 
