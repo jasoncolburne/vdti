@@ -56,13 +56,22 @@ pub trait VerificationProvider {
     fn verify_sel(&self, prefix: &Prefix) -> Result<SelVerification, PolicyError>;
 }
 
-// Token accessors the evaluator needs (the contract the layer-4 verifiers must expose):
+// Token accessors the evaluator needs (the contract the layer-4 verifiers must expose). The marker-keyed
+// accessors are O(1) MAP LOOKUPS — never a search, never a per-call replay: the token holds no EventSource and
+// never re-walks. The evaluator REGISTERS the marker SAIDs it will query (all known up front — from the SEL's
+// `policyPin` and the deep per-event evidence) with the verifier BEFORE its single inception->tip walk (the
+// kels `check_anchors` register-before-walk pattern; the `id` analog of `is_said_anchored`); that one walk
+// reconstructs the state AT each registered marker and records it into a `marker_said -> IelStateSnapshot` map
+// on the token. A lookup MISS — a marker the walk never recorded, i.e. not a genuine `Evl`/`Icp` on this chain
+// — is a HARD reject, so the lookup doubles as marker validation.
 //
 //  IelVerification:
-//    - snapshot_as_of(marker_said) -> IelStateSnapshot  // authentication policy SAID + roster + is_singleton
-//                                                        // + prefix, reconstructed AS-OF the Evl/Icp marker (NEW-B)
+//    - snapshot_as_of(marker_said) -> IelStateSnapshot  // O(1) lookup of the snapshot recorded at the marker:
+//                                                        // authentication policy SAID + roster + is_singleton
+//                                                        // + prefix (NEW-B). Miss -> reject.
 //    - tip() -> IelStateSnapshot                         // the same, at tip (current mode)
-//    - roster_at(marker_said, group) -> Vec<Prefix>      // a group's members as-of the marker (canonical order)
+//    - roster_at(marker_said, group) -> Vec<Prefix>      // O(1): the group's members read off that marker's
+//                                                        // snapshot roster (canonical order). Miss -> reject.
 //    - delegating_prefix() / delegating_del_said()       // this IEL's Icp.delegating + serial-1 Evl.delegating (consent)
 //    - del_event(del_said) -> DelEvent                   // direct lookup on THIS IEL; MUST be a `Del` (rejects `Rsc`)
 //    - rescinded_by_tip(lower) -> bool                   // walk THIS IEL to tip for an `Rsc` of `lower` (F)
