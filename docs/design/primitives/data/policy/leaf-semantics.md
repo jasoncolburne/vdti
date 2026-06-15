@@ -63,14 +63,19 @@ The roster's point-in-time resolution rides the IEL state the flow fixes — and
 (X's tip, or the gating SEL's governance-ratcheted, floored `policyPin`) and **never chosen by the invoking
 party**, no one can pick the X-state a foreign `grp` resolves against — so a member X *removed* cannot
 backdate an old marker where they were still rostered to credit themselves. This is the structural fix
-for the ex-member exposure: there is no issuer-supplied marker to backdate, so the leaf needs **no
-freshness floor of its own** — the marker it consumes is the gating SEL's `policyPin` entry for X, already
-ratcheted forward at the SEL layer. **Group issuance authority** — letting a member of X issue credentials while X
-rotates membership without reissuing and cuts off a removed member — is therefore **not** this leaf;
-it is a credentials-feature **registry-SEL** governed by `iel(X)`, where each issuance `Ixn` inherits
-the SEL's governance-ratcheted, floored `policyPin` (forward-only, per-event) rather than any issuer-chosen pin.
-That is creds-feature work — a forthcoming feature that composes this primitive — not the policy primitive
-itself.
+for the ex-member exposure **on the foreign-`grp` arm**: there is no issuer-supplied marker to backdate, so
+the leaf needs **no freshness floor of its own** — the marker it consumes is the gating SEL's `policyPin`
+entry for X, already ratcheted forward at the SEL layer. The **`id(issuer)` arm** — a directly-named
+aggregate issuer resolving its own authority — is **not** closed by this leaf; it is closed separately by the
+floored **registry-SEL composition** (issuance authority resolves against floored state on each entity's own
+registry-SEL, composed by reference — see the *grandfather* block in [`pinning.md`](pinning.md)). **Group
+issuance authority** — letting a member of X issue credentials while X rotates membership without reissuing
+and cuts off a removed member — is therefore **not** this leaf; it is a **registry-SEL** governed by `iel(X)`,
+where each issuance `Ixn` inherits the SEL's governance-ratcheted, floored `policyPin` (forward-only,
+per-event) rather than any issuer-chosen pin. That registry-SEL's **provisioning** (one per IEL, eagerly at
+inception, regardless of credential activity — generalized to *every* IEL, issuer or not) is an
+IEL/SEL-primitive (**layer-4**) obligation; **issuance** on it is **layer-5** creds-feature work — a
+forthcoming feature that composes this primitive — not the policy primitive itself.
 
 **Thresholds count distinct *identities*, not distinct *controllers* (C6).** Every counting composer
 (`thr`, `wgt`) credits by **prefix**, and the protocol **cannot** tell whether two named identities

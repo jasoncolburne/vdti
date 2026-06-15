@@ -183,7 +183,8 @@ impl CurrentPolicyVerification {
 const MAX_PRESENTED: usize = 128;
 
 // Gate context — where a foreign `grp(X, group)`'s X-state-marker comes from. It is ALWAYS context-supplied,
-// never invoker-chosen — the structural fix for the ex-member backdate. Three cases (Copy: it threads
+// never invoker-chosen — the structural fix for the ex-member backdate on the foreign-`grp` arm (the
+// `id(issuer)` arm is closed separately by the floored registry-SEL composition; see pinning.md). Three cases (Copy: it threads
 // unchanged through the recursive composer arms):
 #[derive(Clone, Copy)]
 pub enum GateContext<'a> {
@@ -562,7 +563,8 @@ fn anchored_credited(
             HashSet::new()
         }),
         // grp(prefix, group): a foreign roster splice credits NOBODY in the multi-party path — there is no gate
-        // context here, and an invoker-chosen marker is exactly the ex-member exposure the design forecloses.
+        // context here, and an invoker-chosen marker is exactly the ex-member exposure the design forecloses on
+        // this (foreign-`grp`) arm. The id(issuer) arm is closed by the floored registry-SEL composition.
         // (Foreign-`grp` authority is supplied only through a SEL gate — evaluate_single_policy with
         // GateContext::SelGate, D3b.) The one-arg own-form grp(group) likewise credits nobody (no host
         // context — this evaluator never descends an `id`). Fail-secure.
@@ -810,7 +812,8 @@ live roster (current mode); `None` => credits nobody (no enclosing host). A **fo
   floored `policyPin` entry for X (D3b) — reconstructed via `walk.iel(prefix).roster_at(marker, group)`;
 - `Tip` (current mode) => X's roster at X's tip (the live read-time context marker);
 - `None` (a party's own anchor walk, the multi-party path) => a foreign `grp` credits nobody — there is no
-  context marker, and an invoker-chosen one is exactly the ex-member exposure the design forecloses.
+  context marker, and an invoker-chosen one is exactly the ex-member exposure the design forecloses on the
+  foreign-`grp` arm (the `id(issuer)` arm is closed by the floored registry-SEL composition).
 
 The marker **value** is thus always context-supplied, never the pinning's invoker-set value. The G1
 X-state-marker slot is laid and consumed positionally for cursor alignment only (see *Pinning*).

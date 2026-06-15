@@ -27,15 +27,27 @@ aggregate issuer backdate to an epoch where they were still rostered and forge a
 aggregate — recursively, one level per nesting tier. Issuance authority therefore resolves against **floored
 state on each entity's own registry-SEL, composed by reference** — never a free-floating chosen marker. Every
 IEL has a discoverable registry-SEL that floors its **own** marker *shallow* (forward-only, the per-chain
-floor below), and an aggregate **references** each member's registry-SEL rather than re-pinning the subtree,
-so the floor holds at **every depth** (the depth is the tree of those floored chains, each shallow-floored).
+floor below), and an aggregate **references** each member's registry-SEL rather than re-pinning the subtree.
+The floor then holds at **every depth** — but **only under one precondition**: every referenced entity must
+**already** have a registry-SEL with a seeded floor, including a member that never issues anything (commonly a
+singleton device-holder reached only by deep expansion). That precondition is **load-bearing, not cosmetic**:
+a member with no provisioned registry-SEL has no floor, its marker falls back to issuer-choice, and the
+backdate **re-opens one layer down**. So the composition splits into two forward-pointed obligations, at
+**different layers**:
+
+- **Provisioning** — every IEL is given a default registry-SEL **eagerly, at inception, regardless of
+  credential activity** — is an **IEL/SEL-primitive (layer-4)** obligation. It is what makes the
+  at-every-depth floor real (a member is floored when *another* entity references it, before it ever issues),
+  so it cannot be lazy/on-first-issuance.
+- **Issuance** — a floored `Ixn` on the issuer's registry-SEL — is the **credentials feature (layer-5)**.
+
 Grandfather then rides **floored positions** (immutable, each at-or-above its own chain's floor): old
 authorizations stay valid until explicitly withdrawn, while no backdated marker can be introduced. This
-registry-SEL composition is a **credentials-feature** mechanism (layer 5), forward-pointed — this primitive
-states only the rule (*floored composition by reference, never a chosen marker*); the registry-SEL machinery
-is specified with the credentials feature. The forward floor blocks backdating; **recovery** (an `Rpr`
-archiving forged anchors — [`evaluation.md`](evaluation.md)) handles the terminal residual — a leaked
-**current** key. None of this alters a valid authorization's validity.
+primitive states only the **rule** (*floored composition by reference against eagerly-provisioned
+registry-SELs, never a chosen marker*); the registry-SEL machinery is specified at those layers. The forward
+floor blocks backdating; **recovery** (an `Rpr` archiving forged anchors — [`evaluation.md`](evaluation.md))
+handles the terminal residual — a leaked **current** key. None of this alters a valid authorization's
+validity.
 
 ### Two pinnings, one positional mechanism
 
@@ -58,11 +70,15 @@ membership/state layer that *supplies a foreign `grp`'s context marker* into thi
 and never an issuer's free choice. The model is *shallow per chain, deep by composition*: every entity floors
 its **own** marker shallow (its registry-SEL, forward-only along the per-chain floor), and the depth is the
 **tree of those floored chains, composed by reference** — an aggregate references each member's registry-SEL
-rather than re-pinning the subtree. So the as-of grandfather rides **floored positions all the way down**;
-the only marker genuinely never floored is the terminal **`dev`** anchor (per-event and self-dating — a
-leaked *current* device key is the recovery residual, [`evaluation.md`](evaluation.md), not a backdating
-surface). The registry-SEL composition that carries this is a **credentials-feature** mechanism (layer 5),
-forward-pointed; this doc specifies the per-event evidence pinning's *shape*, under the rule that every
+rather than re-pinning the subtree. So the as-of grandfather rides **floored positions all the way down** —
+**given** the eager, universal registry-SEL provisioning the grandfather block names (the **layer-4**
+obligation: every IEL has a registry-SEL at inception, so even a never-issuing member is floored). *Under that
+precondition* the only marker the rule leaves unfloored is the terminal **`dev`** anchor (per-event and
+self-dating — a leaked *current* device key is the recovery residual, [`evaluation.md`](evaluation.md), not a
+backdating surface); absent a provisioned registry-SEL for a composed member, that member's marker is itself
+unfloored and the backdate re-opens — which is why provisioning is unconditional. Registry-SEL
+**provisioning** is the layer-4 obligation; **issuance** as a floored `Ixn` is the **layer-5** credentials
+feature; this doc specifies only the per-event evidence pinning's *shape*, under the rule that every
 state-marker it pins is a floored position.
 
 ### Shape
