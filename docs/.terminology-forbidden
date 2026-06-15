@@ -108,3 +108,12 @@ kels/sad/
 # The general anchored single-policy governance gate is evaluate_gate_policy;
 # the earlier evaluate_single_policy name is retired (token-architecture #5).
 \bevaluate_single_policy\b
+
+# ============================================================================
+# §Doc-only — seal-cap rejection error name (SiblingLocked, not ParentLocked)
+# ============================================================================
+# The seal-cap rejection is SiblingLocked — the candidate would sibling a
+# locked event. There is no ParentLocked error: a parent AT the seal is
+# extendable (parent_serial == seal_serial passes the cap), so "parent locked"
+# is not a rejection condition.
+\bParentLocked\b
