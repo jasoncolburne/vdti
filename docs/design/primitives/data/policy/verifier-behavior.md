@@ -33,7 +33,7 @@ presented party, two independent checks ride inline on the verification walk:
 `evaluate_anchored_policy` then evaluates the policy, where each `del(X, N)` placeholder is matched by the
 **distinct anchored parties** that self-traverse to `X` within `N`; composers count distinct parties, and a
 foreign `grp` credits **nobody** here (no gate context — group authority is supplied only through a SEL gate;
-see `evaluate_single_policy`). **E1**: a single party's chain-verification failure is **soft** (recorded
+see `evaluate_gate_policy`). **E1**: a single party's chain-verification failure is **soft** (recorded
 `Unverifiable`, uncredited) and the threshold runs over the `Credited` set; structural failures stay hard
 `Err`. The public entry points are **policy verifiers**: on satisfaction they return
 `Ok(Some(AnchoredPolicyVerification))` / `Ok(Some(CurrentPolicyVerification))` — the unforgeable proof token —
@@ -46,9 +46,9 @@ public entry points return it:
 # All three read chain state via the verified-token PROVIDER, never a live source. `walk` records consumed
 # chain-token SAIDs (D2) + reconstructed snapshots (NEW-B). SAD content is fetched content-addressed (sadd_fetch).
 
-# evaluate_single_policy — the GENERAL governance gate (D3a): ONE del-free policy + ONE pinning. `gate_context`
+# evaluate_gate_policy — the GENERAL governance gate (D3a): ONE del-free policy + ONE pinning. `gate_context`
 # supplies a foreign grp's marker (SelGate(sel) -> the SEL's FLOORED policyPin, D3b; Tip; None -> credit nobody).
-evaluate_single_policy(policy, pinning, anchors_to_check, gate_context, provider, required_tier, max_depth)
+evaluate_gate_policy(policy, pinning, anchors_to_check, gate_context, provider, required_tier, max_depth)
         -> Result<Option<AnchoredPolicyVerification>>:
     walk = Walk(provider)
     if gate_context is SelGate(sel): walk.register(sel.said())            # bind the gate's SEL token (D2)
@@ -69,7 +69,7 @@ evaluate_anchored_policy(policy, parties, anchors_to_check, provider, required_t
     walk = Walk(provider); outcomes = {}
     anchored = []                                                         # (a) anchor proof per party
     for (party, anchor_pinning) in parties:
-        match evaluate_single_policy(id(party), anchor_pinning, anchors_to_check, None, provider, required_tier, max_depth):
+        match evaluate_gate_policy(id(party), anchor_pinning, anchors_to_check, None, provider, required_tier, max_depth):
             Ok(Some(t)) => walk.fold(t); anchored.append(party); outcomes[party] = Credited
             Ok(None)    => outcomes[party] = Unsatisfied
             Err(ChainUnverifiable) => outcomes[party] = Unverifiable      # E1 SOFT — uncredited, not a global error
@@ -83,11 +83,11 @@ evaluate_anchored_policy(policy, parties, anchors_to_check, provider, required_t
 self_traverses(candidate, delegator, max_hops, walk, max_depth) -> bool:
     lower = candidate
     for _ in 0 .. min(max_hops, max_depth):
-        parent   = walk.iel(lower).delegating_prefix()       # lower.Icp.delegating       (consent)
-        del_said = walk.iel(lower).delegating_del_said()     # lower.Evl[1].delegating     (consent back-ptr)
-        del      = walk.iel(parent).del_event(del_said)      # direct lookup; MUST be a `Del` (rejects `Rsc`/other)
+        parent   = walk.verify_iel(lower).delegating_prefix()       # lower.Icp.delegating       (consent)
+        del_said = walk.verify_iel(lower).delegating_del_said()     # lower.Evl[1].delegating     (consent back-ptr)
+        del      = walk.verify_iel(parent).del_event(del_said)      # direct lookup; MUST be a `Del` (rejects `Rsc`/other)
         if del.host != parent or not del.lists(lower):       return false   # authorization (reads `Del` additions)
-        if walk.iel(parent).rescinded_by_tip(lower):         return false   # F — ALWAYS
+        if walk.verify_iel(parent).rescinded_by_tip(lower):         return false   # F — ALWAYS
         if parent == delegator:                              return true
         lower = parent
     return false
@@ -118,7 +118,7 @@ eval_expr(expr, cur, anchors_to_check, host, gate_context, walk, required_tier, 
 # a one-arg grp(group) under it REUSES this same snapshot's roster, NEW-B); the descent drains the subtree's slots
 # even on mismatch (structural consumption).
 satisfies_dev(prior, leaf_prefix, anchors_to_check, walk, required_tier):
-    S = walk.kel(leaf_prefix).anchoring_child_on_surviving_branch(prior)  # None if divergent/archived
+    S = walk.verify_kel(leaf_prefix).anchoring_child_on_surviving_branch(prior)  # None if divergent/archived
     if S is None: return false
     return S.prefix == leaf_prefix
         AND S.tier >= required_tier
@@ -137,7 +137,7 @@ satisfies_id(marker_said, leaf_prefix, cur, anchors_to_check, gate_context, walk
 - **Anchor requirement propagates uniformly.** A `pol(said)` recursion — and an `id`
   authentication recursion — threads the same positional `cur` cursor, `anchors_to_check`, `gate_context`,
   `walk`, `required_tier`, and `max_depth` as the outer evaluation (and `self_context` set to the enclosing
-  `id` prefix). When `evaluate_single_policy` is used for a party's *anchor* walk, every `dev` leaf reached
+  `id` prefix). When `evaluate_gate_policy` is used for a party's *anchor* walk, every `dev` leaf reached
   under it is an anchoring leaf, so `anchors_to_check` flows down to all of them; a multi-party `del(X, N)` is
   matched separately by self-traversal and never carries the anchor requirement. The whole expanded graph
   consumes one positional pin cursor, each occurrence taking its own slot in pre-order order; leftover pins
@@ -170,7 +170,7 @@ Policy DSL evaluations gate the following event kinds (per [`event-logs/event-sh
 ## Composing the entry points
 
 The two entry points compose: an **anchored** check (authority *as authored* — a governance gate via
-`evaluate_single_policy`, or multi-party validity via `evaluate_anchored_policy`) and a **current** check
+`evaluate_gate_policy`, or multi-party validity via `evaluate_anchored_policy`) and a **current** check
 (control *now* — `evaluate_current_policy`) yield **distinct typed tokens** (`AnchoredPolicyVerification` vs
 `CurrentPolicyVerification`) a consumer combines. The two types make it compile-impossible to pass a
 current-control proof where an anchored-validity proof is required (and vice versa), so verify-before-use is

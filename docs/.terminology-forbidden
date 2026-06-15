@@ -101,3 +101,10 @@ kels/sad/
 \bielPrefix\b
 \bpolicyBinding\b
 [bB]inding[ -]SAD
+
+# ============================================================================
+# §Doc-only — policy evaluator rename (VDTI-12 final pass)
+# ============================================================================
+# The general anchored single-policy governance gate is evaluate_gate_policy;
+# the earlier evaluate_single_policy name is retired (token-architecture #5).
+\bevaluate_single_policy\b

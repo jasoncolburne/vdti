@@ -70,7 +70,7 @@ aggregate issuer resolving its own authority — is **not** closed by this leaf;
 floored **registry-SEL composition** (issuance authority resolves against floored state on each entity's own
 registry-SEL, composed by reference — see the *grandfather* block in [`pinning.md`](pinning.md)). **Group
 issuance authority** — letting a member of X issue credentials while X rotates membership without reissuing
-and cuts off a removed member — is therefore **not** this leaf; it is a **registry-SEL** governed by `iel(X)`,
+and cuts off a removed member — is therefore **not** this leaf; it is a **registry-SEL** governed by `id(X)`,
 where each issuance `Ixn` inherits the SEL's governance-ratcheted, floored `policyPin` (forward-only,
 per-event) rather than any issuer-chosen pin. That registry-SEL's **provisioning** (one per IEL, eagerly at
 inception, regardless of credential activity — generalized to *every* IEL, issuer or not) is an

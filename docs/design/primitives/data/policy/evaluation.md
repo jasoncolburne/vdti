@@ -7,7 +7,7 @@ delegation), SELs (governance / operation), and features (credentials, read gate
 nothing about credentials; credentials are a **feature** that *composes* it (see *Credentials are a feature*,
 below). Three public entry points:
 
-- **`evaluate_single_policy`** — the **general anchored single-policy governance gate**. Evaluates **one**
+- **`evaluate_gate_policy`** — the **general anchored single-policy governance gate**. Evaluates **one**
   del-free policy against **one** pinning, resolving leaves **as-of** the pinned state. This is what an
   IEL / SEL governance gate calls to authorize an `Evl` / `Ixn` / `Est` against the chain's tracked,
   **floored `policyPin`** (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)). A foreign
@@ -51,9 +51,9 @@ requirement).
 // the forthcoming vdti chain-verifier work this interface front-runs; the accessors below are the contract
 // those verifiers must satisfy.
 pub trait VerificationProvider {
-    fn iel(&self, prefix: &Prefix) -> Result<IelVerification, PolicyError>;
-    fn kel(&self, prefix: &Prefix) -> Result<KelVerification, PolicyError>;
-    fn sel(&self, prefix: &Prefix) -> Result<SelVerification, PolicyError>;
+    fn verify_iel(&self, prefix: &Prefix) -> Result<IelVerification, PolicyError>;
+    fn verify_kel(&self, prefix: &Prefix) -> Result<KelVerification, PolicyError>;
+    fn verify_sel(&self, prefix: &Prefix) -> Result<SelVerification, PolicyError>;
 }
 
 // Token accessors the evaluator needs (the contract the layer-4 verifiers must expose):
@@ -205,7 +205,7 @@ pub enum GateContext<'a> {
 // this evaluator is the layer-3 mechanism it calls. Returns Ok(Some(AnchoredPolicyVerification)) on
 // satisfaction, Ok(None) on a clean miss, Err on a structural failure (leftover pins, max_depth, misplaced
 // `dev`, NEW-B roster desync).
-pub fn evaluate_single_policy(
+pub fn evaluate_gate_policy(
     policy: &Policy,
     pinning: &Pinning,
     anchors_to_check: &HashSet<(Said, Tier)>,
@@ -275,7 +275,7 @@ pub fn evaluate_current_policy(
 ```
 
 All three entry points are **policy verifiers**: a satisfied evaluation yields a proof token, not a bare
-`true`. `evaluate_single_policy` returns `Ok(Some(token))` iff the pinned, del-free policy is satisfied
+`true`. `evaluate_gate_policy` returns `Ok(Some(token))` iff the pinned, del-free policy is satisfied
 as-of the pinned state with every `anchors_to_check` SAID hosted at its tier on the surviving branch;
 `evaluate_anchored_policy` returns `Ok(Some(token))` iff enough distinct presented parties satisfy `policy`
 (each self-traversing any `del` within depth and anchoring the named SADs); `evaluate_current_policy` returns
@@ -298,10 +298,10 @@ token type:
 //    roster from the SEL's floored policyPin via the gate context (D3b). On satisfaction it yields an
 //    AnchoredPolicyVerification. (A SEL `Evl` is gated by `governance`, an `Ixn`/`Est` by `operation`;
 //    constructing the deep pinning from the policyPin is the SEL primitive's job — layer 4.)
-let sel = provider.sel(&sel_prefix)?;                       // the gating SEL's verified token (carries the floored policyPin)
+let sel = provider.verify_sel(&sel_prefix)?;                       // the gating SEL's verified token (carries the floored policyPin)
 let event_anchor: HashSet<(Said, Tier)> =
     [(event.said, Tier::Two)].into_iter().collect();        // the Evl's own SAID, anchored per governance member
-let Some(gate) = evaluate_single_policy(
+let Some(gate) = evaluate_gate_policy(
     &governance_policy,
     &governance_pinning,                                    // the deep evidence pinning the SEL gate built from the policyPin + the event's anchors
     &event_anchor,
@@ -348,13 +348,13 @@ Splitting them keeps each failure mode independent.
 ### Implementation
 
 ```rust
-// evaluate_single_policy — positional pin-walk over ONE del-free policy. A single cursor advances one slot
+// evaluate_gate_policy — positional pin-walk over ONE del-free policy. A single cursor advances one slot
 // per leaf the walk reaches; consumption is driven by the STRUCTURAL walk, not by satisfaction (a failed leaf,
 // and a present-but-unsatisfied `id` whose subtree still drains, cannot desync later slots). After the walk
 // any LEFTOVER pins are a malformed pinning and deny. On satisfaction it emits an AnchoredPolicyVerification —
 // the SAD(s) this walk proved anchored, the id-marker snapshot(s) it reconstructed, and the chain tokens it
 // consumed. Ok(None) => the policy is unsatisfied.
-pub fn evaluate_single_policy(
+pub fn evaluate_gate_policy(
     policy: &Policy,
     pinning: &Pinning,
     anchors_to_check: &HashSet<(Said, Tier)>,
@@ -371,7 +371,7 @@ pub fn evaluate_single_policy(
     // Seed dev_legal=false (DQ2): this walk's top-level policy is a GENERAL construction (a governance gate,
     // a nested `pol`), never a singleton's own dev-policy evaluated top-level. A `dev` becomes legal only when
     // satisfies_id DESCENDS into a singleton's authentication. (A future singleton self-gating entry that
-    // evaluates a singleton's OWN policy top-level would seed true — D2-B — but evaluate_single_policy is
+    // evaluates a singleton's OWN policy top-level would seed true — D2-B — but evaluate_gate_policy is
     // never that entry.)
     let credited = eval_expr(&policy.expr, &mut cur, anchors_to_check, None, gate_context,
                              &mut walk, required_tier, max_depth, false)?;
@@ -425,7 +425,7 @@ pub fn evaluate_anchored_policy(
     let mut anchored: Vec<&Prefix> = Vec::new();
     for (party, anchor_pinning) in parties {
         let party_id = parse_policy(&format!("id({})", party))?;
-        match evaluate_single_policy(&party_id, anchor_pinning, anchors_to_check,
+        match evaluate_gate_policy(&party_id, anchor_pinning, anchors_to_check,
                                      GateContext::None, provider, required_tier, max_depth) {
             Ok(Some(token)) => {
                 walk.fold(token);                          // fold its snapshots + consumed tokens
@@ -444,7 +444,7 @@ pub fn evaluate_anchored_policy(
     // self-traverse up to `X` within `N` hops; `id(X)` is matched against the anchored set; a foreign `grp`
     // credits NOBODY (no gate context here). Composers count DISTINCT prefixes; `pol` recurses; `dev` is a
     // misplaced-dev hard reject (DQ2). The multi-party policy reads no chain state THROUGH itself, so it carries
-    // no pinning of its own — the per-party anchor pinnings are consumed inside each `evaluate_single_policy`,
+    // no pinning of its own — the per-party anchor pinnings are consumed inside each `evaluate_gate_policy`,
     // where leftover pins deny.
     let credited = anchored_credited(&policy.expr, &anchored, &mut walk, max_depth)?;
     if credited.is_empty() {
@@ -480,10 +480,10 @@ fn self_traverses(
 ) -> Result<bool, PolicyError> {
     let mut lower = candidate.clone();
     for _hop in 0..max_hops.min(max_depth) {
-        let lower_iel = walk.iel(&lower)?;                     // consumes the IelVerification token
+        let lower_iel = walk.verify_iel(&lower)?;                     // consumes the IelVerification token
         let parent = lower_iel.delegating_prefix()?;           // lower.Icp.delegating (consent)
         let del_said = lower_iel.delegating_del_said()?;       // lower.Evl[1].delegating (consent back-pointer)
-        let parent_iel = walk.iel(&parent)?;
+        let parent_iel = walk.verify_iel(&parent)?;
         let del = parent_iel.del_event(&del_said)?;            // direct lookup; MUST be a `Del` (not `Rsc`)
         if del.host != parent || !del.lists(&lower) {          // authorization: the Del ADDS `lower`
             return Ok(false);
@@ -565,7 +565,7 @@ fn anchored_credited(
         // grp(prefix, group): a foreign roster splice credits NOBODY in the multi-party path — there is no gate
         // context here, and an invoker-chosen marker is exactly the ex-member exposure the design forecloses on
         // this (foreign-`grp`) arm. The id(issuer) arm is closed by the floored registry-SEL composition.
-        // (Foreign-`grp` authority is supplied only through a SEL gate — evaluate_single_policy with
+        // (Foreign-`grp` authority is supplied only through a SEL gate — evaluate_gate_policy with
         // GateContext::SelGate, D3b.) The one-arg own-form grp(group) likewise credits nobody (no host
         // context — this evaluator never descends an `id`). Fail-secure.
         PolicyExpr::Grp(_, _) => Ok(HashSet::new()),
@@ -751,7 +751,7 @@ fn satisfies_dev(
     walk: &mut Walk,
     required_tier: Tier,
 ) -> Result<bool, PolicyError> {
-    let kel = walk.kel(leaf_prefix)?;                  // consumes the KelVerification token
+    let kel = walk.verify_kel(leaf_prefix)?;                  // consumes the KelVerification token
     let s = match kel.anchoring_child_on_surviving_branch(prior_said)? {
         Some(s) => s,                  // surviving-branch child; validated by the walk
         None => return Ok(false),      // divergent / archived — no valid anchor
@@ -809,7 +809,7 @@ live roster (current mode); `None` => credits nobody (no enclosing host). A **fo
 `grp(prefix, group)`** reads X's roster as-of the **context-supplied** marker, by `gate_context`:
 
 - `SelGate(sel)` (anchored governance gate) => the marker is `sel.policy_pin_marker(prefix)` — the gating SEL's
-  floored `policyPin` entry for X (D3b) — reconstructed via `walk.iel(prefix).roster_at(marker, group)`;
+  floored `policyPin` entry for X (D3b) — reconstructed via `walk.verify_iel(prefix).roster_at(marker, group)`;
 - `Tip` (current mode) => X's roster at X's tip (the live read-time context marker);
 - `None` (a party's own anchor walk, the multi-party path) => a foreign `grp` credits nobody — there is no
   context marker, and an invoker-chosen one is exactly the ex-member exposure the design forecloses on the
@@ -919,7 +919,7 @@ fn current_credited(
         // failure, which `?` propagates.
         PolicyExpr::Dev(prefix) => {
             check_dev_placement(dev_legal)?;          // reject a misplaced dev before any verify work
-            let kel = walk.kel(prefix)?;
+            let kel = walk.verify_kel(prefix)?;
             let mut credited = HashSet::new();
             for a in attestations {
                 if a.signer == *prefix && kel.verify_attestation(a, challenge, required_tier)? {

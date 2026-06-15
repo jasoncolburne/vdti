@@ -37,14 +37,17 @@ backdate **re-opens one layer down**. So the composition splits into two forward
 
 - **Provisioning** — every IEL is given a default registry-SEL **eagerly, at inception, regardless of
   credential activity** — is an **IEL/SEL-primitive (layer-4)** obligation. It is what makes the
-  at-every-depth floor real (a member is floored when *another* entity references it, before it ever issues),
-  so it cannot be lazy/on-first-issuance.
+  at-every-depth floor real: a member's **own** registry-SEL carries its floor, and a referencing entity's
+  resolution is **checked against** that floor — so the member must already be floored **before** any
+  reference, which is why provisioning cannot be lazy / on-first-issuance.
 - **Issuance** — a floored `Ixn` on the issuer's registry-SEL — is the **credentials feature (layer-5)**.
 
 Grandfather then rides **floored positions** (immutable, each at-or-above its own chain's floor): old
 authorizations stay valid until explicitly withdrawn, while no backdated marker can be introduced. This
 primitive states only the **rule** (*floored composition by reference against eagerly-provisioned
-registry-SELs, never a chosen marker*); the registry-SEL machinery is specified at those layers. The forward
+registry-SELs, never a chosen marker*); the registry-SEL machinery — including the
+**fail-closed-on-absent-`R`** rule (a referenced registry-SEL that is absent **denies**; never a tip-fallback)
+— is specified at those layers. The forward
 floor blocks backdating; **recovery** (an `Rpr` archiving forged anchors — [`evaluation.md`](evaluation.md))
 handles the terminal residual — a leaked **current** key. None of this alters a valid authorization's
 validity.
