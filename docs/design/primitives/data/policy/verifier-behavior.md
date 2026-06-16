@@ -106,7 +106,7 @@ eval_expr(expr, cur, anchors_to_check, host, gate_context, walk, required_tier, 
         dev(prefix) => check_dev_placement(dev_legal); cur.take_next() is Some(Leaf(Some(prior))) and satisfies_dev(prior, prefix, anchors_to_check, walk, required_tier) ? {prefix} : {}   # Some(Grp(_)) where a leaf was due ⇒ error(PinKindMismatch)
         id(prefix)  => cur.take_next() is Some(Leaf(Some(marker))) and satisfies_id(marker, prefix, cur, anchors_to_check, gate_context, walk, required_tier, max_depth) ? {prefix} : {}   # Some(Grp(_)) ⇒ error(PinKindMismatch)
         pol(said)   => eval_expr(parse_dsl(sadd_fetch(said)).expr, cur, anchors_to_check, host, gate_context, walk, required_tier, max_depth - 1, dev_legal)   # never carries dev_legal true into a pol
-        thr(M, ss)  => U = union(eval_expr(s, …) for s in ss);            |U| >= M ? U : {}                          # no flatten — a grp child hits the grp arm
+        thr(M, ss)  => U = union(eval_expr(s, …) for s in ss);            |U| >= M ? U : {}                          # no pre-expansion — a grp child hits the grp arm
         wgt(M, ws)  => B = per-prefix MAX weight over [(eval_expr(sub, …), w) for (sub, w) in ws];   sum(B.values) >= M ? B.keys : {}   # children inherit dev_legal
         and(cs)     => sets = [eval_expr(c, …) for c in cs];   all(s nonempty for s in sets) ? union(sets) : {}   # eval ALL (drain slots)
         # grp: SPARSE — consume ONE GrpBlock; credit each named signer that is in-roster (as-of the context X-marker) AND authenticates via its own sub_pins (sub-cursor; per-block leftover denies — blast radius contained).
