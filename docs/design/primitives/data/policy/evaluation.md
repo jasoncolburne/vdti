@@ -208,6 +208,21 @@ pub enum GateContext<'a> {
     None,                          // anchored party-auth walk: a foreign `grp` credits NOBODY (no context marker; fail-secure)
 }
 
+// Deep-evidence pin shape (anchored mode). The POLICY-TEXT walk (`id` / `dev` / `pol`->`id`) is POSITIONAL —
+// one `Leaf(Option<Said>)` per occurrence, `None` for an un-evidenced one. A `grp` leaf is SPARSE-NAMED — one
+// `Grp(GrpBlock)` listing only the members who signed, never one slot per roster member. `Pinning.pins:
+// Vec<PinSlot>`; a `SignerEntry.sub_pins` is the same shape, consumed by a SUB-cursor (blast radius contained).
+enum PinSlot {
+    Leaf(Option<Said>),    // policy-text leaf: id-marker / dev-prior / pol->id-marker (`None` = un-evidenced)
+    Grp(GrpBlock),         // a `grp` leaf's evidence
+}
+struct GrpBlock { signers: Vec<SignerEntry> }  // CANONICAL: sorted by `prefix`, dedup'd, |signers| <= MAX_PRESENTED (else deny)
+struct SignerEntry {
+    prefix: Prefix,         // the member, by PREFIX (never roster index)
+    marker_said: Said,      // the member's own Evl/Icp state-marker (floored by composition; must be on `prefix`'s chain)
+    sub_pins: Vec<PinSlot>, // the member's authentication evidence, recursive (nested aggregate -> GrpBlock; singleton -> `dev` slots)
+}
+
 // Governance gate (public) — evaluate ONE del-free policy against ONE pinning, resolving leaves AS-OF the
 // pinned state. This is what an IEL / SEL governance gate calls (gating an Evl / Ixn / Est against the
 // chain's tracked, floored policyPin). Consumes `pinning.pins` positionally in pre-order walk order: a
@@ -666,14 +681,15 @@ fn eval_expr(
         PolicyExpr::Dev(prefix) => {
             check_dev_placement(dev_legal)?;
             match cur.take_next() {
-                Some(Some(prior_said)) => {
-                    if satisfies_dev(&prior_said, prefix, anchors_to_check, walk, required_tier)? {
+                Some(PinSlot::Leaf(Some(prior_said))) => {
+                    if satisfies_dev(prior_said, prefix, anchors_to_check, walk, required_tier)? {
                         Ok(HashSet::from([prefix.clone()]))
                     } else {
                         Ok(HashSet::new())
                     }
                 }
-                _ => Ok(HashSet::new()),             // null slot / exhausted — slot still consumed
+                Some(PinSlot::Leaf(None)) | None => Ok(HashSet::new()),  // null slot / exhausted — slot still consumed
+                Some(PinSlot::Grp(_)) => Err(PolicyError::PinKindMismatch),  // a GrpBlock where a policy-text leaf was due — structural desync
             }
         }
         // id: take this leaf's slot (the Evl/Icp state-marker). A present SAID fixes the IEL's state;
@@ -683,15 +699,16 @@ fn eval_expr(
         // (opaque boundary — X's internal members do NOT propagate). A null slot consumes ONE slot and does
         // NOT descend (the state-marker is un-evidenced — see *Pinning -> Issuer-side construction*).
         PolicyExpr::Id(prefix) => match cur.take_next() {
-            Some(Some(marker_said)) => {
-                if satisfies_id(&marker_said, prefix, cur, anchors_to_check, gate_context,
+            Some(PinSlot::Leaf(Some(marker_said))) => {
+                if satisfies_id(marker_said, prefix, cur, anchors_to_check, gate_context,
                                  walk, required_tier, max_depth)? {
                     Ok(HashSet::from([prefix.clone()]))
                 } else {
                     Ok(HashSet::new())
                 }
             }
-            _ => Ok(HashSet::new()),
+            Some(PinSlot::Leaf(None)) | None => Ok(HashSet::new()),  // null slot / exhausted — no descent
+            Some(PinSlot::Grp(_)) => Err(PolicyError::PinKindMismatch),  // a GrpBlock where a policy-text id leaf was due
         },
         // pol: dereference + recurse; pure factoring — propagate the nested credited set UNCHANGED.
         // `anchors_to_check`, `self_context`, `gate_context`, and `dev_legal` are inherited UNCHANGED — and
@@ -702,30 +719,29 @@ fn eval_expr(
             eval_expr(&nested.expr, cur, anchors_to_check, self_context, gate_context,
                       walk, required_tier, max_depth - 1, dev_legal)
         }
-        // thr: evaluate every element (Grp children expand inline into id(member) leaves — see `flatten`).
-        // A one-arg `grp(group)` resolves against the enclosing id(X) marker's frozen roster snapshot (NEW-B);
-        // a foreign two-arg `grp(prefix, group)` resolves X's roster from the `gate_context` marker (D3b — the
-        // gating SEL's floored policyPin; GateContext::None credits nobody). Members flatten in canonical
-        // order. UNION the children; met iff >= M DISTINCT prefixes, then return the union (recursive dedup).
-        // `del` is not a single-policy element (no slot, no self-traversal here): it appears only in the
-        // multi-party policy, evaluated by `anchored_credited`.
+        // thr: evaluate every child IN PLACE (no pre-expansion — a `grp` child hits the `Grp` arm below, which
+        // consumes one `GrpBlock` and returns its credited signer set). UNION the children; met iff >= M
+        // DISTINCT prefixes, then return the union (recursive dedup). `del` is not a single-policy element (no
+        // slot, no self-traversal here): it appears only in the multi-party policy, evaluated by
+        // `anchored_credited`.
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
-            for child in flatten(subs, self_context, gate_context, walk)? {
-                union.extend(eval_expr(&child, cur, anchors_to_check, self_context, gate_context,
+            for child in subs {
+                union.extend(eval_expr(child, cur, anchors_to_check, self_context, gate_context,
                                        walk, required_tier, max_depth - 1, dev_legal)?);
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
         // wgt: per-prefix MAX weight across branches (associative/commutative -> order-independent;
         // fail-secure vs. sum — one party can't stack roles' weight), each distinct prefix summed once; met iff
-        // `sum >= M`, then return the credited prefixes.
+        // `sum >= M`, then return the credited prefixes. Each weighted branch is one child expr (a `grp` branch
+        // hits the `Grp` arm — its credited signers each take this branch's weight).
         PolicyExpr::Wgt(m, weighted) => {
             let mut best: HashMap<Prefix, u32> = HashMap::new();
-            for (child, w) in flatten_weighted(weighted, self_context, gate_context, walk)? {
-                for p in eval_expr(&child, cur, anchors_to_check, self_context, gate_context,
+            for (sub, w) in weighted {
+                for p in eval_expr(sub, cur, anchors_to_check, self_context, gate_context,
                                    walk, required_tier, max_depth - 1, dev_legal)? {
-                    best.entry(p).and_modify(|e| *e = (*e).max(w)).or_insert(w);
+                    best.entry(p).and_modify(|e| *e = (*e).max(*w)).or_insert(*w);
                 }
             }
             let sum: u64 = best.values().map(|w| *w as u64).sum();
@@ -748,7 +764,42 @@ fn eval_expr(
             }
             Ok(if all_satisfied { union } else { HashSet::new() })
         }
-        // del / grp standing alone are not valid `expr` (bracket-only) — fail-secure.
+        // grp: SPARSE-NAMED evidence — consume ONE `GrpBlock` (regardless of how many members signed) and
+        // credit each named signer that is BOTH (a) in the group's roster as-of the CONTEXT-supplied X-marker
+        // and (b) authenticates via its own `sub_pins`. The roster is resolved from context — never from the
+        // block — so a named non-member credits nobody; an absent member is simply un-evidenced (no per-member
+        // null). `satisfies_id` does the (prefix, marker_said) cross-check (the marker must be an event on
+        // `prefix`'s chain; a miss rejects) and the authentication descent over a SUB-cursor on `sub_pins`; a
+        // per-block leftover-pins denial keeps a malformed block's blast radius CONTAINED. The credited set
+        // flows up to `thr`/`wgt`/`and` like any child's, so C6 / recursive dedup hold.
+        PolicyExpr::Grp(maybe_prefix, group) => {
+            let block = match cur.take_next() {
+                Some(PinSlot::Grp(b)) => b,
+                Some(PinSlot::Leaf(_)) => return Err(PolicyError::PinKindMismatch),  // a leaf where a block was due
+                None => return Ok(HashSet::new()),                                  // exhausted — un-evidenced
+            };
+            check_block_canonical(block)?;       // sorted-by-prefix + dedup'd + |signers| <= MAX_PRESENTED, else Err
+            let roster = match resolve_roster(maybe_prefix.as_ref(), group, self_context, gate_context, walk)? {
+                Some(r) => r,                    // Vec<Prefix> read off the floored/context snapshot
+                None => return Ok(HashSet::new()),  // no context marker (e.g. GateContext::None) -> credits nobody
+            };
+            let mut credited = HashSet::new();
+            for signer in &block.signers {
+                if !roster.contains(&signer.prefix) {
+                    continue;                    // named NON-member -> credits nobody (membership is the gate)
+                }
+                let mut sub = PinCursor::new(&signer.sub_pins);
+                let met = satisfies_id(&signer.marker_said, &signer.prefix, &mut sub, anchors_to_check,
+                                       gate_context, walk, required_tier, max_depth - 1)?;
+                if sub.remaining() > 0 {
+                    return Err(PolicyError::LeftoverPins);  // per-block leftover — contained to the block
+                }
+                if met { credited.insert(signer.prefix.clone()); }
+            }
+            Ok(credited)
+        }
+        // del standing alone is not a valid single-policy `expr` (bracket-only; it lives in the multi-party
+        // policy, matched by `anchored_credited`) — fail-secure.
         _ => Ok(HashSet::new()),
     }
 }
@@ -790,6 +841,10 @@ fn satisfies_dev(
 // roster-stale split is structurally impossible. The descent runs regardless of prefix match so the subtree's
 // slots always DRAIN (structural consumption). Returns whether to credit `leaf_prefix` upward — the inner
 // credited set (X's members/keys) is X's PRIVATE evidence, consumed at this boundary, never propagated.
+// CURSOR-AGNOSTIC: called from the `id` arm over the main positional cursor, AND per-signer from a `Grp` block
+// over that signer's `sub_pins` SUB-cursor (the (prefix, marker_said) cross-check is `snapshot.prefix ==
+// leaf_prefix` — `snapshot_as_of` is a lookup on `leaf_prefix`'s OWN IelVerification, so a marker not on that
+// chain misses and rejects). The descent is identical either way.
 fn satisfies_id(
     marker_said: &Said,
     leaf_prefix: &Prefix,
@@ -817,11 +872,12 @@ fn satisfies_id(
 }
 ```
 
-`flatten` / `flatten_weighted` expand each `grp` element to `id(member)` leaves in canonical order, reading the
-roster via `self_context` (one-arg) and `gate_context` (foreign two-arg). A **one-arg `grp(group)`** reads the
-HOST's roster: `AtMarker(snap)` => `snap.roster` (the frozen marker snapshot, NEW-B); `AtTip` => the host's
-live roster (current mode); `None` => credits nobody (no enclosing host). A **foreign two-arg
-`grp(prefix, group)`** reads X's roster as-of the **context-supplied** marker, by `gate_context`:
+`resolve_roster` reads a `grp`'s roster **from context — never from the block** — returning the member set the
+named signers are checked against (or `None`, crediting nobody, when no context marker exists). A **one-arg
+`grp(group)`** reads the HOST's roster from `self_context`: `AtMarker(snap)` => `snap.roster` (the frozen
+`id(X)` marker snapshot, NEW-B); `AtTip` => the host's live roster (current mode); `None` self_context =>
+credits nobody (no enclosing host). A **foreign two-arg `grp(prefix, group)`** reads X's roster as-of the
+**context-supplied** marker, by `gate_context`:
 
 - `SelGate(sel)` (anchored governance gate) => the marker is `sel.policy_pin_marker(prefix)` — the gating SEL's
   floored `policyPin` entry for X (D3b) — reconstructed via `walk.verify_iel(prefix).roster_at(marker, group)`;
@@ -830,8 +886,11 @@ live roster (current mode); `None` => credits nobody (no enclosing host). A **fo
   context marker, and an invoker-chosen one is exactly the ex-member exposure the design forecloses on the
   foreign-`grp` arm (the `id(issuer)` arm is closed by the floored registry-SEL composition).
 
-The marker **value** is thus always context-supplied, never the pinning's invoker-set value. The G1
-X-state-marker slot is laid and consumed positionally for cursor alignment only (see *Pinning*).
+The marker **value** is thus always context-supplied, never the issuer's choice — there is **no issuer-laid
+roster-source slot** (a self-contained `GrpBlock` needs no positional alignment marker). `check_block_canonical`
+enforces the block's content-addressing and cost bound: signers **sorted by prefix, dedup'd within the block,
+and `|signers| <= MAX_PRESENTED`** — non-canonical / duplicate / over-cap is a HARD reject (an uncapped named
+list is a walk-amplifier).
 
 ```rust
 // Host context for resolving a one-arg `grp(group)` inside an `id(X)` descent (NEW-B): the host prefix plus
@@ -963,23 +1022,24 @@ fn current_credited(
             current_credited(&nested.expr, challenge, attestations, named_delegates,
                              self_context, walk, required_tier, max_depth - 1, dev_legal)
         }
-        // thr: flatten grp at the host (one-arg) / named foreign owner's TIP (two-arg — current mode is
-        // tip-live, NEW-B), union the children; met iff >= M distinct.
+        // thr: evaluate every child in place; a `grp` child hits the `Grp` arm (roster resolved at TIP — current
+        // mode is tip-live, NEW-B). Union the children; met iff >= M distinct.
         PolicyExpr::Thr(m, subs) => {
             let mut union = HashSet::new();
-            for child in flatten(subs, self_context, GateContext::Tip, walk)? {   // current mode: foreign grp -> X's tip
-                union.extend(current_credited(&child, challenge, attestations, named_delegates,
+            for child in subs {
+                union.extend(current_credited(child, challenge, attestations, named_delegates,
                                               self_context, walk, required_tier, max_depth - 1, dev_legal)?);
             }
             Ok(if union.len() as u64 >= *m { union } else { HashSet::new() })
         }
-        // wgt: per-prefix MAX weight, each distinct prefix summed once; met iff sum >= M.
+        // wgt: per-prefix MAX weight, each distinct prefix summed once; met iff sum >= M. Each weighted branch
+        // is one child expr (a `grp` branch hits the `Grp` arm).
         PolicyExpr::Wgt(m, weighted) => {
             let mut best: HashMap<Prefix, u32> = HashMap::new();
-            for (child, w) in flatten_weighted(weighted, self_context, GateContext::Tip, walk)? {
-                for p in current_credited(&child, challenge, attestations, named_delegates,
+            for (sub, w) in weighted {
+                for p in current_credited(sub, challenge, attestations, named_delegates,
                                           self_context, walk, required_tier, max_depth - 1, dev_legal)? {
-                    best.entry(p).and_modify(|e| *e = (*e).max(w)).or_insert(w);
+                    best.entry(p).and_modify(|e| *e = (*e).max(*w)).or_insert(*w);
                 }
             }
             let sum: u64 = best.values().map(|w| *w as u64).sum();
@@ -1017,8 +1077,28 @@ fn current_credited(
             }
             Ok(set)
         }
-        // grp standing alone is bracket-only (flattened inside thr/wgt before reaching here).
-        PolicyExpr::Grp(..) => Ok(HashSet::new()),
+        // grp: current mode has NO document — sparse naming is an ANCHORED-evidence shape (a credential names
+        // its signers via a `GrpBlock`); current mode is live challenge-response, so it resolves the group's
+        // roster at TIP and credits each member whose attestations meet its authentication (recurse into each
+        // member's `id`). Enumeration is required here because a member may itself be an AGGREGATE — its
+        // authentication is satisfied by sub-signers, not a single attestation — so the verifier must descend
+        // per member. Roster from context (`resolve_roster` with `GateContext::Tip`): two-arg `grp(X, group)`
+        // => X's tip; one-arg `grp(group)` => the enclosing host's tip roster (NEW-B). No context => nobody.
+        PolicyExpr::Grp(maybe_prefix, group) => {
+            let roster = match resolve_roster(maybe_prefix.as_ref(), group, self_context, GateContext::Tip, walk)? {
+                Some(r) => r,
+                None => return Ok(HashSet::new()),   // no context marker -> credits nobody (fail-secure)
+            };
+            let mut credited = HashSet::new();
+            for member in &roster {
+                // credit `member` iff its authentication is met at tip — the per-member `id` check, driven by
+                // the roster resolved above.
+                let met = current_credited(&PolicyExpr::Id(member.clone()), challenge, attestations,
+                                           named_delegates, self_context, walk, required_tier, max_depth - 1, dev_legal)?;
+                credited.extend(met);
+            }
+            Ok(credited)
+        }
     }
 }
 ```

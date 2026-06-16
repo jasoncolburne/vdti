@@ -47,7 +47,9 @@ out or decommissioned, the same lifecycle-bypass flaw that forbids `dev` in aggr
   saving stored bytes.)
 
 `id(member)` is **never hand-written** in an IEL policy. It exists only as the form
-one-arg `grp(group)` **expands into** — one `id(member_i)` per current member of the group — and as
+a one-arg `grp(group)` **resolves to** — the group's current members (for evaluation; the deep
+**evidence** names only the signers — a `grp`'s evidence is a sparse `GrpBlock`, not one slot per member —
+see [`pinning.md`](pinning.md)) — and as
 the recursion primitive each member resolves through: `id(member)` defers to that member's
 `authentication`, which (if the member is itself an aggregate) is again `grp(group)` → `id(…)`,
 terminating at a singleton's `dev()`. So each IEL policy kind has exactly **one** writable leaf —

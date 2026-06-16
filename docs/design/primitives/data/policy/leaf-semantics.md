@@ -2,7 +2,7 @@ Part of the policy primitive group — see [`policy.md`](policy.md) for the DSL 
 
 ## Leaf semantics
 
-Each leaf evaluates against chain state and a signed request. Leaves return satisfied / unsatisfied. (`del` and `grp` are bracket-only forms, not leaves — `del` is matched by self-traversing issuers, `grp` flattens to `id` member leaves; both are covered below.)
+Each leaf evaluates against chain state and a signed request. Leaves return satisfied / unsatisfied. (`del` and `grp` are bracket-only forms, not leaves — `del` is matched by self-traversing issuers, `grp` resolves to `id` member leaves; both are covered below.)
 
 ### `id(prefix)` — IEL authentication
 
@@ -12,7 +12,7 @@ This is recursive — `id(P)`'s check evaluates P's authentication policy, which
 
 `id(X)` and `grp(X, group)` both reach entity X, but differently. `id(X)` **defers** to X's autonomy — it accepts X's own authentication, at X's own threshold, for who acts as X (X authorizes as an institution). `grp(X, group)`, by contrast, takes X's **published roster** for the named group and lets the *referencing* policy compose over those members at a threshold/weights **it** chooses — see [`grp`](#grp--membership-roster-array). The difference is *who sets the bar* (X's authentication vs. the referencing policy). They also differ in **reach**: `id(X)` is matched in **all** general policies (application, issuance, withdrawal), while a foreign `grp(X, group)` resolves its roster only where its marker is **context-supplied** — a general current-mode policy (X's tip), and SEL-gated anchored policies (the SEL's floored `policyPin`) — and credits **nobody** in a credential's **issuance** policy (group issuance authority is the creds registry-SEL; see [`grp`](#grp--membership-roster-array)).
 
-Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `id` is **never hand-written**. Those policies use only a one-arg `grp(group)` (aggregate) or `dev()` (singleton); `id` appears solely as what `grp(group)` expands into and as the resolution primitive each member recurses through — see [IEL policy structure — aggregate vs. singleton](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton).
+Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `id` is **never hand-written**. Those policies use only a one-arg `grp(group)` (aggregate) or `dev()` (singleton); `id` appears solely as what `grp(group)` resolves to and as the resolution primitive each member recurses through — see [IEL policy structure — aggregate vs. singleton](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton).
 
 ### `grp` — membership-roster array
 
@@ -23,41 +23,41 @@ Within an IEL's *own* `governance` / `authentication` / `delegation` policies, `
 
 The `group` label matches `^[a-z_-]{1,16}$` (lowercase `a`–`z`, underscore, hyphen; 1–16 characters; no digits, no uppercase). The roster is a SAD that the IEL commits to — its SAID burned into the IEL, distinct from `governance` / `authentication` / `delegation` — mapping group labels to sets of member IEL prefixes (a member may sit in several groups). `grp(X, group)` is distinct from `id(X)`: `id(X)` defers to X's whole authentication, while `grp(X, group)` takes X's published group and composes over it at the referencing policy's own bar.
 
-`grp` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it flattens in place and concatenates with its siblings:
+`grp` is an **array value**, not a standalone leaf — only legal inside a composer's `[...]`, where it resolves in place and concatenates with its siblings:
 
 - inside `thr(k, [grp(prefix, group)])` → `thr(k, [id(m1), …, id(mn)])` — *k of that group's members*, with **k chosen by the referencing policy**, not by any member's own threshold. Each member still authenticates via their own authentication policy (`id(mi)`).
 - inside `wgt(M, [([grp(prefix, group)], w), …])` → each member becomes `(id(mi), w)` — every member of the group carries weight `w`.
-- the enclosing `[...]` is a **concat container**: multiple `grp` groups and single expressions mix freely — `thr(2, [grp(org, execs), grp(org, board), id(X)])` flattens to one child list (`execs` members ++ `board` members ++ `id(X)`).
+- the enclosing `[...]` is a **concat container**: multiple `grp` groups and single expressions mix freely — `thr(2, [grp(org, execs), grp(org, board), id(X)])` resolves to one child list (`execs` members ++ `board` members ++ `id(X)`).
 
 This is the membership/composition split. Two levels compose: the **roster level** (which group, how many, or what weight — chosen by the referencing policy) and the **member level** (how each individual proves they act — their own `id` authentication). The roster lives with the entity (who is in each group); the thresholds/weights live with the policy (how much each member counts here). Adding a member edits the roster, never the policy; changing the bar edits the policy, never the roster.
 
-**Canonical flatten order.** A `grp` array flattens its members in a **canonical order — member
-prefix ascending (qb64 byte order)** — so the issuer and verifier lay down identical pin slots and
-the [walk-order pinning](pinning.md#pinning-evidence-pins) stays deterministic across parties. Order within
-the enclosing `[...]` is preserved between siblings (each `grp` expands in place); only the members
-*within* one `grp` are canonically ordered.
+**Canonical member order.** Within one `grp`, members are **canonically ordered — member prefix
+ascending (qb64 byte order)**. In the deep evidence a `grp`'s [`GrpBlock`](pinning.md#pinning-evidence-pins)
+lists its signers in this order (sorted-by-prefix, dedup'd) for **content-addressing**; membership itself is
+by-prefix set-contains, **order-independent**. Order within the enclosing `[...]` is preserved between
+siblings (each `grp` resolves in place); only the members *within* one `grp` are canonically ordered.
 
 **Rosters carry groups, not weights.** A roster maps group → member set; weight is the *referencing
-policy's* per-group assignment on the `wgt` branch. So weight only exists post-flatten. Overlap
+policy's* per-group assignment on the `wgt` branch. So weight only exists post-resolution. Overlap
 resolves at **satisfaction**, not expansion: if a member sits in two spliced groups (e.g.
-`grp(org, admins)` at weight 2 and `grp(org, members)` at weight 1), each occurrence still lays down
-its own pin slot, but the member is **credited once, at its maximum weight** — it counts once, at its
+`grp(org, admins)` at weight 2 and `grp(org, members)` at weight 1), the member is named in **each**
+group's `GrpBlock`, but is **credited once, at its maximum weight** — it counts once, at its
 highest group, toward the threshold. (In a `thr` splice there are no weights, so the member simply
 counts once — standard distinct-party threshold.)
 
-**Crediting is recursive; pins are not.** Deduplication is a **satisfaction-counting** operation, not
-an expansion one. The full expansion fixes the **pin slots** positionally — every occurrence keeps
-its slot (the [walk-order pinning](pinning.md#pinning-evidence-pins) stays deterministic, *independent of
-roster overlap*), and a duplicate occurrence the issuer doesn't rely on is simply `null`. Crediting,
-by contrast, collapses same-prefix duplicates across the **whole recursive credited set** — every
-flattened member of the composer's `[...]`, any explicit `id(member)` sibling in the same bracket,
-*and* the same prefix reached through a nested `thr` / `wgt` / `pol` / `and`. So a member reachable
-both via `grp(org, staff)` and as an explicit `id(alice)` sibling is credited **once** (max weight
-on a `wgt`), never double toward the threshold, while still occupying every pin slot its occurrences
-lay down. This is the fail-secure choice — one identity reached two ways cannot clear a multi-party
-gate alone.
+**Crediting dedups recursively; the evidence layer does not.** Deduplication is a **satisfaction-counting**
+operation, not an evidence-layer one. The evidence layer has two shapes (see
+[*Pinning*](pinning.md#pinning-evidence-pins)): the **policy-text walk** (`id` / `dev`) is **positional** — every
+occurrence keeps its slot, and an occurrence the issuer doesn't evidence is simply `null`; a **`grp` leaf** lays
+**one `GrpBlock`** naming only the signers (sorted-by-prefix, dedup'd, **no per-member `null`**), so a member
+spliced through two groups is named in **each** group's block. Crediting, by contrast, collapses same-prefix
+duplicates across the **whole recursive credited set** — every member a `grp` resolves to, any explicit
+`id(member)` sibling in the same bracket, *and* the same prefix reached through a nested `thr` / `wgt` / `pol` /
+`and`. So a member reachable both via `grp(org, staff)` and as an explicit `id(alice)` sibling is credited
+**once** (max weight on a `wgt`), never double toward the threshold, whatever evidence form each occurrence
+took. This is the fail-secure choice — one identity reached two ways cannot clear a multi-party gate alone.
 
-The roster's point-in-time resolution rides the IEL state the flow fixes — and in the anchored flow **both forms resolve as-of pinned state** (authored data is anchored; nothing in it reads a live roster). The DSL leaf names a **group** (and, for the foreign form, a **prefix**), not a roster SAID. A **one-arg `grp(group)`** resolves against the roster in the **reconstructed snapshot of the enclosing `id(X)` state-marker** — the *same* snapshot that marker fixed the authentication from, **reused** rather than separately pinned (NEW-B). Reuse is the security choice: a dedicated roster slot would let an issuer pin an authentication-recent marker against a roster-stale one and resurrect a removed member, so the one-arg roster is bound to the same marker the authentication came from. A **two-arg `grp(prefix, group)`** has no enclosing `id(prefix)` descent to ride, so it resolves X's roster as-of a **context-supplied** marker — one the *evaluation context* fixes, never one the invoking party chooses. In the **current-state** flow that marker is X's **tip** (the live read-time identity proof). In an **anchored SEL-gated** policy it is the gating SEL's **governance-ratcheted, floored `policyPin`**: the foreign-`grp` X-state-marker slot (G1) survives — laid in pre-order where the `grp` occurs, before the member `id(mi)` slots its flatten lays down (see [*Pinning*](pinning.md#pinning-evidence-pins)) — but it is filled from the SEL's tracked `policyPin` (already ratcheted forward along the per-chain floor), **not** from a credential's issuer-supplied issuance pin. The governance gate that resolves a foreign `grp` this way — consuming its G1 slot **as-of the floored pin** — is the general anchored single-policy evaluator (see [`evaluation.md`](evaluation.md)). Membership change stays **forward-only**: a later roster change on X never reaches back to invalidate a document authored against the pinned state — an authorization stays valid until explicitly withdrawn, and loss-of-trust is carried by the rescission and withdrawal walks, which run to tip in both flows, never by tip-resolving a roster.
+The roster's point-in-time resolution rides the IEL state the flow fixes — and in the anchored flow **both forms resolve as-of pinned state** (authored data is anchored; nothing in it reads a live roster). The DSL leaf names a **group** (and, for the foreign form, a **prefix**), not a roster SAID. A **one-arg `grp(group)`** resolves against the roster in the **reconstructed snapshot of the enclosing `id(X)` state-marker** — the *same* snapshot that marker fixed the authentication from, **reused** rather than separately pinned (NEW-B). Reuse is the security choice: a dedicated roster slot would let an issuer pin an authentication-recent marker against a roster-stale one and resurrect a removed member, so the one-arg roster is bound to the same marker the authentication came from. A **two-arg `grp(prefix, group)`** has no enclosing `id(prefix)` descent to ride, so it resolves X's roster as-of a **context-supplied** marker — one the *evaluation context* fixes, never one the invoking party chooses. In the **current-state** flow that marker is X's **tip** (the live read-time identity proof). In an **anchored SEL-gated** policy it is the gating SEL's **governance-ratcheted, floored `policyPin`** entry for X (already ratcheted forward along the per-chain floor), **not** a credential's issuer-supplied issuance pin. That X-marker is **read from context** — there is **no issuer-laid roster-source slot**: a foreign `grp`'s deep evidence is a sparse **`GrpBlock`** naming only the members who signed (see [*Pinning*](pinning.md#pinning-evidence-pins)), and the verifier checks each named signer against X's roster as-of the context marker. The governance gate that resolves a foreign `grp` this way is the general anchored single-policy evaluator (see [`evaluation.md`](evaluation.md)). Membership change stays **forward-only**: a later roster change on X never reaches back to invalidate a document authored against the pinned state — an authorization stays valid until explicitly withdrawn, and loss-of-trust is carried by the rescission and withdrawal walks, which run to tip in both flows, never by tip-resolving a roster.
 
 **Foreign `grp` is not an issuer-pinned issuance leaf.** Because the two-arg marker is context-supplied
 (X's tip, or the gating SEL's governance-ratcheted, floored `policyPin`) and **never chosen by the invoking
@@ -182,7 +182,7 @@ only way to require *each* pool independently. (Worked side-by-side — how a du
 `and` vs `thr` vs `wgt`, and disjoint vs overlapping pools — in *[examples](examples.md#worked-examples)*.)
 
 - **No threshold / weight argument** — it is all-of. Its children are full `expr`s (a leaf or a
-  composer), **never** a bare `grp` / `del`: set-valued forms flatten only inside `thr` / `wgt`, so to
+  composer), **never** a bare `grp` / `del`: set-valued forms resolve only inside `thr` / `wgt`, so to
   conjunct a pool you wrap it (`and([thr(1, [grp(org, board)]), thr(1, [grp(org, execs)])])`).
 - **At least two children.** A one-child `and` is just the child; an empty `and([])` is vacuously
   satisfied (a no-op gate, the same hazard as `thr(0)`) — the parser **rejects** fewer than 2 children.

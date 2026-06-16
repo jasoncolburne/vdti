@@ -52,21 +52,25 @@ floor blocks backdating; **recovery** (an `Rpr` archiving forged anchors — [`e
 handles the terminal residual — a leaked **current** key. None of this alters a valid authorization's
 validity.
 
-### Two pinnings, one positional mechanism
+### Two pinnings, one walk-ordered cursor
 
-The positional mechanism described below serves **two distinct pinnings** — do not conflate them:
+The walk-ordered cursor described below serves **two distinct pinnings** — do not conflate them:
 
 - The **SEL `policyPin`** (standing; event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)) is
   **shallow**: one slot per `id` / `grp` occurrence in the SEL's `governance` / `operation` policy **text**,
   every entry an IEL state-marker, **full — no nulls**, ratcheted forward along the per-chain floor. It fixes
   *which version of each directly-named IEL* an event resolves against — the membership / state layer.
-- The **per-event evidence pinning** (this doc's subject) is **deep**: it walks the fully-expanded policy
-  graph (`id`-recursion + roster expansion) down to the terminal `dev` anchors, with `null` slots for
-  occurrences the issuer doesn't evidence. It proves *who actually signed*, as-of authoring.
+- The **per-event evidence pinning** (this doc's subject) is **deep**: it walks the policy graph down to the
+  terminal `dev` anchors, proving *who actually signed*, as-of authoring. Its **policy-text** leaves
+  (`id` / `dev` / `pol`→`id`) are **positional** — one slot per occurrence, `null` for an occurrence the
+  issuer doesn't evidence. A **`grp` leaf** is **sparse-named**: a single **`GrpBlock`** listing only the
+  members who actually signed (by prefix), never one slot per roster member.
 
-Everything below — the full graph walk, the `dev` prior-event slots, the `null` discipline — is the **deep
-evidence** pinning. `null` slots live **only** here, never in a `policyPin`. The shallow `policyPin` is the
-membership/state layer that *supplies a foreign `grp`'s context marker* into this deep walk.
+Everything below — the policy-text walk's positional slots, the `dev` prior-event slots, the `null`
+discipline, and the `grp` leaf's sparse **`GrpBlock`** — is the **deep evidence** pinning. `null` slots live
+**only** here (and only on the **policy-text** walk — `id` / `dev`), never in a `policyPin`. The shallow
+`policyPin` is the membership/state layer that *supplies a foreign `grp`'s context marker* into this deep
+walk.
 
 **Deep does not mean unfloored.** Each IEL state-marker the deep walk reaches — at every level of the
 `id`-recursion — must reference a **floored position on that entity's own chain**, never a bare prefix at tip
@@ -103,14 +107,16 @@ carries no pin. Its issuers prove delegation by self-traversing their own delega
 by a pinned slot (see [`del`](leaf-semantics.md#delprefix-n--delegation-placeholder-self-traversing) and the
 anchored evaluator in [`evaluation.md`](evaluation.md)).
 
-`grp`, the other bracket form, does lay slots: its flatten lays one `id(mi)` occurrence per
-member, and a foreign **two-arg `grp(prefix, group)` additionally lays its own X-state-marker slot
-first** (G1) — in pre-order where the `grp` occurs, before its members' slots. A foreign splice
-has no enclosing `id(X)` descent to ride, so it pins its own roster source; that marker is
-**context-supplied** (the gating SEL's **governance-ratcheted, floored** `policyPin`, resolved as-of —
-never the invoker's choice, never X's tip). A one-arg
-`grp(group)` lays no slot of its own — it rides the enclosing `id(X)` marker (NEW-B). See the slot
-kinds below.
+`grp`, the other bracket form, lays a **`GrpBlock`** — a single deep-evidence element **naming the members
+who actually signed**, never a slot per roster member. A `GrpBlock` is `{ signers: [SignerEntry] }`; each
+**`SignerEntry`** is `{ prefix, marker_said, sub_pins }` — the member identified by **prefix** (not roster
+index), its own `Evl`/`Icp` **state-marker** (floored by composition — the member's registry-SEL), and
+`sub_pins`, the member's authentication evidence laid recursively (a nested aggregate carries a further
+`GrpBlock`; a singleton carries the positional `dev` slots). The roster the signers are checked against is
+**context-supplied** — a two-arg `grp(prefix, group)` reads X's marker from the gate (the gating SEL's
+**governance-ratcheted, floored** `policyPin`, never the invoker's choice, never X's tip); a one-arg
+`grp(group)` reuses the enclosing `id(X)` snapshot's marker (NEW-B). There is **no issuer-laid
+roster-source slot** — a self-contained block needs no positional alignment marker. See the slot kinds below.
 
 #### Policies (resource holder's gate)
 
@@ -190,28 +196,30 @@ descent, in that descent order — so `id(X)` lays `[X_prefix, Y_prefix]` and `i
 one because the walk reaches it first; each occupies its own slot, so the two can pin different
 positions on `Y`'s KEL.
 
-A Pinning SAD carries `pins`: one `Option<Said>` per *prefix occurrence* in the expanded policy
-graph, **ordered by the verifier's pre-order walk** (a prefix reached through two branches gets
-two slots — one per occurrence, so each can pin a different chain position). There is **no sort**:
-the verifier walks the same graph the issuer did and advances a single positional cursor — the
+A Pinning SAD carries `pins`: one **`PinSlot`** per leaf the walk reaches, **ordered by the verifier's
+pre-order walk**. A **policy-text** leaf (`id` / `dev` / `pol`→`id`) lays an `Option<Said>` (a prefix reached
+through two branches gets two such slots — one per occurrence, so each can pin a different chain position); a
+**`grp` leaf** lays a single **`GrpBlock`** (the sparse named signers, below). There is **no sort** across the
+policy-text walk: the verifier walks the same graph the issuer did and advances a single positional cursor — the
 *k*-th leaf the walk reaches reads `pins[k]`. Slot position binds to a prefix occurrence by walk
-order alone, without any per-entry type tag or per-prefix grouping. A `null` slot means that
+order alone, without any per-entry **prefix** tag or per-prefix grouping (the `Leaf` / `Grp` shape
+discriminant is the one structural tag, checked by `PinKindMismatch`). A `null` slot means that
 occurrence is un-evidenced (it contributes nothing toward thresholds), letting an issuer pin only
 the branches it satisfies.
 
-**Consumption is driven by the structural walk, not by satisfaction.** Each leaf consumes exactly
-one slot when the walk reaches it, whether or not it ends up satisfied — so a failed leaf cannot
-desync the slots of later leaves. An `id` leaf whose pinned state-marker is *present but
-unsatisfied* still descends into its authentication and drains that subtree's slots; a `null`
-`id` slot consumes its one slot and does **not** descend (the state-marker is un-evidenced, so its
-authentication subtree is unreachable — its subtree's slots are *omitted*, see *Issuer-side
-construction* below). A foreign two-arg `grp`'s X-state-marker slot follows the same discipline: a
-**present** marker fixes the roster the flatten expands, and the member `id(mi)` slots follow
-(draining structurally whether or not each member satisfies); a **null** marker consumes its one
-slot and the expansion is omitted entirely — with no marker the roster is unresolvable, so the
-member subtree's slot count is unknowable, the same fail-closed rule as a null `id`. After the
-walk, **any leftover pins are a malformed pinning and deny** (the issuer pinned more slots than
-the policy has occurrences).
+**Consumption is driven by the structural walk, not by satisfaction** — on the **policy-text** walk
+(`id` / `dev` / `pol`→`id`). Each such leaf consumes exactly one slot when the walk reaches it, whether or
+not it ends up satisfied — so a failed leaf cannot desync the slots of later leaves. An `id` leaf whose
+pinned state-marker is *present but unsatisfied* still descends into its authentication and drains that
+subtree's slots; a `null` `id` slot consumes its one slot and does **not** descend (the state-marker is
+un-evidenced, so its authentication subtree is unreachable — its subtree's slots are *omitted*, see
+*Issuer-side construction* below). A **`grp` leaf consumes one slot — its `GrpBlock`** — regardless of how
+many members signed; there is **no per-member `null`** (a member absent from the block is simply
+un-evidenced, contributing nothing). The block's `sub_pins` are drained by a **sub-cursor** when the walk
+recurses into each signer's authentication, so a malformed block's blast radius is **contained to the
+block** — its own leftover-pins denial fires per-block and cannot desync the rest of the policy walk. After
+the walk, **any leftover pins are a malformed pinning and deny** (more slots than the policy has
+occurrences) — the same rule, applied to the outer walk and within each block.
 
 **Issuer-side construction (the mirror of the verifier's descent).** The issuer lays the pin array
 by the same pre-order walk the verifier consumes it with, branching on null/present identically, so
@@ -224,18 +232,20 @@ the two stay aligned by construction:
   so consumes no slots for the subtree. (A null `id` cannot drain a subtree: with no state-marker
   its authentication policy is unresolvable, so the subtree's slot count is unknowable; the only
   sound rule is to lay no slots for it.)
-- A foreign two-arg **`grp`'s X-state-marker slot follows the same two rules**: present ⇒ followed
-  by the member `id(mi)` slots of the roster read as-of that marker, in canonical member order
-  (each member then subject to the `id` rules above); null ⇒ terminal — one `null`, the member
-  slots omitted (no marker ⇒ no roster ⇒ unknowable member count). Because both
-  parties expand the member set from the **same pinned marker**, the expansion — and so the slot
-  layout — is identical by construction; a tip-read roster could change between authoring and
-  verification and desync every later slot.
+- A **`grp` leaf lays one `GrpBlock`** — **name the members who signed**, each a
+  `SignerEntry { prefix, marker_said, sub_pins }`, with the signers **sorted by prefix, dedup'd within the
+  block, and capped at `MAX_PRESENTED`** (non-canonical / duplicate / over-cap ⇒ **deny** — load-bearing for
+  content-addressing *and* walk-cost). Each signer's `sub_pins` are laid by the same pre-order walk over that
+  member's authentication (a nested aggregate ⇒ a further `GrpBlock`; a singleton ⇒ its positional `dev`
+  slots). No roster enumeration, no per-non-signer `null`: an unmentioned member is un-evidenced. The roster
+  the signers must belong to is read from context (the gate's floored marker, or the enclosing `id(X)`
+  snapshot), never laid by the issuer.
 
-These rules are exact complements of the verifier's branch above. An issuer that lays
-subtree slots under a null `id` (or member slots under a null `grp` marker) overruns the policy's
-occurrences and trips the leftover-pins denial; one that omits a present slot's subtree under-runs
-and desyncs every later leaf. Both fail closed.
+These rules are exact complements of the verifier's branch above. On the policy-text walk, an issuer that
+lays subtree slots under a null `id` overruns the policy's occurrences and trips the leftover-pins denial;
+one that omits a present slot's subtree under-runs and desyncs every later leaf. A `GrpBlock` is
+**self-delimiting** — its canonical-form and per-block leftover checks contain any malformation to the block.
+Both fail closed.
 
 What each non-null entry holds depends on the prefix's kind, which the verifier reads from
 its position in the policy:
@@ -255,25 +265,23 @@ its position in the policy:
   (reuse of the marker, no second pin — closing the authentication-recent / roster-stale
   resurrection gap). A state-marker doesn't carry an anchored authorization, so there's no cycle and no
   prior-event trick.
-- **foreign-`grp` X-state-marker** (G1) → for a two-arg `grp(prefix, group)`, the SAID of **X**'s
-  most-recent `Evl`/`Icp` state-marker — the same marker kind an `id` slot pins, laid by the `grp`
-  itself in pre-order where it occurs, before its member slots (a foreign splice has no enclosing
-  `id(X)` descent to ride, so it pins its own roster source; contrast the one-arg form's reuse,
-  NEW-B). That marker is **context-supplied** — in an anchored SEL-gated policy it is the gating
-  SEL's **governance-ratcheted, floored** `policyPin`
-  (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)), **not** a credential's
-  issuer-chosen issuance pin. Sourcing
-  the marker from context (rather than letting an issuer pick it) is what forecloses the ex-member
-  backdate: there is no issuer-supplied marker to choose, so the **leaf** needs no freshness floor of
-  its own — the marker it consumes is the gating SEL's `policyPin` entry for X, which the SEL layer
-  already ratcheted forward along the per-chain floor
-  (see [`grp`](leaf-semantics.md#grp--membership-roster-array)). The verifier reconstructs X's
-  snapshot as-of the marker and reads the **roster** from it; the flatten expands that roster's
-  members in canonical order, whose `id(mi)` slots follow. As-of resolution is the point: a
-  document's membership splice is valid relative to the X-state it pins — a later roster change on X
-  is forward-only and never reaches back (loss-of-trust comes from the rescission/withdrawal walks,
-  which run to tip in both modes). Like an `id` marker, a state-marker carries no credential anchor,
-  so there's no cycle and no prior-event trick.
+- **`grp` leaf** → a **`GrpBlock`** (not a marker slot). Its signers are named by `(prefix, marker_said)`;
+  the verifier checks each `marker_said` is an event **on `prefix`'s chain** (a prefix/marker mismatch denies
+  — the same coupling check the `policyPin` floor uses), reconstructs that member's snapshot as-of the
+  (floored) marker, recurses into the member's authentication draining the signer's `sub_pins`, and confirms
+  the member is **in the group's roster** as-of the **context-supplied** X-marker. In an anchored SEL-gated
+  policy that X-marker is the gating SEL's **governance-ratcheted, floored** `policyPin`
+  (event-shape [`§policyPin`](../event-logs/event-shape.md#policypin)), **not** a credential's issuer-chosen
+  issuance pin; a one-arg `grp(group)` reuses the enclosing `id(X)` snapshot's marker (NEW-B). Sourcing the
+  X-marker from context — never letting an issuer pick it — is what forecloses the ex-member backdate on the
+  `grp` arm: there is no issuer-supplied roster-source marker to choose
+  (see [`grp`](leaf-semantics.md#grp--membership-roster-array)). As-of resolution is the point: a document's
+  membership splice is valid relative to the X-state the gate fixes — a later roster change on X is
+  forward-only and never reaches back (loss-of-trust comes from the rescission/withdrawal walks, which run to
+  tip in both modes). Each signer's own `marker_said` stays **floored by composition** (the member's
+  registry-SEL); membership and marker are both checked as-of floored positions, so grandfather rides floored
+  positions exactly as for an `id` leaf. Like an `id` marker, a state-marker carries no credential anchor, so
+  there's no cycle and no prior-event trick.
 
 There is **no del slot**: `del(prefix, N)` is never expanded and carries no pin — delegation is
 proven by the verifier self-traversing the authorizing party's own delegation chain (bounded by `N`),

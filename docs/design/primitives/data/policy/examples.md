@@ -17,14 +17,14 @@ id(prefix)
 thr(2, [grp(prefix, staff)])
 ```
 
-With org `prefix`'s `staff` group = `{m1, m2, m3}` (resolved from that IEL's roster), expands to `thr(2, [id(m1), id(m2), id(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate groups by listing them: `thr(2, [grp(prefix, staff), grp(prefix, board)])` pools both into one flat child list.
+With org `prefix`'s `staff` group = `{m1, m2, m3}` (resolved from that IEL's roster), resolves to `thr(2, [id(m1), id(m2), id(m3)])` — any two staff. Adding a fourth member edits the roster; this policy is unchanged. Concatenate groups by listing them: `thr(2, [grp(prefix, staff), grp(prefix, board)])` pools both into one flat child list.
 
 > **Reach (foreign `grp`).** A two-arg `grp(prefix, group)` resolves its roster only where its X-state
 > marker is **context-supplied**: a **current-mode** policy (X's tip) or an **SEL-gated anchored** policy
 > (the SEL's floored `policyPin`). In a credential's **issuance** policy a foreign `grp` credits **nobody** —
 > group issuance authority is the creds registry-SEL (see *[leaf semantics →
 > `grp`](leaf-semantics.md#grp--membership-roster-array)*). The foreign-`grp` examples below illustrate
-> **flatten / composition**, which is identical across contexts; they are not, on their own, all valid
+> **member resolution / composition**, which is identical across contexts; they are not, on their own, all valid
 > issuance policies.
 
 **Emergency override**:
@@ -46,7 +46,7 @@ wgt(3, [
 ])
 ```
 
-With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this flattens to `wgt(3, [(id(E1), 3), (id(E2), 3), (id(A1), 2), (id(A2), 2), (id(A3), 2), (id(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each group — a stricter resource could set `member → 0`; the roster is unchanged. A member in two groups is deduplicated to its highest weight (see *Leaf semantics → `grp`*).
+With `prefix`'s roster `executives = {E1, E2}`, `admins = {A1, A2, A3}`, `members = {M1, …}`, this resolves to `wgt(3, [(id(E1), 3), (id(E2), 3), (id(A1), 2), (id(A2), 2), (id(A3), 2), (id(M1), 1), …])`. Satisfied by: one executive (3), two admins (4), three members (3), or one admin + one member (3); one admin alone (2) does not clear. The weights are this policy's valuation of each group — a stricter resource could set `member → 0`; the roster is unchanged. A member in two groups is deduplicated to its highest weight (see *Leaf semantics → `grp`*).
 
 **Aggregate IEL authentication** — an aggregate's own `authentication` composes only over its own roster (one-arg `grp`), never bare prefixes:
 ```

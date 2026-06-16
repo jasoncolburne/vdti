@@ -39,7 +39,7 @@ Two chain-state **leaves** (`dev`, `id`), one policy-reference **leaf** (`pol`),
   membership roster and resolves to one `id(member_i)` leaf per member of that group. The
   **two-arg** form names a *foreign* IEL `prefix`'s roster; the **one-arg** form names the
   **host** IEL's own roster (the prefix is implicit — the enclosing `id(X)` descent supplies it),
-  and is the only form an IEL's own three policies may use. It flattens in place inside a
+  and is the only form an IEL's own three policies may use. It resolves in place inside a
   composer's `[...]`.
 - `del(prefix, N)` is a **non-enumerable placeholder** — it names a *delegating* IEL `prefix` and
   a maximum delegation **depth** `N` (a natural number ≥ 1, counting hops; `del(X)` is sugar for
@@ -56,18 +56,18 @@ expressions mix freely (`[grp(org, staff), id(member)]` = org's staff members fo
 (the identity base case); in an aggregate IEL's own policies and in every general policy a device is
 named through a singleton `id` that wraps it, and all other authorization is by identity (see
 [`iel-policy-structure.md`](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton)).
-Members are IELs (individuals are IELs; devices are KELs), so each flattened `grp` member
+Members are IELs (individuals are IELs; devices are KELs), so each resolved `grp` member
 authenticates via their own authentication policy (`id(mi)`), while the referencing policy
 composes over them at the threshold/weights it chooses (see *Leaf semantics*). The grammar:
 
 ```
 expr      ::= leaf | composer
 leaf      ::= dev(prefix) | id(prefix) | pol(said)
-bracketed ::= grp(group)                    # host IEL's own `group` roster (one-arg; prefix implicit): flattens to id(member) leaves
-            | grp(prefix, group)            # foreign IEL prefix's `group` roster: flattens to id(member) leaves
+bracketed ::= grp(group)                    # host IEL's own `group` roster (one-arg; prefix implicit): resolves to id(member) leaves
+            | grp(prefix, group)            # foreign IEL prefix's `group` roster: resolves to id(member) leaves
             | del(prefix, N)                # delegation placeholder: never expanded; matched by distinct presented issuers
 composer  ::= thr(M, [elem, ...]) | wgt(M, [([wgt_elem, ...], w), ...]) | and([expr, ...])
-elem      ::= expr | bracketed              # a bracketed form appears only here; grp flattens its members in place
+elem      ::= expr | bracketed              # a bracketed form appears only here; grp resolves its members in place
 wgt_elem  ::= dev(prefix) | id(prefix) | grp(group) | grp(prefix, group) | del(prefix, N)   # wgt subjects are membership-style ONLY — no pol, no composer (NEW-E)
 ```
 
@@ -78,7 +78,7 @@ threshold (it is all-of), but its children are full `expr`s (a bracketed `grp` /
 wrapped in a `thr` / `wgt` first) and it requires **≥ 2** of them (a one-child `and` is just the
 child; an empty `and([])` is a vacuous no-op gate, rejected); see
 [`and`](leaf-semantics.md#andexpr----conjunction-separation-of-duties). A `wgt` entry's subject is a bracketed
-array `[wgt_elem, ...]` paired with a weight `w` that every one of its flattened children carries,
+array `[wgt_elem, ...]` paired with a weight `w` that every one of its resolved children carries,
 **but `wgt` subjects are restricted to the membership-style forms `dev` / `id` / `grp` / `del`** —
 **no `pol`, no composer** (NEW-E). A composer or `pol` subject would let one weight spread per
 *credited prefix* across a nested set (threshold-easing), whereas these four credit a clear
@@ -99,11 +99,11 @@ pub struct Said(Digest256);               // SAID of a specific event or SAD (po
 pub enum PolicyExpr {
     Dev(Prefix),                          // chain prefix — device key (tier-agnostic; required_tier picks the role)
     Id(Prefix),                          // chain prefix — IEL authentication
-    Grp(Option<Prefix>, String),          // (roster owner, group label ^[a-z_-]{1,16}$); None = own/host-implicit (one-arg grp(group)), Some(p) = foreign (two-arg grp(p, group)); roster array — only valid as a composer element (inside [...]), flattens in place
+    Grp(Option<Prefix>, String),          // (roster owner, group label ^[a-z_-]{1,16}$); None = own/host-implicit (one-arg grp(group)), Some(p) = foreign (two-arg grp(p, group)); roster array — only valid as a composer element (inside [...]), resolves in place
     Del(Prefix, u32),                     // (delegator IEL prefix, max delegation depth N ≥ 1 in hops); placeholder — only valid as a composer element, never expanded
     Pol(Said),                            // nested Policy SAD SAID
     Thr(u64, Vec<PolicyExpr>),            // threshold M ≥ 1, sub-expressions
-    Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M ≥ 1; (sub, weight) pairs. Each sub is membership-style ONLY — dev/id/grp/del, no pol/composer (NEW-E). Source brackets desugar to per-element pairs (each element carries w); a Grp sub expands to per-member (id, w) at flatten
+    Wgt(u64, Vec<(PolicyExpr, u32)>),     // threshold M ≥ 1; (sub, weight) pairs. Each sub is membership-style ONLY — dev/id/grp/del, no pol/composer (NEW-E). Source brackets desugar to per-element pairs (each element carries w); a Grp sub credits each satisfied member at weight w
     And(Vec<PolicyExpr>),                 // conjunction — satisfied iff EVERY child satisfied; ≥ 2 children (separation of duties). Children are full exprs, never bare grp/del
 }
 
