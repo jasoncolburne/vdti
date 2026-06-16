@@ -54,19 +54,43 @@ thr(2, [grp(directors)])
 ```
 "Any 2 current directors authenticate as the aggregate." To require a specific individual, give them a one-element group — `grp(founder)` with `founder = {alice}`. A **singleton's** authentication, by contrast, is `dev`-only — e.g. `thr(2, [dev(device_a), dev(device_b)])` — the base case the `id(...)` recursion bottoms out at (see *[IEL policy structure](iel-policy-structure.md#iel-policy-structure--aggregate-vs-singleton)*).
 
-**Separation of duties** — `and` requires *each* branch independently, which a union threshold cannot:
+**`and` — separation of duties.** `and` requires *each* branch independently, which a union threshold cannot:
 ```
 and([
     thr(1, [grp(org, board)]),
     thr(1, [grp(org, execs)])
 ])
 ```
-≥1 board member **and** ≥1 executive. If `board` and `execs` are disjoint this is two different
-people; if someone sits on both, that one person satisfies both branches alone — `and` enforces "each
-pool is met," not "distinct people" (see *[`and`](leaf-semantics.md#andexpr----conjunction-separation-of-duties)*). For
-dual control mixing a pool with a named identity: `and([thr(2, [grp(org, admins)]), id(emergency_cosigner)])`
-— 2 admins **and** the co-signer. `and` composes inside other composers: `thr(1, [and([id(a), id(b)]),
-id(break_glass)])` = (a **and** b) **or** break-glass.
+≥1 board member **and** ≥1 executive. For dual control mixing a pool with a named identity:
+`and([thr(2, [grp(org, admins)]), id(emergency_cosigner)])` — 2 admins **and** the co-signer. `and` composes
+inside other composers: `thr(1, [and([id(a), id(b)]), id(break_glass)])` = (a **and** b) **or** break-glass.
+Children are full `expr`s — wrap a pool as `thr(1, [grp(...)])`, never a bare `grp` — and there must be **≥2**
+(see *[leaf semantics → `and`](leaf-semantics.md#andexpr----conjunction-separation-of-duties)*).
+
+**`and` enforces "each pool is met," not "distinct people."** Each branch is satisfied by *anyone* in its
+pool, and one party may clear several branches:
+
+- **Disjoint pools** (`board ∩ execs = ∅`) — clearing both branches takes **two different people**, one per
+  branch. Genuine separation of duties.
+- **Overlapping pools** — if `alice` sits on **both** board and execs, her single authentication satisfies
+  **both** branches, so she clears the gate **alone**. `and` guarantees distinct *people* only when the
+  branches draw from **disjoint** pools.
+
+**A duplicated party — `and` vs `thr` vs `wgt`.** This is the crux: a party reached through several slots
+behaves differently per composer. Take `alice ∈ board ∩ execs`:
+
+| Policy | What `alice` alone contributes | Cleared by alice alone? |
+|---|---|---|
+| `thr(2, [grp(org, board), grp(org, execs)])` | counts **once** in the union `{alice}` (1 < 2) | **No** — needs a 2nd distinct party |
+| `wgt(3, [([grp(org, board)], 2), ([grp(org, execs)], 3)])` | credited **once at her max weight** (3, not 2+3) | **Yes** (3 ≥ 3) |
+| `and([thr(1, [grp(org, board)]), thr(1, [grp(org, execs)])])` | satisfies **both** branches with one authentication | **Yes** |
+
+The difference is **pooling**: `thr` / `wgt` pool their children into one set and count distinct parties, so a
+duplicated party **collapses to one** (counted once / kept at its max weight); `and` **never pools** — it
+evaluates **each branch on its own**, so a party in several branches satisfies each. Corollary: `and([id(a), id(a)])` ≡ `id(a)` — the dup is redundant,
+`a`'s one authentication covers both branches. (Crediting + recursive-dedup rules: *[verifier behavior →
+Composition semantics](verifier-behavior.md#composition-semantics)*; that distinct identities — not
+controllers — are counted is **C6** below.)
 
 **Distinct identities, not distinct controllers (C6).** Every counting composer credits by **prefix**,
 and the protocol cannot tell whether two named identities share a controller (pseudonymity is free).

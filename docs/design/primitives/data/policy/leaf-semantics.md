@@ -178,7 +178,8 @@ a **per-branch** requirement — the tool for **separation of duties** ("≥1 bo
 executive"), which a union threshold cannot express. `thr(2, [grp(board), grp(exec)])` is cleared by
 two board members, and even nested `thr(2, [thr(1, [grp(board)]), thr(1, [grp(exec)])])` collapses to
 the same union under the recursive-dedup rule (see *Leaf semantics → `grp`*). A conjunction is the
-only way to require *each* pool independently.
+only way to require *each* pool independently. (Worked side-by-side — how a duplicated party lands under
+`and` vs `thr` vs `wgt`, and disjoint vs overlapping pools — in *[examples](examples.md#worked-examples)*.)
 
 - **No threshold / weight argument** — it is all-of. Its children are full `expr`s (a leaf or a
   composer), **never** a bare `grp` / `del`: set-valued forms flatten only inside `thr` / `wgt`, so to
