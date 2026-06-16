@@ -51,8 +51,13 @@ requirement).
 // the forthcoming vdti chain-verifier work this interface front-runs; the accessors below are the contract
 // those verifiers must satisfy.
 pub trait VerificationProvider {
-    fn verify_iel(&self, prefix: &Prefix) -> Result<IelVerification, PolicyError>;
-    fn verify_kel(&self, prefix: &Prefix) -> Result<KelVerification, PolicyError>;
+    // `markers` / `anchors` are the queried SAIDs REGISTERED BEFORE the walk (gathered up front — `markers`
+    // from the `policyPin` + deep evidence; `anchors` = `anchors_to_check` + the `dev` prior-event SAIDs). The
+    // single walk records exactly these, so the token's accessors are O(1) lookups; the provider caches by
+    // prefix (one walk per log). `verify_sel` registers nothing — its tracked floored pin is bounded-full
+    // (computed whole), so `policy_pin_marker` is already an O(1) lookup.
+    fn verify_iel(&self, prefix: &Prefix, markers: &[Said]) -> Result<IelVerification, PolicyError>;
+    fn verify_kel(&self, prefix: &Prefix, anchors: &[Said]) -> Result<KelVerification, PolicyError>;
     fn verify_sel(&self, prefix: &Prefix) -> Result<SelVerification, PolicyError>;
 }
 
@@ -89,8 +94,9 @@ pub trait VerificationProvider {
 // Walk — the single verification pass's accumulator. It wraps the provider, drives one paged walk per
 // referenced log (the provider caches by prefix), and RECORDS the SAIDs of every chain token it consumes plus
 // the id-marker snapshots it reconstructs, so the final policy token can BIND them: `consumed_chain_tokens`
-// (D2 — the chain -> policy hand-off is tamper-evident) and `snapshots` (NEW-B). `iel` / `kel` / `sel` return
-// the verified token AND register its SAID; `register(said)` binds an externally-fetched token's SAID (e.g.
+// (D2 — the chain -> policy hand-off is tamper-evident) and `snapshots` (NEW-B). `verify_iel` / `verify_kel` / `verify_sel` wrap the
+// provider's calls — gathering each prefix's registered `markers` / `anchors` from the pin + evidence context
+// the Walk holds — and register the returned token's SAID; `register(said)` binds an externally-fetched token's SAID (e.g.
 // the gate context's SEL token); the convenience methods `snapshot_as_of(prefix, marker)` and
 // `tip(prefix)` consume the IEL token AND record the reconstructed snapshot (NEW-B); `fold` absorbs a
 // sub-evaluation's accumulated tokens + snapshots (so a multi-party walk carries every sub-walk's proven
