@@ -24,30 +24,28 @@ and a sound document never resolves against a freely chosen one. Two distinct ma
 A **freely chosen** authority-resolution marker is **unsafe** and is **not** how issuance works: a document
 allowed to pin `id(issuer)` as-of an issuer-supplied, unfloored marker would let a departed member of an
 aggregate issuer backdate to an epoch where they were still rostered and forge a credential "issued by" that
-aggregate — recursively, one level per nesting tier. Issuance authority therefore resolves against **floored
-state on each entity's own registry-SEL, composed by reference** — never a free-floating chosen marker. Every
-IEL has a discoverable registry-SEL that floors its **own** marker *shallow* (forward-only, the per-chain
-floor below), and an aggregate **references** each member's registry-SEL rather than re-pinning the subtree.
-The floor then holds at **every depth** — but **only under one precondition**: every referenced entity must
-**already** have a registry-SEL with a seeded floor, including a member that never issues anything (commonly a
-singleton device-holder reached only by deep expansion). That precondition is **load-bearing, not cosmetic**:
-a member with no provisioned registry-SEL has no floor, its marker falls back to issuer-choice, and the
-backdate **re-opens one layer down**. So the composition splits into two forward-pointed obligations, at
-**different layers**:
+aggregate — and the same exposure recurs one level down per nesting tier. The **directly-named** entity's
+authority-resolution marker therefore resolves against **floored state on its own registry-SEL** — never a
+free-floating chosen marker. Every IEL has a discoverable registry-SEL that floors its **own** marker *shallow*
+(forward-only, the per-chain floor below); the registry-SEL is **not** a plain append-only log — it carries
+that forward-only `policyPin` for the entity's own authentication-version snapshot, so a leaked rotated-out key
+cannot pin an old one. The **cross-registry** cut-off — whether a directly-named issuer is **still a delegate
+as-of an issuance**, and the same question one nesting level down — is **not** the policy primitive's to
+resolve by composing authority across a tree of registries; it is a **credentials-feature** concern (see the
+credentials feature). Two forward-pointed obligations sit at **different layers**:
 
 - **Provisioning** — every IEL is given a default registry-SEL **eagerly, at inception, regardless of
-  credential activity** — is an **IEL/SEL-primitive (layer-4)** obligation. It is what makes the
-  at-every-depth floor real: a member's **own** registry-SEL carries its floor, and a referencing entity's
-  resolution is **checked against** that floor — so the member must already be floored **before** any
-  reference, which is why provisioning cannot be lazy / on-first-issuance.
-- **Issuance** — a floored `Ixn` on the issuer's registry-SEL — is the **credentials feature (layer-5)**.
+  credential activity** — is an **IEL/SEL-primitive (layer-4)** obligation. It seeds each entity's **own**
+  forward-only floor, so its marker is floored from inception rather than left to issuer-choice.
+- **Issuance** — a floored `Ixn` on the issuer's registry-SEL — and the **cross-registry
+  delegation/rescission cut-off** are the **credentials feature (layer-5)**: the policy primitive does **not**
+  compose that authority across a tree of registries.
 
-Grandfather then rides **floored positions** (immutable, each at-or-above its own chain's floor): old
-authorizations stay valid until explicitly withdrawn, while no backdated marker can be introduced. This
-primitive states only the **rule** (*floored composition by reference against eagerly-provisioned
-registry-SELs, never a chosen marker*); the registry-SEL machinery — including the
-**fail-closed-on-absent-`R`** rule (a referenced registry-SEL that is absent **denies**; never a tip-fallback)
-— is specified at those layers. The forward
+Grandfather rides each chain's **own floored marker** (immutable, at-or-above that chain's floor): old
+authorizations stay valid until explicitly withdrawn, while no backdated marker can be introduced on a chain
+whose floor has advanced. This primitive states only the **per-chain rule** (each entity's marker resolves
+against its own forward-only floored registry-SEL, never a chosen marker); the registry-SEL machinery is
+specified at those layers. The forward
 floor blocks backdating; **recovery** (an `Rpr` archiving forged anchors — [`evaluation.md`](evaluation.md))
 handles the terminal residual — a leaked **current** key. None of this alters a valid authorization's
 validity.
@@ -72,21 +70,17 @@ discipline, and the `grp` leaf's sparse **`GrpBlock`** — is the **deep evidenc
 `policyPin` is the membership/state layer that *supplies a foreign `grp`'s context marker* into this deep
 walk.
 
-**Deep does not mean unfloored.** Each IEL state-marker the deep walk reaches — at every level of the
-`id`-recursion — must reference a **floored position on that entity's own chain**, never a bare prefix at tip
-and never an issuer's free choice. The model is *shallow per chain, deep by composition*: every entity floors
-its **own** marker shallow (its registry-SEL, forward-only along the per-chain floor), and the depth is the
-**tree of those floored chains, composed by reference** — an aggregate references each member's registry-SEL
-rather than re-pinning the subtree. So the as-of grandfather rides **floored positions all the way down** —
-**given** the eager, universal registry-SEL provisioning the grandfather block names (the **layer-4**
-obligation: every IEL has a registry-SEL at inception, so even a never-issuing member is floored). *Under that
-precondition* the only marker the rule leaves unfloored is the terminal **`dev`** anchor (per-event and
-self-dating — a leaked *current* device key is the recovery residual, [`evaluation.md`](evaluation.md), not a
-backdating surface); absent a provisioned registry-SEL for a composed member, that member's marker is itself
-unfloored and the backdate re-opens — which is why provisioning is unconditional. Registry-SEL
-**provisioning** is the layer-4 obligation; **issuance** as a floored `Ixn` is the **layer-5** credentials
-feature; this doc specifies only the per-event evidence pinning's *shape*, under the rule that every
-state-marker it pins is a floored position.
+**Deep flooring is the feature's concern, not the primitive's.** Each IEL state-marker the deep walk reaches
+must be a marker **on that entity's own chain** (the coupling check), never a bare prefix at tip and never an
+issuer's free choice. The **directly-named** entities are floored per-chain by the shallow `policyPin`: every
+entity floors its **own** marker shallow on its own registry-SEL, forward-only along the per-chain floor — the
+registry-SEL is **not** a plain log. The **cross-registry** cut-off — flooring the deeper markers a `grp`
+recursion reaches, i.e. whether an issuer is still a delegate as-of an issuance — is the **credentials feature
+(layer-5)** (see the credentials feature), not the policy primitive's.
+The one marker no rule floors is the terminal **`dev`** anchor (per-event and self-dating — a leaked *current*
+device key is the recovery residual, [`evaluation.md`](evaluation.md), not a backdating surface). Registry-SEL
+**provisioning** is the layer-4 obligation; **issuance** as a floored `Ixn` and the cross-registry cut-off are
+the **layer-5** credentials feature; this doc specifies only the per-event evidence pinning's *shape*.
 
 ### Shape
 
@@ -110,8 +104,8 @@ anchored evaluator in [`evaluation.md`](evaluation.md)).
 `grp`, the other bracket form, lays a **`GrpBlock`** — a single deep-evidence element **naming the members
 who actually signed**, never a slot per roster member. A `GrpBlock` is `{ signers: [SignerEntry] }`; each
 **`SignerEntry`** is `{ prefix, marker_said, sub_pins }` — the member identified by **prefix** (not roster
-index), its own `Evl`/`Icp` **state-marker** (floored by composition — the member's registry-SEL), and
-`sub_pins`, the member's authentication evidence laid recursively (a nested aggregate carries a further
+index), its own `Evl`/`Icp` **state-marker** (a marker on the member's own chain — the coupling check; the
+cross-registry cut-off is the credentials feature's), and `sub_pins`, the member's authentication evidence laid recursively (a nested aggregate carries a further
 `GrpBlock`; a singleton carries the positional `dev` slots). The roster the signers are checked against is
 **context-supplied** — a two-arg `grp(prefix, group)` reads X's marker from the gate (the gating SEL's
 **governance-ratcheted, floored** `policyPin`, never the invoker's choice, never X's tip); a one-arg
@@ -278,10 +272,12 @@ its position in the policy:
   (see [`grp`](leaf-semantics.md#grp--membership-roster-array)). As-of resolution is the point: a document's
   membership splice is valid relative to the X-state the gate fixes — a later roster change on X is
   forward-only and never reaches back (loss-of-trust comes from the rescission/withdrawal walks, which run to
-  tip in both modes). Each signer's own `marker_said` stays **floored by composition** (the member's
-  registry-SEL); membership and marker are both checked as-of floored positions, so grandfather rides floored
-  positions exactly as for an `id` leaf. Like an `id` marker, a state-marker carries no credential anchor, so
-  there's no cycle and no prior-event trick.
+  tip in both modes). Each signer's own `marker_said` is checked to lie **on that signer's own chain** (the
+  same coupling check the `policyPin` floor uses), and membership is resolved **as-of the context-supplied,
+  floored X-marker** — so the membership grandfather rides X's per-chain floor exactly as for an `id` leaf. The
+  deeper **cross-registry** cut-off on each signer's own authority is the **credentials feature's**, not this
+  leaf's. Like an `id` marker, a state-marker carries no credential anchor, so there's no cycle and no
+  prior-event trick.
 
 There is **no del slot**: `del(prefix, N)` is never expanded and carries no pin — delegation is
 proven by the verifier self-traversing the authorizing party's own delegation chain (bounded by `N`),

@@ -199,7 +199,7 @@ const MAX_PRESENTED: usize = 128;
 
 // Gate context — where a foreign `grp(X, group)`'s X-state-marker comes from. It is ALWAYS context-supplied,
 // never invoker-chosen — the structural fix for the ex-member backdate on the foreign-`grp` arm (the
-// `id(issuer)` arm is closed separately by the floored registry-SEL composition; see pinning.md). Three cases (Copy: it threads
+// `id(issuer)` arm is the credentials feature's cross-registry cut-off, not this arm; see pinning.md). Three cases (Copy: it threads
 // unchanged through the recursive composer arms):
 #[derive(Clone, Copy)]
 pub enum GateContext<'a> {
@@ -219,7 +219,7 @@ enum PinSlot {
 struct GrpBlock { signers: Vec<SignerEntry> }  // CANONICAL: sorted by `prefix`, dedup'd, |signers| <= MAX_PRESENTED (else deny)
 struct SignerEntry {
     prefix: Prefix,         // the member, by PREFIX (never roster index)
-    marker_said: Said,      // the member's own Evl/Icp state-marker (floored by composition; must be on `prefix`'s chain)
+    marker_said: Said,      // the member's own Evl/Icp state-marker (must be on `prefix`'s chain — the coupling check; cross-registry cut-off is the creds feature's)
     sub_pins: Vec<PinSlot>, // the member's authentication evidence, recursive (nested aggregate -> GrpBlock; singleton -> `dev` slots)
 }
 
@@ -594,7 +594,7 @@ fn anchored_credited(
         }),
         // grp(prefix, group): a foreign roster splice credits NOBODY in the multi-party path — there is no gate
         // context here, and an invoker-chosen marker is exactly the ex-member exposure the design forecloses on
-        // this (foreign-`grp`) arm. The id(issuer) arm is closed by the floored registry-SEL composition.
+        // this (foreign-`grp`) arm. The id(issuer) arm is the credentials feature's cross-registry cut-off.
         // (Foreign-`grp` authority is supplied only through a SEL gate — evaluate_gate_policy with
         // GateContext::SelGate, D3b.) The one-arg own-form grp(group) likewise credits nobody (no host
         // context — this evaluator never descends an `id`). Fail-secure.
@@ -884,7 +884,7 @@ credits nobody (no enclosing host). A **foreign two-arg `grp(prefix, group)`** r
 - `Tip` (current mode) => X's roster at X's tip (the live read-time context marker);
 - `None` (a party's own anchor walk, the multi-party path) => a foreign `grp` credits nobody — there is no
   context marker, and an invoker-chosen one is exactly the ex-member exposure the design forecloses on the
-  foreign-`grp` arm (the `id(issuer)` arm is closed by the floored registry-SEL composition).
+  foreign-`grp` arm (the `id(issuer)` arm is the credentials feature's cross-registry cut-off).
 
 The marker **value** is thus always context-supplied, never the issuer's choice — there is **no issuer-laid
 roster-source slot** (a self-contained `GrpBlock` needs no positional alignment marker). `check_block_canonical`
