@@ -253,35 +253,44 @@ rotation, kill — until the divergence is repaired. The **sole** valid next mov
 authored as soon as the divergence is observed. This is the founding insight of the primitive.
 
 **Divergence is resolved by tier, not by identity.** Chain data cannot tell the rightful operator
-from an adversary — both branches were structurally authorized when they landed. So the divergent
-set is evaluated by **tier**, and the highest tier present decides:
+from an adversary — both branches were structurally authorized when they landed — so resolution
+turns on **tier**, never on who is presumed legitimate. Two rules govern every repair:
 
-- **Only content (`Ixn`) is archivable.** A privileged event (a rotation, a `Gov`, a `Kil`, a
-  terminal) is **never** archived or overturned — reversing a rotation resurrects retired keys, and
+- **Only content (`Ixn`) is archivable.** A privileged event — a rotation, a `Gov`, a `Kil`, a
+  terminal — is **never** archived or overturned: reversing a rotation resurrects retired keys, and
   un-doing a kill breaks a third party's reliance.
-- **A repair never extends an adversarial event.** It extends only the submitter's own event or the
-  shared pre-divergence ancestor `v_{d-1}`.
-- **≤ 1 privileged branch → recoverable, by that branch's author.** The repair (`Rec` on the KEL,
-  `Rpr` on the IEL / SEL — itself tier 3, requiring the recovery reserve) **keeps the single
-  privileged branch** and **archives the all-content branch(es)**, then advances forward. (An
-  all-content divergence is the same shape with no privileged branch: keep one, archive the rest.)
-  The keep is **gated by the kept branch's own recovery commitment** — only the party that authored
-  the branch holds the preimage to extend it — so the no-extend-adversary rule is self-enforced: you
-  cannot keep a privileged branch you did not author. The chain cannot tell apart two cases that
-  resolve differently for the wronged party:
-  - **Honest race** — the operator's own rotation (or `Gov`) raced by a stale content `Ixn`. The
-    operator keeps its own privileged branch, archives the content, advances. Recovered.
-  - **Adversarial fork** — the attacker's rotation against the operator's content. The operator has
-    **no recovery move**: it can neither extend the attacker's branch (it lacks that branch's
-    recovery preimage) nor archive it. So the operator **reincepts** — or, for a delegated KEL, the
-    delegator `Kil`s it. The attacker may keep its own branch: the chain is the attacker's.
-- **≥ 2 privileged branches → terminal.** No privileged branch can be archived to reduce to one
-  (`{Rot, Rot}`, `{Gov, Gov}`, `{Kil, Kil}`, …) → the chain is contested and must reincept under a
-  new prefix. A `{Rot, Rot}` fork is moreover a **proof of reserve compromise**: two valid rotations
-  both reveal the one rotation preimage committed at `v_{d-1}`, which an honest holder never does.
+- **A repair never extends an adversarial event** — it extends only the submitter's own branch.
 
-A linear tip-appended rotation (no divergence) is recoverable by appending a forward `Ror` past it.
-Genuine reincept is a tier-3 compromise, or a ≥2-privileged divergence — seen locally, or surfaced by the federation as a dispute.
+From those two rules, recovery is **one universal rule plus one permission check.** A repair (`Rec`
+on the KEL, `Rpr` on the IEL / SEL — tier 3, requiring the recovery reserve) attaches at **your last
+event**, **retaining** your branch (the **retained tail**) and archiving every other branch (the
+**archival tails** — there may be several, since the adversary can submit divergent `Ixn`s and you
+archive all of them). Attaching at your own last event satisfies the no-extend-adversary rule
+automatically. The attach point is the common ancestor `v_{d-1}` only when you authored nothing past
+it; recovering there while your own `Ixn`s precede the adversary's would wrongly archive your content.
+
+The permission check is a single question about the **archival tails**: **does any of them contain a
+privileged event?**
+
+- **No — every archival tail is content** → **permitted.** A `Rec` at your last event archives them
+  and advances forward. Your retained tail may carry your *own* rotation — it is kept, not archived;
+  only the archival tails are checked. An adversary holding your signing key can append only content,
+  and a tier-3 `Rec` archives it — so **the recovery reserve defends the signing key.**
+- **Yes — a rotation, a `Gov`, or a `Kil` sits in an archival tail** → **forbidden → reincept** (for
+  a delegated KEL, the delegator `Kil`s it instead). That event cannot be archived (rule 1), cannot
+  be extended (rule 2 — it is not your branch), and forking past it is a second privileged branch
+  (terminal). So **the recovery reserve does not defend the rotation key: a `Rot` in an archival tail
+  is the point of no return** — the chain is the attacker's.
+
+A position with two or more privileged branches is **irreconcilable** ([§Terminology](#terminology))
+— terminal for *everyone*, not just the recovering party: any party retains only its own branch, so a
+second privileged branch always lands in some party's archival tail and no single branch can be
+chosen. This is the node-agnostic condition the federation evaluates — it holds all branches and
+surfaces the position as **disputed** to a holder who sees only one. A `{Rot, Rot}` collision is
+moreover a **proof of reserve compromise** — two valid rotations both reveal the one rotation preimage
+committed at `v_{d-1}`, which an honest holder never does. Genuine reincept is therefore a tier-3
+compromise, a privileged event in an archival tail, or a federation dispute surfacing a second
+privileged branch a one-branch holder cannot see locally.
 
 **Repair conditions** (data-driven, merge-layer-enforced, uniform across primitives):
 
