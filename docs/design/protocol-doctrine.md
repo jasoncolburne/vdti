@@ -218,12 +218,17 @@ KEL additionally tracks which recovery-key preimage is currently committed: once
 is spent (revealed by an `Ror` / `Rec` / `Fed` / `Dec`), it cannot be reused to recover against an
 earlier divergence.
 
-**Bounds on the post-seal window.** KEL and SEL bound the gap between seal-advancing events at
+**Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
 `MINIMUM_PAGE_SIZE − 2` non-seal-advancing events, so a recovery batch produced on any conformant
 deployment fits in any other's single page (`MINIMUM_PAGE_SIZE` is a protocol constant, not a
-per-deployment knob; the `− 2` headroom accommodates a 2-event repair batch). The IEL has no cap —
-every non-inception privileged event advances the seal, so the seal coincides with the tip on linear
-chains.
+per-deployment knob; the `− 2` headroom accommodates a 2-event repair batch). On the IEL the cap is
+just as load-bearing: content (`Ixn` — the rail **issuance** rides, via `issues[]`) does **not**
+advance the seal, so trailing issuances accumulate and the seal lags the tip; without the cap the
+post-seal window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer
+that fills the window **re-seals with an empty-delta `Gov`** (no roster change — the identity-layer
+analogue of a KEL re-sealing via `Rot`; validation **accepts** an empty-delta `Gov`), advancing the
+seal with no new kind. The exact constant and the empty-delta re-seal are IEL doctrine —
+[`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/).
 
 #### Divergence and repair
 

@@ -2,7 +2,7 @@
 
 **Availability** is the per-SAD declaration of where the bytes live, how long they live, and whether retrieval is destructive. It is a top-level `availability` field on the standalone-SAD wrapper, sibling to the [`custody`](custody.md) field, and is one of the per-object policy axes the wrapper carries.
 
-This doc states the structural role of `availability` and its three sub-axes. Per-axis policy expression — concrete encoding for replica references, TTL representation, one-shot semantics — and storage-side enforcement live in [`../../../infrastructure/sadd.md`](../../../infrastructure/sadd.md) (forward-ref; lands in a subsequent sub-issue).
+This doc states the structural role of `availability` and its three sub-axes. Per-axis policy expression — concrete encoding for replica references, TTL representation, one-shot semantics — and storage-side enforcement live in [`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md) (forward-ref; lands in a subsequent sub-issue).
 
 ## What availability declares
 
@@ -42,7 +42,7 @@ Either axis composes independently with the other. The four-corners composition 
 The structural guarantees follow from the SAID commitment and from where enforcement lives.
 
 - **Availability declarations are tamper-evident.** The SAID commitment makes substitution at the wrapper boundary surface as a SAID mismatch at the next verifier walk. An adversary cannot quietly upgrade a SAD's replication scope or extend its TTL.
-- **Enforcement is at the storage boundary.** TTL, replica scope, and one-shot semantics are applied by `sadd`. A consumer fetching an expired or already-consumed one-shot SAD receives a uniform "not present" response; the absence does not distinguish "expired" from "one-shot consumed" from "never existed."
+- **Enforcement is at the storage boundary.** TTL, replica scope, and one-shot semantics are applied by `vdtid`. A consumer fetching an expired or already-consumed one-shot SAD receives a uniform "not present" response; the absence does not distinguish "expired" from "one-shot consumed" from "never existed."
 - **One-shot is operational, not cryptographic.** A consumer who has retrieved a one-shot SAD can persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior. Cryptographic deletion is not a property the protocol offers.
 - **Replica-scope enforcement is fail-secure.** When `replicas` references a ReplicaSet that cannot be resolved (fetch failure, parse error), replication MUST default to skip rather than to broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's author declared.
 - **Forbidden on chain events is enforced structurally.** Chain-event kind-schemas have no slot for `availability`, so a chain-event submission carrying inline `availability` is rejected by the structural-validation pass at the merge layer (see [`../../../protocol-doctrine.md` §Merge verification](../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).

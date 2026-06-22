@@ -126,11 +126,15 @@ kels/sad/
 \bgrp\(
 # The 3-function policy evaluator (gate / anchored / current) collapsed to two
 # modes (as-issued / current) sharing one composer; all the old function names —
-# including the earlier evaluate_single_policy — are retired:
+# including the earlier evaluate_single_policy — are retired. The interim
+# 2-function name evaluate_anchored was renamed to evaluate_as_issued (the mode
+# is "as-issued"; "anchored" stays the structural verb — manifest anchors, the
+# anchoring position — so only the evaluate_ form is forbidden):
 \bevaluate_gate_policy\b
 \bevaluate_anchored_policy\b
 \bevaluate_current_policy\b
 \bevaluate_single_policy\b
+\bevaluate_anchored\b
 
 # ============================================================================
 # §Doc-only — seal-cap rejection error name (SiblingLocked, not ParentLocked)

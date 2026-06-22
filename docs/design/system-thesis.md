@@ -1,6 +1,6 @@
 # VDTI System Thesis
 
-VDTI lets users control their identity and data without relying on a central authority. Devices are decoupled from the identity that operates them; identity is a first-class primitive, and policy is a composable layer over it. In contrast to solutions like KERI (a Decentralized Key Management Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure, VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting data from a single source.
+VDTI lets users control their identity and data without relying on a central authority. Devices are decoupled from the identity that operates them; identity is a first-class primitive, and policy is a composable layer over it. In contrast to solutions like KERI (a Decentralized Key Management Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure, VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting the data itself.
 
 This is the canonical orientation doc. Read it before doing substantive work on VDTI. Detailed doctrine — primitive specs, witnessing mechanics, anchor tier elevation, divergence handling, custody, policy DSL, verification — lives in sibling docs under `docs/design/`. This doc states the framing; the others elaborate it.
 
@@ -81,7 +81,7 @@ A chain that carries two distinct events at one serial is **frozen** until a rep
 
 ### Forks are seal-bounded
 
-A new event's serial must land at-or-after the chain's most-recent privileged-non-terminal event (`lastSealAdvancingEvent`). The bound is protocol-enforced via proactive seal-caps.
+A new event's serial must land at-or-after the chain's most-recent seal-advancing (privileged) event (`lastSealAdvancingEvent`). The bound is protocol-enforced via proactive seal-caps.
 
 → [`protocol-doctrine.md` §Forks are Seal-Bounded](protocol-doctrine.md#forks-are-seal-bounded).
 
@@ -99,7 +99,7 @@ Two-layer: protocol-layer convergence where possible, federation-layer divergent
 
 ### Operational hardening composes on top
 
-Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the federation membership); for high-stakes IEL identities this is load-bearing, not optional.
+Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the identity's membership); for high-stakes IEL identities this is load-bearing, not optional.
 
 → [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md).
 
