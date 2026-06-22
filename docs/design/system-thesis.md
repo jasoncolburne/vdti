@@ -87,9 +87,9 @@ A new event's serial must land at-or-after the chain's most-recent privileged-no
 
 ### Defense against current-state compromise is layered
 
-KEL dual-signature on `Rec` / `Ror` / `Dec` (recover, rotate-recovery, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, evict it via a `Gov` (governance change). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together.
+KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, federation-bind, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, evict it via a `Gov` (governance change). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together.
 
-→ [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine).
+→ [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
 ### Federation convergence
 
@@ -113,7 +113,7 @@ Reincept is needed when the primitive itself is irreconcilable at the federation
 
 The expensive case is federation-layer dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
 
-→ [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine).
+→ [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
 ## Implications
 

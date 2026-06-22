@@ -17,10 +17,10 @@ for the structural rules that realize those properties.
   - [Structural authorization](#structural-authorization) — no policy on chain events
   - [Forks are seal-bounded](#forks-are-seal-bounded)
   - [Divergence and repair](#divergence-and-repair)
-  - [Kills are sealed; validity cut-offs are contiguous](#kills-are-sealed)
+  - [Kills are sealed; validity cut-offs are contiguous](#kills-are-sealed-validity-cut-offs-are-contiguous)
   - [Inception tiers](#inception-tiers)
   - [Decommission and clean retirement](#decommission-and-clean-retirement)
-  - [Limit of the doctrine — current-state compromise](#limit-of-the-doctrine)
+  - [Limit of the doctrine — current-state compromise](#limit-of-the-doctrine--current-state-compromise)
 
 **[Part 2 — Cross-Cutting Doctrines](#part-2-cross-cutting-doctrines):**
 - [Ordering without timestamps](#ordering-without-timestamps)
@@ -30,7 +30,7 @@ for the structural rules that realize those properties.
 **[Part 3 — Verification Mechanics](#part-3-verification-mechanics):**
 - [Verification tokens as proof of verification](#verification-tokens-as-proof-of-verification)
 - [Walk semantics](#walk-semantics)
-- [Structural problems error; everything else is reported](#structural-problems-error)
+- [Structural problems error; everything else is reported](#structural-problems-error-everything-else-is-reported)
 - [Negative checks are positive lookups](#negative-checks-are-positive-lookups)
 - [Merge verification and advisory locking](#merge-verification-and-advisory-locking)
 - [Federation witnessing in verification](#federation-witnessing-in-verification)
@@ -205,9 +205,9 @@ The **seal-advancing** kinds (those that open a new locked window, plus the term
 opens none) per primitive:
 
 - **KEL**: `Rot` / `Ror` / `Rec` / `Fed` (and `Dec`).
-- **IEL**: every non-inception event advances the seal — `Ixn` is the lone content kind but the
-  identity layer treats its privileged kinds (`Gov` / `Del` / `Kil` / `Rpr` / `Dec`) as the
-  window-openers; an IEL `Ixn` is content and does not advance the seal.
+- **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
+  kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Gov` / `Del` / `Kil` /
+  `Rpr` / `Dec`) are the window-openers.
 - **SEL**: `Pin` / `Rpr` (and `Dec`); a content `Ixn` does not advance the seal.
 
 The terminal `Dec` advances the seal to its own serial and permits no successor. The seal-cap
@@ -250,7 +250,10 @@ set is evaluated by **tier**, and the highest tier present decides:
   advances forward. An all-content divergence keeps one branch and archives the rest. If the kept
   privileged event had anchored a higher-layer event, that anchor is **realized on recovery** — the
   higher layer's own threshold (`t_govern`, …) still gates it, so no forgery, provided that
-  threshold is floored `>= 2`.
+  threshold is floored `>= 2`. **Singleton residual:** at `|roster| = 1` (`t_govern = 1`) realizing
+  an anchored `Gov` succeeds — the one compromised member meets the gate — so a singleton recovery
+  must be followed by an eviction `Gov` (part of why a single-device identity gets no governance
+  resilience).
 - **≥ 2 privileged branches → terminal.** No privileged branch can be archived to reduce to one
   (`{Rot, Rot}`, `{Gov, Gov}`, `{Kil, Kil}`, …) → the chain is contested and must reincept under a
   new prefix.
@@ -612,8 +615,8 @@ real SAID. Two states have **synthetic** representations, depending only on `(st
 history, no fork point, no serial:
 
 - `hash_effective_said("divergent:{prefix}")` — the chain has competing branches at some serial
-  (recoverable via repair). Applies on KEL and SEL; the IEL has no local Divergent state for a
-  privileged-event chain, but content (`Ixn`) divergence is possible on any chain that carries it.
+  (recoverable via repair). Applies on the KEL, the SEL, and any IEL carrying content — only the
+  content kind (`Ixn`) diverges, so a federation IEL (which carries no `Ixn`) never reaches it.
 - `hash_effective_said("irreconcilable:{prefix}")` — the prefix is in dispute at the federation
   layer (divergent witness receipts). The federation layer holds the source-of-truth; the per-node
   state stays Active / Divergent / Decommissioned.

@@ -36,10 +36,12 @@ The two modes share their entire composing logic and differ only at the leaves.
   | **as-issued** | the identity's members + threshold **as of the document's pin** | the **committed on-chain anchors** the pins reach — the proof is already in the chain |
   | **current** | the identity's members + threshold **at the chain tip** | **live signatures** over a fresh, single-use **challenge** |
 
-  The `del(X)` leaf differs the same way: as-issued, it resolves the delegation as of the pin and
-  checks the grant's grandfather ancestry against the rescission cut-off; current, it confirms the
-  delegate controls its identity now and that the delegation is not rescinded as of the tip. In
-  both modes "is this delegation rescinded?" is the **positive lookup** of
+  The `del(X, N)` leaf differs the same way, and is **bounded the same way** in both modes — the
+  verifier walks **up** from the presented party at most `N` hops (and never beyond a verifier-wide
+  work cap) to reach `X`, denying fail-secure if either is exceeded: as-issued, it resolves each
+  hop's delegation as of the pin and checks the grant's grandfather ancestry against the rescission
+  cut-off; current, it confirms the delegate controls its identity now and that no hop is rescinded
+  as of the tip. In both modes "is this delegation rescinded?" is the **positive lookup** of
   [`policy.md`](policy.md), never a scan.
 
 So evaluation is one function over the policy expression, parameterized by a resolver. The
@@ -79,8 +81,8 @@ The resolver asks a token for exactly three things:
 - **An identity's members and threshold as of a position** (or at the tip) — what `id(X)` resolves
   against. Supplied by the IEL verifier's token.
 - **A delegation's live status** — whether `X` granted the delegation, whether it has been
-  rescinded (the positive lookup), and the grandfather cut-off — what `del(X)` resolves against.
-  Supplied by the IEL and SEL verifiers' tokens.
+  rescinded (the positive lookup), and the grandfather cut-off — what `del(X, N)` resolves against,
+  walking up at most `N` hops. Supplied by the IEL and SEL verifiers' tokens.
 - **The events a chain has committed to as of a position** — the committed anchors that prove, in
   as-issued mode, that the named party acted. Supplied by every contributing chain's token.
 

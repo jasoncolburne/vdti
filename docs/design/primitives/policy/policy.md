@@ -41,7 +41,7 @@ Three things a policy can name, and three ways to combine them.
 
 ```
 expr     ::= id(prefix)            # an identity
-           | del(prefix)           # a live delegate of an identity
+           | del(prefix, N)        # a live delegate of an identity, within N delegation hops
            | pol(said)             # another policy, by its SAID
            | thr(M, [expr, ...])   # M of the listed sub-policies
            | wgt(M, [(expr, w), ...])   # weighted: sub-policies carry weights, total ≥ M
@@ -50,6 +50,7 @@ expr     ::= id(prefix)            # an identity
 prefix   ::= an entity's IEL prefix        # identity = prefix
 said     ::= the SAID of another policy    # a point-in-time reference
 M, w     ::= positive integers (≥ 1)
+N        ::= a positive integer (≥ 1) — a delegation hop count; del(X) abbreviates del(X, 1)
 ```
 
 Every counting threshold `M` is `≥ 1`; a zero threshold is satisfied by the empty set (a gate
@@ -64,12 +65,16 @@ that authorizes nobody), so it is rejected. `and(...)` takes `≥ 2` sub-policie
   who acts as `X`, at `X`'s own threshold. This is the recursive base of the language — a policy
   that names other identities bottoms out in their IELs, which bottom out in member device keys.
 
-- **`del(X)` — a live delegate of `X`.** Satisfied by a party that holds a live, non-rescinded
-  delegation from `X`. Whether a delegation is still live is answered by a **positive lookup** —
-  the verifier derives one address and reads it (present → rescinded; absent → live) — never by
-  scanning a chain for the absence of a rescission. `del(X)` is **not** `id(X)`: it authorizes
-  `X`'s delegates, not `X` itself. See [`documents.md`](documents.md) for how a delegate's
-  authorizing chain is committed and walked.
+- **`del(X, N)` — a live delegate of `X`, within `N` hops.** Satisfied by a party that holds a
+  live, non-rescinded delegation from `X`, reachable by walking **up** its own delegation chain to
+  `X` in **at most `N` hops** (`del(X)` abbreviates `del(X, 1)` — a direct delegate). Whether each
+  hop's delegation is still live is answered by a **positive lookup** — the verifier derives one
+  address and reads it (present → rescinded; absent → live) — never by scanning a chain for the
+  absence of a rescission. The verifier walks up from the **presented party** (a delegator's
+  delegated set is unbounded and lives delegate-side, so it is never materialized); the walk is
+  bounded by `N` **and** by a verifier-wide depth/work cap, and exceeding **either** denies
+  (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates, not `X` itself. See
+  [`documents.md`](documents.md) for how a delegate's authorizing chain is committed and walked.
 
 - **`pol(said)` — another policy.** Satisfied when the referenced policy is satisfied. This lets a
   reusable rule be named once and composed into many policies; the reference is by SAID, so the

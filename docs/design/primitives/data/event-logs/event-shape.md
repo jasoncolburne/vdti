@@ -105,18 +105,23 @@ holds only the manifest SAID; the grouped commitments live in the SAD, separatel
 
 | Role | Carried by | Commits to |
 |---|---|---|
-| `anchors` | KEL `Ixn`; IEL `Ixn` | lower-layer event / SAD SAIDs this event anchors |
+| `anchors` | KEL `Ixn` (req, ≥1) / `Rot` / `Ror` / `Rec`; IEL `Ixn` / `Rpr` | lower-layer event / SAD SAIDs this event anchors (a rotation or a repair cascade commits the events it realizes) |
 | `roster` | IEL `Icp` / `Gov` | the roster/threshold (delta) SAD |
 | `delegates` | IEL `Del` | the delegate-prefix list SAD |
 | `issues` | IEL `Ixn` | a list of credential SEL `Icp` SAIDs this event issues (batched) |
 | `revokes` | IEL `Kil` | a list of SEL kill SAIDs this event seals (batched) |
+| `content` | SEL `Ixn` | the content SAD(s) a SEL records — the only SEL-borne manifest role (a credential SEL's `Icp` uses `data`, not a manifest) |
 | `witnesses` | KEL `Icp` / `Fed` | the witness-config SAD `{ threshold, signers }` |
 | `clock` | federation IEL `Icp` / `Gov` | a timestamp SAD (the federation clock — federation doctrine) |
 
 **Top-level structural vs. manifest.** An event's *own links* stay top-level: `said`, `previous`,
 `pin`, the federation `prefix`, `federationPin`, the `Kil` `threshold` enum. The `manifest`
 (role-labeled) carries everything the event *commits to below it* — lower-layer event SAIDs and
-documents. Entities are named by **prefix**; positions and documents by **SAID**.
+documents. Entities are named by **prefix**; positions and documents by **SAID**. A SAID here is an
+integrity **commitment**, not a lookup key — there is no global SAID→event index, so a SAID
+harvested off a public manifest does not invert to a (possibly private) chain's prefix; logs are
+fetched by prefix ([`../../../protocol-doctrine.md` §Negative checks are positive
+lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 
 **Read the manifest kind-first.** Each kind may carry **only** the roles in its closed vocabulary
 (the table above); a manifest carrying any role outside its kind's vocabulary is **malformed →
@@ -136,10 +141,10 @@ the subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that ca
 
 | Field | Type | Logs | Events | Description |
 |---|---|---|---|---|
-| `manifest` | Digest256 | KEL, IEL | KEL `Ixn` / `Rot` / `Ror` / `Fed` / `Icp`; IEL `Ixn` / `Icp` / `Gov` / `Del` / `Kil` | SAID of the role-grouped commitment SAD (above). |
+| `manifest` | Digest256 | KEL, IEL, SEL | KEL `Ixn` / `Rot` / `Ror` / `Rec` / `Icp` / `Fed`; IEL `Icp` / `Ixn` / `Gov` / `Del` / `Kil` / `Rpr`; SEL `Ixn` | SAID of the role-grouped commitment SAD (above). |
 | `federation` | Digest256 | KEL | `Icp` / `Fed` | The federation IEL **prefix** this chain binds to (which federation; follows the federation's evolution). |
 | `federationPin` | Digest256 | KEL | `Icp` / `Fed` | A **SAID** pinning the as-of federation position (ratcheted via `Fed`). The prefix/SAID split: `federation` is *which* federation, `federationPin` is *as of when*. |
-| `pin` | Digest256 | SEL | `Ixn` (and inherited) | SAID of the owner IEL event this SEL event floors up to. A credential SEL's `Icp` carries no `pin` field — its `data` is the credential's SAID and the pin lives **inside** the credential (below). |
+| `pin` | Digest256 | SEL | `Ixn` / `Pin` (and inherited) | SAID of the owner IEL event this SEL event floors up to. A credential SEL's `Icp` carries no `pin` field — its `data` is the credential's SAID and the pin lives **inside** the credential (below); a lookup SEL's `Pin` event carries the pin (plus the rescission cut-off). |
 | `nonce` | Nonce256 | IEL | `Icp` | Opaque random bytes chosen by the inceptor; makes the IEL prefix unpredictable. Required at inception, forbidden elsewhere. |
 | `threshold` | enum | IEL | `Kil` | Which authority slot the sealed kill-anchor is priced at — `govern` (a revocation/closure) or `delegate` (a rescission). A slot **name**, never a raw integer. |
 | `topic` | String | SEL | `Icp` | Application discriminator; participates in the SEL prefix derivation. |
@@ -172,7 +177,7 @@ rule (a higher-tier anchor satisfies a lower-tier requirement) are the protocol 
 
 | Kind | Tier | Sig | Role |
 |---|---|---|---|
-| `Fcp` | 1 | single | Founder **pre-federation** inception (bootstrap-root witnesses); no federation binding yet. |
+| `Fcp` | 1 | single | Founder **pre-federation** inception; self-attested, carries no `witnesses`, and cannot stand alone — its binding `Fed` follows at v=1 in the same batch. |
 | `Icp` | 1 | single | Standard **federation-bound** inception; carries `federation` / `federationPin`. |
 | `Ixn` | 1 | single | Content; anchors lower-layer SAIDs via `manifest` (`anchors`, ≥1). The **divergeable** kind. |
 | `Rot` | 2 | single | Rotation — reveals the next signing key, commits the new one. Seal-advancing. |
@@ -180,6 +185,14 @@ rule (a higher-tier anchor satisfies a lower-tier requirement) are the protocol 
 | `Rec` | 3 | dual | **Recover** — the KEL's repair kind: resolves `Ixn` divergence by archiving the losing branch. Reveals the recovery key (hence dual-sig); does **not** lock the chain. |
 | `Fed` | 3 | dual | Federation bind / rebind; carries `federation` / `federationPin`. |
 | `Dec` | 3 | dual | Terminal (decommission). |
+
+A KEL has **one inception root**: either a founder **`Fcp → Fed`** pair (a pre-federation founder
+binding into the federation it helps incept) **or** a standalone **`Icp`** (joining an existing
+federation) — **never** `Fcp → Icp`. A pre-federation `Fcp` is **self-attested**, carries **no
+`witnesses`** (there is no federation yet to witness it — which keeps the federation IEL's own
+bootstrap non-circular), and **cannot stand alone**: its binding `Fed` is the **next event (v=1)**
+in the **same atomic batch** (`Fcp` v=0 → `Fed` v=1). The full ceremony is KEL + federation doctrine
+— [`kel/`](kel/), [`federation/`](../../../federation/).
 
 ### IEL — 7 kinds
 
@@ -224,12 +237,12 @@ signatures live adjacent (§Authentication & signatures).
 
 | Kind | publicKey | rotationHash | recoveryKey | recoveryHash | federation | federationPin | manifest |
 |---|---|---|---|---|---|---|---|
-| `Fcp` | req | req | fbd | req | fbd | fbd | opt (`witnesses`) |
+| `Fcp` | req | req | fbd | req | fbd | fbd | fbd |
 | `Icp` | req | req | fbd | req | req | req | opt (`witnesses`) |
 | `Ixn` | fbd | fbd | fbd | fbd | fbd | fbd | req (`anchors`, ≥1) |
 | `Rot` | req | req | fbd | fbd | fbd | fbd | opt (`anchors`) |
 | `Ror` | req | req | req | req | fbd | fbd | opt (`anchors`) |
-| `Rec` | req | req | req | req | fbd | fbd | fbd |
+| `Rec` | req | req | req | req | fbd | fbd | opt (`anchors`) |
 | `Fed` | req | req | req | req | req | req | opt (`witnesses`) |
 | `Dec` | req | fbd | req | fbd | fbd | fbd | fbd |
 
@@ -241,12 +254,12 @@ doctrine — [`kel/`](kel/).
 
 | Kind | nonce | manifest | threshold |
 |---|---|---|---|
-| `Icp` | req | req (`roster`) | fbd |
+| `Icp` | req | req (`roster`; federation `Icp` adds `clock`) | fbd |
 | `Ixn` | fbd | req (`anchors` and/or `issues`) | fbd |
 | `Gov` | fbd | req (`roster`; federation `Gov` adds `clock`) | fbd |
 | `Del` | fbd | req (`delegates`) | fbd |
 | `Kil` | fbd | req (`revokes`) | req (`govern` \| `delegate`) |
-| `Rpr` | fbd | opt | fbd |
+| `Rpr` | fbd | opt (`anchors`) | fbd |
 | `Dec` | fbd | fbd | fbd |
 
 The `nonce` (inception only) drives prefix unpredictability (§Prefix derivation). The exact roster
@@ -258,7 +271,7 @@ delta SAD schema, the consent rule for additions, and the per-kind anchor matrix
 | Kind | topic | data | pin | manifest |
 |---|---|---|---|---|
 | `Icp` | req | req | fbd | fbd |
-| `Ixn` | fbd | fbd | req | opt |
+| `Ixn` | fbd | fbd | req | opt (`content`) |
 | `Dec` | fbd | fbd | fbd | fbd |
 | `Pin` | fbd | fbd | req | fbd |
 | `Rpr` | fbd | fbd | fbd | fbd |

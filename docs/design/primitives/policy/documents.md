@@ -94,10 +94,11 @@ verifies `C`'s context through that pin, and judges authority by `D`'s own ancho
 
 ## Delegation in a document
 
-A document may be authorized by a **delegate** of an identity — the `del(X)` leaf
+A document may be authorized by a **delegate** of an identity — the `del(X, N)` leaf
 ([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
 each hop's delegating link is recorded on the delegate's own identity, pinning up to `X`, so the
-verifier **derives** the authorizing chain from committed data and walks it — the presenter
+verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
+never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
 furnishes nothing to prune. Per hop the verifier checks that the delegation was granted, that the
 grant has not been **rescinded** (a positive lookup, [`policy.md`](policy.md)), and that the
 document's anchoring position is an **ancestor of** the rescission cut-off (the grandfather rule:
