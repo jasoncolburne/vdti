@@ -159,9 +159,9 @@ witness-config SAD are KEL-specific — see [`kel/`](kel/).
 from the event kind, never stored.
 
 - **Tier 1 — signing key only.** Content. A `t_use`-counted `Ixn` is tier 1 even at a high count.
-- **Tier 2 — + rotation preimage.** Establishment-mutation, authority-grant, and **any sealed
+- **Tier 2 — rotation preimage.** Establishment-mutation, authority-grant, and **any sealed
   kill** (a kill must be permanent on arrival).
-- **Tier 3 — + rotation + recovery preimage.** Repair and identity-kill.
+- **Tier 3 — rotation preimage + recovery preimage.** Repair and identity-kill.
 
 The reserve (rotation / recovery preimage, held apart from the signing key) is required when a
 forgery would be high-harm or irreversible, **or** when the act must be permanent on arrival

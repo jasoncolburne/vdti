@@ -151,8 +151,8 @@ dispatched from the event kind, never stored.
 | Tier | Capability | Used for |
 |---|---|---|
 | 1 | signing key only | content (`Ixn`) — even at a high count |
-| 2 | + rotation preimage | establishment-mutation, authority-grant, any sealed kill |
-| 3 | + rotation + recovery preimage | repair, identity-kill |
+| 2 | rotation preimage | establishment-mutation, authority-grant, any sealed kill |
+| 3 | rotation preimage + recovery preimage | repair, identity-kill |
 
 The **reserve** (the rotation / recovery preimage, held apart from the signing key) is required
 when a forgery would be high-harm or irreversible, **or** when the act must be **permanent on
