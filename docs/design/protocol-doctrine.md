@@ -316,9 +316,13 @@ lands cleanly past them. The seal is the boundary the protocol can defend.
 
 A **recoverable** divergence resolves by a repair that seals its surviving branch, so that branch's
 above-seal anchors become durable; a **terminal** divergence never seals, so its post-seal window
-grounds no new trust — the chain is suspect *above the seal*, never below it. Survivability of a
-member whose KEL goes terminal is decided one layer up, by IEL threshold redundancy and a `Gov`
-eviction, not by salvaging the suspect chain's own tail.
+grounds no new trust. The divergence's reach is bounded to that window — it does not retroactively
+alter the below-seal portion, whose structural finality is unchanged. That finality is **immutability,
+not a warrant of honest authorship**: an attacker already holding current keys can clean-rotate and
+seal its own content below the seal — the current-state-compromise limit (below), which a later
+divergence neither creates nor cures. Survivability of a member whose KEL goes terminal is decided one
+layer up, by IEL threshold redundancy and a `Gov` eviction, not by salvaging the suspect chain's own
+tail.
 
 **IEL distrust is forward-only.** An IEL event is trusted only when a threshold of members anchored
 it, so a single compromised member KEL is inert on its own — it cannot reach `t_use` or `t_govern`.
