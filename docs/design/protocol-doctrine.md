@@ -195,7 +195,7 @@ issuer-chosen-policy backdate surface from the chain entirely.
 
 The structural mechanism that enforces current-state-only authority is the chain's **seal**.
 
-Each primitive tracks `lastSealAdvancingEvent` — the SAID of the chain's most recent
+Each primitive tracks `last_seal_advancing_event` — the SAID of the chain's most recent
 seal-advancing event that landed cleanly on the linear chain. A new event's parent must sit
 at-or-after the seal (`parent_serial >= seal_serial`); a submission whose parent sits in the locked
 portion is rejected. This guarantees the authorization context resolved at the event's parent is the
@@ -289,7 +289,7 @@ admit competing privileged events at a sealed serial would re-open the stale-aut
 surface, so the bound stays unconditional and federation-race non-convergence is resolved at the
 federation layer rather than by fork-merging.
 
-**Pre-seal verifiability.** Everything at-or-below `lastSealAdvancingEvent` is permanently final —
+**Pre-seal verifiability.** Everything at-or-below `last_seal_advancing_event` is permanently final —
 for the chain (no event targets it) and for consumers (they verify against it indefinitely),
 regardless of any later divergence. Anchors hosted at-or-below the seal stay anchored; documents
 issued under at-or-below-seal state stay verifiable; audit queries on the sealed portion return

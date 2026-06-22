@@ -23,7 +23,7 @@ Credentials are verifiable claims — documents that carry their own authorizati
 
 ## End-verifiability
 
-Any verifier, given **data from any source** plus the **trusted federation set** (compile-time-baked, runtime-overridable), can determine system-wide state — including which prefixes are divergent, decommissioned, or irreconcilable. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
+Any verifier, given **data from any source** plus the **trusted federation set** (compile-time-baked, runtime-overridable), can determine system-wide state — including whether a prefix is divergent, decommissioned, or irreconcilable. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
 
 This is the property that justifies the architecture. **End-verifiability over data-from-any-source** is what differentiates VDTI from systems that require trusted-watcher infrastructure to infer system state.
 
@@ -81,7 +81,7 @@ A chain that carries two distinct events at one serial is **frozen** until a rep
 
 ### Forks are seal-bounded
 
-A new event's serial must land at-or-after the chain's most-recent seal-advancing (privileged) event (`lastSealAdvancingEvent`). The bound is protocol-enforced via proactive seal-caps.
+A new event's serial must land at-or-after the chain's most-recent seal-advancing (privileged) event (`last_seal_advancing_event`); everything below that seal is locked. Without the bound, anyone who ever held authority over a chain would keep a permanent kill switch — a rotated-out key or an evicted member could append below the seal, against a context they no longer control. The bound is protocol-enforced via proactive seal-caps, which also keep a recovery batch within a single page so repair is cross-node-validatable.
 
 → [`protocol-doctrine.md` §Forks are Seal-Bounded](protocol-doctrine.md#forks-are-seal-bounded).
 
