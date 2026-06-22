@@ -63,7 +63,11 @@ per the federation's freshness signal). This loss-of-trust check is read against
 **multi-source / witnessed** current state, never a single source's possibly-stale claim — a
 single stale or malicious source could hide a revocation. The as-issued resolver alone is
 **insufficient** to grant trust; the to-tip step is what catches a since-revoked issuer or a
-forged dormant extension. The walk semantics and freshness rules are the verification doctrine's —
+forged dormant extension. A divergence it finds is read against the **seal**: a *recoverable*
+divergence blocks current trust only until its repair seals the surviving branch, a *terminal*
+(disputed) one blocks it permanently — but an as-issued anchor at-or-below the chain's last clean
+seal stays honorable either way (the suspect region is *above* the seal). The walk semantics and
+freshness rules are the verification doctrine's —
 [`../../protocol-doctrine.md`](../../protocol-doctrine.md).
 
 ## The verification-token interface — the seam to the primitives

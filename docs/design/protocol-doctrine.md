@@ -59,7 +59,8 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     accepts no new event of any kind until a repair resolves it (see [§Divergence and
     repair](#divergence-and-repair)). A fork is one of:
     - **reconcilable** — ≤ 1 privileged branch; a repair keeps the single privileged-or-content
-      branch, archives the rest, and returns the chain to **Active**.
+      branch (a privileged branch only by *its author* — the keep is gated by that branch's own
+      recovery commitment), archives the rest, and returns the chain to **Active**.
     - **irreconcilable** — **two or more branches are privileged**. No branch can be archived (a
       privileged event is never archived), so no single chain can be chosen and the prefix must
       **reincept**. The same condition is seen two ways: a node holding both privileged branches reads
@@ -258,19 +259,26 @@ set is evaluated by **tier**, and the highest tier present decides:
 - **Only content (`Ixn`) is archivable.** A privileged event (a rotation, a `Gov`, a `Kil`, a
   terminal) is **never** archived or overturned — reversing a rotation resurrects retired keys, and
   un-doing a kill breaks a third party's reliance.
-- **≤ 1 privileged branch → recoverable.** The repair (`Rec` on the KEL, `Rpr` on the IEL / SEL —
-  itself tier 3, requiring the recovery reserve) **keeps the single privileged branch** (extending
-  it — e.g. a `Rec` extending a forked `Rot`) and **archives the all-content branch(es)**, then
-  advances forward. An all-content divergence keeps one branch and archives the rest. If the kept
-  privileged event had anchored a higher-layer event, that anchor is **realized on recovery** — the
-  higher layer's own threshold (`t_govern`, …) still gates it, so no forgery, provided that
-  threshold is floored `>= 2`. **Singleton residual:** at `|roster| = 1` (`t_govern = 1`) realizing
-  an anchored `Gov` succeeds — the one compromised member meets the gate — so a singleton recovery
-  must be followed by an eviction `Gov` (part of why a single-device identity gets no governance
-  resilience).
+- **A repair never extends an adversarial event.** It extends only the submitter's own event or the
+  shared pre-divergence ancestor `v_{d-1}`.
+- **≤ 1 privileged branch → recoverable, by that branch's author.** The repair (`Rec` on the KEL,
+  `Rpr` on the IEL / SEL — itself tier 3, requiring the recovery reserve) **keeps the single
+  privileged branch** and **archives the all-content branch(es)**, then advances forward. (An
+  all-content divergence is the same shape with no privileged branch: keep one, archive the rest.)
+  The keep is **gated by the kept branch's own recovery commitment** — only the party that authored
+  the branch holds the preimage to extend it — so the no-extend-adversary rule is self-enforced: you
+  cannot keep a privileged branch you did not author. The chain cannot tell apart two cases that
+  resolve differently for the wronged party:
+  - **Honest race** — the operator's own rotation (or `Gov`) raced by a stale content `Ixn`. The
+    operator keeps its own privileged branch, archives the content, advances. Recovered.
+  - **Adversarial fork** — the attacker's rotation against the operator's content. The operator has
+    **no recovery move**: it can neither extend the attacker's branch (it lacks that branch's
+    recovery preimage) nor archive it. So the operator **reincepts** — or, for a delegated KEL, the
+    delegator `Kil`s it. The attacker may keep its own branch: the chain is the attacker's.
 - **≥ 2 privileged branches → terminal.** No privileged branch can be archived to reduce to one
   (`{Rot, Rot}`, `{Gov, Gov}`, `{Kil, Kil}`, …) → the chain is contested and must reincept under a
-  new prefix.
+  new prefix. A `{Rot, Rot}` fork is moreover a **proof of reserve compromise**: two valid rotations
+  both reveal the one rotation preimage committed at `v_{d-1}`, which an honest holder never does.
 
 A linear tip-appended rotation (no divergence) is recoverable by appending a forward `Ror` past it.
 Genuine reincept is a tier-3 compromise, or a ≥2-privileged divergence — seen locally, or surfaced by the federation as a dispute.
@@ -305,6 +313,23 @@ issued under at-or-below-seal state stay verifiable; audit queries on the sealed
 truthful answers. Above-seal events carry tier-1-only auth — structurally indistinguishable from
 signing-key-only adversary capture — and become durable only when a later seal-advancing event
 lands cleanly past them. The seal is the boundary the protocol can defend.
+
+A **recoverable** divergence resolves by a repair that seals its surviving branch, so that branch's
+above-seal anchors become durable; a **terminal** divergence never seals, so its post-seal window
+grounds no new trust — the chain is suspect *above the seal*, never below it. Survivability of a
+member whose KEL goes terminal is decided one layer up, by IEL threshold redundancy and a `Gov`
+eviction, not by salvaging the suspect chain's own tail.
+
+**IEL distrust is forward-only.** An IEL event is trusted only when a threshold of members anchored
+it, so a single compromised member KEL is inert on its own — it cannot reach `t_use` or `t_govern`.
+The quorum withholds trust from a compromised member by not co-anchoring its acts and by evicting it
+with a `Gov`; both are forward acts. There is **no retroactive per-event distrust** — a quorum that
+could reach back and un-trust events it had already authorized would itself be a stale-state kill
+switch, the very surface this section closes. An event the quorum co-signed stands even if a
+co-signer is later found compromised; remediation is forward (revoke what the event granted, evict
+the member), never retroactive invalidation. A member KEL that cannot be resolved at its own layer —
+an attacker's clean multi-rotation leaves no divergence to contest — does not propagate to the
+identity: the identity evicts the member and continues on its quorum.
 
 #### Kills are sealed; validity cut-offs are contiguous
 
