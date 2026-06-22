@@ -23,7 +23,7 @@ Credentials are verifiable claims — documents that carry their own authorizati
 
 ## End-verifiability
 
-Any verifier, given **data from any source** plus the **trusted federation set** (compile-time-baked, runtime-overridable), can determine system-wide state — including whether a prefix is divergent, decommissioned, or irreconcilable. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
+Any verifier, given **data from any source** plus the **trusted federation set** (compile-time-baked, runtime-overridable), can determine system-wide state — including whether a prefix is divergent, decommissioned, or disputed. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
 
 This is the property that justifies the architecture. **End-verifiability over data-from-any-source** is what differentiates VDTI from systems that require trusted-watcher infrastructure to infer system state.
 
@@ -105,11 +105,11 @@ Monitoring for unexpected governance or rotation events; fast detect-to-recover 
 
 ### Cascade-reincept honesty
 
-Reincept is needed when the primitive itself is irreconcilable at the federation layer — not when a referenced primitive is. The cascade rules:
+Reincept is needed when the primitive itself is disputed at the federation layer — not when a referenced primitive is. The cascade rules:
 
-- **IEL irreconcilable** → every SEL bound to it that would forward-extend its binding must reincept under a new prefix.
-- **SEL irreconcilable** → the SEL is dead in place; nothing downstream cascades.
-- **KEL irreconcilable** → dependents only reincept when the disputed KEL actually anchored events on them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians absorb single-member disputes by evicting the disputed KEL via a `Gov`.
+- **A disputed IEL** → every SEL bound to it that would forward-extend its binding must reincept under a new prefix.
+- **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
+- **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians absorb single-member disputes by evicting the disputed KEL via a `Gov`.
 
 The expensive case is federation-layer dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
 

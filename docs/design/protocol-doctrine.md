@@ -53,22 +53,30 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   rule** — locked events are structurally immutable within their own chain: a repair cannot target
   them, and within-chain historical authorizations are not retroactively unsatisfiable. The
   privileged event ratchets the lock forward.
-- **Chain states** (per-node — a chain is in exactly one):
+- **Chain states** (per-node — a chain is in exactly one, computed from the events a node holds):
   - **Active** — linear chain; accepts linear extension.
-  - **Divergent** — two **distinct** events at the same serial. The chain is **frozen**: it accepts
-    no new event of any kind until a repair resolves it (see [§Divergence and
-    repair](#divergence-and-repair)). Resolvable to Active when the divergent set is repairable.
+  - **Divergent** — a **fork**: two **distinct** events at one serial. The chain is **frozen** — it
+    accepts no new event of any kind until a repair resolves it (see [§Divergence and
+    repair](#divergence-and-repair)). A fork is one of:
+    - **reconcilable** — ≤ 1 privileged branch; a repair keeps the single privileged-or-content
+      branch, archives the rest, and returns the chain to **Active**.
+    - **irreconcilable** — cannot reduce to one branch → the prefix must **reincept**, from one of two
+      causes: **privileged divergence** (≥ 2 privileged branches — unrepairable, since a privileged
+      event is never archived; read from the chain itself) or a **federation dispute** (two or more
+      distinct witnessed SAIDs each reach threshold at a serial — the federation cannot agree which
+      event is canonical; read at the federation layer, see [`federation/`](federation/)).
   - **Decommissioned** — a terminal `Dec` has landed cleanly. Fully terminal: accepts no submission.
-- **Federation-irreconcilable**: cross-node disagreement on which event a chain accepted at a given
-  serial — surfaced at the federation layer via **divergent witness receipts** (see
-  [`federation/`](federation/)). It is a federation-layer property, not a per-node chain state; the
-  per-node states stay Active / Divergent / Decommissioned. A prefix becomes federation-irreconcilable
-  at-and-beyond its divergent serial; events strictly below it stay canonical.
+
+  *Divergence* is the umbrella over every fork, and *irreconcilable* the umbrella over its two causes;
+  neither names a specific condition alone. The per-node state is **Divergent** (digest `forked:`); a
+  **federation dispute** (digest `disputed:`) is a federation-layer property over the prefix
+  at-and-beyond the divergent serial — events strictly below stay canonical — **not** a fourth per-node
+  state, so a node can compute a clean per-node state while the prefix is disputed.
 - **Cross-chain anchor satisfaction**: whether a document's or upper-layer event's authorization
   still holds is checked against its contributing lower-layer anchors. How a contributing anchor
   becomes non-canonical depends on its **tier**: a tier-1 (`Ixn`) anchor (archivable) drops when a
   later repair archives its host; a tier-2/3 anchor (on a seal-advancing event, durable against
-  repair) drops only when its host chain surfaces **federation-irreconcilable** at-or-beyond the
+  repair) drops only when its host chain becomes **disputed** at-or-beyond the
   divergent serial. Either way the lower-layer verifier reports the SAID as not-anchored on the
   canonical branch, and the dependent answer flips to unsatisfied. Distinct from within-chain state
   — locked events stay locked within their own chains; cross-chain satisfaction is handled by
@@ -393,12 +401,12 @@ a new prefix, which propagates to every consumer. Design rosters to **survive co
 catastrophically reincepting**; treat reincept as the last resort.
 
 **Cascade-reincept honesty.** Reincept is needed only when the primitive itself is blocked at the
-federation layer (irreconcilable) — not when a referenced primitive is. Dependent chains whose
+federation layer (disputed) — not when a referenced primitive is. Dependent chains whose
 bindings reach at-or-below-seal state stay authorized.
-- **IEL irreconcilable** → every SEL bound to it that would forward-extend its binding must reincept
+- **A disputed IEL** → every SEL bound to it that would forward-extend its binding must reincept
   under a new prefix.
-- **SEL irreconcilable** → the SEL is dead in place; nothing downstream cascades.
-- **KEL irreconcilable** → dependents reincept only when the disputed KEL actually anchored their
+- **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
+- **A disputed KEL** → dependents reincept only when the disputed KEL actually anchored their
   events **and** the resolving threshold lacks redundancy. A `M > N` roster absorbs a single
   member's dispute by evicting it via `Gov`.
 The expensive case is a federation-layer dispute on an IEL at the root of a dependency tree — so
@@ -461,15 +469,15 @@ The convergence model has three components:
 - **Semantic state is a function of the events** — each node computes a chain's state (Active /
   Divergent / Decommissioned, with which events at which serials) deterministically from the events
   it holds; identical event sets yield identical state.
-- **Effective-SAID determinism** — where contents may differ across nodes (a divergent chain, or a
-  federation-irreconcilable prefix), the effective SAID is a deterministic function of `(state,
+- **Effective-SAID determinism** — where contents may differ across nodes (a forked chain, or a
+  disputed prefix), the effective SAID is a deterministic function of `(state,
   prefix)` so anti-entropy recognizes matching state across nodes uniformly (see [§Effective-SAID
   synthetic comparison](#effective-said-synthetic-comparison)).
 
 **Witnessing is detection, not prevention** (and witnesses are reporters, not deciders): every
 selected witness signs **every** structurally-valid event it observes at a position (always-witness),
 receipts are indexed at the chain position `(prefix, serial)` rather than at event SAID, and a
-position is **federation-divergent** iff two or more distinct witnessed SAIDs each reach threshold
+position is **disputed** iff two or more distinct witnessed SAIDs each reach threshold
 **and** each resolves to a structurally-valid event (the verifier independently re-checks validity —
 the database cannot be trusted, so a rogue's receipt on a fake event never triggers divergence).
 This makes federation state **locally determinable** on every node, without watcher infrastructure.
@@ -544,7 +552,7 @@ above it, and the federation that witnesses it — not on that one chain alone. 
 that breaks an upper event must be visible to a holder of the upper token, so a loss-of-trust
 decision confirms each dependency's effective-SAID **multi-source** (a witness-signed effective-SAID
 is multi-source by construction; an unwitnessed chain degrades to single-source, flagged). "Is this
-chain divergent / irreconcilable?" is itself a loss-of-trust question — a one-branch holder computes
+chain forked / disputed?" is itself a loss-of-trust question — a one-branch holder computes
 a normal-looking tip and never sees a fork, so divergence detection is in the multi-source bucket.
 
 ### Walk semantics
@@ -616,19 +624,21 @@ witnessing rules are federation doctrine ([`federation/`](federation/)).
 The effective SAID is the canonical chain-tip representation across KEL, IEL, and SEL — it identifies
 a chain's current state and lets nodes recognize that state without exchanging chain data. A
 normal-tip chain carries its tip event's real SAID; a decommissioned chain carries its `Dec` event's
-real SAID. Two states have **synthetic** representations, depending only on `(state, prefix)` — no
+real SAID. Two conditions have **synthetic** representations, depending only on `(state, prefix)` — no
 history, no fork point, no serial:
 
-- `hash_effective_said("divergent:{prefix}")` — the chain has competing branches at some serial
-  (recoverable via repair). Applies on the KEL, the SEL, and any IEL carrying content — only the
-  content kind (`Ixn`) diverges, so a federation IEL (which carries no `Ixn`) never reaches it.
-- `hash_effective_said("irreconcilable:{prefix}")` — the prefix is in dispute at the federation
-  layer (divergent witness receipts). The federation layer holds the source-of-truth; the per-node
-  state stays Active / Divergent / Decommissioned.
+- `hash_effective_said("forked:{prefix}")` — the node holds a fork (competing branches at some
+  serial). Applies on the KEL, the SEL, and any IEL carrying content — only the content kind (`Ixn`)
+  diverges, so a federation IEL (which carries no `Ixn`) never reaches it. The synthetic marks the
+  fork; whether it is reconcilable or irreconcilable is determined by walking the branch tiers, not
+  encoded here — so a terminal (≥ 2-privileged) fork carries `forked:` too.
+- `hash_effective_said("disputed:{prefix}")` — the prefix is in dispute at the federation layer (two
+  or more distinct witnessed SAIDs each reach threshold). The federation layer holds the
+  source-of-truth; the per-node state stays Active / Divergent / Decommissioned.
 
-There is **no "contested" per-node state and no synthetic for it** — a ≥2-privileged divergence is
-terminal and recovers by reincept, and federation-layer dispute is the `irreconcilable:` synthetic.
-The prefix-only shape is what lets two differently-divergent nodes compute the same
-`divergent:{prefix}` and recognize each other's state; encoding a fork point would break that.
-Differently-divergent chains are resolved through **local repair**, never by cross-node sync of the
-divergent contents.
+There is **no per-node "contested" state and no third synthetic**: a privileged divergence is just a
+terminal `forked:` chain (the walk finds ≥ 2 privileged branches → reincept), and a federation dispute
+is the `disputed:` synthetic. The prefix-only shape is what lets two differently-forked nodes compute
+the same `forked:{prefix}` and recognize each other's state; encoding a fork point would break that.
+Differently-forked chains are resolved through **local repair**, never by cross-node sync of the
+forked contents.
