@@ -196,7 +196,7 @@ rule (a higher-tier anchor satisfies a lower-tier requirement) are the protocol 
 A federation is a **restricted IEL** — `Icp` / `Gov` / `Dec` only (no `Ixn`, so it never diverges
 and needs no `Rpr`; no `Del`, since trust is per-federation and non-transitive). Its roster is
 witness KELs directly. See [`../../../protocol-doctrine.md` §Federation
-convergence](../../../protocol-doctrine.md#federation-convergence) and [`federation/`](../../federation/).
+convergence](../../../protocol-doctrine.md#federation-convergence) and [`federation/`](../../../federation/).
 
 ### SEL — 5 kinds
 
@@ -211,7 +211,7 @@ convergence](../../../protocol-doctrine.md#federation-convergence) and [`federat
 Content rides the IEL `Ixn` rail (tier 1); a kill rides the IEL `Kil` rail (tier 2, sealed);
 roster/threshold changes ride the IEL `Gov` rail. A SEL has no seal of its own — its finality
 boundary is the owner IEL's. Credential issuance, revocation, and status are a **feature** layered
-on the SEL primitive — [`../../features/credentials/`](../../features/credentials/).
+on the SEL primitive — [`features/credentials/`](../../../features/credentials/).
 
 ## Per-kind structural validation
 
@@ -330,7 +330,7 @@ Some kinds land only as part of a multi-event atomic batch, enforced at the merg
   issuers quiesce their identities between finalizing and anchoring
   ([`../../policy/documents.md`](../../policy/documents.md)).
 - **Federation genesis** — the founder KEL `[Fcp, Fed]` pairs, the federation IEL `Icp`, and the
-  cross-attestation receipts land as one atomic batch. See [`federation/`](../../federation/).
+  cross-attestation receipts land as one atomic batch. See [`federation/`](../../../federation/).
 
 The full enforcement rules are per-primitive and federation doctrine.
 
