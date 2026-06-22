@@ -60,18 +60,19 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     repair](#divergence-and-repair)). A fork is one of:
     - **reconcilable** — ≤ 1 privileged branch; a repair keeps the single privileged-or-content
       branch, archives the rest, and returns the chain to **Active**.
-    - **irreconcilable** — cannot reduce to one branch → the prefix must **reincept**, from one of two
-      causes: **privileged divergence** (≥ 2 privileged branches — unrepairable, since a privileged
-      event is never archived; read from the chain itself) or a **federation dispute** (two or more
-      distinct witnessed SAIDs each reach threshold at a serial — the federation cannot agree which
-      event is canonical; read at the federation layer, see [`federation/`](federation/)).
+    - **irreconcilable** — **two or more branches are privileged**. No branch can be archived (a
+      privileged event is never archived), so no single chain can be chosen and the prefix must
+      **reincept**. The same condition is seen two ways: a node holding both privileged branches reads
+      it from the chain; a node holding only one branch computes a clean tip and cannot, so the
+      federation — which witnessed both — surfaces it (see [`federation/`](federation/)). A fork with
+      no privileged branch, or only one among content, is **reconcilable**, not this.
   - **Decommissioned** — a terminal `Dec` has landed cleanly. Fully terminal: accepts no submission.
 
-  *Divergence* is the umbrella over every fork, and *irreconcilable* the umbrella over its two causes;
-  neither names a specific condition alone. The per-node state is **Divergent** (digest `forked:`); a
-  **federation dispute** (digest `disputed:`) is a federation-layer property over the prefix
-  at-and-beyond the divergent serial — events strictly below stay canonical — **not** a fourth per-node
-  state, so a node can compute a clean per-node state while the prefix is disputed.
+  *Divergence* is the umbrella over every fork; the per-node state for a fork is **Divergent** (digest
+  `forked:`). When the federation surfaces an irreconcilable fork to a holder who cannot see the second
+  branch locally, that signal is **disputed** (digest `disputed:`) — a federation-layer property over
+  the prefix at-and-beyond the divergent serial, where events strictly below stay canonical. It is
+  **not** a fourth per-node state; the per-node states stay Active / Divergent / Decommissioned.
 - **Cross-chain anchor satisfaction**: whether a document's or upper-layer event's authorization
   still holds is checked against its contributing lower-layer anchors. How a contributing anchor
   becomes non-canonical depends on its **tier**: a tier-1 (`Ixn`) anchor (archivable) drops when a
@@ -272,7 +273,7 @@ set is evaluated by **tier**, and the highest tier present decides:
   new prefix.
 
 A linear tip-appended rotation (no divergence) is recoverable by appending a forward `Ror` past it.
-Genuine reincept is a tier-3 compromise, a ≥2-privileged divergence, or federation-irreconcilability.
+Genuine reincept is a tier-3 compromise, or a ≥2-privileged divergence — seen locally, or surfaced by the federation as a dispute.
 
 **Repair conditions** (data-driven, merge-layer-enforced, uniform across primitives):
 
@@ -477,7 +478,7 @@ The convergence model has three components:
 **Witnessing is detection, not prevention** (and witnesses are reporters, not deciders): every
 selected witness signs **every** structurally-valid event it observes at a position (always-witness),
 receipts are indexed at the chain position `(prefix, serial)` rather than at event SAID, and a
-position is **disputed** iff two or more distinct witnessed SAIDs each reach threshold
+position is **disputed** iff two or more distinct witnessed **privileged** events each reach threshold
 **and** each resolves to a structurally-valid event (the verifier independently re-checks validity —
 the database cannot be trusted, so a rogue's receipt on a fake event never triggers divergence).
 This makes federation state **locally determinable** on every node, without watcher infrastructure.
@@ -632,9 +633,10 @@ history, no fork point, no serial:
   diverges, so a federation IEL (which carries no `Ixn`) never reaches it. The synthetic marks the
   fork; whether it is reconcilable or irreconcilable is determined by walking the branch tiers, not
   encoded here — so a terminal (≥ 2-privileged) fork carries `forked:` too.
-- `hash_effective_said("disputed:{prefix}")` — the prefix is in dispute at the federation layer (two
-  or more distinct witnessed SAIDs each reach threshold). The federation layer holds the
-  source-of-truth; the per-node state stays Active / Divergent / Decommissioned.
+- `hash_effective_said("disputed:{prefix}")` — the federation has witnessed **two or more distinct
+  privileged events at one serial**, so no single chain can be chosen → reincept. The federation layer
+  holds the source-of-truth; the per-node state stays Active / Divergent / Decommissioned. This is the
+  federation surfacing an irreconcilable fork to a holder who may see only one branch.
 
 There is **no per-node "contested" state and no third synthetic**: a privileged divergence is just a
 terminal `forked:` chain (the walk finds ≥ 2 privileged branches → reincept), and a federation dispute
