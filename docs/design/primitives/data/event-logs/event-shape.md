@@ -113,9 +113,12 @@ holds only the manifest SAID; the grouped commitments live in the SAD, separatel
 | `content` | SEL `Ixn` | the content SAD(s) a SEL records — the only SEL-borne manifest role (a credential SEL's `Icp` uses `data`, not a manifest) |
 | `witnesses` | KEL `Icp` / `Fed` | the witness-config SAD `{ threshold, signers }` |
 | `clock` | federation IEL `Icp` / `Gov` | a timestamp SAD (the federation clock — federation doctrine) |
+| `folded` | seal-advancing kinds (KEL `Rot`/`Ror`/`Rec`/`Fed`; IEL `Gov`/`Del`/`Kil`/`Rpr`; SEL `Pin`/`Rpr`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk confirms `previousSeal` consistency without expanding). `Ixn`-only; the content-only property is back-checked on expansion. Absent when no content was folded |
 
 **Top-level structural vs. manifest.** An event's *own links* stay top-level: `said`, `previous`,
-`pin`, the federation `prefix`, `federationPin`, the `Kil` `threshold` enum. The `manifest`
+**`previousSeal`** (on every seal-advancing event — the back-link to the prior seal that renders the
+spine; see [§Divergence is scoped to content](#divergence-is-scoped-to-content) and protocol-doctrine
+§Forks are Seal-Bounded), `pin`, the federation `prefix`, `federationPin`, the `Kil` `threshold` enum. The `manifest`
 (role-labeled) carries everything the event *commits to below it* — lower-layer event SAIDs and
 documents. Entities are named by **prefix**; positions and documents by **SAID**. A SAID here is an
 integrity **commitment**, not a lookup key — there is no global SAID→event index, so a SAID
@@ -305,9 +308,12 @@ Only the **content** kind (`Ixn`) is divergeable and repairable. A privileged ev
 a `Gov`, a `Kil`, a terminal) is **never** archived or overturned — reversing it would resurrect
 retired key material or un-do a sealed act. A divergence is resolved by **tier**: a repair
 (`Rec` on the KEL, `Rpr` on the IEL / SEL) keeps the at-most-one privileged branch and archives the
-all-content branch(es); two or more privileged branches at a position are terminal (the chain
-reincepts). The full divergence-and-repair doctrine is the protocol doctrine's —
-[`../../../protocol-doctrine.md` §Divergence and
+all-content branch(es). The **terminal** condition is **branch-level** — two or more branches each
+carrying a privileged event past the fork — and any verifier determines it **data-locally** by walking
+the retained branches: a node retains a competing branch as non-canonical evidence (rather than
+discarding it at the seal-cap), and the seal-advancing events form a `previousSeal`-linked **spine** on
+which a privileged divergence is a single visible fork. The full divergence-and-repair doctrine is the
+protocol doctrine's — [`../../../protocol-doctrine.md` §Divergence and
 repair](../../../protocol-doctrine.md#divergence-and-repair).
 
 ## Prefix derivation is whole-content

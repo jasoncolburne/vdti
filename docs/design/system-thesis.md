@@ -29,12 +29,12 @@ This is the property that justifies the architecture. **End-verifiability over d
 
 ## Federation convergence
 
-End-verifiability is two-layer:
+End-verifiability rests on the **data**, with the federation as a propagation aid:
 
-- **Protocol layer.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes where the protocol layer *can* converge. A divergence is resolved by **tier**: a content fork is repairable, but a divergence with **two or more privileged branches** is *terminal* at the protocol layer — there is no merge for it.
-- **Federation layer.** Cross-node privileged-vs-privileged races surface via divergent witness receipts at the federation layer (see [`federation/witnessing.md`](federation/witnessing.md)). The federation provides convergence where the protocol cannot, by attestation rather than fork merging.
+- **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes that hold the same events. A divergence is resolved by **tier**: a content fork is repairable; a divergence with **two or more privileged branches** is *terminal* — there is no merge for it. Whether a fork is terminal is a **branch-level fact any verifier walks from the retained branches** (a node retains a competing branch as evidence rather than discarding it at the seal-cap), never a verdict delegated to the federation.
+- **The federation propagates.** Cross-node privileged-vs-privileged races still converge data-locally — the witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md)) **enumerate the competing branches** so a one-branch holder can fetch and walk them, but the verdict is the verifier's own. The federation delivers evidence; it does not decide.
 
-Single-node deployments forfeit this property. Federations are not optional for end-verifiability.
+A single node can still *detect* a divergence it holds, but it forfeits the beacon's propagation and the witnessing freshness no single node can self-attest — so federations are not optional for end-verifiability.
 
 ## Adversarial-first posture
 
@@ -75,7 +75,7 @@ Authority over a chain belongs only to its currently-tracked state. Past keys, p
 
 ### Divergence is resolved by tier; a divergent chain is frozen
 
-A chain that carries two distinct events at one serial is **frozen** until a repair resolves it — it accepts no new event of any kind in the meantime. Resolution is by **tier, not identity** — the chain cannot tell the operator from an attacker (both branches were authorized when they landed), so it decides by tier. Only content (`Ixn`) is archivable, so a repair keeps the at-most-one privileged branch — and **only its author can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact rather than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively, if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it can neither extend nor archive the privileged branch — and **reincepts**, the chain being the attacker's. A divergence with two or more privileged branches is terminal and recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between concurrent privileged submissions are non-convergent at the protocol layer; convergence is federation-layer via divergent witness receipts.
+A chain that carries two distinct events at one serial is **frozen** until a repair resolves it — it accepts no new event of any kind in the meantime. Resolution is by **tier, not identity** — the chain cannot tell the operator from an attacker (both branches were authorized when they landed), so it decides by tier. Only content (`Ixn`) is archivable, so a repair keeps the at-most-one privileged branch — and **only its author can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact rather than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively, if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it can neither extend nor archive the privileged branch — and **reincepts**, the chain being the attacker's. A divergence with two or more privileged branches is terminal and recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between concurrent privileged submissions **converge data-locally** — keep-all-data retains the competing branch, so a node holds both and detects the divergence by walking them; the witness beacon propagates the branches to nodes that lack them, but does not decide the verdict.
 
 → [`protocol-doctrine.md` §Divergence and repair](protocol-doctrine.md#divergence-and-repair).
 
@@ -93,7 +93,7 @@ KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, f
 
 ### Federation convergence
 
-Two-layer: protocol-layer convergence where possible, federation-layer divergent witness receipts where the protocol cannot converge (priv-vs-priv races). End-verifiability over data-from-any-source depends on both layers.
+Detection is **data-local**: a node retains a competing branch as evidence and walks the retained branches to decide whether a fork is terminal — even priv-vs-priv races converge this way. The federation's divergent witness receipts **propagate** the competing branches to a node that lacks them (and witnessing supplies freshness); they do not decide the verdict. End-verifiability over data-from-any-source rests on the data, with the federation as the propagation aid.
 
 → [`federation/witnessing.md`](federation/witnessing.md).
 

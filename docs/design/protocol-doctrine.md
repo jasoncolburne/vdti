@@ -61,18 +61,23 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     - **reconcilable** — ≤ 1 privileged branch; a repair keeps the single privileged-or-content
       branch (a privileged branch only by *its author* — the keep is gated by that branch's own
       recovery commitment), archives the rest, and returns the chain to **Active**.
-    - **irreconcilable** — **two or more branches are privileged**. No branch can be archived (a
-      privileged event is never archived), so no single chain can be chosen and the prefix must
-      **reincept**. The same condition is seen two ways: a node holding both privileged branches reads
-      it from the chain; a node holding only one branch computes a clean tip and cannot, so the
-      federation — which witnessed both — surfaces it (see [`federation/`](federation/)). A fork with
-      no privileged branch, or only one among content, is **reconcilable**, not this.
+    - **irreconcilable** — **two or more branches each carry a privileged event past the fork**. No
+      branch can be archived (a privileged event is never archived), so no single chain can be chosen
+      and the prefix must **reincept**. This is a **branch-level** condition (not a single-serial one),
+      determined by **any verifier as a data-local walk over the retained branches**: a node retains a
+      competing branch as non-canonical evidence rather than discarding it (see [§Divergence and
+      repair](#divergence-and-repair)), so a node holding both privileged branches reads the condition
+      directly, and a node holding only one assembles the others — the witness beacon enumerates the
+      competing branch SAIDs, the node fetches and walks them. The federation **propagates** the
+      branches; it does **not** decide terminality. A fork with no privileged branch, or only one, is
+      **reconcilable**, not this.
   - **Decommissioned** — a terminal `Dec` has landed cleanly. Fully terminal: accepts no submission.
 
   *Divergence* is the umbrella over every fork; the per-node state for a fork is **Divergent** (digest
-  `forked:`). When the federation surfaces an irreconcilable fork to a holder who cannot see the second
-  branch locally, that signal is **disputed** (digest `disputed:`) — a federation-layer property over
-  the prefix at-and-beyond the divergent serial, where events strictly below stay canonical. It is
+  `forked:`). A branch-level walk that finds two or more privileged branches reads the prefix as
+  **disputed** (digest `disputed:`) — a property **any verifier computes from the retained branches**,
+  over the prefix at-and-beyond the divergent serial, where events strictly below stay canonical. The
+  beacon's role is to deliver the branches to a one-branch holder, never to decide the verdict. It is
   **not** a fourth per-node state; the per-node states stay Active / Divergent / Decommissioned.
 - **Cross-chain anchor satisfaction**: whether a document's or upper-layer event's authorization
   still holds is checked against its contributing lower-layer anchors. How a contributing anchor
@@ -208,8 +213,11 @@ The structural mechanism that enforces current-state-only authority is the chain
 Each primitive tracks `last_seal_advancing_event` — the SAID of the chain's most recent
 seal-advancing event that landed cleanly on the linear chain. A new event's parent must sit
 at-or-after the seal (`parent_serial >= seal_serial`); a submission whose parent sits in the locked
-portion is rejected. This guarantees the authorization context resolved at the event's parent is the
-chain's currently-tracked state, not a stale one.
+portion is **rejected as a canonical extension** — but when it is a structurally-valid fork from an
+ancestor the node holds, it is **retained as non-canonical evidence** rather than discarded, so the
+proof that a divergence occurred is never lost even though the chain does not extend onto it (see
+[§Divergence and repair](#divergence-and-repair)). This guarantees the authorization context resolved
+at the event's parent is the chain's currently-tracked state, not a stale one.
 
 The **seal-advancing** kinds (those that open a new locked window, plus the terminal `Dec` which
 opens none) per primitive:
@@ -237,8 +245,24 @@ advance the seal, so trailing issuances accumulate and the seal lags the tip; wi
 post-seal window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer
 that fills the window **re-seals with an empty-delta `Gov`** (no roster change — the identity-layer
 analogue of a KEL re-sealing via `Rot`; validation **accepts** an empty-delta `Gov`), advancing the
-seal with no new kind. The exact constant and the empty-delta re-seal are IEL doctrine —
+seal with no new kind. (Under a network partition both halves can fill the cap and re-seal
+independently; the two empty-delta `Gov`s differ by `previous` and collide as `{Gov, Gov}` →
+terminal, so a **high-volume issuer serializes its content submissions** — a discipline separate from,
+and additional to, serializing governance.) The exact constant, the empty-delta re-seal, and the
+content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/).
+
+**The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
+back-link to the prior seal-advancing event, so following `previousSeal` renders a seal-only view
+(`Icp → seal → seal → …`) while `previous` renders the full flat chain. Each seal's `manifest` carries
+a **`folded`** role committing the content run since the prior seal — with the run's boundary SAIDs, so
+a spine-only walk can confirm `previousSeal` is consistent without expanding the run. The spine is a
+**convenience** view, verified by the same chain walk with `previousSeal` substituted for `previous`,
+yielding authority state and a divergence view but not content completeness. The detection guarantee,
+and any decision that turns on a content event, use the **flat** walk; the spine is a fast pre-check,
+fail-secure (a forged `previousSeal` that skips a seal surfaces as a competing seal when the real one
+is held, and is otherwise bounded by the eclipse residual). Event structure:
+[`event-shape.md`](primitives/data/event-logs/event-shape.md).
 
 #### Divergence and repair
 
@@ -282,15 +306,19 @@ privileged event?**
   (terminal). So **the recovery reserve does not defend the rotation key: a `Rot` in an archival tail
   is the point of no return** — the chain is the attacker's.
 
-A position with two or more privileged branches is **irreconcilable** ([§Terminology](#terminology))
+A divergence with two or more privileged branches is **irreconcilable** ([§Terminology](#terminology))
 — terminal for *everyone*, not just the recovering party: any party retains only its own branch, so a
 second privileged branch always lands in some party's archival tail and no single branch can be
-chosen. This is the node-agnostic condition the federation evaluates — it holds all branches and
-surfaces the position as **disputed** to a holder who sees only one. A `{Rot, Rot}` collision is
-moreover a **proof of reserve compromise** — two valid rotations both reveal the one rotation preimage
-committed at `v_{d-1}`, which an honest holder never does. Genuine reincept is therefore a tier-3
-compromise, a privileged event in an archival tail, or a federation dispute surfacing a second
-privileged branch a one-branch holder cannot see locally.
+chosen. This is a **node-agnostic, data-local** condition: a branch-level fact any verifier computes by
+walking the retained branches (keep-all-data retains a competing branch as evidence; the witness beacon
+enumerates the branch SAIDs so a one-branch holder can fetch and walk the rest). The federation
+**propagates** the branches; it does not pronounce the verdict. A `{Rot, Rot}` collision is moreover a
+**proof of reserve compromise** — two valid rotations both reveal the one rotation preimage committed
+at `v_{d-1}`, which an honest holder never does; `{Gov, Gov}` is terminal for the same branch-level
+reason but is **not** a reserve-compromise proof — its two governance events reveal *different*
+preimages and can arise from an honest partition (which is why high-volume issuance and governance are
+serialized). Genuine reincept is therefore a tier-3 compromise, a privileged event in an archival tail,
+or a second privileged branch a one-branch holder detects once the beacon delivers it.
 
 **Repair conditions** (data-driven, merge-layer-enforced, uniform across primitives):
 
@@ -306,14 +334,16 @@ privileged branch a one-branch holder cannot see locally.
   uniformly regardless of which divergent contents each node received — this is what makes recovery
   cross-node-validatable.
 
-**Cross-node races do not converge at the protocol layer.** Two nodes can each accept a competing
-event extending `v_{d-1}` via independent clean linear landings; gossip then delivers each to the
-other node, where the seal-cap rejects the late arrival. The federation surfaces the disagreement
-via **divergent witness receipts** (see [§Federation
-convergence](#federation-convergence)). This is the deliberate trade-off: relaxing the seal bound to
-admit competing privileged events at a sealed serial would re-open the stale-authority kill-switch
-surface, so the bound stays unconditional and federation-race non-convergence is resolved at the
-federation layer rather than by fork-merging.
+**Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
+`v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where the
+seal-cap rejects the late arrival **as a canonical extension but retains it as non-canonical evidence**.
+So each node ends up holding both branches and **detects the divergence by a data-local walk**. The
+beacon's divergent witness receipts (see [§Federation convergence](#federation-convergence)) propagate
+the competing branch SAIDs to a node that has not yet received the events, but the verdict is the
+node's own. This is the deliberate trade-off: relaxing the seal bound to admit a competing privileged
+event as a *canonical* extension at a sealed serial would re-open the stale-authority kill-switch
+surface, so the bound stays unconditional — the chain does not extend onto the competing branch, it
+only retains it as the evidence a data-local detection needs.
 
 **Pre-seal verifiability.** Everything at-or-below `last_seal_advancing_event` is permanently final —
 for the chain (no event targets it) and for consumers (they verify against it indefinitely),
@@ -486,10 +516,11 @@ timestamp-free. See [§Federation convergence](#federation-convergence) and [`fe
 ### Federation Convergence
 
 VDTI depends on **eventual cross-node convergence**: gossip propagation paired with deterministic
-effective-SAID computation ensures every chain resolves to the same semantic state on every node in
-a healthy federation where convergence is possible at the protocol layer. Where it is not —
-concurrent privileged event races between nodes — divergent witness receipts at the federation layer
-surface the disagreement uniformly.
+effective-SAID computation ensures every chain resolves to the same semantic state on every node that
+holds the same events. Concurrent privileged-event races between nodes converge **data-locally** —
+keep-all-data retains a competing branch as evidence, so a node ends up holding both branches and
+detects the divergence by walking them. The federation's witness receipts **propagate** the competing
+branches to nodes that have not yet received the events; they do not pronounce the verdict.
 
 The federation is **an ordinary (restricted) IEL** — there is no separate consensus algorithm and no
 central state machine. Its roster is **witness KELs directly** (no per-witness policy or identity
@@ -513,13 +544,22 @@ The convergence model has three components:
   prefix)` so anti-entropy recognizes matching state across nodes uniformly (see [§Effective-SAID
   synthetic comparison](#effective-said-synthetic-comparison)).
 
-**Witnessing is detection, not prevention** (and witnesses are reporters, not deciders): every
-selected witness signs **every** structurally-valid event it observes at a position (always-witness),
-receipts are indexed at the chain position `(prefix, serial)` rather than at event SAID, and a
-position is **disputed** iff two or more distinct witnessed **privileged** events each reach threshold
-**and** each resolves to a structurally-valid event (the verifier independently re-checks validity —
-the database cannot be trusted, so a rogue's receipt on a fake event never triggers divergence).
-This makes federation state **locally determinable** on every node, without watcher infrastructure.
+**Witnessing propagates the divergence signal; the data decides** (witnesses are reporters, not
+deciders): every selected witness signs **every** structurally-valid event it observes at a position
+(always-witness), and receipts are indexed at the chain position `(prefix, serial)` rather than at
+event SAID, so competing events at one position accumulate receipts that **enumerate the branches**.
+Witness selection is deterministic by `(prefix, serial)`, and the selected witnesses sub-gossip the
+event among themselves, so a structurally-valid competing event that reaches any one honest selected
+witness reaches threshold — there is no stable "witnessed but sub-threshold" state for a real event.
+How a node acts on the signal splits by **provenance**: when it **holds and re-validates** two or more
+privileged branches it reads **disputed** directly from the data, threshold-independent; when it holds
+only a **receipt** for an event it has not yet fetched (or a content fork), it waits for the **witness
+threshold** before treating the signal as a real divergence — below threshold, a rogue's receipt on a
+fake event is inert (the verifier independently re-checks validity; the database cannot be trusted).
+Receipts tell a node it is *forked*; only the data-local walk tells it *disputed*. This makes
+divergence **locally determinable** on every node, without watcher infrastructure. The receipt gossip
+is **encrypted** (ML-KEM-1024 + AES-256-GCM), and witnesses are the federation roster, so receipt
+contents stay within the federation.
 
 Receipts are evaluated **as-of the event's federation context** — a receipt counts iff its signer is
 in the roster of the federation at the position the event pins (`federationPin`), never at the
@@ -669,16 +709,20 @@ history, no fork point, no serial:
 - `hash_effective_said("forked:{prefix}")` — the node holds a fork (competing branches at some
   serial). Applies on the KEL, the SEL, and any IEL carrying content — only the content kind (`Ixn`)
   diverges, so a federation IEL (which carries no `Ixn`) never reaches it. The synthetic marks the
-  fork; whether it is reconcilable or irreconcilable is determined by walking the branch tiers, not
-  encoded here — so a terminal (≥ 2-privileged) fork carries `forked:` too.
-- `hash_effective_said("disputed:{prefix}")` — the federation has witnessed **two or more distinct
-  privileged events at one serial**, so no single chain can be chosen → reincept. The federation layer
-  holds the source-of-truth; the per-node state stays Active / Divergent / Decommissioned. This is the
-  federation surfacing an irreconcilable fork to a holder who may see only one branch.
+  fork; whether it is reconcilable or terminal is the **branch-walk's** result (over the retained
+  branches), not encoded in the synthetic — a reconcilable fork stays `forked:`; a fork the walk finds
+  terminal becomes `disputed:` (below).
+- `hash_effective_said("disputed:{prefix}")` — a **branch-level walk over the retained branches** finds
+  **two or more branches each carrying a privileged event past the fork**, so no single chain can be
+  chosen → reincept. This is **data-local**: any verifier computes it from the branches it holds
+  (keep-all-data retains a competing branch as evidence; the witness beacon enumerates the branch SAIDs
+  so a one-branch holder fetches and walks the rest). The federation **propagates** the branches; it is
+  not the source of truth. The per-node state stays Active / Divergent / Decommissioned.
 
-There is **no per-node "contested" state and no third synthetic**: a privileged divergence is just a
-terminal `forked:` chain (the walk finds ≥ 2 privileged branches → reincept), and a federation dispute
-is the `disputed:` synthetic. The prefix-only shape is what lets two differently-forked nodes compute
+There is **no per-node "contested" state and no third synthetic**: a reconcilable fork is `forked:`,
+and a fork the branch walk finds terminal (≥ 2 privileged branches → reincept) is `disputed:` — both
+computed **data-locally** from the retained branches (the beacon may deliver a missing branch, but the
+verdict is the walk's). The prefix-only shape is what lets two differently-forked nodes compute
 the same `forked:{prefix}` and recognize each other's state; encoding a fork point would break that.
 Differently-forked chains are resolved through **local repair**, never by cross-node sync of the
 forked contents.
