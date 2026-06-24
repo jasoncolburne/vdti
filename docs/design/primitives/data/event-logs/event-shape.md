@@ -7,10 +7,9 @@ mechanics, prefix-derivation specifics) lives in the per-primitive docs and in
 [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md).
 
 This is a **shape reference** — it states what fields exist, which kinds populate them, and how the
-verifier enforces per-kind field rules. **Chain events carry no policy.** A KEL, IEL, or SEL event
-is authorized **structurally** — by its own key state, its identity's threshold, or its owner —
-never by evaluating a policy expression. Policy is a property of **documents**, not chain events;
-see [`../../policy/policy.md`](../../policy/policy.md).
+verifier enforces per-kind field rules. **Authorization is structural:** a KEL, IEL, or SEL event
+is authorized by its own key state, its identity's threshold, or its owner. Policy is a property of
+**documents**; see [`../../policy/policy.md`](../../policy/policy.md).
 
 ## Reading order
 
@@ -61,8 +60,7 @@ This composition is what makes the three-tier capability model uniform across pr
 
 ## Structural authorization — the three mechanisms
 
-Each primitive authorizes its own events structurally. There is no policy field on any chain
-event.
+Each primitive authorizes its own events structurally.
 
 - **KEL — a device's own key.** A KEL event is authorized by the key state the chain itself
   commits: a signing key (tier 1), a revealed rotation preimage (tier 2), a revealed rotation +
@@ -73,7 +71,7 @@ event.
   identity" is the roster, "how many must act for this kind of act" is the threshold vector.
 - **SEL — single-owner ownership.** A SEL is owned by exactly one IEL. Its events are authorized
   by that owner IEL: the owner's IEL event anchors the SEL event (commits to its SAID), and the
-  required count is set by the SEL event's kind. A SEL hosts no roster and no policy.
+  required count is set by the SEL event's kind. A SEL hosts no roster of its own.
 
 **The threshold vector and its floors.** Each IEL kind draws its required count from one slot of
 the vector: content (`Ixn`) from `t_use`; a roster/threshold change (`Evl`) from `t_govern`; a
