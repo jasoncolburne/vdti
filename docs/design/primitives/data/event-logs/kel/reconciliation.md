@@ -18,10 +18,10 @@ All three matrices depend on the same protocol-enforced invariants, stated next.
 
 The cases below depend on these protocol-enforced invariants. They are stated structurally — the protocol's safety claims hold *by construction*, not by observation.
 
-1. **Seal-advance cap compliance.** Every KEL has a seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`) at least every `MINIMUM_PAGE_SIZE − 2 = 62` non-seal-advancing events. Surfaced by the verifier and enforced by the merge handler. See [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
-2. **Bounded divergence.** A fork can only form after the last seal-advancing event (forking before triggers `SiblingLocked` per the locked-portion bound). Combined with invariant 1, divergence spans at most 62 events from the fork point. An adversary holding less than the rotation-key preimage can only submit `Ixn` events, so the seal-advance cap limits them to at most 62 events before they need a seal-advancing primitive — which requires tier-2 or tier-3 capability per [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model).
-3. **Bounded operations.** A recovery batch (`[Rec, ?Rot]` plus the retained-branch context) is at most 64 events; the archival window is at most 62 events. Both fit in one `MINIMUM_PAGE_SIZE`-bounded page.
-4. **A privileged divergence is terminal; a content divergence is repairable.** A privileged event (`Rot` / `Ror` / `Fed` / `Dec`) that would create or join a divergence does **not** extend the canonical chain — it is retained as non-canonical evidence (keep-all-data) rather than discarded. A fork with **at most one** privileged branch is **reconcilable** (`forked:`, repaired by `Rec`); a fork with **two or more** privileged branches past it is **terminal** (`disputed:`, reincept). Any verifier reads which by a data-local walk over the retained branches. See [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
+1. **Seal-advance cap compliance.** Every KEL has a seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`) at least every `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. Surfaced by the verifier and enforced by the merge handler. See [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
+2. **Bounded divergence.** A fork can only form after the last seal-advancing event (forking before triggers `SiblingLocked` per the locked-portion bound). Combined with invariant 1, divergence spans at most 64 events from the fork point. An adversary holding less than the rotation-key preimage can only submit `Ixn` events, so the seal-advance cap limits them to at most 64 events before they need a seal-advancing primitive — which requires tier-2 or tier-3 capability per [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model).
+3. **Bounded operations.** A recovery batch (`[Rec]` plus the retained-branch context) fits in one `MINIMUM_PAGE_SIZE`-bounded page: the retained branch (≤ 64, the fold) plus the `Rec`. The archival tails are committed in the `Rec`'s `folded.forks[]` and validated by-commitment, not held in the page.
+4. **A privileged divergence is terminal; a content divergence is repairable.** A privileged event (`Rot` / `Ror` / `Fed` / `Dec`) that would create or join a divergence does **not** extend the canonical chain — it is retained as non-canonical evidence (keep-all-data) rather than discarded. A fork with **at most one** privileged branch is **reconcilable** (`forked:`): a `Rec` keeps the single privileged-or-content branch and archives the **content-only** rest — and a privileged branch is kept only by **its author** (a `Rec` that would archive a privileged branch is rejected). A fork with **two or more** privileged branches past it is **terminal** (`disputed:`, reincept). Any verifier reads which by a data-local walk over the retained branches. See [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
 5. **Locked-portion bound is unconditional.** Every event class is subject to the seal-cap: `event.parent.serial >= seal_serial`. Stale-authority revival is structurally impossible; a valid fork below the seal is retained as evidence, never extended onto.
 
 These invariants make synchronous resolution, single-page discriminator walks, and atomic batched submissions feasible. The page-plus-resume-verify discriminator pattern relies on invariants 1–3. The proof matrices below rely on invariants 4–5.
@@ -46,12 +46,12 @@ The per-node state enumeration covers every shape that can arise under the merge
 
 What happens when a client submits events to the merge engine on a single node. Each cell names the outcome (per [`merge.md` §Merge outcomes](merge.md#merge-outcomes)) and the structural reason.
 
-| Chain state | `Ixn` | `Rot` | `Ror` / `Fed` | `Rec` (with optional `Rot`) | `Dec` |
+| Chain state | `Ixn` | `Rot` | `Ror` / `Fed` | `Rec` | `Dec` |
 |---|---|---|---|---|---|
 | **Empty** | Reject (no KEL) | Reject | Reject | Reject | Reject |
 | **Active** | Append ✓ | Append ✓ (linear extension; valid fork at `v_{d-1}` retained as evidence per invariant 4) | Append ✓ (linear extension; divergence-creating shape retained as evidence) | Append ✓ (gossip-sync of recovered chains lands cleanly) | Append ✓ → Decommissioned (linear); divergence-creating shape retained as evidence |
 | **Active, sealed** (parent at-or-before `lastSealAdvancingEvent`) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
-| **Divergent** (frozen) | `RecoverRequired` | `SiblingLocked` (invariant 4 — retained as evidence) | `SiblingLocked` (invariant 4 — retained as evidence) | **Recovered** ✓ (discriminator runs; archival tails committed in `folded.forks[]`) | `SiblingLocked` (invariant 4 — retained as evidence) |
+| **Divergent** (frozen) | `RecoverRequired` | `SiblingLocked` (invariant 4 — retained as evidence) | `SiblingLocked` (invariant 4 — retained as evidence) | **Recovered** ✓ if the archival tails are content-only (committed in `folded.forks[]`); **rejected → `disputed:`** if any tail holds a privileged event | `SiblingLocked` (invariant 4 — retained as evidence) |
 | **Divergent (sealed)** | `SiblingLocked` | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
 | **Recovered** | Same as Active | Same as Active | Same as Active | Same as Active | Same as Active |
 | **Decommissioned** | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` |
@@ -66,7 +66,7 @@ What happens when a client submits events to the merge engine on a single node. 
 
 The merge engine handles batches atomically:
 
-- **`[events ..., Rec, ?Rot]`** — the retained-branch context plus the recovery primitive. At most 64 events (bounded by the seal-advance cap). Processed as a single overlap or divergent submission; the `Rec` commits the archival tails to its `folded.forks[]` synchronously.
+- **`[events ..., Rec]`** — the retained-branch context plus the `Rec`. The retained branch (≤ 64) plus the `Rec` fits one page. Processed as a single overlap or divergent submission; the `Rec` commits the archival tails to its `folded.forks[]` synchronously.
 - **`[Rot, Ixn]` or `[Ror, Ixn]`** — auto-inserted by the builder when an `Ixn` would exceed the seal-advance cap interval. `Rot` is the cheaper choice; `Ror` is selected when the operator's recovery-preimage rotation cadence guidance calls for it.
 - **`[Fcp, Fed]` plus the federation IEL `Icp` and receipts** — the founder bootstrap atomic batch. The KEL events land alongside the federation IEL `Icp` (a federation is an ordinary IEL) and the cross-attestation receipts in a single transaction. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent sub-issue) for the bootstrap protocol.
 
@@ -79,7 +79,7 @@ When node A propagates a KEL to node B, the transfer reads from A's local chain 
 | Source | Sink: Empty | Sink: Active (retained) | Sink: Active (alternate) | Sink: Divergent | Sink: Decommissioned |
 |---|---|---|---|---|---|
 | **Active** | Full chain appended ✓ | Duplicates; no-op ✓ | Overlap → Divergence | `RecoverRequired` | `SiblingLocked` |
-| **Recovered** | Full clean chain ✓ | `Rec` + optional `Rot` append ✓ | Overlap → `Rec` in batch → Recovery ✓ | `RecoverRequired` (sink awaiting recovery) | `SiblingLocked` |
+| **Recovered** | Full clean chain ✓ | `Rec` append ✓ | Overlap → `Rec` in batch → Recovery ✓ | `RecoverRequired` (sink awaiting recovery) | `SiblingLocked` |
 | **Divergent (unrecovered)** | Reordered: longer chain plus fork event ✓ | Fork event creates overlap → Divergence | Fork event creates overlap → Divergence | Effective SAIDs match (`forked:{prefix}`) ✓ | `SiblingLocked` |
 | **Decommissioned** | Full chain plus `Dec` ✓ | `Dec` appends ✓ | Overlap; `Dec` in chain ✓ | `RecoverRequired` | Effective SAIDs match (`Dec.said`) ✓ |
 
@@ -170,11 +170,11 @@ Both paths produce identical per-node structural outcomes (matrix above) and res
 
 ## Archival bounds
 
-The `Rec` commits the archival tails it resolves to its `folded.forks[]` synchronously within the merge transaction that accepts the `Rec` (or `[Rec, Rot]`) batch. No background task, no async processing.
+The `Rec` commits the archival tails it resolves to its `folded.forks[]` synchronously within the merge transaction that accepts the `Rec` batch. No background task, no async processing.
 
 | Metric | Bound | Source |
 |---|---|---|
-| Archival-tail events committed to `folded.forks[]` | ≤ 62 | Seal-advance cap limits fork distance (invariant 1). |
+| Archival-tail events committed to `folded.forks[]` | ≤ 64 | Seal-advance cap limits fork distance (invariant 1). |
 | Resolution scope | Single transaction | Synchronous in merge; bounded by `MINIMUM_PAGE_SIZE` (invariant 3). |
 | Retained-branch events never archived | ✓ | Retained branch identified by walkback from `Rec.previous` per the discriminator (see [`merge.md` §Discriminator algorithm](merge.md#discriminator-algorithm)). |
 
@@ -182,19 +182,11 @@ Committed content (`folded.canonical`, the `Rec`'s `folded.forks[]`) is **retain
 
 ## Edge cases
 
-### 1. Rec landing as normal append (no divergence)
+### 1. A `Rec` requires a divergence to resolve; recovery commitments stay fresh
 
-A submitter with the recovery key submits `Rec` to a non-divergent chain (normal append, no divergence). This reveals the recovery key. Any future divergence at or after this `Rec` is unrecoverable per-node: the recovery key is spent, content forks that form cannot be repaired, and a privileged event that would create or join the divergence is retained as evidence per invariant 4 (never a canonical extension). Operator recourse is abandon-and-reincept under a new prefix.
+A `Rec` on a **non-divergent** tip is **rejected** — it carries empty `folded.forks[]`, and a repair must commit the divergence it resolves ([`merge.md` §Kind-specific authorization](merge.md#4-kind-specific-authorization), [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)). So a recovery-key holder cannot "spend" the recovery preimage on a clean chain by appending a bare `Rec`. And a `Rec` that *does* resolve a divergence commits a **fresh** `recoveryHash` (it reveals the current preimage and commits a new one — [`recovery.md` §Rec versus Ror](recovery.md#rec-versus-ror--reactive-versus-proactive)), so the chain stays recoverable afterward.
 
-```
-Pre-state (linear chain through v_N):
-  v_0 → v_1 → ... → v_N   (tip at v_N; seal at last recovery-revealing event ≤ N)
-
-A recovery-key holder submits rec with previous = v_N.said (dual-sig satisfied):
-  v_0 → ... → v_N → rec_x  (v_{N+1}; seal advances to N+1)
-
-Effect: chain stays linear; seal advances to N+1; recovery key now spent for this chain. A privileged event extending v_N.said arriving via gossip is retained as non-canonical evidence (invariant 4) — its acceptance as a canonical sibling would form a divergence containing a privileged branch. Cross-node privileged-vs-privileged races read disputed: data-locally. A competing Rec against v_N is rejected by the locked-portion bound; non-privileged extensions submitted at serial ≤ N+1 are rejected with SiblingLocked (seal-cap).
-```
+The genuinely-unrecoverable states are a **tier-3 compromise** (the adversary holds both preimages) and a **`disputed:`** prefix (≥ 2 privileged branches past a fork) — both → reincept, neither produced by a clean `Rec`. The recovery preimage degrades only through a recovery-revealing event that **also re-commits** a successor, so "the recovery key is spent" never leaves the chain without a forward recovery commitment.
 
 ### 2. Multiple competing content events injected across nodes
 
@@ -211,7 +203,7 @@ Different events submitted at v_d on each node:
   Node A receives ixn_a:  v_0 → ... → v_{d-1} → ixn_a @ v_d
   Node B receives ixn_b:  v_0 → ... → v_{d-1} → ixn_b @ v_d
 
-Gossip propagates ixn_a → B, ixn_b → A. Each node's merge engine observes overlap at v_d and writes the second event as the fork event (one extra event per overlap; dedup-rejection on subsequent submissions at the same serial):
+Gossip propagates ixn_a → B, ixn_b → A. Each node's merge engine observes overlap at v_d and writes the second event as the fork event (one extra canonical branch per overlap; a byte-identical re-submission dedups, a further distinct event is retained as non-canonical evidence):
 
   Both nodes:  v_0 → ... → v_{d-1} ─┬─ ixn_a @ v_d   (Divergent, forked: — frozen)
                                     └─ ixn_b @ v_d

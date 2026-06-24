@@ -72,7 +72,7 @@ KEL verification validates anchor **format** only — each entry is a SAID-shape
 
 The federation context lives in two top-level fields plus the `witnesses` manifest role, on the kinds that establish or change it. `federation` is the federation IEL **prefix** (which federation — it follows the federation's evolution); `federationPin` is a **SAID** pinning the as-of federation position; the `witnesses` role commits the witness-config SAD `{ threshold, signers }`. The exact req / fbd / opt per kind is the [event-shape reference](../event-shape.md#kel)'s; the carriers are `Icp` and `Fed`, with `Rot` / `Ror` inheriting the most-recent prior context and `Fcp` / `Ixn` / `Rec` / `Dec` carrying none.
 
-A `Fed` event **mutates federation context** and must change at least one of (`federation`, `witnesses`); a `Fed` that changes neither is a no-op and is rejected. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap ceremony, the founder Fed-at-v=1 pattern, and the inter-federation re-binding mechanics. Because a founder `Fed`'s `federation` binding is the federation IEL's prefix and its `federationPin` is that IEL's inception position, `Fed` is structurally tier-3 — matching the federation IEL `Icp`'s tier-3 establishment.
+A `Fed` event **mutates federation context** and must change at least one of (`federation`, `witnesses`); a `Fed` that changes neither is a no-op and is rejected. See [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap ceremony, the founder Fed-at-v=1 pattern, and the inter-federation re-binding mechanics. Like the other recovery-revealing kinds, `Fed` is dual-signed — it rotates the signing **and** recovery keys — so it is structurally **tier-3**; this is a property of `Fed`'s own signature shape, independent of the federation IEL's own tier (an IEL `Icp` is tier-2).
 
 ## Authorization and signature shapes
 
@@ -127,11 +127,11 @@ The verifier seeds tracked `rotationHash` / `recoveryHash` from the inception ev
 
 KEL has one protocol-enforced cap (the seal-advance cap) plus operator guidance on recovery-preimage rotation cadence.
 
-**Seal-advance cap (protocol-enforced).** A seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`; the terminal `Dec` also advances the seal but ends the chain) must land at least every `MINIMUM_PAGE_SIZE − 2 = 62` non-seal-advancing events. The cap bounds the chain-state-advance window: divergence on a chain since the last seal-advancing event is capped at 62 events on either branch, so the discriminator's archival window fits in one page. The `− 2` headroom accommodates an atomic 2-event lifecycle batch — `[Rec, Rot]` (recovery followed by the conditional rotation when the archived branch had rotated past the surviving one) — in one `MINIMUM_PAGE_SIZE`-bounded page on every conformant deployment. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
+**Seal-advance cap (protocol-enforced).** A seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`; the terminal `Dec` also advances the seal but ends the chain) must land at least every `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The cap bounds the **fold** — the content run since the last seal — to 64 events on a branch, so a divergence-and-repair fits in one page. The `− 1` headroom accommodates the single-event repair (`Rec`) appended after a full fold: the discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are committed in `folded.forks[]` and validated by-commitment. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Recovery-preimage rotation (operator guidance).** Operators SHOULD rotate the recovery-key preimage commitment via `Ror` periodically. Cadence depends on the operator's threat model, custody arrangement (cold storage versus active HSM), and acceptable preimage-staleness exposure; the protocol does not enforce a specific number. Recovery keys are typically hardware-held and preimage-identified rather than usage-degraded, so protocol-forced cadence would impose access on cold-stored or separated-custody recovery keys on a fixed schedule the operator's threat model is designed to avoid.
 
-**Adversary bound.** The seal-advance cap bounds an adversary's fork at 62 events before they must produce a seal-advancing event — which requires at least tier-2 capability (rotation-key preimage for `Rot`) or tier-3 capability (rotation + recovery preimages for `Ror` / `Fed`). A tier-1 adversary lacking the rotation preimage cannot extend beyond the cap. Builders should auto-insert `Rot` when an `Ixn` would exceed the cap; the operator's recovery-preimage rotation cadence guidance selects `Ror` over `Rot` when the operator wants to refresh the recovery-key preimage commitment.
+**Adversary bound.** The seal-advance cap bounds an adversary's fork at 64 events before they must produce a seal-advancing event — which requires at least tier-2 capability (rotation-key preimage for `Rot`) or tier-3 capability (rotation + recovery preimages for `Ror` / `Fed`). A tier-1 adversary lacking the rotation preimage cannot extend beyond the cap. Builders should auto-insert `Rot` when an `Ixn` would exceed the cap; the operator's recovery-preimage rotation cadence guidance selects `Ror` over `Rot` when the operator wants to refresh the recovery-key preimage commitment.
 
 ## Per-kind sort priority
 
@@ -186,12 +186,12 @@ s2   kind=rot  publicKey=k1,  rotationHash=h(k2),            ← reveals k1; sig
                 previousSeal=icp.said,  manifest={ folded }
 s3   kind=ixn  manifest={ anchors: [said_b, said_c] }        ← batched; signed by k1
 ...
-s62  kind=ror  publicKey=kN,  recoveryKey=r0,                ← proactive recovery-rotation
+s64  kind=ror  publicKey=kN,  recoveryKey=r0,                ← proactive recovery-rotation
                 rotationHash=h(kN+1), recoveryHash=h(r1),       signed by kN + r0
                 previousSeal=<prior seal>.said, manifest={ folded }
 ```
 
-The `Rot` at s2 is the first seal, so `previousSeal = icp.said` (the spine root); each later seal back-links to its predecessor. `Ror` at s62 keeps the chain inside the seal-advance cap. A `Rot` at s62 would also satisfy the cap; an operator who wants to refresh the recovery-key preimage commitment chooses `Ror` per their operator-guidance cadence.
+The `Rot` at s2 is the first seal, so `previousSeal = icp.said` (the spine root); each later seal back-links to its predecessor. `Ror` at s64 keeps the chain inside the seal-advance cap. A `Rot` at s64 would also satisfy the cap; an operator who wants to refresh the recovery-key preimage commitment chooses `Ror` per their operator-guidance cadence.
 
 ### Divergence resolved by recovery
 

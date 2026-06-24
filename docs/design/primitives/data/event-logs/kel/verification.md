@@ -282,7 +282,7 @@ KEL verification follows the cross-primitive streaming pattern. The verifier wal
 
 ### Paginated verification helper
 
-`completed_verification(loader, prefix, page_size, max_pages, anchors)` pages through a `PageLoader`, calling `truncate_incomplete_generation()` at page boundaries to handle divergent generations that span pages. Returns a trusted `KelVerification` token. The `max_pages` parameter prevents resource exhaustion (default 64 pages ≈ 2K events; configurable via env var).
+`completed_verification(loader, prefix, page_size, max_pages, anchors)` pages through a `PageLoader`, calling `truncate_incomplete_generation()` at page boundaries to handle divergent generations that span pages. Returns a trusted `KelVerification` token. The `max_pages` parameter prevents resource exhaustion (default 64 pages ≈ 4K events; configurable via env var).
 
 ### PageLoader
 

@@ -238,9 +238,11 @@ is spent (revealed by an `Ror` / `Rec` / `Fed` / `Dec`), it cannot be reused to 
 earlier divergence.
 
 **Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
-`MINIMUM_PAGE_SIZE − 2` non-seal-advancing events, so a recovery batch produced on any conformant
+`MINIMUM_PAGE_SIZE − 1` non-seal-advancing events, so a recovery batch produced on any conformant
 deployment fits in any other's single page (`MINIMUM_PAGE_SIZE` is a protocol constant, not a
-per-deployment knob; the `− 2` headroom accommodates a 2-event repair batch). On the IEL the cap is
+per-deployment knob; the `− 1` headroom accommodates the single-event repair — the discriminator's
+hot page is the retained branch plus the repair event, with the archival tails committed in
+`folded.forks[]` and validated by-commitment, not held in the page). On the IEL the cap is
 just as load-bearing: content (`Ixn` — the rail **issuance** rides, via `issues[]`) does **not**
 advance the seal, so trailing issuances accumulate and the seal lags the tip; without the cap the
 post-seal window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer
@@ -344,8 +346,13 @@ or a second privileged branch a one-branch holder detects once the beacon delive
 A **repair must commit the divergence it resolves.** Its `folded.forks[]` enumerates the archival
 tails — each a real branch from the correct ancestor — and a repair is **invalid on a non-divergent
 tip** (a `Rec` / `Rpr` with empty `forks[]` is rejected). The committed `forks[]` **are** the
-archival tails: a verifier validates a repair against the branches it commits, regardless of which
-others that verifier happens to hold. No non-repair event ever carries `forks[]`. A `{Dec, content}`
+archival tails, each validated **content-only**. A verifier validates the committed content tails even
+when it holds fewer than the author, but it never trusts `forks[]` as proof there are **no** privileged
+branches: it **independently** walks every branch off the retained walkback it holds (or the beacon
+enumerates) and **rejects a repair that would leave a privileged branch un-committed** — privileged
+branches are always retained (keep-all-data), so a `Rot` cannot be hidden by omitting it from `forks[]`
+and letting the repair seal past it. The verifier computes the archival set from the data, never from
+the submitter's enumeration. No non-repair event ever carries `forks[]`. A `{Dec, content}`
 race needs no repair: the `Dec` is the single privileged branch, so it wins on **tier-rank** — the
 chain decommissions and the losing content is non-canonical (and droppable). To resolve a content fork
 *and* decommission, repair first (the `Rpr` carries the `forks[]`), then the `Dec` lands cleanly on the

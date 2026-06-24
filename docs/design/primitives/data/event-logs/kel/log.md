@@ -70,13 +70,13 @@ Once a recovery-revealing event lands, the dual signature it proves is final. Su
 
 ## Seal-advance cap
 
-A seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`; the terminal `Dec` also advances the seal but ends the chain) must land at least every `MINIMUM_PAGE_SIZE − 2 = 62` non-seal-advancing events. The cap bounds the **chain-state-advance window**: divergence on a chain since the last seal-advancing event is capped at 62 events on either branch, so the discriminator's archival window fits in one page.
+A seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`; the terminal `Dec` also advances the seal but ends the chain) must land at least every `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The cap bounds the **fold** — the content run since the last seal — to 64 events on a branch, so a divergence-and-repair fits in one page (the retained branch plus the `Rec`).
 
-`MINIMUM_PAGE_SIZE` is a protocol constant — a deployment floor, not a per-deployment knob — so a recovery batch produced on any conformant deployment fits in one page on every other. The `− 2` headroom accommodates an atomic 2-event lifecycle batch: `[Rec, Rot]` (recovery followed by the conditional rotation when the archived branch had rotated past the surviving one) is the KEL worst-case shape and fits in one page on every conformant deployment.
+`MINIMUM_PAGE_SIZE` is a protocol constant — a deployment floor, not a per-deployment knob — so a recovery batch produced on any conformant deployment fits in one page on every other. The `− 1` headroom accommodates the single-event repair (`Rec`) appended after a full fold: the discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are committed in the `Rec`'s `folded.forks[]` and validated by-commitment, not held in the page.
 
 Recovery-preimage rotation cadence (how often `Ror` should land to refresh the commitment) is **operator guidance**, not a protocol-enforced cap — see [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 
-The seal-advance cap composes with the divergence-and-repair rules to give the [bounded-divergence invariant](reconciliation.md#invariants): an adversary holding less than the rotation-key preimage can only submit `Ixn` events, and the cap limits them to at most 62 events before they must produce a seal-advancing event (which requires at least tier-2 capability — see [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model)).
+The seal-advance cap composes with the divergence-and-repair rules to give the [bounded-divergence invariant](reconciliation.md#invariants): an adversary holding less than the rotation-key preimage can only submit `Ixn` events, and the cap limits them to at most 64 events before they must produce a seal-advancing event (which requires at least tier-2 capability — see [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model)).
 
 ## Page model
 
@@ -86,7 +86,7 @@ Chains are read, verified, written, and replicated in **pages** of bounded size.
 - **Page boundaries align with generations.** A generation is the set of events at the same serial. The verifier processes events in generation order (`serial ASC, kind sort_priority ASC, said ASC`) and re-fetches an incomplete generation at the next page boundary; a divergent generation that spans two pages re-fetches on the next page rather than being processed half-observed.
 - **Deterministic intra-generation ordering.** Per-kind `sort_priority` (see [`events.md` §Per-kind sort priority](events.md#per-kind-sort-priority)) breaks intra-generation order so all nodes process the same batch identically. The `said` tiebreaker is for determinism only and has no semantic meaning.
 
-The page model lets every operation be bounded-resource. The discriminator's archival window fits in one page (per the seal-advance cap derivation above). The verifier's `max_pages` cap (default 64 pages = ~2K events; configurable via env var) caps resource use even on adversarial chains.
+The page model lets every operation be bounded-resource. The discriminator's hot page — the retained branch plus the `Rec` — fits in one page (per the seal-advance cap derivation above). The verifier's `max_pages` cap (default 64 pages ≈ 4K events; configurable via env var) caps resource use even on adversarial chains.
 
 ## Chain-lifecycle paths (per-node)
 

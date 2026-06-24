@@ -10,17 +10,17 @@ The defense surface KEL recovery covers is structured by tier — the cryptograp
 
 | Tier | Adversary holds | Adversary can forge | Defense |
 |---|---|---|---|
-| 1 | Current signing key. | `Ixn`. | Rotate out via `Rot` (single-sig under the new signing key the rotation preimage reveals). |
-| 2 | Rotation-key preimage alone. | `Rot`. | Rotate-recovery via `Ror` (dual-signed) before the adversary rotates. Once the adversary's `Rot` lands, the new signing key is the rotation preimage they hold — recovery via `Rec` against the parent's `recoveryHash` remains because the recovery-key preimage is a distinct commitment. |
+| 1 | Current signing key. | `Ixn`. | A forked content branch is archived by `Rec` (content is archivable — this is what the recovery reserve defends); a linear takeover is rotated out via `Rot`. |
+| 2 | Rotation-key preimage alone. | `Rot`. | **Proactive only:** rotate-recovery via `Ror` *before* the adversary rotates, retiring the preimage they hold. Once their `Rot` lands it is a privileged event no repair can archive → **reincept** (the reserve defends the signing key, not the rotation key). |
 | 3 | Rotation-key preimage AND recovery-key preimage. | `Ror` / `Rec` / `Fed` / `Dec`. | No in-band recourse. The protocol provides no recovery primitive against tier-3 compromise; defense is operational (custody separation, threshold redundancy at the IEL layer, abandon-and-reincept). |
 
-The protocol's recovery primitives — `Rec` and `Ror` — close the **tier-1 and tier-2 adversarial surfaces**. They do not close tier-3 compromise; tier-3 defense is the responsibility of the layers composed above KEL (IEL governance with threshold redundancy across distinct custodians; see [§Limit of the doctrine — current-state compromise](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)).
+The protocol's recovery primitive `Rec` closes the **tier-1 (content) surface** — it archives an adversary's content branch, which is what the recovery reserve defends: the **signing** key, never the rotation key. Tier-2 is defended only **proactively** (`Ror` before the adversary rotates); once an adversary `Rot` lands it is a privileged event no repair can archive → **reincept**. Tier-3 has no in-band defense. Post-rotation tier-2 and tier-3 defense is the responsibility of the layers composed above KEL (IEL governance with threshold redundancy across distinct custodians; see [§Limit of the doctrine — current-state compromise](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)).
 
 ## Rec versus Ror — reactive versus proactive
 
 KEL has two distinct recovery primitives. They are not interchangeable.
 
-- **`Rec` is reactive.** Used to resolve an already-divergent chain. `Rec` keeps the repairing branch and archives the rest (the archival tails, committed in its `folded.forks[]`), and returns the chain to Active. Reveals the recovery-key preimage as a side effect of dual-signing; once revealed, the recovery key is spent for this chain.
+- **`Rec` is reactive.** Used to resolve an already-divergent chain. `Rec` keeps the repairing branch and archives the rest — **content-only** archival tails, committed in its `folded.forks[]` (a privileged event in any tail makes the fork terminal → reincept, never archived) — and returns the chain to Active. Reveals the current recovery-key preimage as a side effect of dual-signing: that preimage is spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so the chain stays recoverable.
 - **`Ror` is proactive.** Used pre-emptively — to rotate both signing and recovery keys for forward-secrecy hygiene, or to refresh the recovery-key preimage commitment per operator cadence guidance. `Ror` is not divergence-driven; it lands as a linear extension of a non-divergent chain.
 
 Both reveal the current recovery-key preimage and commit a new one (`Ror` and `Rec` both populate `recoveryKey` + `recoveryHash`). The difference is structural lifecycle role:
@@ -42,16 +42,15 @@ The dual-signature requirement is what makes these events structurally tier-3:
 
 This is the structural property that makes recovery a real cryptographic boundary, not a policy convention. A party who lacks the recovery-key preimage cannot produce a `Rec` against the parent's commitments, regardless of what other key material they hold.
 
-### Recourse against tier-2 `Rot` takeover
+### A tier-2 `Rot` takeover is the point of no return
 
-When an adversary holds the rotation-key preimage and lands `Rot_adversary` at `v_N` to take over the chain, the legitimate party's recourse is `Rec` extending the divergence ancestor at `v_{N-1}` (the divergence-ancestor-extending shape; see [§Rec parent shapes](#rec-parent-shapes) below). The dual signature on `Rec` is against `v_{N-1}`'s commitments:
+When an adversary holds the rotation-key preimage and lands `Rot_adversary` at `v_N`, the chain is **the attacker's** — there is **no in-band recourse**; the legitimate party **reincepts** (for a delegated KEL, the delegator `Kil`s it instead). The recovery reserve defends the **signing** key (a tier-1 content compromise), **not** the rotation key. Three structural facts close every escape:
 
-- The rotation preimage at `v_{N-1}` is revealed by the adversary's `Rot_adversary` at `v_N` — both parties have it. The legitimate party's signature under the new signing key validates structurally.
-- The recovery preimage at `v_{N-1}` is **not** revealed by `Rot` (`Rot` populates `rotationHash` only; `recoveryHash` is unchanged). Only the legitimate party — who prepared the recovery commitment at `v_{N-1}`'s parent — holds the recovery preimage. The adversary cannot produce the recovery signature.
+- **`Rec` cannot archive the `Rot`.** `Rot_adversary` is a privileged event, and only content (`Ixn`) is archivable ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1). A `Rec` that committed `Rot_adversary` to its `folded.forks[]` would archive a privileged event — forbidden, and **identity-blind on purpose**: if a recovery-key holder could archive "the adversary's" `Rot`, they could archive **any** `Rot` (including a legitimate operator's), resurrecting retired key material — the backdate surface vdti closes by treating `Rot` as a privileged branch (never archivable).
+- **The seal-cap blocks a repair at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it advances the seal to `v_N`; a `Rec` targeting `v_{N-1}` is then below the seal → `SiblingLocked` ([§Repair-event bound](#repair-event-bound-condition-2b)). The legitimate party cannot even submit it.
+- **A competing `Rot` is a second privileged branch.** A `Rot_legitimate` extending `v_{N-1}` lands as a sibling of `Rot_adversary` — two privileged branches → `disputed:`, terminal ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
 
-The legitimate party's `Rec` lands at `v_N`; the merge layer keeps the legitimate branch and commits the adversary's branch (now an archival tail) in the `Rec`'s `folded.forks[]`; the chain recovers, linear, tip = `Rec` at `v_N`. The chain shape after recovery has the legitimate party's keys current and the adversary's keys retired.
-
-The legitimate party does **not** respond by submitting a competing `Rot` extending `v_{N-1}`. Such a `Rot_legitimate` would land as a sibling of `Rot_adversary` (both privileged) — a second privileged branch, which is **terminal** ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)); the merge layer declines to extend the canonical chain onto it (it is retained as evidence, not a canonical sibling). The `Rec` response routes through the repair path and preserves the recovery.
+The legitimate party *does* hold the recovery preimage the adversary lacks (the dual-signature crypto boundary above) — but that buys nothing here, because there is no permitted move to spend it on. The **only** tier-2 defense is therefore **proactive**: rotate-recovery via `Ror` *before* the adversary rotates, retiring the preimage they hold. Once their `Rot` lands, survivability is decided one layer up — IEL threshold redundancy evicts the compromised member via a `Evl` ([§Defense layers above KEL](#defense-layers-above-kel)) — never by salvaging this chain.
 
 ## Locked-portion bound makes recovery cross-node-validatable
 
@@ -96,7 +95,7 @@ Post-state (linear, recovered):
                   other branch committed in rec.folded.forks[]
 ```
 
-The submitter (whoever holds the recovery key) keeps the branch they authored as the retained branch; `Rec` extends it. The merge layer walks back from `Rec.previous` to identify the retained branch and commits everything at `serial >= d` not on that walkback to `folded.forks[]`.
+The submitter (whoever holds the recovery key) keeps the branch they authored as the retained branch; `Rec` extends it, committing everything at `serial >= d` not on that walkback to `folded.forks[]`. The merge layer then **independently** identifies the retained branch by walking back from `Rec.previous` and **validates** the committed `forks[]` against the branches off that walkback that it holds — content-only, rejecting the `Rec` if any is privileged. It never trusts the submitter's enumeration.
 
 ### Divergence-ancestor-extending shape
 
@@ -122,21 +121,6 @@ The divergence-ancestor-extending shape is the structural primitive that gives r
 ### Routing through the discriminator
 
 Both parent shapes route through the merge layer's discriminator. `Rec` is the repair kind, not a privileged extension — its acceptance resolves the divergence rather than producing one. A privileged event (`Rot` / `Ror` / `Fed` / `Dec`) sharing the divergence-ancestor-extending parent shape (`previous = v_{d-1}.said`) on a chain with an existing event at `v_d` is declined as a canonical extension per [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair); the kind discriminator (repair `Rec` versus privileged) determines whether the parent shape resolves the divergence or is retained as evidence.
-
-## Conditional `Rot` follow-up
-
-`Rec` reveals the rotation-key preimage that may be known to a second party (the preimage of the prior `rotationHash`). If the archived branch has already used it but the extending branch hasn't, the legitimate party's `Rec` extends from a position where the rotation preimage they reveal is still known to the second party. A follow-up `Rot` after `Rec` is needed to escape to a signing key only the `Rec` submitter knows.
-
-The rule: `needs_extra_rot = archived_branch_rotated && !extending_branch_rotated`. The truth table:
-
-| Extending branch rotated since divergence? | Archived branch rotated? | Extra `Rot` after `Rec`? |
-|---|---|---|
-| No | No | No |
-| No | Yes | **Yes** |
-| Yes | Yes | No |
-| Yes | No | No |
-
-The atomic batch `[Rec, Rot]` is the KEL worst-case recovery shape; the seal-advance cap reserves headroom (`MINIMUM_PAGE_SIZE − 2 = 62`) so this batch fits in one page on every conformant deployment. See [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 
 ## Pre-seal verifiability
 
@@ -180,7 +164,7 @@ When a data-local walk finds a prefix **disputed** (two or more privileged branc
 
 ## Defense layers above KEL
 
-KEL recovery closes the tier-1 and tier-2 surfaces structurally. The tier-3 surface is closed by the layers composed above KEL:
+KEL recovery closes the tier-1 (content) surface structurally; tier-2 is defended only **proactively** (`Ror` before the adversary rotates — once a `Rot` lands, the chain reincepts). The post-rotation tier-2 and tier-3 surfaces are closed by the layers composed above KEL:
 
 - **IEL threshold composition.** Threshold-redundant governance (`M > N` across distinct custodians, where `M` is the threshold count and the roster has more candidates than the threshold requires) tolerates single-KEL tier-3 compromise. The surviving members can rotate the compromised KEL out via the IEL's `Evl` event without losing the IEL prefix.
 - **Custody separation.** KEL-internal custody hygiene (recovery key on a different device, HSM-resident, ceremony-gated) raises the practical bar to acquire both rotation and recovery preimages simultaneously. This is operational hardening; the protocol is custody-agnostic.
