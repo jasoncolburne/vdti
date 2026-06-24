@@ -17,7 +17,7 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 | `Fed` | `vdti/kel/v1/events/fed` | privileged | 3 | Federation-binding mutation. Dual-signed; changes `federation` and/or `witnesses` (must change at least one). On Fcp-rooted chains, the v=1 `Fed` declares both for the first time — the founder-binding pattern. Seal-advancing. |
 | `Dec` | `vdti/kel/v1/events/dec` | terminal | 3 | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial. |
 
-The **class** column names the event's role under the [divergence-and-repair rules](../../../../protocol-doctrine.md#divergence-and-repair): only **content** (`Ixn`) is archivable; a **privileged** event is never archived or overturned; the **repair** kind (`Rec`) resolves a divergence; the **terminal** kind (`Dec`) ends the chain. The **tier** column names which key material is required to forge the event — see [§Three-tier capability model](#three-tier-capability-model).
+The **class** column names the event's role under the [divergence-and-repair rules](../../../../protocol-doctrine.md#divergence-and-repair): only **content** (`Ixn`) is archivable. Everything above tier 1 is **privileged** — never archived or overturned — including the **repair** kind (`Rec`, which also resolves a divergence) and the **terminal** kind (`Dec`, which also ends the chain); so a branch carrying a `Rec` or a `Dec` counts as privileged in the divergence walk just as a `Rot` branch does. The **tier** column names which key material is required to forge the event — see [§Three-tier capability model](#three-tier-capability-model).
 
 ## Two-kind inception
 

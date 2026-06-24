@@ -60,7 +60,7 @@ A `Rec` extending `v_{d-1}` therefore validates uniformly:
 
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
 - The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on every node.
-- The repair's resolution (which events at `serial >= d` it commits to `folded.forks[]`) is uniform: archive everything at `serial >= d` not on the `Rec.previous` walkback.
+- The repair's resolution (which events at `serial >= d` it commits to `folded.forks[]`) is uniform: every node **independently computes the same archival set** — everything at `serial >= d` not on the `Rec.previous` walkback — rather than trusting the submitter's `folded.forks[]`, and rejects the `Rec` if any of those branches is privileged. Independent computation is what makes the resolution identical on every node.
 
 This is what makes the divergence-ancestor-extending shape the structural primitive that solves cross-node propagation. A tip-extension or combined-digest approach would not have this property — the "tip" each node sees may differ across the divergence, and an attempt to recover by extending a tip would commit to a node-local choice the rest of the federation can't replicate. A repair attaching at the submitter's own tail instead is validated against that retained tail plus the committed `forks[]` (fetched via keep-all-data / the beacon) — also cross-node-checkable, but only the `v_{d-1}` attach needs no fetch.
 
