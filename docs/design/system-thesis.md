@@ -14,8 +14,8 @@ Terms used throughout, briefly:
 System state lives in **append-only chains of cryptographically-linked events** that entities throughout the network hold and verify independently — no central authority, no trust by fiat. Each chain primitive plays a distinct structural role:
 
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
-- **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold vector** `{t_use, t_govern, t_delegate, t_recover}` — how many member devices must act for content, governance, delegation, and recovery respectively. An IEL carries **no policy**; a rule spanning several identities lives in the document policy layer, not on the chain. Identity is the unit at which credentials are issued.
-- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a **single-owner data log**: owned by exactly one IEL, carrying no policy and no roster of its own. Its events are authorized structurally by the owner IEL, which anchors them; it floors **up** to the owner IEL's current tip.
+- **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold vector** `{t_use, t_govern, t_delegate, t_recover}` — how many member devices must act for content, governance, delegation, and recovery respectively. A rule spanning several identities lives in the document policy layer. Identity is the unit at which credentials are issued.
+- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are authorized structurally by the owner IEL, which anchors them; it floors **up** to the owner IEL's current tip.
 
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized; cross-federation interop is by user-initiated transfer rather than implicit trust.
 
