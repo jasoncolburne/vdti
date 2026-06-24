@@ -180,7 +180,7 @@ other chains' authority. The per-primitive anchor matrix is in [`primitives/data
 
 #### Structural authorization
 
-**Chain events carry no policy.** Authorization is structural, per primitive:
+**Authorization is structural**, per primitive:
 
 - **KEL** — the device's own key state (tier 1/2/3 above).
 - **IEL** — a roster of member KELs plus a **threshold vector** `{t_use, t_govern, t_delegate,
@@ -555,8 +555,7 @@ detects the divergence by walking them. The federation's witness receipts **prop
 branches to nodes that have not yet received the events; they do not pronounce the verdict.
 
 The federation is **an ordinary (restricted) IEL** — there is no separate consensus algorithm and no
-central state machine. Its roster is **witness KELs directly** (no per-witness policy or identity
-wrapper); its kind set is restricted to `Icp` / `Evl` / `Dec` (no content, so it never has a **reconcilable**
+central state machine. Its roster is **witness KELs directly**; its kind set is restricted to `Icp` / `Evl` / `Dec` (no content, so it never has a **reconcilable**
 fork and needs no `Rpr`; a competing-privileged divergence — `{Evl, Evl}` / `{Dec, Dec}` under a
 partition — is still possible but **terminal** (`disputed:`), which is why a federation runs a hard
 recoverability floor and `|roster| >= 3` with serialized governance; no delegation, since trust is
@@ -693,8 +692,7 @@ A **structural** problem — an invalid chain, a divergence, broken linkage, tam
 mismatch — produces a descriptive **error**. A **non-structural** condition — a sought SAID not
 anchored, a document's policy unsatisfied, an expired credential — is returned as **contextual
 information** in the result, never raised. Callers must distinguish "the data is broken" from "the
-answer is no"; conflating them is a correctness and fail-secure hazard. (Chain events carry no
-policy, so there is no chain-layer "policy satisfaction" — document-policy evaluation is the policy
+answer is no"; conflating them is a correctness and fail-secure hazard. (Policy lives in the document layer, so there is no chain-layer "policy satisfaction" — document-policy evaluation is the policy
 layer's concern, [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md). The chain
 verifier reports structural validity and anchoring; the policy layer composes those token answers.)
 
@@ -762,7 +760,7 @@ history, no fork point, no serial:
   eclipsed to a malicious subset sees it after the heal. The federation **propagates** the branches;
   it is not the source of truth. The per-node state stays Active / Divergent / Decommissioned.
 
-There is **no per-node "contested" state and no third synthetic**: a reconcilable fork is `forked:`,
+There are exactly **two synthetics**: a reconcilable fork is `forked:`,
 and a fork the branch walk finds terminal (≥ 2 privileged branches → reincept) is `disputed:` — both
 computed **data-locally** from the retained branches (the beacon may deliver a missing branch, but the
 verdict is the walk's). The prefix-only shape is what lets two differently-forked nodes compute
