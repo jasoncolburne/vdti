@@ -228,7 +228,7 @@ Content rides the IEL `Ixn` rail (tier 1); a kill rides the IEL `Kil` rail (tier
 roster/threshold changes ride the IEL `Evl` rail. A SEL's **trust-finality** floors to the owner
 IEL's seal — it has no seal of its own for that; but its own seal-advancing kinds (`Pin` / `Rpr` /
 `Dec`) cap its **local divergence/repair window** and carry `previousSeal` + `folded` like any spine. Credential issuance, revocation, and status are a **feature** layered
-on the SEL primitive — [`features/credentials/`](../../../features/credentials/).
+on the SEL primitive — [`features/credentials/`](../../../features/credentials/) *(landed separately)*.
 
 ## Per-kind structural validation
 

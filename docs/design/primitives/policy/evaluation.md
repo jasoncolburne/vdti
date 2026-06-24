@@ -33,8 +33,8 @@ The two modes share their entire composing logic and differ only at the leaves.
 
   | | State | Proof that the party acted |
   |---|---|---|
-  | **as-issued** | the identity's members + threshold **as of the document's pin** | the **committed on-chain anchors** the pins reach — the proof is already in the chain |
-  | **current** | the identity's members + threshold **at the chain tip** | **live signatures** over a fresh, single-use **challenge** |
+  | **as-issued** | the identity's members + **`t_use`** threshold **as of the document's pin** | the **committed on-chain anchors** the pins reach — the proof is already in the chain |
+  | **current** | the identity's members + **`t_use`** threshold **at the chain tip** | **live signatures** over a fresh, single-use **challenge** |
 
   The `del(X, N)` leaf differs the same way, and is **bounded the same way** in both modes — the
   verifier walks **up** from the presented party at most `N` hops (and never beyond a verifier-wide
@@ -56,18 +56,29 @@ answer "is the issuer still trustworthy now." A forged extension of a dormant ch
 linear extension — there is no divergence for the as-issued path to notice — so as-issued alone
 can be fooled into honoring an issuer that has since been revoked, rescinded, or has diverged.
 
-Therefore **any trust-granting acceptance must run the as-issued resolution *and* a to-tip
-freshness step**: walk each contributing chain to its current tip and confirm the issuer is not
-revoked, not rescinded, and not divergent, and that the chain's current state is fresh (not stale
-per the federation's freshness signal). This loss-of-trust check is read against
-**multi-source / witnessed** current state, never a single source's possibly-stale claim — a
-single stale or malicious source could hide a revocation. The as-issued resolver alone is
-**insufficient** to grant trust; the to-tip step is what catches a since-revoked issuer or a
-forged dormant extension. A divergence it finds is read against the **seal**: a *recoverable*
-divergence blocks current trust only until its repair seals the surviving branch, a *terminal*
-(disputed) one blocks it permanently — but an as-issued anchor at-or-below the chain's last clean
-seal stays honorable either way (the suspect region is *above* the seal). The walk semantics and
-freshness rules are the verification doctrine's —
+Therefore the verifier does not return a bare yes/no — it **reports**, for each contributing chain,
+three things the caller composes:
+
+- **the anchor's status** — present, and at-or-below the chain's last clean **seal**, so its
+  as-issued validity is **final** and stays final regardless of any divergence later landing *above*
+  the seal;
+- **the current region** at and above the anchor — **trusted**, **forked** (a recoverable
+  divergence, pending its repair), or **disputed** (terminal); and
+- **freshness** — whether the chain's current state is fresh, read against **multi-source /
+  witnessed** state, never a single source's possibly-stale claim (a single stale or malicious
+  source could hide a revocation).
+
+So **as-issued validity** (*was this validly issued, as of its pin?*) is a separate question from
+**current trust** (*may I newly rely on this issuer now?*). A below-seal anchor is validly-issued
+**always**; granting *new* current trust additionally requires the current region to be **trusted**
+(not forked, not disputed) and the state fresh. "Not divergent" therefore means *no divergence
+reaching the anchor's at-or-below-seal region*, not *the chain carries no divergence anywhere*. The
+as-issued resolver alone is **insufficient** to grant current trust: a forged extension of a dormant
+chain is a clean linear extension (no divergence for the as-issued path to notice), so only the
+to-tip step surfaces a since-revoked issuer or a forged dormant extension — and only insofar as the
+consumer can **reach honest multi-source state** (detection is *eventual*; a consumer eclipsed to a
+malicious subset sees it after the heal — [`../../protocol-doctrine.md`](../../protocol-doctrine.md)
+§Federation convergence). The walk semantics and freshness rules are the verification doctrine's —
 [`../../protocol-doctrine.md`](../../protocol-doctrine.md).
 
 ## The verification-token interface — the seam to the primitives

@@ -9,7 +9,7 @@ alongside its content, the policy that authorizes it. This doc states the generi
 policy-bearing document shares — the two conditions it can carry, the pin that fixes its issuer
 context, and how that pin is anchored so it cannot name a more permissive past. The lifecycle of
 any specific document kind (how a **credential** is issued and revoked, for instance) is a feature
-layered above this one — see [`../../features/credentials/`](../../features/credentials/).
+layered above this one — see [`../../features/credentials/`](../../features/credentials/) *(a feature; landed separately)*.
 
 ## A document's two conditions
 
@@ -17,7 +17,7 @@ A policy-bearing document carries up to two policy references (each the SAID of 
 [`policy.md`](policy.md)):
 
 - **The authorizing condition — who could issue it.** When a single identity issues the document,
-  this condition is **structural**: the issuer's own IEL threshold authorizes the issuance, and
+  this condition is **structural**: the issuer's own IEL **`t_use`** threshold authorizes the issuance, and
   there is no policy expression to evaluate (the structural mechanism, [`policy.md`](policy.md),
   covers it). The condition becomes an explicit policy only when issuance **spans separate
   identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of three institutions) —
@@ -88,9 +88,10 @@ authorization.
 ## Recursive pinning
 
 A document issued under another document pins, just as a credential pins its issuer. A document
-`D` issued under credential `C` carries its own pin to `C`'s position; the verifier finds and
-verifies `C`'s context through that pin, and judges authority by `D`'s own anchoring position
-(verified `== pin`). The same append-only-chain-is-the-clock rule applies at every level.
+`D` issued under credential `C` carries its own pin to **its issuer's IEL position** prior to
+issuing `D` — the pin is always an issuer-IEL-event SAID (see **The pin**, above). `C`'s context is
+committed by, and found through, that position, since the issuer holds and anchored `C`; authority
+is judged by `D`'s own anchoring position (verified `== pin`). The same append-only-chain-is-the-clock rule applies at every level.
 
 ## Delegation in a document
 
@@ -99,10 +100,15 @@ A document may be authorized by a **delegate** of an identity — the `del(X, N)
 each hop's delegating link is recorded on the delegate's own identity, pinning up to `X`, so the
 verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
 never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
-furnishes nothing to prune. Per hop the verifier checks that the delegation was granted, that the
-grant has not been **rescinded** (a positive lookup, [`policy.md`](policy.md)), and that the
-document's anchoring position is an **ancestor of** the rescission cut-off (the grandfather rule:
-a document authored before trust was withdrawn stays valid; one authored after does not). To give
+furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and
+that the grant has not been **rescinded** (a positive lookup, [`policy.md`](policy.md)). The
+**grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock: the
+**issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor of
+the issuer's rescission cut-off; each **upstream hop** iff *that hop's committed grant position* is
+an ancestor of *that hop's* cut-off, on the granting delegator's chain. The document is authorized
+iff **every** hop is grandfathered. (A grant authored before trust was withdrawn at its hop stays
+valid; one that post-dates that hop's cut-off does not — and a cut-off can only move **earlier**, so
+a grant that looks grandfathered today can be cut tomorrow.) To give
 several delegators kill-authority over a document, issue it under a threshold spanning their
 legs, so every leg lands in the committed chain. The delegation mechanics — the delegate list, the
 rescission lookup, and the cut-off — are the IEL primitive's; see

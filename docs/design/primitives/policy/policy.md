@@ -53,16 +53,19 @@ M, w     ::= positive integers (≥ 1)
 N        ::= a positive integer (≥ 1) — a delegation hop count; del(X) abbreviates del(X, 1)
 ```
 
-Every counting threshold `M` is `≥ 1`; a zero threshold is satisfied by the empty set (a gate
-that authorizes nobody), so it is rejected. `and(...)` takes `≥ 2` sub-policies — a one-child
+Every counting threshold `M` is `≥ 1`; a zero threshold is **vacuously satisfied** — it requires no
+one to act, a **fail-open** gate — so it is rejected. `and(...)` takes `≥ 2` sub-policies — a one-child
 `and` is just the child, and an empty `and` is a vacuous gate — and is rejected otherwise.
 
 ### The leaves
 
 - **`id(X)` — an identity.** Satisfied when entity `X`'s identity is satisfied: the verifier
-  resolves `X`'s IEL (its member devices and its threshold over them) and checks that enough of
-  `X`'s devices acted. `id(X)` *defers to X*: it accepts whatever rule `X`'s own identity sets for
-  who acts as `X`, at `X`'s own threshold. This is the recursive base of the language — a policy
+  resolves `X`'s IEL (its member devices and its threshold vector) and checks that `X`'s **`t_use`**
+  quorum acted. `id(X)` resolves against the **use** slot in **both** evaluation modes — issuing a
+  document and presenting one are both *use* acts, not governance — so an author wanting a higher
+  bar composes `thr` / `and` over more independently-controlled identities rather than expecting
+  `id(X)` to mean `t_govern`. `id(X)` *defers to X*: it accepts whatever rule `X` sets for who acts
+  as `X`, at `X`'s own `t_use` threshold. This is the recursive base of the language — a policy
   that names other identities bottoms out in their IELs, which bottom out in member device keys.
 
 - **`del(X, N)` — a live delegate of `X`, within `N` hops.** Satisfied by a party that holds a
@@ -70,10 +73,13 @@ that authorizes nobody), so it is rejected. `and(...)` takes `≥ 2` sub-policie
   `X` in **at most `N` hops** (`del(X)` abbreviates `del(X, 1)` — a direct delegate). Whether each
   hop's delegation is still live is answered by a **positive lookup** — the verifier derives one
   address and reads it (present → rescinded; absent → live) — never by scanning a chain for the
-  absence of a rescission. The verifier walks up from the **presented party** (a delegator's
-  delegated set is unbounded and lives delegate-side, so it is never materialized); the walk is
-  bounded by `N` **and** by a verifier-wide depth/work cap, and exceeding **either** denies
-  (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates, not `X` itself. See
+  absence of a rescission. The verifier walks **up** from the **presented party** rather than
+  down from `X`: `X`'s *transitive* delegate closure (delegates of delegates …) is unbounded, so it
+  is never enumerated; instead the verifier follows the **one authorizing path the document
+  commits** (each hop a self-recorded `delegating` link pinning up toward `X` —
+  [`documents.md`](documents.md)), confirming each hop's grant against that delegator's `Del`
+  inclusion list (the positive lookup above). The walk is bounded by `N` **and** by a verifier-wide
+  depth/work cap, and exceeding **either** denies (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates, not `X` itself (a `Del` listing `X`'s own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)`). See
   [`documents.md`](documents.md) for how a delegate's authorizing chain is committed and walked.
 
 - **`pol(said)` — another policy.** Satisfied when the referenced policy is satisfied. This lets a
@@ -92,7 +98,9 @@ that authorizes nobody), so it is rejected. `and(...)` takes `≥ 2` sub-policie
 - **`and(e1, e2, …)` — all-of, over independent pools.** Satisfied when **every** listed
   sub-policy is satisfied. Where a threshold counts satisfiers over one combined pool, `and`
   requires each pool independently — the tool for separation of duties ("a board member **and** an
-  executive"), which a single threshold cannot express.
+  executive"), which a single threshold cannot express — though `and` yields **distinct** parties
+  only when its branches draw from disjoint pools ([Composition rules](#composition-rules)); over
+  overlapping pools one party can satisfy several branches.
 
 ## Composition rules
 
@@ -105,7 +113,10 @@ is evaluated (see [`evaluation.md`](evaluation.md)).
   id(B)])` is satisfiable by one controller who holds both `A` and `B`, and counts as two. An
   author who needs genuine multi-party assurance must name **independently-controlled**
   identities; the threshold enforces "two prefixes," not "two people." An identity reached more
-  than one way (named directly and again through a nested policy) is credited **once**.
+  than one way — named directly, again through a nested policy, or eligible in two of a threshold's
+  branches — is credited **once**, at its highest weight (Weight is per-identity-max, below). So a
+  `thr`'s count is over its branches ("M of the N sub-policies"), but **no single identity is
+  counted toward more than one of the satisfied branches** — a signer fills at most one slot.
 
 - **Weight is per-identity-max.** When an identity is reached through several weighted branches, it
   is credited **once, at its highest** weight — never summed across branches. One party cannot
@@ -121,6 +132,24 @@ is evaluated (see [`evaluation.md`](evaluation.md)).
   it does not recognize fails the **entire** policy closed — never ignores the unknown term and
   never credits its siblings. This is fail-secure and forward-compatible: a future addition cannot
   be silently dropped by an older verifier into a more-permissive evaluation.
+
+- **Evaluation is bounded by a verifier-wide budget.** A policy expands to a tree of fetched
+  sub-policies (`pol`) and nested composers. The reference graph is **acyclic by SAID** — a `pol`
+  cycle would be a Blake3 preimage cycle, infeasible to construct (the same argument as
+  [`documents.md`](documents.md)'s non-circular pinning) — so evaluation always **terminates**. Its
+  **cost** is bounded by one verifier-wide budget covering tree depth and breadth, total `pol`
+  fetches, and total `del` hops together; exceeding it **denies** (fail-secure). A reused `pol` is
+  **memoized** — evaluated once, not once per path.
+
+**Worked example — `thr` over multi-identity policies.** A branch can itself be a whole policy.
+`thr(2, [pol(A), pol(B), pol(C)])` means *any two of the three policies* are satisfied — and each
+may need many endorsers, so if `A` and `B` each require a 20-identity quorum, satisfying two of
+them takes about **40 signatures**. The distinct-identity rule applies **across the counted
+branches**: a signer counts toward **at most one** of them, so `A` and `B` cannot both reach quorum
+on the same signer. `and(A, B, C)`, by contrast, requires **all three** and lets a signer count
+toward several branches at once (overlap is allowed — disjoint the pools when separation matters).
+So `thr` = *M of the N policies, no signer double-counted across them*; `and` = *all of the
+policies, signers may overlap*.
 
 ## Forward references
 
