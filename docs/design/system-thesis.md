@@ -32,7 +32,7 @@ This is the property that justifies the architecture. **End-verifiability over d
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes that hold the same events. A divergence is resolved by **tier**: a content fork is repairable; a divergence with **two or more privileged branches** is *terminal* — there is no merge for it. Whether a fork is terminal is a **branch-level fact any verifier walks from the retained branches** (a node retains a competing branch as evidence rather than discarding it at the seal-cap), never a verdict delegated to the federation.
-- **The federation propagates.** Cross-node privileged-vs-privileged races still converge data-locally — the witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md)) **enumerate the competing branches** so a one-branch holder can fetch and walk them, but the verdict is the verifier's own. The federation delivers evidence; it does not decide.
+- **The federation propagates.** Cross-node privileged-vs-privileged races still converge data-locally — the witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md) — *landed separately*) **enumerate the competing branches** so a one-branch holder can fetch and walk them, but the verdict is the verifier's own. The federation delivers evidence; it does not decide.
 
 A single node can still *detect* a divergence it holds, but it forfeits the beacon's propagation and the witnessing freshness no single node can self-attest — so federations are not optional for end-verifiability.
 
@@ -75,7 +75,7 @@ Authority over a chain belongs only to its currently-tracked state. Past keys, p
 
 ### Divergence is resolved by tier; a divergent chain is frozen
 
-A chain that carries two distinct events at one serial is **frozen** until a repair resolves it — it accepts no new event of any kind in the meantime. Resolution is by **tier, not identity** — the chain cannot tell the operator from an attacker (both branches were authorized when they landed), so it decides by tier. Only content (`Ixn`) is archivable, so a repair keeps the at-most-one privileged branch — and **only its author can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact rather than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively, if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it can neither extend nor archive the privileged branch — and **reincepts**, the chain being the attacker's. A divergence with two or more privileged branches is terminal and recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between concurrent privileged submissions **converge data-locally** — keep-all-data retains the competing branch, so a node holds both and detects the divergence by walking them; the witness beacon propagates the branches to nodes that lack them, but does not decide the verdict.
+A chain carrying a **live** fork — two distinct events at one serial, at or above the seal — is **frozen** until a repair resolves it; it accepts no new event of any kind in the meantime (a below-seal straggler arriving after the chain sealed past it is retained as evidence, not a freeze). Resolution is by **tier, not identity** — the chain cannot tell the operator from an attacker (both branches were authorized when they landed), so it decides by tier. Only content (`Ixn`) is archivable, so a repair keeps the at-most-one privileged branch — and **only its author can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact rather than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively, if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it can neither extend nor archive the privileged branch — and **reincepts**, the chain being the attacker's. A divergence with two or more privileged branches is terminal and recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between concurrent privileged submissions **converge data-locally** — keep-all-data retains the competing branch, so a node holds both and detects the divergence by walking them; the witness beacon propagates the branches to nodes that lack them, but does not decide the verdict.
 
 → [`protocol-doctrine.md` §Divergence and repair](protocol-doctrine.md#divergence-and-repair).
 
@@ -93,25 +93,25 @@ KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, f
 
 ### Federation convergence
 
-Detection is **data-local**: a node retains a competing branch as evidence and walks the retained branches to decide whether a fork is terminal — even priv-vs-priv races converge this way. The federation's divergent witness receipts **propagate** the competing branches to a node that lacks them (and witnessing supplies freshness); they do not decide the verdict. End-verifiability over data-from-any-source rests on the data, with the federation as the propagation aid.
+Detection is **data-local**: a node retains a competing branch as evidence and walks the retained branches to decide whether a fork is terminal — even priv-vs-priv races converge this way. Retention is **bounded** (privileged branches to ≥ 2 per spine position; the uncommitted below-seal flood is droppable, since a privileged event re-validates from the spine, not from below-seal content), so keep-all-data is not keep-everything. The federation's divergent witness receipts **propagate** the competing branches to a node that lacks them (and witnessing supplies freshness); they do not decide the verdict. End-verifiability over data-from-any-source rests on the data, with the federation as the propagation aid.
 
-→ [`federation/witnessing.md`](federation/witnessing.md).
+→ [`federation/witnessing.md`](federation/witnessing.md) *(landed separately)*.
 
 ### Operational hardening composes on top
 
 Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the identity's membership); for high-stakes IEL identities this is load-bearing, not optional.
 
-→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md).
+→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md) *(landed separately)*.
 
 ### Cascade-reincept honesty
 
-Reincept is needed when the primitive itself is disputed at the federation layer — not when a referenced primitive is. The cascade rules:
+Reincept is needed when the primitive itself is **disputed** (a data-local verdict) — not when a referenced primitive is. The cascade rules:
 
 - **A disputed IEL** → every SEL bound to it that would forward-extend its binding must reincept under a new prefix.
 - **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
 - **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians absorb single-member disputes by evicting the disputed KEL via a `Gov`.
 
-The expensive case is federation-layer dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
+The expensive case is a dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
 
 → [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 

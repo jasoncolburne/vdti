@@ -113,7 +113,7 @@ holds only the manifest SAID; the grouped commitments live in the SAD, separatel
 | `content` | SEL `Ixn` | the content SAD(s) a SEL records — the only SEL-borne manifest role (a credential SEL's `Icp` uses `data`, not a manifest) |
 | `witnesses` | KEL `Icp` / `Fed` | the witness-config SAD `{ threshold, signers }` |
 | `clock` | federation IEL `Icp` / `Gov` | a timestamp SAD (the federation clock — federation doctrine) |
-| `folded` | seal-advancing kinds (KEL `Rot`/`Ror`/`Rec`/`Fed`; IEL `Gov`/`Del`/`Kil`/`Rpr`; SEL `Pin`/`Rpr`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk confirms `previousSeal` consistency without expanding). `Ixn`-only; the content-only property is back-checked on expansion. Absent when no content was folded |
+| `folded` | **every** seal-advancing kind (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Gov`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk **catches a naive `previousSeal` forgery** without expanding — necessary, not sufficient). `canonical` is `Ixn`-only, back-checked on expansion; absent when no content was folded. `forks[]` is **non-empty only on a repair** (KEL `Rec` / IEL·SEL `Rpr`) — it commits the archival tails the repair resolves; every other carrier (a `Dec` included) commits `canonical` alone |
 
 **Top-level structural vs. manifest.** An event's *own links* stay top-level: `said`, `previous`,
 **`previousSeal`** (on every seal-advancing event — the back-link to the prior seal that renders the
@@ -122,8 +122,8 @@ spine; see [§Divergence is scoped to content](#divergence-is-scoped-to-content)
 (role-labeled) carries everything the event *commits to below it* — lower-layer event SAIDs and
 documents. Entities are named by **prefix**; positions and documents by **SAID**. A SAID here is an
 integrity **commitment**, not a lookup key — there is no global SAID→event index, so a SAID
-harvested off a public manifest does not invert to a (possibly private) chain's prefix; logs are
-fetched by prefix ([`../../../protocol-doctrine.md` §Negative checks are positive
+harvested off a public manifest does not invert to a (possibly private) chain's prefix for any party
+outside the federation mesh; logs are fetched by prefix ([`../../../protocol-doctrine.md` §Negative checks are positive
 lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 
 **Read the manifest kind-first.** Each kind may carry **only** the roles in its closed vocabulary
@@ -144,7 +144,8 @@ the subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that ca
 
 | Field | Type | Logs | Events | Description |
 |---|---|---|---|---|
-| `manifest` | Digest256 | KEL, IEL, SEL | KEL `Ixn` / `Rot` / `Ror` / `Rec` / `Icp` / `Fed`; IEL `Icp` / `Ixn` / `Gov` / `Del` / `Kil` / `Rpr`; SEL `Ixn` | SAID of the role-grouped commitment SAD (above). |
+| `manifest` | Digest256 | KEL, IEL, SEL | KEL `Icp` / `Ixn` / `Rot` / `Ror` / `Rec` / `Fed` / `Dec`; IEL `Icp` / `Ixn` / `Gov` / `Del` / `Kil` / `Rpr` / `Dec`; SEL `Ixn` / `Pin` / `Rpr` / `Dec` | SAID of the role-grouped commitment SAD (above). |
+| `previousSeal` | Digest256 | KEL, IEL, SEL | the **seal-advancing** kinds (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Gov`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | Back-link to the prior seal-advancing event; renders the **spine** ([§Divergence is scoped to content](#divergence-is-scoped-to-content)). `fbd` on `Icp` / `Fcp` / `Ixn`. |
 | `federation` | Digest256 | KEL | `Icp` / `Fed` | The federation IEL **prefix** this chain binds to (which federation; follows the federation's evolution). |
 | `federationPin` | Digest256 | KEL | `Icp` / `Fed` | A **SAID** pinning the as-of federation position (ratcheted via `Fed`). The prefix/SAID split: `federation` is *which* federation, `federationPin` is *as of when*. |
 | `pin` | Digest256 | SEL | `Ixn` / `Pin` (and inherited) | SAID of the owner IEL event this SEL event floors up to. A credential SEL's `Icp` carries no `pin` field — its `data` is the credential's SAID and the pin lives **inside** the credential (below); a lookup SEL's `Pin` event carries the pin (plus the rescission cut-off). |
@@ -182,7 +183,7 @@ rule (a higher-tier anchor satisfies a lower-tier requirement) are the protocol 
 |---|---|---|---|
 | `Fcp` | 1 | single | Founder **pre-federation** inception; self-attested, carries no `witnesses`, and cannot stand alone — its binding `Fed` follows at v=1 in the same batch. |
 | `Icp` | 1 | single | Standard **federation-bound** inception; carries `federation` / `federationPin`. |
-| `Ixn` | 1 | single | Content; anchors lower-layer SAIDs via `manifest` (`anchors`, ≥1). The **divergeable** kind. |
+| `Ixn` | 1 | single | Content; anchors lower-layer SAIDs via `manifest` (`anchors`, ≥1). The **repairable** kind. |
 | `Rot` | 2 | single | Rotation — reveals the next signing key, commits the new one. Seal-advancing. |
 | `Ror` | 3 | dual | Proactive rotate-recovery (hygiene); rotates signing **and** recovery keys. |
 | `Rec` | 3 | dual | **Recover** — the KEL's repair kind: resolves `Ixn` divergence by archiving the losing branch. Reveals the recovery key (hence dual-sig); does **not** lock the chain. |
@@ -202,16 +203,17 @@ in the **same atomic batch** (`Fcp` v=0 → `Fed` v=1). The full ceremony is KEL
 | Kind | Tier | Count | Role |
 |---|---|---|---|
 | `Icp` | 2 | all initial members consent | Inception; pins the initial roster + threshold vector. There is **no federation inception kind** — a federation is an ordinary IEL `Icp`. |
-| `Ixn` | 1 | `t_use` | Content; anchors SEL events (`anchors`) and/or issues credential SELs (`issues`, batched). The **divergeable** kind. |
+| `Ixn` | 1 | `t_use` | Content; anchors SEL events (`anchors`) and/or issues credential SELs (`issues`, batched). The **repairable** kind. |
 | `Gov` | 1 added / 2 outgoing | all added consent ∧ `t_govern` of outgoing | **Roster / threshold change only** — carries a roster/threshold **delta** (`add` + `cut`) in `roster`. Anchors no kills. |
 | `Del` | 2 | `t_delegate` | Delegation declaration — a **positive inclusion list** of delegate prefixes (`delegates`). |
 | `Kil` | 2 | `threshold` slot | **Sealed kill-anchor** — anchors the SEL kill(s) it seals (`revokes`), at the `govern` (revocation/closure) or `delegate` (rescission) slot. Carries **no roster delta**; signatures only (no forced rotation). Sealed on arrival, terminal-on-divergence. |
 | `Rpr` | 3 | `t_recover` | Divergence repair; carries no roster removal. |
 | `Dec` | 3 | `t_govern` | Terminal; freezes all the IEL's SELs. |
 
-A federation is a **restricted IEL** — `Icp` / `Gov` / `Dec` only (no `Ixn`, so it never diverges
-and needs no `Rpr`; no `Del`, since trust is per-federation and non-transitive). Its roster is
-witness KELs directly. See [`../../../protocol-doctrine.md` §Federation
+A federation is a **restricted IEL** — `Icp` / `Gov` / `Dec` only (no `Ixn`, so it never has a
+**reconcilable** fork and needs no `Rpr`; a competing-privileged `{Gov, Gov}` / `{Dec, Dec}` is still
+possible but **terminal**, not repairable; no `Del`, since trust is per-federation and
+non-transitive). Its roster is witness KELs directly. See [`../../../protocol-doctrine.md` §Federation
 convergence](../../../protocol-doctrine.md#federation-convergence) and [`federation/`](../../../federation/).
 
 ### SEL — 5 kinds
@@ -219,14 +221,15 @@ convergence](../../../protocol-doctrine.md#federation-convergence) and [`federat
 | Kind | Count | Tier | Anchored by (IEL) | Role |
 |---|---|---|---|---|
 | `Icp` | `t_use` | 1 | `Ixn` | Inception. For a credential SEL, `data` **is** the credential's SAID (the pin lives inside the credential) and the `Icp` carries **no** manifest. For a lookup SEL, `data` is the recompute input and a `Pin` event carries the pin. |
-| `Ixn` | `t_use` | 1 | `Ixn` | Content SAD(s) + re-`pin`; ≤ 1 per SEL per IEL `Ixn`. The **only divergeable / repairable** SEL kind. |
+| `Ixn` | `t_use` | 1 | `Ixn` | Content SAD(s) + re-`pin`; ≤ 1 per SEL per IEL `Ixn`. The **only repairable** SEL kind. |
 | `Dec` | `t_govern` | 2 (identity-kill → 3) | `Kil` @ `govern` | Decommission = revocation / closure. **Sealed on arrival** (a kill is monotone — no delayed form). The killed thing is identified by *which SEL its `Dec` extends*. |
 | `Pin` | `t_delegate` | 2 | `Kil` @ `delegate` | A **lookup SEL's** pin-carrier (rescission): carries a `pin` + a **cut-off** (the SAID of the last valid event on the rescinded chain), not a roster. Sealed on arrival. |
 | `Rpr` | `t_recover` | 3 | `Rpr` | Divergence repair; owner-authorized, bottom-up cascade. |
 
 Content rides the IEL `Ixn` rail (tier 1); a kill rides the IEL `Kil` rail (tier 2, sealed);
-roster/threshold changes ride the IEL `Gov` rail. A SEL has no seal of its own — its finality
-boundary is the owner IEL's. Credential issuance, revocation, and status are a **feature** layered
+roster/threshold changes ride the IEL `Gov` rail. A SEL's **trust-finality** floors to the owner
+IEL's seal — it has no seal of its own for that; but its own seal-advancing kinds (`Pin` / `Rpr` /
+`Dec`) cap its **local divergence/repair window** and carry `previousSeal` + `folded` like any spine. Credential issuance, revocation, and status are a **feature** layered
 on the SEL primitive — [`features/credentials/`](../../../features/credentials/).
 
 ## Per-kind structural validation
@@ -238,16 +241,16 @@ signatures live adjacent (§Authentication & signatures).
 
 ### KEL
 
-| Kind | publicKey | rotationHash | recoveryKey | recoveryHash | federation | federationPin | manifest |
-|---|---|---|---|---|---|---|---|
-| `Fcp` | req | req | fbd | req | fbd | fbd | fbd |
-| `Icp` | req | req | fbd | req | req | req | opt (`witnesses`) |
-| `Ixn` | fbd | fbd | fbd | fbd | fbd | fbd | req (`anchors`, ≥1) |
-| `Rot` | req | req | fbd | fbd | fbd | fbd | opt (`anchors`) |
-| `Ror` | req | req | req | req | fbd | fbd | opt (`anchors`) |
-| `Rec` | req | req | req | req | fbd | fbd | opt (`anchors`) |
-| `Fed` | req | req | req | req | req | req | opt (`witnesses`) |
-| `Dec` | req | fbd | req | fbd | fbd | fbd | fbd |
+| Kind | publicKey | rotationHash | recoveryKey | recoveryHash | federation | federationPin | previousSeal | manifest |
+|---|---|---|---|---|---|---|---|---|
+| `Fcp` | req | req | fbd | req | fbd | fbd | fbd | fbd |
+| `Icp` | req | req | fbd | req | req | req | fbd | opt (`witnesses`) |
+| `Ixn` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | req (`anchors`, ≥1) |
+| `Rot` | req | req | fbd | fbd | fbd | fbd | req | opt (`anchors`, `folded`) |
+| `Ror` | req | req | req | req | fbd | fbd | req | opt (`anchors`, `folded`) |
+| `Rec` | req | req | req | req | fbd | fbd | req | req (`folded` w/ `forks[]`; `anchors` opt) |
+| `Fed` | req | req | req | req | req | req | req | opt (`witnesses`, `folded`) |
+| `Dec` | req | fbd | req | fbd | fbd | fbd | req | opt (`folded`) |
 
 The dual-signed kinds (`Ror` / `Rec` / `Fed` / `Dec`) carry an adjacent recovery signature
 (§Authentication & signatures). Exact key-state semantics and the witness-config SAD are KEL
@@ -255,15 +258,15 @@ doctrine — [`kel/`](kel/).
 
 ### IEL
 
-| Kind | nonce | manifest | threshold |
-|---|---|---|---|
-| `Icp` | req | req (`roster`; federation `Icp` adds `clock`) | fbd |
-| `Ixn` | fbd | req (`anchors` and/or `issues`) | fbd |
-| `Gov` | fbd | req (`roster`; federation `Gov` adds `clock`) | fbd |
-| `Del` | fbd | req (`delegates`) | fbd |
-| `Kil` | fbd | req (`revokes`) | req (`govern` \| `delegate`) |
-| `Rpr` | fbd | opt (`anchors`) | fbd |
-| `Dec` | fbd | fbd | fbd |
+| Kind | nonce | previousSeal | manifest | threshold |
+|---|---|---|---|---|
+| `Icp` | req | fbd | req (`roster`; federation `Icp` adds `clock`) | fbd |
+| `Ixn` | fbd | fbd | req (`anchors` and/or `issues`) | fbd |
+| `Gov` | fbd | req | req (`roster`, `folded` opt; federation `Gov` adds `clock`) | fbd |
+| `Del` | fbd | req | req (`delegates`, `folded` opt) | fbd |
+| `Kil` | fbd | req | req (`revokes`, `folded` opt) | req (`govern` \| `delegate`) |
+| `Rpr` | fbd | req | req (`folded` w/ `forks[]`; `anchors` opt) | fbd |
+| `Dec` | fbd | req | opt (`folded`) | fbd |
 
 The `nonce` (inception only) drives prefix unpredictability (§Prefix derivation). The exact roster
 delta SAD schema, the consent rule for additions, and the per-kind anchor matrix are IEL doctrine
@@ -271,13 +274,13 @@ delta SAD schema, the consent rule for additions, and the per-kind anchor matrix
 
 ### SEL
 
-| Kind | topic | data | pin | manifest |
-|---|---|---|---|---|
-| `Icp` | req | req | fbd | fbd |
-| `Ixn` | fbd | fbd | req | opt (`content`) |
-| `Dec` | fbd | fbd | fbd | fbd |
-| `Pin` | fbd | fbd | req | fbd |
-| `Rpr` | fbd | fbd | fbd | fbd |
+| Kind | topic | data | pin | previousSeal | manifest |
+|---|---|---|---|---|---|
+| `Icp` | req | req | fbd | fbd | fbd |
+| `Ixn` | fbd | fbd | req | fbd | opt (`content`) |
+| `Dec` | fbd | fbd | fbd | req | opt (`folded`) |
+| `Pin` | fbd | fbd | req | req | opt (`folded`) |
+| `Rpr` | fbd | fbd | fbd | req | req (`folded` w/ `forks[]`) |
 
 `topic` + `data` participate in the SEL prefix derivation (§Prefix derivation). A credential SEL's
 pin rides inside the credential its `data` names; a lookup SEL's pin rides on a `Pin` event. The
@@ -304,15 +307,17 @@ The per-kind anchor matrix (which KEL kind anchors which IEL kind; the `Kil`-slo
 
 ## Divergence is scoped to content
 
-Only the **content** kind (`Ixn`) is divergeable and repairable. A privileged event (a rotation,
-a `Gov`, a `Kil`, a terminal) is **never** archived or overturned — reversing it would resurrect
-retired key material or un-do a sealed act. A divergence is resolved by **tier**: a repair
-(`Rec` on the KEL, `Rpr` on the IEL / SEL) keeps the at-most-one privileged branch and archives the
-all-content branch(es). The **terminal** condition is **branch-level** — two or more branches each
-carrying a privileged event past the fork — and any verifier determines it **data-locally** by walking
-the retained branches: a node retains a competing branch as non-canonical evidence (rather than
-discarding it at the seal-cap), and the seal-advancing events form a `previousSeal`-linked **spine** on
-which a privileged divergence is a single visible fork. The full divergence-and-repair doctrine is the
+Only the **content** kind (`Ixn`) is **repairable** — privileged kinds can diverge too, but only
+terminally. A privileged event (a rotation, a `Gov`, a `Kil`, a terminal) is **never** archived or
+overturned — reversing it would resurrect retired key material or un-do a sealed act. A divergence is
+resolved by **tier**: a repair (`Rec` on the KEL, `Rpr` on the IEL / SEL) keeps the at-most-one
+privileged branch and archives the all-content branch(es). The **terminal** condition is
+**branch-level** — two or more branches each carrying a privileged event past the fork — and any
+verifier determines it **data-locally** by walking the retained branches: a node retains a competing
+branch as non-canonical evidence (rather than discarding it at the seal-cap), bounded to ≥ 2
+privileged branches per spine position — the uncommitted below-seal content flood is droppable, since
+a privileged event re-validates from the spine, not from below-seal content. The seal-advancing events
+form a `previousSeal`-linked **spine** on which a privileged divergence is a single visible fork. The full divergence-and-repair doctrine is the
 protocol doctrine's — [`../../../protocol-doctrine.md` §Divergence and
 repair](../../../protocol-doctrine.md#divergence-and-repair).
 
