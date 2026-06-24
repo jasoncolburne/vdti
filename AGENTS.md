@@ -103,6 +103,8 @@ End-verifiability means a verifier with **data from any source** plus the truste
 ## Working Conventions
 
 - **`.working/`** is gitignored. Durable in-progress docs (issue / PR bodies, design drafts, audit outputs, agent briefs) live there per the `kels/` precedent. Filenames follow `vdti-{N}-{slug}.md` once an issue number is assigned, or `vdti-{slug}.md` pre-submit.
+- **`.working/` surface.** Organized around `00-INDEX.md` (the read-order map), `design-resume.md` (live state — read first to resume), the `vdti-area-*.md` area canon, `vdti-invariants.md`, `vdti-implementation-notes.md`, and the roadmap (synced to [vdti#1](https://github.com/jasoncolburne/vdti/issues/1)). Keep the index, resume, and roadmap **current**; **archive aggressively** — the day a doc is superseded move it to `archived/` (recoverable), don't leave drift.
+- **Design process.** Design notes go in `.working/` area docs → dual-pass review → iterate until **sound**; then encode into `docs/design/` **one concept per PR** → dual-pass review each PR until **polished** → Jason reviews each PR before it lands.
 - **Issue / PR body workflow.** Long bodies go in `.working/` and are submitted via `gh issue create --body-file` / `gh issue edit N --body-file`. Don't inline heredoc long bodies.
 - **Commit posture.** Don't commit unless explicitly asked. When asked, "commit this" is scoped to the named change only.
 - **Multi-agent audit reviews.** Outputs land in `.working/` (durable, gitignored). The 5-axis audit (security, correctness, completeness, readability, accessibility) gates Phase 0 closure.

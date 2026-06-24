@@ -43,14 +43,14 @@ kels/witness/
 kels/sad/
 
 # ============================================================================
-# §Doc-only — event-shape (VDTI-14) superseded vocabulary
+# §Doc-only — superseded event kinds
 # ============================================================================
-# event-shape.md settled the event taxonomy and field names; these kels-era
-# tokens must not regress into docs. Whole-token word boundaries only —
-# Rec / Upd / Sea are substring-dangerous (Receipt, recovery, SeaweedFS, …).
+# These kels-era / pre-reshape tokens must not regress into docs. Whole-token
+# word boundaries only — Upd / Sea are substring-dangerous (recovery, SeaweedFS,
+# …). NOTE: Rec is NOT forbidden — the log-primitive reshape uses it as the KEL
+# repair kind ("recover"); the superseded reshape tokens are in the block below.
 
-# === kels-era event kinds (now Rpr / Ixn / Evl; Dip folded into Icp + delegating) ===
-\bRec\b
+# === kels-era event kinds (Dip folded into Icp + delegating; Upd/Sea retired) ===
 \bUpd\b
 \bSea\b
 \bDip\b
@@ -65,12 +65,13 @@ kels/sad/
 \bdelegatingPrefix\b
 
 # === Old policy-DSL leaf / composer names ===
-# Canonical leaves: id (identity) / dev (device) / grp (group) / del.
-# Composers: thr / wgt / pol / and. Forbidden = every superseded spelling:
-#   pre-vdti:   Endorse( → dev( ; Delegate( → del( ; identity( → id( ;
+# The policy language: leaves id (identity) / del (delegate), reference pol;
+# composers thr / wgt / and. (dev and grp are dropped — forbidden in the
+# log-primitive reshape block below.) Forbidden here = every superseded spelling:
+#   pre-vdti:   Endorse( → (dropped) ; Delegate( → del( ; identity( → id( ;
 #               threshold( → thr( ; Weighted → wgt ; nested Policy( → pol.
-#   vdti log-names (the DSL surface speaks identity/device/group, not log type):
-#               iel( → id( ; kel( → dev( ; mem( → grp(.
+#   vdti log-names (the DSL surface speaks identity/delegate, not log type):
+#               iel( → id( ; kel( → (dropped) ; mem( → (dropped).
 # Call-form (trailing "(") so the uppercase IEL/KEL/SEL primitives and the
 # kel/ // iel/ doc paths are NOT matched.
 \bEndorse\(
@@ -89,15 +90,58 @@ kels/sad/
 \(governance,[[:space:]]*topic\)
 
 # ============================================================================
-# §Doc-only — policyPin rename (VDTI-14 fold-in)
+# §Doc-only — pre-policyPin field names
 # ============================================================================
-# ielEvent → policyPin (SEL); the pin is always the SAID of a pin SAD
-# ("binding SAD" superseded); no ielPrefix field exists. The KEL
-# federation-binding field is federationBinding (policyBinding retired).
-# \bielEvent\b does not match custody's ownerIelEvent (case differs at
-# the boundary); federationBinding is not caught by [bB]inding[ -]SAD
-# (which requires a following " SAD" / "-SAD").
+# ielEvent / ielPrefix / policyBinding / "binding SAD" are superseded spellings;
+# no such field exists. (Their one-time successors policyPin and
+# federationBinding are THEMSELVES superseded by the log-primitive reshape —
+# forbidden in the reshape block below.) \bielEvent\b does not match custody's
+# ownerIelEvent (case differs at the boundary).
 \bielEvent\b
 \bielPrefix\b
 \bpolicyBinding\b
 [bB]inding[ -]SAD
+
+# ============================================================================
+# §Doc-only — log-primitive reshape superseded vocabulary
+# ============================================================================
+# The log-primitive reshape moved policy off the chain primitives onto documents
+# and resettled the event taxonomy. These pre-reshape tokens must not regress
+# into docs:
+#   IEL evolve event renamed BACK Gov → Evl (2026-06-23; "evolve state" — the
+#     roster/threshold change, named distinct from the t_govern slot it prices);
+#   SEL Est removed (a credential SEL's pin rides in its data; a lookup SEL
+#     carries a Pin event);
+#   IEL Rsc-as-an-event removed (rescission is a derived lookup SEL);
+#   SEL policyPin removed (chain events carry no policy; a SEL floors up via its
+#     pin / data);
+#   KEL federationBinding → federation (prefix) + federationPin (SAID);
+#   policy-DSL leaves dev() / grp() dropped (identity composition is thr / wgt /
+#     and over id()). Call-form ("(") so device/develop/group are not matched.
+\bGov\b
+\bEst\b
+\bRsc\b
+\bpolicyPin\b
+\bfederationBinding\b
+\bdev\(
+\bgrp\(
+# The 3-function policy evaluator (gate / anchored / current) collapsed to two
+# modes (as-issued / current) sharing one composer; all the old function names —
+# including the earlier evaluate_single_policy — are retired. The interim
+# 2-function name evaluate_anchored was renamed to evaluate_as_issued (the mode
+# is "as-issued"; "anchored" stays the structural verb — manifest anchors, the
+# anchoring position — so only the evaluate_ form is forbidden):
+\bevaluate_gate_policy\b
+\bevaluate_anchored_policy\b
+\bevaluate_current_policy\b
+\bevaluate_single_policy\b
+\bevaluate_anchored\b
+
+# ============================================================================
+# §Doc-only — seal-cap rejection error name (SiblingLocked, not ParentLocked)
+# ============================================================================
+# The seal-cap rejection is SiblingLocked — the candidate would sibling a
+# locked event. There is no ParentLocked error: a parent AT the seal is
+# extendable (parent_serial == seal_serial passes the cap), so "parent locked"
+# is not a rejection condition.
+\bParentLocked\b
