@@ -87,7 +87,7 @@ A new event's serial must land at-or-after the chain's most-recent seal-advancin
 
 ### Defense against current-state compromise is layered
 
-KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, federation-bind, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, evict it via a `Gov` (governance change). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together. A biometric or device PIN gating the keystore is a further on-device layer — it raises the cost of using a stolen, locked device, but gates *access* rather than custody: it can be coerced, and an unlocked device remains usable.
+KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, federation-bind, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, evict it via a `Evl` (governance change). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together. A biometric or device PIN gating the keystore is a further on-device layer — it raises the cost of using a stolen, locked device, but gates *access* rather than custody: it can be coerced, and an unlocked device remains usable.
 
 → [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
@@ -109,7 +109,7 @@ Reincept is needed when the primitive itself is **disputed** (a data-local verdi
 
 - **A disputed IEL** → every SEL bound to it that would forward-extend its binding must reincept under a new prefix.
 - **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
-- **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians absorb single-member disputes by evicting the disputed KEL via a `Gov`.
+- **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians absorb single-member disputes by evicting the disputed KEL via a `Evl`.
 
 The expensive case is a dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
 

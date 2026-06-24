@@ -108,7 +108,8 @@ kels/sad/
 # The log-primitive reshape moved policy off the chain primitives onto documents
 # and resettled the event taxonomy. These pre-reshape tokens must not regress
 # into docs:
-#   IEL evolve event Evl → Gov (roster/threshold change only);
+#   IEL evolve event renamed BACK Gov → Evl (2026-06-23; "evolve state" — the
+#     roster/threshold change, named distinct from the t_govern slot it prices);
 #   SEL Est removed (a credential SEL's pin rides in its data; a lookup SEL
 #     carries a Pin event);
 #   IEL Rsc-as-an-event removed (rescission is a derived lookup SEL);
@@ -117,7 +118,7 @@ kels/sad/
 #   KEL federationBinding → federation (prefix) + federationPin (SAID);
 #   policy-DSL leaves dev() / grp() dropped (identity composition is thr / wgt /
 #     and over id()). Call-form ("(") so device/develop/group are not matched.
-\bEvl\b
+\bGov\b
 \bEst\b
 \bRsc\b
 \bpolicyPin\b

@@ -83,8 +83,9 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   still holds is checked against its contributing lower-layer anchors. How a contributing anchor
   becomes non-canonical depends on its **tier**: a tier-1 (`Ixn`) anchor (archivable) drops when a
   later repair archives its host; a tier-2/3 anchor (on a seal-advancing event, durable against
-  repair) drops only when its host chain becomes **disputed** at-or-beyond the
-  divergent serial. Either way the lower-layer verifier reports the SAID as not-anchored on the
+  repair) drops only when it sits **at-or-beyond the divergent serial** on a host chain that becomes
+  **disputed** — a tier-2/3 anchor below the last clean seal stays anchored. Either way the lower-layer
+  verifier reports the SAID as not-anchored on the
   canonical branch, and the dependent answer flips to unsatisfied. Distinct from within-chain state
   — locked events stay locked within their own chains; cross-chain satisfaction is handled by
   composition redundancy (anchor count above the exact threshold).
@@ -113,7 +114,7 @@ anything rotated, evicted, or revoked out — has zero structural ability to act
 
 - **KEL** — a signing or rotation key compromised in the past cannot extend the chain today, even
   if the adversary still holds the key material. A new event requires the **current** key.
-- **IEL** — a member evicted via a `Gov` cannot land further acts after their eviction.
+- **IEL** — a member evicted via a `Evl` cannot land further acts after their eviction.
 - **SEL** — a SEL pins **up** to its owner IEL's current tip; a rotated-out party of that IEL has
   no authority over it.
 
@@ -130,7 +131,7 @@ separate:
 
 - **Fresh participation closes the deep-member backdate.** A member participates in an IEL event by
   authoring a **fresh KEL event at its own current tip** that commits to that specific IEL event
-  (`Ixn → IEL Ixn`, `Rot → IEL Gov`), signed by its **current** key. A rotated-out key cannot
+  (`Ixn → IEL Ixn`, `Rot → IEL Evl`), signed by its **current** key. A rotated-out key cannot
   produce one — a KEL append needs the current key, and an old event already committed to something
   else. There is no detached-signature-resolved-as-of-a-pin path. So a rotated-out member cannot
   retroactively appear to have authorized an IEL event.
@@ -184,7 +185,7 @@ other chains' authority. The per-primitive anchor matrix is in [`primitives/data
 - **KEL** — the device's own key state (tier 1/2/3 above).
 - **IEL** — a roster of member KELs plus a **threshold vector** `{t_use, t_govern, t_delegate,
   t_recover}`, indexed by the event's kind. Every IEL kind **prices itself**: `Ixn` from `t_use`,
-  `Gov` from `t_govern`, `Del` from `t_delegate`, `Rpr` from `t_recover`, the terminal `Dec` from
+  `Evl` from `t_govern`, `Del` from `t_delegate`, `Rpr` from `t_recover`, the terminal `Dec` from
   `t_govern`. The one count-parametrized kind is the sealed kill-anchor `Kil`, whose committed
   `threshold` slot (`govern` / `delegate`) names the count — **backed** by the `Kil`'s own
   signatures at the IEL walk and **demanded** by the anchored kill's kind at the SEL check. So
@@ -192,7 +193,7 @@ other chains' authority. The per-primitive anchor matrix is in [`primitives/data
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
-**Threshold-vector floors** (re-checked on the post-change roster at every `Gov`, not only at
+**Threshold-vector floors** (re-checked on the post-change roster at every `Evl`, not only at
 inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard, every
 identity — no single member exercises authority) and a **recoverability floor** `<= |roster| − 1`
 (evict/recover without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a
@@ -224,7 +225,7 @@ opens none) per primitive:
 
 - **KEL**: `Rot` / `Ror` / `Rec` / `Fed` (and `Dec`).
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
-  kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Gov` / `Del` / `Kil` /
+  kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Del` / `Kil` /
   `Rpr` / `Dec`) are the window-openers.
 - **SEL**: `Pin` / `Rpr` (and `Dec`); a content `Ixn` does not advance the seal.
 
@@ -243,10 +244,10 @@ per-deployment knob; the `− 2` headroom accommodates a 2-event repair batch). 
 just as load-bearing: content (`Ixn` — the rail **issuance** rides, via `issues[]`) does **not**
 advance the seal, so trailing issuances accumulate and the seal lags the tip; without the cap the
 post-seal window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer
-that fills the window **re-seals with an empty-delta `Gov`** (no roster change — the identity-layer
-analogue of a KEL re-sealing via `Rot`; validation **accepts** an empty-delta `Gov`), advancing the
+that fills the window **re-seals with an empty-delta `Evl`** (no roster change — the identity-layer
+analogue of a KEL re-sealing via `Rot`; validation **accepts** an empty-delta `Evl`), advancing the
 seal with no new kind. (Under a network partition both halves can fill the cap and re-seal
-independently; the two empty-delta `Gov`s differ by `previous` and collide as `{Gov, Gov}` →
+independently; the two empty-delta `Evl`s differ by `previous` and collide as `{Evl, Evl}` →
 terminal, so a **high-volume issuer serializes its content submissions** — a discipline separate from,
 and additional to, serializing governance.) The exact constant, the empty-delta re-seal, and the
 content-rail serialization are IEL doctrine —
@@ -284,7 +285,7 @@ founding insight of the primitive.
 from an adversary — both branches were structurally authorized when they landed — so resolution
 turns on **tier**, never on who is presumed legitimate. Two rules govern every repair:
 
-- **Only content (`Ixn`) is archivable.** A privileged event — a rotation, a `Gov`, a `Kil`, a
+- **Only content (`Ixn`) is archivable.** A privileged event — a rotation, a `Evl`, a `Kil`, a
   terminal — is **never** archived or overturned: reversing a rotation resurrects retired keys, and
   un-doing a kill breaks a third party's reliance.
 - **A repair never extends an adversarial event** — it extends only the submitter's own branch.
@@ -304,7 +305,7 @@ privileged event?**
   and advances forward. Your retained tail may carry your *own* rotation — it is kept, not archived;
   only the archival tails are checked. An adversary holding your signing key can append only content,
   and a tier-3 `Rec` archives it — so **the recovery reserve defends the signing key.**
-- **Yes — a rotation, a `Gov`, or a `Kil` sits in an archival tail** → **forbidden → reincept** (for
+- **Yes — a rotation, a `Evl`, or a `Kil` sits in an archival tail** → **forbidden → reincept** (for
   a delegated KEL, the delegator `Kil`s it instead). That event cannot be archived (rule 1), cannot
   be extended (rule 2 — it is not your branch), and forking past it is a second privileged branch
   (terminal). So **the recovery reserve does not defend the rotation key: a `Rot` in an archival tail
@@ -318,7 +319,7 @@ walking the retained branches (keep-all-data retains a competing branch as evide
 enumerates the branch SAIDs so a one-branch holder can fetch and walk the rest). The federation
 **propagates** the branches; it does not pronounce the verdict. A `{Rot, Rot}` collision is moreover a
 **proof of reserve compromise** — two valid rotations both reveal the one rotation preimage committed
-at `v_{d-1}`, which an honest holder never does; `{Gov, Gov}` is terminal for the same branch-level
+at `v_{d-1}`, which an honest holder never does; `{Evl, Evl}` is terminal for the same branch-level
 reason but is **not** a reserve-compromise proof — its two governance events reveal *different*
 preimages and can arise from an honest partition (which is why high-volume issuance and governance are
 serialized). Genuine reincept is therefore a tier-3 compromise, a privileged event in an archival tail,
@@ -344,8 +345,11 @@ A **repair must commit the divergence it resolves.** Its `folded.forks[]` enumer
 tails — each a real branch from the correct ancestor — and a repair is **invalid on a non-divergent
 tip** (a `Rec` / `Rpr` with empty `forks[]` is rejected). The committed `forks[]` **are** the
 archival tails: a verifier validates a repair against the branches it commits, regardless of which
-others that verifier happens to hold. No non-repair event ever carries `forks[]` — a `Dec` caught in
-a divergence is resolved by forcing a `Rpr` / `Rec`, not by the `Dec` itself.
+others that verifier happens to hold. No non-repair event ever carries `forks[]`. A `{Dec, content}`
+race needs no repair: the `Dec` is the single privileged branch, so it wins on **tier-rank** — the
+chain decommissions and the losing content is non-canonical (and droppable). To resolve a content fork
+*and* decommission, repair first (the `Rpr` carries the `forks[]`), then the `Dec` lands cleanly on the
+repaired chain.
 
 **Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
 `v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where the
@@ -384,13 +388,13 @@ alter the below-seal portion, whose structural finality is unchanged. That final
 not a warrant of honest authorship**: an attacker already holding current keys can clean-rotate and
 seal its own content below the seal — the current-state-compromise limit (below), which a later
 divergence neither creates nor cures. Survivability of a member whose KEL goes terminal is decided one
-layer up, by IEL threshold redundancy and a `Gov` eviction, not by salvaging the suspect chain's own
+layer up, by IEL threshold redundancy and a `Evl` eviction, not by salvaging the suspect chain's own
 tail.
 
 **IEL distrust is forward-only.** An IEL event is trusted only when a threshold of members anchored
 it, so a single compromised member KEL is inert on its own — it cannot reach `t_use` or `t_govern`.
 The quorum withholds trust from a compromised member by not co-anchoring its acts and by evicting it
-with a `Gov`; both are forward acts. There is **no retroactive per-event distrust** — a quorum that
+with a `Evl`; both are forward acts. There is **no retroactive per-event distrust** — a quorum that
 could reach back and un-trust events it had already authorized would itself be a stale-state kill
 switch, the very surface this section closes. An event the quorum co-signed stands even if a
 co-signer is later found compromised; remediation is forward (revoke what the event granted, evict
@@ -402,7 +406,7 @@ identity: the identity evicts the member and continues on its quorum.
 
 A **kill** — revoke, close, rescind, decommission — is **always sealed on arrival**. It is anchored
 in a dedicated sealed kill-anchor (the IEL `Kil`, tier 2; an identity-kill rides a tier-3 terminal),
-distinct from the roster-changing `Gov`. Because a sealed kill-anchor is privileged and
+distinct from the roster-changing `Evl`. Because a sealed kill-anchor is privileged and
 terminal-on-divergence, the kill can **never** be archived by a repair (no silent un-revoke), and
 there is no unsealed window to undo. A kill is **monotone**: restoring a killed thing is **never** a
 retraction — the party reincepts under a **new prefix** and is granted or issued afresh. A re-grant
@@ -445,7 +449,10 @@ When a terminal `Dec` lands cleanly on a linear chain, it is a clean-retirement 
 compromise indicated, pre-`Dec` content keeps its meaning. Once it lands the chain is
 Decommissioned and accepts nothing further. A `Dec` is privileged, so a `Dec` that would land in a
 divergent set is subject to the divergence rules above (a `{Dec, content}` collision is recoverable
-by keeping the `Dec`; a `{Dec, Dec}` or `{Dec, Rot}` collision is terminal). An IEL `Dec` freezes
+by keeping the `Dec` — the single privileged branch wins on tier-rank, the content is archived as
+non-canonical, and **no repair is authored**: the terminal admits no successor to carry one, and none
+is needed since the chain is decommissioning. A `{Dec, Dec}` or `{Dec, Rot}` collision is two
+privileged branches → terminal). An IEL `Dec` freezes
 all the identity's SELs.
 
 A submitter who detects compromise pre-emptively has no dedicated "compromise signal" event:
@@ -470,7 +477,7 @@ adversary's rotation lands.
   compromise regardless of where the recovery key is custodied. A single-device deployment is
   first-class.
 - **IEL threshold composition** (high thresholds, `M > N` redundancy across **distinct custody
-  domains**) handles total device compromise: evict the device via a `Gov`; surviving members keep
+  domains**) handles total device compromise: evict the device via a `Evl`; surviving members keep
   the threshold and the identity stays alive. Two prefixes under one operator's hardware compose to
   effective threshold 1 against an adversary who breaches that hardware — composition must span
   genuine custody separation.
@@ -488,7 +495,7 @@ adversary's rotation lands.
 key 2, …) and acts only on a satisfying combination, so the response window is bounded by the
 adversary's timeline, not the operator's first detection. Policy design is therefore a budget
 against patience: high thresholds + custody separation raise the accumulation cost; `M > N`
-redundancy tolerates loss of `M − N` members (evict via `Gov`, no reincept); hierarchical scope
+redundancy tolerates loss of `M − N` members (evict via `Evl`, no reincept); hierarchical scope
 partitioning bounds blast radius. A chain whose roster permits no eviction path — a threshold equal
 to `|roster|` — loses to the first compromise that reaches the threshold and forces a reincept under
 a new prefix, which propagates to every consumer. Design rosters to **survive compromise instead of
@@ -502,7 +509,7 @@ chains whose bindings reach at-or-below-seal state stay authorized.
 - **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
 - **A disputed KEL** → dependents reincept only when the disputed KEL actually anchored their
   events **and** the resolving threshold lacks redundancy. A `M > N` roster absorbs a single
-  member's dispute by evicting it via `Gov`.
+  member's dispute by evicting it via `Evl`.
 The expensive case is a dispute on an IEL at the root of a dependency tree — so partition identity
 hierarchies to bound any single dispute's blast radius.
 
@@ -531,7 +538,7 @@ advisory and checked by the verifier against its own clock). None influence chai
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
 consensus-attested clock **for freshness / staleness detection only** — the `clock` group in each
-federation `Gov`'s `manifest` (a timestamp SAD, one per governance change), sealed and monotonic,
+federation `Evl`'s `manifest` (a timestamp SAD, one per governance change), sealed and monotonic,
 **not** a field on any chain event. It bounds each witness key's validity window so a closed-window
 key can only stamp old receipts, which makes a backdated dormant-chain forgery read **stale** —
 detectable, fail-secure. It **defeats** backdating rather than inviting it, and intra-chain ordering
@@ -549,8 +556,8 @@ branches to nodes that have not yet received the events; they do not pronounce t
 
 The federation is **an ordinary (restricted) IEL** — there is no separate consensus algorithm and no
 central state machine. Its roster is **witness KELs directly** (no per-witness policy or identity
-wrapper); its kind set is restricted to `Icp` / `Gov` / `Dec` (no content, so it never has a **reconcilable**
-fork and needs no `Rpr`; a competing-privileged divergence — `{Gov, Gov}` / `{Dec, Dec}` under a
+wrapper); its kind set is restricted to `Icp` / `Evl` / `Dec` (no content, so it never has a **reconcilable**
+fork and needs no `Rpr`; a competing-privileged divergence — `{Evl, Evl}` / `{Dec, Dec}` under a
 partition — is still possible but **terminal** (`disputed:`), which is why a federation runs a hard
 recoverability floor and `|roster| >= 3` with serialized governance; no delegation, since trust is
 per-federation and non-transitive). Its trust root is
@@ -597,7 +604,7 @@ bounded by the **federation clock** (above): a cut or rotated-out witness earns 
 and a witness **wipes superseded private keys on rotation and removal** (forward secrecy; durability
 is unaffected because old receipts verify with public keys). Together — wipe plus the clock — these
 close the harvested-old-key forgery on a dormant chain (it reads stale → detectable). Witness
-rotation is legal **only** as a synchronized federation rotation-pin `Gov`; an off-ceremony rotation
+rotation is legal **only** as a synchronized federation rotation-pin `Evl`; an off-ceremony rotation
 produces receipts the federation does not honor.
 
 **Detection is eventual, not at-decision-time.** Every detection guarantee assumes the consumer can
@@ -606,7 +613,9 @@ a malicious subset, or reading during an incomplete heal, sees the detection lat
 made in that window can transiently trust the wrong branch. This is the standard cost of a detection
 model; the multi-source freshness bar shrinks the window but does not close it, and recovery is
 operational (re-verify before binding; reincept on a surfaced divergence). **Single-node deployments
-forfeit convergence** and the DB-tampering-surfaces-as-divergence property.
+forfeit convergence** and the DB-tampering-surfaces-as-divergence property — distinct from a
+single-*device* identity, which is first-class and still participates in a federation; the caveat is a
+federation-less *node*, not a one-device wallet.
 
 Full mechanics — receipt encoding, witness selection, the clock's tolerance band and upper sanity
 bound — are federation doctrine ([`federation/`](federation/) — *landed separately*).
@@ -736,10 +745,11 @@ normal-tip chain carries its tip event's real SAID; a decommissioned chain carri
 real SAID. Two conditions have **synthetic** representations, depending only on `(state, prefix)` — no
 history, no fork point, no serial:
 
-- `hash_effective_said("forked:{prefix}")` — the node holds a fork (competing branches at some
-  serial). Applies on the KEL, the SEL, and any IEL carrying content — only the content kind (`Ixn`)
+- `hash_effective_said("forked:{prefix}")` — the node holds a fork whose terminality the branch-walk
+  has **not (yet) determined** — a reconcilable content fork, or one pending the walk. Applies on the
+  KEL, the SEL, and any IEL carrying content — only the content kind (`Ixn`)
   produces a **reconcilable** fork, so a federation IEL (which carries no `Ixn`) never reaches
-  `forked:` (a competing-privileged `{Gov, Gov}` / `{Dec, Dec}` collision sends it straight to
+  `forked:` (a competing-privileged `{Evl, Evl}` / `{Dec, Dec}` collision sends it straight to
   `disputed:`). The synthetic marks the fork; whether it is reconcilable or terminal is the
   **branch-walk's** result (over the retained branches), not encoded in the synthetic — a reconcilable
   fork stays `forked:`; a fork the walk finds terminal becomes `disputed:` (below).
