@@ -1,6 +1,6 @@
 # VDTI System Thesis
 
-VDTI lets users control their identity and data without relying on a central authority. Devices are decoupled from the identity that operates them; identity and policy are first-class, composable primitives. In contrast to solutions like KERI (a Decentralized Key Management Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure, VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting data from a single source.
+VDTI lets users control their identity and data without relying on a central authority. Devices are decoupled from the identity that operates them; identity is a first-class primitive, and policy is a composable layer over it. In contrast to solutions like KERI (a Decentralized Key Management Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure, VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting the data itself.
 
 This is the canonical orientation doc. Read it before doing substantive work on VDTI. Detailed doctrine — primitive specs, witnessing mechanics, anchor tier elevation, divergence handling, custody, policy DSL, verification — lives in sibling docs under `docs/design/`. This doc states the framing; the others elaborate it.
 
@@ -14,27 +14,27 @@ Terms used throughout, briefly:
 System state lives in **append-only chains of cryptographically-linked events** that entities throughout the network hold and verify independently — no central authority, no trust by fiat. Each chain primitive plays a distinct structural role:
 
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
-- **IEL** (Identity Event Log) — governs identities. Aggregates devices and other identities into logical groupings via authorization-policy and governance-policy declarations on its event chain. Identity is the unit at which credentials are issued.
-- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. Each SEL binds at inception to an IEL prefix; auth resolves through that IEL.
+- **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold vector** `{t_use, t_govern, t_delegate, t_recover}` — how many member devices must act for content, governance, delegation, and recovery respectively. A rule spanning several identities lives in the document policy layer. Identity is the unit at which credentials are issued.
+- **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are authorized structurally by the owner IEL, which anchors them; it floors **up** to the owner IEL's current tip.
 
-Federation is itself an identity, governed by a shared IEL. Membership is governed by the federation IEL's `policies["governance"]`; cross-federation interop is by user-initiated transfer rather than implicit trust.
+Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized; cross-federation interop is by user-initiated transfer rather than implicit trust.
 
-Credentials are verifiable claims issued under policies anchored in KELs and IELs; they permit access to resources based on authenticated identity.
+Credentials are verifiable claims — documents that carry their own authorization policy and are issued by an identity (structurally, under its own threshold); they permit access to resources based on authenticated identity, and are revocable by their issuer.
 
 ## End-verifiability
 
-Any verifier, given **data from any source** plus the **trusted federation prefixes** (compile-time-baked, runtime-overridable), can determine system-wide state — including which prefixes are divergent, decommissioned, or irreconcilable. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
+Any verifier, given **data from any source** plus the **trusted federation set** (compile-time-baked, runtime-overridable), can determine system-wide state — including whether a prefix is divergent, decommissioned, or disputed. Source location matters for cost (cache, replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches inconsistencies at page boundaries regardless of where the bytes came from.
 
 This is the property that justifies the architecture. **End-verifiability over data-from-any-source** is what differentiates VDTI from systems that require trusted-watcher infrastructure to infer system state.
 
 ## Federation convergence
 
-End-verifiability is two-layer:
+End-verifiability rests on the **data**, with the federation as a propagation aid:
 
-- **Protocol layer.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes where the protocol layer *can* converge. Privileged-divergence (concurrent privileged-event races) is *terminal* at the protocol layer — there is no merge for it.
-- **Federation layer.** Cross-node privileged-vs-privileged races surface via divergent witness receipts at the federation layer (see [`federation/witnessing.md`](federation/witnessing.md)). The federation provides convergence where the protocol cannot, by attestation rather than fork merging.
+- **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution ensures every chain converges on the same semantic state across all nodes that hold the same events. A divergence is resolved by **tier**: a content fork is repairable; a divergence with **two or more privileged branches** is *terminal* — there is no merge for it. Whether a fork is terminal is a **branch-level fact any verifier walks from the retained branches** (a node retains a competing branch as evidence rather than discarding it at the seal-cap), never a verdict delegated to the federation.
+- **The federation propagates.** Cross-node privileged-vs-privileged races still converge data-locally — the witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md) — *landed separately*) **enumerate the competing branches** so a one-branch holder can fetch and walk them, but the verdict is the verifier's own. The federation delivers evidence; it does not decide.
 
-Single-node deployments forfeit this property. Federations are not optional for end-verifiability.
+A single node can still *detect* a divergence it holds, but it forfeits the beacon's propagation and the witnessing freshness no single node can self-attest — so federations are not optional for end-verifiability.
 
 ## Adversarial-first posture
 
@@ -73,47 +73,47 @@ Authority over a chain belongs only to its currently-tracked state. Past keys, p
 
 → [`protocol-doctrine.md` §Compromise is Permanent](protocol-doctrine.md#compromise-is-permanent).
 
-### Privileged-divergence is terminal; universal locking
+### Divergence is resolved by tier; a divergent chain is frozen
 
-A privileged event whose acceptance would create or join a divergent set is rejected at the merge layer — the seal never forks. Divergent sets contain only non-privileged events by construction. Once any privileged event lands, the seal-cap rejects every subsequent submission whose parent sits in the locked portion. Federation races between concurrent privileged submissions are non-convergent at the protocol layer; convergence is federation-layer via divergent witness receipts.
+A chain carrying a **live** fork — two distinct events at one serial, at or above the seal — is **frozen** until a repair resolves it; it accepts no new event of any kind in the meantime (a below-seal straggler arriving after the chain sealed past it is retained as evidence, not a freeze). Resolution is by **tier, not identity** — the chain cannot tell the operator from an attacker (both branches were authorized when they landed), so it decides by tier. Only content (`Ixn`) is archivable, so a repair keeps the at-most-one privileged branch — and **only its author can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact rather than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively, if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it can neither extend nor archive the privileged branch — and **reincepts**, the chain being the attacker's. A divergence with two or more privileged branches is terminal and recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between concurrent privileged submissions **converge data-locally** — keep-all-data retains the competing branch, so a node holds both and detects the divergence by walking them; the witness beacon propagates the branches to nodes that lack them, but does not decide the verdict.
 
-→ [`protocol-doctrine.md` §Privileged Divergence is Terminal](protocol-doctrine.md#privileged-divergence-is-terminal).
+→ [`protocol-doctrine.md` §Divergence and repair](protocol-doctrine.md#divergence-and-repair).
 
 ### Forks are seal-bounded
 
-A new event's serial must land at-or-after the chain's most-recent privileged-non-terminal event (`lastSealAdvancingEvent`). The bound is protocol-enforced via proactive seal-caps.
+A new event's serial must land at-or-after the chain's most-recent seal-advancing (privileged) event (`last_seal_advancing_event`); everything below that seal is locked. Without the bound, anyone who ever held authority over a chain would keep a permanent kill switch — a rotated-out key or an evicted member could append below the seal, against a context they no longer control. The bound is protocol-enforced via proactive seal-caps, which also keep a recovery batch within a single page so repair is cross-node-validatable.
 
 → [`protocol-doctrine.md` §Forks are Seal-Bounded](protocol-doctrine.md#forks-are-seal-bounded).
 
 ### Defense against current-state compromise is layered
 
-KEL dual-signature on `Rec` / `Ror` / `Dec` (recover, rotate-recovery, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL policy composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, rotate it out via `Evl` (evolve). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together.
+KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, federation-bind, decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing, side channels — regardless of where the recovery key is custodied. A single-device deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total device compromise: burn the device, evict it via a `Evl` (governance change). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery would otherwise fall together. A biometric or device PIN gating the keystore is a further on-device layer — it raises the cost of using a stolen, locked device, but gates *access* rather than custody: it can be coerced, and an unlocked device remains usable.
 
-→ [`protocol-doctrine.md` §Defense in Depth](protocol-doctrine.md#defense-in-depth).
+→ [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
 ### Federation convergence
 
-Two-layer: protocol-layer convergence where possible, federation-layer divergent witness receipts where the protocol cannot converge (priv-vs-priv races). End-verifiability over data-from-any-source depends on both layers.
+Detection is **data-local**: a node retains a competing branch as evidence and walks the retained branches to decide whether a fork is terminal — even priv-vs-priv races converge this way. Retention is **bounded** (privileged branches to ≥ 2 per spine position; the uncommitted below-seal flood is droppable, since a privileged event re-validates from the spine, not from below-seal content), so keep-all-data is not keep-everything. The federation's divergent witness receipts **propagate** the competing branches to a node that lacks them (and witnessing supplies freshness); they do not decide the verdict. End-verifiability over data-from-any-source rests on the data, with the federation as the propagation aid.
 
-→ [`federation/witnessing.md`](federation/witnessing.md).
+→ [`federation/witnessing.md`](federation/witnessing.md) *(landed separately)*.
 
 ### Operational hardening composes on top
 
-Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the federation membership); for high-stakes IEL identities this is load-bearing, not optional.
+Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` / `Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above the protocol layer (designated submitter, leader election, or consensus over the identity's membership); for high-stakes IEL identities this is load-bearing, not optional.
 
-→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md).
+→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md) *(landed separately)*.
 
 ### Cascade-reincept honesty
 
-Reincept is needed when the primitive itself is irreconcilable at the federation layer — not when a referenced primitive is. The cascade rules:
+Reincept is needed when the primitive itself is **disputed** (a data-local verdict) — not when a referenced primitive is. The cascade rules:
 
-- **IEL irreconcilable** → every SEL bound to it must reincept under a new prefix.
-- **SEL irreconcilable** → the SEL is dead in place; nothing downstream cascades.
-- **KEL irreconcilable** → dependents only reincept when the disputed KEL actually anchored events on them AND the relevant policy lacks threshold redundancy. Policies with `M > N` across distinct custodians absorb single-member disputes via `Evl` rotating the disputed KEL out.
+- **A disputed IEL** → every SEL bound to it that would forward-extend its binding must reincept under a new prefix.
+- **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
+- **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians absorb single-member disputes by evicting the disputed KEL via a `Evl`.
 
-The expensive case is federation-layer dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
+The expensive case is a dispute on an IEL at the root of a dependency tree — partition identity hierarchies so any single dispute has bounded blast radius.
 
-→ [`protocol-doctrine.md` §Adversary Patience and Policy Redundancy](protocol-doctrine.md#adversary-patience-and-policy-redundancy).
+→ [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
 ## Implications
 
