@@ -145,3 +145,33 @@ kels/sad/
 # extendable (parent_serial == seal_serial passes the cap), so "parent locked"
 # is not a rejection condition.
 \bParentLocked\b
+
+# ============================================================================
+# §Doc-only — KEL reshape: data-local detection + the manifest/spine model
+# ============================================================================
+# The KEL primitive docs reconciled to the post-reshape canon (event-shape +
+# protocol-doctrine): divergence detection is data-local (the verifier walks
+# retained branches; the witness beacon propagates, never decides), so the
+# federation-decides framing and its vocabulary are retired:
+#   federation-irreconcilable  — the federation does not pronounce a verdict;
+#     a fork with >= 2 privileged branches reads disputed: by a data-local walk;
+#   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix}  —
+#     replaced by forked:{prefix} (reconcilable / pending) and disputed:{prefix}
+#     (terminal). Bare "divergent" / "irreconcilable" stay live (the per-node
+#     fork state and the fork classification), so only the colon-synthetic forms
+#     are forbidden;
+#   policy_satisfied  — the verifier token reports the structural-validity
+#     result, not a policy signal (authorization is structural; policy lives on
+#     documents);
+#   RecoveryRecord  — a repair commits its archival tails in folded.forks[],
+#     not a separate audit-row type;
+#   witnessParams / witnessThreshold / witnessSelectionSize  — the witness
+#     config rides the `witnesses` manifest role as a { threshold, signers } SAD.
+federation-irreconcilable
+divergent:\{prefix\}
+irreconcilable:\{prefix\}
+\bpolicy_satisfied\b
+\bRecoveryRecord\b
+\bwitnessParams\b
+\bwitnessThreshold\b
+\bwitnessSelectionSize\b

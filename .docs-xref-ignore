@@ -19,15 +19,21 @@ docs/operations
 docs/operations/*
 
 # --- Federation doctrine (subsequent sub-issue) ---
-docs/design/federation/witnessing.md
-docs/design/federation/bootstrap.md
+docs/design/federation
+docs/design/federation/*
 
 # --- Operations playbooks (subsequent sub-issues) ---
 docs/design/operations/recovery-workflow.md
 docs/operations/multi-party-governance.md
 
 # --- Infrastructure service docs (subsequent sub-issue) ---
-docs/design/infrastructure/sadd.md
+docs/design/infrastructure/vdtid.md
+
+# --- Features (subsequent sub-issue) ---
+docs/design/features
+docs/design/features/*
+docs/design/features/credentials
+docs/design/features/credentials/*
 
 # --- IEL primitive (subsequent sub-issue) ---
 docs/design/primitives/data/event-logs/iel
