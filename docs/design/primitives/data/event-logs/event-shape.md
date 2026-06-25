@@ -111,7 +111,7 @@ holds only the manifest SAID; the grouped commitments live in the SAD, separatel
 | `content` | SEL `Ixn` | the content SAD(s) a SEL records — the only SEL-borne manifest role (a credential SEL's `Icp` uses `data`, not a manifest) |
 | `witnesses` | KEL `Icp` / `Fed` | the witness-config SAD `{ threshold, signers }` |
 | `clock` | federation IEL `Icp` / `Evl` | a timestamp SAD (the federation clock — federation doctrine) |
-| `folded` | **every** seal-advancing kind (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Evl`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk **catches a naive `previousSeal` forgery** without expanding — necessary, not sufficient). `canonical` is `Ixn`-only, back-checked on expansion; absent when no content was folded. `forks[]` is **non-empty only on a repair** (KEL `Rec` / IEL·SEL `Rpr`) — it commits the archival tails the repair resolves; every other carrier (a `Dec` included) commits `canonical` alone |
+| `folded` | seal-advancing kinds — opt (present only when content is folded), req on a repair (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Evl`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk **catches a naive `previousSeal` forgery** without expanding — necessary, not sufficient). `canonical` is `Ixn`-only, back-checked on expansion; absent when no content was folded. `forks[]` is **non-empty only on a repair** (KEL `Rec` / IEL·SEL `Rpr`) — it commits the archival tails the repair resolves; a non-repair carrier carries it only when content was folded (then `canonical` alone), omitting it otherwise (a `Dec` included) |
 
 **Top-level structural vs. manifest.** An event's *own links* stay top-level: `said`, `previous`,
 **`previousSeal`** (on every seal-advancing event — the back-link to the prior seal that renders the
@@ -243,12 +243,12 @@ signatures live adjacent (§Authentication & signatures).
 |---|---|---|---|---|---|---|---|---|
 | `Fcp` | req | req | fbd | req | fbd | fbd | fbd | fbd |
 | `Icp` | req | req | fbd | req | req | req | fbd | opt (`witnesses`) |
-| `Ixn` | fbd | fbd | fbd | fbd | fbd | fbd | fbd | req (`anchors`, ≥1) |
-| `Rot` | req | req | fbd | fbd | fbd | fbd | req | opt (`anchors`, `folded`) |
-| `Ror` | req | req | req | req | fbd | fbd | req | opt (`anchors`, `folded`) |
-| `Rec` | req | req | req | req | fbd | fbd | req | req (`folded` w/ `forks[]`; `anchors` opt) |
+| `Ixn` | fbd | fbd | fbd | fbd | fbd | opt | fbd | req (`anchors`, ≥1) |
+| `Rot` | req | req | fbd | fbd | fbd | opt | req | opt (`anchors`, `folded`) |
+| `Ror` | req | req | req | req | fbd | opt | req | opt (`anchors`, `folded`) |
+| `Rec` | req | req | req | req | fbd | opt | req | req (`folded` w/ `forks[]`; `anchors` opt) |
 | `Fed` | req | req | req | req | req | req | req | opt (`witnesses`, `folded`) |
-| `Dec` | req | fbd | req | fbd | fbd | fbd | req | opt (`folded`) |
+| `Dec` | req | fbd | req | fbd | fbd | opt | req | opt (`folded`) |
 
 The dual-signed kinds (`Ror` / `Rec` / `Fed` / `Dec`) carry an adjacent recovery signature
 (§Authentication & signatures). Exact key-state semantics and the witness-config SAD are KEL

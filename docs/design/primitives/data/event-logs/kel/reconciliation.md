@@ -46,15 +46,15 @@ The per-node state enumeration covers every shape that can arise under the merge
 
 What happens when a client submits events to the merge engine on a single node. Each cell names the outcome (per [`merge.md` §Merge outcomes](merge.md#merge-outcomes)) and the structural reason.
 
-| Chain state | `Ixn` | `Rot` | `Ror` / `Fed` | `Rec` | `Dec` |
-|---|---|---|---|---|---|
-| **Empty** | Reject (no KEL) | Reject | Reject | Reject | Reject |
-| **Active** | Append ✓ | Append ✓ (linear extension; valid fork at `v_{d-1}` retained as evidence per invariant 4) | Append ✓ (linear extension; divergence-creating shape retained as evidence) | Append ✓ (gossip-sync of recovered chains lands cleanly) | Append ✓ → Decommissioned (linear); divergence-creating shape retained as evidence |
-| **Active, sealed** (parent at-or-before `lastSealAdvancingEvent`) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
-| **Divergent** (frozen) | `RecoverRequired` | `SiblingLocked` (invariant 4 — retained as evidence) | `SiblingLocked` (invariant 4 — retained as evidence) | **Recovered** ✓ if the archival tails are content-only (committed in `folded.forks[]`); **rejected → `disputed:`** if any tail holds a privileged event | `SiblingLocked` (invariant 4 — retained as evidence) |
-| **Divergent (sealed)** | `SiblingLocked` | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
-| **Recovered** | Same as Active | Same as Active | Same as Active | Same as Active | Same as Active |
-| **Decommissioned** | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` |
+| Chain state | `Icp` / `Fcp` | `Ixn` | `Rot` | `Ror` / `Fed` | `Rec` | `Dec` |
+|---|---|---|---|---|---|---|
+| **Empty** | **Append ✓ (inception creates the KEL)** | Reject (no KEL) | Reject | Reject | Reject | Reject |
+| **Active** | Reject (KEL exists) | Append ✓ | Append ✓ (linear extension; valid fork at `v_{d-1}` retained as evidence per invariant 4) | Append ✓ (linear extension; divergence-creating shape retained as evidence) | Append ✓ (gossip-sync of an already-recovered chain lands cleanly; a *bare* `Rec` with empty `folded.forks[]` on a non-divergent tip is rejected — [§Edge cases](#edge-cases) case 1) | Append ✓ → Decommissioned (linear); divergence-creating shape retained as evidence |
+| **Active, sealed** (parent at-or-before `lastSealAdvancingEvent`) | Reject (KEL exists) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
+| **Divergent** (frozen) | Reject (KEL exists) | `RecoverRequired` | `SiblingLocked` (invariant 4 — retained as evidence) | `SiblingLocked` (invariant 4 — retained as evidence) | **Recovered** ✓ if the archival tails are content-only (committed in `folded.forks[]`); **rejected → `disputed:`** if any tail holds a privileged event | `SiblingLocked` (invariant 4 — retained as evidence) |
+| **Divergent (sealed)** | Reject (KEL exists) | `SiblingLocked` | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap) | `SiblingLocked` (locked-portion bound) | `SiblingLocked` (seal-cap) |
+| **Recovered** | Reject (KEL exists) | Same as Active | Same as Active | Same as Active | Same as Active | Same as Active |
+| **Decommissioned** | Reject (KEL exists) | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` | `KelDecommissioned` |
 
 ### Notes on cell routing
 
@@ -229,7 +229,7 @@ A second recovery-key holder submits Rec keeping branch_B (branch-tip-extending 
 
   Server (post-recovery):  v_0 → ... → v_{d-1} → branch_B → rec_B
 
-Local party detects via existence-check on the server that branch_A, branch_A' are no longer the canonical chain. They bundle [branch_A, branch_A', Dec] as an atomic batch and submit. Post-batch, Dec with previous = branch_A.said (v_d) would land at v_{d+1} as a sibling of rec_B — a privileged event joining a divergence, retained as evidence per invariant 4, not a canonical extension; the chain stays at its prior server-side state (tip = rec_B at v_{d+1}). Recourse is to re-fetch the server state and submit Dec extending the current tip cleanly, or to accept the server-side state without decommissioning.
+Local party detects via existence-check on the server that branch_A, branch_A' are no longer the canonical chain. They bundle [branch_A, branch_A', Dec] as an atomic batch and submit. Post-batch, Dec with previous = branch_A.said (v_d) would land at v_{d+1} as a sibling of rec_B — a below-seal sibling (its parent branch_A at v_d sits below rec_B's seal at v_{d+1}), rejected by the seal-cap (invariant 5) and retained as evidence, not a canonical extension; the chain stays at its prior server-side state (tip = rec_B at v_{d+1}). Recourse is to re-fetch the server state and submit Dec extending the current tip cleanly, or to accept the server-side state without decommissioning.
 ```
 
 ### 4. Post-recovery events synced to a node holding the archived branch

@@ -48,7 +48,7 @@ The two memberships diverge only on `Rot` — it advances the seal without revea
 
 ### The spine
 
-The seal-advancing events form a **spine**: every seal-advancing event carries a top-level **`previousSeal`** back-link to the prior one, so following `previousSeal` renders a seal-only view (`Icp → seal → seal → …`) while `previous` renders the full flat chain. The inception (`Icp` / founder `Fcp`) is the spine root and carries no `previousSeal`. Each seal's `manifest` carries a **`folded`** role committing the content run since the prior seal — `{ canonical, forks[] }` plus the run's boundary SAIDs; a `Rec`'s `folded` carries the `forks[]` (the archival tails it resolves).
+The seal-advancing events form a **spine**: every seal-advancing event carries a top-level **`previousSeal`** back-link to the prior one, so following `previousSeal` renders a seal-only view (`Icp → seal → seal → …`) while `previous` renders the full flat chain. The inception (`Icp` / founder `Fcp`) is the spine root and carries no `previousSeal`. A seal-advancing event carries a **`folded`** role **when it folds a content run** since the prior seal — `{ canonical, forks[] }` plus the run's boundary SAIDs. It is optional on `Rot` / `Ror` / `Fed` / `Dec` (absent when no content was folded) and required on a `Rec`, which always carries it for the `forks[]` (the archival tails it resolves).
 
 The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for `previous`, yielding authority state and a divergence view but not content completeness. The detection guarantee, and any decision that turns on a content event, use the **flat** walk; the spine is a fail-secure fast pre-check (a forged `previousSeal` that skips a seal surfaces as a competing seal once the real one is held). The cross-primitive spine / fold model is the protocol doctrine's — [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded); the event fields are the [event-shape reference](../event-shape.md)'s.
 
@@ -82,7 +82,7 @@ The seal-advance cap composes with the divergence-and-repair rules to give the [
 
 Chains are read, verified, written, and replicated in **pages** of bounded size. The page is the unit of memory budget for the verifier walk, the unit of round-trip for storage reads, and the unit of atomicity for the merge handler's discriminator.
 
-- **`MINIMUM_PAGE_SIZE`** — protocol constant; the floor every conformant deployment must support. The seal-advance cap is derived from this constant so a recovery batch produced anywhere validates anywhere.
+- **`MINIMUM_PAGE_SIZE` = 65** — protocol constant; the floor every conformant deployment must support. The seal-advance cap (`MINIMUM_PAGE_SIZE − 1 = 64`) is derived from this constant so a recovery batch produced anywhere validates anywhere.
 - **Page boundaries align with generations.** A generation is the set of events at the same serial. The verifier processes events in generation order (`serial ASC, kind sort_priority ASC, said ASC`) and re-fetches an incomplete generation at the next page boundary; a divergent generation that spans two pages re-fetches on the next page rather than being processed half-observed.
 - **Deterministic intra-generation ordering.** Per-kind `sort_priority` (see [`events.md` §Per-kind sort priority](events.md#per-kind-sort-priority)) breaks intra-generation order so all nodes process the same batch identically. The `said` tiebreaker is for determinism only and has no semantic meaning.
 
