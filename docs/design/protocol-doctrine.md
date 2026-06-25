@@ -544,8 +544,8 @@ feature-level fields on the content a chain event anchors (a credential's issued
 advisory and checked by the verifier against its own clock). None influence chain ordering.
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
-consensus-attested clock **for freshness / staleness detection only** — the `clock` group in each
-federation `Evl`'s `manifest` (a timestamp SAD, one per governance change), sealed and monotonic,
+consensus-attested clock **for freshness / staleness detection only** — the `clock` role in each
+federation `Evl`'s `manifest` (an inline timestamp value, one per governance change), sealed and monotonic,
 **not** a field on any chain event. It bounds each witness key's validity window so a closed-window
 key can only stamp old receipts, which makes a backdated dormant-chain forgery read **stale** —
 detectable, fail-secure. It **defeats** backdating rather than inviting it, and intra-chain ordering

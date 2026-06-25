@@ -95,28 +95,33 @@ documents — are the policy layer's ([`../../policy/policy.md`](../../policy/po
 ## The manifest — what an event commits to, grouped by role
 
 An event commits to the things below it through a **`manifest`**: the SAID of a SAD that groups
-those commitments **by named role**. The manifest SAD reads `{ said, <role>: <said-or-list>, … }`,
+those commitments **by named role**. The manifest SAD reads `{ said, <role>: <said-or-list-or-scalar>, … }`,
 and each role reads as "the things this event {anchors / issues / revokes / …}." The event row
-holds only the manifest SAID; the grouped commitments live in the SAD, separately custody-able.
+holds only the manifest SAID; the grouped commitments live in the SAD, separately custody-able. A
+role value is either an **inline list** of SAIDs/prefixes — `anchors` / `issues` / `revokes` /
+`content` / `delegates` — a **single SAID** naming a further structured SAD (`roster`, `witnesses`,
+`folded`), or a **direct scalar** (the federation `clock` — an inline timestamp value, the lone
+non-SAID, non-list role).
 
 **Role vocabulary:**
 
 | Role | Carried by | Commits to |
 |---|---|---|
-| `anchors` | KEL `Ixn` (req, ≥1) / `Rot` / `Ror` / `Rec`; IEL `Ixn` / `Rpr` | lower-layer event / SAD SAIDs this event anchors (a rotation or a repair cascade commits the events it realizes) |
-| `roster` | IEL `Icp` / `Evl` | the roster/threshold (delta) SAD |
-| `delegates` | IEL `Del` | the delegate-prefix list SAD |
-| `issues` | IEL `Ixn` | a list of credential SEL `Icp` SAIDs this event issues (batched) |
-| `revokes` | IEL `Kil` | a list of SEL kill SAIDs this event seals (batched) |
-| `content` | SEL `Ixn` | the content SAD(s) a SEL records — the only SEL-borne manifest role (a credential SEL's `Icp` uses `data`, not a manifest) |
-| `witnesses` | KEL `Icp` / `Fed` | the witness-config SAD `{ threshold, signers }` |
-| `clock` | federation IEL `Icp` / `Evl` | a timestamp SAD (the federation clock — federation doctrine) |
+| `anchors` | KEL `Ixn` (req, ≥1) / `Rot` / `Ror` / `Rec`; IEL `Ixn` / `Rpr` | an inline **list** of lower-layer event/SAD SAIDs — `[ said, … ]` (a rotation or a repair cascade commits the events it realizes) |
+| `roster` | IEL `Icp` / `Evl` | a SAID → the roster/threshold **delta** SAD `{ add: prefix[], cut: prefix[], …changed thresholds }` — membership + threshold *changes* only, never a full snapshot (IEL doctrine) |
+| `delegates` | IEL `Del` | an inline **list** of delegate **prefixes** — `[ prefix, … ]` (a grant/inclusion proof, batched; rescission is a separate lookup-SEL, never a list edit) |
+| `issues` | IEL `Ixn` | an inline **list** of credential-SEL `Icp` SAIDs — `[ said, … ]` this event issues (batched) |
+| `revokes` | IEL `Kil` | an inline **list** of cred-SEL `Dec` SAIDs — `[ said, … ]` this event seals (batched) |
+| `content` | SEL `Ixn` | an inline **list** of content-SAD SAIDs — `[ said, … ]` the SEL `Ixn` records — the only SEL-borne manifest role (a credential SEL's `Icp` uses `data`, not a manifest) |
+| `witnesses` | KEL `Icp` / `Fed` | a SAID → the witness-config SAD `{ threshold, signers }` |
+| `clock` | federation IEL `Icp` / `Evl` | the federation-clock **timestamp** carried **inline** — a UTC RFC3339 microsecond string (fixed-width, JCS-canonical), not a nested SAD (federation doctrine) |
 | `folded` | seal-advancing kinds — opt (present only when content is folded), req on a repair (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Evl`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk **catches a naive `previousSeal` forgery** without expanding — necessary, not sufficient). `canonical` is `Ixn`-only, back-checked on expansion; absent when no content was folded. `forks[]` is **non-empty only on a repair** (KEL `Rec` / IEL·SEL `Rpr`) — it commits the archival tails the repair resolves; a non-repair carrier carries it only when content was folded (then `canonical` alone), omitting it otherwise (a `Dec` included) |
 
 **Top-level structural vs. manifest.** An event's *own links* stay top-level: `said`, `previous`,
 **`previousSeal`** (on every seal-advancing event — the back-link to the prior seal that renders the
 spine; see [§Divergence is scoped to content](#divergence-is-scoped-to-content) and protocol-doctrine
-§Forks are Seal-Bounded), `pin`, the federation `prefix`, `federationPin`, the `Kil` `threshold` enum. The `manifest`
+§Forks are Seal-Bounded), the down-pins (`pin` on a SEL, `pins` on an IEL), the federation `prefix`,
+`federationPin`, the `Kil` `threshold` enum. The `manifest`
 (role-labeled) carries everything the event *commits to below it* — lower-layer event SAIDs and
 documents. Entities are named by **prefix**; positions and documents by **SAID**. A SAID here is an
 integrity **commitment**, not a lookup key — there is no global SAID→event index, so a SAID
@@ -256,19 +261,21 @@ doctrine — [`kel/`](kel/).
 
 ### IEL
 
-| Kind | nonce | previousSeal | manifest | threshold |
-|---|---|---|---|---|
-| `Icp` | req | fbd | req (`roster`; federation `Icp` adds `clock`) | fbd |
-| `Ixn` | fbd | fbd | req (`anchors` and/or `issues`) | fbd |
-| `Evl` | fbd | req | req (`roster`, `folded` opt; federation `Evl` adds `clock`) | fbd |
-| `Del` | fbd | req | req (`delegates`, `folded` opt) | fbd |
-| `Kil` | fbd | req | req (`revokes`, `folded` opt) | req (`govern` \| `delegate`) |
-| `Rpr` | fbd | req | req (`folded` w/ `forks[]`; `anchors` opt) | fbd |
-| `Dec` | fbd | req | opt (`folded`) | fbd |
+| Kind | nonce | pins | previousSeal | manifest | threshold |
+|---|---|---|---|---|---|
+| `Icp` | req | req | fbd | req (`roster`; federation `Icp` adds `clock`) | fbd |
+| `Ixn` | fbd | req | fbd | req (`anchors` and/or `issues`) | fbd |
+| `Evl` | fbd | req | req | req (`roster`, `folded` opt; federation `Evl` adds `clock`) | fbd |
+| `Del` | fbd | req | req | req (`delegates`, `folded` opt) | fbd |
+| `Kil` | fbd | req | req | req (`revokes`, `folded` opt) | req (`govern` \| `delegate`) |
+| `Rpr` | fbd | req | req | req (`folded` w/ `forks[]`; `anchors` opt) | fbd |
+| `Dec` | fbd | req | req | opt (`folded`) | fbd |
 
-The `nonce` (inception only) drives prefix unpredictability (§Prefix derivation). The exact roster
-delta SAD schema, the consent rule for additions, and the per-kind anchor matrix are IEL doctrine
-— [`iel/`](iel/).
+The `nonce` (inception only) drives prefix unpredictability (§Prefix derivation). `pins` is the IEL's
+top-level **down-pins** — a scalar SAID naming a small SAD of the participating member **KEL event SAIDs**
+(a federation `Evl`'s are the witness KELs); every IEL event is anchored by a threshold of members, so
+every IEL event carries it. The exact roster delta SAD and pins-SAD schemas, the consent rule for
+additions, and the per-kind anchor matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL
 
