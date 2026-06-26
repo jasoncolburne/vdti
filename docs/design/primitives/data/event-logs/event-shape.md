@@ -151,12 +151,13 @@ the subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that ca
 | `previousSeal` | Digest256 | KEL, IEL, SEL | the **seal-advancing** kinds (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Evl`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | Back-link to the prior seal-advancing event; renders the **spine** ([§Divergence is scoped to content](#divergence-is-scoped-to-content)). `fbd` on `Icp` / `Fcp` / `Ixn`. |
 | `federation` | Digest256 | KEL | `Icp` / `Fed` | The federation IEL **prefix** this chain binds to (which federation; follows the federation's evolution). |
 | `federationPin` | Digest256 | KEL | `Icp` / `Fed` (req); **opt on every body event** (`Ixn`/`Rot`/`Ror`/`Rec`/`Dec`) | A **SAID** pinning the as-of federation position. Present = a forward **re-pin** within the inherited federation; absent = inherit the prior pin — so a same-federation re-pin rides whatever event the chain authors next (`Fed` is reserved for a **rebind**, which changes the `federation` prefix). The prefix/SAID split: `federation` is *which* federation, `federationPin` is *as of when*. |
-| `pin` | Digest256 | SEL | `Ixn` / `Pin` (and inherited) | SAID of the owner IEL event this SEL event floors up to (the SEL's single **down-pin**). A credential SEL's `Icp` carries no `pin` field — its `data` is the credential's SAID and the pin lives **inside** the credential (below); a lookup SEL's `Pin` event carries the pin (plus the rescission cut-off). |
+| `pin` | Digest256 | SEL | `Ixn` / `Dec` / `Pin` / `Rpr` (req); **`fbd` on `Icp`** | SAID of the owner IEL event this SEL event floors up to (the SEL's **down-pin**). The `Icp` carries **no** `pin` — it must stay recomputable for lookup (§Prefix derivation) — so the SEL's first pin rides a **serial-1 `Pin` event batched with the `Icp`**, uniformly for every SEL (a rescission `Pin` additionally carries the cut-off). |
 | `pins` | Digest256 | IEL | every IEL kind (`Icp`/`Ixn`/`Evl`/`Del`/`Kil`/`Rpr`/`Dec`) | SAID of a small SAD listing the participating member **KEL event SAIDs** — the IEL's **down-pins**, the complement of fresh-participation up-anchoring (a federation `Evl`'s are the witness KELs). Every IEL event is anchored by a threshold of members, so every one carries it. (Schema is IEL doctrine — [`iel/`](iel/).) |
 | `nonce` | Nonce256 | IEL | `Icp` | Opaque random bytes chosen by the inceptor; makes the IEL prefix unpredictable. Required at inception, forbidden elsewhere. |
 | `threshold` | enum | IEL | `Kil` | Which authority slot the sealed kill-anchor is priced at — `govern` (a revocation/closure) or `delegate` (a rescission). A slot **name**, never a raw integer. |
+| `owner` | Digest256 | SEL | `Icp` | The **owner IEL prefix** — which IEL owns this SEL. On the `Icp` only and **immutable** (a SEL has one owner for life). Participates in the SEL prefix derivation. |
 | `topic` | String | SEL | `Icp` | Application discriminator; participates in the SEL prefix derivation. |
-| `data` | Digest256 | SEL | `Icp` | The content the SEL is rooted on. For a credential SEL, `data` **is the credential's SAID** (the whole reference; the `Icp` carries no manifest). For a lookup SEL, `data` is the recompute input (e.g. the rescinded prefix). Participates in the SEL prefix derivation. |
+| `data` | Digest256 | SEL | `Icp` (opt) | The content the SEL is rooted on. For a credential SEL, `data` **is the credential's SAID** (the whole reference; the `Icp` carries no manifest). For a lookup SEL, `data` is the recompute input (e.g. the rescinded prefix). Optional — absent for an `owner`+`topic`-only SEL. Participates in the SEL prefix derivation. |
 
 The KEL key-state fields (`publicKey`, `rotationHash`, `recoveryKey`, `recoveryHash`) and the
 witness-config SAD are KEL-specific — see [`kel/`](kel/).
@@ -280,17 +281,19 @@ additions, and the per-kind anchor matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL
 
-| Kind | topic | data | pin | previousSeal | manifest |
-|---|---|---|---|---|---|
-| `Icp` | req | req | fbd | fbd | fbd |
-| `Ixn` | fbd | fbd | req | fbd | opt (`content`) |
-| `Dec` | fbd | fbd | fbd | req | opt (`folded`) |
-| `Pin` | fbd | fbd | req | req | opt (`folded`) |
-| `Rpr` | fbd | fbd | fbd | req | req (`folded` w/ `forks[]`) |
+| Kind | owner | topic | data | pin | previousSeal | manifest |
+|---|---|---|---|---|---|---|
+| `Icp` | req | req | opt | fbd | fbd | fbd |
+| `Ixn` | fbd | fbd | fbd | req | fbd | opt (`content`) |
+| `Dec` | fbd | fbd | fbd | req | req | opt (`folded`) |
+| `Pin` | fbd | fbd | fbd | req | req | opt (`folded`) |
+| `Rpr` | fbd | fbd | fbd | req | req | req (`folded` w/ `forks[]`) |
 
-`topic` + `data` participate in the SEL prefix derivation (§Prefix derivation). A credential SEL's
-pin rides inside the credential its `data` names; a lookup SEL's pin rides on a `Pin` event. The
-exact SEL shapes are SEL doctrine — [`sel/`](sel/).
+`owner` (the owner IEL prefix, immutable — `Icp` only), `topic`, and `data` participate in the SEL
+prefix derivation (§Prefix derivation), so the `Icp` carries **no `pin`**: a pin field would make
+the prefix non-recomputable for lookup. The SEL's up-pin to its owner IEL therefore rides a
+**serial-1 `Pin` event batched with the `Icp`** (and re-pins on each `Ixn`) — uniformly for every
+SEL, credentials included. The exact SEL shapes are SEL doctrine — [`sel/`](sel/).
 
 ## Anchoring — committing down, flooring up
 
@@ -336,12 +339,17 @@ tuple. Whatever fields the inception populates participate.
 - **IEL**: the roster + threshold vector + the `nonce`. The `nonce` makes the prefix
   **unpredictable** from outside (camping defense) — so an IEL is located only by parties told its
   prefix.
-- **SEL**: `derive(owner, topic, data)`. A credential SEL's `data` is the credential's SAID, so any
-  two non-identical credentials get distinct prefixes automatically and byte-identical ones dedup. A
-  private credential's `data` includes a high-entropy nonce in the credential body, keeping the
-  prefix unguessable; a public credential's prefix is recomputable from the credential itself
+- **SEL**: the populated inception fields — `owner` (the owner IEL prefix), `topic`, and `data`.
+  (Writing it `derive(owner, topic, data)` is shorthand for *constructing that inception and taking
+  its prefix*, **not** a hash of those three values pulled into a separate tuple — the prefix is the
+  whole-content digest like every other event, so any field on the `Icp` enters it.) A credential SEL's `data` is the credential's SAID,
+  so any two non-identical credentials get distinct prefixes automatically and byte-identical ones
+  dedup. A private credential's `data` includes a high-entropy nonce in the credential body, keeping
+  the prefix unguessable; a public credential's prefix is recomputable from the credential itself
   (self-locating), which is safe because authority rests on **owner-rooting** (only the owner IEL
-  anchors at the locus), not on prefix secrecy.
+  anchors at the locus), not on prefix secrecy. Because lookup **recomputes** this prefix, the `Icp`
+  must hold only fields the looker-up already has — so it carries **no `pin`** (the pin rides a
+  batched serial-1 `Pin` event instead).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
 computed prefix doesn't match its declared `prefix`.
