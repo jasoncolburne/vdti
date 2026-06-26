@@ -88,7 +88,7 @@ match event.kind:
     Dec            -> manifest may carry { folded }
 ```
 
-The federation binding (`federation` / `federationPin`) is read from the **top-level** fields on `Icp` / `Fed`, not from the manifest. Generic anchors on `Ixn` / `Rot` / `Ror` / `Rec` are checked for SAID format only; their satisfaction is downstream-verifier business per [§Tiers](../../../../protocol-doctrine.md#tiers).
+The federation binding is read from the **top-level** `federation` / `federationPin` fields, never the manifest. `federation` (the prefix) appears only on `Icp` (initial binding) and `Fed` (a **rebind**); `federationPin` is **optional on every body event** (`Ixn` / `Rot` / `Ror` / `Rec` / `Dec`) as a forward **re-pin** that must resolve within the inherited `federation` prefix (no backdoor rebind) — forward-only is **emergent**, enforced at the witnessing layer, not the KEL walk (a stale pin is chain-valid but un-witnessed; see [`events.md`](events.md)). Generic manifest `anchors` on `Ixn` / `Rot` / `Ror` / `Rec` are checked for SAID format only; their satisfaction is downstream-verifier business per [§Tiers](../../../../protocol-doctrine.md#tiers).
 
 ### Generation processing
 
