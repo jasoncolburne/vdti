@@ -193,12 +193,12 @@ other chains' authority. The per-primitive anchor matrix is in [`primitives/data
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
-**Threshold-vector floors** (re-checked on the post-change roster at every `Evl`, not only at
+**Threshold-vector bounds** (re-checked on the post-change roster at every `Evl`, not only at
 inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard, every
-identity — no single member exercises authority) and a **recoverability floor** `<= |roster| − 1`
+identity — no single member exercises authority) and a **recoverability ceiling** `<= |roster| − 1`
 (evict/recover without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a
 threshold equal to `|roster|` is a gratuitous hostage config and is rejected). A singleton
-(`|roster| = 1`) sets all thresholds to 1. The federation IEL's recoverability floor is **hard**
+(`|roster| = 1`) sets all thresholds to 1. The federation IEL's recoverability ceiling is **hard**
 (it is critical infrastructure and must always be able to evict a compromised witness), so a
 federation requires `|roster| >= 3`.
 
@@ -565,7 +565,7 @@ The federation is **an ordinary (restricted) IEL** — there is no separate cons
 central state machine. Its roster is **witness KELs directly**; its kind set is restricted to `Icp` / `Evl` / `Dec` (no content, so it never has a **reconcilable**
 fork and needs no `Rpr`; a competing-privileged divergence — `{Evl, Evl}` / `{Dec, Dec}` under a
 partition — is still possible but **terminal** (`disputed:`), which is why a federation runs a hard
-recoverability floor and `|roster| >= 3` with serialized governance; no delegation, since trust is
+recoverability ceiling and `|roster| >= 3` with serialized governance; no delegation, since trust is
 per-federation and non-transitive). Its trust root is
 a **config-pinned federation prefix** (a compile-time default with a runtime override) — the prefix
 derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding commitment

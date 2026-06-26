@@ -73,22 +73,22 @@ Each primitive authorizes its own events structurally.
   by that owner IEL: the owner's IEL event anchors the SEL event (commits to its SAID), and the
   required count is set by the SEL event's kind. A SEL hosts no roster of its own.
 
-**The threshold vector and its floors.** Each IEL kind draws its required count from one slot of
+**The threshold vector and its bounds.** Each IEL kind draws its required count from one slot of
 the vector: content (`Ixn`) from `t_use`; a roster/threshold change (`Evl`) from `t_govern`; a
 delegation (`Del`) from `t_delegate`; a repair (`Rpr`) from `t_recover`; a kill-anchor (`Kil`) from
-the `govern` or `delegate` slot it names; the terminal `Dec` from `t_govern`. The floors:
+the `govern` or `delegate` slot it names; the terminal `Dec` from `t_govern`. The bounds:
 
 - `t_use >= 1` (`t_use = 1` is single-device by choice — no content resilience).
-- The authority slots (`t_govern`, `t_delegate`, `t_recover`) carry **two floors**: a **security
+- The authority slots (`t_govern`, `t_delegate`, `t_recover`) carry **two bounds**: a **security
   floor** `>= 2` (hard, every identity — no single member exercises authority) and a
-  **recoverability floor** `<= |roster| − 1` (lets the identity evict a compromised member or
-  recover a lost one without it). The recoverability floor is **advisory at `|roster| = 2`** (a
+  **recoverability ceiling** `<= |roster| − 1` (lets the identity evict a compromised member or
+  recover a lost one without it). The recoverability ceiling is **advisory at `|roster| = 2`** (a
   two-device identity is valid but cannot evict/recover without both — the wallet warns) and
   **hard at `|roster| >= 3`** (a threshold equal to `|roster|` is a gratuitous hostage config —
   rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
-- Both floors are re-checked on the post-change roster at **every** `Evl`, not only at inception.
+- Both bounds are re-checked on the post-change roster at **every** `Evl`, not only at inception.
 
-The per-kind threshold/tier mapping and the floor derivations are the IEL primitive's —
+The per-kind threshold/tier mapping and the bound derivations are the IEL primitive's —
 [`iel/`](iel/). The credential acceptance and authorizing conditions that ride **above** this — on
 documents — are the policy layer's ([`../../policy/policy.md`](../../policy/policy.md)).
 
