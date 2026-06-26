@@ -17,7 +17,7 @@ for the structural rules that realize those properties.
   - [Structural authorization](#structural-authorization) — no policy on chain events
   - [Forks are seal-bounded](#forks-are-seal-bounded)
   - [Divergence and repair](#divergence-and-repair)
-  - [Kills are sealed; validity cut-offs are contiguous](#kills-are-sealed-validity-cut-offs-are-contiguous)
+  - [Kills are sealed; validity bounds are contiguous](#kills-are-sealed-validity-bounds-are-contiguous)
   - [Inception tiers](#inception-tiers)
   - [Decommission and clean retirement](#decommission-and-clean-retirement)
   - [Limit of the doctrine — current-state compromise](#limit-of-the-doctrine--current-state-compromise)
@@ -409,7 +409,7 @@ the member), never retroactive invalidation. A member KEL that cannot be resolve
 an attacker's clean multi-rotation leaves no divergence to contest — does not propagate to the
 identity: the identity evicts the member and continues on its quorum.
 
-#### Kills are sealed; validity cut-offs are contiguous
+#### Kills are sealed; validity bounds are contiguous
 
 A **kill** — revoke, close, rescind, decommission — is **always sealed on arrival**. It is anchored
 in a dedicated sealed kill-anchor (the IEL `Kil`, tier 2; an identity-kill rides a tier-3 terminal),
@@ -419,14 +419,14 @@ there is no unsealed window to undo. A kill is **monotone**: restoring a killed 
 retraction — the party reincepts under a **new prefix** and is granted or issued afresh. A re-grant
 of the *same* killed prefix does not restore it; its kill locus permanently caps that prefix.
 
-A **validity cut-off** (a rescission's cut-off, or a compromise rewind) removes a **contiguous
+A **validity bound** (a rescission's bound, or a compromise rewind) removes a **contiguous
 suffix** of a chain. By chain linearity every event builds on the prior, so only a contiguous tail
-can be invalidated — never a non-contiguous subset. **Nothing past the cut-off is honored — grants
-*and* kills alike**; there is no per-kind exception across a validity bound (honoring a post-cut-off
-event would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
+can be invalidated — never a non-contiguous subset. **Nothing past the bound is honored — grants
+*and* kills alike**; there is no per-kind exception across a validity bound (honoring an event past
+the bound would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
 exactly the attacker's contiguous tail from the divergence point — legitimate and attacker events
-never interleave into a subset worth keeping. A cut-off can only move **earlier** (more killing),
-never later; a sealed kill is never retracted. Recovery from a mis-set cut-off is operational
+never interleave into a subset worth keeping. A bound can only move **earlier** (more killing),
+never later; a sealed kill is never retracted. Recovery from a mis-set bound is operational
 (reincept and re-grant / reissue), not a rewind.
 
 #### Inception tiers

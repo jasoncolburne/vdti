@@ -40,7 +40,7 @@ The two modes share their entire composing logic and differ only at the leaves.
   verifier walks **up** from the presented party at most `N` hops (and never beyond a verifier-wide
   work cap) to reach `X`, denying fail-secure if either is exceeded: as-issued, it resolves each
   hop's delegation as of the pin and checks the grant's grandfather ancestry against the rescission
-  cut-off; current, it confirms the delegate controls its identity now and that no hop is rescinded
+  bound; current, it confirms the delegate controls its identity now and that no hop is rescinded
   as of the tip. In both modes "is this delegation rescinded?" is the **positive lookup** of
   [`policy.md`](policy.md), never a scan.
 
@@ -96,7 +96,7 @@ The resolver asks a token for exactly three things:
 - **An identity's members and threshold as of a position** (or at the tip) — what `id(X)` resolves
   against. Supplied by the IEL verifier's token.
 - **A delegation's live status** — whether `X` granted the delegation, whether it has been
-  rescinded (the positive lookup), and the grandfather cut-off — what `del(X, N)` resolves against,
+  rescinded (the positive lookup), and the grandfather bound — what `del(X, N)` resolves against,
   walking up at most `N` hops. Supplied by the IEL and SEL verifiers' tokens.
 - **The events a chain has committed to as of a position** — the committed anchors that prove, in
   as-issued mode, that the named party acted. Supplied by every contributing chain's token.

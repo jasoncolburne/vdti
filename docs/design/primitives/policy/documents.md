@@ -104,14 +104,14 @@ furnishes nothing to prune. Per hop the verifier checks that the delegation was 
 that the grant has not been **rescinded** (a positive lookup, [`policy.md`](policy.md)). The
 **grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock: the
 **issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor of
-the issuer's rescission cut-off; each **upstream hop** iff *that hop's committed grant position* is
-an ancestor of *that hop's* cut-off, on the granting delegator's chain. The document is authorized
+the issuer's rescission bound; each **upstream hop** iff *that hop's committed grant position* is
+an ancestor of *that hop's* bound, on the granting delegator's chain. The document is authorized
 iff **every** hop is grandfathered. (A grant authored before trust was withdrawn at its hop stays
-valid; one that post-dates that hop's cut-off does not — and a cut-off can only move **earlier**, so
+valid; one that post-dates that hop's bound does not — and a bound can only move **earlier**, so
 a grant that looks grandfathered today can be cut tomorrow.) To give
 several delegators kill-authority over a document, issue it under a threshold spanning their
 legs, so every leg lands in the committed chain. The delegation mechanics — the delegate list, the
-rescission lookup, and the cut-off — are the IEL primitive's; see
+rescission lookup, and the bound — are the IEL primitive's; see
 [`../data/event-logs/iel/`](../data/event-logs/iel/).
 
 ## Timestamps are advisory
