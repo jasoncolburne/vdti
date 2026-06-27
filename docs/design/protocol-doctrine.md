@@ -226,7 +226,7 @@ opens none) per primitive:
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
   kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Del` / `Kil` /
   `Rpr` / `Dec`) are the window-openers.
-- **SEL**: `Pin` / `Rpr` (and `Dec`); a content `Ixn` does not advance the seal.
+- **SEL**: `Fld` / `Rpr` (and `Dec`); a content `Ixn` and a floor `Pin` do not advance the seal.
 
 The terminal `Dec` advances the seal to its own serial and permits no successor. The seal-cap
 rejects any submission whose parent sits before the `Dec`; a direct `Dec`-child passes the cap and
@@ -286,7 +286,7 @@ founding insight of the primitive.
 from an adversary — both branches were structurally authorized when they landed — so resolution
 turns on **tier**, never on who is presumed legitimate. Two rules govern every repair:
 
-- **Only content (`Ixn`) is archivable.** A privileged event — a rotation, a `Evl`, a `Kil`, a
+- **Only tier-1 events are archivable** (content `Ixn`; on the SEL, also the floor `Pin`). A privileged event — a rotation, a `Evl`, a `Kil`, a
   terminal — is **never** archived or overturned: reversing a rotation resurrects retired keys, and
   un-doing a kill breaks a third party's reliance.
 - **A repair never extends an adversarial event** — it extends only the submitter's own branch.
@@ -424,8 +424,8 @@ can be invalidated — never a non-contiguous subset. **Nothing past the bound i
 *and* kills alike**; there is no per-kind exception across a validity bound (honoring an event past
 the bound would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
 exactly the attacker's contiguous tail from the divergence point — legitimate and attacker events
-never interleave into a subset worth keeping. A bound can only move **earlier** (more killing),
-never later; a sealed kill is never retracted. Recovery from a mis-set bound is operational
+never interleave into a subset worth keeping. A bound is **set once** at the rescission `Dec`: it can't move later (no un-kill) nor be tightened
+earlier; a sealed kill is never retracted. Recovery from a mis-set bound is operational
 (reincept and re-grant / reissue), not a rewind.
 
 #### Inception tiers

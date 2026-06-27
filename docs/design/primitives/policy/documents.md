@@ -46,9 +46,11 @@ fixed serial on the append-only chain, and it fixes the context two ways at once
   the past — so the issuer cannot make the document appear authorized under a more permissive past
   while it actually anchors in the restrictive present.
 
-So **authority-affecting resolution is judged by the anchoring position.** There is no self-asserted
-value the issuer chose, and nothing to reconcile against the chain — the as-of is read directly from
-where the document is anchored. There is no separate machinery to establish "when": the append-only
+So **authority-affecting resolution is judged by the anchoring position.** The *document* carries no self-asserted
+value the issuer chose — the as-of is read from where it is anchored. (The cred-SEL's structural
+serial-1 `Pin` does name a position, but it is **checked, not trusted**: the verifier locates the
+anchoring `Ixn` — whose `manifest.issues` carries the cred-SEL `Icp` — and enforces `Pin.pin == that
+anchor's `previous``, so a served `Pin` can't resolve under a stale roster.) There is no separate machinery to establish "when": the append-only
 chain is the clock. (A credential SEL floors to its issuer's IEL through its own serial-1 `Pin`, a
 structural chain field — that is how the chain locates the anchoring event, not a value the document
 asserts; see [`../data/event-logs/sel/`](../data/event-logs/sel/).)
@@ -99,8 +101,8 @@ that the grant has not been **rescinded** (a positive lookup, [`policy.md`](poli
 the issuer's rescission bound; each **upstream hop** iff *that hop's committed grant position* is
 an ancestor of *that hop's* bound, on the granting delegator's chain. The document is authorized
 iff **every** hop is grandfathered. (A grant authored before trust was withdrawn at its hop stays
-valid; one that post-dates that hop's bound does not — and a bound can only move **earlier**, so
-a grant that looks grandfathered today can be cut tomorrow.) To give
+valid; one that post-dates that hop's bound does not — and the bound is **set once** at rescission — the rescission is a terminal `Dec`, so it can't be moved
+later to un-kill, nor tightened earlier; a mis-set bound is recovered operationally, not by adjusting it.) To give
 several delegators kill-authority over a document, issue it under a threshold spanning their
 legs, so every leg lands in the committed chain. The delegation mechanics — the delegate list, the
 rescission lookup, and the bound — are the IEL primitive's; see
