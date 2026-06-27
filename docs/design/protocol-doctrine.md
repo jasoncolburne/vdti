@@ -140,14 +140,13 @@ separate:
   per-chain floor only moves forward. This is the monotonicity backstop for the as-of pins.
 
 **As-of authority is judged by the anchoring position, never by a self-asserted pin.** A document
-(or any pinned reference) carries a `pin`, but authority-affecting resolution — grandfather and
+carries **no** self-asserted pin; authority-affecting resolution — grandfather and
 rescission ancestry, roster and delegation state — is judged by the **anchoring position**: the
 serial of the committing event, append-only-fixed via the chain `document ← SEL ← IEL Ixn ← KEL
-Ixn` (each `previous`-linked). The verifier **enforces `pin == (the anchoring event).previous`**, so
-the pin cannot select a more permissive past while the act anchors in the restrictive present. The
-pin lives inside the document, where its issuer chose it; the anchoring position lives on the
-append-only chain, where it cannot be inserted into the past. This is why the document layer can
-trust a pin: it is checked against the chain, not believed
+Ixn` (each `previous`-linked). There is no self-asserted document value to backdate: the as-of is read directly from the
+anchoring position, which lives on the append-only chain and cannot be inserted into the past. The
+structural SEL down-pin that floors each log to its owner still satisfies `pin == anchor.previous`
+as a chain link, but that is a chain field, not a document's claim
 ([`primitives/policy/documents.md`](primitives/policy/documents.md)).
 
 #### Tiers
@@ -437,12 +436,12 @@ Inception tier follows what the inception establishes:
 - **IEL `Icp`** — tier 2. It establishes governance (a roster + threshold vector) — a genuine
   state-establishment.
 - **SEL `Icp`** — tier 1. It establishes single-owner data, not governance, and an IEL `Ixn`
-  anchors it. The pin is not a separate field: for a **credential SEL**, `data` **is** the
-  credential's SAID and the pin lives **inside** the credential, so the `Icp` carries no manifest
-  and the SEL floors to the IEL through the credential's pin. For a **lookup SEL** (where the
-  verifier blind-recomputes the prefix from data it already holds), the pin cannot live in the
-  recomputable prefix, so the `Icp` is paired with a **`Pin`** event carrying the pin — the only
-  reason a SEL `Icp` needs a second establishment event.
+  anchors it. The `Icp` carries **no `pin`** (it must stay recomputable for lookup), so the SEL's
+  first down-pin rides a **serial-1 `Pin`** batched with the `Icp`, uniformly for every SEL. A
+  **credential SEL**'s `data` **is** the credential's SAID (the whole reference; the `Icp` carries no
+  manifest); a **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes the
+  prefix from (e.g. a rescinded prefix), and its rescission kill rides a terminal `Dec` sealed by an
+  IEL `Kil`@`delegate`.
 
 A compromised tier-1 signing key can already issue content in your name, so letting it also create
 a SEL adds no blast radius — tier-1 inception is sound. Issuing a credential is tier 1 because a

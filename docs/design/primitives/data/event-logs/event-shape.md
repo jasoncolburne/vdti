@@ -99,8 +99,8 @@ those commitments **by named role**. The manifest SAD reads `{ said, <role>: <sa
 and each role reads as "the things this event {anchors / issues / revokes / …}." The event row
 holds only the manifest SAID; the grouped commitments live in the SAD, separately custody-able. A
 role value is either an **inline list** of SAIDs/prefixes — `anchors` / `issues` / `revokes` /
-`content` / `delegates` — a **single SAID** naming a further structured SAD (`roster`, `witnesses`,
-`folded`), a **single event-SAID pointer** (`rescinds`, `bound`), or a **direct scalar** (the
+`rescinds` / `content` / `delegates` — a **single SAID** naming a further structured SAD (`roster`, `witnesses`,
+`folded`), a **single event-SAID pointer** (`bound`), or a **direct scalar** (the
 federation `clock` — an inline timestamp value, the lone non-SAID, non-list role).
 
 **Role vocabulary:**
@@ -112,9 +112,9 @@ federation `clock` — an inline timestamp value, the lone non-SAID, non-list ro
 | `delegates` | IEL `Del` | an inline **list** of delegate **prefixes** — `[ prefix, … ]` (a grant/inclusion proof, batched; rescission is a separate lookup-SEL, never a list edit) |
 | `issues` | IEL `Ixn` | an inline **list** of credential-SEL `Icp` SAIDs — `[ said, … ]` this event issues (batched) |
 | `revokes` | IEL `Kil`@`govern` | an inline **list** of cred-SEL `Dec` SAIDs — `[ said, … ]` this `Kil` seals (batched) — cred revocation / closure |
-| `rescinds` | IEL `Kil`@`delegate` | the rescission lookup-SEL this `Kil` enacts (delegation rescission) — the counterpart of `revokes`; a rescission is *created to kill*, so the `Kil` brings the lookup-SEL into being |
+| `rescinds` | IEL `Kil`@`delegate` | an inline **list** of lookup-SEL `Dec` SAIDs this `Kil` seals (delegation rescission) — the counterpart of `revokes`; a rescission is *created to kill*, so the `Kil` brings the lookup-SEL (`{Icp, Dec}`) into being |
 | `content` | SEL `Ixn` | an inline **list** of content-SAD SAIDs — `[ said, … ]` the SEL `Ixn` records (a credential SEL's `Icp` uses `data`, not a manifest) |
-| `bound` | SEL `Pin` | the SAID of the **last valid (honoured) event** on a delegated chain — a rescission's grandfather boundary (the dial: the delegate's tip → its inception) |
+| `bound` | SEL `Dec` (rescission) | the SAID of the **last valid (honoured) event** on a delegated chain — a rescission's grandfather boundary (the dial: the delegate's tip → its inception) |
 | `witnesses` | KEL `Icp` / `Fed` | a SAID → the witness-config SAD `{ threshold, signers }` |
 | `clock` | federation IEL `Icp` / `Evl` | the federation-clock **timestamp** carried **inline** — a UTC RFC3339 microsecond string (fixed-width, JCS-canonical), not a nested SAD (federation doctrine) |
 | `folded` | seal-advancing kinds — opt (present only when content is folded), req on a repair (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Evl`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | a SAD committing the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's **boundary SAIDs** (so a spine walk **catches a naive `previousSeal` forgery** without expanding — necessary, not sufficient). `canonical` is `Ixn`-only, back-checked on expansion; absent when no content was folded. `forks[]` is **non-empty only on a repair** (KEL `Rec` / IEL·SEL `Rpr`) — it commits the archival tails the repair resolves; a non-repair carrier carries it only when content was folded (then `canonical` alone), omitting it otherwise (a `Dec` included) |
@@ -153,7 +153,7 @@ the subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that ca
 | `previousSeal` | Digest256 | KEL, IEL, SEL | the **seal-advancing** kinds (KEL `Rot`/`Ror`/`Rec`/`Fed`/`Dec`; IEL `Evl`/`Del`/`Kil`/`Rpr`/`Dec`; SEL `Pin`/`Rpr`/`Dec`) | Back-link to the prior seal-advancing event; renders the **spine** ([§Divergence is scoped to content](#divergence-is-scoped-to-content)). `fbd` on `Icp` / `Fcp` / `Ixn`. |
 | `federation` | Digest256 | KEL | `Icp` / `Fed` | The federation IEL **prefix** this chain binds to (which federation; follows the federation's evolution). |
 | `federationPin` | Digest256 | KEL | `Icp` / `Fed` (req); **opt on every body event** (`Ixn`/`Rot`/`Ror`/`Rec`/`Dec`) | A **SAID** pinning the as-of federation position. Present = a forward **re-pin** within the inherited federation; absent = inherit the prior pin — so a same-federation re-pin rides whatever event the chain authors next (`Fed` is reserved for a **rebind**, which changes the `federation` prefix). The prefix/SAID split: `federation` is *which* federation, `federationPin` is *as of when*. |
-| `pin` | Digest256 | SEL | `Ixn` / `Dec` / `Pin` / `Rpr` (req); **`fbd` on `Icp`** | SAID of the owner IEL event this SEL event floors up to (the SEL's **down-pin**). The `Icp` carries **no** `pin` — it must stay recomputable for lookup (§Prefix derivation) — so the SEL's first pin rides a **serial-1 `Pin` event batched with the `Icp`**, uniformly for every SEL (a rescission `Pin` additionally carries the `bound`). |
+| `pin` | Digest256 | SEL | `Ixn` / `Dec` / `Pin` / `Rpr` (req); **`fbd` on `Icp`** | SAID of the owner IEL event this SEL event floors up to (the SEL's **down-pin**). The `Icp` carries **no** `pin` — it must stay recomputable for lookup (§Prefix derivation) — so the SEL's first pin rides a **serial-1 `Pin` event batched with the `Icp`**, uniformly for every SEL (a rescission lookup-SEL is `{Icp, Dec}`; its terminal `Dec` carries the `bound`). |
 | `pins` | Digest256 | IEL | every IEL kind (`Icp`/`Ixn`/`Evl`/`Del`/`Kil`/`Rpr`/`Dec`) | SAID of a small SAD listing the participating member **KEL event SAIDs** — the IEL's **down-pins**, the complement of fresh-participation up-anchoring (a federation `Evl`'s are the witness KELs). Every IEL event is anchored by a threshold of members, so every one carries it. (Schema is IEL doctrine — [`iel/`](iel/).) |
 | `nonce` | Nonce256 | IEL | `Icp` | Opaque random bytes chosen by the inceptor; makes the IEL prefix unpredictable. Required at inception, forbidden elsewhere. |
 | `threshold` | enum | IEL | `Kil` | Which authority slot the sealed kill-anchor is priced at — `govern` (a revocation/closure) or `delegate` (a rescission). A slot **name**, never a raw integer. |
@@ -227,10 +227,10 @@ convergence](../../../protocol-doctrine.md#federation-convergence) and [`federat
 
 | Kind | Count | Tier | Anchored by (IEL) | Role |
 |---|---|---|---|---|
-| `Icp` | `t_use` | 1 | `Ixn` | Inception. For a credential SEL, `data` **is** the credential's SAID (the pin lives inside the credential) and the `Icp` carries **no** manifest. For a lookup SEL, `data` is the recompute input and a `Pin` event carries the pin. |
+| `Icp` | `t_use` | 1 | `Ixn` | Inception. Carries **no** `pin` — it stays recomputable for lookup (§Prefix derivation), so the SEL's first pin rides a **serial-1 `Pin`** batched with it (uniform). A credential SEL's `data` **is** the credential's SAID (and the `Icp` carries no manifest); a lookup SEL's `data` is the recompute input (e.g. the rescinded prefix). |
 | `Ixn` | `t_use` | 1 | `Ixn` | Content SAD(s) + re-`pin`; ≤ 1 per SEL per IEL `Ixn`. The **only repairable** SEL kind. |
-| `Dec` | `t_govern` | 2 (identity-kill → 3) | `Kil` @ `govern` | Decommission = revocation / closure. **Sealed on arrival** (a kill is monotone — no delayed form). The killed thing is identified by *which SEL its `Dec` extends*. |
-| `Pin` | `t_delegate` | 2 | `Kil` @ `delegate` | A **lookup SEL's** pin-carrier (rescission): carries a `pin` + a **`bound`** (the SAID of the last honoured event on the delegated chain), not a roster. Sealed on arrival. |
+| `Dec` | `t_govern` (revocation) · `t_delegate` (rescission) | 2 (identity-kill → 3) | `Kil` @ `govern` / @ `delegate` | The SEL **kill**: `Kil`@`govern` (`revokes`) decommissions a credential SEL (revocation / closure); `Kil`@`delegate` (`rescinds`) seals a delegation **rescission** (the lookup SEL is `{Icp, Dec}` born to kill, and the `Dec` additionally carries `manifest.bound`). **Sealed on arrival** (a kill is monotone — no delayed form). The killed thing is identified by *which SEL its `Dec` extends*. |
+| `Pin` | `t_use` | 1 | `Ixn` | The **floor-ratchet** (the IEL `Evl`-analog) — re-pins the SEL to its owner IEL's current tip, carrying only the `pin`. Batched with the `Icp` at inception (uniform), and stands alone to re-seal a busy content window. A non-privileged seal-advancer — repairable like content. |
 | `Rpr` | `t_recover` | 3 | `Rpr` | Divergence repair; owner-authorized, bottom-up cascade. |
 
 Content rides the IEL `Ixn` rail (tier 1); a kill rides the IEL `Kil` rail (tier 2, sealed);
@@ -307,10 +307,10 @@ back up to its authority's current tip:
   participates in an IEL event by authoring a **fresh KEL event at its own current tip** committing
   to that IEL event — a rotated-out key cannot produce one, which is what closes the rotated-out-member backdate.
 - An **IEL** event anchors the **SEL** events it authorizes (`anchors` / `issues` for content;
-  `revokes` for kills); the SEL event floors up to the owner IEL tip via its `pin` (or, for a
-  credential SEL, via the pin inside the credential its `data` names). The verifier enforces a
-  document's pin `== (its anchoring event).previous`, so a pin cannot select a more permissive past
-  ([`../../policy/documents.md`](../../policy/documents.md)).
+  `revokes` / `rescinds` for kills); the SEL event floors up to the owner IEL tip via its `pin`,
+  carried uniformly on the serial-1 `Pin` (the `Icp` itself stays pin-free for recomputability). The
+  as-of authority is the **anchoring position** — the committing IEL event, append-only — so it
+  cannot select a more permissive past ([`../../policy/documents.md`](../../policy/documents.md)).
 
 The per-kind anchor matrix (which KEL kind anchors which IEL kind; the `Kil`-slot backing-and-demand check) and the forward-only floor are per-primitive and protocol doctrine —
 [`kel/`](kel/), [`iel/`](iel/), [`sel/`](sel/), and
@@ -362,12 +362,12 @@ Some kinds land only as part of a multi-event atomic batch, enforced at the merg
 
 - **Credential issuance** — a credential SEL `Icp` is anchored by an IEL `Ixn` that references it
   under `manifest.issues` (one IEL `Ixn` may batch many issuances).
-- **A SEL kill** — a SEL `Dec` (or a lookup SEL's `Pin`) is anchored by an IEL `Kil` that
-  references it under `manifest.revokes`, at the matching `threshold` slot (one `Kil` may batch
-  many kills).
-- **Multi-identity document authorization** — each authorizing identity anchors the document on its
-  own IEL, with the document's per-party pin `== that party's anchoring event's `previous``; the
-  issuers quiesce their identities between finalizing and anchoring
+- **A SEL kill** — a credential-SEL `Dec` (revocation) under `manifest.revokes` (`govern` slot), or a
+  lookup-SEL `Dec` (rescission) under `manifest.rescinds` (`delegate` slot), is anchored by an IEL
+  `Kil` at the matching `threshold` slot (one `Kil` may batch many kills).
+- **Multi-identity document authorization** — the document names a custodied `issuers` SAD and each
+  authorizing identity issues its **own** attestation independently (its own SEL, self-flooring via
+  its serial-1 `Pin` and self-locating via `derive`); there are no per-party document pins
   ([`../../policy/documents.md`](../../policy/documents.md)).
 - **Federation genesis** — the founder KEL `[Fcp, Fed]` pairs, the federation IEL `Icp`, and the
   cross-attestation receipts land as one atomic batch. See [`federation/`](../../../federation/).
@@ -386,5 +386,6 @@ The full enforcement rules are per-primitive and federation doctrine.
   recovery-key reveal). When a doc needs to disambiguate the shared `Dec` across layers it qualifies
   it (`KEL-Dec` / `IEL-Dec` / `SEL-Dec`).
 - **`Evl`** (IEL) changes the roster/threshold only; **`Kil`** (IEL) seals a kill; **`Pin`** (SEL)
-  carries a lookup SEL's pin + `bound`. These are distinct kinds because they do distinct jobs — a
+  re-pins the floor only — true to its name, the `Evl`-analog. A SEL kill (cred revocation or
+  delegation rescission) is a **`Dec`** (the rescission `Dec` additionally carrying the `bound`). These are distinct kinds because they do distinct jobs — a
   roster change can never ride at a kill's count, and a kill carries no roster delta.

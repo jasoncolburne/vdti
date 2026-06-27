@@ -5,9 +5,9 @@ Part of the policy layer — see [`policy.md`](policy.md) for the language and
 
 A policy is evaluated in one of **two modes**, depending on the question being asked:
 
-- **As-issued — *was this validly issued?*** Resolve each leaf **as of the position the document
-  pins** (the issuer's identity state at the moment of issuance). The proof that the named parties
-  acted is **already on the chain** — the committed anchors the document's pins reach
+- **As-issued — *was this validly issued?*** Resolve each leaf **as of the document's anchoring
+  position** (the issuer's identity state at the moment of issuance). The proof that the named parties
+  acted is **already on the chain** — the committed anchors that position reaches
   ([`documents.md`](documents.md)). This is how a document's **authorizing** condition is checked
   when it spans separate identities.
 - **Current — *does the presenter control the named identities right now?*** Resolve each leaf at
@@ -33,25 +33,25 @@ The two modes share their entire composing logic and differ only at the leaves.
 
   | | State | Proof that the party acted |
   |---|---|---|
-  | **as-issued** | the identity's members + **`t_use`** threshold **as of the document's pin** | the **committed on-chain anchors** the pins reach — the proof is already in the chain |
+  | **as-issued** | the identity's members + **`t_use`** threshold **as of the document's anchoring position** | the **committed on-chain anchors** those positions reach — the proof is already in the chain |
   | **current** | the identity's members + **`t_use`** threshold **at the chain tip** | **live signatures** over a fresh, single-use **challenge** |
 
   The `del(X, N)` leaf differs the same way, and is **bounded the same way** in both modes — the
   verifier walks **up** from the presented party at most `N` hops (and never beyond a verifier-wide
   work cap) to reach `X`, denying fail-secure if either is exceeded: as-issued, it resolves each
-  hop's delegation as of the pin and checks the grant's grandfather ancestry against the rescission
+  hop's delegation as of the anchoring position and checks the grant's grandfather ancestry against the rescission
   bound; current, it confirms the delegate controls its identity now and that no hop is rescinded
   as of the tip. In both modes "is this delegation rescinded?" is the **positive lookup** of
   [`policy.md`](policy.md), never a scan.
 
 So evaluation is one function over the policy expression, parameterized by a resolver. The
 as-issued and current entry points are thin wrappers that pick the resolver and assemble its
-inputs (the pins, or the challenge and the presented signatures). Everything above the leaves is
+inputs (the anchoring positions, or the challenge and the presented signatures). Everything above the leaves is
 shared.
 
 ## The to-tip freshness step is mandatory for trust
 
-An **as-issued** resolution answers only "was this validly issued, as of its pin." It does **not**
+An **as-issued** resolution answers only "was this validly issued, as of its anchoring position." It does **not**
 answer "is the issuer still trustworthy now." A forged extension of a dormant chain is a clean
 linear extension — there is no divergence for the as-issued path to notice — so as-issued alone
 can be fooled into honoring an issuer that has since been revoked, rescinded, or has diverged.
@@ -68,7 +68,7 @@ three things the caller composes:
   witnessed** state, never a single source's possibly-stale claim (a single stale or malicious
   source could hide a revocation).
 
-So **as-issued validity** (*was this validly issued, as of its pin?*) is a separate question from
+So **as-issued validity** (*was this validly issued, as of its anchoring position?*) is a separate question from
 **current trust** (*may I newly rely on this issuer now?*). A below-seal anchor is validly-issued
 **always**; granting *new* current trust additionally requires the current region to be **trusted**
 (not forked, not disputed) and the state fresh. "Not divergent" therefore means *no divergence

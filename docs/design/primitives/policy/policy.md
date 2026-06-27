@@ -154,7 +154,7 @@ policies, signers may overlap*.
 ## Forward references
 
 - [`documents.md`](documents.md) — where a policy lives (a document's authorizing and acceptance
-  conditions), the pin a document carries to its issuer context, and how that pin is anchored.
+  conditions) and how a document's issuer context is fixed by its anchoring position.
 - [`evaluation.md`](evaluation.md) — the two evaluation modes (as-issued and current), the shared
   composer with two leaf resolvers, and the verification-token interface this layer declares.
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — the IEL primitive: the identity an `id`
