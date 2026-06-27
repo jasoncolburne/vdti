@@ -17,7 +17,7 @@ for the structural rules that realize those properties.
   - [Structural authorization](#structural-authorization) — no policy on chain events
   - [Forks are seal-bounded](#forks-are-seal-bounded)
   - [Divergence and repair](#divergence-and-repair)
-  - [Kills are sealed; validity cut-offs are contiguous](#kills-are-sealed-validity-cut-offs-are-contiguous)
+  - [Kills are sealed; validity bounds are contiguous](#kills-are-sealed-validity-bounds-are-contiguous)
   - [Inception tiers](#inception-tiers)
   - [Decommission and clean retirement](#decommission-and-clean-retirement)
   - [Limit of the doctrine — current-state compromise](#limit-of-the-doctrine--current-state-compromise)
@@ -140,14 +140,13 @@ separate:
   per-chain floor only moves forward. This is the monotonicity backstop for the as-of pins.
 
 **As-of authority is judged by the anchoring position, never by a self-asserted pin.** A document
-(or any pinned reference) carries a `pin`, but authority-affecting resolution — grandfather and
+carries **no** self-asserted pin; authority-affecting resolution — grandfather and
 rescission ancestry, roster and delegation state — is judged by the **anchoring position**: the
 serial of the committing event, append-only-fixed via the chain `document ← SEL ← IEL Ixn ← KEL
-Ixn` (each `previous`-linked). The verifier **enforces `pin == (the anchoring event).previous`**, so
-the pin cannot select a more permissive past while the act anchors in the restrictive present. The
-pin lives inside the document, where its issuer chose it; the anchoring position lives on the
-append-only chain, where it cannot be inserted into the past. This is why the document layer can
-trust a pin: it is checked against the chain, not believed
+Ixn` (each `previous`-linked). There is no self-asserted document value to backdate: the as-of is read directly from the
+anchoring position, which lives on the append-only chain and cannot be inserted into the past. The
+structural SEL down-pin that floors each log to its owner still satisfies `pin == anchor.previous`
+as a chain link, but that is a chain field, not a document's claim
 ([`primitives/policy/documents.md`](primitives/policy/documents.md)).
 
 #### Tiers
@@ -193,12 +192,12 @@ other chains' authority. The per-primitive anchor matrix is in [`primitives/data
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
-**Threshold-vector floors** (re-checked on the post-change roster at every `Evl`, not only at
+**Threshold-vector bounds** (re-checked on the post-change roster at every `Evl`, not only at
 inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard, every
-identity — no single member exercises authority) and a **recoverability floor** `<= |roster| − 1`
+identity — no single member exercises authority) and a **recoverability ceiling** `<= |roster| − 1`
 (evict/recover without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a
 threshold equal to `|roster|` is a gratuitous hostage config and is rejected). A singleton
-(`|roster| = 1`) sets all thresholds to 1. The federation IEL's recoverability floor is **hard**
+(`|roster| = 1`) sets all thresholds to 1. The federation IEL's recoverability ceiling is **hard**
 (it is critical infrastructure and must always be able to evict a compromised witness), so a
 federation requires `|roster| >= 3`.
 
@@ -227,7 +226,7 @@ opens none) per primitive:
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
   kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Del` / `Kil` /
   `Rpr` / `Dec`) are the window-openers.
-- **SEL**: `Pin` / `Rpr` (and `Dec`); a content `Ixn` does not advance the seal.
+- **SEL**: `Fld` / `Rpr` (and `Dec`); a content `Ixn` and a floor `Pin` do not advance the seal.
 
 The terminal `Dec` advances the seal to its own serial and permits no successor. The seal-cap
 rejects any submission whose parent sits before the `Dec`; a direct `Dec`-child passes the cap and
@@ -238,9 +237,11 @@ is spent (revealed by an `Ror` / `Rec` / `Fed` / `Dec`), it cannot be reused to 
 earlier divergence.
 
 **Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
-`MINIMUM_PAGE_SIZE − 2` non-seal-advancing events, so a recovery batch produced on any conformant
+`MINIMUM_PAGE_SIZE − 1` non-seal-advancing events, so a recovery batch produced on any conformant
 deployment fits in any other's single page (`MINIMUM_PAGE_SIZE` is a protocol constant, not a
-per-deployment knob; the `− 2` headroom accommodates a 2-event repair batch). On the IEL the cap is
+per-deployment knob; the `− 1` headroom accommodates the single-event repair — the discriminator's
+hot page is the retained branch plus the repair event, with the archival tails committed in
+`folded.forks[]` and validated by-commitment, not held in the page). On the IEL the cap is
 just as load-bearing: content (`Ixn` — the rail **issuance** rides, via `issues[]`) does **not**
 advance the seal, so trailing issuances accumulate and the seal lags the tip; without the cap the
 post-seal window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer
@@ -285,7 +286,7 @@ founding insight of the primitive.
 from an adversary — both branches were structurally authorized when they landed — so resolution
 turns on **tier**, never on who is presumed legitimate. Two rules govern every repair:
 
-- **Only content (`Ixn`) is archivable.** A privileged event — a rotation, a `Evl`, a `Kil`, a
+- **Only tier-1 events are archivable** (content `Ixn`; on the SEL, also the floor `Pin`). A privileged event — a rotation, a `Evl`, a `Kil`, a
   terminal — is **never** archived or overturned: reversing a rotation resurrects retired keys, and
   un-doing a kill breaks a third party's reliance.
 - **A repair never extends an adversarial event** — it extends only the submitter's own branch.
@@ -344,8 +345,13 @@ or a second privileged branch a one-branch holder detects once the beacon delive
 A **repair must commit the divergence it resolves.** Its `folded.forks[]` enumerates the archival
 tails — each a real branch from the correct ancestor — and a repair is **invalid on a non-divergent
 tip** (a `Rec` / `Rpr` with empty `forks[]` is rejected). The committed `forks[]` **are** the
-archival tails: a verifier validates a repair against the branches it commits, regardless of which
-others that verifier happens to hold. No non-repair event ever carries `forks[]`. A `{Dec, content}`
+archival tails, each validated **content-only**. A verifier validates the committed content tails even
+when it holds fewer than the author, but it never trusts `forks[]` as proof there are **no** privileged
+branches: it **independently** walks every branch off the retained walkback it holds (or the beacon
+enumerates) and **rejects a repair that would leave a privileged branch un-committed** — privileged
+branches are always retained (keep-all-data), so a `Rot` cannot be hidden by omitting it from `forks[]`
+and letting the repair seal past it. The verifier computes the archival set from the data, never from
+the submitter's enumeration. No non-repair event ever carries `forks[]`. A `{Dec, content}`
 race needs no repair: the `Dec` is the single privileged branch, so it wins on **tier-rank** — the
 chain decommissions and the losing content is non-canonical (and droppable). To resolve a content fork
 *and* decommission, repair first (the `Rpr` carries the `forks[]`), then the `Dec` lands cleanly on the
@@ -402,7 +408,7 @@ the member), never retroactive invalidation. A member KEL that cannot be resolve
 an attacker's clean multi-rotation leaves no divergence to contest — does not propagate to the
 identity: the identity evicts the member and continues on its quorum.
 
-#### Kills are sealed; validity cut-offs are contiguous
+#### Kills are sealed; validity bounds are contiguous
 
 A **kill** — revoke, close, rescind, decommission — is **always sealed on arrival**. It is anchored
 in a dedicated sealed kill-anchor (the IEL `Kil`, tier 2; an identity-kill rides a tier-3 terminal),
@@ -412,14 +418,14 @@ there is no unsealed window to undo. A kill is **monotone**: restoring a killed 
 retraction — the party reincepts under a **new prefix** and is granted or issued afresh. A re-grant
 of the *same* killed prefix does not restore it; its kill locus permanently caps that prefix.
 
-A **validity cut-off** (a rescission's cut-off, or a compromise rewind) removes a **contiguous
+A **validity bound** (a rescission's bound, or a compromise rewind) removes a **contiguous
 suffix** of a chain. By chain linearity every event builds on the prior, so only a contiguous tail
-can be invalidated — never a non-contiguous subset. **Nothing past the cut-off is honored — grants
-*and* kills alike**; there is no per-kind exception across a validity bound (honoring a post-cut-off
-event would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
+can be invalidated — never a non-contiguous subset. **Nothing past the bound is honored — grants
+*and* kills alike**; there is no per-kind exception across a validity bound (honoring an event past
+the bound would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
 exactly the attacker's contiguous tail from the divergence point — legitimate and attacker events
-never interleave into a subset worth keeping. A cut-off can only move **earlier** (more killing),
-never later; a sealed kill is never retracted. Recovery from a mis-set cut-off is operational
+never interleave into a subset worth keeping. A bound is **set once** at the rescission `Dec`: it can't move later (no un-kill) nor be tightened
+earlier; a sealed kill is never retracted. Recovery from a mis-set bound is operational
 (reincept and re-grant / reissue), not a rewind.
 
 #### Inception tiers
@@ -430,12 +436,12 @@ Inception tier follows what the inception establishes:
 - **IEL `Icp`** — tier 2. It establishes governance (a roster + threshold vector) — a genuine
   state-establishment.
 - **SEL `Icp`** — tier 1. It establishes single-owner data, not governance, and an IEL `Ixn`
-  anchors it. The pin is not a separate field: for a **credential SEL**, `data` **is** the
-  credential's SAID and the pin lives **inside** the credential, so the `Icp` carries no manifest
-  and the SEL floors to the IEL through the credential's pin. For a **lookup SEL** (where the
-  verifier blind-recomputes the prefix from data it already holds), the pin cannot live in the
-  recomputable prefix, so the `Icp` is paired with a **`Pin`** event carrying the pin — the only
-  reason a SEL `Icp` needs a second establishment event.
+  anchors it. The `Icp` carries **no `pin`** (it must stay recomputable for lookup), so the SEL's
+  first down-pin rides a **serial-1 `Pin`** batched with the `Icp`, uniformly for every SEL. A
+  **credential SEL**'s `data` **is** the credential's SAID (the whole reference; the `Icp` carries no
+  manifest); a **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes the
+  prefix from (e.g. a rescinded prefix), and its rescission kill rides a terminal `Dec` sealed by an
+  IEL `Kil`@`delegate`.
 
 A compromised tier-1 signing key can already issue content in your name, so letting it also create
 a SEL adds no blast radius — tier-1 inception is sound. Issuing a credential is tier 1 because a
@@ -537,8 +543,8 @@ feature-level fields on the content a chain event anchors (a credential's issued
 advisory and checked by the verifier against its own clock). None influence chain ordering.
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
-consensus-attested clock **for freshness / staleness detection only** — the `clock` group in each
-federation `Evl`'s `manifest` (a timestamp SAD, one per governance change), sealed and monotonic,
+consensus-attested clock **for freshness / staleness detection only** — the `clock` role in each
+federation `Evl`'s `manifest` (an inline timestamp value, one per governance change), sealed and monotonic,
 **not** a field on any chain event. It bounds each witness key's validity window so a closed-window
 key can only stamp old receipts, which makes a backdated dormant-chain forgery read **stale** —
 detectable, fail-secure. It **defeats** backdating rather than inviting it, and intra-chain ordering
@@ -558,7 +564,7 @@ The federation is **an ordinary (restricted) IEL** — there is no separate cons
 central state machine. Its roster is **witness KELs directly**; its kind set is restricted to `Icp` / `Evl` / `Dec` (no content, so it never has a **reconcilable**
 fork and needs no `Rpr`; a competing-privileged divergence — `{Evl, Evl}` / `{Dec, Dec}` under a
 partition — is still possible but **terminal** (`disputed:`), which is why a federation runs a hard
-recoverability floor and `|roster| >= 3` with serialized governance; no delegation, since trust is
+recoverability ceiling and `|roster| >= 3` with serialized governance; no delegation, since trust is
 per-federation and non-transitive). Its trust root is
 a **config-pinned federation prefix** (a compile-time default with a runtime override) — the prefix
 derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding commitment

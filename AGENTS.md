@@ -98,7 +98,7 @@ Three categories of operation:
 2. **Consuming** — requires `Verification` token from the verifier's `into_verification()`.
 3. **Resolving** — wrong answers trigger unnecessary syncs, not security holes.
 
-End-verifiability means a verifier with **data from any source** plus the trusted federation `Fcp` SAID set can determine system-wide state — including attack exposure. Source location matters for cost, not trust.
+End-verifiability means a verifier with **data from any source** plus the trusted federation prefixes can determine system-wide state — including attack exposure. Source location matters for cost, not trust.
 
 ## Working Conventions
 
