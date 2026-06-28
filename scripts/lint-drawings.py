@@ -7,10 +7,12 @@ end that does not track its shape and almost always marks an out-of-date diagram
 diagrams are load-bearing documentation, so a detached arrow is a real defect.
 This dangling check is the gate behind `make lint-drawings`.
 
-The same tool can **describe** the linkages (`--describe`): for each arrow, what
-it connects — resolved to the nearest kind label (`Icp`, `Pin`, `Dec`, `Kil`,
-`Ixn`, …) — grouped by the nearest `example N` title. That is a review aid for
-checking a diagram against the design canon.
+The same tool can **describe** the linkages (`--describe`): for each `example N`
+group it first lists the **nodes** (the kind-labelled boxes — `Icp`, `Rot`,
+`Fed`, …) and then every arrow and what it connects (resolved to the nearest kind
+label). That is a review aid for checking a diagram against the design canon — the
+node list answers "which event kinds does this example contain?" directly, without
+hand-parsing the JSON.
 
 `isDeleted` elements — and any binding that points at one — are always excluded
 (Excalidraw keeps deleted elements in the JSON).
@@ -38,6 +40,7 @@ import sys
 KIND_RE = re.compile(r"^[A-Z][A-Za-z0-9]{0,4}$")
 EXAMPLE_RE = re.compile(r"example\s+\d+", re.IGNORECASE)
 LABEL_RADIUS = 90  # px: how far a free-text label may sit from an endpoint
+SHAPE_TYPES = ("rectangle", "diamond", "ellipse")  # the boxes that carry kind labels
 
 
 def repo_root():
@@ -151,16 +154,24 @@ def arrow_label(arrow, texts):
     return ""
 
 
-def nearest_example(arrow, titles):
+def nearest_example_pt(x, y, titles):
+    """The example a point belongs to: the nearest title that sits ABOVE it
+    (examples are laid out title-on-top, content below — so only a title with
+    ty <= y is a candidate). Falls back to the nearest title overall only if none
+    sits above (shouldn't happen for well-formed examples)."""
     if not titles:
         return ""
-    ax, ay = arrow.get("x", 0), arrow.get("y", 0)
+    pool = [(t, tx, ty) for (t, tx, ty) in titles if ty <= y] or titles
     best, bestd = "", 1e18
-    for title, tx, ty in titles:
-        d = math.hypot(tx - ax, ty - ay)
+    for title, tx, ty in pool:
+        d = math.hypot(tx - x, ty - y)
         if d < bestd:
             best, bestd = title, d
     return best
+
+
+def nearest_example(arrow, titles):
+    return nearest_example_pt(arrow.get("x", 0), arrow.get("y", 0), titles)
 
 
 def describe(path):
@@ -173,24 +184,39 @@ def describe(path):
     titles = [(text_of(t), *center(t)) for t in texts if EXAMPLE_RE.search(t.get("text", ""))]
 
     print(f"\n# {path} — {len(arrows)} arrow(s), {len(live)} live element(s)")
-    rows = []
-    for a in arrows:
-        rows.append((
+
+    # Nodes: every kind-labelled box, grouped by the example title above it.
+    nodes_by_ex = {}
+    node_rows = [
+        (nearest_example_pt(*center(e), titles), center(e)[1], center(e)[0], label_for(e, texts))
+        for e in live if e.get("type") in SHAPE_TYPES
+    ]
+    for ex, _y, _x, lab in sorted(node_rows, key=lambda r: (r[0], r[1], r[2])):
+        nodes_by_ex.setdefault(ex, []).append(lab)
+
+    # Arrows: grouped by the example title above the arrow's origin.
+    arrows_by_ex = {}
+    arrow_rows = [
+        (
             nearest_example(a, titles),
             a.get("y", 0),
             a.get("x", 0),
             endpoint_label(a, "startBinding", byid, texts),
             arrow_label(a, texts),
             endpoint_label(a, "endBinding", byid, texts),
-        ))
-    rows.sort(key=lambda r: (r[0], r[1], r[2]))
-    group = None
-    for ex, _y, _x, s, lab, e in rows:
-        if ex != group:
-            group = ex
-            print(f"\n  ── {ex or '(no example title nearby)'} ──")
-        lab = f" --[{lab}]-->" if lab else " -->"
-        print(f"    {s:>22}{lab} {e}")
+        )
+        for a in arrows
+    ]
+    for r in sorted(arrow_rows, key=lambda r: (r[0], r[1], r[2])):
+        arrows_by_ex.setdefault(r[0], []).append(r)
+
+    for ex in sorted(set(nodes_by_ex) | set(arrows_by_ex)):
+        print(f"\n  ── {ex or '(no example title nearby)'} ──")
+        if nodes_by_ex.get(ex):
+            print(f"    nodes: {', '.join(nodes_by_ex[ex])}")
+        for _ex, _y, _x, s, lab, e in arrows_by_ex.get(ex, []):
+            lab = f" --[{lab}]-->" if lab else " -->"
+            print(f"    {s:>22}{lab} {e}")
 
 
 # ---- check mode ------------------------------------------------------------
