@@ -36,8 +36,8 @@ See [vdti#1](https://github.com/jasoncolburne/vdti/issues/1) (the v1 roadmap) fo
 
 ## Build & Verify
 
-- `make` verifies changes (fmt, lint-terminology, deny, clippy, test, build). Never use naked cargo commands.
-- `make lint-terminology` works from day one. The rest become meaningful as the Cargo workspace lands in Phase 1.
+- `make` verifies changes (lint-terminology, lint-docs, lint-drawings, fmt, deny, clippy, test, build). Never use naked cargo commands.
+- The doc/drawing linters work from day one — `lint-terminology`, `lint-docs` (doc cross-references), `lint-drawings` (excalidraw dangling arrows); `make all` runs all three, and CI runs each as its own job. The code targets (fmt, deny, clippy, test, build) become meaningful as the Cargo workspace lands in Phase 1.
 - When landing a rename, add retired tokens to `.terminology-forbidden` so `make lint-terminology` catches future regressions.
 - `TEST_ARGS` on `make test` forwards flags to `cargo test` for iterating on one suite or one package. Still run the full `make` before calling a change done.
 - **`make` is slow (minutes). Run it ONCE and tee output to a file**, then grep/tail the file repeatedly instead of re-running: `make 2>&1 | tee /tmp/make.log`. Do not run `make | tail -N` then `make | grep foo` then `make | head -N` — you just burned 3× the time for one build.
