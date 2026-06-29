@@ -14,4 +14,4 @@ labels: implementation
 
 ## Design references
 
-<docs/design/* sections, related issues>
+<docs/design/\* sections, related issues>
