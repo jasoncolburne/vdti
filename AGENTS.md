@@ -27,7 +27,7 @@ Load-bearing principles to internalize:
   collapses end-verifiability.
 
 Detailed doctrine lives in `docs/design/` — primitive specs (KEL / IEL / SEL), federation
-witnessing, federation bootstrap, anchor tier elevation, divergence handling, irreconcilable-prefix
+witnessing, federation bootstrap, kind-strict anchoring, divergence handling, irreconcilable-prefix
 surface, custody, policy DSL, verification. AGENTS.md does not duplicate; consult the design docs
 directly.
 
@@ -37,9 +37,10 @@ See [vdti#1](https://github.com/jasoncolburne/vdti/issues/1) (the v1 roadmap) fo
 and Phase 0–9 sequencing. Quick orientation:
 
 - `lib/encoding/`, `lib/storage/`, `lib/cache/` - reusable libs.
-- `lib/core/` — protocol kitchen sink: KEL / IEL / SEL primitives, gossip (Cargo feature flag),
-  policy DSL.
-- `lib/mail/`, `lib/exchange/`, `lib/creds/` — application shims; depend on `core/`.
+- `lib/vdti/` — protocol core: KEL / IEL / SEL primitives, the verifier / merge / transfer engine,
+  the SAD store + custody, gossip (Cargo feature flag); linked by both `vdtid` and consumers
+  (end-verifiability). Policy is the **document layer**, not a primitive.
+- `lib/mail/`, `lib/exchange/`, `lib/creds/` — application shims; depend on `vdti/`.
 - `lib/derive/` — KEL signed-events repo derive macros. KEL only — IEL and SEL events anchor in KEL
   events, not directly signed.
 - `lib/ffi/` — Rust → C bindings.
@@ -117,7 +118,7 @@ only for narrative.
 
 ## Event Transfer
 
-All multi-page event transfers use the `transfer_*_events` infrastructure in `lib/core/`. Never use
+All multi-page event transfers use the `transfer_*_events` infrastructure in `lib/vdti/`. Never use
 single-page `fetch_*_events` in loops — manual pagination bypasses tamper-evident protection.
 
 Key functions:

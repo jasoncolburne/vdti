@@ -97,10 +97,10 @@ KEL inception is one of two kinds — `Fcp`, `Icp` (see
 [`events.md` §Two-kind inception](events.md#two-kind-inception)). At v=0, the verifier dispatches on
 kind:
 
-| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                                   |
-| -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp`          | absent                         | Pre-federation chain. No `federation` binding; no witnessing applies. The chain's v=1 `Rot` anchors the federation IEL's `Fcp` marker (founder bootstrap), entering the federation-bound lifecycle. |
-| `Icp`          | `federation` + `federationPin` | Federation-bound chain. The verifier reads `federation` / `federationPin` as the federation context and records it per event; witnessing applies per the `witnesses` role.                          |
+| Inception kind | Federation binding at v=0                               | Verifier behavior                                                                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp`          | absent                                                  | Pre-federation chain. No `federation` binding; no witnessing applies. The chain's v=1 `Rot` anchors the federation IEL's `Fcp` marker (founder bootstrap), entering the federation-bound lifecycle.                                                                        |
+| `Icp`          | `federation` + `federationPin`, or absent (direct-mode) | **Federation-bound:** the verifier reads `federation` / `federationPin` as the federation context and records it per event; witnessing applies per the `witnesses` role. **Direct-mode** (`federation` absent): un-federated, no witnessing, until a later `Wit` binds it. |
 
 The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the
 carve-out from chain data alone rather than consulting consumer configuration. Consumer trust
@@ -118,23 +118,32 @@ data; the kind (already in the event) selects the allowed roles:
 
 ```
 match event.kind:
-    Fcp            -> no manifest; federation fbd
-    Icp            -> manifest may carry { witnesses };  federation + federationPin top-level (req)
-    Wit            -> manifest carries { anchors } (the IEL Wit; req), may also carry { witnesses, folds };  federation + federationPin top-level (req)
-    Ixn            -> manifest carries { anchors } (req, >= 1)
-    Rot, Ror       -> manifest may carry { anchors, folds }
-    Rec            -> manifest carries { folds with forks[] } (req)
-    Dec            -> manifest may carry { folds }
+    Fcp                -> no manifest; federation fbd
+    Icp                -> manifest may carry { witnesses } (req iff federated);  federation + federationPin top-level (opt; absent = direct-mode)
+    Wit (Icp-rooted)   -> manifest carries { anchors } (the user IEL Wit; req), may also carry { witnesses, folds };  federation + federationPin top-level (opt — present-iff-changed; a config-only Wit carries neither)
+    Wit (Fcp-rooted)   -> manifest carries { anchors } (the federation IEL Wit; req), may also carry { witnesses, folds };  federation + federationPin fbd
+    Ixn                -> manifest carries { anchors } (req, >= 1)
+    Rot, Ror           -> manifest may carry { anchors, folds }
+    Rec                -> manifest carries { folds with forks[] } (req)
+    Dec                -> manifest may carry { folds }
 ```
 
+The verifier establishes the chain's **root facet** (`Fcp`-rooted vs `Icp`-rooted) **before**
+reading any `Wit` payload — on **every** `Wit`-reading path (from-scratch, `resume`, `search_only`)
+— so a federation-governance `Wit` is never read under the user-rebind allowlist or vice versa. The
+token carries `root_facet` (set at inception), so a `resume` re-applies the facet dispatch from the
+token without re-deriving it.
+
 The federation binding is read from the **top-level** `federation` / `federationPin` fields, never
-the manifest. `federation` (the prefix) appears only on `Icp` (initial binding) and `Wit` (a
-**rebind**); `federationPin` is **optional on every body event** (`Ixn` / `Rot` / `Ror` / `Rec` /
-`Dec`) as a forward **re-pin** that must resolve within the inherited `federation` prefix (no
-backdoor rebind) — forward-only is **emergent**, enforced at the witnessing layer, not the KEL walk
-(a stale pin is chain-valid but un-witnessed; see [`events.md`](events.md)). Generic manifest
-`anchors` on `Ixn` / `Rot` / `Ror` / `Wit` are checked for SAID format only; their satisfaction is
-downstream-verifier business per [§Tiers](../../../../protocol-doctrine.md#tiers).
+the manifest. On a **user** (`Icp`-rooted) chain, `federation` (the prefix) appears only on `Icp`
+(initial binding) and `Wit` (a **rebind**) — and an `Icp` that omits it is **direct-mode**; a
+**federation-witness** (`Fcp`-rooted) `Wit` carries neither (governance, never self-bound).
+`federationPin` is **optional on every user body event** (`Ixn` / `Rot` / `Ror` / `Rec` / `Dec`) as
+a forward **re-pin** that must resolve within the inherited `federation` prefix (no backdoor rebind)
+— forward-only is **emergent**, enforced at the witnessing layer, not the KEL walk (a stale pin is
+chain-valid but un-witnessed; see [`events.md`](events.md)). Generic manifest `anchors` on `Ixn` /
+`Rot` / `Ror` / `Wit` are checked for SAID format only; their satisfaction is downstream-verifier
+business per [§Tiers](../../../../protocol-doctrine.md#tiers).
 
 ### Generation processing
 
@@ -224,6 +233,7 @@ type:
 ```
 KelVerification:
     prefix: String
+    root_facet: RootFacet                        # Fcp-rooted (federation-witness infra) vs Icp-rooted (user); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
     last_seal_advancing_event: Option<SAID>      # most recent Rot/Ror/Rec/Wit/Dec on the spine
@@ -397,13 +407,17 @@ their own signing (direct evidence of structural validity and self-attestation).
 property that makes federation witnessing the propagation channel for cross-node convergence on
 privileged events.
 
-### Inheritance via the anchor walk
+### Federation context per layer
 
-IEL and SEL events do not carry a federation context field; they inherit federation context via
-their KEL anchors. KEL is the leaf of trust composition: each IEL or SEL leaf-anchor check resolves
-to a KEL event, which carries the federation context declared in the most-recent `Icp` / `Wit`
-at-or-before that anchor's serial. The KEL token surfaces `federation_context_per_event` so
-cross-chain verifiers can apply the right federation state per anchor.
+Federation context attaches **per layer**, not by blanket inheritance through the anchor walk. A
+**KEL** carries its own — the binding declared in the most-recent `Icp` / `Wit` at-or-before the
+event. A user **IEL records its own** authoritative `{federation, federationPin}` binding on its
+`Icp` / `Wit`, **field-matched** to its members' KEL `Wit`s on every walk; it does **not** adopt a
+single member's KEL binding, so a lone or desync'd member cannot straddle the identity onto a
+different federation. A **SEL** carries no federation field and **inherits its owner IEL's** binding
+(single-owner). The KEL token surfaces `federation_context_per_event` so a cross-chain verifier
+resolves each leaf-anchor to its KEL event for witnessing while reading the federation **binding**
+from the layer that owns it.
 
 ### Trust composition through the config-pinned federation prefix set
 

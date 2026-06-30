@@ -159,9 +159,11 @@ For events admitted past rule 3, kind-specific authorization fires:
   tails, and let the `Rec` advance the seal past the omitted `Rot` — burying a rotation below the
   seal, the very overturn the rule forbids. The reserve defends the signing key, not the rotation
   key.
-- **`Wit` change-requirement** — `Wit` is a **rebind**: it must change at least one of
-  (`federation`, `witnesses`). A no-op `Wit` is rejected; a same-federation re-pin (only
-  `federationPin`) is **not** a `Wit` — it rides any body event.
+- **`Wit` change-requirement (user facet)** — a **user** (`Icp`-rooted) `Wit` is a **rebind**: it
+  must change at least one of (`federation`, `witnesses`). A no-op is rejected; a same-federation
+  re-pin (only `federationPin`) is **not** a `Wit` — it rides any body event. A
+  **federation-witness** (`Fcp`-rooted) `Wit` is governance — its rotation (and `clock` advance) is
+  itself the change, so no must-change applies.
 
 Authorization failure here is HARD: an event whose signatures don't verify is rejected by the merge
 handler and the new events never land. The verifier reports structural validity; the merge layer

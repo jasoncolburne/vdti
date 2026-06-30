@@ -2,9 +2,10 @@
 
 VDTI lets users control their identity and data without relying on a central authority. Devices are
 decoupled from the identity that operates them; identity and policy are first-class, composable
-primitives. In contrast to solutions like KERI (Decentralized Key Management Infrastructure), where
-system-wide state must be inferred via out-of-band watcher infrastructure, VDTI lets any verifier
-determine system-wide state — including attack exposure — by inspecting data from a single source.
+primitives. In contrast to solutions like KERI (a DKMI, Decentralized Key Management
+Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure,
+VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting data
+from a single source.
 
 It's a framework for building high-trust applications from the ground up.
 

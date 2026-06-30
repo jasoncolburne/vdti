@@ -256,13 +256,13 @@ hot page is the retained branch plus the repair event, with the archival tails c
 load-bearing: content (`Ixn` — the rail **issuance** rides, via `anchors[]`) does **not** advance
 the seal, so trailing issuances accumulate and the seal lags the tip; without the cap the post-seal
 window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer that fills
-the window **re-seals with an empty-delta `Evl`** (no roster change — the identity-layer analogue of
-a KEL re-sealing via `Rot`; validation **accepts** an empty-delta `Evl`), advancing the seal with no
-new kind. (Under a network partition both halves can fill the cap and re-seal independently; the two
-empty-delta `Evl`s differ by `previous` and collide as `{Evl, Evl}` → terminal, so a **high-volume
-issuer serializes its content submissions** — a discipline separate from, and additional to,
-serializing governance.) The exact constant, the empty-delta re-seal, and the content-rail
-serialization are IEL doctrine —
+the window **re-seals with a roster-less `Evl`** (**omits `roster`** — no roster change — the
+identity-layer analogue of a KEL re-sealing via `Rot`; validation **accepts** a roster-less re-seal
+`Evl`), advancing the seal with no new kind. (Under a network partition both halves can fill the cap
+and re-seal independently; the two roster-less `Evl`s differ by `previous` and collide as
+`{Evl, Evl}` → terminal, so a **high-volume issuer serializes its content submissions** — a
+discipline separate from, and additional to, serializing governance.) The exact constant, the
+roster-less re-seal, and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -759,12 +759,13 @@ authenticate via their KEL anchors, but federation context attaches **per layer*
 it (the most-recent `Icp` / `Wit`); a user **IEL records its own** authoritative binding
 (`federation` / `federationPin` on its `Icp`/`Wit`, field-matched to its members' KEL `Wit`s); a
 **SEL** carries no federation field and inherits its owner IEL's. The KEL is the leaf of trust
-composition — each IEL / SEL leaf-anchor resolves to a KEL event carrying the federation context
-at-or-before the anchor's serial. A consumer refuses to bind under a divergent position or
-insufficient attestation, and grounds trust in the **config-pinned federation prefix set**
-(compile-time-baked + runtime override) — for a chain that transferred federations via `Wit`, each
-federation in its history must be independently in the trusted set (no transitive trust). The full
-witnessing rules are federation doctrine ([`federation/`](federation/) — _landed separately_).
+composition — witnessed-anchor resolution resolves each leaf-anchor to its KEL event, while the
+federation **binding** is read from the layer that owns it (above). A consumer refuses to bind under
+a divergent position or insufficient attestation, and grounds trust in the **config-pinned
+federation prefix set** (compile-time-baked + runtime override) — for a chain that transferred
+federations via `Wit`, each federation in its history must be independently in the trusted set (no
+transitive trust). The full witnessing rules are federation doctrine ([`federation/`](federation/) —
+_landed separately_).
 
 ### Effective-SAID synthetic comparison
 
@@ -778,7 +779,7 @@ event's real SAID. Two conditions have **synthetic** representations, depending 
   has **not (yet) determined** — a reconcilable content fork, or one pending the walk. Applies on
   the KEL, the SEL, and any IEL carrying content — only the content kind (`Ixn`) produces a
   **reconcilable** fork, so a federation IEL (which carries no `Ixn`) never reaches `forked:` (a
-  competing-privileged `{Evl, Evl}` / `{Dec, Dec}` collision sends it straight to `disputed:`). The
+  competing-privileged `{Wit, Wit}` / `{Dec, Dec}` collision sends it straight to `disputed:`). The
   synthetic marks the fork; whether it is reconcilable or terminal is the **branch-walk's** result
   (over the retained branches), not encoded in the synthetic — a reconcilable fork stays `forked:`;
   a fork the walk finds terminal becomes `disputed:` (below).

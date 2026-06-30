@@ -15,15 +15,20 @@ node list answers "which event kinds does this example contain?" directly, witho
 hand-parsing the JSON.
 
 `isDeleted` elements — and any binding that points at one — are always excluded
-(Excalidraw keeps deleted elements in the JSON).
+from the check/describe (Excalidraw keeps deleted elements in the JSON). `--prune`
+deletes them from the file outright: a hygiene pass that shrinks the JSON and drops
+the undo carcasses. It only removes `isDeleted` elements — it never rewrites a live
+element or its bindings — so it can never change a lint verdict (a dangling *live*
+arrow is still flagged by the check; pruning is not a fix for it).
 
 Usage:
     scripts/lint-drawings.py [PATH ...]       # check; default: all tracked *.excalidraw
     scripts/lint-drawings.py -v               # check, listing every dangling arrow
     scripts/lint-drawings.py --describe        # print resolved linkages (all files)
     scripts/lint-drawings.py --describe FILE   # ... for one file
+    scripts/lint-drawings.py --prune           # delete isDeleted elements (rewrites files)
 
-Exit status: 0 when no arrow dangles, 1 otherwise.
+Exit status: 0 when no arrow dangles (check) / on a clean prune, 1 otherwise.
 """
 
 import argparse
@@ -237,11 +242,54 @@ def check(path):
     return (len(arrows), dangling)
 
 
+# ---- prune mode (jq-backed, byte-faithful) ---------------------------------
+
+# jq preserves key order and (jq >= 1.7) number literals, so it rewrites ONLY the
+# pruned elements and leaves every other byte intact — verified by running the
+# filter on a clean drawing and diffing (identical). A Python json round-trip would
+# reformat numbers/exponents and noise up the diff, so prune shells out to jq.
+_JQ_PRUNE = ('if type=="object" then .elements |= map(select(.isDeleted != true)) '
+             'else map(select(.isDeleted != true)) end')
+_JQ_COUNT = ('if type=="object" then .elements else . end '
+             '| map(select(.isDeleted == true)) | length')
+
+
+def prune(path):
+    """Delete isDeleted elements from `path` in place via jq. Returns the count
+    removed, or None on error. Removes carcasses only — never rewrites a live
+    element or its bindings, so it can never change a lint verdict."""
+    try:
+        n = int(subprocess.check_output(["jq", _JQ_COUNT, path], text=True).strip())
+    except FileNotFoundError:
+        print("ERROR  --prune needs `jq` on PATH (not found)", file=sys.stderr)
+        return None
+    except (subprocess.CalledProcessError, ValueError) as exc:
+        print(f"ERROR  {path}: jq count failed — {exc}", file=sys.stderr)
+        return None
+    if n == 0:
+        print(f"  {path}: already clean (0 isDeleted)")
+        return 0
+    tmp = path + ".prune.tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            subprocess.check_call(["jq", "--indent", "2", _JQ_PRUNE, path], stdout=f)
+        os.replace(tmp, path)
+    except subprocess.CalledProcessError as exc:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        print(f"ERROR  {path}: jq prune failed — {exc}", file=sys.stderr)
+        return None
+    print(f"  {path}: pruned {n} isDeleted element(s)")
+    return n
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="Lint / describe Excalidraw arrow linkages.")
     ap.add_argument("paths", nargs="*", help="files (default: all tracked *.excalidraw)")
     ap.add_argument("--describe", action="store_true",
                     help="print resolved linkages instead of checking")
+    ap.add_argument("--prune", action="store_true",
+                    help="delete isDeleted elements from each drawing (rewrites files, via jq)")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="in check mode, list every dangling arrow")
     args = ap.parse_args(argv)
@@ -258,6 +306,19 @@ def main(argv=None):
         for path in drawings:
             describe(path)
         return 0
+
+    if args.prune:
+        total = 0
+        errors = 0
+        for path in drawings:
+            n = prune(path)
+            if n is None:
+                errors += 1
+            else:
+                total += n
+        print(f"\npruned {total} isDeleted element(s) across {len(drawings)} drawing(s)"
+              + (f" | errors: {errors}" if errors else ""))
+        return 1 if errors else 0
 
     total_arrows = 0
     total_dangling = 0

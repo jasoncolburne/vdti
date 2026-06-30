@@ -52,8 +52,11 @@ So **authority-affecting resolution is judged by the anchoring position.** The _
 self-asserted value the issuer chose — the as-of is read from where it is anchored. (The cred-SEL's
 structural serial-1 `Pin` does name a position, but it is **checked, not trusted**: the verifier
 locates the anchoring `Ixn` — whose `manifest.anchors` carries the cred-SEL's serial-1 `Pin` — and
-enforces
-`Pin.pin == that anchor's `previous``, so a served `Pin`can't resolve under a stale roster.) There is no separate machinery to establish "when": the append-only chain is the clock. (A credential SEL floors to its issuer's IEL through its own serial-1`Pin`, a structural chain field — that is how the chain locates the anchoring event, not a value the document asserts; see [`../data/event-logs/sel/`](../data/event-logs/sel/).)
+enforces `Pin.pin == that anchor's previous`, so a served `Pin` can't resolve under a stale roster.)
+There is no separate machinery to establish "when": the append-only chain is the clock. (A
+credential SEL floors to its issuer's IEL through its own serial-1 `Pin`, a structural chain field —
+that is how the chain locates the anchoring event, not a value the document asserts; see
+[`../data/event-logs/sel/`](../data/event-logs/sel/).)
 
 ### Non-circular
 
