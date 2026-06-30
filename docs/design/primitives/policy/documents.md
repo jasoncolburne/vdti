@@ -35,9 +35,10 @@ mode.
 A document **carries no self-asserted pin.** Its issuer context is fixed by the **anchoring
 position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
 `Ixn` whose `manifest` names the document (for a credential, the issuance `Ixn` that lists the
-credential SEL's `Icp` under `manifest.issues`,
-[`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
-fixed serial on the append-only chain, and it fixes the context two ways at once:
+credential SEL's serial-1 `Pin` (its `v1`, the `Icp` riding `v1.previous` and never itself anchored)
+under `manifest.anchors`, [`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)).
+That event sits at a fixed serial on the append-only chain, and it fixes the context two ways at
+once:
 
 - It **commits the point-in-time** so a verifier can find and verify the issuer's context — the
   state immediately **before** the anchoring event transitively commits the issuer's identity (its
@@ -50,7 +51,8 @@ fixed serial on the append-only chain, and it fixes the context two ways at once
 So **authority-affecting resolution is judged by the anchoring position.** The _document_ carries no
 self-asserted value the issuer chose — the as-of is read from where it is anchored. (The cred-SEL's
 structural serial-1 `Pin` does name a position, but it is **checked, not trusted**: the verifier
-locates the anchoring `Ixn` — whose `manifest.issues` carries the cred-SEL `Icp` — and enforces
+locates the anchoring `Ixn` — whose `manifest.anchors` carries the cred-SEL's serial-1 `Pin` — and
+enforces
 `Pin.pin == that anchor's `previous``, so a served `Pin`can't resolve under a stale roster.) There is no separate machinery to establish "when": the append-only chain is the clock. (A credential SEL floors to its issuer's IEL through its own serial-1`Pin`, a structural chain field — that is how the chain locates the anchoring event, not a value the document asserts; see [`../data/event-logs/sel/`](../data/event-logs/sel/).)
 
 ### Non-circular

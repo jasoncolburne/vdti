@@ -48,7 +48,7 @@ Whether a divergence is **reconcilable** or **terminal** is a further fact any v
 
 | State              | Description                                                                                                                                    | Accepts new events?                                                                                                                                                                                                     |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Active**         | Linear chain; the current tip extends cleanly via `previous`.                                                                                  | Yes — `Ixn` / `Rot` / `Ror` / `Rec` / `Fed` / `Dec` per their authorization and seal-cap requirements.                                                                                                                  |
+| **Active**         | Linear chain; the current tip extends cleanly via `previous`.                                                                                  | Yes — `Ixn` / `Rot` / `Ror` / `Rec` / `Wit` / `Dec` per their authorization and seal-cap requirements.                                                                                                                  |
 | **Divergent**      | A **fork**: two **distinct** (different-SAID) events at one serial. While the fork is **live** (at or above the seal) the chain is **frozen**. | **None** while the fork is live — frozen until a repair resolves it; the sole valid next move is `Rec`. (A below-seal straggler arriving after the chain sealed past its serial is retained as evidence, not a freeze.) |
 | **Decommissioned** | A terminal `Dec` landed cleanly. The `Dec` advances the seal to its own serial; the chain is sealed there.                                     | None. A sibling to the `Dec` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`).                                             |
 
@@ -88,8 +88,8 @@ events.
 
 | Concept                      | Advances on                           | Used for                                                                                                                                                         |
 | ---------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lastSealAdvancingEvent`     | `Rot` / `Ror` / `Rec` / `Fed` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything at-or-below it.                                       |
-| `lastRecoveryRevealingEvent` | `Ror` / `Rec` / `Fed` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known. |
+| `lastSealAdvancingEvent`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything at-or-below it.                                       |
+| `lastRecoveryRevealingEvent` | `Ror` / `Rec` / `Wit` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known. |
 
 The two memberships diverge only on `Rot` — it advances the seal without revealing the recovery key.
 `Dec` does both: it reveals the recovery key (dual-signed) and advances the seal to its own serial,
@@ -105,8 +105,8 @@ The seal-advancing events form a **spine**: every seal-advancing event carries a
 **`previousSeal`** back-link to the prior one, so following `previousSeal` renders a seal-only view
 (`Icp → seal → seal → …`) while `previous` renders the full flat chain. The inception (`Icp` /
 founder `Fcp`) is the spine root and carries no `previousSeal`. A seal-advancing event carries a
-**`folded`** role **when it folds a content run** since the prior seal — `{ canonical, forks[] }`
-plus the run's boundary SAIDs. It is optional on `Rot` / `Ror` / `Fed` / `Dec` (absent when no
+**`folds`** role **when it folds a content run** since the prior seal — `{ canonical, forks[] }`
+plus the run's boundary SAIDs. It is optional on `Rot` / `Ror` / `Wit` / `Dec` (absent when no
 content was folded) and required on a `Rec`, which always carries it for the `forks[]` (the archival
 tails it resolves).
 
@@ -131,7 +131,7 @@ segment are structurally immutable within the chain:
   node holds, it is **retained as non-canonical evidence** rather than discarded, so the proof a
   divergence occurred is never lost.
 - The seal-cap's role is to deny revival attacks: a party holding stale authority (a recovery
-  preimage already revealed by an earlier `Rec` / `Ror` / `Fed`, or a key since rotated out) cannot
+  preimage already revealed by an earlier `Rec` / `Ror` / `Wit`, or a key since rotated out) cannot
   construct an event targeting the locked portion to rearrange the chain. Only current authority
   gates further extension.
 
@@ -155,7 +155,7 @@ their past contributions; only the going-forward spent-key effect applies.
 
 ## Seal-advance cap
 
-A seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`; the terminal `Dec` also advances the seal but
+A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the terminal `Dec` also advances the seal but
 ends the chain) must land at least every `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The
 cap bounds the **fold** — the content run since the last seal — to 64 events on a branch, so a
 divergence-and-repair fits in one page (the retained branch plus the `Rec`).
@@ -164,7 +164,7 @@ divergence-and-repair fits in one page (the retained branch plus the `Rec`).
 recovery batch produced on any conformant deployment fits in one page on every other. The `− 1`
 headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
 discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are
-committed in the `Rec`'s `folded.forks[]` and validated by-commitment, not held in the page.
+committed in the `Rec`'s `folds.forks[]` and validated by-commitment, not held in the page.
 
 Recovery-preimage rotation cadence (how often `Ror` should land to refresh the commitment) is
 **operator guidance**, not a protocol-enforced cap — see
@@ -204,12 +204,12 @@ adversarial chains.
 The structural rules above produce three lifecycle paths per node.
 
 - **Active extension.** Each new event extends the linear chain via `previous = tip.said`.
-  Seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Fed` / `Dec`) advance `lastSealAdvancingEvent` to
+  Seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) advance `lastSealAdvancingEvent` to
   their own serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   until a `Rec` repairs it. A `Rec` attaches at its submitter's own last event, **retaining** that
   branch and archiving the **archival tail(s)** — the competing branches, committed in the `Rec`'s
-  `folded.forks[]`. The archival window is bounded by the seal-advance cap and fits in one page. See
+  `folds.forks[]`. The archival window is bounded by the seal-advance cap and fits in one page. See
   [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a `Rec` can
   attach.
 - **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes
@@ -245,7 +245,7 @@ the recovery-side composition with the three-tier compromise model is in
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `folded`, per-kind field tables.
+  `manifest` model, `previousSeal` / `folds`, per-kind field tables.
 - [`events.md`](events.md) — per-kind reference: two-kind inception, privileged and non-privileged
   kinds, three-tier capability model, anchor requirements, seal-advance cap.
 - [`merge.md`](merge.md) — merge handler routing: routing order, outcomes, locked-portion
@@ -255,8 +255,8 @@ the recovery-side composition with the three-tier compromise model is in
 - [`verification.md`](verification.md) — verifier walk algorithm, kind dispatch at inception,
   signature verification, anchor checking.
 - [`reconciliation.md`](reconciliation.md) — exhaustive case-matrix proof of cross-node convergence.
-- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and anchor-tier
-  elevation, divergence and repair, forks-are-seal-bounded and the spine, operation categories,
+- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
+  anchoring, divergence and repair, forks-are-seal-bounded and the spine, operation categories,
   federation convergence, effective-SAID synthetics.
 - [`../../sad/sad.md`](../../sad/sad.md), [`../../sad/said.md`](../../sad/said.md) — the SAD shape
   KEL events compose on; prefix and SAID derivation algorithms.
@@ -268,5 +268,5 @@ the recovery-side composition with the three-tier compromise model is in
   witnessing doctrine (subsequent sub-issue): always-witness, the beacon, divergent witness
   receipts, acceptance gating.
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap (subsequent sub-issue): the atomic ceremony that brings `Fcp` / `Fed` and the federation
-  IEL `Icp` into existence together.
+  bootstrap (subsequent sub-issue): the atomic ceremony that brings `Fcp` / `Rot` and the federation
+  IEL `Fcp` into existence together.

@@ -8,7 +8,7 @@ VDTI lets any verifier determine system-wide state — including attack exposure
 data itself.
 
 This is the canonical orientation doc. Read it before doing substantive work on VDTI. Detailed
-doctrine — primitive specs, witnessing mechanics, anchor tier elevation, divergence handling,
+doctrine — primitive specs, witnessing mechanics, kind-strict anchoring, divergence handling,
 custody, policy DSL, verification — lives in sibling docs under `docs/design/`. This doc states the
 framing; the others elaborate it.
 
@@ -163,7 +163,7 @@ repair is cross-node-validatable.
 
 ### Defense against current-state compromise is layered
 
-KEL dual-signature on `Ror` / `Rec` / `Fed` / `Dec` (rotate-recovery, recover, federation-bind,
+KEL dual-signature on `Ror` / `Rec` / `Wit` / `Dec` (rotate-recovery, recover, federation-bind,
 decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced
 signing, side channels — regardless of where the recovery key is custodied. A single-device
 deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across

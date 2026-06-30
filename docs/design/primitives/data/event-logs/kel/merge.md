@@ -27,14 +27,14 @@ divergence was detected), and the new tip SAID (when the chain advanced linearly
 The merge outcomes name what happened to the chain — the structural verdicts the routing rules
 produce.
 
-| Outcome               | Chain effect                                                                                                                                                                              | Triggering condition                                                                                                                                                                                                                                                                                                                                        |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Accepted**          | Linear extension; new tip established; seal advances on seal-advancing kinds.                                                                                                             | Submitted events chain cleanly from the current tip on an Active chain (or from inception on an Empty chain).                                                                                                                                                                                                                                               |
-| **Diverged**          | New content event lands as a fork at an earlier serial; chain transitions Active → Divergent (frozen).                                                                                    | Submitted batch contains a content event (`Ixn`) whose `previous` points at a pre-tip serial where the existing chain holds a competing event. Only the first conflicting event is written.                                                                                                                                                                 |
-| **Recovered**         | Divergence resolved; the repairing branch is kept and the archival tails are committed in the `Rec`'s `folded.forks[]`; chain returns to Active; the seal advances to the `Rec`'s serial. | Submitted batch contains a `Rec` whose parent shape (branch-tip-extending or divergence-ancestor-extending) routes through the discriminator.                                                                                                                                                                                                               |
-| **SiblingLocked**     | Not admitted as a canonical extension. A structurally-valid fork from a held ancestor is **retained as non-canonical evidence** (keep-all-data); no canonical state change.               | Submitted event's parent sits in the locked portion behind `lastSealAdvancingEvent` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Decommissioned chain this is the **sibling-to-`Dec`** case: an event sharing the `Dec`'s parent, racing the `Dec` at its serial. |
-| **KelDecommissioned** | No state change. Submission rejected.                                                                                                                                                     | Submitted event chains _from_ a `Dec` (its parent's kind is `Dec`). Caught in structural validation by the kind-schema rule — no kind admits a `Dec` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                      |
-| **RecoverRequired**   | No state change; guidance only (chain stays Divergent).                                                                                                                                   | The chain is Divergent (frozen) and the batch is neither a `Rec` nor a privileged event — only a `Rec` resolves a divergence.                                                                                                                                                                                                                               |
+| Outcome               | Chain effect                                                                                                                                                                             | Triggering condition                                                                                                                                                                                                                                                                                                                                        |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Accepted**          | Linear extension; new tip established; seal advances on seal-advancing kinds.                                                                                                            | Submitted events chain cleanly from the current tip on an Active chain (or from inception on an Empty chain).                                                                                                                                                                                                                                               |
+| **Diverged**          | New content event lands as a fork at an earlier serial; chain transitions Active → Divergent (frozen).                                                                                   | Submitted batch contains a content event (`Ixn`) whose `previous` points at a pre-tip serial where the existing chain holds a competing event. Only the first conflicting event is written.                                                                                                                                                                 |
+| **Recovered**         | Divergence resolved; the repairing branch is kept and the archival tails are committed in the `Rec`'s `folds.forks[]`; chain returns to Active; the seal advances to the `Rec`'s serial. | Submitted batch contains a `Rec` whose parent shape (branch-tip-extending or divergence-ancestor-extending) routes through the discriminator.                                                                                                                                                                                                               |
+| **SiblingLocked**     | Not admitted as a canonical extension. A structurally-valid fork from a held ancestor is **retained as non-canonical evidence** (keep-all-data); no canonical state change.              | Submitted event's parent sits in the locked portion behind `lastSealAdvancingEvent` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Decommissioned chain this is the **sibling-to-`Dec`** case: an event sharing the `Dec`'s parent, racing the `Dec` at its serial. |
+| **KelDecommissioned** | No state change. Submission rejected.                                                                                                                                                    | Submitted event chains _from_ a `Dec` (its parent's kind is `Dec`). Caught in structural validation by the kind-schema rule — no kind admits a `Dec` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                      |
+| **RecoverRequired**   | No state change; guidance only (chain stays Divergent).                                                                                                                                  | The chain is Divergent (frozen) and the batch is neither a `Rec` nor a privileged event — only a `Rec` resolves a divergence.                                                                                                                                                                                                                               |
 
 A subsumed variant — `RecoverRequired` — applies when the chain is Divergent and the submitted batch
 is neither a `Rec` nor a privileged event (which would itself reject as `SiblingLocked`). The
@@ -138,7 +138,7 @@ For events admitted past rule 3, kind-specific authorization fires:
 - **Single-sig signature verification** for `Ixn` / `Rot` / `Fcp` / `Icp` against the appropriate
   key (current signing key for `Ixn`; new signing key revealed by `rotationHash` preimage for `Rot`;
   declared `publicKey` for inception kinds).
-- **Dual-sig signature verification** for `Ror` / `Rec` / `Fed` / `Dec` against the parent's
+- **Dual-sig signature verification** for `Ror` / `Rec` / `Wit` / `Dec` against the parent's
   `rotationHash` AND `recoveryHash` commitments.
 - **Forward-key commitment checks** for establishment events (see
   [`events.md` §Forward-key commitments](events.md#forward-key-commitments)).
@@ -146,12 +146,12 @@ For events admitted past rule 3, kind-specific authorization fires:
   non-seal-advancing events must not exceed `MINIMUM_PAGE_SIZE − 1 = 64`. See
   [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 - **Repair commits its divergence, content-only — validated, not trusted** — a `Rec` must carry a
-  non-empty `folded.forks[]` (a `Rec` on a non-divergent tip — empty `forks[]` — is rejected). The
+  non-empty `folds.forks[]` (a `Rec` on a non-divergent tip — empty `forks[]` — is rejected). The
   merge layer does **not** trust that enumeration as proof the archived branches are content: it
   **independently** walks every branch off the retained (`Rec.previous`) walkback that it holds
   (keep-all-data retains every privileged branch) or the beacon enumerates, and **rejects the `Rec`
   if any such branch carries a privileged event** (any event above tier 1 — `Rot` / `Ror` / `Rec` /
-  `Fed` / `Dec`) — a privileged branch is never archived
+  `Wit` / `Dec`) — a privileged branch is never archived
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1), so the
   fork is terminal (`disputed:`, reincept). The committed `forks[]` must match the content tails the
   verifier sees. Independent computation is load-bearing: otherwise a content-branch author could
@@ -159,9 +159,9 @@ For events admitted past rule 3, kind-specific authorization fires:
   tails, and let the `Rec` advance the seal past the omitted `Rot` — burying a rotation below the
   seal, the very overturn the rule forbids. The reserve defends the signing key, not the rotation
   key.
-- **`Fed` change-requirement** — `Fed` is a **rebind**: it must change at least one of
-  (`federation`, `witnesses`). A no-op `Fed` is rejected; a same-federation re-pin (only
-  `federationPin`) is **not** a `Fed` — it rides any body event.
+- **`Wit` change-requirement** — `Wit` is a **rebind**: it must change at least one of
+  (`federation`, `witnesses`). A no-op `Wit` is rejected; a same-federation re-pin (only
+  `federationPin`) is **not** a `Wit` — it rides any body event.
 
 Authorization failure here is HARD: an event whose signatures don't verify is rejected by the merge
 handler and the new events never land. The verifier reports structural validity; the merge layer
@@ -237,7 +237,7 @@ already held).
   already landed in a branch (a privileged event landed via a competing operator's local extension
   that wasn't gossiped before the divergence formed), the seal-cap rejects the `Rec` whose parent
   sits in the locked portion; outcome `SiblingLocked`.
-- Batch contains a privileged event (`Rot` / `Ror` / `Fed` / `Dec`) with `previous = v_{d-1}.said`
+- Batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with `previous = v_{d-1}.said`
   (which would join the fork) → not admitted as a canonical extension, retained as non-canonical
   evidence per [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair);
   outcome `SiblingLocked`.
@@ -251,7 +251,7 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
   state → the locked-portion bound rejects any extension whose parent sits in the locked portion;
   outcome `SiblingLocked` (retained as evidence if a valid fork).
 - If the batch contains a `Rec` → discriminator runs; outcome `Recovered`.
-- If the batch contains a privileged event (`Rot` / `Ror` / `Fed` / `Dec`) with
+- If the batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with
   `previous = v_{d-1}.said` → not admitted as a canonical extension, retained as evidence; outcome
   `SiblingLocked`.
 - Otherwise → the first conflicting content event is inserted as the fork event; outcome `Diverged`.
@@ -259,12 +259,12 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
 ## Discriminator algorithm
 
 When the routing path admits a `Rec`, the discriminator identifies the retained branch and resolves
-the rest into the `Rec`'s committed `folded.forks[]`. The algorithm is bounded by the seal-advance
+the rest into the `Rec`'s committed `folds.forks[]`. The algorithm is bounded by the seal-advance
 cap and fits in a single page fetch:
 
-1. **Detect repair.** The batch contains an event with `kind == Rec`. Its `folded.forks[]`
-   enumerates the archival tails it resolves; an empty `forks[]` is rejected (no repairing a
-   non-divergent tip).
+1. **Detect repair.** The batch contains an event with `kind == Rec`. Its `folds.forks[]` enumerates
+   the archival tails it resolves; an empty `forks[]` is rejected (no repairing a non-divergent
+   tip).
 2. **Compute archive lower bound.** `L = serial of divergence_ancestor + 1` — the divergence serial
    `v_d`.
 3. **Page fetch.** Read events at `serial >= L` for the prefix, ordered
@@ -282,12 +282,12 @@ cap and fits in a single page fetch:
 7. **Resolve the archival tails, content-only.** The merge layer **independently** walks every
    branch at `serial >= L` off the retained walkback that it holds or the beacon enumerates, and
    **rejects the `Rec` on any privileged event** in those branches (the fork is `disputed:` →
-   reincept) — it never trusts the submitter's `folded.forks[]` as proof that no privileged branch
+   reincept) — it never trusts the submitter's `folds.forks[]` as proof that no privileged branch
    was omitted (per §4); privileged branches are always retained (keep-all-data), so an omitted
    `Rot` is caught, not buried by sealing past it. The committed content tails are validated
    **by-prefix** and need not co-reside in the discriminator's hot page (which is the retained
    branch plus the `Rec`). The resolved tails move out of the canonical live chain into
-   non-canonical retained storage; the `folded.forks[]` is the on-chain audit record of what was
+   non-canonical retained storage; the `folds.forks[]` is the on-chain audit record of what was
    resolved.
 8. **Insert.** Land the batch's new events: pending first (if any), then the `Rec`.
 
@@ -303,7 +303,7 @@ storage / by-commitment, not held in the hot page.
 When verifying a `Rec` batch, the verifier seeds from `Rec.previous` (the submitter's chosen anchor
 — branch tip in branch-tip-extending shape, or `v_{d-1}` in divergence-ancestor-extending shape) and
 walks only that branch plus the batch's new events. The to-be-archived tails are validated against
-the `Rec`'s committed `folded.forks[]`; the repair runs only after verification succeeds.
+the `Rec`'s committed `folds.forks[]`; the repair runs only after verification succeeds.
 
 This honors the no-extend-adversary rule: the walker's running state never carries a competing
 branch across the repair boundary. After the repair, the chain has a single linear walkback from
@@ -374,7 +374,7 @@ for truncation.
    sharing its parent — is rejected by the seal-cap (`SiblingLocked`).
 5. **Branch-scoped verifier input on `Rec`.** Rec verification is branch-scoped, not chain-scoped;
    the repair runs only after verification succeeds, and commits the archival tails it resolves in
-   `folded.forks[]`.
+   `folds.forks[]`.
 
 ## Cross-references
 

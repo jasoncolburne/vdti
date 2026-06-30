@@ -175,3 +175,36 @@ irreconcilable:\{prefix\}
 \bwitnessParams\b
 \bwitnessThreshold\b
 \bwitnessSelectionSize\b
+
+# ============================================================================
+# §Doc-only — Fed→Wit + folded→folds remodel
+# ============================================================================
+# The federation-mutation kind Fed merged into the one witness/federation kind
+# Wit (a user federation rebind on an Icp-rooted KEL; federation governance on
+# an Fcp-rooted KEL). Founder genesis is Fcp → Rot (the Rot anchors the
+# federation IEL's Fcp marker) — there is no founder Fed/Wit. The manifest role
+# folded was renamed folds (dual-readable like anchors/delegates). The prose
+# verb "folded" (the content run folded since the prior seal) stays live — only
+# the role name and its dotted accessors regress, so forbid the role/accessor
+# forms (`folded`, folded.forks, folded.canonical), never the bare verb.
+# \bFed\b does not match "federation" (word boundary fails at the trailing e).
+\bFed\b
+`folded`
+folded\.forks
+folded\.canonical
+
+# ============================================================================
+# §Doc-only — anchors subsumes issues/revokes/rescinds (manifest role vocab)
+# ============================================================================
+# The manifest role `anchors` now subsumes the former credential/feature roles
+# issues (cred-SEL inception) / revokes (cred-SEL Dec) / rescinds (lookup-SEL
+# Dec) — the feature meaning is named by the anchored event's KIND, not a role
+# label (kind-strict). Only the dead role/accessor forms regress; the prose
+# verbs "issues" / "revokes" / "rescinds" stay live, so forbid only the
+# role-access (`manifest.<role>`) and the inline-list (`<role>[]`) spellings.
+manifest\.issues
+manifest\.revokes
+manifest\.rescinds
+issues\[\]
+revokes\[\]
+rescinds\[\]

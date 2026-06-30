@@ -28,9 +28,9 @@ For every event the verifier walks, it ensures:
 - All events have valid SAIDs (the SAID re-derives from the canonical bytes with `said` blanked).
 - Events chain correctly from inception to tip via `previous` links; each seal-advancing event's
   `previousSeal` resolves to the prior seal (the spine).
-- Pre-rotation commitments are honored: each `Rot` / `Ror` / `Rec` / `Fed` / `Dec` reveals a
+- Pre-rotation commitments are honored: each `Rot` / `Ror` / `Rec` / `Wit` / `Dec` reveals a
   `publicKey` whose digest matches the prior establishment's `rotationHash`.
-- Recovery commitments are honored: each tier-3 event (`Ror` / `Rec` / `Fed` / `Dec`) reveals a
+- Recovery commitments are honored: each tier-3 event (`Ror` / `Rec` / `Wit` / `Dec`) reveals a
   `recoveryKey` whose digest matches the prior establishment's `recoveryHash`.
 - All signatures verify against the SAID bytes — single-signature for tier-1 / tier-2 kinds,
   dual-signature for tier-3 kinds.
@@ -97,10 +97,10 @@ KEL inception is one of two kinds — `Fcp`, `Icp` (see
 [`events.md` §Two-kind inception](events.md#two-kind-inception)). At v=0, the verifier dispatches on
 kind:
 
-| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                     |
-| -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp`          | absent                         | Pre-federation chain. No `federation` binding; no witnessing applies. The chain must be followed by a `Fed` event at v=1 to enter the federation-bound lifecycle (founder bootstrap). |
-| `Icp`          | `federation` + `federationPin` | Federation-bound chain. The verifier reads `federation` / `federationPin` as the federation context and records it per event; witnessing applies per the `witnesses` role.            |
+| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                                   |
+| -------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp`          | absent                         | Pre-federation chain. No `federation` binding; no witnessing applies. The chain's v=1 `Rot` anchors the federation IEL's `Fcp` marker (founder bootstrap), entering the federation-bound lifecycle. |
+| `Icp`          | `federation` + `federationPin` | Federation-bound chain. The verifier reads `federation` / `federationPin` as the federation context and records it per event; witnessing applies per the `witnesses` role.                          |
 
 The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the
 carve-out from chain data alone rather than consulting consumer configuration. Consumer trust
@@ -120,20 +120,20 @@ data; the kind (already in the event) selects the allowed roles:
 match event.kind:
     Fcp            -> no manifest; federation fbd
     Icp            -> manifest may carry { witnesses };  federation + federationPin top-level (req)
-    Fed            -> manifest may carry { witnesses, folded };  federation + federationPin top-level (req)
+    Wit            -> manifest carries { anchors } (the IEL Wit; req), may also carry { witnesses, folds };  federation + federationPin top-level (req)
     Ixn            -> manifest carries { anchors } (req, >= 1)
-    Rot, Ror       -> manifest may carry { anchors, folded }
-    Rec            -> manifest carries { folded with forks[] } (req); anchors opt
-    Dec            -> manifest may carry { folded }
+    Rot, Ror       -> manifest may carry { anchors, folds }
+    Rec            -> manifest carries { folds with forks[] } (req)
+    Dec            -> manifest may carry { folds }
 ```
 
 The federation binding is read from the **top-level** `federation` / `federationPin` fields, never
-the manifest. `federation` (the prefix) appears only on `Icp` (initial binding) and `Fed` (a
+the manifest. `federation` (the prefix) appears only on `Icp` (initial binding) and `Wit` (a
 **rebind**); `federationPin` is **optional on every body event** (`Ixn` / `Rot` / `Ror` / `Rec` /
 `Dec`) as a forward **re-pin** that must resolve within the inherited `federation` prefix (no
 backdoor rebind) — forward-only is **emergent**, enforced at the witnessing layer, not the KEL walk
 (a stale pin is chain-valid but un-witnessed; see [`events.md`](events.md)). Generic manifest
-`anchors` on `Ixn` / `Rot` / `Ror` / `Rec` are checked for SAID format only; their satisfaction is
+`anchors` on `Ixn` / `Rot` / `Ror` / `Wit` are checked for SAID format only; their satisfaction is
 downstream-verifier business per [§Tiers](../../../../protocol-doctrine.md#tiers).
 
 ### Generation processing
@@ -158,7 +158,7 @@ at the next page so partial state never leaks into the walker.
 
 ### Establishment-event processing
 
-When an establishment event is encountered (`Fcp` / `Icp` / `Rot` / `Ror` / `Rec` / `Fed` / `Dec`),
+When an establishment event is encountered (`Fcp` / `Icp` / `Rot` / `Ror` / `Rec` / `Wit` / `Dec`),
 the verifier checks the forward-key commitments made by the previous establishment event. The
 branch's tracked `rotationHash` and `recoveryHash` are the digests committed by the prior
 establishment; the current event must reveal a public key whose digest matches.
@@ -213,7 +213,7 @@ verify_signatures(signed_event, public_key):
 
 Per-kind signature shapes are documented in
 [`events.md` §Authorization and signature shapes](events.md#authorization-and-signature-shapes).
-Tier-3 events (`Ror` / `Rec` / `Fed` / `Dec`) require both signatures to verify and both digest
+Tier-3 events (`Ror` / `Rec` / `Wit` / `Dec`) require both signatures to verify and both digest
 commitments to match.
 
 ## KelVerification token
@@ -226,8 +226,8 @@ KelVerification:
     prefix: String
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>      # most recent Rot/Ror/Rec/Fed/Dec on the spine
-    last_recovery_revealing_event: Option<SAID>  # most recent Ror/Rec/Fed/Dec
+    last_seal_advancing_event: Option<SAID>      # most recent Rot/Ror/Rec/Wit/Dec on the spine
+    last_recovery_revealing_event: Option<SAID>  # most recent Ror/Rec/Wit/Dec
     federation_context_per_event: ...            # per-event federation binding (for chains that have re-bound)
     anchored_saids: BTreeSet<SAID>               # registered SAIDs found anchored on the canonical branch
     queried_saids: BTreeSet<SAID>                # caller-registered SAIDs of interest
@@ -271,13 +271,14 @@ The caller registers SAIDs of interest before the walk via `verifier.check_ancho
 verifier processes events, it checks each event's `manifest.anchors` entries against the registered
 SAIDs. Results are available on the token via `is_said_anchored()` and `anchors_all_saids()`.
 
-The `anchors` role lives on `Ixn` (≥ 1), `Rot`, `Ror`, and `Rec` (see
+The `anchors` role lives on `Ixn` (≥ 1), `Rot`, `Ror`, and `Wit` (see
 [`events.md` §Anchors](events.md#anchors)); the `check_anchors` scan over the anchors role matches
-these kinds. On `Icp` / `Fed` the federation binding is the top-level `federation` / `federationPin`
-(not an anchor), and the `witnesses` role carries the witness-config SAD. Cross-chain consumers (IEL
-and SEL verifiers) need to know not just that a SAID is anchored but in which kind of KEL event —
-the token surfaces the anchoring event's kind so callers can enforce tier-appropriate anchor checks
-per [§Tiers](../../../../protocol-doctrine.md#tiers).
+these kinds. On `Icp` the federation binding is the top-level `federation` / `federationPin` (not an
+anchor); a `Wit` carries that binding top-level too **and** anchors the IEL `Wit` (kind-strict). The
+`witnesses` role carries the witness-config SAD. Cross-chain consumers (IEL and SEL verifiers) need
+to know not just that a SAID is anchored but in which kind of KEL event — the token surfaces the
+anchoring event's kind so callers can enforce kind-strict anchor checks per
+[§Tiers](../../../../protocol-doctrine.md#tiers).
 
 Registration before the walk lets the verifier record observations without a second database pass.
 The pattern is uniform across all primitive verifiers (KEL, IEL, SEL) and is the realization of the
@@ -314,7 +315,7 @@ The verifier's terminal-state-determination rule:
   - No fork → Linear (Active, or Decommissioned via `Dec`).
 
 `Rec` is the repair kind — it keeps the repairing branch and commits the archival tails in
-`folded.forks[]`, so after a repair the chain has a single linear walkback and is no longer
+`folds.forks[]`, so after a repair the chain has a single linear walkback and is no longer
 divergent.
 
 ### Verifier reports; the merge layer gates
@@ -336,7 +337,7 @@ Per-kind signature verification produces:
 - **`Ixn` / `Rot`** — single-sig verified against the appropriate key. Failure flips
   `structurally_valid = false`; the event lands at the merge layer only if the batch's post-walk
   token shows `structurally_valid = true`.
-- **`Ror` / `Rec` / `Fed` / `Dec`** — dual-sig verified against the rotation-preimage and
+- **`Ror` / `Rec` / `Wit` / `Dec`** — dual-sig verified against the rotation-preimage and
   recovery-preimage commitments at the parent event. Both signatures must verify; both digest
   commitments must match. Failure flips `structurally_valid = false`.
 - **`Fcp` / `Icp`** — single-sig verified against the declared `publicKey`. Prefix re-derives from
@@ -384,8 +385,8 @@ pinning. Forensic signal for potentially-compromised witnesses; not load-bearing
 decisions.
 
 **`witnessed_anchors` (KEL-specific).** The subset of anchored SAIDs that are witnessed on the
-canonical branch. IEL and SEL verifiers consult this set during anchor-tier authorization — only
-witnessed anchors count toward threshold.
+canonical branch. IEL and SEL verifiers consult this set during kind-strict anchor authorization —
+only witnessed anchors count toward threshold.
 
 ### Acceptance gating for non-witnesses
 
@@ -400,8 +401,8 @@ privileged events.
 
 IEL and SEL events do not carry a federation context field; they inherit federation context via
 their KEL anchors. KEL is the leaf of trust composition: each IEL or SEL leaf-anchor check resolves
-to a KEL event, which carries the federation context declared in the most-recent `Fcp` / `Icp` /
-`Fed` at-or-before that anchor's serial. The KEL token surfaces `federation_context_per_event` so
+to a KEL event, which carries the federation context declared in the most-recent `Icp` / `Wit`
+at-or-before that anchor's serial. The KEL token surfaces `federation_context_per_event` so
 cross-chain verifiers can apply the right federation state per anchor.
 
 ### Trust composition through the config-pinned federation prefix set
@@ -409,7 +410,7 @@ cross-chain verifiers can apply the right federation state per anchor.
 For each event the verifier walks the chain's current federation context back to the federation
 IEL's `Icp`. If the federation's prefix is in the trusted set (compile-time-baked + runtime
 override), the federation is trusted for that event. Multi-federation chains (KELs that have
-transferred federations via `Fed` events) require each federation in the chain's history to be
+transferred federations via `Wit` events) require each federation in the chain's history to be
 independently trusted — no transitive trust. See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
 and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent
@@ -488,18 +489,18 @@ spanning two pages re-fetches at the next page rather than being processed half-
 | Serial monotonicity            | Each event's serial equals previous event's serial + 1.                                                                                                            |
 | Inception serial               | Inception events (no `previous`) have serial 0.                                                                                                                    |
 | Inception kind dispatch        | Verifier branches on `Fcp` / `Icp` per [§Inception kind dispatch](#inception-kind-dispatch).                                                                       |
-| Pre-rotation commitment        | `digest(publicKey) == prior.rotationHash` on each `Rot` / `Ror` / `Rec` / `Fed` / `Dec`.                                                                           |
-| Recovery commitment            | `digest(recoveryKey) == prior.recoveryHash` on each `Ror` / `Rec` / `Fed` / `Dec`.                                                                                 |
+| Pre-rotation commitment        | `digest(publicKey) == prior.rotationHash` on each `Rot` / `Ror` / `Rec` / `Wit` / `Dec`.                                                                           |
+| Recovery commitment            | `digest(recoveryKey) == prior.recoveryHash` on each `Ror` / `Rec` / `Wit` / `Dec`.                                                                                 |
 | Single-signature validity      | `Ixn` / `Rot` / `Fcp` / `Icp`: signature verifies against the appropriate key per [§Signature verification](#signature-verification).                              |
-| Dual-signature validity        | `Ror` / `Rec` / `Fed` / `Dec`: primary signature against revealed `publicKey`; recovery signature against revealed `recoveryKey`.                                  |
+| Dual-signature validity        | `Ror` / `Rec` / `Wit` / `Dec`: primary signature against revealed `publicKey`; recovery signature against revealed `recoveryKey`.                                  |
 | Manifest roles + anchor format | The `manifest` carries only roles in the kind's allowlist; each `anchors` entry is a valid SAID-shaped token ([§Manifest-role dispatch](#manifest-role-dispatch)). |
-| Federation context             | Verifier records federation binding per event (declared by inception `Icp` or `Fed`).                                                                              |
+| Federation context             | Verifier records federation binding per event (declared by inception `Icp` or `Wit`).                                                                              |
 | Witness state                  | Token surfaces `witnessed`, the divergence signal, `minority_dissent`, `witnessed_anchors` per the federation-witnessing layer.                                    |
 
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md#kel) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `folded`, the per-kind field grid.
+  `manifest` model, `previousSeal` / `folds`, the per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, the seal and spine, locked-portion bound, page
   model.
 - [`events.md`](events.md) — per-kind reference: fields, authorization, the manifest roles,
@@ -516,7 +517,7 @@ spanning two pages re-fetches at the next page rather than being processed half-
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#structural-problems-error-everything-else-is-reported)
   — structural problems error; the verifier-reports / merge-gates split.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#tiers) — tiers and
-  anchor-tier elevation (cross-chain anchor checks).
+  kind-strict anchoring (cross-chain anchor checks).
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
   — federation witnessing in verification.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.

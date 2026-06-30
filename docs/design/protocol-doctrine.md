@@ -176,11 +176,13 @@ rides a dedicated sealed kill-anchor and is tier 2 (an identity-kill is tier 3).
 tier 1.
 
 The old signing key is **not** a prerequisite for tier 2 or 3 — the rotation preimage reveals the
-new signing key. On the KEL, `Rot` is single-signed (tier 2); `Ror` / `Rec` / `Fed` / `Dec` are
-dual-signed (tier 3, new signing + recovery). IEL and SEL events have no intrinsic key state to
-elevate against, so they reach a tier by **anchoring in a KEL event of at-least that tier**: a
-tier-3 KEL event satisfies a tier-2 anchor requirement (anchor-tier elevation — it reveals both
-preimages, and the rotation preimage alone already satisfies tier 2). This closes the
+new signing key. On the KEL, `Rot` is single-signed (tier 2); `Ror` / `Rec` / `Wit` / `Dec` are
+dual-signed (tier 3, new signing + recovery). IEL and SEL events have no intrinsic key state, so
+they reach a tier by **anchoring in a lower-layer event of the matching kind** — **kind-strict**:
+each IEL / SEL kind is anchored by **exactly** the kind that reveals the capability it exercises
+(content ← `Ixn`; tier-2 establishment/governance ← `Rot`; tier-3 recovery/terminal ← `Ror`; the
+federation rebind, the IEL `Wit`, ← a KEL `Wit`). A KEL `Wit` anchors **only** the IEL `Wit`, and a
+`Rec` hosts no anchor. Kind-strict binding keeps content on an archivable host and closes the
 signing-key-only path to forging governance acts, grants, and terminals on the chains that root
 other chains' authority. The per-primitive anchor matrix is in
 [`primitives/data/event-logs/`](primitives/data/event-logs/).
@@ -193,22 +195,22 @@ other chains' authority. The per-primitive anchor matrix is in
 - **IEL** — a roster of member KELs plus a **threshold vector**
   `{t_use, t_govern, t_delegate, t_recover}`, indexed by the event's kind. Every IEL kind **prices
   itself**: `Ixn` from `t_use`, `Evl` from `t_govern`, `Del` from `t_delegate`, `Rpr` from
-  `t_recover`, the terminal `Dec` from `t_govern`. The one count-parametrized kind is the sealed
-  kill-anchor `Kil`, whose committed `threshold` slot (`govern` / `delegate`) names the count —
-  **backed** by the `Kil`'s own signatures at the IEL walk and **demanded** by the anchored kill's
+  `t_recover`, `Wit` and the terminal `Dec` from `t_govern`. The one count-parametrized kind is the
+  sealed kill-anchor `Kil`, whose committed `threshold` slot (`govern` / `delegate`) names the count
+  — **backed** by the `Kil`'s own signatures at the IEL walk and **demanded** by the anchored kill's
   kind at the SEL check. So verifying an IEL chain's validity needs **no SEL input** — each event
   prices from its own kind.
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
-**Threshold-vector bounds** (re-checked on the post-change roster at every `Evl`, not only at
-inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard, every
-identity — no single member exercises authority) and a **recoverability ceiling** `<= |roster| − 1`
-(evict/recover without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a
-threshold equal to `|roster|` is a gratuitous hostage config and is rejected). A singleton
-(`|roster| = 1`) sets all thresholds to 1. The federation IEL's recoverability ceiling is **hard**
-(it is critical infrastructure and must always be able to evict a compromised witness), so a
-federation requires `|roster| >= 3`.
+**Threshold-vector bounds** (re-checked on the post-delta roster at every roster-delta event — a
+user `Evl` or a federation `Wit` — not only at inception): `t_use >= 1`; the authority slots carry a
+**security floor** `>= 2` (hard, every identity — no single member exercises authority) and a
+**recoverability ceiling** `<= |roster| − 1` (evict/recover without one member — advisory at
+`|roster| = 2`, hard at `|roster| >= 3`, where a threshold equal to `|roster|` is a gratuitous
+hostage config and is rejected). A singleton (`|roster| = 1`) sets all thresholds to 1. The
+federation IEL's recoverability ceiling is **hard** (it is critical infrastructure and must always
+be able to evict a compromised witness), so a federation requires `|roster| >= 3`.
 
 Authorization that a third party relies on — who issued a credential, who may present it — is the
 job of the **document policy layer** ([`primitives/policy/policy.md`](primitives/policy/policy.md)),
@@ -231,10 +233,10 @@ resolved at the event's parent is the chain's currently-tracked state, not a sta
 The **seal-advancing** kinds (those that open a new locked window, plus the terminal `Dec` which
 opens none) per primitive:
 
-- **KEL**: `Rot` / `Ror` / `Rec` / `Fed` (and `Dec`).
+- **KEL**: `Rot` / `Ror` / `Rec` / `Wit` (and `Dec`).
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
   kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Del` / `Kil` /
-  `Rpr` / `Dec`) are the window-openers.
+  `Rpr` / `Dec` / `Wit`) are the window-openers.
 - **SEL**: `Fld` / `Rpr` (and `Dec`); a content `Ixn` and a floor `Pin` do not advance the seal.
 
 The terminal `Dec` advances the seal to its own serial and permits no successor. The seal-cap
@@ -242,7 +244,7 @@ rejects any submission whose parent sits before the `Dec`; a direct `Dec`-child 
 is rejected by the terminal-state gate.
 
 KEL additionally tracks which recovery-key preimage is currently committed: once a recovery preimage
-is spent (revealed by an `Ror` / `Rec` / `Fed` / `Dec`), it cannot be reused to recover against an
+is spent (revealed by an `Ror` / `Rec` / `Wit` / `Dec`), it cannot be reused to recover against an
 earlier divergence.
 
 **Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
@@ -250,9 +252,9 @@ earlier divergence.
 deployment fits in any other's single page (`MINIMUM_PAGE_SIZE` is a protocol constant, not a
 per-deployment knob; the `− 1` headroom accommodates the single-event repair — the discriminator's
 hot page is the retained branch plus the repair event, with the archival tails committed in
-`folded.forks[]` and validated by-commitment, not held in the page). On the IEL the cap is just as
-load-bearing: content (`Ixn` — the rail **issuance** rides, via `issues[]`) does **not** advance the
-seal, so trailing issuances accumulate and the seal lags the tip; without the cap the post-seal
+`folds.forks[]` and validated by-commitment, not held in the page). On the IEL the cap is just as
+load-bearing: content (`Ixn` — the rail **issuance** rides, via `anchors[]`) does **not** advance
+the seal, so trailing issuances accumulate and the seal lags the tip; without the cap the post-seal
 window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer that fills
 the window **re-seals with an empty-delta `Evl`** (no roster change — the identity-layer analogue of
 a KEL re-sealing via `Rot`; validation **accepts** an empty-delta `Evl`), advancing the seal with no
@@ -266,10 +268,10 @@ serialization are IEL doctrine —
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
 back-link to the prior seal-advancing event, so following `previousSeal` renders a seal-only view
 (`Icp → seal → seal → …`) while `previous` renders the full flat chain. Each seal's `manifest`
-carries a **`folded`** role committing the content run since the prior seal — with the run's
-boundary SAIDs, so a spine-only walk **catches a naive `previousSeal` forgery** without expanding
-the run — **necessary, not sufficient**, since a skip that forges matching endpoints passes it. The
-spine is a **convenience** view, verified by the same chain walk with `previousSeal` substituted for
+carries a **`folds`** role committing the content run since the prior seal — with the run's boundary
+SAIDs, so a spine-only walk **catches a naive `previousSeal` forgery** without expanding the run —
+**necessary, not sufficient**, since a skip that forges matching endpoints passes it. The spine is a
+**convenience** view, verified by the same chain walk with `previousSeal` substituted for
 `previous`, yielding authority state and a divergence view but not content completeness. The
 detection guarantee, and any decision that turns on a content event, use the **flat** walk; the
 spine is a fast pre-check, fail-secure (a forged `previousSeal` that skips a seal surfaces as a
@@ -353,7 +355,7 @@ a one-branch holder detects once the beacon delivers it.
   (fetched via keep-all-data / the beacon) — both are cross-node-checkable, but only the `v_{d-1}`
   attach needs no fetch.
 
-A **repair must commit the divergence it resolves.** Its `folded.forks[]` enumerates the archival
+A **repair must commit the divergence it resolves.** Its `folds.forks[]` enumerates the archival
 tails — each a real branch from the correct ancestor — and a repair is **invalid on a non-divergent
 tip** (a `Rec` / `Rpr` with empty `forks[]` is rejected). The committed `forks[]` **are** the
 archival tails, each validated **content-only**. A verifier validates the committed content tails
@@ -383,7 +385,7 @@ evidence a data-local detection needs.
 **Retention is bounded — keep-all-data is not keep-everything.** A privileged branch is retained to
 **≥ 2 per spine position**: a spent preimage can sign unbounded distinct events at an old position,
 but two competing privileged branches already prove the prefix terminal, so a node retains the
-second and stops. Committed content — a seal's `folded.canonical`, a repair's `folded.forks[]` — is
+second and stops. Committed content — a seal's `folds.canonical`, a repair's `folds.forks[]` — is
 **retained by commitment** and retrievable by prefix; the **uncommitted** below-seal content flood
 is droppable, because detection is **content-independent**: a privileged event re-validates against
 the prior seal's key state (reached via `previousSeal` on the retained spine) plus its own committed
@@ -490,7 +492,7 @@ adversary's rotation lands.
 
 **Defense is layered** — the layers compose; none is load-bearing alone:
 
-- **KEL dual-signature** on `Ror` / `Rec` / `Fed` / `Dec` blocks signing- and rotation-key
+- **KEL dual-signature** on `Ror` / `Rec` / `Wit` / `Dec` blocks signing- and rotation-key
   compromise regardless of where the recovery key is custodied. A single-device deployment is
   first-class.
 - **IEL threshold composition** (high thresholds, `M > N` redundancy across **distinct custody
@@ -554,14 +556,14 @@ feature-level fields on the content a chain event anchors (a credential's issued
 advisory and checked by the verifier against its own clock). None influence chain ordering.
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
-consensus-attested clock **for freshness / staleness detection only** — the `clock` role in each
-federation `Evl`'s `manifest` (an inline timestamp value, one per governance change), sealed and
-monotonic, **not** a field on any chain event. It bounds each witness key's validity window so a
-closed-window key can only stamp old receipts, which makes a backdated dormant-chain forgery read
-**stale** — detectable, fail-secure. It **defeats** backdating rather than inviting it, and
-intra-chain ordering stays pin-based, so it honors this rule's intent; the bytes live in a SAD, so
-the primitives stay timestamp-free. See [§Federation convergence](#federation-convergence) and
-[`federation/`](federation/).
+consensus-attested clock **for freshness / staleness detection only** — the `clock` role on each
+federation governance event (`Fcp` / `Wit` / `Dec`'s `manifest`, an inline timestamp value, one per
+governance change), sealed and monotonic, **not** a field on any chain event. It bounds each witness
+key's validity window so a closed-window key can only stamp old receipts, which makes a backdated
+dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats** backdating rather
+than inviting it, and intra-chain ordering stays pin-based, so it honors this rule's intent; the
+bytes live in a SAD, so the primitives stay timestamp-free. See
+[§Federation convergence](#federation-convergence) and [`federation/`](federation/).
 
 ### Federation Convergence
 
@@ -573,17 +575,18 @@ both branches and detects the divergence by walking them. The federation's witne
 **propagate** the competing branches to nodes that have not yet received the events; they do not
 pronounce the verdict.
 
-The federation is **an ordinary (restricted) IEL** — there is no separate consensus algorithm and no
-central state machine. Its roster is **witness KELs directly**; its kind set is restricted to `Icp`
-/ `Evl` / `Dec` (no content, so it never has a **reconcilable** fork and needs no `Rpr`; a
-competing-privileged divergence — `{Evl, Evl}` / `{Dec, Dec}` under a partition — is still possible
-but **terminal** (`disputed:`), which is why a federation runs a hard recoverability ceiling and
-`|roster| >= 3` with serialized governance; no delegation, since trust is per-federation and
-non-transitive). Its trust root is a **config-pinned federation prefix** (a compile-time default
-with a runtime override) — the prefix derives from the whole inception content
+The federation is **a restricted IEL rooted at an `Fcp` inception marker** — there is no separate
+consensus algorithm and no central state machine. Its roster is **witness KELs directly**; its kind
+set is restricted to `Fcp` / `Wit` / `Dec` (no content, so it never has a **reconcilable** fork and
+needs no `Rpr`; a competing-privileged divergence — `{Wit, Wit}` / `{Dec, Dec}` under a partition —
+is still possible but **terminal** (`disputed:`), which is why a federation runs a hard
+recoverability ceiling and `|roster| >= 3` with serialized governance; no delegation, since trust is
+per-federation and non-transitive). Its trust root is a **config-pinned federation prefix** (a
+compile-time default with a runtime override) — the prefix derives from the whole inception content
 `(roster, threshold, nonce)`, so it is a binding commitment to the exact founder set. There is **no
-self-attestation carve-out**: authorization is ordinary member-anchoring (the founders are the
-roster), and everything post-genesis is witnessed normally.
+self-witnessing carve-out** — the `Fcp` is a structural marker the verifier dispatches on, not a
+trust shortcut: authorization is ordinary member-anchoring (the founders' `Rot`s anchor the
+federation `Fcp`), trust roots in the config-pin, and everything post-genesis is witnessed normally.
 
 The convergence model has three components:
 
@@ -624,8 +627,9 @@ bounded by the **federation clock** (above): a cut or rotated-out witness earns 
 window, and a witness **wipes superseded private keys on rotation and removal** (forward secrecy;
 durability is unaffected because old receipts verify with public keys). Together — wipe plus the
 clock — these close the harvested-old-key forgery on a dormant chain (it reads stale → detectable).
-Witness rotation is legal **only** as a synchronized federation rotation-pin `Evl`; an off-ceremony
-rotation produces receipts the federation does not honor.
+Witness rotation is legal **only** as a synchronized federation `Wit` (the witness's KEL `Wit` is
+the rotation and anchors the federation IEL `Wit`); an off-ceremony rotation produces receipts the
+federation does not honor.
 
 **Detection is eventual, not at-decision-time.** Every detection guarantee assumes the consumer can
 reach enough honest witnesses / converged gossip to see the competing branch. A consumer eclipsed to
@@ -750,12 +754,15 @@ KEL, IEL, and SEL.
 ### Federation witnessing in verification
 
 Federation witnessing surfaces in verification as the per-token witnessing signals and as the set of
-witnessed anchors that IEL / SEL anchor resolution consults on a KEL. IEL and SEL events do **not**
-carry a federation field; they inherit federation context via their KEL anchors (the KEL is the leaf
-of trust composition, carrying the federation context declared in the most-recent `Icp` / `Fed`
-at-or-before the anchor's serial). A consumer refuses to bind under a divergent position or
+witnessed anchors that IEL / SEL anchor resolution consults on a KEL. IEL and SEL events
+authenticate via their KEL anchors, but federation context attaches **per layer**: a **KEL** carries
+it (the most-recent `Icp` / `Wit`); a user **IEL records its own** authoritative binding
+(`federation` / `federationPin` on its `Icp`/`Wit`, field-matched to its members' KEL `Wit`s); a
+**SEL** carries no federation field and inherits its owner IEL's. The KEL is the leaf of trust
+composition — each IEL / SEL leaf-anchor resolves to a KEL event carrying the federation context
+at-or-before the anchor's serial. A consumer refuses to bind under a divergent position or
 insufficient attestation, and grounds trust in the **config-pinned federation prefix set**
-(compile-time-baked + runtime override) — for a chain that transferred federations via `Fed`, each
+(compile-time-baked + runtime override) — for a chain that transferred federations via `Wit`, each
 federation in its history must be independently in the trusted set (no transitive trust). The full
 witnessing rules are federation doctrine ([`federation/`](federation/) — _landed separately_).
 

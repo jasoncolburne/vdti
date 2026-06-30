@@ -25,7 +25,7 @@ capability statement.
 | ---- | ------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Current signing key.                             | `Ixn`.                         | A forked content branch is archived by `Rec` (content is archivable — this is what the recovery reserve defends); a linear takeover is rotated out via `Rot`.                                                                                                    |
 | 2    | Rotation-key preimage alone.                     | `Rot`.                         | **Proactive only:** rotate-recovery via `Ror` _before_ the adversary rotates, retiring the preimage they hold. Once their `Rot` lands it is a privileged event no repair can archive → **reincept** (the reserve defends the signing key, not the rotation key). |
-| 3    | Rotation-key preimage AND recovery-key preimage. | `Ror` / `Rec` / `Fed` / `Dec`. | No in-band recourse. The protocol provides no recovery primitive against tier-3 compromise; defense is operational (custody separation, threshold redundancy at the IEL layer, abandon-and-reincept).                                                            |
+| 3    | Rotation-key preimage AND recovery-key preimage. | `Ror` / `Rec` / `Wit` / `Dec`. | No in-band recourse. The protocol provides no recovery primitive against tier-3 compromise; defense is operational (custody separation, threshold redundancy at the IEL layer, abandon-and-reincept).                                                            |
 
 The protocol's recovery primitive `Rec` closes the **tier-1 (content) surface** — it archives an
 adversary's content branch, which is what the recovery reserve defends: the **signing** key, never
@@ -40,7 +40,7 @@ composed above KEL (IEL governance with threshold redundancy across distinct cus
 KEL has two distinct recovery primitives. They are not interchangeable.
 
 - **`Rec` is reactive.** Used to resolve an already-divergent chain. `Rec` keeps the repairing
-  branch and archives the rest — **content-only** archival tails, committed in its `folded.forks[]`
+  branch and archives the rest — **content-only** archival tails, committed in its `folds.forks[]`
   (a privileged event in any tail makes the fork terminal → reincept, never archived) — and returns
   the chain to Active. Reveals the current recovery-key preimage as a side effect of dual-signing:
   that preimage is spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so
@@ -63,7 +63,7 @@ moments and produce different chain-state outcomes.
 
 ## Dual-signature is the tier-3 defense
 
-`Rec` / `Ror` / `Fed` / `Dec` are dual-signed: one signature by the new signing key (revealed by the
+`Rec` / `Ror` / `Wit` / `Dec` are dual-signed: one signature by the new signing key (revealed by the
 rotation-key preimage), one signature by the recovery key (revealed by the recovery-key preimage).
 Both signatures must verify; both digest commitments (`digest(publicKey) == prior.rotationHash` and
 `digest(recoveryKey) == prior.recoveryHash`) must match.
@@ -95,7 +95,7 @@ tier-1 content compromise), **not** the rotation key. Three structural facts clo
 - **`Rec` cannot archive the `Rot`.** `Rot_adversary` is a privileged event, and only content
   (`Ixn`) is archivable
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1). A
-  `Rec` that committed `Rot_adversary` to its `folded.forks[]` would archive a privileged event —
+  `Rec` that committed `Rot_adversary` to its `folds.forks[]` would archive a privileged event —
   forbidden, and **identity-blind on purpose**: if a recovery-key holder could archive "the
   adversary's" `Rot`, they could archive **any** `Rot` (including a legitimate operator's),
   resurrecting retired key material — the backdate surface vdti closes by treating `Rot` as a
@@ -129,9 +129,9 @@ A `Rec` extending `v_{d-1}` therefore validates uniformly:
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
 - The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on
   every node.
-- The repair's resolution (which events at `serial >= d` it commits to `folded.forks[]`) is uniform:
+- The repair's resolution (which events at `serial >= d` it commits to `folds.forks[]`) is uniform:
   every node **independently computes the same archival set** — everything at `serial >= d` not on
-  the `Rec.previous` walkback — rather than trusting the submitter's `folded.forks[]`, and rejects
+  the `Rec.previous` walkback — rather than trusting the submitter's `folds.forks[]`, and rejects
   the `Rec` if any of those branches is privileged. Independent computation is what makes the
   resolution identical on every node.
 
@@ -147,7 +147,7 @@ the `v_{d-1}` attach needs no fetch.
 
 The merge layer enforces the repair-event bound: `Rec.previous.serial >= seal_serial`. The bound
 prevents revival attacks where a party holding stale authority (a recovery preimage revealed by an
-earlier `Rec` / `Ror` / `Fed`, or a key that has since been rotated out) constructs a `Rec`
+earlier `Rec` / `Ror` / `Wit`, or a key that has since been rotated out) constructs a `Rec`
 targeting the locked portion to rearrange the chain. Only current authority gates repair events.
 
 When the bound holds vacuously — no privileged event has landed yet on the chain (only inception
@@ -162,7 +162,7 @@ that derives from it.
 
 ## Rec parent shapes
 
-`Rec` resolves divergence by committing the archival tails it resolves to its `folded.forks[]`.
+`Rec` resolves divergence by committing the archival tails it resolves to its `folds.forks[]`.
 `Rec.previous` takes one of two shapes:
 
 ### Branch-tip-extending shape
@@ -177,17 +177,17 @@ Pre-state (divergent at v_d):
 
 Rec construction: rec.previous = retained-branch tip's said
                   rec.serial   = d + 1
-                  rec.folded.forks = [ other-branch tail ]
+                  rec.folds.forks = [ other-branch tail ]
 
 Post-state (linear, recovered):
     ... → v_{d-1} → retained-branch tip @ v_d → rec @ v_{d+1}
                   ↑
-                  other branch committed in rec.folded.forks[]
+                  other branch committed in rec.folds.forks[]
 ```
 
 The submitter (whoever holds the recovery key) keeps the branch they authored as the retained
 branch; `Rec` extends it, committing everything at `serial >= d` not on that walkback to
-`folded.forks[]`. The merge layer then **independently** identifies the retained branch by walking
+`folds.forks[]`. The merge layer then **independently** identifies the retained branch by walking
 back from `Rec.previous` and **validates** the committed `forks[]` against the branches off that
 walkback that it holds — content-only, rejecting the `Rec` if any is privileged. It never trusts the
 submitter's enumeration.
@@ -195,7 +195,7 @@ submitter's enumeration.
 ### Divergence-ancestor-extending shape
 
 `Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. All branches at
-`serial >= d` are committed to `folded.forks[]`; `Rec` is the only event at `v_d` after the repair
+`serial >= d` are committed to `folds.forks[]`; `Rec` is the only event at `v_d` after the repair
 runs.
 
 ```
@@ -205,12 +205,12 @@ Pre-state (divergent at v_d):
 
 Rec construction: rec.previous = v_{d-1}.said
                   rec.serial   = d
-                  rec.folded.forks = [ branch-1 tail, branch-2 tail ]
+                  rec.folds.forks = [ branch-1 tail, branch-2 tail ]
 
 Post-state (linear, recovered, Rec is the only event at v_d):
     ... → v_{d-1} → rec @ v_d
                   ↑
-                  both prior branches committed in rec.folded.forks[]
+                  both prior branches committed in rec.folds.forks[]
 ```
 
 The divergence-ancestor-extending shape is the structural primitive that gives recovery its
@@ -223,7 +223,7 @@ the submitter wants to keep.
 
 Both parent shapes route through the merge layer's discriminator. `Rec` is the repair kind, not a
 privileged extension — its acceptance resolves the divergence rather than producing one. A
-privileged event (`Rot` / `Ror` / `Fed` / `Dec`) sharing the divergence-ancestor-extending parent
+privileged event (`Rot` / `Ror` / `Wit` / `Dec`) sharing the divergence-ancestor-extending parent
 shape (`previous = v_{d-1}.said`) on a chain with an existing event at `v_d` is declined as a
 canonical extension per
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair); the kind
@@ -239,7 +239,7 @@ indefinitely, regardless of subsequent divergence or a terminal `disputed:` verd
 The argument has three legs:
 
 - **Seal advances are clean.** `lastSealAdvancingEvent` advances only on seal-advancing events
-  (`Rot` / `Ror` / `Rec` / `Fed` / `Dec`) that land cleanly on the linear chain. The seal never
+  (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) that land cleanly on the linear chain. The seal never
   forks: a privileged event that would create or join a divergence does not extend the canonical
   chain, so every seal advance is a clean linear-chain landing.
 - **At-or-below-seal events were authored under at-least-tier-2 capability.** Every seal advance is
@@ -309,7 +309,7 @@ The cross-node race surface covers all privileged-event shapes:
 - **Tier-2 path.** A tier-2 adversary (holding only the rotation preimage) can force non-convergence
   by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
   different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
-  tier-3 bar required for `Ror` / `Rec` / `Fed` / `Dec`. A `{Rot, Rot}` divergence is moreover a
+  tier-3 bar required for `Ror` / `Rec` / `Wit` / `Dec`. A `{Rot, Rot}` divergence is moreover a
   **proof of reserve compromise** — two valid rotations reveal the one rotation preimage committed
   at `v_{d-1}`.
 - **Tier-3 path.** A tier-3 adversary (holding both preimages) can force non-convergence by racing

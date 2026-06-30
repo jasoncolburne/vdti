@@ -3,7 +3,7 @@
 Per-kind structural reference for the KEL event taxonomy: eight event kinds across two inception
 variants, one content kind, two rotation kinds, one recovery kind, one federation-mutation kind, and
 one terminal kind. The cross-primitive field shape — common fields, the `manifest` model,
-`previousSeal` / `folded`, and the full per-kind field grid — is the
+`previousSeal` / `folds`, and the full per-kind field grid — is the
 [event-shape reference](../event-shape.md#kel); this doc states the KEL-specific semantics: the
 key-state fields, two-kind inception, the manifest roles a KEL event carries, forward-key
 commitments, the three-tier capability model, sort priority, and the seal-advance cap.
@@ -14,16 +14,16 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 
 ## Event taxonomy
 
-| Kind  | Topic                    | Class      | Tier | Purpose                                                                                                                                                                                                                                                                                                                                   |
-| ----- | ------------------------ | ---------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | `vdti/kel/v1/events/fcp` | inception  | 1    | Founder pre-federation inception (no federation exists yet).                                                                                                                                                                                                                                                                              |
-| `Icp` | `vdti/kel/v1/events/icp` | inception  | 1    | Standard inception (member or end-user KEL) bound to an existing federation.                                                                                                                                                                                                                                                              |
-| `Ixn` | `vdti/kel/v1/events/ixn` | content    | 1    | Interaction. Hosts tier-1 anchors. Changes no keys and does not advance the seal. The **repairable** kind.                                                                                                                                                                                                                                |
-| `Rot` | `vdti/kel/v1/events/rot` | privileged | 2    | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. Seal-advancing.                                                                                                                                                                            |
-| `Ror` | `vdti/kel/v1/events/ror` | privileged | 3    | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. Seal-advancing.                                                                                                                                                                                                                            |
-| `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (committed in `folded.forks[]`). Returns the chain to Active. Seal-advancing.                                                                                                                                                          |
-| `Fed` | `vdti/kel/v1/events/fed` | privileged | 3    | Federation **rebind**. Dual-signed; changes `federation` (the prefix) and/or `witnesses` (must change at least one). A same-federation re-pin is **not** a `Fed` — `federationPin` is optional on every event. On Fcp-rooted chains, the v=1 `Fed` declares the binding for the first time — the founder-binding pattern. Seal-advancing. |
-| `Dec` | `vdti/kel/v1/events/dec` | terminal   | 3    | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                                                                                                                                 |
+| Kind  | Topic                    | Class      | Tier | Purpose                                                                                                                                                                                                                        |
+| ----- | ------------------------ | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Fcp` | `vdti/kel/v1/events/fcp` | inception  | 1    | Founder pre-federation inception (no federation exists yet).                                                                                                                                                                   |
+| `Icp` | `vdti/kel/v1/events/icp` | inception  | 1    | Standard inception (member or end-user KEL) bound to an existing federation.                                                                                                                                                   |
+| `Ixn` | `vdti/kel/v1/events/ixn` | content    | 1    | Interaction. Hosts tier-1 anchors. Changes no keys and does not advance the seal. The **repairable** kind.                                                                                                                     |
+| `Rot` | `vdti/kel/v1/events/rot` | privileged | 2    | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. Seal-advancing.                                                                 |
+| `Ror` | `vdti/kel/v1/events/ror` | privileged | 3    | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. Seal-advancing.                                                                                                                 |
+| `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (committed in `folds.forks[]`). Returns the chain to Active. Seal-advancing.                                                |
+| `Wit` | `vdti/kel/v1/events/wit` | privileged | 3    | Federation **rebind**. Dual-signed; changes `federation` (the prefix) and/or `witnesses` (must change at least one). A same-federation re-pin is **not** a `Wit` — `federationPin` is optional on every event. Seal-advancing. |
+| `Dec` | `vdti/kel/v1/events/dec` | terminal   | 3    | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                      |
 
 The **class** column names the event's role under the
 [divergence-and-repair rules](../../../../protocol-doctrine.md#divergence-and-repair): only
@@ -41,17 +41,19 @@ The kind determines whether the chain is pre-federation or federation-bound, and
 applies. KEL is concerned with key state only; delegation is an identity-layer concern handled at
 the IEL primitive (see [`../iel/`](../iel/)), not a KEL inception kind.
 
-| Kind  | When used                                                                 | Federation binding             | Witnesses                     | Eligible as federation member                                                                 |
-| ----- | ------------------------------------------------------------------------- | ------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------- |
-| `Fcp` | Founder pre-federation inception (no federation exists yet).              | absent                         | forbidden                     | yes — a founder KEL becomes federation-bound via the v=1 `Fed` in the bootstrap atomic batch. |
-| `Icp` | Standard inception (member or end-user KEL) under an existing federation. | `federation` + `federationPin` | the `witnesses` manifest role | yes.                                                                                          |
+| Kind  | When used                                                                 | Federation binding             | Witnesses                     | Eligible as federation member                                                                            |
+| ----- | ------------------------------------------------------------------------- | ------------------------------ | ----------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `Fcp` | Founder pre-federation inception (no federation exists yet).              | absent                         | forbidden                     | yes — a founder KEL's v=1 `Rot` anchors the federation IEL's `Fcp` marker in the bootstrap atomic batch. |
+| `Icp` | Standard inception (member or end-user KEL) under an existing federation. | `federation` + `federationPin` | the `witnesses` manifest role | yes.                                                                                                     |
 
 The verifier dispatches at v=0 on kind:
 
 - `Fcp` → pre-federation chain. It carries no `federation` binding and no `witnesses`, and cannot
-  stand alone — its binding `Fed` is the next event (v=1) in the same atomic bootstrap batch. The
-  federation IEL `Icp` (a federation is an ordinary IEL) is brought into existence in that same
-  batch (see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
+  stand alone — its v=1 `Rot` anchors the federation IEL's `Fcp` marker (kind-strict, tier-2 →
+  tier-2) in the same atomic bootstrap batch. The founder is bound to the federation by being named
+  in the roster it founds — never self-bound. That federation IEL `Fcp` (the `Fcp`-rooted inception
+  marker) is brought into existence in that same batch (see
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
 - `Icp` → federation-bound from inception. `federation` (the federation IEL prefix) and
   `federationPin` (the as-of federation position) declare the binding; the `witnesses` manifest role
   declares the chain's witnessing policy.
@@ -67,14 +69,14 @@ the [event-shape reference](../event-shape.md#kel). The KEL-specific key-state s
 | `Fcp` / `Icp`         | req         | req            | fbd           | req            |
 | `Ixn`                 | fbd         | fbd            | fbd           | fbd            |
 | `Rot`                 | req         | req            | fbd           | fbd            |
-| `Ror` / `Rec` / `Fed` | req         | req            | req           | req            |
+| `Ror` / `Rec` / `Wit` | req         | req            | req           | req            |
 | `Dec`                 | req         | fbd            | req           | fbd            |
 
 `publicKey` is the signing key effective at this event; `rotationHash` and `recoveryHash` are the
 forward-key digests committing the next signing and recovery keys; `recoveryKey` reveals the
 recovery-key preimage on the dual-signed kinds. The forward-key commitment fields drive the
 dual-signature mechanic — see [§Forward-key commitments](#forward-key-commitments). The
-seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Fed` / `Dec`) additionally carry the top-level
+seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) additionally carry the top-level
 `previousSeal` spine back-link ([`log.md` §The spine](log.md#the-spine)).
 
 ## The manifest — roles a KEL event carries
@@ -88,9 +90,9 @@ it (read kind-first):
 
 | Role        | Carried by                               | Commits to                                                                                                                                                         |
 | ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Rec` | lower-layer event / SAD SAIDs this event anchors                                                                                                                   |
-| `witnesses` | `Icp` / `Fed`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                    |
-| `folded`    | `Rot` / `Ror` / `Rec` / `Fed` / `Dec`    | the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's boundary SAIDs; `Rec` carries the `forks[]` (the archival tails it resolves) |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)                                                        |
+| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                    |
+| `folds`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec`    | the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's boundary SAIDs; `Rec` carries the `forks[]` (the archival tails it resolves) |
 
 ### Anchors
 
@@ -107,14 +109,16 @@ the bare-SAID list shape:
   entries — and their signatures — when an operator legitimately anchors multiple SAIDs at one chain
   position.
 
-`Ixn` carries the `anchors` role required (≥ 1) — anchoring is its purpose; `Rot` / `Ror` / `Rec`
-carry it optionally. **Identity-binding events (`Fcp` / `Icp` / `Fed`)** carry their federation
-binding in the top-level `federation` / `federationPin` fields and their witnessing policy in the
-`witnesses` role — never as anchors — and admit no generic batching, keeping binding declarations
-minimal. `Dec` carries no anchors; it ends the chain.
+`Ixn` carries the `anchors` role required (≥ 1) — anchoring is its purpose; `Rot` / `Ror` carry it
+optionally. A **`Wit`** carries **exactly one** anchor — the IEL `Wit` it participates in
+(kind-strict, tier-3 ↔ tier-3) — alongside its top-level `federation` / `federationPin` binding and
+its `witnesses` role. **`Fcp` / `Icp`** carry their federation binding in the top-level fields and
+their witnessing policy in `witnesses` — never as anchors — keeping inception minimal. **`Rec` and
+`Dec` carry no anchors:** `Rec` is repair-only (a recovered member participates via the subsequent
+`Ror`), and `Dec` ends the chain.
 
 KEL verification validates anchor **format** only — each entry is a SAID-shaped token. Anchor
-**satisfaction** — what a SAID points to, and which tier-elevation rules apply — is
+**satisfaction** — what a SAID points to, and which kind-strict anchor rules apply — is
 downstream-verifier responsibility: IEL and SEL verifiers enforce anchor _kind_ and _tier_ per
 [§Tiers](../../../../protocol-doctrine.md#tiers) when resolving authorization against KEL anchors.
 
@@ -125,11 +129,11 @@ kinds that establish or change it. `federation` is the federation IEL **prefix**
 it follows the federation's evolution); `federationPin` is a **SAID** pinning the as-of federation
 position; the `witnesses` role commits the witness-config SAD `{ threshold, signers }`. The exact
 req / fbd / opt per kind is the [event-shape reference](../event-shape.md#kel)'s. The `federation`
-**prefix** is carried only by `Icp` (the root binding) and `Fed` (an actual **rebind**).
+**prefix** is carried only by `Icp` (the root binding) and `Wit` (an actual **rebind**).
 `federationPin` is **optional on every body event** (`Ixn` / `Rot` / `Ror` / `Rec` / `Dec`): present
 = a forward **re-pin** within the inherited federation, absent = inherit the prior pin. So a
-same-federation re-pin rides whatever event the chain authors next — no `Fed` needed (e.g. a stale
-terminal `Dec` re-pins and decommissions in one event). A `federationPin` on a non-`Icp`/`Fed` event
+same-federation re-pin rides whatever event the chain authors next — no `Wit` needed (e.g. a stale
+terminal `Dec` re-pins and decommissions in one event). A `federationPin` on a non-`Icp`/`Wit` event
 must **resolve within the inherited `federation` prefix** — a re-pin can never become a backdoor
 rebind. Forward-only is **emergent**, not a structural check: ordering two federation positions is a
 _cross-chain_ walk (inv 3 / 5 forbid it on the self-contained KEL verifier), so a stale/backward pin
@@ -137,16 +141,16 @@ lands chain-valid but **un-witnessed** (the currency gate refuses a non-current 
 refuses closed-window keys) and is cleared by pinning forward. `Fcp` carries neither
 (pre-federation).
 
-A `Fed` event **rebinds** federation context and must change at least one of (`federation`,
-`witnesses`); a `Fed` that changes neither is a no-op and is rejected. A same-federation **re-pin**
-(advancing `federationPin` within the same federation) is **not** a `Fed` — since `federationPin` is
+A `Wit` event **rebinds** federation context and must change at least one of (`federation`,
+`witnesses`); a `Wit` that changes neither is a no-op and is rejected. A same-federation **re-pin**
+(advancing `federationPin` within the same federation) is **not** a `Wit` — since `federationPin` is
 optional on every event, a re-pin rides whatever the chain authors next, which is how an active
 chain answers the witness currency gate after a federation cut. See
 [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap
-ceremony, the founder Fed-at-v=1 pattern, and the inter-federation re-binding mechanics. Like the
-other recovery-revealing kinds, `Fed` is dual-signed — it rotates the signing **and** recovery keys
-— so it is structurally **tier-3**; this is a property of `Fed`'s own signature shape, independent
-of the federation IEL's own tier (an IEL `Icp` is tier-2).
+ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation re-binding mechanics.
+Like the other recovery-revealing kinds, `Wit` is dual-signed — it rotates the signing **and**
+recovery keys — so it is structurally **tier-3**; this is a property of `Wit`'s own signature shape,
+independent of the federation IEL's own tier (a federation IEL `Fcp` is tier-2).
 
 ## Authorization and signature shapes
 
@@ -164,16 +168,16 @@ preimage reveals. Tier-3 events are dual-signed by the new signing key AND the r
 | `Rot` | new signing key revealed by `publicKey` (preimage of prior `rotationHash`)            | —                                                                         |
 | `Ror` | new signing key (preimage of prior `rotationHash`)                                    | recovery key revealed by `recoveryKey` (preimage of prior `recoveryHash`) |
 | `Rec` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
-| `Fed` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
+| `Wit` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
 | `Dec` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
 
-`Ror` / `Rec` / `Fed` / `Dec` reveal the recovery key — they are the **recovery-revealing**
+`Ror` / `Rec` / `Wit` / `Dec` reveal the recovery key — they are the **recovery-revealing**
 sub-class. Once a recovery-revealing event lands, the recovery key it reveals is publicly known.
 Tracked via `lastRecoveryRevealingEvent` on the verification token — see
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound).
 
-`Rot` / `Ror` / `Rec` / `Fed` / `Dec` advance the seal — they are the **seal-advancing** kinds,
-tracked via `lastSealAdvancingEvent`. The two sub-classes overlap on `Ror` / `Rec` / `Fed` / `Dec`
+`Rot` / `Ror` / `Rec` / `Wit` / `Dec` advance the seal — they are the **seal-advancing** kinds,
+tracked via `lastSealAdvancingEvent`. The two sub-classes overlap on `Ror` / `Rec` / `Wit` / `Dec`
 but diverge on `Rot` (seal-advancing without revealing the recovery key); `Dec` belongs to both (it
 reveals the recovery key, advances the seal to its own serial, and is terminal).
 
@@ -195,7 +199,7 @@ the event. The tier names the captured material, not the number of signatures on
   compromised; requiring the old signing key to authorize rotation would defeat the purpose.
 - **Tier 3 — rotation-key preimage AND recovery-key preimage.** Adversary holds both preimages: the
   preimage of the prior `rotationHash` AND the preimage of the prior `recoveryHash`. They can land
-  `Ror` / `Rec` / `Fed` / `Dec`. The dual signature is over (new signing key revealed by the
+  `Ror` / `Rec` / `Wit` / `Dec`. The dual signature is over (new signing key revealed by the
   rotation preimage) + (recovery key revealed by the recovery preimage) — two signatures, two roles,
   neither requiring the old signing key.
 
@@ -204,19 +208,20 @@ rotation + recovery preimage." The old signing key is not a prerequisite for tie
 Adding "signing +" to tier 2 or tier 3 conflates "what an adversary needs to compromise to produce
 this event" with "what keys are referenced by this event." The signing key applies _only_ to tier 1.
 
-The three tiers define the [anchor-tier-elevation surface](../../../../protocol-doctrine.md#tiers):
-each IEL or SEL operation requires a KEL anchor of at-least the corresponding tier. The tier
-hierarchy makes the cryptographic cost of forging a governance act, binding establishment, or
-terminal event on an IEL or SEL strictly higher than the cost of forging routine extension events on
-its contributing KELs.
+The three tiers set the cryptographic cost of forging each act; the cross-layer binding is
+**kind-strict** ([§Tiers](../../../../protocol-doctrine.md#tiers)): each IEL or SEL operation is
+anchored by **exactly** the KEL kind that reveals the capability it exercises. The tier hierarchy
+makes the cost of forging a governance act, binding establishment, or terminal event on an IEL or
+SEL strictly higher than the cost of forging routine extension events on its contributing KELs.
 
-### Tier-3 events satisfy tier-2 anchor requirements
+### Anchoring is kind-strict
 
-A tier-3 KEL event that hosts anchors (`Ror` or `Rec`) reveals both the rotation preimage and the
-recovery preimage; either one already satisfies the rotation-preimage requirement that tier-2
-anchoring is checking against. The verifier-side leaf-anchor check is **minimum-tier-capability**,
-not **exact-event-kind**: any KEL event of at-least the required capability tier matches. See
-[§Tiers](../../../../protocol-doctrine.md#tiers).
+A leaf-anchor check is **exact-event-kind**, not minimum-tier-capability: an IEL / SEL act is
+anchored **only** by the KEL kind that reveals the matching capability — content ← `Ixn`; tier-2
+establishment/governance ← `Rot`; tier-3 recovery/terminal ← `Ror`; the federation rebind (the IEL
+`Wit`) ← `Wit`. A higher-tier KEL event does **not** stand in for a lower-tier anchor (a `Ror` does
+not host a tier-2 anchor), and **`Rec` hosts no anchor at all** — a recovered member participates
+via the subsequent `Ror`. See [§Tiers](../../../../protocol-doctrine.md#tiers).
 
 ## Forward-key commitments
 
@@ -227,7 +232,7 @@ Establishment events commit one or both forward-key digests; the content `Ixn` a
 | --------------------- | -------------------- | --------------------------------------------------------- |
 | `Fcp` / `Icp`         | required             | required                                                  |
 | `Rot`                 | required             | forbidden (`Rot` does not change the recovery commitment) |
-| `Ror` / `Rec` / `Fed` | required             | required                                                  |
+| `Ror` / `Rec` / `Wit` | required             | required                                                  |
 | `Dec`                 | forbidden (terminal) | forbidden (terminal)                                      |
 | `Ixn`                 | forbidden            | forbidden                                                 |
 
@@ -241,13 +246,13 @@ additionally checks `digest(recoveryKey) == prior.recoveryHash`.
 KEL has one protocol-enforced cap (the seal-advance cap) plus operator guidance on recovery-preimage
 rotation cadence.
 
-**Seal-advance cap (protocol-enforced).** A seal-advancing event (`Rec` / `Ror` / `Rot` / `Fed`; the
+**Seal-advance cap (protocol-enforced).** A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the
 terminal `Dec` also advances the seal but ends the chain) must land at least every
 `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The cap bounds the **fold** — the content
 run since the last seal — to 64 events on a branch, so a divergence-and-repair fits in one page. The
 `− 1` headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
 discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are
-committed in `folded.forks[]` and validated by-commitment. See
+committed in `folds.forks[]` and validated by-commitment. See
 [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
@@ -261,7 +266,7 @@ designed to avoid.
 
 **Adversary bound.** The seal-advance cap bounds an adversary's fork at 64 events before they must
 produce a seal-advancing event — which requires at least tier-2 capability (rotation-key preimage
-for `Rot`) or tier-3 capability (rotation + recovery preimages for `Ror` / `Fed`). A tier-1
+for `Rot`) or tier-3 capability (rotation + recovery preimages for `Ror` / `Wit`). A tier-1
 adversary lacking the rotation preimage cannot extend beyond the cap. Builders should auto-insert
 `Rot` when an `Ixn` would exceed the cap; the operator's recovery-preimage rotation cadence guidance
 selects `Ror` over `Rot` when the operator wants to refresh the recovery-key preimage commitment.
@@ -278,7 +283,7 @@ The merge layer orders events at the same serial deterministically by
 | `Ixn` | 2             |
 | `Rot` | 3             |
 | `Ror` | 4             |
-| `Fed` | 5             |
+| `Wit` | 5             |
 | `Rec` | 6             |
 | `Dec` | 7             |
 
@@ -299,17 +304,17 @@ The `said` tiebreaker is for determinism only and has no semantic meaning.
 
 ```
 s0  kind=fcp  publicKey=k0,  rotationHash=h(k1),  recoveryHash=h(r0)
-s1  kind=fed  publicKey=k1,  rotationHash=h(k2),  recoveryHash=h(r1),
-              federation=fed_iel.prefix,  federationPin=fed_iel_icp.said,
-              previousSeal=fcp.said,  manifest={ witnesses: {threshold, signers} }
-              ← reveals k1 + r0; dual-signed (k1 + r0)
+s1  kind=rot  publicKey=k1,  rotationHash=h(k2),
+              previousSeal=fcp.said,  manifest={ anchors: [fed_iel_fcp.said] }
+              ← reveals k1; signed by k1 (tier-2); anchors the federation IEL Fcp
 ```
 
-The `Fcp` inception is pre-federation (no `federation`, no `witnesses`, no witnessing). The `Fed` at
-v=1 declares the federation binding — `federation` is the federation IEL prefix and `federationPin`
-its inception position — and is the first seal, so it carries `previousSeal = fcp.said` (the spine
-root). That federation IEL `Icp` is brought into existence in the same atomic bootstrap batch — see
-[`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
+The `Fcp` inception is pre-federation (no `federation`, no `witnesses`, no witnessing). The v=1
+`Rot` anchors the federation IEL's `Fcp` marker (kind-strict, tier-2 → tier-2) and is the first
+seal, so it carries `previousSeal = fcp.said` (the spine root). The founder is bound to the
+federation by being named in the roster it founds — never self-bound — so it carries no `federation`
+/ `federationPin`. That federation IEL `Fcp` is brought into existence in the same atomic bootstrap
+batch — see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
 
 ### Standard inception
 
@@ -330,12 +335,12 @@ s0   kind=icp  publicKey=k0,  rotationHash=h(k1),  recoveryHash=h(r0),
                 federation=fed_iel.prefix, federationPin=..., manifest={witnesses}
 s1   kind=ixn  manifest={ anchors: [said_a] }                ← signed by k0
 s2   kind=rot  publicKey=k1,  rotationHash=h(k2),            ← reveals k1; signed by k1
-                previousSeal=icp.said,  manifest={ folded }
+                previousSeal=icp.said,  manifest={ folds }
 s3   kind=ixn  manifest={ anchors: [said_b, said_c] }        ← batched; signed by k1
 ...
 s64  kind=ror  publicKey=kN,  recoveryKey=r0,                ← proactive recovery-rotation
                 rotationHash=h(kN+1), recoveryHash=h(r1),       signed by kN + r0
-                previousSeal=<prior seal>.said, manifest={ folded }
+                previousSeal=<prior seal>.said, manifest={ folds }
 ```
 
 The `Rot` at s2 is the first seal, so `previousSeal = icp.said` (the spine root); each later seal
@@ -354,12 +359,12 @@ s6   kind=rec  previous=s5a.said,                       ← Rec extends the bran
                 publicKey=k6, recoveryKey=r0,            dual-signed (k5 + r0)
                 rotationHash=h(k7), recoveryHash=h(r1),
                 previousSeal=<prior seal>.said,
-                manifest={ folded: { forks: [s5b-tail] } }
+                manifest={ folds: { forks: [s5b-tail] } }
 ```
 
 The `Rec` keeps the branch its submitter authored and archives the rest; the archival tail (here the
-`s5b` branch) is committed in the `Rec`'s `folded.forks[]`. The merge layer walks the retained
-branch from `Rec.previous` and archives everything at `serial >= d` not on it. See
+`s5b` branch) is committed in the `Rec`'s `folds.forks[]`. The merge layer walks the retained branch
+from `Rec.previous` and archives everything at `serial >= d` not on it. See
 [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two attachment patterns
 and the structural property that makes the divergence-ancestor-extending shape
 cross-node-validatable.
@@ -383,14 +388,14 @@ at the same serial on another node is retained as non-canonical evidence and rea
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md#kel) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `folded`, the canonical per-kind field grid.
+  `manifest` model, `previousSeal` / `folds`, the canonical per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, prefix derivation, the seal and spine,
   locked-portion bound, page model.
 - [`merge.md`](merge.md) — merge-layer routing.
 - [`recovery.md`](recovery.md) — recovery doctrine, Rec parent shapes, three-tier compromise model.
 - [`verification.md`](verification.md) — verifier algorithm and kind dispatch.
-- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and anchor-tier
-  elevation, divergence and repair, forks-are-seal-bounded, inception tiers.
+- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
+  anchoring, divergence and repair, forks-are-seal-bounded, inception tiers.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
 - [`../iel/`](../iel/) — IEL primitive (subsequent sub-issue). Delegation is an identity-layer
   concern and lives there (delegated IEL inception; declare / rescind delegation); the
