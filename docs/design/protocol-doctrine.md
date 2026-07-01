@@ -204,13 +204,18 @@ other chains' authority. The per-primitive anchor matrix is in
   SEL event's kind.
 
 **Threshold-vector bounds** (re-checked on the post-delta roster at every roster-delta event — a
-user `Evl` or a federation `Wit` — not only at inception): `t_use >= 1`; the authority slots carry a
-**security floor** `>= 2` (hard, every identity — no single member exercises authority) and a
-**recoverability ceiling** `<= |roster| − 1` (evict/recover without one member — advisory at
-`|roster| = 2`, hard at `|roster| >= 3`, where a threshold equal to `|roster|` is a gratuitous
-hostage config and is rejected). A singleton (`|roster| = 1`) sets all thresholds to 1. The
-federation IEL's recoverability ceiling is **hard** (it is critical infrastructure and must always
-be able to evict a compromised witness), so a federation requires `|roster| >= 3`.
+user `Evl`, a **user `Rpr`-cut** (the repair-and-evict fold below), or a federation `Wit` — not only
+at inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard, every
+identity — no single member exercises authority) and a **recoverability ceiling** `<= |roster| − 1`
+(evict/recover without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a
+threshold equal to `|roster|` is a gratuitous hostage config and is rejected).
+**`t_govern <= t_recover` is a hard floor** wherever a threshold is declared or changed — recovery
+reveals the reserve and a `Rpr` may carry a roster cut, so it is never priced below governance. And
+the roster is **never emptied**: post-delta **`|roster| = |roster| + |add| − |cut| >= 1`** (the
+roster is a set — `add ∉` it, `cut ⊆` it, `cut ∩ add = ∅`), making every singleton's roster
+downward-immutable. A singleton (`|roster| = 1`) sets all thresholds to 1. The federation IEL's
+recoverability ceiling is **hard** (it is critical infrastructure and must always be able to evict a
+compromised witness), so a federation requires `|roster| >= 3`.
 
 Authorization that a third party relies on — who issued a credential, who may present it — is the
 job of the **document policy layer** ([`primitives/policy/policy.md`](primitives/policy/policy.md)),
@@ -338,6 +343,25 @@ proof — its two governance events reveal _different_ preimages and can arise f
 partition (which is why high-volume issuance and governance are serialized). Genuine reincept is
 therefore a tier-3 compromise, a privileged event in an archival tail, or a second privileged branch
 a one-branch holder detects once the beacon delivers it.
+
+**Repair-and-evict is a single event.** When the divergence was caused by a member that must be
+removed, the eviction **folds into the `Rpr`** as a roster `cut` rather than a following `Evl`, and
+this **must** be atomic: were the eviction a later event, the still-rostered member could race a
+fresh `Ixn` at the repaired tip → re-fork → repair again, indefinitely (a timing attack). So a user
+IEL `Rpr` may carry a `roster` role restricted to a **required non-empty `cut` + an optional
+`threshold` change — never an `add`, never a `threshold`-only change** (a cut-less,
+`threshold`-only, or `add`-bearing `Rpr` roster is malformed → rejected; a bare threshold change or
+a replacement `add` rides a later `Evl`, the chain being unfrozen after the repair). The event is
+`Ror`-anchored exactly as a plain `Rpr` — no separate `Evl`, no mixed-kind batch — so the member is
+gone the instant the fork resolves and no post-repair window exists (atomic by construction, not
+merely one transaction). The cut is priced at the **outgoing** `t_recover` (the pre-change gate — as
+a user `Evl` rides `t_govern`-of-outgoing, a `Rpr` cannot lower its own gate before cutting), sound
+because `t_govern <= t_recover` is a hard floor
+([§Structural authorization](#structural-authorization)); the post-cut roster is re-checked against
+the threshold-vector bounds (a stranding or hostage cut is rejected, forcing a simultaneous
+`threshold` drop the `Rpr` may carry, or reincept). The cut target is **operator-chosen** — the
+fork-causer is the motivating case, not a structural check, since chain data cannot tell operator
+from adversary. This is IEL-only (the KEL and SEL repairs carry no roster).
 
 **Repair conditions** (data-driven, merge-layer-enforced, uniform across primitives):
 

@@ -14,21 +14,24 @@ label). That is a review aid for checking a diagram against the design canon —
 node list answers "which event kinds does this example contain?" directly, without
 hand-parsing the JSON.
 
-`isDeleted` elements — and any binding that points at one — are always excluded
-from the check/describe (Excalidraw keeps deleted elements in the JSON). `--prune`
-deletes them from the file outright: a hygiene pass that shrinks the JSON and drops
-the undo carcasses. It only removes `isDeleted` elements — it never rewrites a live
-element or its bindings — so it can never change a lint verdict (a dangling *live*
-arrow is still flagged by the check; pruning is not a fix for it).
+`isDeleted` elements are undo carcasses Excalidraw keeps in the JSON. The **check
+fails if any are present** — we want a byte-clean file every commit — and `--prune`
+is the fix (`make lint-drawings-prune`): it deletes them, rewriting only the pruned
+elements (never a live element or its bindings), so it clears the isDeleted gate but
+can never mask a dangling *live* arrow (that is still flagged on its own). `--describe`
+*excludes* deleted elements (a review aid, not the gate); and for the dangling check a
+deleted element never counts as live, so an arrow bound to one reads as dangling (its
+anchor is gone).
 
 Usage:
-    scripts/lint-drawings.py [PATH ...]       # check; default: all tracked *.excalidraw
+    scripts/lint-drawings.py [PATH ...]       # check (dangling + isDeleted); all tracked *.excalidraw
     scripts/lint-drawings.py -v               # check, listing every dangling arrow
     scripts/lint-drawings.py --describe        # print resolved linkages (all files)
     scripts/lint-drawings.py --describe FILE   # ... for one file
     scripts/lint-drawings.py --prune           # delete isDeleted elements (rewrites files)
 
-Exit status: 0 when no arrow dangles (check) / on a clean prune, 1 otherwise.
+Exit status: 0 when the file is clean — no dangling arrow AND no isDeleted carcass
+(check) / on a clean prune; 1 otherwise.
 """
 
 import argparse
@@ -61,8 +64,8 @@ def collect_drawings(root, paths):
     return [p for p in out.splitlines() if p]
 
 
-def load_elements(path):
-    """Return the list of *live* (non-deleted) elements, or None on parse error."""
+def parse_elements(path):
+    """Return the raw elements list (live AND isDeleted), or None on parse error."""
     try:
         doc = json.load(open(path, encoding="utf-8"))
     except (OSError, ValueError) as exc:
@@ -72,7 +75,13 @@ def load_elements(path):
     if not isinstance(elements, list):
         print(f"ERROR  {path}: no elements array", file=sys.stderr)
         return None
-    return [e for e in elements if not e.get("isDeleted")]
+    return elements
+
+
+def load_elements(path):
+    """Return the list of *live* (non-deleted) elements, or None on parse error."""
+    elements = parse_elements(path)
+    return None if elements is None else [e for e in elements if not e.get("isDeleted")]
 
 
 def center(el):
@@ -227,10 +236,14 @@ def describe(path):
 # ---- check mode ------------------------------------------------------------
 
 def check(path):
-    """Return (n_arrows, list_of_dangling) where each dangling is (arrow, problems)."""
-    live = load_elements(path)
-    if live is None:
-        return (0, None)
+    """Return (n_arrows, list_of_dangling, n_deleted). Each dangling is
+    (arrow, problems, texts); n_deleted counts isDeleted carcasses (the clean-file
+    gate — a clean commit has zero). Returns (0, None, 0) on parse error."""
+    elements = parse_elements(path)
+    if elements is None:
+        return (0, None, 0)
+    n_deleted = sum(1 for e in elements if e.get("isDeleted"))
+    live = [e for e in elements if not e.get("isDeleted")]
     byid = {e["id"]: e for e in live if "id" in e}
     texts = [e for e in live if e.get("type") == "text"]
     arrows = [e for e in live if e.get("type") == "arrow"]
@@ -239,7 +252,7 @@ def check(path):
         problems = arrow_dangles(a, byid)
         if problems:
             dangling.append((a, problems, texts))
-    return (len(arrows), dangling)
+    return (len(arrows), dangling, n_deleted)
 
 
 # ---- prune mode (jq-backed, byte-faithful) ---------------------------------
@@ -257,7 +270,8 @@ _JQ_COUNT = ('if type=="object" then .elements else . end '
 def prune(path):
     """Delete isDeleted elements from `path` in place via jq. Returns the count
     removed, or None on error. Removes carcasses only — never rewrites a live
-    element or its bindings, so it can never change a lint verdict."""
+    element or its bindings — so it clears the isDeleted gate but cannot mask a
+    dangling live arrow."""
     try:
         n = int(subprocess.check_output(["jq", _JQ_COUNT, path], text=True).strip())
     except FileNotFoundError:
@@ -322,14 +336,16 @@ def main(argv=None):
 
     total_arrows = 0
     total_dangling = 0
+    total_deleted = 0
     parse_errors = 0
     for path in drawings:
-        n, dangling = check(path)
+        n, dangling, n_deleted = check(path)
         if dangling is None:
             parse_errors += 1
             continue
         total_arrows += n
         total_dangling += len(dangling)
+        total_deleted += n_deleted
         if dangling and args.verbose:
             print(f"\n{path}:", file=sys.stderr)
         for a, problems, texts in dangling:
@@ -339,11 +355,16 @@ def main(argv=None):
             reasons = "; ".join(f"{end} {why}" for end, why in problems)
             print(f"ERROR  {path}  arrow {a.get('id', '?')[:8]} {where}{tag} — {reasons}",
                   file=sys.stderr)
+        if n_deleted:
+            print(f"ERROR  {path}  has {n_deleted} isDeleted element(s) — "
+                  f"run `make lint-drawings-prune` to clean", file=sys.stderr)
 
-    status = total_dangling or parse_errors
+    status = total_dangling or parse_errors or total_deleted
     print(
         f"\nchecked {len(drawings)} drawing(s) | arrows: {total_arrows} | "
-        f"dangling: {total_dangling}" + (f" | parse-errors: {parse_errors}" if parse_errors else "")
+        f"dangling: {total_dangling}"
+        + (f" | isDeleted: {total_deleted}" if total_deleted else "")
+        + (f" | parse-errors: {parse_errors}" if parse_errors else "")
     )
     return 1 if status else 0
 
