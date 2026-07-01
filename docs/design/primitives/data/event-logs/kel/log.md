@@ -112,7 +112,8 @@ content was folded) and required on a `Rec`, which always carries it for the `fo
 tails it resolves).
 
 The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for
-`previous`, yielding authority state and a divergence view but not content completeness. The
+`previous`, yielding authority state and a terminal-divergence view (a spine fork is two competing
+seals — privileged, hence terminal) but not recoverable content forks or content completeness. The
 detection guarantee, and any decision that turns on a content event, use the **flat** walk; the
 spine is a fail-secure fast pre-check (a forged `previousSeal` that skips a seal surfaces as a
 competing seal once the real one is held). The cross-primitive spine / fold model is the protocol

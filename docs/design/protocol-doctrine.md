@@ -103,7 +103,8 @@ The database cannot be trusted — it may have been altered. All operations on c
 three categories:
 
 1. **Serving** — returning data to a client or peer. **No verification needed**; the receiver
-   verifies what they get. (`GET` endpoints, effective-SAID lookups, paginated reads.)
+   verifies what they get. (Read endpoints — effective-SAID lookups, paginated reads — which carry
+   their query in the request body, not the address.)
 2. **Consuming** — using data for a security decision (anchoring, key extraction, divergence
    routing, merge). **MUST verify the full chain first.** The only way to reach consumed data is
    through that primitive's **verification token** (`KelVerification` / `IelVerification` /
@@ -277,7 +278,8 @@ carries a **`folds`** role committing the content run since the prior seal — w
 SAIDs, so a spine-only walk **catches a naive `previousSeal` forgery** without expanding the run —
 **necessary, not sufficient**, since a skip that forges matching endpoints passes it. The spine is a
 **convenience** view, verified by the same chain walk with `previousSeal` substituted for
-`previous`, yielding authority state and a divergence view but not content completeness. The
+`previous`, yielding authority state and a terminal-divergence view (a spine fork is two competing
+seals — privileged, hence terminal) but not recoverable content forks or content completeness. The
 detection guarantee, and any decision that turns on a content event, use the **flat** walk; the
 spine is a fast pre-check, fail-secure (a forged `previousSeal` that skips a seal surfaces as a
 competing seal when the real one is held, and is otherwise bounded by the eclipse residual). Event
@@ -764,7 +766,10 @@ global lookup key — there is no SAID→event index — so a SAID harvested off
 invert to a private chain's prefix **for any party outside the federation mesh** (the witness beacon
 pairs a prefix with its `said(Icp)`, so a federation witness can correlate — a standing
 confidentiality property of mesh membership; see
-[§Federation convergence](#federation-convergence)).
+[§Federation convergence](#federation-convergence)). A prefix-bearing request likewise keeps the
+prefix out of the **address** — it rides in the request **body** (a safe, body-carrying read like
+HTTP QUERY), never the request line or query string, since a URL-encoded prefix leaks into common
+access and proxy logs that aren't otherwise privacy-controlled.
 
 ### Merge verification and advisory locking
 
