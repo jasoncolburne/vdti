@@ -1798,88 +1798,6 @@
       "lineHeight": 1.25
     },
     {
-      "id": "FgC3QjW3WAOfk78Nq2NUj",
-      "type": "rectangle",
-      "x": 1700.703198560218,
-      "y": 4309.994579960899,
-      "width": 65.43359375,
-      "height": 35,
-      "angle": 0,
-      "strokeColor": "#e03131",
-      "backgroundColor": "#ffffff",
-      "fillStyle": "hachure",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 1,
-      "opacity": 100,
-      "groupIds": [],
-      "frameId": null,
-      "index": "b5b9b0V",
-      "roundness": null,
-      "seed": 989522188,
-      "version": 3657,
-      "versionNonce": 2075694516,
-      "isDeleted": false,
-      "boundElements": [
-        {
-          "type": "text",
-          "id": "uSN3phvMWqvq2VkL_o6pN"
-        },
-        {
-          "id": "m1suiRkDP2xqNvWjvzLXf",
-          "type": "arrow"
-        },
-        {
-          "id": "FwyvjHgcPAPeiNTH9zfEt",
-          "type": "arrow"
-        },
-        {
-          "id": "n_jAeJe6kcPTDVPBwiGAZ",
-          "type": "arrow"
-        }
-      ],
-      "updated": 1782922745680,
-      "link": null,
-      "locked": false
-    },
-    {
-      "id": "uSN3phvMWqvq2VkL_o6pN",
-      "type": "text",
-      "x": 1716.150006421546,
-      "y": 4314.994579960899,
-      "width": 34.53997802734375,
-      "height": 25,
-      "angle": 0,
-      "strokeColor": "#e03131",
-      "backgroundColor": "#ffffff",
-      "fillStyle": "hachure",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 1,
-      "opacity": 100,
-      "groupIds": [],
-      "frameId": null,
-      "index": "b5b9b1",
-      "roundness": null,
-      "seed": 894238132,
-      "version": 2539,
-      "versionNonce": 688111412,
-      "isDeleted": false,
-      "boundElements": [],
-      "updated": 1782922745680,
-      "link": null,
-      "locked": false,
-      "text": "Rec",
-      "fontSize": 20,
-      "fontFamily": 1,
-      "textAlign": "center",
-      "verticalAlign": "middle",
-      "containerId": "FgC3QjW3WAOfk78Nq2NUj",
-      "originalText": "Rec",
-      "autoResize": true,
-      "lineHeight": 1.25
-    },
-    {
       "id": "tYW2oSdd-hrPmORKo7Pqf",
       "type": "rectangle",
       "x": 5354.558592573388,
@@ -1985,8 +1903,8 @@
       "index": "b5b9bB",
       "roundness": null,
       "seed": 1347544972,
-      "version": 3779,
-      "versionNonce": 640530612,
+      "version": 3780,
+      "versionNonce": 923307572,
       "isDeleted": false,
       "boundElements": [
         {
@@ -1998,15 +1916,11 @@
           "type": "arrow"
         },
         {
-          "id": "FwyvjHgcPAPeiNTH9zfEt",
-          "type": "arrow"
-        },
-        {
           "id": "7zqURpZLg0zVzVflL5kU0",
           "type": "arrow"
         }
       ],
-      "updated": 1782922745680,
+      "updated": 1782937799274,
       "link": null,
       "locked": false
     },
@@ -2231,8 +2145,8 @@
       "index": "b5b9r",
       "roundness": null,
       "seed": 161801780,
-      "version": 3949,
-      "versionNonce": 188858036,
+      "version": 3950,
+      "versionNonce": 1320813452,
       "isDeleted": false,
       "boundElements": [
         {
@@ -2242,13 +2156,9 @@
         {
           "id": "7bZHhuE_J_zaBsmBjUOas",
           "type": "arrow"
-        },
-        {
-          "id": "n_jAeJe6kcPTDVPBwiGAZ",
-          "type": "arrow"
         }
       ],
-      "updated": 1782922745680,
+      "updated": 1782937797144,
       "link": null,
       "locked": false
     },
@@ -22684,108 +22594,6 @@
       "lineHeight": 1.25
     },
     {
-      "id": "FwyvjHgcPAPeiNTH9zfEt",
-      "type": "arrow",
-      "x": 1733.5532481935966,
-      "y": 4303.994579960899,
-      "width": 2.329386331220803,
-      "height": 110.30214093983022,
-      "angle": 0,
-      "strokeColor": "#1e1e1e",
-      "backgroundColor": "#ffffff",
-      "fillStyle": "hachure",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 1,
-      "opacity": 100,
-      "groupIds": [],
-      "frameId": null,
-      "index": "b89G",
-      "roundness": {
-        "type": 2
-      },
-      "seed": 1117376140,
-      "version": 870,
-      "versionNonce": 94441780,
-      "isDeleted": false,
-      "boundElements": [
-        {
-          "type": "text",
-          "id": "JexU7B_Z7KwO5Lhwi04xZ"
-        }
-      ],
-      "updated": 1782922745680,
-      "link": null,
-      "locked": false,
-      "points": [
-        [
-          0,
-          0
-        ],
-        [
-          2.329386331220803,
-          -110.30214093983022
-        ]
-      ],
-      "startBinding": {
-        "elementId": "FgC3QjW3WAOfk78Nq2NUj",
-        "mode": "orbit",
-        "fixedPoint": [
-          0.5001,
-          0
-        ]
-      },
-      "endBinding": {
-        "elementId": "8Wfk0mb-60w6O0l2IdMYD",
-        "mode": "orbit",
-        "fixedPoint": [
-          0.5001,
-          1
-        ]
-      },
-      "startArrowhead": null,
-      "endArrowhead": "arrow",
-      "elbowed": false,
-      "moveMidPointsWithElement": false
-    },
-    {
-      "id": "JexU7B_Z7KwO5Lhwi04xZ",
-      "type": "text",
-      "x": 4431.829754336005,
-      "y": 1577.94719827455,
-      "width": 77.53990173339844,
-      "height": 25,
-      "angle": 0,
-      "strokeColor": "#1e1e1e",
-      "backgroundColor": "#ffffff",
-      "fillStyle": "hachure",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 1,
-      "opacity": 100,
-      "groupIds": [],
-      "frameId": null,
-      "index": "b89V",
-      "roundness": null,
-      "seed": 664350772,
-      "version": 12,
-      "versionNonce": 689570700,
-      "isDeleted": false,
-      "boundElements": [],
-      "updated": 1782922366462,
-      "link": null,
-      "locked": false,
-      "text": "previous",
-      "fontSize": 20,
-      "fontFamily": 1,
-      "textAlign": "center",
-      "verticalAlign": "middle",
-      "containerId": "FwyvjHgcPAPeiNTH9zfEt",
-      "originalText": "previous",
-      "autoResize": true,
-      "lineHeight": 1.25
-    },
-    {
       "id": "wSft_VeSjmcGdPwbfhDp1",
       "type": "text",
       "x": 1855.3819991568243,
@@ -39071,114 +38879,12 @@
       "lineHeight": 1.25
     },
     {
-      "id": "n_jAeJe6kcPTDVPBwiGAZ",
-      "type": "arrow",
-      "x": 1739.2474141457383,
-      "y": 4350.994579960899,
-      "width": 234.83239600386514,
-      "height": 242.05884699898706,
-      "angle": 0,
-      "strokeColor": "#1e1e1e",
-      "backgroundColor": "#ffffff",
-      "fillStyle": "hachure",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 1,
-      "opacity": 100,
-      "groupIds": [],
-      "frameId": null,
-      "index": "c03h",
-      "roundness": {
-        "type": 2
-      },
-      "seed": 726362636,
-      "version": 422,
-      "versionNonce": 1996271028,
-      "isDeleted": false,
-      "boundElements": [
-        {
-          "type": "text",
-          "id": "DllHK6ASCuNqX5PYJ7_eK"
-        }
-      ],
-      "updated": 1782922745680,
-      "link": null,
-      "locked": false,
-      "points": [
-        [
-          0,
-          0
-        ],
-        [
-          234.83239600386514,
-          242.05884699898706
-        ]
-      ],
-      "startBinding": {
-        "elementId": "FgC3QjW3WAOfk78Nq2NUj",
-        "mode": "orbit",
-        "fixedPoint": [
-          0.5001,
-          1
-        ]
-      },
-      "endBinding": {
-        "elementId": "obt5VHhGvlpUL55YM_O_b",
-        "mode": "orbit",
-        "fixedPoint": [
-          0.5001,
-          0
-        ]
-      },
-      "startArrowhead": null,
-      "endArrowhead": "arrow",
-      "elbowed": false,
-      "moveMidPointsWithElement": false
-    },
-    {
-      "id": "DllHK6ASCuNqX5PYJ7_eK",
-      "type": "text",
-      "x": 1819.0186124256556,
-      "y": 4457.932174503159,
-      "width": 138.0198516845703,
-      "height": 25,
-      "angle": 0,
-      "strokeColor": "#1e1e1e",
-      "backgroundColor": "#ffffff",
-      "fillStyle": "hachure",
-      "strokeWidth": 2,
-      "strokeStyle": "solid",
-      "roughness": 1,
-      "opacity": 100,
-      "groupIds": [],
-      "frameId": null,
-      "index": "c03i",
-      "roundness": null,
-      "seed": 111085748,
-      "version": 16,
-      "versionNonce": 756883636,
-      "isDeleted": false,
-      "boundElements": null,
-      "updated": 1782922420722,
-      "link": null,
-      "locked": false,
-      "text": "manifest.forks",
-      "fontSize": 20,
-      "fontFamily": 1,
-      "textAlign": "center",
-      "verticalAlign": "middle",
-      "containerId": "n_jAeJe6kcPTDVPBwiGAZ",
-      "originalText": "manifest.forks",
-      "autoResize": true,
-      "lineHeight": 1.25
-    },
-    {
       "id": "zYraF8NXGhzv215mvLhd6",
       "type": "text",
-      "x": 1530.085757307712,
-      "y": 4522.40730246945,
-      "width": 384.5596923828125,
-      "height": 200,
+      "x": 1494.8766739562152,
+      "y": 4421.901915458152,
+      "width": 428.11962890625,
+      "height": 225,
       "angle": 0,
       "strokeColor": "#e03131",
       "backgroundColor": "#ffffff",
@@ -39192,20 +38898,20 @@
       "index": "c03j",
       "roundness": null,
       "seed": 1124516236,
-      "version": 931,
-      "versionNonce": 1409603380,
+      "version": 1384,
+      "versionNonce": 1955060148,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1782922745680,
+      "updated": 1782937895142,
       "link": null,
       "locked": false,
-      "text": "this last Ixn was submitted\nto another node simultaneously\nwith the first Rec, causing\nanother divergence. the second Rec\ncommits to it via manifest.forks;\nthe valid previous value for the\nstart of a forked chain is in the union\nof Rec.previous and Rec.previous.forks",
+      "text": "this last Ixn was submitted\nto another node simultaneously\nwith the first Rec, which only knew about\nthe Ixn just prior to the last. this is fine,\nthe second Ixn is witnessed but will be\nconsidered as part of the forked chain,\nwhich is capped at 64 events since the\nlast sealing event. it will not contribute\nto the canonical branch.",
       "fontSize": 20,
       "fontFamily": 1,
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "this last Ixn was submitted\nto another node simultaneously\nwith the first Rec, causing\nanother divergence. the second Rec\ncommits to it via manifest.forks;\nthe valid previous value for the\nstart of a forked chain is in the union\nof Rec.previous and Rec.previous.forks",
+      "originalText": "this last Ixn was submitted\nto another node simultaneously\nwith the first Rec, which only knew about\nthe Ixn just prior to the last. this is fine,\nthe second Ixn is witnessed but will be\nconsidered as part of the forked chain,\nwhich is capped at 64 events since the\nlast sealing event. it will not contribute\nto the canonical branch.",
       "autoResize": true,
       "lineHeight": 1.25
     },
