@@ -41,10 +41,24 @@ Start with [`docs/design/system-thesis.md`](docs/design/system-thesis.md) for or
 
 ## Contributing
 
-VDTI is in the design completion phase. If you're considering contributing, the v1 roadmap
-([vdti#1](https://github.com/jasoncolburne/vdti/issues/1)) lays out the planned phases and where
-work is happening. Use the issue templates (Doctrine, Implementation, Bug, Tracker) to file new
-items.
+VDTI is in the design completion phase; the canon is nearly complete. If you're considering
+contributing, the v1 roadmap ([vdti#1](https://github.com/jasoncolburne/vdti/issues/1)) lays out the
+planned phases and where work is happening. Use the issue templates (Doctrine, Implementation, Bug,
+Tracker) to file new items.
+
+To work on VDTI with an LLM, extract [docs/design/canon.tar.xz](docs/design/canon.tar.xz) into
+`.working/` and tell the LLM the **canon** — VDTI's design notes — lives there, untracked. The
+workflow flows one way: the canon is propagated into **doctrine** (the design docs under
+[docs/design](docs/design/)), which is then translated into implementation. Design docs follow three
+rules: no jargon, greenfield voice, and human-readable slug refs.
+
+```bash
+mkdir -p .working
+cd .working/
+tar -xvf ../docs/design/canon.tar.xz
+```
+
+To re-bundle the canon archive under `docs/design/`, run `make canon-tarball`.
 
 ## License
 

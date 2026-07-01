@@ -78,7 +78,9 @@ for forbid in "${deep_first[@]}"; do
     grep -vE '^(#|$)' "$forbid" > "$pattern_file" || true
 
     if [ -s "$pattern_file" ]; then
-        if printf '%s\n' "${scope[@]}" | xargs grep -nE -f "$pattern_file"; then
+        # -I: skip binary files (e.g. docs/design/canon.tar.xz, a tracked
+        # archive whose bundled canon text would otherwise trip the rules).
+        if printf '%s\n' "${scope[@]}" | xargs grep -nEI -f "$pattern_file"; then
             echo "ERROR: forbidden terminology found (rules: $forbid)"
             exit_code=1
         fi
