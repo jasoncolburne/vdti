@@ -288,7 +288,7 @@ structure: [`event-shape.md`](primitives/data/event-logs/event-shape.md).
 A chain **diverges** the instant it carries two **distinct** events at one serial. Distinct means
 different-SAID: SAIDs are content-addressable, so two byte-identical events **are** one event (the
 submit path accepts an already-present event idempotently, never as a second branch). So identical
-acts dedup — two parties revoking the same credential produce the same `Dec` SAID and there is no
+acts dedupe — two parties revoking the same credential produce the same `Dec` SAID and there is no
 divergence; only distinct events at one position collide.
 
 **A live divergence freezes the chain.** Once a node observes a fork **at or above the seal**, the
@@ -678,7 +678,7 @@ endorsing it (the new signed event carries the parent's content forward), so a s
 
 - **Their own previously-signed events.**
 - **Attested-shared state** — the divergence ancestor `v_{d-1}` (the unique shared parent of all
-  events at `v_d`, which every node accepts), or a deterministic dedup-equivalent inception (any
+  events at `v_d`, which every node accepts), or a deterministic dedupe-equivalent inception (any
   party's inception for the same derivation inputs produces the same SAID, so extending it is
   extending shared state).
 

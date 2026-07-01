@@ -228,8 +228,8 @@ subdivides into deduplication, divergent-state routing, and overlap-state routin
 
 **Deduplication.** Submitted SAIDs are checked against existing SAIDs in the chain log. Events
 already present are filtered — two byte-identical events are one event (SAID-addressable), so a
-re-submission dedups, never lands as a second branch. If all events are duplicates, the outcome is
-`Accepted` with no change. If the remaining batch chains from the tip after dedup, it falls back to
+re-submission dedupes, never lands as a second branch. If all events are duplicates, the outcome is
+`Accepted` with no change. If the remaining batch chains from the tip after dedupe, it falls back to
 normal-append. This handles partial re-submissions (e.g., gossip sending a full KEL including events
 already held).
 
@@ -364,7 +364,7 @@ for truncation.
    is for determinism only; it carries no semantic meaning. See
    [`events.md` §Per-kind sort priority](events.md#per-kind-sort-priority).
 2. **Only one divergent event added per overlap.** When divergence is detected, only the first
-   conflicting event is written as the fork event; a byte-identical re-submission dedups
+   conflicting event is written as the fork event; a byte-identical re-submission dedupes
    (SAID-addressable), while a further **distinct** competing event is retained as non-canonical
    evidence (keep-all-data), not added as another canonical branch.
 3. **Seal advance in a branch prevents normal recovery.** Once any seal-advancing event lands in a

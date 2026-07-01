@@ -363,7 +363,7 @@ Different events submitted at v_d on each node:
   Node A receives ixn_a:  v_0 → ... → v_{d-1} → ixn_a @ v_d
   Node B receives ixn_b:  v_0 → ... → v_{d-1} → ixn_b @ v_d
 
-Gossip propagates ixn_a → B, ixn_b → A. Each node's merge engine observes overlap at v_d and writes the second event as the fork event (one extra canonical branch per overlap; a byte-identical re-submission dedups, a further distinct event is retained as non-canonical evidence):
+Gossip propagates ixn_a → B, ixn_b → A. Each node's merge engine observes overlap at v_d and writes the second event as the fork event (one extra canonical branch per overlap; a byte-identical re-submission dedupes, a further distinct event is retained as non-canonical evidence):
 
   Both nodes:  v_0 → ... → v_{d-1} ─┬─ ixn_a @ v_d   (Divergent, forked: — frozen)
                                     └─ ixn_b @ v_d

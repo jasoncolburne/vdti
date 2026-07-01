@@ -55,7 +55,7 @@ Whether a divergence is **reconcilable** or **terminal** is a further fact any v
 A repair keeps the recovering party's own branch and archives the rest, returning the chain to
 Active — possible only when no archived branch carries a privileged event (see
 [`recovery.md`](recovery.md)). Two byte-identical events at one serial **are one event** — they
-dedup by SAID, never a second branch; only distinct events collide. The full freeze-and-repair rule
+dedupe by SAID, never a second branch; only distinct events collide. The full freeze-and-repair rule
 is the protocol doctrine's —
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
 

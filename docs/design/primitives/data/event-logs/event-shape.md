@@ -394,12 +394,12 @@ tuple. Whatever fields the inception populates participate.
   its prefix_, **not** a hash of those three values pulled into a separate tuple — the prefix is the
   whole-content digest like every other event, so any field on the `Icp` enters it.) A credential
   SEL's `data` is the credential's SAID, so any two non-identical credentials get distinct prefixes
-  automatically and byte-identical ones dedup. A private credential's `data` includes a high-entropy
-  nonce in the credential body, keeping the prefix unguessable; a public credential's prefix is
-  recomputable from the credential itself (self-locating), which is safe because authority rests on
-  **owner-rooting** (only the owner IEL anchors at the locus), not on prefix secrecy. Because lookup
-  **recomputes** this prefix, the `Icp` must hold only fields the looker-up already has — so it
-  carries **no `pin`** (the pin rides a batched serial-1 `Pin` event instead).
+  automatically and byte-identical ones dedupe. A private credential's `data` includes a
+  high-entropy nonce in the credential body, keeping the prefix unguessable; a public credential's
+  prefix is recomputable from the credential itself (self-locating), which is safe because authority
+  rests on **owner-rooting** (only the owner IEL anchors at the locus), not on prefix secrecy.
+  Because lookup **recomputes** this prefix, the `Icp` must hold only fields the looker-up already
+  has — so it carries **no `pin`** (the pin rides a batched serial-1 `Pin` event instead).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
 computed prefix doesn't match its declared `prefix`.
