@@ -3,7 +3,7 @@
 Per-kind structural reference for the KEL event taxonomy: eight event kinds across two inception
 variants, one content kind, two rotation kinds, one recovery kind, one federation-mutation kind, and
 one terminal kind. The cross-primitive field shape — common fields, the `manifest` model,
-`previousSeal` / `folds`, and the full per-kind field grid — is the
+`previousSeal` / `forks`, and the full per-kind field grid — is the
 [event-shape reference](../event-shape.md#kel); this doc states the KEL-specific semantics: the
 key-state fields, two-kind inception, the manifest roles a KEL event carries, forward-key
 commitments, the three-tier capability model, sort priority, and the seal-advance cap.
@@ -21,7 +21,7 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 | `Ixn` | `vdti/kel/v1/events/ixn` | content    | 1    | Interaction. Hosts tier-1 anchors. Changes no keys and does not advance the seal. The **repairable** kind.                                                                                                                                                                |
 | `Rot` | `vdti/kel/v1/events/rot` | privileged | 2    | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. Seal-advancing.                                                                                                            |
 | `Ror` | `vdti/kel/v1/events/ror` | privileged | 3    | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. Seal-advancing.                                                                                                                                                            |
-| `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (committed in `folds.forks[]`). Returns the chain to Active. Seal-advancing.                                                                                           |
+| `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (committed in `forks`). Returns the chain to Active. Seal-advancing.                                                                                                   |
 | `Wit` | `vdti/kel/v1/events/wit` | privileged | 3    | Federation **rebind** on a **user** (`Icp`-rooted) KEL — changes `federation` and/or `witnesses` (a same-federation re-pin is **not** a `Wit`); federation **governance** on an `Fcp`-rooted witness KEL (rotation + `clock` is the change). Dual-signed; seal-advancing. |
 | `Dec` | `vdti/kel/v1/events/dec` | terminal   | 3    | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                                                                 |
 
@@ -82,18 +82,18 @@ seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) additionally carry 
 
 ## The manifest — roles a KEL event carries
 
-A KEL event commits to lower-layer SAIDs, its witnessing policy, and its folded content run through
-a **`manifest`** — the SAID of a role-grouped SAD
+A KEL event commits to lower-layer SAIDs, its witnessing policy, and (on a repair) the branches it
+archives through a **`manifest`** — the SAID of a role-grouped SAD
 ([event-shape §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
 A KEL event's manifest may carry only these roles; one carrying any role outside this vocabulary is
 malformed and rejected, and a role is consumed only after dispatching on a kind permitted to carry
 it (read kind-first):
 
-| Role        | Carried by                               | Commits to                                                                                                                                                         |
-| ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)                                                        |
-| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                    |
-| `folds`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec`    | the content run folded since the prior seal — `{ canonical, forks[] }` plus the run's boundary SAIDs; `Rec` carries the `forks[]` (the archival tails it resolves) |
+| Role        | Carried by                               | Commits to                                                                                                                                                                                                                                                                                                                                                                               |
+| ----------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)                                                                                                                                                                                                                                                                              |
+| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                                                                                                                                                                                                                                          |
+| `forks`     | `Rec` (req, non-empty)                   | an inline list of the archived-branch tip SAIDs the repair resolves — each reconstructing its branch by walking `previous` back to the divergence ancestor. **Repair-only** — `Rot` / `Ror` / `Wit` / `Dec` carry no fold field; the retained run since the prior seal is the derivable `[previousSeal..previous]`, and "content was folded" is the predicate `previous != previousSeal` |
 
 ### Anchors
 
@@ -266,7 +266,7 @@ terminal `Dec` also advances the seal but ends the chain) must land at least eve
 run since the last seal — to 64 events on a branch, so a divergence-and-repair fits in one page. The
 `− 1` headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
 discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are
-committed in `folds.forks[]` and validated by-commitment. See
+committed in `forks` and validated by-commitment. See
 [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
@@ -349,12 +349,12 @@ s0   kind=icp  publicKey=k0,  rotationHash=h(k1),  recoveryHash=h(r0),
                 federation=fed_iel.prefix, federationPin=..., manifest={witnesses}
 s1   kind=ixn  manifest={ anchors: [said_a] }                ← signed by k0
 s2   kind=rot  publicKey=k1,  rotationHash=h(k2),            ← reveals k1; signed by k1
-                previousSeal=icp.said,  manifest={ folds }
+                previousSeal=icp.said                          ← seals; folds s1 (previous != previousSeal)
 s3   kind=ixn  manifest={ anchors: [said_b, said_c] }        ← batched; signed by k1
 ...
 s64  kind=ror  publicKey=kN,  recoveryKey=r0,                ← proactive recovery-rotation
                 rotationHash=h(kN+1), recoveryHash=h(r1),       signed by kN + r0
-                previousSeal=<prior seal>.said, manifest={ folds }
+                previousSeal=<prior seal>.said                 ← seals; folds the run since the prior seal
 ```
 
 The `Rot` at s2 is the first seal, so `previousSeal = icp.said` (the spine root); each later seal
@@ -373,12 +373,12 @@ s6   kind=rec  previous=s5a.said,                       ← Rec extends the bran
                 publicKey=k6, recoveryKey=r0,            dual-signed (k5 + r0)
                 rotationHash=h(k7), recoveryHash=h(r1),
                 previousSeal=<prior seal>.said,
-                manifest={ folds: { forks: [s5b-tail] } }
+                manifest={ forks: [s5b-tail] }
 ```
 
 The `Rec` keeps the branch its submitter authored and archives the rest; the archival tail (here the
-`s5b` branch) is committed in the `Rec`'s `folds.forks[]`. The merge layer walks the retained branch
-from `Rec.previous` and archives everything at `serial >= d` not on it. See
+`s5b` branch) is committed in the `Rec`'s `forks`. The merge layer walks the retained branch from
+`Rec.previous` and archives everything at `serial >= d` not on it. See
 [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two attachment patterns
 and the structural property that makes the divergence-ancestor-extending shape
 cross-node-validatable.
@@ -402,7 +402,7 @@ at the same serial on another node is retained as non-canonical evidence and rea
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md#kel) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `folds`, the canonical per-kind field grid.
+  `manifest` model, `previousSeal` / `forks`, the canonical per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, prefix derivation, the seal and spine,
   locked-portion bound, page model.
 - [`merge.md`](merge.md) — merge-layer routing.

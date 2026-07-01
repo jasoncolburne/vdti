@@ -40,11 +40,11 @@ composed above KEL (IEL governance with threshold redundancy across distinct cus
 KEL has two distinct recovery primitives. They are not interchangeable.
 
 - **`Rec` is reactive.** Used to resolve an already-divergent chain. `Rec` keeps the repairing
-  branch and archives the rest — **content-only** archival tails, committed in its `folds.forks[]`
-  (a privileged event in any tail makes the fork terminal → reincept, never archived) — and returns
-  the chain to Active. Reveals the current recovery-key preimage as a side effect of dual-signing:
-  that preimage is spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so
-  the chain stays recoverable.
+  branch and archives the rest — **content-only** archival tails, committed in its `forks` (a
+  privileged event in any tail makes the fork terminal → reincept, never archived) — and returns the
+  chain to Active. Reveals the current recovery-key preimage as a side effect of dual-signing: that
+  preimage is spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so the
+  chain stays recoverable.
 - **`Ror` is proactive.** Used pre-emptively — to rotate both signing and recovery keys for
   forward-secrecy hygiene, or to refresh the recovery-key preimage commitment per operator cadence
   guidance. `Ror` is not divergence-driven; it lands as a linear extension of a non-divergent chain.
@@ -95,11 +95,11 @@ tier-1 content compromise), **not** the rotation key. Three structural facts clo
 - **`Rec` cannot archive the `Rot`.** `Rot_adversary` is a privileged event, and only content
   (`Ixn`) is archivable
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1). A
-  `Rec` that committed `Rot_adversary` to its `folds.forks[]` would archive a privileged event —
-  forbidden, and **identity-blind on purpose**: if a recovery-key holder could archive "the
-  adversary's" `Rot`, they could archive **any** `Rot` (including a legitimate operator's),
-  resurrecting retired key material — the backdate surface vdti closes by treating `Rot` as a
-  privileged branch (never archivable).
+  `Rec` that committed `Rot_adversary` to its `forks` would archive a privileged event — forbidden,
+  and **identity-blind on purpose**: if a recovery-key holder could archive "the adversary's" `Rot`,
+  they could archive **any** `Rot` (including a legitimate operator's), resurrecting retired key
+  material — the backdate surface vdti closes by treating `Rot` as a privileged branch (never
+  archivable).
 - **The seal-cap blocks a repair at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it advances
   the seal to `v_N`; a `Rec` targeting `v_{N-1}` is then below the seal → `SiblingLocked`
   ([§Repair-event bound](#repair-event-bound-condition-2b)). The legitimate party cannot even submit
@@ -129,11 +129,11 @@ A `Rec` extending `v_{d-1}` therefore validates uniformly:
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
 - The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on
   every node.
-- The repair's resolution (which events at `serial >= d` it commits to `folds.forks[]`) is uniform:
-  every node **independently computes the same archival set** — everything at `serial >= d` not on
-  the `Rec.previous` walkback — rather than trusting the submitter's `folds.forks[]`, and rejects
-  the `Rec` if any of those branches is privileged. Independent computation is what makes the
-  resolution identical on every node.
+- The repair's resolution (which events at `serial >= d` it commits to `forks`) is uniform: every
+  node **independently computes the same archival set** — everything at `serial >= d` not on the
+  `Rec.previous` walkback — rather than trusting the submitter's `forks`, and rejects the `Rec` if
+  any of those branches is privileged. Independent computation is what makes the resolution
+  identical on every node.
 
 This is what makes the divergence-ancestor-extending shape the structural primitive that solves
 cross-node propagation. A tip-extension or combined-digest approach would not have this property —
@@ -162,7 +162,7 @@ that derives from it.
 
 ## Rec parent shapes
 
-`Rec` resolves divergence by committing the archival tails it resolves to its `folds.forks[]`.
+`Rec` resolves divergence by committing the archival tails it resolves to its `forks`.
 `Rec.previous` takes one of two shapes:
 
 ### Branch-tip-extending shape
@@ -177,26 +177,25 @@ Pre-state (divergent at v_d):
 
 Rec construction: rec.previous = retained-branch tip's said
                   rec.serial   = d + 1
-                  rec.folds.forks = [ other-branch tail ]
+                  rec.forks = [ other-branch tail ]
 
 Post-state (linear, recovered):
     ... → v_{d-1} → retained-branch tip @ v_d → rec @ v_{d+1}
                   ↑
-                  other branch committed in rec.folds.forks[]
+                  other branch committed in rec.forks
 ```
 
 The submitter (whoever holds the recovery key) keeps the branch they authored as the retained
-branch; `Rec` extends it, committing everything at `serial >= d` not on that walkback to
-`folds.forks[]`. The merge layer then **independently** identifies the retained branch by walking
-back from `Rec.previous` and **validates** the committed `forks[]` against the branches off that
-walkback that it holds — content-only, rejecting the `Rec` if any is privileged. It never trusts the
-submitter's enumeration.
+branch; `Rec` extends it, committing everything at `serial >= d` not on that walkback to `forks`.
+The merge layer then **independently** identifies the retained branch by walking back from
+`Rec.previous` and **validates** the committed `forks[]` against the branches off that walkback that
+it holds — content-only, rejecting the `Rec` if any is privileged. It never trusts the submitter's
+enumeration.
 
 ### Divergence-ancestor-extending shape
 
 `Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. All branches at
-`serial >= d` are committed to `folds.forks[]`; `Rec` is the only event at `v_d` after the repair
-runs.
+`serial >= d` are committed to `forks`; `Rec` is the only event at `v_d` after the repair runs.
 
 ```
 Pre-state (divergent at v_d):
@@ -205,12 +204,12 @@ Pre-state (divergent at v_d):
 
 Rec construction: rec.previous = v_{d-1}.said
                   rec.serial   = d
-                  rec.folds.forks = [ branch-1 tail, branch-2 tail ]
+                  rec.forks = [ branch-1 tail, branch-2 tail ]
 
 Post-state (linear, recovered, Rec is the only event at v_d):
     ... → v_{d-1} → rec @ v_d
                   ↑
-                  both prior branches committed in rec.folds.forks[]
+                  both prior branches committed in rec.forks
 ```
 
 The divergence-ancestor-extending shape is the structural primitive that gives recovery its

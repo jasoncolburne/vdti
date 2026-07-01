@@ -105,20 +105,24 @@ designed to avoid.
 The seal-advancing events form a **spine**: every seal-advancing event carries a top-level
 **`previousSeal`** back-link to the prior one, so following `previousSeal` renders a seal-only view
 (`Icp → seal → seal → …`) while `previous` renders the full flat chain. The inception (`Icp` /
-founder `Fcp`) is the spine root and carries no `previousSeal`. A seal-advancing event carries a
-**`folds`** role **when it folds a content run** since the prior seal — `{ canonical, forks[] }`
-plus the run's boundary SAIDs. It is optional on `Rot` / `Ror` / `Wit` / `Dec` (absent when no
-content was folded) and required on a `Rec`, which always carries it for the `forks[]` (the archival
-tails it resolves).
+founder `Fcp`) is the spine root and carries no `previousSeal`. A seal-advancing event does **not**
+commit its content run: the retained run since the prior seal is the derivable linear chain
+`[previousSeal..previous]` (nodes keep the full bodies; the flat query returns them), and "content
+was folded here" is the derived predicate `previous != previousSeal`. Only a **repair** carries a
+manifest fold field — the **`forks`** role, a required non-empty inline list of the archived-branch
+tips the `Rec` resolves; `Rot` / `Ror` / `Wit` / `Dec` carry no such role.
 
 The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for
 `previous`, yielding authority state and a terminal-divergence view (a spine fork is two competing
 seals — privileged, hence terminal) but not recoverable content forks or content completeness. The
-detection guarantee, and any decision that turns on a content event, use the **flat** walk; the
-spine is a fail-secure fast pre-check (a forged `previousSeal` that skips a seal surfaces as a
-competing seal once the real one is held). The cross-primitive spine / fold model is the protocol
-doctrine's — [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded); the
-event fields are the [event-shape reference](../event-shape.md)'s.
+detection guarantee, and any decision that turns on a content event, use the **flat** walk; a
+skipped seal is caught by the flat walk (it appears as a seal-advancing event when `previous`
+traverses the run) plus spine-fork detection (the real skipped seal, once held, competes at its
+spine position). The spine alone trusts `previousSeal` — a fail-secure pre-check (a forged
+`previousSeal` that skips a seal surfaces as a competing seal once the real one is held). The
+cross-primitive spine / fold model is the protocol doctrine's —
+[§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded); the event fields
+are the [event-shape reference](../event-shape.md)'s.
 
 ### The locked portion
 
@@ -166,7 +170,7 @@ divergence-and-repair fits in one page (the retained branch plus the `Rec`).
 recovery batch produced on any conformant deployment fits in one page on every other. The `− 1`
 headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
 discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are
-committed in the `Rec`'s `folds.forks[]` and validated by-commitment, not held in the page.
+committed in the `Rec`'s `forks` and validated by-commitment, not held in the page.
 
 Recovery-preimage rotation cadence (how often `Ror` should land to refresh the commitment) is
 **operator guidance**, not a protocol-enforced cap — see
@@ -212,7 +216,7 @@ The structural rules above produce three lifecycle paths per node.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   until a `Rec` repairs it. A `Rec` attaches at its submitter's own last event, **retaining** that
   branch and archiving the **archival tail(s)** — the competing branches, committed in the `Rec`'s
-  `folds.forks[]`. The archival window is bounded by the seal-advance cap and fits in one page. See
+  `forks`. The archival window is bounded by the seal-advance cap and fits in one page. See
   [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a `Rec` can
   attach.
 - **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes
@@ -248,7 +252,7 @@ the recovery-side composition with the three-tier compromise model is in
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `folds`, per-kind field tables.
+  `manifest` model, `previousSeal` / `forks`, per-kind field tables.
 - [`events.md`](events.md) — per-kind reference: two-kind inception, privileged and non-privileged
   kinds, three-tier capability model, anchor requirements, seal-advance cap.
 - [`merge.md`](merge.md) — merge handler routing: routing order, outcomes, locked-portion

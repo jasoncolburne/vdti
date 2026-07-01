@@ -120,12 +120,12 @@ data; the kind (already in the event) selects the allowed roles:
 match event.kind:
     Fcp                -> no manifest; federation fbd
     Icp                -> manifest may carry { witnesses } (req iff federated);  federation + federationPin top-level (opt; absent = direct-mode)
-    Wit (Icp-rooted)   -> manifest carries { anchors } (the user IEL Wit; req), may also carry { witnesses, folds };  federation + federationPin top-level (opt — present-iff-changed; a config-only Wit carries neither)
-    Wit (Fcp-rooted)   -> manifest carries { anchors } (the federation IEL Wit; req), may also carry { witnesses, folds };  federation + federationPin fbd
+    Wit (Icp-rooted)   -> manifest carries { anchors } (the user IEL Wit; req), may also carry { witnesses };  federation + federationPin top-level (opt — present-iff-changed; a config-only Wit carries neither)
+    Wit (Fcp-rooted)   -> manifest carries { anchors } (the federation IEL Wit; req), may also carry { witnesses };  federation + federationPin fbd
     Ixn                -> manifest carries { anchors } (req, >= 1)
-    Rot, Ror           -> manifest may carry { anchors, folds }
-    Rec                -> manifest carries { folds with forks[] } (req)
-    Dec                -> manifest may carry { folds }
+    Rot, Ror           -> manifest may carry { anchors }
+    Rec                -> manifest carries { forks } (req, non-empty)
+    Dec                -> no fold field (non-repair seal; retained run derivable as [previousSeal..previous])
 ```
 
 The verifier establishes the chain's **root facet** (`Fcp`-rooted vs `Icp`-rooted) **before**
@@ -324,9 +324,8 @@ The verifier's terminal-state-determination rule:
   - **Two or more privileged branches past the fork** → **terminal** (`disputed:`); reincept.
   - No fork → Linear (Active, or Decommissioned via `Dec`).
 
-`Rec` is the repair kind — it keeps the repairing branch and commits the archival tails in
-`folds.forks[]`, so after a repair the chain has a single linear walkback and is no longer
-divergent.
+`Rec` is the repair kind — it keeps the repairing branch and commits the archival tails in `forks`,
+so after a repair the chain has a single linear walkback and is no longer divergent.
 
 ### Verifier reports; the merge layer gates
 
@@ -514,7 +513,7 @@ spanning two pages re-fetches at the next page rather than being processed half-
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md#kel) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `folds`, the per-kind field grid.
+  `manifest` model, `previousSeal` / `forks`, the per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, the seal and spine, locked-portion bound, page
   model.
 - [`events.md`](events.md) — per-kind reference: fields, authorization, the manifest roles,
