@@ -5,7 +5,7 @@ A *dangling* arrow has an endpoint that is not bound to a live element — a loo
 end that does not track its shape and almost always marks an out-of-date diagram
 (an element was moved or deleted and the arrow detached). The chain-linkage
 diagrams are load-bearing documentation, so a detached arrow is a real defect.
-This dangling check is the gate behind `make lint-drawings`.
+This dangling check is the gate behind `make lint-diagrams`.
 
 The same tool can **describe** the linkages (`--describe`): for each `example N`
 group it first lists the **nodes** (the kind-labelled boxes — `Icp`, `Rot`,
@@ -16,7 +16,7 @@ hand-parsing the JSON.
 
 `isDeleted` elements are undo carcasses Excalidraw keeps in the JSON. The **check
 fails if any are present** — we want a byte-clean file every commit — and `--prune`
-is the fix (`make lint-drawings-prune`): it deletes them, rewriting only the pruned
+is the fix (`make lint-diagrams-prune`): it deletes them, rewriting only the pruned
 elements (never a live element or its bindings), so it clears the isDeleted gate but
 can never mask a dangling *live* arrow (that is still flagged on its own). `--describe`
 *excludes* deleted elements (a review aid, not the gate); and for the dangling check a
@@ -24,11 +24,11 @@ deleted element never counts as live, so an arrow bound to one reads as dangling
 anchor is gone).
 
 Usage:
-    scripts/lint-drawings.py [PATH ...]       # check (dangling + isDeleted); all tracked *.excalidraw
-    scripts/lint-drawings.py -v               # check, listing every dangling arrow
-    scripts/lint-drawings.py --describe        # print resolved linkages (all files)
-    scripts/lint-drawings.py --describe FILE   # ... for one file
-    scripts/lint-drawings.py --prune           # delete isDeleted elements (rewrites files)
+    scripts/lint-diagrams.py [PATH ...]       # check (dangling + isDeleted); all tracked *.excalidraw
+    scripts/lint-diagrams.py -v               # check, listing every dangling arrow
+    scripts/lint-diagrams.py --describe        # print resolved linkages (all files)
+    scripts/lint-diagrams.py --describe FILE   # ... for one file
+    scripts/lint-diagrams.py --prune           # delete isDeleted elements (rewrites files)
 
 Exit status: 0 when the file is clean — no dangling arrow AND no isDeleted carcass
 (check) / on a clean prune; 1 otherwise.
@@ -47,6 +47,10 @@ import sys
 # a known vocabulary keeps `--describe` readable and avoids snapping to prose.
 KIND_RE = re.compile(r"^[A-Z][A-Za-z0-9]{0,4}$")
 EXAMPLE_RE = re.compile(r"example\s+\d+", re.IGNORECASE)
+# A free prose block sitting below an example title (the example's description) —
+# distinguished from kind labels / layer headers ("KEL X", "flat") by length: the
+# real descriptions run 100+ chars, the labels ≤ ~6, so any threshold in between works.
+DESCRIPTION_MIN_LEN = 20
 LABEL_RADIUS = 90  # px: how far a free-text label may sit from an endpoint
 SHAPE_TYPES = ("rectangle", "diamond", "ellipse")  # the boxes that carry kind labels
 
@@ -140,6 +144,23 @@ def arrow_dangles(arrow, byid):
 
 def text_of(el):
     return (el.get("text", "") or "").replace("\n", "/")
+
+
+def is_description(t):
+    """A free (unbound) prose block below an example title — not a title, not a kind
+    label / layer header. Length is the discriminator (see DESCRIPTION_MIN_LEN)."""
+    if t.get("type") != "text" or t.get("containerId"):
+        return False
+    s = (t.get("text", "") or "")
+    if EXAMPLE_RE.search(s):
+        return False
+    stripped = s.strip()
+    return not KIND_RE.match(stripped) and len(stripped) >= DESCRIPTION_MIN_LEN
+
+
+def description_text(t):
+    """The prose flattened to a single line (Excalidraw wraps with literal \\n)."""
+    return " ".join(((t.get("originalText") or t.get("text", "")) or "").split())
 
 
 def label_for(el, texts):
@@ -269,6 +290,16 @@ def describe(path):
     names, orderkey = assign_node_names(live, texts, titles, byid)
     FAR = (10**9,)
 
+    # Descriptions: prose blocks below a title. A default-coloured (misc) block
+    # describes the WHOLE example (printed under the title); a layer-coloured block
+    # (KEL/IEL/SEL/DOC by stroke colour) describes just THAT layer (printed in its box).
+    desc_by = {}
+    for t in texts:
+        if not is_description(t):
+            continue
+        ex = nearest_example_pt(*center(t), titles)
+        desc_by.setdefault((ex, layer_of(t)), []).append((center(t)[1], description_text(t)))
+
     print(f"\n# {path} — {len(arrows)} arrow(s), {len(live)} live element(s)")
     print("  layers by box colour: KEL=red  IEL=green  SEL=blue  DOC=orange"
           "  (arrows inherit their endpoints' layer; cross-layer listed apart)")
@@ -305,15 +336,20 @@ def describe(path):
         )
         arrows_by.setdefault((ex, lay), []).append(row)
 
-    all_ex = {ex for (ex, _lay) in list(nodes_by) + list(arrows_by)}
+    all_ex = {ex for (ex, _lay) in list(nodes_by) + list(arrows_by) + list(desc_by)}
     for ex in sorted(all_ex):
         print(f"\n  ── {ex or '(no example title nearby)'} ──")
+        for _cy, desc in sorted(desc_by.get((ex, "misc"), [])):  # whole-example (default colour)
+            print(f"\n    {desc}\n")
         for lay in LAYER_ORDER:
             nlist = nodes_by.get((ex, lay))
             alist = arrows_by.get((ex, lay))
-            if not nlist and not alist:
+            dlist = desc_by.get((ex, lay)) if lay != "misc" else None  # layer-scoped note
+            if not nlist and not alist and not dlist:
                 continue
             print(f"    [{lay}]")
+            for _cy, desc in sorted(dlist or []):
+                print(f"      note: {desc}")
             if nlist:
                 labs = [lab for _ok, lab in sorted(nlist)]
                 print(f"      nodes: {', '.join(labs)}")
@@ -446,7 +482,7 @@ def main(argv=None):
                   file=sys.stderr)
         if n_deleted:
             print(f"ERROR  {path}  has {n_deleted} isDeleted element(s) — "
-                  f"run `make lint-drawings-prune` to clean", file=sys.stderr)
+                  f"run `make lint-diagrams-prune` to clean", file=sys.stderr)
 
     status = total_dangling or parse_errors or total_deleted
     print(

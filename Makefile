@@ -1,6 +1,6 @@
-.PHONY: all lint-terminology lint-docs lint-drawings lint-drawings-prune fmt-md fmt-md-check canon-tarball
+.PHONY: all lint-terminology lint-docs lint-diagrams lint-diagrams-prune fmt-md fmt-md-check canon-tarball
 
-# Phase 0 — lint-terminology, lint-docs, lint-drawings, and fmt-md-check are the
+# Phase 0 — lint-terminology, lint-docs, lint-diagrams, and fmt-md-check are the
 # meaningful targets. Markdown formatting (prettier) is wired now; the Rust
 # targets (cargo fmt/clippy/test/build) land alongside the Cargo workspace in
 # Phase 1.
@@ -21,7 +21,7 @@ CANON_FILES := vdti-invariants.md \
 	vdti-area-iel.md vdti-area-kel.md vdti-area-multi-party-documents.md vdti-area-sel.md \
 	vdti-area-vdtid-services.md vdti-federation-inception-reference.md vdti-implementation-notes.md
 
-all: lint-terminology lint-docs lint-drawings fmt-md-check
+all: lint-terminology lint-docs lint-diagrams fmt-md-check
 
 lint-terminology:
 	@./scripts/lint-terminology.sh
@@ -29,13 +29,13 @@ lint-terminology:
 lint-docs:
 	@./scripts/check-doc-xrefs.py
 
-lint-drawings:
-	@./scripts/lint-drawings.py
+lint-diagrams:
+	@./scripts/lint-diagrams.py
 
 # Hygiene: delete isDeleted (soft-removed) elements Excalidraw leaves in the JSON.
 # Byte-faithful via jq — touches nothing else, so it never changes a lint verdict.
-lint-drawings-prune:
-	@./scripts/lint-drawings.py --prune
+lint-diagrams-prune:
+	@./scripts/lint-diagrams.py --prune
 
 # Refresh the committed canon snapshot (docs/design/canon.tar.xz) from .working/.
 canon-tarball:

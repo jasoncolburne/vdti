@@ -28,12 +28,12 @@ jobs:
       - uses: actions/checkout@v4
       - run: make lint-docs
 
-  lint-drawings:
+  lint-diagrams:
     name: Lint Drawings
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: make lint-drawings
+      - run: make lint-diagrams
 
   markdown-format:
     name: Markdown Format
