@@ -52,20 +52,20 @@ Whether a divergence is **reconcilable** or **terminal** is a further fact any v
 | **Divergent**      | A **fork**: two **distinct** (different-SAID) events at one serial. While the fork is **live** (at or above the seal) the chain is **frozen**. | **None** while the fork is live — frozen until a repair resolves it; the sole valid next move is `Rec`. (A below-seal straggler arriving after the chain sealed past its serial is retained as evidence, not a freeze.) |
 | **Decommissioned** | A terminal `Dec` landed cleanly. The `Dec` advances the seal to its own serial; the chain is sealed there.                                     | None. A sibling to the `Dec` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`).                                             |
 
-A repair keeps the **at-most-one privileged branch** (a privileged branch only by _its author_,
-gated by that branch's own recovery commitment — see [`recovery.md`](recovery.md)) and archives the
-rest, returning the chain to Active. Two byte-identical events at one serial **are one event** —
-they dedup by SAID, never a second branch; only distinct events collide. The full freeze-and-repair
-rule is the protocol doctrine's —
+A repair keeps the recovering party's own branch and archives the rest, returning the chain to
+Active — possible only when no archived branch carries a privileged event (see
+[`recovery.md`](recovery.md)). Two byte-identical events at one serial **are one event** — they
+dedup by SAID, never a second branch; only distinct events collide. The full freeze-and-repair rule
+is the protocol doctrine's —
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
 
 ### Reconcilable versus terminal — a data-local walk
 
 Whether a fork can be repaired turns on **tier**, read from the data:
 
-- **Reconcilable** — at most one branch carries a privileged event past the fork. A `Rec` keeps that
-  branch and archives the all-content branch(es); the chain returns to Active. Effective SAID:
-  `forked:{prefix}` while the fork stands.
+- **Reconcilable** — at most one branch carries a privileged event past the fork. A `Rec` keeps the
+  recovering party's own branch and archives the rest — the archived branches must all be content;
+  the chain returns to Active. Effective SAID: `forked:{prefix}` while the fork stands.
 - **Terminal (disputed)** — **two or more branches each carry a privileged event** past the fork. No
   privileged branch can be archived (a privileged event is never overturned — that would resurrect
   retired keys), so no single chain can be chosen and the prefix must **reincept**. Effective SAID:
