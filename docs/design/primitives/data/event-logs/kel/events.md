@@ -187,13 +187,13 @@ preimage reveals. Tier-3 events are dual-signed by the new signing key AND the r
 
 `Ror` / `Rec` / `Wit` / `Dec` reveal the recovery key — they are the **recovery-revealing**
 sub-class. Once a recovery-revealing event lands, the recovery key it reveals is publicly known.
-Tracked via `lastRecoveryRevealingEvent` on the verification token — see
+Tracked via `last_recovery_revealing_event` on the verification token — see
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound).
 
 `Rot` / `Ror` / `Rec` / `Wit` / `Dec` advance the seal — they are the **seal-advancing** kinds,
-tracked via `lastSealAdvancingEvent`. The two sub-classes overlap on `Ror` / `Rec` / `Wit` / `Dec`
-but diverge on `Rot` (seal-advancing without revealing the recovery key); `Dec` belongs to both (it
-reveals the recovery key, advances the seal to its own serial, and is terminal).
+tracked via `last_seal_advancing_event`. The two sub-classes overlap on `Ror` / `Rec` / `Wit` /
+`Dec` but diverge on `Rot` (seal-advancing without revealing the recovery key); `Dec` belongs to
+both (it reveals the recovery key, advances the seal to its own serial, and is terminal).
 
 ## Three-tier capability model
 

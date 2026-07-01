@@ -86,10 +86,10 @@ The KEL verifier surfaces two forward-only watermarks on its
 [`KelVerification`](verification.md#kelverification-token) token, both computed from the chain's
 events.
 
-| Concept                      | Advances on                           | Used for                                                                                                                                                         |
-| ---------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lastSealAdvancingEvent`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything at-or-below it.                                       |
-| `lastRecoveryRevealingEvent` | `Ror` / `Rec` / `Wit` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known. |
+| Concept                         | Advances on                           | Used for                                                                                                                                                         |
+| ------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_seal_advancing_event`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything at-or-below it.                                       |
+| `last_recovery_revealing_event` | `Ror` / `Rec` / `Wit` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known. |
 
 The two memberships diverge only on `Rot` — it advances the seal without revealing the recovery key.
 `Dec` does both: it reveals the recovery key (dual-signed) and advances the seal to its own serial,
@@ -120,8 +120,8 @@ event fields are the [event-shape reference](../event-shape.md)'s.
 
 ### The locked portion
 
-The **locked portion** of a KEL is the segment at-or-below `lastSealAdvancingEvent`. Events in this
-segment are structurally immutable within the chain:
+The **locked portion** of a KEL is the segment at-or-below `last_seal_advancing_event`. Events in
+this segment are structurally immutable within the chain:
 
 - `Rec` cannot target the locked portion. The repair's `previous` must sit at-or-after the most
   recent seal-advancing event (see
@@ -204,8 +204,9 @@ adversarial chains.
 The structural rules above produce three lifecycle paths per node.
 
 - **Active extension.** Each new event extends the linear chain via `previous = tip.said`.
-  Seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) advance `lastSealAdvancingEvent` to
-  their own serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it was.
+  Seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) advance `last_seal_advancing_event`
+  to their own serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it
+  was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   until a `Rec` repairs it. A `Rec` attaches at its submitter's own last event, **retaining** that
   branch and archiving the **archival tail(s)** — the competing branches, committed in the `Rec`'s
@@ -234,7 +235,7 @@ not decide the verdict. See
 KEL's contribution to end-verifiability over data-from-any-source is two structural properties:
 whole-content prefix derivation makes the inception event tamper-evident (substituting content would
 require a Blake3-256 collision against both `prefix` and `said`), and locked-portion immutability
-under the seal-cap means events at-or-below `lastSealAdvancingEvent` cannot be rearranged by any
+under the seal-cap means events at-or-below `last_seal_advancing_event` cannot be rearranged by any
 future event — so anchors, credentials, and SEL bindings resolving to the locked portion stay
 structurally trustworthy indefinitely. The cross-primitive framing (verify the data, not the source)
 is canonical in

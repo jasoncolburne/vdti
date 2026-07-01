@@ -233,12 +233,12 @@ divergence or is retained as evidence.
 ## Pre-seal verifiability
 
 The locked-portion bound, the seal-cap, and the recovery primitives together produce a durable
-consumer guarantee: events at-or-below `lastSealAdvancingEvent` remain structurally verifiable
+consumer guarantee: events at-or-below `last_seal_advancing_event` remain structurally verifiable
 indefinitely, regardless of subsequent divergence or a terminal `disputed:` verdict above the seal.
 
 The argument has three legs:
 
-- **Seal advances are clean.** `lastSealAdvancingEvent` advances only on seal-advancing events
+- **Seal advances are clean.** `last_seal_advancing_event` advances only on seal-advancing events
   (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) that land cleanly on the linear chain. The seal never
   forks: a privileged event that would create or join a divergence does not extend the canonical
   chain, so every seal advance is a clean linear-chain landing.
