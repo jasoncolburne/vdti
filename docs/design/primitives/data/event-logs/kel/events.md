@@ -273,9 +273,9 @@ committed in `folds.forks[]` and validated by-commitment. See
 **Recovery-preimage rotation (operator guidance).** Operators SHOULD rotate the recovery-key
 preimage commitment via `Ror` periodically. Cadence depends on the operator's threat model, custody
 arrangement (cold storage versus active HSM), and acceptable preimage-staleness exposure; the
-protocol does not enforce a specific number. Recovery keys are typically hardware-held and
-preimage-identified rather than usage-degraded, so protocol-forced cadence would impose access on
-cold-stored or separated-custody recovery keys on a fixed schedule the operator's threat model is
+protocol does not enforce a specific number. Recovery keys are hardware-held and preimage-identified
+rather than usage-degraded, so a forced cadence adds no security — and, for an operator who keeps
+the reserve cold-stored or in separated custody, could impose scheduled access their threat model is
 designed to avoid.
 
 **Adversary bound.** The seal-advance cap bounds an adversary's fork at 64 events before they must

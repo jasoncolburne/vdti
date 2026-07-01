@@ -95,9 +95,10 @@ The two memberships diverge only on `Rot` — it advances the seal without revea
 `Dec` does both: it reveals the recovery key (dual-signed) and advances the seal to its own serial,
 where it is terminal — it opens no new window, since no successor may land. The orthogonality lets
 the protocol bound chain-state changes (via the seal-advance cap, below) while leaving
-recovery-preimage rotation cadence to operator guidance — recovery keys are typically hardware-held
-and preimage-identified rather than usage-degraded, so protocol-forced cadence would impose
-cold-storage access on a fixed schedule the operator's threat model is designed to avoid.
+recovery-preimage rotation cadence to operator guidance — recovery keys are hardware-held and
+preimage-identified rather than usage-degraded, so a forced cadence adds no security — and, for an
+operator who keeps the reserve in cold storage, could impose scheduled access their threat model is
+designed to avoid.
 
 ### The spine
 
