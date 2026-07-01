@@ -28,3 +28,6 @@ Thumbs.db
 # Claude / agent
 .claude/scheduled_tasks.lock
 .working/
+
+# Scripts
+__pycache__/

@@ -50,6 +50,25 @@ EXAMPLE_RE = re.compile(r"example\s+\d+", re.IGNORECASE)
 LABEL_RADIUS = 90  # px: how far a free-text label may sit from an endpoint
 SHAPE_TYPES = ("rectangle", "diamond", "ellipse")  # the boxes that carry kind labels
 
+# The box stroke colour encodes which log a node belongs to. Arrows are drawn in
+# the default near-black (#1e1e1e) and carry no colour of their own, so an arrow's
+# layer is inferred from the boxes it binds (same layer both ends, else cross-layer).
+COLOR_LAYER = {
+    "#e03131": "KEL",   # red
+    "#2f9e44": "IEL",   # green
+    "#1971c2": "SEL",   # blue
+    "#f08c00": "DOC",   # orange — creds / SADs / content-version nodes
+}
+LAYER_ORDER = ["KEL", "IEL", "SEL", "DOC", "cross-layer", "misc"]
+
+
+def layer_of(el):
+    """Map an endpoint element to its log via box stroke colour; 'misc' when the
+    colour is unmapped or the endpoint is unbound/dangling (el is None)."""
+    if el is None:
+        return "misc"
+    return COLOR_LAYER.get(el.get("strokeColor"), "misc")
+
 
 def repo_root():
     return subprocess.check_output(
@@ -147,9 +166,60 @@ def label_for(el, texts):
     return best or el.get("type", "?")
 
 
-def endpoint_label(arrow, which, byid, texts):
+def assign_node_names(live, texts, titles, byid):
+    """Map shape id -> a name unique within its example, and a per-shape chain-order
+    sort key. When several boxes in one example share a kind label (e.g. three
+    `Ixn`), each gets a suffix `#1`, `#2`, … in **chain order** — depth along
+    `previous` (distance from inception), ties broken by position — so `Rec#1` is
+    the first repair and the listing reads in sequence. A label used once stays
+    bare. Returns (names, orderkey) where orderkey[id] = (depth, y, x)."""
+    parent = {}  # child id -> its `previous` target id
+    for a in live:
+        if a.get("type") != "arrow" or (arrow_label(a, texts) or "").strip() != "previous":
+            continue
+        s = (a.get("startBinding") or {}).get("elementId")
+        t = (a.get("endBinding") or {}).get("elementId")
+        if s and t:
+            parent[s] = t
+
+    def depth(nid):
+        d, seen = 0, set()
+        while True:
+            p = parent.get(nid)
+            if not p or p not in byid or p in seen:
+                return d
+            seen.add(nid)
+            nid, d = p, d + 1
+
+    shapes_by_ex = {}
+    orderkey = {}
+    for e in live:
+        if e.get("type") not in SHAPE_TYPES or "id" not in e:
+            continue
+        ex = nearest_example_pt(*center(e), titles)
+        cx, cy = center(e)
+        orderkey[e["id"]] = (depth(e["id"]), cy, cx)
+        shapes_by_ex.setdefault(ex, []).append(e)
+
+    names = {}
+    for shapes in shapes_by_ex.values():
+        groups = {}
+        for e in shapes:
+            groups.setdefault(label_for(e, texts), []).append(e)
+        for lab, items in groups.items():
+            if len(items) == 1:
+                names[items[0]["id"]] = lab
+            else:
+                for i, e in enumerate(sorted(items, key=lambda e: orderkey[e["id"]]), 1):
+                    names[e["id"]] = f"{lab}#{i}"
+    return names, orderkey
+
+
+def endpoint_label(arrow, which, byid, texts, names=None):
     status, el = endpoint_status(arrow, which, byid)
     if status == "ok":
+        if names is not None:
+            return names.get(el.get("id"), label_for(el, texts))
         return label_for(el, texts)
     pts = arrow.get("points") or []
     if pts:
@@ -196,41 +266,60 @@ def describe(path):
     texts = [e for e in live if e.get("type") == "text"]
     arrows = [e for e in live if e.get("type") == "arrow"]
     titles = [(text_of(t), *center(t)) for t in texts if EXAMPLE_RE.search(t.get("text", ""))]
+    names, orderkey = assign_node_names(live, texts, titles, byid)
+    FAR = (10**9,)
 
     print(f"\n# {path} — {len(arrows)} arrow(s), {len(live)} live element(s)")
+    print("  layers by box colour: KEL=red  IEL=green  SEL=blue  DOC=orange"
+          "  (arrows inherit their endpoints' layer; cross-layer listed apart)")
+    print("  #N suffix = chain order (depth along `previous`); arrows sorted the same")
 
-    # Nodes: every kind-labelled box, grouped by the example title above it.
-    nodes_by_ex = {}
-    node_rows = [
-        (nearest_example_pt(*center(e), titles), center(e)[1], center(e)[0], label_for(e, texts))
-        for e in live if e.get("type") in SHAPE_TYPES
-    ]
-    for ex, _y, _x, lab in sorted(node_rows, key=lambda r: (r[0], r[1], r[2])):
-        nodes_by_ex.setdefault(ex, []).append(lab)
+    # Nodes: every kind-labelled box, grouped by (example, layer via box colour).
+    nodes_by = {}
+    for e in live:
+        if e.get("type") not in SHAPE_TYPES:
+            continue
+        ex = nearest_example_pt(*center(e), titles)
+        ok = orderkey.get(e.get("id"), FAR)
+        nodes_by.setdefault((ex, layer_of(e)), []).append(
+            (ok, names.get(e.get("id"), label_for(e, texts))))
 
-    # Arrows: grouped by the example title above the arrow's origin.
-    arrows_by_ex = {}
-    arrow_rows = [
-        (
-            nearest_example(a, titles),
-            a.get("y", 0),
-            a.get("x", 0),
-            endpoint_label(a, "startBinding", byid, texts),
+    # Arrows: grouped by (example, layer). An arrow's layer is its endpoints' shared
+    # layer, else 'cross-layer' (annotated start→end so inter-log bindings stand out).
+    # Sorted by the start node's chain-order key so the listing follows the chain.
+    arrows_by = {}
+    for a in arrows:
+        ex = nearest_example(a, titles)
+        _, s_el = endpoint_status(a, "startBinding", byid)
+        _, e_el = endpoint_status(a, "endBinding", byid)
+        sl, el_ = layer_of(s_el), layer_of(e_el)
+        lay = sl if sl == el_ else "cross-layer"
+        tag = f"   [{sl}→{el_}]" if lay == "cross-layer" else ""
+        sk = orderkey.get(s_el.get("id"), FAR) if s_el else FAR
+        row = (
+            sk,
+            endpoint_label(a, "startBinding", byid, texts, names),
             arrow_label(a, texts),
-            endpoint_label(a, "endBinding", byid, texts),
+            endpoint_label(a, "endBinding", byid, texts, names),
+            tag,
         )
-        for a in arrows
-    ]
-    for r in sorted(arrow_rows, key=lambda r: (r[0], r[1], r[2])):
-        arrows_by_ex.setdefault(r[0], []).append(r)
+        arrows_by.setdefault((ex, lay), []).append(row)
 
-    for ex in sorted(set(nodes_by_ex) | set(arrows_by_ex)):
+    all_ex = {ex for (ex, _lay) in list(nodes_by) + list(arrows_by)}
+    for ex in sorted(all_ex):
         print(f"\n  ── {ex or '(no example title nearby)'} ──")
-        if nodes_by_ex.get(ex):
-            print(f"    nodes: {', '.join(nodes_by_ex[ex])}")
-        for _ex, _y, _x, s, lab, e in arrows_by_ex.get(ex, []):
-            lab = f" --[{lab}]-->" if lab else " -->"
-            print(f"    {s:>22}{lab} {e}")
+        for lay in LAYER_ORDER:
+            nlist = nodes_by.get((ex, lay))
+            alist = arrows_by.get((ex, lay))
+            if not nlist and not alist:
+                continue
+            print(f"    [{lay}]")
+            if nlist:
+                labs = [lab for _ok, lab in sorted(nlist)]
+                print(f"      nodes: {', '.join(labs)}")
+            for _sk, s, lab, e, tag in sorted(alist or []):
+                arr = f" --[{lab}]-->" if lab else " -->"
+                print(f"      {s:>20}{arr} {e}{tag}")
 
 
 # ---- check mode ------------------------------------------------------------
