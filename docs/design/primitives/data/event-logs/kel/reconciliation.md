@@ -349,19 +349,19 @@ in its inline **`forks`** list, the **root of each losing branch** — its first
 distinct child of `v_{d-1}` **off** the retained chain. **A named root condemns its entire
 subtree**: every descendant is non-canonical forever. So a losing branch that a lagging node **grows
 after the repair** is dead **by descent** — no follow-up repair, growth-proof (the diagram's example
-9: `Rec.forks → Ixn#2` condemns `Ixn#2` and its later `Ixn#3`). A losing branch the repair **never
-named** (truly missed) has its **first event** locked below the advanced seal (the seal-cap) and
-**everything built on it dead by descent** — **deadness descends: an event whose parent is dead is
-dead** (the per-event seal-cap locks only the _first_ event; the descent rule kills the growth).
-Either way it rides the **forked chain** — a **bounded** region: each dead **lineage** extends at
-most **64 events past the last seal** (the seal-advance cap; a deeper event needs a seal-advancer,
-privileged → `disputed:`), and its **breadth** is bounded by **retention** (nodes keep **≥ 2
-competing events per position** as evidence and drop the rest — the content analog of the ≥
-2-per-spine-position privileged bound; the queryable set is bounded), with the kind-aware
-**divergent-position gate** on top (a witness declines to witness further _content_ siblings there;
-privileged events and the single repair are always witnessed). Dead events are **witnessed and
-propagated** yet **never canonical**; an adversary can _author_ extra siblings, but they are
-droppable — never making the retained fork unbounded (a query-DoS surface only).
+9: `Rec.forks` names the competing `Ixn` at `s=6`, condemning it and the later `Ixn` at `s=7` grown
+on it). A losing branch the repair **never named** (truly missed) has its **first event** locked
+below the advanced seal (the seal-cap) and **everything built on it dead by descent** — **deadness
+descends: an event whose parent is dead is dead** (the per-event seal-cap locks only the _first_
+event; the descent rule kills the growth). Either way it rides the **forked chain** — a **bounded**
+region: each dead **lineage** extends at most **64 events past the last seal** (the seal-advance
+cap; a deeper event needs a seal-advancer, privileged → `disputed:`), and its **breadth** is bounded
+by **retention** (nodes keep **≥ 2 competing events per position** as evidence and drop the rest —
+the content analog of the ≥ 2-per-spine-position privileged bound; the queryable set is bounded),
+with the kind-aware **divergent-position gate** on top (a witness declines to witness further
+_content_ siblings there; privileged events and the single repair are always witnessed). Dead events
+are **witnessed and propagated** yet **never canonical**; an adversary can _author_ extra siblings,
+but they are droppable — never making the retained fork unbounded (a query-DoS surface only).
 
 ### The completeness matrix
 
@@ -382,29 +382,29 @@ IEL fork — land with the `sel/` + `iel/` anchor-validation doctrine, forward-r
 
 ### Safety — the guards
 
-- **S1 — no self-condemnation, no censorship.** A `forks` root must be a competing child of
-  `v_{d-1}` **off** the retained chain. The verifier knows the retained branch (walk `Rec.previous`
-  back), so a root that lies on it — or `v_{d-1}` itself (which is on it) — is **rejected**. So a
-  repair can never condemn its own retained branch, and there is no root whose subtree includes the
-  canonical chain. **The membership walk spans the _full_ retained chain** — down to at least the
-  parent serial of every `forks` root (walking to the pre-fork seal always suffices, one extra page
-  at most) — and each root must satisfy `root.parent ∈ walkback ∧ root ∉ walkback` over that same
+- **No self-condemnation, no censorship.** A `forks` root must be a competing child of `v_{d-1}`
+  **off** the retained chain. The verifier knows the retained branch (walk `Rec.previous` back), so
+  a root that lies on it — or `v_{d-1}` itself (which is on it) — is **rejected**. So a repair can
+  never condemn its own retained branch, and there is no root whose subtree includes the canonical
+  chain. **The membership walk spans the _full_ retained chain** — down to at least the parent
+  serial of every `forks` root (walking to the pre-fork seal always suffices, one extra page at
+  most) — and each root must satisfy `root.parent ∈ walkback ∧ root ∉ walkback` over that same
   full-span walk. A walk truncated at the divergence serial reads `v_{d-1}` and every trunk ancestor
   as _off_ the retained chain, so a root naming a trunk ancestor would condemn a subtree containing
   the whole canonical chain (and the `Rec` itself) — the exact censorship this guard forbids,
   reachable by any tier-3 holder including a buggy client. The tree property (a single `previous`
   per event ⇒ an off-chain root's subtree is disjoint from the retained chain) holds **only** over
   the full-span walk.
-- **S2 — no buried rotation.** A condemned subtree is walked; a **privileged** event in it means ≥ 2
+- **No buried rotation.** A condemned subtree is walked; a **privileged** event in it means ≥ 2
   privileged branches past the fork → **`disputed:`**, not archived (validated, not trusted). So
   root-condemnation can never dead-mark a rotation to un-rotate it. The walk-independent closer:
   every privileged KEL event is a **seal-advancer** → a competing seal → a **spine fork** →
   `disputed:`, independent of any walk bound.
-- **S3 — no stale-authority revival.** Root-condemnation reaches no _live_ state — it **marks a
-  subtree dead**, never extends or revives an event. There is **no below-seal archival operation**,
-  so the seal-cap stays unconditional.
-- **S4 — bounded fork (depth _and_ breadth).** **Depth** ≤ 64 events past the last seal per lineage
-  (the seal-advance cap — a deeper event must author a seal-advancer, privileged → `disputed:`).
+- **No stale-authority revival.** Root-condemnation reaches no _live_ state — it **marks a subtree
+  dead**, never extends or revives an event. There is **no below-seal archival operation**, so the
+  seal-cap stays unconditional.
+- **Bounded fork (depth _and_ breadth).** **Depth** ≤ 64 events past the last seal per lineage (the
+  seal-advance cap — a deeper event must author a seal-advancer, privileged → `disputed:`).
   **Breadth** is bounded by **retention**: nodes keep ≥ 2 competing events per position as evidence
   and drop the rest ("two prove the fork, then stop"), so the _queryable_ set is bounded and there
   is no query DoS. The **divergent-position gate** is the _kind-aware efficiency layer_ on top: a
@@ -419,7 +419,7 @@ IEL fork — land with the `sel/` + `iel/` anchor-validation doctrine, forward-r
   seal-cap-inert (the repair does not need them). Every dead event is non-canonical and never flips
   a reading, and the depth-cap forces the seal-advancer that turns the fork terminal. A
   **privileged** event on a dead branch (it needs the reserve — tier 2+) → `disputed:` regardless
-  (S2) — the terminal-compromise case, not a new attack.
+  (the no-buried-rotation guard) — the terminal-compromise case, not a new attack.
 
 ### Convergence
 
@@ -431,11 +431,12 @@ to the true competing set. Then:
   is the real retained tip on every node. **Converges to Active.** No follow-up repair, no reincept.
 - **One privileged branch, kept by its author** → Active once neutralized and beacon-confirmed
   (barring eclipse). A non-author's repair that would condemn the privileged branch is **rejected
-  (S2), retained as a competing privileged branch, and counted** — retain-and-count is the only
-  convergent semantics (dropping the rejected repair would split the reading permanently). So any
-  reserve-revealing repair against a fork that turns out to hold a privileged branch **permanently
-  terminalizes the prefix** → `disputed:` — the fail-secure outcome of revealing tier-3 material
-  into a contested window (Matrix 1's Divergent × `Rec` cell reads rejected → `disputed:`).
+  (the no-buried-rotation guard), retained as a competing privileged branch, and counted** —
+  retain-and-count is the only convergent semantics (dropping the rejected repair would split the
+  reading permanently). So any reserve-revealing repair against a fork that turns out to hold a
+  privileged branch **permanently terminalizes the prefix** → `disputed:` — the fail-secure outcome
+  of revealing tier-3 material into a contested window (Matrix 1's Divergent × `Rec` cell reads
+  rejected → `disputed:`).
 - **≥ 2 privileged** (including a beacon-late privileged branch) → **`disputed:`** everywhere
   (FORCE-by-provenance once a node holds ≥ 2; via receipt-then-fetch otherwise); the effective SAID
   is `hash_effective_said("disputed:{prefix}")`.
@@ -463,23 +464,26 @@ the IEL.
   not exist at confirmation, so the beacon was truthful.
 
 The cross-layer completeness rows — **anchor-monotonicity** (an owner IEL totally-orders each SEL it
-anchors), **cross-layer deadness-descends** (a SEL event on a dead IEL anchor is dead — the IEL→SEL
-anchor edge only), and the theorem that a valid SEL fork implies an IEL fork beneath it — belong to
-the `sel/` + `iel/` anchor-validation doctrine (subsequent sub-issues); the KEL-level matrix above
-is self-contained without them.
+anchors, with **skip-unattributable** for an anchor whose body a node does not hold: skipped, not
+blocking, so a withheld or lost body never wedges the SEL), **cross-layer deadness-descends** (a SEL
+event on a dead IEL anchor is dead — the IEL→SEL anchor edge only), the theorem that a valid SEL
+fork implies an IEL fork beneath it, and the **withheld-body transient-split residual** (a node
+lacking an anchored body reads a later sibling valid while a node holding it reads it inert —
+auto-resolved by seal order, fail-secure) — belong to the `sel/` + `iel/` anchor-validation doctrine
+(subsequent sub-issues); the KEL-level matrix above is self-contained without them.
 
 ## Archival bounds
 
 The `Rec` commits the roots of the losing branches it condemns to its `forks` synchronously within
 the merge transaction that accepts the `Rec` batch. No background task, no async processing.
 
-| Metric                                       | Bound                        | Source                                                                                                                                                                           |
-| -------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `forks` entries — one root per losing branch | condemns the whole subtree   | Root-pointing ([§Matrix 4](#matrix-4-repair-completeness)): each entry is the branch's first divergent event.                                                                    |
-| Dead-lineage depth                           | ≤ 64 past the last seal      | Seal-advance cap (invariant 1); a deeper event needs a seal-advancer — privileged, `disputed:` when competing.                                                                   |
-| Dead-branch breadth per position             | ≥ 2 retained, rest droppable | Retention (S4), with the kind-aware divergent-position gate on top.                                                                                                              |
-| Resolution scope                             | Single transaction           | Synchronous in merge; bounded by `MINIMUM_PAGE_SIZE` (invariant 3).                                                                                                              |
-| Retained-branch events never condemned       | ✓                            | S1 full-span membership: a `forks` root on the `Rec.previous` walkback (or `v_{d-1}`) is rejected (see [`merge.md` §Discriminator algorithm](merge.md#discriminator-algorithm)). |
+| Metric                                       | Bound                        | Source                                                                                                                                                                                                         |
+| -------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forks` entries — one root per losing branch | condemns the whole subtree   | Root-pointing ([§Matrix 4](#matrix-4-repair-completeness)): each entry is the branch's first divergent event.                                                                                                  |
+| Dead-lineage depth                           | ≤ 64 past the last seal      | Seal-advance cap (invariant 1); a deeper event needs a seal-advancer — privileged, `disputed:` when competing.                                                                                                 |
+| Dead-branch breadth per position             | ≥ 2 retained, rest droppable | Retention (the bounded-fork guard), with the kind-aware divergent-position gate on top.                                                                                                                        |
+| Resolution scope                             | Single transaction           | Synchronous in merge; bounded by `MINIMUM_PAGE_SIZE` (invariant 3).                                                                                                                                            |
+| Retained-branch events never condemned       | ✓                            | Full-span membership (the no-self-condemnation guard): a `forks` root on the `Rec.previous` walkback (or `v_{d-1}`) is rejected (see [`merge.md` §Discriminator algorithm](merge.md#discriminator-algorithm)). |
 
 The retained (canonical) run's bodies are kept and retrievable by prefix (the flat query returns
 them); the `Rec`'s `forks` roots are committed, and each condemned branch is its root's **subtree**,
@@ -497,8 +501,8 @@ commit the divergence it resolves
 holder cannot "spend" the recovery preimage on a clean chain by appending a bare `Rec`. And a `Rec`
 that _does_ resolve a divergence commits a **fresh** `recoveryHash` (it reveals the current preimage
 and commits a new one —
-[`recovery.md` §Rec versus Ror](recovery.md#rec-versus-ror--reactive-versus-proactive)), so the
-chain stays recoverable afterward.
+[`recovery.md` §Rec versus Ror](recovery.md#rec-versus-ror--repair-versus-proactive-rotation)), so
+the chain stays recoverable afterward.
 
 The genuinely-unrecoverable states are a **tier-3 compromise** (the adversary holds both preimages)
 and a **`disputed:`** prefix (≥ 2 privileged branches past a fork) — both → reincept, neither

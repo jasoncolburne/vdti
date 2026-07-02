@@ -35,16 +35,16 @@ no in-band defense. Post-rotation tier-2 and tier-3 defense is the responsibilit
 composed above KEL (IEL governance with threshold redundancy across distinct custodians; see
 [§Limit of the doctrine — current-state compromise](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)).
 
-## Rec versus Ror — reactive versus proactive
+## Rec versus Ror — repair versus proactive rotation
 
 KEL has two distinct recovery primitives. They are not interchangeable.
 
-- **`Rec` is reactive.** Used to resolve an already-divergent chain. `Rec` keeps the repairing
-  branch and archives the rest — **content-only** archival tails, condemned by the roots committed
-  in its `forks` (a privileged event in any competing branch makes the fork terminal → reincept,
-  never archived) — and returns the chain to Active. Reveals the current recovery-key preimage as a
-  side effect of dual-signing: that preimage is spent, but `Rec` commits a fresh recovery commitment
-  (a new `recoveryHash`), so the chain stays recoverable.
+- **`Rec` is the repair.** It resolves an already-divergent chain: `Rec` keeps the repairing branch
+  and archives the rest — **content-only** archival tails, condemned by the roots committed in its
+  `forks` (a privileged event in any competing branch makes the fork terminal → reincept, never
+  archived) — and returns the chain to Active. Reveals the current recovery-key preimage as a side
+  effect of dual-signing: that preimage is spent, but `Rec` commits a fresh recovery commitment (a
+  new `recoveryHash`), so the chain stays recoverable.
 - **`Ror` is proactive.** Used pre-emptively — to rotate both signing and recovery keys for
   forward-secrecy hygiene, or to refresh the recovery-key preimage commitment per operator cadence
   guidance. `Ror` is not divergence-driven; it lands as a linear extension of a non-divergent chain.

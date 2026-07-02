@@ -452,7 +452,7 @@ losing branch's root, and a repair is **invalid on a non-divergent tip** (a `Rec
   and a **privileged** event in it means ≥ 2 privileged branches past the fork → **`disputed:`**,
   never archived. Nor does the verifier trust `forks[]` as proof there are **no** privileged
   branches: it **independently** walks every branch off the retained walkback it holds (or the
-  beacon enumerates) and **rejects a repair that would leave a privileged branch un-condemned** —
+  beacon enumerates) and **rejects the repair if any such branch carries a privileged event** —
   privileged branches are always retained (keep-all-data), so a `Rot` cannot be hidden by omitting
   its branch from `forks[]` and letting the repair seal past it. (The walk-independent closer: every
   privileged KEL event is a seal-advancer, so a buried rotation is a competing seal — a spine fork →
