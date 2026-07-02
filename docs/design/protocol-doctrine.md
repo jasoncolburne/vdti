@@ -342,8 +342,8 @@ below-seal **content** straggler that arrives after the chain already sealed pas
 as evidence or dropped as **uncommitted** content — content condemned by no repair's `forks` and
 beyond the evidence bound; the keep-or-drop selector is the retention bound below — never a freeze:
 the canonical branch is already sealed past it. A below-seal **privileged** straggler is not inert —
-it is a spine fork and flips the reading to `disputed:`; see pre-seal verifiability, below.) This is
-the founding insight of the event-log primitives.
+it is a spine fork and flips the reading to `disputed:`; see pre-seal verifiability, below.)
+Freezing the chain on divergence is the founding insight of the event-log primitives.
 
 **Divergence is resolved by tier, not by identity.** Chain data cannot tell the rightful operator
 from an adversary — both branches were structurally authorized when they landed — so resolution
@@ -370,18 +370,23 @@ is a single entity**, so the attach point is the tip of the branch the recoverin
 coalition retains as the identity's canonical one — never a co-member's isolated event, and never a
 serial below the tracked seal.
 
-Attaching at the entity's **own** last event satisfies the no-extend-adversary rule automatically.
-That event coincides with the **fork point** `v_{d-1}` (the last common ancestor before the
-divergence) **only** in the special case where `v_{d-1}` **is** the entity's last event (it authored
-nothing past it). It is **not** `v_{d-1}` when an adversary authored the fork point — a
-stolen-signing-key content attack, where the entity's last legitimate event sits _below_ `v_{d-1}`;
-the entity attaches **there**, archiving `v_{d-1}` and the adversary's tail. Nor is it `v_{d-1}`
-when the entity authored its **own** events at or beyond the divergent serial — content, or a
-privileged tip (`Evl`/`Rot`/`Del`/`Wit`/`Fld`/`Kil`/a prior repair) at or above the seal — since
-attaching at `v_{d-1}` would archive the entity's own events (its content, or **worse** a privileged
-tip, which rule 1 forbids archiving at all); it attaches at its retained **tip** (never in the
-locked portion), and the repair's `previous` is therefore that tip — at or above the seal. (That
-"attach at your own event" squares with a shared `v_{d-1}` both branches build on via
+Attaching at the entity's **own** last event satisfies the no-extend-adversary rule automatically,
+and it reconciles with the fork point by construction. The divergence is a pair of distinct events
+at one serial `d` (the chain **freezes** at the first fork, so there is exactly one), which makes
+`v_{d-1}` — the event at serial `d-1` — the **agreed common ancestor**: it lies below the
+divergence, so every branch shares it, and it therefore **always lies on the retained chain** —
+there is no adversary-authored `v_{d-1}`. The repair attaches **at** `v_{d-1}` when the entity
+authored nothing past the fork, and at its own later **tip** — above `v_{d-1}`, keeping those events
+— when it did: **either way at or above `v_{d-1}`, never below it and never at an adversary event.**
+Each archival tail's root is a competing **child of `v_{d-1}`** at serial `d`, off the retained
+chain. The stolen-signing-key content attack is just the first case — the entity's last legitimate
+event **is** `v_{d-1}`, and the adversary's content forks from it at `d`. When the entity did author
+at or beyond the divergent serial (its retained tip content, or a privileged tip —
+`Evl`/`Rot`/`Del`/`Wit`/`Fld`/`Kil`/a prior repair — at or above the seal), attaching at `v_{d-1}`
+would archive the entity's **own** events (its content, or **worse** a privileged tip, which rule 1
+forbids archiving at all); it attaches at its retained **tip** instead (never in the locked
+portion), so the repair's `previous` is that tip — at or above the seal. (That "attach at your own
+event" squares with a shared `v_{d-1}` both branches build on via
 [§Extension Discipline](#extension-discipline)'s attested-shared-state rule.)
 
 The permission check is a single question about the **archival tails**: **does any of them contain a
@@ -470,13 +475,13 @@ branch is the other tier entirely: it is never archivable, so ≥ 2 privileged b
 (archiving it would bury a rotation).
 
 **Termination.** Each dead lineage is **depth-capped**: at most `MINIMUM_PAGE_SIZE − 1` events past
-the last seal (the seal-advance cap — a deeper event must author a seal-advancer, privileged →
-`disputed:` when competing), and root-condemnation makes one repair growth-proof for the whole
-current fork within that cap. What closes the culprit's ability to mint a **new** fork differs by
-layer. A **KEL `Rec` self-neutralizes the culprit**: it rotates the signing **and** recovery key
-(both forward commitments — `rotationHash` and `recoveryHash` — are re-committed, so the reserve
-persists and the next `Rec` is always authorable), locking out whoever forked with the old key. An
-**IEL `Rpr` rotates no identity key** (an IEL is a threshold over member KELs), so an
+the last seal (the seal-advance cap — a deeper event would itself have to be a seal-advancer,
+privileged → `disputed:` when competing), and root-condemnation makes one repair growth-proof for
+the whole current fork within that cap. What closes the culprit's ability to mint a **new** fork
+differs by layer. A **KEL `Rec` self-neutralizes the culprit**: it rotates the signing **and**
+recovery key (both forward commitments — `rotationHash` and `recoveryHash` — are re-committed, so
+the reserve persists and the next `Rec` is always authorable), locking out whoever forked with the
+old key. An **IEL `Rpr` rotates no identity key** (an IEL is a threshold over member KELs), so an
 **adversarial** re-forker is neutralized by the roster **`cut`** the `Rpr` carries (the
 repair-and-evict fold above) — **provided the operator cuts the culprit**. The cut target is
 operator-chosen (chain data cannot tell operator from adversary), so termination-by-cut assumes the
