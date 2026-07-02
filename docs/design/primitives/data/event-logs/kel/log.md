@@ -64,8 +64,9 @@ is the protocol doctrine's —
 Whether a fork can be repaired turns on **tier**, read from the data:
 
 - **Reconcilable** — at most one branch carries a privileged event past the fork. A `Rec` keeps the
-  recovering party's own branch and archives the rest — the archived branches must all be content;
-  the chain returns to Active. Effective SAID: `forked:{prefix}` while the fork stands.
+  recovering party's own branch and archives the rest, naming each losing branch's **root** in its
+  `forks` — the condemned subtrees must all be content; the chain returns to Active. Effective SAID:
+  `forked:{prefix}` while the fork stands.
 - **Terminal (disputed)** — **two or more branches each carry a privileged event** past the fork. No
   privileged branch can be archived (a privileged event is never overturned — that would resurrect
   retired keys), so no single chain can be chosen and the prefix must **reincept**. Effective SAID:
@@ -109,8 +110,9 @@ founder `Fcp`) is the spine root and carries no `previousSeal`. A seal-advancing
 commit its content run: the retained run since the prior seal is the derivable linear chain
 `[previousSeal..previous]` (nodes keep the full bodies; the flat query returns them), and "content
 was folded here" is the derived predicate `previous != previousSeal`. Only a **repair** carries a
-manifest fold field — the **`forks`** role, a required non-empty inline list of the archived-branch
-tips the `Rec` resolves; `Rot` / `Ror` / `Wit` / `Dec` carry no such role.
+manifest fold field — the **`forks`** role, a required non-empty inline list of the losing-branch
+**roots** the `Rec` condemns (each root — a branch's first divergent event — condemns its entire
+subtree); `Rot` / `Ror` / `Wit` / `Dec` carry no such role.
 
 The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for
 `previous`, yielding authority state and a terminal-divergence view (a spine fork is two competing
@@ -169,8 +171,9 @@ divergence-and-repair fits in one page (the retained branch plus the `Rec`).
 `MINIMUM_PAGE_SIZE` is a protocol constant — a deployment floor, not a per-deployment knob — so a
 recovery batch produced on any conformant deployment fits in one page on every other. The `− 1`
 headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
-discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the archival tails are
-committed in the `Rec`'s `forks` and validated by-commitment, not held in the page.
+discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the losing branches are
+condemned by the roots committed in the `Rec`'s `forks` and validated from retained storage, not
+held in the page.
 
 Recovery-preimage rotation cadence (how often `Ror` should land to refresh the commitment) is
 **operator guidance**, not a protocol-enforced cap — see
@@ -178,8 +181,9 @@ Recovery-preimage rotation cadence (how often `Ror` should land to refresh the c
 
 The seal-advance cap composes with the divergence-and-repair rules to give the
 [bounded-divergence invariant](reconciliation.md#invariants): an adversary holding less than the
-rotation-key preimage can only submit `Ixn` events, and the cap limits them to at most 64 events
-before they must produce a seal-advancing event (which requires at least tier-2 capability — see
+rotation-key preimage can only submit `Ixn` events, and the cap limits each of their lineages to at
+most 64 events past the last seal before they must produce a seal-advancing event (which requires at
+least tier-2 capability — see
 [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model)).
 
 ## Page model
@@ -215,8 +219,10 @@ The structural rules above produce three lifecycle paths per node.
   was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   until a `Rec` repairs it. A `Rec` attaches at its submitter's own last event, **retaining** that
-  branch and archiving the **archival tail(s)** — the competing branches, committed in the `Rec`'s
-  `forks`. The archival window is bounded by the seal-advance cap and fits in one page. See
+  branch and archiving the **archival tail(s)** — the competing branches, condemned by the roots
+  committed in the `Rec`'s `forks` (a root condemns its whole subtree; growth after the repair is
+  dead by descent). Each dead lineage is depth-capped by the seal-advance cap; the retained branch
+  plus the `Rec` fits in one page. See
   [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a `Rec` can
   attach.
 - **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes

@@ -324,8 +324,9 @@ The verifier's terminal-state-determination rule:
   - **Two or more privileged branches past the fork** → **terminal** (`disputed:`); reincept.
   - No fork → Linear (Active, or Decommissioned via `Dec`).
 
-`Rec` is the repair kind — it keeps the repairing branch and commits the archival tails in `forks`,
-so after a repair the chain has a single linear walkback and is no longer divergent.
+`Rec` is the repair kind — it keeps the repairing branch and commits each losing branch's **root**
+in `forks` (condemning that branch's entire subtree), so after a repair the chain has a single
+linear walkback and is no longer divergent.
 
 ### Verifier reports; the merge layer gates
 

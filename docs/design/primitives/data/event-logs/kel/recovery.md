@@ -40,11 +40,11 @@ composed above KEL (IEL governance with threshold redundancy across distinct cus
 KEL has two distinct recovery primitives. They are not interchangeable.
 
 - **`Rec` is reactive.** Used to resolve an already-divergent chain. `Rec` keeps the repairing
-  branch and archives the rest — **content-only** archival tails, committed in its `forks` (a
-  privileged event in any tail makes the fork terminal → reincept, never archived) — and returns the
-  chain to Active. Reveals the current recovery-key preimage as a side effect of dual-signing: that
-  preimage is spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so the
-  chain stays recoverable.
+  branch and archives the rest — **content-only** archival tails, condemned by the roots committed
+  in its `forks` (a privileged event in any competing branch makes the fork terminal → reincept,
+  never archived) — and returns the chain to Active. Reveals the current recovery-key preimage as a
+  side effect of dual-signing: that preimage is spent, but `Rec` commits a fresh recovery commitment
+  (a new `recoveryHash`), so the chain stays recoverable.
 - **`Ror` is proactive.** Used pre-emptively — to rotate both signing and recovery keys for
   forward-secrecy hygiene, or to refresh the recovery-key preimage commitment per operator cadence
   guidance. `Ror` is not divergence-driven; it lands as a linear extension of a non-divergent chain.
@@ -129,11 +129,12 @@ A `Rec` extending `v_{d-1}` therefore validates uniformly:
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
 - The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on
   every node.
-- The repair's resolution (which events at `serial >= d` it commits to `forks`) is uniform: every
-  node **independently computes the same archival set** — everything at `serial >= d` not on the
-  `Rec.previous` walkback — rather than trusting the submitter's `forks`, and rejects the `Rec` if
-  any of those branches is privileged. Independent computation is what makes the resolution
-  identical on every node.
+- The repair's resolution is uniform: every node validates the same committed roots — each must sit
+  **off** the full-span `Rec.previous` walkback (`root.parent ∈ walkback ∧ root ∉ walkback`, so a
+  root on the retained chain, or `v_{d-1}` itself, rejects the `Rec`) — and **independently** walks
+  every competing branch it holds (or the beacon enumerates), rejecting the `Rec` if any carries a
+  privileged event, rather than trusting the submitter's `forks`. Independent computation is what
+  makes the resolution identical on every node.
 
 This is what makes the divergence-ancestor-extending shape the structural primitive that solves
 cross-node propagation. A tip-extension or combined-digest approach would not have this property —
@@ -162,54 +163,58 @@ that derives from it.
 
 ## Rec parent shapes
 
-`Rec` resolves divergence by committing the archival tails it resolves to its `forks`.
-`Rec.previous` takes one of two shapes:
+`Rec` resolves divergence by committing, in its `forks`, the **root** of each losing branch — the
+branch's first divergent event, which condemns its entire subtree. `Rec.previous` takes one of two
+shapes:
 
 ### Branch-tip-extending shape
 
 `Rec.previous` is a branch tip at `v_d`. Rec extends that branch at `v_{d+1}`; the other branch
-becomes an archival tail.
+becomes an archival tail, condemned by its root.
 
 ```
 Pre-state (divergent at v_d):
     ... → v_{d-1} ─┬─ retained-branch tip @ v_d
-                   └─ other-branch tip    @ v_d
+                   └─ other-branch root   @ v_d
 
 Rec construction: rec.previous = retained-branch tip's said
                   rec.serial   = d + 1
-                  rec.forks = [ other-branch tail ]
+                  rec.forks = [ other-branch root ]
 
 Post-state (linear, recovered):
     ... → v_{d-1} → retained-branch tip @ v_d → rec @ v_{d+1}
                   ↑
-                  other branch committed in rec.forks
+                  other branch condemned via its root in rec.forks
 ```
 
 The submitter (whoever holds the recovery key) keeps the branch they authored as the retained
-branch; `Rec` extends it, committing everything at `serial >= d` not on that walkback to `forks`.
-The merge layer then **independently** identifies the retained branch by walking back from
-`Rec.previous` and **validates** the committed `forks[]` against the branches off that walkback that
-it holds — content-only, rejecting the `Rec` if any is privileged. It never trusts the submitter's
-enumeration.
+branch; `Rec` extends it, naming the root of every losing branch (its first divergent event — here
+the losing branch's head at `v_d`, which is its root) in `forks` — each root condemning its whole
+subtree, so anything grown on the branch after the repair is dead by descent. The merge layer then
+**independently** identifies the retained branch by walking back from `Rec.previous` over the full
+span, **rejects** any committed root that lies on that walkback (no self-condemnation), and walks
+every competing branch off it that it holds — content-only, rejecting the `Rec` if any carries a
+privileged event. It never trusts the submitter's enumeration.
 
 ### Divergence-ancestor-extending shape
 
-`Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. All branches at
-`serial >= d` are committed to `forks`; `Rec` is the only event at `v_d` after the repair runs.
+`Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. The root of every branch
+at `v_d` is committed to `forks` (here each branch head at `v_d` is its root); `Rec` is the only
+event at `v_d` after the repair runs.
 
 ```
 Pre-state (divergent at v_d):
-    ... → v_{d-1} ─┬─ branch-1 tip @ v_d
-                   └─ branch-2 tip @ v_d
+    ... → v_{d-1} ─┬─ branch-1 root @ v_d
+                   └─ branch-2 root @ v_d
 
 Rec construction: rec.previous = v_{d-1}.said
                   rec.serial   = d
-                  rec.forks = [ branch-1 tail, branch-2 tail ]
+                  rec.forks = [ branch-1 root, branch-2 root ]
 
 Post-state (linear, recovered, Rec is the only event at v_d):
     ... → v_{d-1} → rec @ v_d
                   ↑
-                  both prior branches committed in rec.forks
+                  both prior branches condemned via their roots in rec.forks
 ```
 
 The divergence-ancestor-extending shape is the structural primitive that gives recovery its

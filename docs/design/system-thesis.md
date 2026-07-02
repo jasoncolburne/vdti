@@ -142,11 +142,13 @@ than an identity judgment. Whoever holds that recovery preimage resolves it: ill
 is the operator (its own rotation raced by stale content) the operator recovers; if it is an
 attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it
 can neither extend nor archive the privileged branch — and **reincepts**, the chain being the
-attacker's. A divergence with two or more privileged branches is terminal and recovers only by
-reincept. A kill is always sealed and is never archived. Cross-node races between concurrent
-privileged submissions **converge data-locally** — keep-all-data retains the competing branch, so a
-node holds both and detects the divergence by walking them; the witness beacon propagates the
-branches to nodes that lack them, but does not decide the verdict.
+attacker's. A repair names each losing branch's **root** in its `forks`, condemning that branch's
+entire subtree — so a losing branch grown after the repair is dead by descent, and one repair
+suffices for the fork it resolves. A divergence with two or more privileged branches is terminal and
+recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between
+concurrent privileged submissions **converge data-locally** — keep-all-data retains the competing
+branch, so a node holds both and detects the divergence by walking them; the witness beacon
+propagates the branches to nodes that lack them, but does not decide the verdict.
 
 → [`protocol-doctrine.md` §Divergence and repair](protocol-doctrine.md#divergence-and-repair).
 
@@ -181,12 +183,12 @@ it can be coerced, and an unlocked device remains usable.
 
 Detection is **data-local**: a node retains a competing branch as evidence and walks the retained
 branches to decide whether a fork is terminal — even priv-vs-priv races converge this way. Retention
-is **bounded** (privileged branches to ≥ 2 per spine position; the uncommitted below-seal flood is
-droppable, since a privileged event re-validates from the spine, not from below-seal content), so
-keep-all-data is not keep-everything. The federation's divergent witness receipts **propagate** the
-competing branches to a node that lacks them (and witnessing supplies freshness); they do not decide
-the verdict. End-verifiability over data-from-any-source rests on the data, with the federation as
-the propagation aid.
+is **bounded** (≥ 2 competing events per position — privileged on the spine, content as fork
+evidence; the uncommitted below-seal flood is droppable, since a privileged event re-validates from
+the spine, not from below-seal content), so keep-all-data is not keep-everything. The federation's
+divergent witness receipts **propagate** the competing branches to a node that lacks them (and
+witnessing supplies freshness); they do not decide the verdict. End-verifiability over
+data-from-any-source rests on the data, with the federation as the propagation aid.
 
 → [`federation/witnessing.md`](federation/witnessing.md) _(landed separately)_.
 

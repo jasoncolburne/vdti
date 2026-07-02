@@ -194,6 +194,23 @@ folded\.forks
 folded\.canonical
 
 # ============================================================================
+# §Doc-only — root-pointing repair model (forks = roots, not tips)
+# ============================================================================
+# A repair's forks names each losing branch's ROOT — its first divergent event,
+# condemning the whole subtree (growth-proof) — never its tip. The tip-pointing
+# model and its apparatus (a re-freeze on an under-covering repair; a follow-up
+# repair required to catch post-repair growth) are retired: an under-covering
+# content repair is ACCEPTED (missed content inerts below the seal, growth dead
+# by descent). Bare "tip" stays live everywhere (chain tip, branch tip, the
+# SEL's IEL-anchored tip); only the forks-entry collocations and the retired
+# apparatus regress.
+archived[- ]branch tips?
+`forks` tips
+\bsecond repair\b
+re-freez
+re-frozen
+
+# ============================================================================
 # §Doc-only — anchors subsumes issues/revokes/rescinds (manifest role vocab)
 # ============================================================================
 # The manifest role `anchors` now subsumes the former credential/feature roles
