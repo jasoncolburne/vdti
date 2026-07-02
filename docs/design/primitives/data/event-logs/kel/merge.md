@@ -159,13 +159,15 @@ For events admitted past rule 3, kind-specific authorization fires:
   privileged event** (any event above tier 1 — `Rot` / `Ror` / `Rec` / `Wit` / `Dec`) — a privileged
   branch is never archived
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1), so the
-  fork is terminal (`disputed:`, reincept); the rejected `Rec` is itself **retained as a competing
+  fork is terminal (`disputed:`, reincept); a `Rec` rejected by **this** guard — it passed hard auth
+  and revealed the reserve, so it is a real privileged event — is itself **retained as a competing
   privileged branch and counted** (retain-and-count — dropping it would split the reading
-  permanently across nodes). Independent computation is load-bearing: otherwise a content-branch
-  author could **omit** a competing privileged branch from `forks[]`, pass a content-only check over
-  the _listed_ subtrees, and let the `Rec` advance the seal past the omitted `Rot` — burying a
-  rotation below the seal, the very overturn the rule forbids. The reserve defends the signing key,
-  not the rotation key.
+  permanently across nodes; a `Rec` that fails hard auth, carries empty `forks[]`, is malformed, or
+  names a self-condemning root is simply dropped, never counted). Independent computation is
+  load-bearing: otherwise a content-branch author could **omit** a competing privileged branch from
+  `forks[]`, pass a content-only check over the _listed_ subtrees, and let the `Rec` advance the
+  seal past the omitted `Rot` — burying a rotation below the seal, the very overturn the rule
+  forbids. The reserve defends the signing key, not the rotation key.
 - **`Wit` change-requirement (user facet)** — a **user** (`Icp`-rooted) `Wit` is a **rebind**: it
   must change at least one of (`federation`, `witnesses`). A no-op is rejected; a same-federation
   re-pin (only `federationPin`) is **not** a `Wit` — it rides any body event. A
@@ -274,12 +276,12 @@ seal-advance cap plus at most one pre-fork page:
 1. **Detect repair.** The batch contains an event with `kind == Rec`. Its `forks` names the roots of
    the losing branches it condemns; an empty `forks[]` is rejected (no repairing a non-divergent
    tip).
-2. **Compute the full-span walkback bound.** The retained-chain walkback must reach down to at least
-   the smallest parent serial among the named roots — walking to the pre-fork seal always suffices
-   (at most one extra page). Do **not** truncate the walk at the divergence serial: over that
-   truncated set, `v_{d-1}` and every trunk ancestor read as _off_ the retained chain, so a root
-   naming a trunk ancestor would condemn a subtree containing the whole canonical chain (and the
-   `Rec` itself) — step 7's censorship guard is sound **only** over the full-span walk.
+2. **Compute the full-span walkback bound.** The retained-chain walkback must reach down to the fork
+   point `v_{d-1}` — walking to the pre-fork seal always suffices (at most one extra page). Do
+   **not** truncate the walk at the divergence serial: over that truncated set, `v_{d-1}` and every
+   trunk ancestor read as _off_ the retained chain, so a root naming a trunk ancestor would condemn
+   a subtree containing the whole canonical chain (and the `Rec` itself) — step 7's censorship guard
+   is sound **only** over the full-span walk.
 3. **Page fetch.** Read the events the walkback and the guards need for the prefix, ordered
    `(serial ASC, kind sort_priority ASC, said ASC)`, capped at `MINIMUM_PAGE_SIZE` per fetch — the
    retained branch plus the `Rec` fits one page; the pre-fork extension is at most one more.
@@ -291,11 +293,12 @@ seal-advance cap plus at most one pre-fork page:
 6. **Walkback.** Starting at `Rec.previous`, follow `event.previous` links through the map,
    accumulating the retained-chain SAIDs down to the step-2 bound. The walkback is bounded by the
    seal-advance cap plus at most one pre-fork page.
-7. **Guard the roots — no self-condemnation.** Each `forks` root must satisfy
-   `root.parent ∈ walkback ∧ root ∉ walkback` over the full-span walkback — a root on the retained
-   chain, or `v_{d-1}` itself (which is on it), rejects the `Rec`. This is what makes condemnation
-   safe: one `previous` per event means an off-chain root's subtree is disjoint from the retained
-   chain, so no committed root can condemn the canonical chain or the `Rec` itself.
+7. **Guard the roots — no self-condemnation.** Each `forks` root must be a competing child of the
+   fork point `v_{d-1}` — its parent is `v_{d-1}` itself — and must not lie on the full-span
+   walkback: a root on the retained chain, or `v_{d-1}` itself (which is on it), rejects the `Rec`.
+   This is what makes condemnation safe: one `previous` per event means an off-chain root's subtree
+   is disjoint from the retained chain, so no committed root can condemn the canonical chain or the
+   `Rec` itself.
 8. **Guard the subtrees — content-only.** The merge layer **independently** walks every competing
    branch off the retained walkback that it holds or the beacon enumerates — each named root's
    subtree included — and **rejects the `Rec` on any privileged event** in them (the fork is
@@ -335,10 +338,11 @@ blanket freeze:
   the repair advanced, and everything built on it dead by descent (**deadness descends** — an event
   whose parent is dead is dead). The uncovered content **inerts** on the bounded forked chain —
   witnessed, retained, never canonical — and is **never orphan-dropped**: the node keeps it, and its
-  author re-issues it forward on the repaired chain. Exactly **one** repair lands on a content-only
-  divergence and resolves it; a _second_, competing repair is a `{Rec, Rec}` divergence — two
-  privileged branches → `disputed:`.
-- **An un-covered key-change (privileged) branch rejects the repair.** A privileged branch is never
+  author re-issues its own benign content forward on the repaired chain (adversarial dead content is
+  simply non-canonical — nobody re-issues it). At most **one** repair can resolve a content-only
+  divergence; a _second_, competing repair is a `{Rec, Rec}` divergence — two privileged branches →
+  `disputed:`.
+- **An un-covered privileged (non-content) branch rejects the repair.** A privileged branch is never
   archivable: the discriminator's content-only guard rejects the `Rec`, the fork is ≥ 2 privileged →
   `disputed:` (reincept), and the rejected `Rec` is retained as a competing privileged branch and
   counted (retain-and-count — [§4](#4-kind-specific-authorization)).

@@ -160,6 +160,6 @@ overlap_.
   composer with two leaf resolvers, and the verification-token interface this layer declares.
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — the IEL primitive: the identity an `id`
   leaf resolves (members + threshold vector) and the delegate list a `del` leaf reads.
-  _(Per-primitive doctrine; landed separately.)_
+  _(Per-primitive doctrine; forthcoming.)_
 - [`../data/event-logs/sel/`](../data/event-logs/sel/) — the SEL primitive: the single-owner data
-  log a delegation's rescission lookup is read from. _(Per-primitive doctrine; landed separately.)_
+  log a delegation's rescission lookup is read from. _(Per-primitive doctrine; forthcoming.)_

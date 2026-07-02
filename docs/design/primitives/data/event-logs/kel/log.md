@@ -46,11 +46,11 @@ Decommissioned. State is computed from the events the node holds, never tracked 
 Whether a divergence is **reconcilable** or **terminal** is a further fact any verifier reads
 **data-locally** by walking the branches it holds (below) — not a fourth state.
 
-| State              | Description                                                                                                                                    | Accepts new events?                                                                                                                                                                                                     |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Active**         | Linear chain; the current tip extends cleanly via `previous`.                                                                                  | Yes — `Ixn` / `Rot` / `Ror` / `Rec` / `Wit` / `Dec` per their authorization and seal-cap requirements.                                                                                                                  |
-| **Divergent**      | A **fork**: two **distinct** (different-SAID) events at one serial. While the fork is **live** (at or above the seal) the chain is **frozen**. | **None** while the fork is live — frozen until a repair resolves it; the sole valid next move is `Rec`. (A below-seal straggler arriving after the chain sealed past its serial is retained as evidence, not a freeze.) |
-| **Decommissioned** | A terminal `Dec` landed cleanly. The `Dec` advances the seal to its own serial; the chain is sealed there.                                     | None. A sibling to the `Dec` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`).                                             |
+| State              | Description                                                                                                                                    | Accepts new events?                                                                                                                                                                                                                                                                                                     |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active**         | Linear chain; the current tip extends cleanly via `previous`.                                                                                  | Yes — `Ixn` / `Rot` / `Ror` / `Rec` / `Wit` / `Dec` per their authorization and seal-cap requirements.                                                                                                                                                                                                                  |
+| **Divergent**      | A **fork**: two **distinct** (different-SAID) events at one serial. While the fork is **live** (at or above the seal) the chain is **frozen**. | **None** while the fork is live — frozen until a repair resolves it; the sole valid next move is `Rec` (carve-out: a `{Dec, content}` fork resolves by tier-rank — the terminal `Dec` wins, no repair). (A below-seal straggler arriving after the chain sealed past its serial is retained as evidence, not a freeze.) |
+| **Decommissioned** | A terminal `Dec` landed cleanly. The `Dec` advances the seal to its own serial; the chain is sealed there.                                     | None. A sibling to the `Dec` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`).                                                                                                                                             |
 
 A repair keeps the recovering party's own branch and archives the rest, returning the chain to
 Active — possible only when no archived branch carries a privileged event (see
@@ -146,7 +146,9 @@ this segment are structurally immutable within the chain:
 ### Pre-seal verifiability
 
 The at-or-below-seal portion is permanently final — for the chain itself (no future event may target
-it) and for consumers verifying anchors, credentials, and SEL bindings against it. See
+it) and for consumers verifying anchors, credentials, and SEL bindings against it; the permanence
+claims run against the last **clean** seal (a below-seal **privileged** fork is a spine fork that
+flips the reading to `disputed:` without rewriting any sealed event). See
 [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability) for the structural
 defense argument and
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) (_Pre-seal

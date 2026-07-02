@@ -129,10 +129,10 @@ A `Rec` extending `v_{d-1}` therefore validates uniformly:
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
 - The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on
   every node.
-- The repair's resolution is uniform: every node validates the same committed roots — each must sit
-  **off** the full-span `Rec.previous` walkback (`root.parent ∈ walkback ∧ root ∉ walkback`, so a
-  root on the retained chain, or `v_{d-1}` itself, rejects the `Rec`) — and **independently** walks
-  every competing branch it holds (or the beacon enumerates), rejecting the `Rec` if any carries a
+- The repair's resolution is uniform: every node validates the same committed roots — each must be a
+  competing child of the fork point `v_{d-1}`, off the full-span `Rec.previous` walkback (a root on
+  the retained chain, or `v_{d-1}` itself, rejects the `Rec`) — and **independently** walks every
+  competing branch it holds (or the beacon enumerates), rejecting the `Rec` if any carries a
   privileged event, rather than trusting the submitter's `forks`. Independent computation is what
   makes the resolution identical on every node.
 
@@ -239,6 +239,12 @@ divergence or is retained as evidence.
 The locked-portion bound, the seal-cap, and the recovery primitives together produce a durable
 consumer guarantee: events at-or-below `last_seal_advancing_event` remain structurally verifiable
 indefinitely, regardless of subsequent divergence or a terminal `disputed:` verdict above the seal.
+One qualifier: the permanence claims run against the last **clean** seal — one with no competing
+privileged branch forking at-or-below it. Sealed events are never rewritten, but a below-seal
+**privileged** fork is a spine fork that flips the prefix's reading to `disputed:`; permanence then
+retreats to the last clean seal beneath the fork
+([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), _Pre-seal
+verifiability_).
 
 The argument has three legs:
 
@@ -314,8 +320,8 @@ The cross-node race surface covers all privileged-event shapes:
   by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
   different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
   tier-3 bar required for `Ror` / `Rec` / `Wit` / `Dec`. A `{Rot, Rot}` divergence is moreover a
-  **proof of reserve compromise** — two valid rotations reveal the one rotation preimage committed
-  at `v_{d-1}`.
+  **proof of reserve compromise** — two valid rotations reveal the one rotation preimage in force at
+  `v_{d-1}`.
 - **Tier-3 path.** A tier-3 adversary (holding both preimages) can force non-convergence by racing
   any recovery-revealing event against operator submissions. Once an adversary's tier-3 event has
   landed on any federation node, no in-band protocol recourse exists.

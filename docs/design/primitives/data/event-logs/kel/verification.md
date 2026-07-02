@@ -360,11 +360,14 @@ carve-outs — see [`merge.md` §Kind-specific authorization](merge.md#4-kind-sp
 
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` is **permanently final** — it stays anchored on the
-canonical branch regardless of any later above-seal divergence. An anchor above the seal carries
-tier-1-only durable authority and becomes durable only once a later seal-advancing event lands
-cleanly past it. So `anchored_saids` reflects the canonical branch, and a consumer composes the
-anchor's seal position with `region()`: a below-seal anchor is honored even on a `disputed:` chain;
-an above-seal anchor on a `disputed:` chain grounds no new trust. See
+canonical branch regardless of any later above-seal divergence. (Against a below-seal **privileged**
+fork — a spine fork — the reading flips to `disputed:` and permanence runs against the last
+**clean** seal; sealed events are still never rewritten — see
+[§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).) An anchor above
+the seal carries tier-1-only durable authority and becomes durable only once a later seal-advancing
+event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a consumer
+composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
+`disputed:` chain; an above-seal anchor on a `disputed:` chain grounds no new trust. See
 [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability) and
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
 

@@ -14,8 +14,8 @@ authorized by its own key state, its identity's threshold, or its owner. Policy 
 ## Reading order
 
 - [`kel/`](kel/) — KEL primitive specs. _(Per-primitive doctrine; landed separately.)_
-- [`iel/`](iel/) — IEL primitive. _(Per-primitive doctrine; landed separately.)_
-- [`sel/`](sel/) — SEL primitive. _(Per-primitive doctrine; landed separately.)_
+- [`iel/`](iel/) — IEL primitive. _(Per-primitive doctrine; forthcoming.)_
+- [`sel/`](sel/) — SEL primitive. _(Per-primitive doctrine; forthcoming.)_
 - [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md) — cross-primitive doctrine:
   tiers, divergence and repair, the seal bound, federation convergence, the verification walk.
 - [`../../policy/policy.md`](../../policy/policy.md) — the document authorization layer (the policy
@@ -82,12 +82,13 @@ the `govern` or `delegate` slot it names; a federation rebind (`Wit`) and the te
 
 - `t_use >= 1` (`t_use = 1` is single-device by choice — no content resilience).
 - The authority slots (`t_govern`, `t_delegate`, `t_recover`) carry **two bounds**: a **security
-  floor** `>= 2` (hard, every identity — no single member exercises authority) and a
-  **recoverability ceiling** `<= |roster| − 1` (lets the identity evict a compromised member or
-  recover a lost one without it). The recoverability ceiling is **advisory at `|roster| = 2`** (a
-  two-device identity is valid but cannot evict/recover without both — the wallet warns) and **hard
-  at `|roster| >= 3`** (a threshold equal to `|roster|` is a gratuitous hostage config — rejected).
-  A singleton (`|roster| = 1`) sets all thresholds to 1.
+  floor** `>= 2` (hard for every identity of `|roster| >= 2` — no single member exercises authority;
+  the singleton below is the degenerate case) and a **recoverability ceiling** `<= |roster| − 1`
+  (lets the identity evict a compromised member or recover a lost one without it). The
+  recoverability ceiling is **advisory at `|roster| = 2`** (a two-device identity is valid but
+  cannot evict/recover without both — the wallet warns) and **hard at `|roster| >= 3`** (a threshold
+  equal to `|roster|` is a gratuitous hostage config — rejected). A singleton (`|roster| = 1`) sets
+  all thresholds to 1.
 - **`t_govern <= t_recover` is a hard floor** — verifier-enforced wherever a threshold is declared
   or changed (`Icp` and every roster-delta event). Recovery reveals the reserve, and a repair may
   now carry a roster `cut` (the repair-and-evict fold — [`iel/`](iel/)), so recovery must never be
@@ -260,7 +261,7 @@ IEL's seal — it has no seal of its own for that; but its own seal-advancing ki
 `Dec`) cap its **local divergence/repair window** and carry `previousSeal` like any spine (only the
 repair `Rpr` additionally carries `forks`). Credential issuance, revocation, and status are a
 **feature** layered on the SEL primitive — [`features/credentials/`](../../../features/credentials/)
-_(landed separately)_.
+_(forthcoming)_.
 
 ## Per-kind structural validation
 

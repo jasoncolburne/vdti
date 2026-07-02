@@ -67,9 +67,9 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   delegated to the federation.
 - **The federation propagates.** Cross-node privileged-vs-privileged races still converge
   data-locally — the witness beacon's divergent receipts (see
-  [`federation/witnessing.md`](federation/witnessing.md) — _landed separately_) **enumerate the
-  competing branches** so a one-branch holder can fetch and walk them, but the verdict is the
-  verifier's own. The federation delivers evidence; it does not decide.
+  [`federation/witnessing.md`](federation/witnessing.md) — _forthcoming_) **enumerate the competing
+  branches** so a one-branch holder can fetch and walk them, but the verdict is the verifier's own.
+  The federation delivers evidence; it does not decide.
 
 A single node can still _detect_ a divergence it holds, but it forfeits the beacon's propagation and
 the witnessing freshness no single node can self-attest — so federations are not optional for
@@ -133,13 +133,14 @@ extend the chain even if the adversary still holds it.
 
 A chain carrying a **live** fork — two distinct events at one serial, at or above the seal — is
 **frozen** until a repair resolves it; it accepts no new event of any kind in the meantime (a
-below-seal straggler arriving after the chain sealed past it is retained as evidence, not a freeze).
-Resolution is by **tier, not identity** — the chain cannot tell the operator from an attacker (both
-branches were authorized when they landed), so it decides by tier. Only content (`Ixn`) is
-archivable, so a privileged branch is never archived — a repair keeps it, and **only its author
-can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact rather
-than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively, if it
-is the operator (its own rotation raced by stale content) the operator recovers; if it is an
+below-seal straggler arriving after the chain sealed past it is retained as evidence, not a freeze;
+and a fork whose lone privileged branch is a terminal resolves by tier-rank — the terminal wins, no
+repair). Resolution is by **tier, not identity** — the chain cannot tell the operator from an
+attacker (both branches were authorized when they landed), so it decides by tier. Only content
+(`Ixn`) is archivable, so a privileged branch is never archived — a repair keeps it, and **only its
+author can**, since the keep is gated by that branch's own recovery commitment, a cryptographic fact
+rather than an identity judgment. Whoever holds that recovery preimage resolves it: illustratively,
+if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an
 attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it
 can neither extend nor archive the privileged branch — and **reincepts**, the chain being the
 attacker's. A repair names each losing branch's **root** in its `forks`, condemning that branch's
@@ -154,7 +155,7 @@ propagates the branches to nodes that lack them, but does not decide the verdict
 
 ### Forks are seal-bounded
 
-A new event's serial must land at-or-after the chain's most-recent seal-advancing (privileged) event
+A new event's parent must sit at-or-after the chain's most-recent seal-advancing (privileged) event
 (`last_seal_advancing_event`); everything below that seal is locked. Without the bound, anyone who
 ever held authority over a chain would keep a permanent kill switch — a rotated-out key or an
 evicted member could append below the seal, against a context they no longer control. The bound is
@@ -190,7 +191,7 @@ divergent witness receipts **propagate** the competing branches to a node that l
 witnessing supplies freshness); they do not decide the verdict. End-verifiability over
 data-from-any-source rests on the data, with the federation as the propagation aid.
 
-→ [`federation/witnessing.md`](federation/witnessing.md) _(landed separately)_.
+→ [`federation/witnessing.md`](federation/witnessing.md) _(forthcoming)_.
 
 ### Operational hardening composes on top
 
