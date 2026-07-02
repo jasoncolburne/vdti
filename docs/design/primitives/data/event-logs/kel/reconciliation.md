@@ -233,11 +233,13 @@ for the cross-primitive framing.
 **Finality of a Recovered reading is two-valued, per question** (the repair-completeness split —
 [§Matrix 4](#matrix-4-repair-completeness)). The repair is **content-final** the instant it seals:
 root-condemnation plus deadness-descends close every losing content branch, present or later-grown.
-It is **privileged-final** only once the minting capability is neutralized (the `Rec`'s rotation —
+On the privileged side, two distinct properties: **no-resurrection** (unconditional — nothing
+archived is ever un-archived, from the instant the repair lands) and **resolution-stability** (the
+reading stays non-`disputed:`, once the minting capability is neutralized (the `Rec`'s rotation —
 vacuous for a benign fork with no adversarial minter) **and** the beacon shows no omitted privileged
-branch — final barring the eclipse residual and a historical rotation-preimage compromise, both
-fail-secure (each flips the reading to `disputed:`; nothing archived is ever un-archived). A
-**`disputed:`** reading is terminal everywhere.
+branch — stable barring the eclipse residual and a historical rotation-preimage compromise, both
+fail-secure, each flipping the reading to `disputed:`). A **`disputed:`** reading is terminal
+everywhere.
 
 ## Matrix 3: Race matrix
 

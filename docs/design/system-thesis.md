@@ -200,8 +200,8 @@ Monitoring for unexpected governance or rotation events; fast detect-to-recover 
 the protocol layer (designated submitter, leader election, or consensus over the identity's
 membership); for high-stakes IEL identities this is load-bearing, not optional.
 
-→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md) _(landed
-separately)_.
+→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md)
+_(forthcoming)_.
 
 ### Cascade-reincept honesty
 
