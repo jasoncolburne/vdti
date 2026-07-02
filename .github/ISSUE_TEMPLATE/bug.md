@@ -14,4 +14,5 @@ labels: bug
 
 ## Suspected structural cause
 
-<vdti is structurally interlocking — a bug's surface usually points at a deeper invariant; surface that thinking here>
+<vdti is structurally interlocking — a bug's surface usually points at a deeper invariant; surface
+that thinking here>

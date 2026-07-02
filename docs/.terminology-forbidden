@@ -145,3 +145,83 @@ kels/sad/
 # extendable (parent_serial == seal_serial passes the cap), so "parent locked"
 # is not a rejection condition.
 \bParentLocked\b
+
+# ============================================================================
+# §Doc-only — KEL reshape: data-local detection + the manifest/spine model
+# ============================================================================
+# The KEL primitive docs reconciled to the post-reshape canon (event-shape +
+# protocol-doctrine): divergence detection is data-local (the verifier walks
+# retained branches; the witness beacon propagates, never decides), so the
+# federation-decides framing and its vocabulary are retired:
+#   federation-irreconcilable  — the federation does not pronounce a verdict;
+#     a fork with >= 2 privileged branches reads disputed: by a data-local walk;
+#   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix}  —
+#     replaced by forked:{prefix} (reconcilable / pending) and disputed:{prefix}
+#     (terminal). Bare "divergent" / "irreconcilable" stay live (the per-node
+#     fork state and the fork classification), so only the colon-synthetic forms
+#     are forbidden;
+#   policy_satisfied  — the verifier token reports the structural-validity
+#     result, not a policy signal (authorization is structural; policy lives on
+#     documents);
+#   RecoveryRecord  — a repair commits its archival tails in folded.forks[],
+#     not a separate audit-row type;
+#   witnessParams / witnessThreshold / witnessSelectionSize  — the witness
+#     config rides the `witnesses` manifest role as a { threshold, signers } SAD.
+federation-irreconcilable
+divergent:\{prefix\}
+irreconcilable:\{prefix\}
+\bpolicy_satisfied\b
+\bRecoveryRecord\b
+\bwitnessParams\b
+\bwitnessThreshold\b
+\bwitnessSelectionSize\b
+
+# ============================================================================
+# §Doc-only — Fed→Wit + folded→folds remodel
+# ============================================================================
+# The federation-mutation kind Fed merged into the one witness/federation kind
+# Wit (a user federation rebind on an Icp-rooted KEL; federation governance on
+# an Fcp-rooted KEL). Founder genesis is Fcp → Rot (the Rot anchors the
+# federation IEL's Fcp marker) — there is no founder Fed/Wit. The manifest role
+# folded was renamed folds (dual-readable like anchors/delegates). The prose
+# verb "folded" (the content run folded since the prior seal) stays live — only
+# the role name and its dotted accessors regress, so forbid the role/accessor
+# forms (`folded`, folded.forks, folded.canonical), never the bare verb.
+# \bFed\b does not match "federation" (word boundary fails at the trailing e).
+\bFed\b
+`folded`
+folded\.forks
+folded\.canonical
+
+# ============================================================================
+# §Doc-only — root-pointing repair model (forks = roots, not tips)
+# ============================================================================
+# A repair's forks names each losing branch's ROOT — its first divergent event,
+# condemning the whole subtree (growth-proof) — never its tip. The tip-pointing
+# model and its apparatus (a re-freeze on an under-covering repair; a follow-up
+# repair required to catch post-repair growth) are retired: an under-covering
+# content repair is ACCEPTED (missed content inerts below the seal, growth dead
+# by descent). Bare "tip" stays live everywhere (chain tip, branch tip, the
+# SEL's IEL-anchored tip); only the forks-entry collocations and the retired
+# apparatus regress.
+archived[- ]branch tips?
+`forks` tips
+\bsecond repair\b
+re-freez
+re-frozen
+
+# ============================================================================
+# §Doc-only — anchors subsumes issues/revokes/rescinds (manifest role vocab)
+# ============================================================================
+# The manifest role `anchors` now subsumes the former credential/feature roles
+# issues (cred-SEL inception) / revokes (cred-SEL Dec) / rescinds (lookup-SEL
+# Dec) — the feature meaning is named by the anchored event's KIND, not a role
+# label (kind-strict). Only the dead role/accessor forms regress; the prose
+# verbs "issues" / "revokes" / "rescinds" stay live, so forbid only the
+# role-access (`manifest.<role>`) and the inline-list (`<role>[]`) spellings.
+manifest\.issues
+manifest\.revokes
+manifest\.rescinds
+issues\[\]
+revokes\[\]
+rescinds\[\]

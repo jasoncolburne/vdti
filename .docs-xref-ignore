@@ -1,0 +1,47 @@
+# Forward-reference targets for scripts/check-doc-xrefs.py.
+#
+# Each line is a glob (fnmatch) matched against the RESOLVED repo-relative path
+# of a link target that does not exist yet. Listing a path here suppresses the
+# "target not found" error for links that point at docs slated for a later
+# sub-issue. `#` starts a comment; blank lines are ignored.
+#
+# These are EXPECTED-MISSING only. Once a target file lands, the ignore stops
+# applying automatically (the checker validates the real file and its anchors);
+# remove the corresponding line when that happens. Run with --strict to surface
+# every still-missing forward-ref.
+
+# --- Top-level docs subtrees (README scaffolding; populated across phases) ---
+docs/reference
+docs/reference/*
+docs/analysis
+docs/analysis/*
+docs/operations
+docs/operations/*
+
+# --- Federation doctrine (subsequent sub-issue) ---
+docs/design/federation
+docs/design/federation/*
+
+# --- Operations playbooks (subsequent sub-issues) ---
+docs/design/operations/recovery-workflow.md
+docs/operations/multi-party-governance.md
+
+# --- Infrastructure service docs (subsequent sub-issue) ---
+docs/design/infrastructure/vdtid.md
+
+# --- Features (subsequent sub-issue) ---
+docs/design/features
+docs/design/features/*
+docs/design/features/credentials
+docs/design/features/credentials/*
+
+# --- IEL primitive (subsequent sub-issue) ---
+docs/design/primitives/data/event-logs/iel
+docs/design/primitives/data/event-logs/iel/*
+
+# --- SEL primitive (subsequent sub-issue) ---
+docs/design/primitives/data/event-logs/sel
+docs/design/primitives/data/event-logs/sel/*
+
+# --- Identity rooting (IEL primitive sub-issue) ---
+docs/design/primitives/data/event-logs/identity-rooting.md

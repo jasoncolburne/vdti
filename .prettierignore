@@ -1,0 +1,3 @@
+# The .working/ canon (+ its archive) is kept line-per-concept for machine editing
+# and stable file:line review references — NOT prose-wrapped (it is not human-read).
+.working/
