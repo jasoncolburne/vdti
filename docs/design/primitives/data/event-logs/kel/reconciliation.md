@@ -237,7 +237,7 @@ On the privileged side, two distinct properties: **no-resurrection** (unconditio
 archived is ever un-archived, from the instant the repair lands) and **resolution-stability** (the
 reading stays non-`disputed:`, once the minting capability is neutralized (the `Rec`'s rotation —
 vacuous for a benign fork with no adversarial minter) **and** the beacon shows no omitted privileged
-branch — stable barring the eclipse residual and a historical rotation-preimage compromise, both
+branch — stable barring the eclipse residual and a historical rotation-reserve compromise, both
 fail-secure, each flipping the reading to `disputed:`). A **`disputed:`** reading is terminal
 everywhere.
 
@@ -322,8 +322,8 @@ The race surface partitions by adversary tier (per
   by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
   different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
   tier-3 bar required to forge `Ror` / `Rec` / `Wit` / `Dec`. A `{Rot, Rot}` divergence is moreover
-  a **proof of reserve compromise** — two valid rotations reveal the one rotation preimage in force
-  at `v_{d-1}`.
+  a **proof of rotation-reserve compromise** — two valid rotations reveal the one rotation preimage
+  in force at `v_{d-1}`.
 - **Tier-3 path.** An adversary holding both preimages can force a `disputed:` divergence by racing
   any recovery-revealing event (`Ror` / `Rec` / `Wit` / `Dec`) against operator submissions. Once an
   adversary's tier-3 event has landed on any federation node, no in-band protocol recourse exists.
@@ -463,8 +463,8 @@ self-cascade (a liveness cost, not a safety one), exactly as governance serializ
 - **Eclipse / unwitnessed-branch residual:** detection is eventual; a reader eclipsed from a branch
   sees the true reading later. Privileged-completeness fails secure in that window. Pre-existing —
   the detection residual, not a repair-specific one.
-- **Historical rotation-preimage compromise:** an old reserve can mint a privileged event on a dead
-  or below-seal lineage years after beacon confirmation → flips the reading to `disputed:`
+- **Historical rotation-reserve compromise:** an old rotation reserve can mint a privileged event on
+  a dead or below-seal lineage years after beacon confirmation → flips the reading to `disputed:`
   (fail-secure — nothing is un-archived; the prefix terminalizes). Not an eclipse — the branch did
   not exist at confirmation, so the beacon was truthful.
 

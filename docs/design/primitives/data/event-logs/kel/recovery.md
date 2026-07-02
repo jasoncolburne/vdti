@@ -268,9 +268,9 @@ guarantee:
   divergence above the seal.
 - **Credentials issued under an IEL state at-or-below the seal remain verifiable.** An issuance
   pinned to a KEL anchor in the locked portion stays trust-evaluable forever.
-- **SELs bound to at-or-below-seal `ownerPin` stay trust-evaluable.** The cross-primitive bound that
-  enforces this is checked by IEL / SEL verifiers; the KEL primitive's contribution is the
-  locked-portion immutability.
+- **SELs bound at-or-below-seal via their top-level `pin` stay trust-evaluable.** The
+  cross-primitive bound that enforces this is checked by IEL / SEL verifiers; the KEL primitive's
+  contribution is the locked-portion immutability.
 - **Audit and forensic queries against the locked portion are truthful.** Above-seal events appear
   in the forensic record but are not structurally trustworthy (they may have been authored under
   captured tier-1 authority); the locked-portion events are.
@@ -320,8 +320,8 @@ The cross-node race surface covers all privileged-event shapes:
   by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
   different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
   tier-3 bar required for `Ror` / `Rec` / `Wit` / `Dec`. A `{Rot, Rot}` divergence is moreover a
-  **proof of reserve compromise** — two valid rotations reveal the one rotation preimage in force at
-  `v_{d-1}`.
+  **proof of rotation-reserve compromise** — two valid rotations reveal the one rotation preimage in
+  force at `v_{d-1}`.
 - **Tier-3 path.** A tier-3 adversary (holding both preimages) can force non-convergence by racing
   any recovery-revealing event against operator submissions. Once an adversary's tier-3 event has
   landed on any federation node, no in-band protocol recourse exists.
