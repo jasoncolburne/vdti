@@ -187,7 +187,7 @@ def label_for(el, texts):
     return best or el.get("type", "?")
 
 
-def assign_node_names(live, texts, titles, byid):
+def assign_node_names(live, texts, titles, byid, ex_of):
     """Map shape id -> a name unique within its example, and a per-shape chain-order
     sort key. When several boxes in one example share a kind label (e.g. three
     `Ixn`), each gets a suffix `#1`, `#2`, … in **chain order** — depth along
@@ -217,7 +217,7 @@ def assign_node_names(live, texts, titles, byid):
     for e in live:
         if e.get("type") not in SHAPE_TYPES or "id" not in e:
             continue
-        ex = nearest_example_pt(*center(e), titles)
+        ex = ex_of.get(e["id"]) or nearest_example_pt(*center(e), titles)
         cx, cy = center(e)
         orderkey[e["id"]] = (depth(e["id"]), cy, cx)
         shapes_by_ex.setdefault(ex, []).append(e)
@@ -279,6 +279,65 @@ def nearest_example(arrow, titles):
     return nearest_example_pt(arrow.get("x", 0), arrow.get("y", 0), titles)
 
 
+def shape_example_map(live, titles, byid):
+    """Assign each shape to an example by CONNECTED COMPONENT, not per-box proximity.
+    Shapes joined by arrows form one cluster (one example's diagram), and the whole
+    cluster takes the example most of its members sit under — so a box drawn nearer a
+    neighbouring example's title no longer bleeds into it (the old per-box nearest-title
+    trap). Isolated shapes fall back to their own nearest title. Returns id -> example."""
+    shape_ids = [e["id"] for e in live if e.get("type") in SHAPE_TYPES and "id" in e]
+    idset = set(shape_ids)
+    parent = {sid: sid for sid in shape_ids}
+
+    def find(x):
+        root = x
+        while parent[root] != root:
+            root = parent[root]
+        while parent[x] != root:  # path-compress
+            parent[x], x = root, parent[x]
+        return root
+
+    for a in live:
+        if a.get("type") != "arrow":
+            continue
+        s = (a.get("startBinding") or {}).get("elementId")
+        t = (a.get("endBinding") or {}).get("elementId")
+        if s in idset and t in idset:
+            parent[find(s)] = find(t)
+
+    comps = {}
+    for sid in shape_ids:
+        comps.setdefault(find(sid), []).append(sid)
+
+    ex_of = {}
+    for members in comps.values():
+        votes = {}
+        for sid in members:
+            ex = nearest_example_pt(*center(byid[sid]), titles)
+            votes[ex] = votes.get(ex, 0) + 1
+        top = max(votes.values())
+        winners = [ex for ex, n in votes.items() if n == top]
+        if len(winners) == 1:
+            chosen = winners[0]
+        else:  # tie — break by the cluster centroid's nearest title
+            cx = sum(center(byid[s])[0] for s in members) / len(members)
+            cy = sum(center(byid[s])[1] for s in members) / len(members)
+            chosen = nearest_example_pt(cx, cy, titles)
+        for sid in members:
+            ex_of[sid] = chosen
+    return ex_of
+
+
+def arrow_example(arrow, ex_of, titles):
+    """An arrow's example is that of a bound endpoint shape (both ends share a
+    component, so either works), falling back to nearest-title for an unbound end."""
+    for which in ("startBinding", "endBinding"):
+        sid = (arrow.get(which) or {}).get("elementId")
+        if sid in ex_of:
+            return ex_of[sid]
+    return nearest_example(arrow, titles)
+
+
 def describe(path):
     live = load_elements(path)
     if live is None:
@@ -287,7 +346,8 @@ def describe(path):
     texts = [e for e in live if e.get("type") == "text"]
     arrows = [e for e in live if e.get("type") == "arrow"]
     titles = [(text_of(t), *center(t)) for t in texts if EXAMPLE_RE.search(t.get("text", ""))]
-    names, orderkey = assign_node_names(live, texts, titles, byid)
+    ex_of = shape_example_map(live, titles, byid)
+    names, orderkey = assign_node_names(live, texts, titles, byid, ex_of)
     FAR = (10**9,)
 
     # Descriptions: prose blocks below a title. A default-coloured (misc) block
@@ -310,7 +370,7 @@ def describe(path):
     for e in live:
         if e.get("type") not in SHAPE_TYPES:
             continue
-        ex = nearest_example_pt(*center(e), titles)
+        ex = ex_of.get(e.get("id")) or nearest_example_pt(*center(e), titles)
         ok = orderkey.get(e.get("id"), FAR)
         nodes_by.setdefault((ex, layer_of(e)), []).append(
             (ok, names.get(e.get("id"), label_for(e, texts))))
@@ -320,7 +380,7 @@ def describe(path):
     # Sorted by the start node's chain-order key so the listing follows the chain.
     arrows_by = {}
     for a in arrows:
-        ex = nearest_example(a, titles)
+        ex = arrow_example(a, ex_of, titles)
         _, s_el = endpoint_status(a, "startBinding", byid)
         _, e_el = endpoint_status(a, "endBinding", byid)
         sl, el_ = layer_of(s_el), layer_of(e_el)
