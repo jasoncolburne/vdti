@@ -24,8 +24,9 @@ cross-node correctness proof in [`reconciliation.md`](reconciliation.md).
 A KEL inception event is a
 [prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): the prefix and
 SAID are derived via two separate Blake3-256 hashes over the canonical bytes. The prefix commits to
-the **whole inception SAD content** with both `said` and `prefix` blanked to the fixed-value
-placeholder; the SAID then commits to the same SAD with `prefix` populated and only `said` blanked.
+the **whole inception SAD content** with both `said` and `prefix` set to the fixed-value
+placeholder; the SAID then commits to the same SAD with `prefix` populated and only `said` set to
+the placeholder.
 
 Whole-content prefix commitment means an inception event's `publicKey`, `rotationHash`,
 `recoveryHash`, kind discriminator, and — on a federation-bound `Icp` — its `federation` /

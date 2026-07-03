@@ -12,8 +12,8 @@ hashes over is documented in [`sad.md`](sad.md).
 
 SAID derivation differs slightly for chain inception events (which carry a `prefix` field) and for
 all other SADs. Both algorithms share the same fixed-value placeholder mechanism, the same JCS
-canonicalization, and the same Blake3-256 hash; they differ in which fields are blanked and how many
-hashes are computed.
+canonicalization, and the same Blake3-256 hash; they differ in which fields carry the placeholder
+and how many hashes are computed.
 
 **Canonicalization is RFC 8785 (JSON Canonicalization Scheme), pinned normatively.** Implementing
 crates MUST conform to RFC 8785's key ordering, number representation, and escape rules. Any
@@ -75,8 +75,8 @@ structural property that lets a SAID be embedded inside its own SAD without circ
   on which producer "owns" the SAID.
 
 The same three properties hold for prefix derivation on chain inception events, with both `said` and
-`prefix` blanked simultaneously per [§Derivation](#derivation) step 1. The placeholder mechanism is
-identical; the set of blanked positions differs by algorithm.
+`prefix` set to the placeholder simultaneously per [§Derivation](#derivation) step 1. The
+placeholder mechanism is identical; the set of placeholder-filled positions differs by algorithm.
 
 Per-primitive prefix derivation rules — what content the prefix commits to (whole-SAD-content for
 KEL; whole-SAD-content for IEL, including the `roster` of member devices, the threshold vector, and

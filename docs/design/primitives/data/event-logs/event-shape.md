@@ -27,13 +27,13 @@ authorized by its own key state, its identity's threshold, or its owner. Policy 
 Five fields appear on every event across all log types. The per-kind shape (§Per-kind structural
 validation) adds fields per kind.
 
-| Field      | Type      | Description                                                                                                                                                                                                                                                             |
-| ---------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `said`     | Digest256 | Blake3-256 hash of the canonical event content with the `said` field blanked (and `prefix` populated with its real value). Identifies the event uniquely.                                                                                                               |
-| `prefix`   | Digest256 | Hash of the canonical event content with both `said` and `prefix` blanked. Identifies the chain. Derives from the **whole-event content** — not a special tuple. Two distinct inceptions for the same chain are structurally impossible without a Blake3-256 collision. |
-| `serial`   | u64       | Chain position. Inception events have `serial == 0`; all others have `serial >= 1`, monotonic per branch.                                                                                                                                                               |
-| `previous` | Digest256 | SAID of the parent event. Forbidden at inception (no parent); required elsewhere.                                                                                                                                                                                       |
-| `kind`     | String    | Log-type × event-kind discriminator. Drives per-kind structural validation, tier dispatch, and the role vocabulary the event's `manifest` may carry.                                                                                                                    |
+| Field      | Type      | Description                                                                                                                                                                                                                                                                                        |
+| ---------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`     | Digest256 | Blake3-256 hash of the canonical event content with the `said` field set to the fixed-value placeholder (and `prefix` populated with its real value). Identifies the event uniquely.                                                                                                               |
+| `prefix`   | Digest256 | Hash of the canonical event content with both `said` and `prefix` set to the fixed-value placeholder. Identifies the chain. Derives from the **whole-event content** — not a special tuple. Two distinct inceptions for the same chain are structurally impossible without a Blake3-256 collision. |
+| `serial`   | u64       | Chain position. Inception events have `serial == 0`; all others have `serial >= 1`, monotonic per branch.                                                                                                                                                                                          |
+| `previous` | Digest256 | SAID of the parent event. Forbidden at inception (no parent); required elsewhere.                                                                                                                                                                                                                  |
+| `kind`     | String    | Log-type × event-kind discriminator. Drives per-kind structural validation, tier dispatch, and the role vocabulary the event's `manifest` may carry.                                                                                                                                               |
 
 Signatures are **not part of event content** — see
 [§Authentication & signatures](#authentication--signatures).
@@ -390,8 +390,10 @@ divergence-and-repair doctrine is the protocol doctrine's —
 
 ## Prefix derivation is whole-content
 
-A prefix derives from the entire inception body (with `said` and `prefix` blanked) — not a special
-tuple. Whatever fields the inception populates participate.
+A prefix derives from the entire inception body (with `said` and `prefix` set to the fixed-value
+placeholder — a same-length token, so the byte layout at derivation matches what a verifier
+re-derives with the real values in place) — not a special tuple. Whatever fields the inception
+populates participate.
 
 - **KEL**: the device's key state. The prefix is the device-key commitment.
 - **IEL**: the roster + threshold vector + the `nonce`. The `nonce` makes the prefix

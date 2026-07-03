@@ -90,8 +90,8 @@ regardless of chain state. The verifier walks each event and checks:
 
 - SAID recomputation matches the declared SAID (per
   [`../../sad/said.md`](../../sad/said.md#derivation)).
-- For the inception event: prefix recomputes from the canonical bytes with `said` and `prefix`
-  blanked.
+- For the inception event: prefix recomputes from the canonical bytes with `said` and `prefix` set
+  to the placeholder.
 - Per-kind required / forbidden field presence per the
   [event-shape reference](../event-shape.md#kel) (including the `manifest` role vocabulary and the
   `previousSeal` presence rule).

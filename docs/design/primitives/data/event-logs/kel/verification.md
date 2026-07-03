@@ -23,9 +23,11 @@ For every event the verifier walks, it ensures:
   [event-shape reference](../event-shape.md#kel)).
 - Serials start at 0 and increment by 1 with no gaps; the inception event has serial 0.
 - The inception event has a valid prefix (the prefix re-derives from the canonical bytes with `said`
-  and `prefix` blanked — see [`../../sad/said.md` §Derivation](../../sad/said.md#derivation)).
+  and `prefix` set to the placeholder — see
+  [`../../sad/said.md` §Derivation](../../sad/said.md#derivation)).
 - All event prefixes match the chain's prefix (set at inception).
-- All events have valid SAIDs (the SAID re-derives from the canonical bytes with `said` blanked).
+- All events have valid SAIDs (the SAID re-derives from the canonical bytes with `said` set to the
+  placeholder).
 - Events chain correctly from inception to tip via `previous` links; each seal-advancing event's
   `previousSeal` resolves to the prior seal (the spine).
 - Pre-rotation commitments are honored: each `Rot` / `Ror` / `Rec` / `Wit` / `Dec` reveals a
@@ -510,8 +512,8 @@ spanning two pages re-fetches at the next page rather than being processed half-
 
 | Property                       | Verification method                                                                                                                                                |
 | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SAID integrity                 | Re-derive the SAID from canonical bytes with `said` blanked; compare to declared.                                                                                  |
-| Prefix integrity               | At inception: re-derive prefix with `said` and `prefix` blanked; compare. Subsequent events: inherit and check consistency.                                        |
+| SAID integrity                 | Re-derive the SAID from canonical bytes with `said` set to the placeholder; compare to declared.                                                                   |
+| Prefix integrity               | At inception: re-derive prefix with `said` and `prefix` set to the placeholder; compare. Subsequent events: inherit and check consistency.                         |
 | Prefix consistency             | Every event's `prefix` equals the chain's prefix.                                                                                                                  |
 | Event chaining                 | `previous` resolves to a verified prior event SAID.                                                                                                                |
 | Spine linkage                  | On a seal-advancing event, `previousSeal` resolves to the prior seal.                                                                                              |
