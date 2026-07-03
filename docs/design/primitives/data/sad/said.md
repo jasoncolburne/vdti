@@ -57,6 +57,15 @@ The two hashes see different canonical bytes, so on the inception event `prefix 
 is the stable chain identifier — copied forward on every subsequent event of the chain. The SAID is
 the per-event content hash that turns over each event.
 
+**Why two hashes, not one — correlation resistance.** A single hash would set the inception event's
+SAID equal to the prefix — and the prefix is the chain's lookup key, while a SAID is an opaque
+per-event commitment (effectively an event's primary key) that is not itself a lookup key. So an
+application that logs event SAIDs — an audit trail, a trace, a debug line — reveals nothing about
+which chain an event belongs to, _except_ at the inception: if `said(Icp) == prefix`, logging that
+one SAID hands an observer the chain's lookup key, correlating every other logged SAID back to the
+identity. Deriving `prefix` and `said` via two separate hashes keeps `said(Icp)` a distinct opaque
+commitment, so no logged SAID — the inception's included — leaks the prefix.
+
 ## The fixed-value placeholder rule
 
 The placeholder mechanism — populating `said` (and `prefix`) with a fixed-value token of the SAID's
