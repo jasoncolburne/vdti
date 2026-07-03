@@ -231,13 +231,15 @@ The structural rules above produce three lifecycle paths per node.
   to their own serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it
   was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
-  until a `Rec` repairs it. A `Rec` attaches at its submitter's own last event, **retaining** that
-  branch and archiving the **archival tail(s)** — the competing branches: one is condemned by the
-  root committed as the `Rec`'s `fork` (a root condemns its whole subtree; growth after the repair
-  is dead by descent), every other closes below the seal and by descent without being named. Each
-  dead lineage is depth-capped by the seal-advance cap; the retained branch plus the `Rec` fits in
-  one page. See [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a
-  `Rec` can attach.
+  further origination until a `Rec` repairs it — or, for a content fork, a seal-advancer on the
+  winning branch buries the loser below the new seal. A `Rec` attaches at its submitter's own last
+  event, **retaining** that branch and archiving the **archival tail(s)** — the competing branches:
+  one is condemned by the root committed as the `Rec`'s `fork` (a root condemns its whole subtree;
+  growth after the repair is dead by descent), every other closes below the seal and by descent
+  without being named. Each dead lineage is depth-capped by the seal-advance cap; the retained
+  branch plus the `Rec` fits in one page. See
+  [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a `Rec` can
+  attach.
 - **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes
   Decommissioned. `Dec` advances the seal to its own serial and sits on the spine, but opens no new
   window — it permits no successor. Subsequent submissions are rejected by two independent
