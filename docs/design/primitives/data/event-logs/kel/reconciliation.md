@@ -43,8 +43,8 @@ The cases below depend on these protocol-enforced invariants. They are stated st
 protocol's safety claims hold _by construction_, not by observation.
 
 1. **Seal-advance cap compliance.** Every KEL has a seal-advancing event (`Rec` / `Ror` / `Rot` /
-   `Wit`) at least every `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. Surfaced by the
-   verifier and enforced by the merge handler. See
+   `Wit`) at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events (per lineage).
+   Surfaced by the verifier and enforced by the merge handler. See
    [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 2. **Bounded divergence.** A fork can only form after the last seal-advancing event (forking before
    triggers `SiblingLocked` per the locked-portion bound). Combined with invariant 1, the fork is
@@ -54,12 +54,22 @@ protocol's safety claims hold _by construction_, not by observation.
    [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model)); and
    **breadth** — nodes retain ≥ 2 competing events per position as fork evidence and drop the rest,
    with the one-content-sibling witnessing rule on top ([§Matrix 4](#matrix-4-repair-completeness)).
-3. **Bounded operations.** A recovery batch (`[Rec]` plus the retained-branch context) fits in one
-   `MINIMUM_PAGE_SIZE`-bounded page: the retained branch (≤ 64, the fold) plus the `Rec`. The losing
-   branch named by the **root** committed as the `Rec`'s `fork` is condemned — every other closes
-   below the seal and by descent — validated from retained storage (every competing branch walked
-   for the content-only guard), not held in the page; the full-span membership walk adds at most one
-   pre-fork page.
+3. **Bounded operations.** `MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`, sized so the **canonical two-branch
+   fork anchored at the last seal** — both lineages (≤ 64 each) plus the resolving `Rec` — fits one
+   page. This is what a **source → sink transfer** of that shape needs: the sink holds neither
+   branch (it is receiving the fork fresh), so the transfer carries both competing branches plus the
+   `Rec` in one atomic page, and the `Rec`'s content-only guard has both branches to walk. **Two
+   permitted shapes exceed one page and ride later pages** — correctness holds because the merge
+   guard is walk-what-you-hold-or-the-beacon-enumerates (validated-not-trusted for late privileged
+   arrivals — [`merge.md` §Discriminator algorithm](merge.md#discriminator-algorithm)), and the hard
+   co-delivery floor is only the named `fork` **root's body** (`root.previous = v_{d-1}`; without it
+   the `Rec` parks on a deferred dep): **(a)** an own-`Rot` in the retained tail spans two seal
+   windows (`seal1→Rot`, `Rot→Rec`), so the pre-`Rot` run rides earlier plain-linear pages; **(b)**
+   a **≥ 3-branch** residual fork (the retention floor is ≥ 2, not = 2) exceeds `2·64 + 1` — extra
+   branches ride later pages, and a late privileged one flips the reading (the eclipse-class
+   residual). (A **local** discriminator that already holds the competing branches in storage needs
+   only the retained branch (≤ 64) plus the `Rec`, validating the competing branches from storage;
+   the full-span membership walk adds at most one pre-fork page.)
 4. **A privileged divergence is terminal; a content divergence is repairable.** A privileged event
    (`Rot` / `Ror` / `Wit` / `Dec`) that would create or join a divergence does **not** extend the
    canonical chain — it is retained as non-canonical evidence (keep-all-data) rather than discarded.
@@ -92,30 +102,59 @@ The per-node state enumeration covers every shape that can arise under the merge
 Divergent state is reconcilable (`forked:`) or terminal (`disputed:`) is a further data-local
 reading, not a separate per-node state.
 
-| State                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**              | No events for this prefix on this node.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **Active**             | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| **Active (sealed)**    | The chain is Active (linear); this row covers a submission whose parent sits **strictly below** `last_seal_advancing_event` — in the locked portion (a stale view of the tip, or an attempted fork below the seal). The seal-cap rejects it as `SiblingLocked`. Extending the seal event itself is a normal append and stays Active — only a **below-seal** parent is locked. (Whether the rejected fork is separately retained as evidence is witnessing-gated — see [`merge.md` §Merge outcomes](merge.md#merge-outcomes).)                                                                                           |
-| **Divergent**          | A live fork: two distinct events at one serial; the chain is **frozen**. A privileged event extending `v_{d-1}` is retained as non-canonical evidence per invariant 4, not extended onto. Read `forked:` (≤ 1 privileged branch) or `disputed:` (≥ 2) data-locally.                                                                                                                                                                                                                                                                                                                                                     |
-| **Divergent (sealed)** | A Divergent chain (a live fork) where a **privileged event landed on one branch before the fork was resolved** — a `Rot` / `Ror` / `Wit` / `Rec` that arrived via gossip lag and advanced the seal **past the fork point**. Because the fork point `v_{d-1}` now sits below the seal, a repair can no longer attach there — a `Rec` against `v_{d-1}` is rejected as `SiblingLocked` ([§Repair-event bound](recovery.md#repair-event-bound)). The fork still reads `forked:` / `disputed:` data-locally, and any repair must attach **at-or-after the seal**, on the surviving branch (the branch-tip-extending shape). |
-| **Recovered**          | Clean chain after the `Rec` committed one losing branch's root as its `fork` in the merge transaction (the root condemning its subtree; every other competing branch closes below the seal and by descent). Equivalent to Active in subsequent rules.                                                                                                                                                                                                                                                                                                                                                                   |
-| **Decommissioned**     | A terminal `Dec` with no competing privileged event at its position — the `Dec` is the canonical tip. Fully terminal: all submissions rejected by the seal-cap or the kind-schema rule. (A content event that raced the `Dec` lands as a dead sibling — the `Dec` wins on tier-rank; see [§Matrix 4](#matrix-4-repair-completeness).)                                                                                                                                                                                                                                                                                   |
+| State                  | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**              | No events for this prefix on this node.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| **Active**             | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Active (sealed)**    | The chain is Active (linear); this row covers a submission whose parent sits **strictly below** `last_seal_advancing_event` — in the locked portion (a stale view of the tip, or an attempted fork below the seal). The seal-cap rejects it as `SiblingLocked`. Extending the seal event itself is a normal append and stays Active — only a **below-seal** parent is locked. (Whether the rejected fork is separately retained as evidence is witnessing-gated — see [`merge.md` §Merge outcomes](merge.md#merge-outcomes).)                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Divergent**          | A live fork: two distinct events at one serial; the chain is **frozen**. A privileged event extending `v_{d-1}` is retained as non-canonical evidence per invariant 4, not extended onto. Read `forked:` (≤ 1 privileged branch) or `disputed:` (≥ 2) data-locally.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **Divergent (sealed)** | A live fork **at the seal** — a competing event at the seal-advancer's own serial `N` (both children of `v_{N-1}`). You can fork the **present**, not the **past**: below the seal is locked, so a competing event there is inert (dead), never a live fork. The node accepts the seal-advancer (`Rot`/`Ror`/`Wit` at `N`; seal → `N`), then a competing `Ixn@N` arrives — `SiblingLocked` (its parent `v_{N-1}` sits below the seal), retained as evidence — and the chain reads `forked:` / `disputed:` over its **at-or-above-seal** competing tips ([§Effective-SAID convergence](#effective-said-convergence)). A `Rot` doesn't resolve the fork; a `Rec` does. The `Rec` lands **after** the seal (`rec.previous = seal.said` ⇒ `rec.serial = N+1`; a `Rec` _at_ the seal's serial would itself be a competing event → dispute) and **condemns** the losing branch (root-condemnation marks it dead — distinct from the forbidden below-seal _extension_, invariant 5). |
+| **Recovered**          | Clean chain after the `Rec` committed one losing branch's root as its `fork` in the merge transaction (the root condemning its subtree; every other competing branch closes below the seal and by descent). Equivalent to Active in subsequent rules.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| **Decommissioned**     | A terminal `Dec` with no competing privileged event at its position — the `Dec` is the canonical tip. Fully terminal: all submissions rejected by the seal-cap or the kind-schema rule. (A content event that raced the `Dec` lands as a dead sibling — the `Dec` wins on tier-rank; see [§Matrix 4](#matrix-4-repair-completeness).)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+
+## Merge outcomes — the cell vocabulary
+
+Every cell in Matrices 1-2 names the **merge outcome** the engine returns for that (chain state,
+submitted kind) — the single verdict the real merge engine produces per submission
+([`merge.md` §Merge outcomes](merge.md#merge-outcomes) is authoritative). Each outcome is one
+verdict with a fixed effect on the chain:
+
+| Outcome               | Verdict                                                                                                       | Chain after                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| **Accepted**          | admitted                                                                                                      | extends linearly (→ **Decommissioned** on a `Dec`) |
+| **Diverged**          | admitted as a fork                                                                                            | **Active → Divergent**                             |
+| **Recovered**         | repair admitted — resolves a divergence, _forming_ it too when the repair attaches **before** the current tip | → **Active**                                       |
+| **RecoverRequired**   | nothing lands (guidance)                                                                                      | stays **Divergent** (frozen)                       |
+| **SiblingLocked**     | rejected — parent below the seal, or would fork the spine                                                     | unchanged                                          |
+| **KelDecommissioned** | rejected — a `Dec` admits no successor                                                                        | unchanged (terminal)                               |
+| **Rejected**          | rejected — structurally inapplicable here                                                                     | unchanged                                          |
 
 ## Matrix 1: Local submissions
 
-What happens when a client submits events to the merge engine on a single node. Each cell names the
-outcome (per [`merge.md` §Merge outcomes](merge.md#merge-outcomes)) and the structural reason.
+What happens when a client submits events to the merge engine on a single node. Each cell is a merge
+outcome (above); the structural _why_ is in [§Notes on cell routing](#notes-on-cell-routing).
 
-| Chain state                                                    | `Icp` / `Fcp`                            | `Ixn`                      | `Rot`                         | `Ror` / `Wit`                 | `Rec`                                                                                                                                                                                                                                                                         | `Dec`                                        |
-| -------------------------------------------------------------- | ---------------------------------------- | -------------------------- | ----------------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| **Empty**                                                      | **Append ✓ (inception creates the KEL)** | Reject (no KEL)            | Reject                        | Reject                        | Reject                                                                                                                                                                                                                                                                        | Reject                                       |
-| **Active**                                                     | Reject (KEL exists)                      | Append ✓                   | Append ✓ (linear extension)   | Append ✓ (linear extension)   | Append ✓ (gossip-sync of an already-recovered chain lands cleanly; a _bare_ `Rec` with no `fork` on a non-divergent tip is rejected — [§Edge cases](#edge-cases) case 1)                                                                                                      | Append ✓ → Decommissioned (linear extension) |
-| **Active (sealed)** (parent below `last_seal_advancing_event`) | Reject (KEL exists)                      | `SiblingLocked` (seal-cap) | `SiblingLocked` (seal-cap)    | `SiblingLocked` (seal-cap)    | `SiblingLocked` (locked-portion bound)                                                                                                                                                                                                                                        | `SiblingLocked` (seal-cap)                   |
-| **Divergent** (frozen)                                         | Reject (KEL exists)                      | `RecoverRequired`          | `SiblingLocked` (invariant 4) | `SiblingLocked` (invariant 4) | **Recovered** ✓ if every competing branch is content-only (one losing branch's root committed as `fork`; the rest close below the seal and by descent); **rejected → `disputed:`** if any competing branch holds a privileged event (the rejected `Rec` retained and counted) | `SiblingLocked` (invariant 4)                |
-| **Divergent (sealed)**                                         | Reject (KEL exists)                      | `SiblingLocked`            | `SiblingLocked` (seal-cap)    | `SiblingLocked` (seal-cap)    | `SiblingLocked` (locked-portion bound)                                                                                                                                                                                                                                        | `SiblingLocked` (seal-cap)                   |
-| **Recovered**                                                  | Reject (KEL exists)                      | Same as Active             | Same as Active                | Same as Active                | Same as Active                                                                                                                                                                                                                                                                | Same as Active                               |
-| **Decommissioned**                                             | Reject (KEL exists)                      | `KelDecommissioned`        | `KelDecommissioned`           | `KelDecommissioned`           | `KelDecommissioned`                                                                                                                                                                                                                                                           | `KelDecommissioned`                          |
+| Chain state            | `Icp` / `Fcp` | `Ixn`             | `Rot`             | `Ror` / `Wit`     | `Rec`                  | `Dec`             |
+| ---------------------- | ------------- | ----------------- | ----------------- | ----------------- | ---------------------- | ----------------- |
+| **Empty**              | Accepted      | Rejected          | Rejected          | Rejected          | Rejected               | Rejected          |
+| **Active**             | Rejected      | Accepted          | Accepted          | Accepted          | Accepted / Recovered ᵃ | Accepted          |
+| **Active (sealed)**    | Rejected      | SiblingLocked     | SiblingLocked     | SiblingLocked     | SiblingLocked          | SiblingLocked     |
+| **Divergent** (frozen) | Rejected      | RecoverRequired   | SiblingLocked     | SiblingLocked     | Recovered ᵇ            | SiblingLocked     |
+| **Divergent (sealed)** | Rejected      | SiblingLocked     | SiblingLocked     | SiblingLocked     | SiblingLocked          | SiblingLocked     |
+| **Recovered**          | Rejected      | as Active         | as Active         | as Active         | as Active              | as Active         |
+| **Decommissioned**     | Rejected      | KelDecommissioned | KelDecommissioned | KelDecommissioned | KelDecommissioned      | KelDecommissioned |
+
+### Guarded cells
+
+- **ᵃ Active × `Rec`** — depends on the repair's shape: **Accepted** if it extends the current tip
+  (syncing an already-recovered chain); **Recovered** if it attaches at the submitter's own last
+  event **before** the current tip (retained tip ≠ tip) — it forms a fork and resolves it in one
+  action, and **the archived branch must be content-only**; **Rejected** if it is a _bare_ `Rec`
+  with no `fork` on a non-divergent tip. An archived branch carrying a privileged event → **Rejected
+  → `disputed:`**.
+- **ᵇ Divergent × `Rec`** — **Recovered** if every competing branch is content-only; **Rejected →
+  `disputed:`** if any competing branch holds a privileged event (a repair can never archive a
+  rotation — the fork is terminal).
 
 ### Notes on cell routing
 
@@ -159,21 +198,52 @@ The merge engine handles batches atomically:
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 
-When node A propagates a KEL to node B, the transfer reads from A's local chain state and submits to
-B's merge engine. Each cell describes the outcome at B for the named source / sink state pair.
+When a **source** node propagates a KEL to a **sink**, the transfer reads the source's chain state
+and submits to the sink's merge engine. Each cell is the **merge outcome at the sink** (the
+vocabulary defined above, before Matrix 1); the transfer mechanics — reordering, send-side
+partitioning — are in the notes below.
 
-"Active (retained)" means B has the eventual retained branch's non-divergent chain. "Active
-(alternate)" means B has the eventual archived-tail branch's non-divergent chain (submitted to that
-node before the divergence was detected elsewhere). The protocol cannot distinguish the two from
-chain data alone — "retained" is the branch the `Rec` (whoever holds the recovery key) ultimately
-keeps.
+"Active (retained)" means the sink has the eventual retained branch's non-divergent chain. "Active
+(alternate)" means the sink has the eventual archived-tail branch's non-divergent chain (submitted
+to that node before the divergence was detected elsewhere). The protocol cannot distinguish the two
+from chain data alone — "retained" is the branch the `Rec` (whoever holds the recovery key)
+ultimately keeps.
 
-| Source                      | Sink: Empty                               | Sink: Active (retained)                 | Sink: Active (alternate)                | Sink: Divergent                             | Sink: Decommissioned                 |
-| --------------------------- | ----------------------------------------- | --------------------------------------- | --------------------------------------- | ------------------------------------------- | ------------------------------------ |
-| **Active**                  | Full chain appended ✓                     | Duplicates; no-op ✓                     | Overlap → Divergence                    | `RecoverRequired`                           | `SiblingLocked`                      |
-| **Recovered**               | Full clean chain ✓                        | `Rec` append ✓                          | Overlap → `Rec` in batch → Recovery ✓   | `RecoverRequired` (sink awaiting recovery)  | `SiblingLocked`                      |
-| **Divergent (unrecovered)** | Reordered: longer chain plus fork event ✓ | Fork event creates overlap → Divergence | Fork event creates overlap → Divergence | Effective SAIDs match (`forked:{prefix}`) ✓ | `SiblingLocked`                      |
-| **Decommissioned**          | Full chain plus `Dec` ✓                   | `Dec` appends ✓                         | Overlap; `Dec` in chain ✓               | `RecoverRequired`                           | Effective SAIDs match (`Dec.said`) ✓ |
+| Source ↓ / Sink →           | Empty    | Active (retained) | Active (alternate) | Divergent       | Decommissioned |
+| --------------------------- | -------- | ----------------- | ------------------ | --------------- | -------------- |
+| **Active**                  | Accepted | Accepted          | Diverged           | RecoverRequired | SiblingLocked  |
+| **Recovered**               | Accepted | Accepted          | Recovered          | Recovered ᵈ     | SiblingLocked  |
+| **Divergent** (unrecovered) | Diverged | Diverged          | Diverged           | Accepted ᵃ      | SiblingLocked  |
+| **Decommissioned**          | Accepted | Accepted          | Diverged ᵇ         | RecoverRequired | Accepted ᶜ     |
+
+**Column note (the Active-source row).** "retained" / "alternate" are relative to the **source's**
+branch: a sink on the _same_ branch as the source reads "retained" (→ `Accepted`, dedup); a sink on
+a _different_ branch reads "alternate" (→ `Diverged`, a fork forms). For a not-yet-recovered Active
+source, which branch is eventually retained isn't known — the outcome depends only on
+same-vs-different-branch.
+
+**Guarded cells:**
+
+- **ᵃ Divergent → Divergent** — both sinks already hold the fork; the transfer exchanges any
+  competing branch each lacks (dedup) and they converge on the same real digest — no new canonical
+  state.
+- **ᵇ Decommissioned → Active (alternate)** — the incoming `Dec` and the sink's content branch form
+  a divergence; the `Dec` wins on **tier-rank** and the content archives dead → the sink reads
+  **Decommissioned**. (This is the one fork that auto-resolves without a `Rec` — a terminal `Dec`
+  admits no successor; the base outcome legend has no tier-rank token, so this two-step outcome is
+  the exception.)
+- **ᶜ Decommissioned → Decommissioned** — both already hold the `Dec` (dedup); already converged.
+- **ᵈ Recovered → Divergent** — the source's chain carries the `Rec`, which lands in the sink's
+  `since:{own seal}` window and resolves the sink's frozen divergence (edge case 2) → **Recovered**
+  (merge.md's Divergent-KEL routing: a batch containing a `Rec` runs the discriminator → Recovered).
+  **`disputed:`** if the sink holds a competing privileged branch the `Rec` would condemn; a sink
+  divergence that _postdates_ the source's `Rec` (a fresh fork above `seal2`, uncovered) stays
+  **RecoverRequired**.
+
+**Divergent (sealed) as a source/sink.** Not enumerated as its own row/column: it transfers as its
+underlying branches — a below-seal competing branch rides along as evidence, adding no canonical
+state — and its per-node classification + digest are pinned in the state table +
+[§Effective-SAID convergence](#effective-said-convergence).
 
 ### Notes on cell routing
 
@@ -190,11 +260,11 @@ keeps.
   merge handler will reject a particular batch composition. See
   [`merge.md` §Gossip send-side partitioning](merge.md#gossip-send-side-partitioning) and
   [§Transfer ordering](#transfer-ordering) below.
-- **Divergent → Divergent sink.** Effective SAIDs match by construction (both compute the synthetic
-  `forked:{prefix}`). Full anti-entropy may reconcile any missing branch events even when SAIDs
-  already match — keep-all-data means each node accumulates the competing branches it lacks, which
-  is what lets a one-branch holder escalate a `forked:` reading to `disputed:` when a second
-  privileged branch arrives.
+- **Divergent → Divergent sink.** The effective SAID is a **real digest over the held competing
+  tips**, so two sinks converge **once they hold the same branches** — anti-entropy exchanges the
+  competing branch events each lacks (keep-all-data + `since: last_seal.said`); until then their
+  digests differ, which is itself the signal to sync. A one-branch holder escalates a `forked:`
+  reading to `disputed:` when a second privileged branch arrives.
 - **Cross-node privileged-vs-privileged races.** When the source and sink hold different competing
   privileged events at the same serial, each node retains the other's event as non-canonical
   evidence and reads `disputed:` data-locally — see [§Matrix 3](#matrix-3-race-matrix).
@@ -216,23 +286,26 @@ normal operation, only unrecovered divergent cases reach the partitioning path.
 
 ### Effective-SAID convergence
 
-All nodes must eventually agree on the effective SAID for each prefix. The effective SAID is the
-chain's canonical wire-format identifier; nodes exchange it during anti-entropy.
+All nodes must eventually agree on the effective SAID for each prefix — the chain's canonical
+wire-format identifier, exchanged during anti-entropy. It is a **real, branch-derived digest** (no
+synthetics): a deterministic function of the actual events a node holds.
 
-| State                                                | Effective SAID computation                                                           | Converges?                                                                                                                                                                                                                                                                                        |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Active**                                           | Tip event SAID                                                                       | ✓ (identical chains after gossip)                                                                                                                                                                                                                                                                 |
-| **Divergent (reconcilable)**                         | `hash_effective_said("forked:{prefix}")` — deterministic synthetic                   | ✓ (same value regardless of which fork events each node holds; avoids wasted anti-entropy sync)                                                                                                                                                                                                   |
-| **Recovered**                                        | Tip event SAID                                                                       | ✓ (identical clean chains after gossip)                                                                                                                                                                                                                                                           |
-| **Decommissioned**                                   | `Dec` event SAID                                                                     | ✓ (identical chains across all nodes where `Dec` landed without a competing privileged submission). When a competing privileged event racing `Dec`'s parent reaches a different node, both nodes retain both branches and read `disputed:` data-locally (see [§Matrix 3](#matrix-3-race-matrix)). |
-| **Disputed** (≥ 2 privileged branches past the fork) | `hash_effective_said("disputed:{prefix}")` — deterministic synthetic, **data-local** | ✓ (deterministic; any verifier computes it from the retained branches — over the canonical chain plus the retained set; returned by chain-query responses regardless of per-node tip state).                                                                                                      |
+| State                                      | Effective SAID (the value)                                                                                                                                                                                      | Converges?                                                                                                                                                                                                                                                                                                                                                         |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Active / Recovered**                     | the canonical **tip event SAID**                                                                                                                                                                                | ✓ (identical chains after gossip)                                                                                                                                                                                                                                                                                                                                  |
+| **Decommissioned**                         | the `Dec`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                                                                                          | ✓ where the `Dec` landed uncontested; a competing privileged event racing it → both nodes hold both branches → `disputed:` data-locally ([§Matrix 3](#matrix-3-race-matrix))                                                                                                                                                                                       |
+| **Divergent — `forked:` _or_ `disputed:`** | a **real digest over the held competing tips** (a deterministic hash of the sorted branch-tip SAIDs; the `forked:` / `disputed:` verdict is a _separate_ data-local walk — ≤ 1 vs ≥ 2 privileged past the fork) | ✓ **once the branches propagate** — true convergence rests on guaranteed witnessed propagation ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence)); **fail-secure under partition** — nodes holding different branch sets compute different digests, so disagreement drives a fetch (reachable) or reads as multi-source distrust |
 
-The synthetics depend only on `(state, prefix)` — no chain history, no fork point, no serial — so
-any node computes either synthetic without holding chain state, and two differently-forked nodes
-compute the same value and recognize each other's state. Whether a fork is `forked:` or `disputed:`
-is the **branch-walk's** result over the retained branches, not encoded in the synthetic. See
-[§Effective-SAID synthetic comparison](../../../../protocol-doctrine.md#effective-said-synthetic-comparison)
-for the cross-primitive framing.
+The digest is **branch-sensitive** — it moves the instant a node's held branch set changes, which is
+what lets the effective-SAID delta drive anti-entropy (a missing branch shows up as a differing
+digest, prompting the fetch that assembles it). Convergence is therefore **conditional on
+propagation** — eventual barring partition, fail-secure under partition — not the unconditional
+convergence a `(state, prefix)` synthetic would give: a branch-agnostic synthetic **masks** a
+missing branch (two differently-forked nodes falsely agree), whereas the real digest **exposes** the
+difference. Whether a fork is `forked:` or `disputed:` is the **branch-walk's** result over the
+retained branches, separate from the digest. See
+[§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison) for the
+cross-primitive framing.
 
 **Finality of a Recovered reading is two-valued, per question** (the repair-completeness split —
 [§Matrix 4](#matrix-4-repair-completeness)). The repair is **content-final** the instant it seals:
@@ -299,8 +372,8 @@ Gossip propagates:
 
   Data-local walk on each node:
     two privileged branches past v_{d-1} → disputed:
-    effective_said(A) = effective_said(B) = hash_effective_said("disputed:{prefix}")
-    → both nodes converge on the disputed synthetic.
+    effective_said(A) = effective_said(B) = hash(sorted competing privileged tips)
+    → both nodes hold the same two branches → the same real digest → converge on disputed.
 ```
 
 Convergence in this scenario is **data-local**: once keep-all-data retention plus the witness beacon
@@ -467,7 +540,8 @@ to the true competing set. Then:
   window (Matrix 1's Divergent × `Rec` cell reads rejected → `disputed:`).
 - **≥ 2 privileged** (including a beacon-late privileged branch) → **`disputed:`** everywhere
   (FORCE-by-provenance once a node holds ≥ 2; via receipt-then-fetch otherwise); the effective SAID
-  is `hash_effective_said("disputed:{prefix}")`.
+  is the **real digest over the held competing tips** (all nodes converge on it once the branches
+  propagate).
 
 ### Termination
 
@@ -644,8 +718,8 @@ branch to a one-branch holder. The seal-cap stays unconditional.
   divergence and repair; privileged-divergence terminality; keep-all-data retention.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#forks-are-seal-bounded) —
   seal-cap and locked-portion bound.
-- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#effective-said-synthetic-comparison)
-  — effective-SAID synthetic comparison.
+- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#effective-said-comparison) —
+  effective-SAID comparison (cross-primitive).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the majority floor, the
   beacon, divergent witness receipts.

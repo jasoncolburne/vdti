@@ -66,12 +66,14 @@ Whether a fork can be repaired turns on **tier**, read from the data:
 - **Reconcilable** — at most one branch carries a privileged event past the fork. A `Rec` keeps the
   recovering party's own branch and archives the rest, naming one losing branch's **root** as its
   `fork` (every other competing branch closes below the seal and by descent, unnamed) — every
-  competing branch must be content-only; the chain returns to Active. Effective SAID:
-  `forked:{prefix}` while the fork stands.
+  competing branch must be content-only; the chain returns to Active. While the fork stands the
+  chain reads `forked:`; the effective SAID is the real digest over the held at-or-above-seal
+  competing tips.
 - **Terminal (disputed)** — **two or more branches each carry a privileged event** past the fork. No
   privileged branch can be archived (a privileged event is never overturned — that would resurrect
-  retired keys), so no single chain can be chosen and the prefix must **reincept**. Effective SAID:
-  `disputed:{prefix}`.
+  retired keys), so no single chain can be chosen and the prefix must **reincept**. The chain reads
+  `disputed:` — the same real branch digest as any live fork; the verdict is the walk's, never
+  encoded in the value.
 
 Terminality is a **branch-level fact any verifier computes data-locally** by walking the
 **retained** branches — a node retains a competing branch as non-canonical evidence rather than
@@ -80,7 +82,7 @@ privileged branches reads `disputed:` directly; a node holding only one fetches 
 **witness beacon**, which **enumerates** the competing branch SAIDs. The federation **propagates**
 the branches; it does **not** decide the verdict. See
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) and
-[§Effective-SAID synthetic comparison](../../../../protocol-doctrine.md#effective-said-synthetic-comparison).
+[§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 
 ## The seal, the spine, and the locked-portion bound
 
@@ -169,16 +171,22 @@ their past contributions; only the going-forward spent-key effect applies.
 ## Seal-advance cap
 
 A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the terminal `Dec` also advances the seal but
-ends the chain) must land at least every `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The
-cap bounds the **fold** — the content run since the last seal — to 64 events on a branch, so a
-divergence-and-repair fits in one page (the retained branch plus the `Rec`).
+ends the chain) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events
+**per lineage**. The cap bounds the **fold** — the content run since the last seal — to 64 events on
+each branch, so the canonical two-branch fork anchored at the last seal — both lineages (≤ 64 each)
+plus the resolving `Rec` — fits in one page.
 
-`MINIMUM_PAGE_SIZE` is a protocol constant — a deployment floor, not a per-deployment knob — so a
-recovery batch produced on any conformant deployment fits in one page on every other. The `− 1`
-headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
-discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the losing branch named by
-the `Rec`'s `fork` root is condemned — every other closes below the seal and by descent — validated
-from retained storage, not held in the page.
+`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1` is a protocol constant — a deployment floor, not a
+per-deployment knob — so a fork-and-repair page produced on any conformant deployment fits on every
+other. The page carries **both** competing branches plus the `Rec` because a source → sink transfer
+delivers the fork to a sink that holds neither branch in storage — the `Rec`'s content-only guard
+must have every branch to walk within one atomic unit. A **local** discriminator needs less: its hot
+page is the retained branch (≤ 64) plus the `Rec`; the losing branch named by the `Rec`'s `fork`
+root is condemned — every other closes below the seal and by descent — validated from retained
+storage, not held in the page. The shapes that exceed one page (an own-`Rot` in the retained tail; a
+≥ 3-branch residual fork) ride earlier or later pages —
+[`reconciliation.md` §Invariants](reconciliation.md#invariants) (invariant 3) carries the
+derivation.
 
 Recovery-preimage rotation cadence (how often `Ror` should land to refresh the commitment) is
 **operator guidance**, not a protocol-enforced cap — see
@@ -197,9 +205,9 @@ Chains are read, verified, written, and replicated in **pages** of bounded size.
 unit of memory budget for the verifier walk, the unit of round-trip for storage reads, and the unit
 of atomicity for the merge handler's discriminator.
 
-- **`MINIMUM_PAGE_SIZE` = 65** — protocol constant; the floor every conformant deployment must
-  support. The seal-advance cap (`MINIMUM_PAGE_SIZE − 1 = 64`) is derived from this constant so a
-  recovery batch produced anywhere validates anywhere.
+- **`MINIMUM_PAGE_SIZE` = 129** — protocol constant; the floor every conformant deployment must
+  support. The seal-advance cap (`(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage) is derived from this
+  constant so a two-branch fork-and-repair page produced anywhere validates anywhere.
 - **Page boundaries align with generations.** A generation is the set of events at the same serial.
   The verifier processes events in generation order (`serial ASC, kind sort_priority ASC, said ASC`)
   and re-fetches an incomplete generation at the next page boundary; a divergent generation that
@@ -211,7 +219,7 @@ of atomicity for the merge handler's discriminator.
 
 The page model lets every operation be bounded-resource. The discriminator's hot page — the retained
 branch plus the `Rec` — fits in one page (per the seal-advance cap derivation above). The verifier's
-`max_pages` cap (default 64 pages ≈ 4K events; configurable via env var) caps resource use even on
+`max_pages` cap (default 64 pages ≈ 8K events; configurable via env var) caps resource use even on
 adversarial chains.
 
 ## Chain-lifecycle paths (per-node)
@@ -275,7 +283,7 @@ the recovery-side composition with the three-tier compromise model is in
 - [`reconciliation.md`](reconciliation.md) — exhaustive case-matrix proof of cross-node convergence.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and repair, forks-are-seal-bounded and the spine, operation categories,
-  federation convergence, effective-SAID synthetics.
+  federation convergence, the effective-SAID comparison.
 - [`../../sad/sad.md`](../../sad/sad.md), [`../../sad/said.md`](../../sad/said.md) — the SAD shape
   KEL events compose on; prefix and SAID derivation algorithms.
 - [`../iel/`](../iel/) — IEL primitive (subsequent sub-issue). KEL events host the anchors that

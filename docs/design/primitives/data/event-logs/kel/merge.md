@@ -157,7 +157,7 @@ For events admitted past rule 3, kind-specific authorization fires:
 - **Forward-key commitment checks** for establishment events (see
   [`events.md` §Forward-key commitments](events.md#forward-key-commitments)).
 - **Seal-advance cap enforcement** — between successive seal-advancing events the count of
-  non-seal-advancing events must not exceed `MINIMUM_PAGE_SIZE − 1 = 64`. See
+  non-seal-advancing events must not exceed `(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage. See
   [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 - **Repair commits its divergence by root, content-only — validated, not trusted** — a `Rec` must
   carry a **`fork`** (a `Rec` with no `fork` is rejected — no repairing a non-divergent tip): the

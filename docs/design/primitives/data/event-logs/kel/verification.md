@@ -267,11 +267,12 @@ Token fields are private with no public constructor — the only way to obtain o
   branches: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork with at most one
   privileged branch — recoverable, pending its repair), or **disputed** (two or more branches each
   carry a privileged event past the fork — terminal, reincept).
-- `effective_said()` → the single tip SAID; or the `Dec` SAID when decommissioned; or
-  `hash_effective_said("forked:{prefix}")` for a reconcilable / pending fork; or
-  `hash_effective_said("disputed:{prefix}")` when the data-local walk finds two or more privileged
-  branches. See
-  [§Effective-SAID synthetic comparison](../../../../protocol-doctrine.md#effective-said-synthetic-comparison).
+- `effective_said()` → the single canonical tip SAID (the `Dec` SAID when decommissioned); on a live
+  fork, a **real branch-derived digest** — a deterministic, domain-separated hash over the sorted
+  set of the held **at-or-above-seal** competing branch tips (a fork at the seal counts; a
+  below-seal loser is dead and never enters the set). Whether the fork is `forked:` or `disputed:`
+  is the separate walk verdict (`region()`), never encoded in the value. See
+  [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `is_said_anchored()`, `anchors_all_saids()` → inline anchor-checking results for SAIDs the caller
   registered before the walk.
 
@@ -467,7 +468,7 @@ page rather than loading the full chain into memory.
 `completed_verification(loader, prefix, page_size, max_pages, anchors)` pages through a
 `PageLoader`, calling `truncate_incomplete_generation()` at page boundaries to handle divergent
 generations that span pages. Returns a trusted `KelVerification` token. The `max_pages` parameter
-prevents resource exhaustion (default 64 pages ≈ 4K events; configurable via env var).
+prevents resource exhaustion (default 64 pages ≈ 8K events; configurable via env var).
 
 ### PageLoader
 

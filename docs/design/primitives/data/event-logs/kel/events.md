@@ -266,12 +266,14 @@ rotation cadence.
 
 **Seal-advance cap (protocol-enforced).** A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the
 terminal `Dec` also advances the seal but ends the chain) must land at least every
-`MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The cap bounds the **fold** — the content
-run since the last seal — to 64 events on a branch, so a divergence-and-repair fits in one page. The
-`− 1` headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
-discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the losing branch named by
-the `fork` root is condemned — every other closes below the seal and by descent — validated from
-retained storage. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+`(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The cap bounds the **fold**
+— the content run since the last seal — to 64 events on each branch, so the canonical two-branch
+fork plus the resolving `Rec` fits in one page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source →
+sink transfer must carry both competing branches plus the `Rec` atomically, since the sink holds
+neither branch in storage. A local discriminator's hot page is smaller — the retained branch (≤ 64)
+plus the `Rec`; the losing branch named by the `fork` root is condemned — every other closes below
+the seal and by descent — validated from retained storage. See
+[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Recovery-preimage rotation (operator guidance).** Operators SHOULD rotate the recovery-key
