@@ -267,13 +267,14 @@ Token fields are private with no public constructor — the only way to obtain o
   branches: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork with at most one
   privileged branch — recoverable, pending its repair), or **disputed** (two or more branches each
   carry a privileged event past the fork — terminal, reincept).
-- `effective_said()` → a fingerprint of **which events this node holds**: a deterministic hash over
-  **all the branch tips the log holds**. A single held tip yields that tip's SAID (the `Dec` SAID
-  when decommissioned); several held tips — a live fork, or a retained condemned or dead branch —
-  yield a domain-separated hash over all of them, sorted. It is decoupled from the trust reading:
-  whether a fork is `forked` or `disputed` is the separate walk verdict (`region()`), never encoded
-  in the value. See
-  [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
+- `effective_said()` → a fingerprint of the node's **live state**: a deterministic hash over the
+  **live branch tips the log holds** — the canonical tip and any unresolved competing branch. A
+  single live tip yields that tip's SAID (the `Dec` SAID when decommissioned); several live tips —
+  an unresolved fork — yield a domain-separated hash over all of them, sorted. A **settled** branch
+  (one a repair condemned, or a content sibling buried below the seal) drops out — it is forensic,
+  via the on-chain `fork` commitment. It is decoupled from the trust reading value: whether a fork
+  is `forked` or `disputed` is the separate walk verdict (`region()`), never encoded in the value.
+  See [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `is_said_anchored()`, `anchors_all_saids()` → inline anchor-checking results for SAIDs the caller
   registered before the walk.
 

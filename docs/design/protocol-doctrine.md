@@ -366,18 +366,27 @@ divergence (signatures live adjacent to the event, outside the SAID'd bytes —
 [event-shape](primitives/data/event-logs/event-shape.md) — so the same act by two parties is
 byte-identical); only distinct events at one position collide.
 
-**A live divergence freezes the chain.** Once a node observes a fork **at or above the seal**, the
-chain accepts **no new event of any kind** — content, governance, rotation, kill — until the
-divergence is resolved; the **sole** valid next move is the repair, with one carve-out: a fork whose
-single privileged branch is a **terminal `Dec`** (an identity/SEL decommission — no successor to
-carry a repair) resolves by **tier-rank** with no repair (below). A `Kil` is **not** terminal (it
-kills a _target_, not its host chain), so `{Kil, content}` repairs like `{Evl, content}`. (A
-below-seal **content** straggler that arrives after the chain already sealed past its serial is kept
-as evidence or dropped as **uncommitted** content — content condemned by no repair's `fork` and
-beyond the evidence bound; the keep-or-drop selector is the retention bound below — never a freeze:
-the canonical branch is already sealed past it. A below-seal **privileged** straggler is not inert —
-it is a spine fork and flips the reading to `disputed`; see pre-seal verifiability, below.) Freezing
-the chain on divergence is the founding insight of the event-log primitives.
+**A live divergence freezes further origination; the reading is a pure walk.** A node's **reading**
+of a chain — Active / `forked` / `disputed` — is a **pure function of the events it holds**: the
+walk derives the seal from those events (the most recent seal-advancing event that landed cleanly on
+a linear run) and reads the fork against it, so two nodes holding the same events read the same
+state whatever order the events arrived in. What **freezes** is **origination**: while a node holds
+a fork **at or above the derived seal**, it originates **no new event of any kind** — content,
+governance, rotation, kill — onto that live fork. The ways forward are the repair or, for a
+**content** fork, a **seal-advancer on the winning branch** that buries the loser below the new seal
+(you cannot fork the past, so a below-seal content loser is inert). Freezing is an **origination
+posture**, not a stored flag and not the reading: a node that comes to hold a burying seal-advancer
+re-reads the chain **Active**, exactly as a node that sealed before it ever saw the loser. One
+carve-out on the resolving move: a fork whose single privileged branch is a **terminal `Dec`** (an
+identity/SEL decommission — no successor to carry a repair) resolves by **tier-rank** with no repair
+(below). A `Kil` is **not** terminal (it kills a _target_, not its host chain), so `{Kil, content}`
+repairs like `{Evl, content}`. (A below-seal **content** straggler that arrives after the chain
+already sealed past its serial is kept as evidence or dropped as **uncommitted** content — content
+condemned by no repair's `fork` and beyond the evidence bound; the keep-or-drop selector is the
+retention bound below — never a freeze: the canonical branch is already sealed past it. A below-seal
+**privileged** straggler is not inert — it is a spine fork and flips the reading to `disputed`; see
+pre-seal verifiability, below.) Freezing origination on divergence is the founding insight of the
+event-log primitives.
 
 On a **witnessed** chain, a **content** fork rarely reaches this machinery at all: the witnessing
 majority floor makes two competing content siblings un-co-witnessable, so the fork is **prevented**
@@ -385,6 +394,16 @@ from forming below fork-cost ([§Federation convergence](#federation-convergence
 are what run in the **residual** — direct-mode / no-witness chains, a witness compromise at
 fork-cost, split-stalls (where the repair is the exit), and **privileged** races, which the floor
 never gates.
+
+The **shape-validity gate** — reject a seal-advancer that would bury a **privileged** branch, or a
+repair that would archive a privileged branch or condemn its own retained chain — runs wherever an
+event is admitted to **trusted** state, in either mode. On a witnessed chain the **witness** applies
+it before signing: a shape it declines never reaches threshold, and a non-witness admits nothing
+below threshold. On a direct-mode chain the **merging node applies it itself**, since there is no
+witness to defer to. Merge otherwise integrates every structurally valid event (keep-all-data) and
+lets the walk read the state; it does not stick a divergence into the reading. Content-fork
+**prevention** is the witnessed-only layer; a direct-mode content fork forms, reads `forked`
+(fail-secure), and resolves by repair or by a burying seal-advancer.
 
 **Divergence is resolved by tier, not by identity.** Chain data cannot tell the rightful operator
 from an adversary — both branches were structurally authorized when they landed — so resolution
@@ -505,14 +524,16 @@ unnamed branch's **first event** now sits below the seal the repair advanced —
 descent — **deadness descends: an event whose parent is dead is dead** (the per-event seal-cap bars
 only a branch's _first_ event by its attach point; the descent rule kills the growth). Either way
 the losing content rides the **forked chain** — the bounded dead region (the retention bound below)
-— witnessed and propagated, never canonical, and **never orphan-dropped**: the events stay kept per
-the retention bound, and an honest author **re-issues its own benign content** forward on the
-repaired chain once it catches up (adversarial dead content is simply non-canonical — nobody
-re-issues it). At most **one** repair can resolve a content-only divergence; a _second_, competing
-repair is a `{Rec, Rec}` / `{Rpr, Rpr}` divergence — two privileged branches → `disputed`. An
-un-covered **privileged** (non-content) branch is the other tier entirely: it is never archivable,
-so ≥ 2 privileged branches → **`disputed`** regardless of the seal — a privileged branch below a
-seal is **not** inert (archiving it would bury a rotation).
+— **propagated and retained**, never canonical, and **never orphan-dropped** (it is receipt-bearing
+only where it was witnessed — a witnessed chain declines a losing content sibling under the majority
+floor, so this is the direct-mode / residual population): the events stay kept per the retention
+bound, and an honest author **re-issues its own benign content** forward on the repaired chain once
+it catches up (adversarial dead content is simply non-canonical — nobody re-issues it). At most
+**one** repair can resolve a content-only divergence; a _second_, competing repair is a `{Rec, Rec}`
+/ `{Rpr, Rpr}` divergence — two privileged branches → `disputed`. An un-covered **privileged**
+(non-content) branch is the other tier entirely: it is never archivable, so ≥ 2 privileged branches
+→ **`disputed`** regardless of the seal — a privileged branch below a seal is **not** inert
+(archiving it would bury a rotation).
 
 **Termination.** Each dead lineage is **depth-capped**: at most `(MINIMUM_PAGE_SIZE − 1)/2 = 64`
 events past the last seal (the seal-advance cap — a deeper event would itself have to be a
@@ -647,19 +668,22 @@ like `{Evl, content}`.)
 **Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
 `v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where
 the late arrival **lands as a competing event at serial `d`** — a fork. A seal-advancer among the
-siblings does **not** win by arriving first: a seal-advancing event on a competing branch never
-becomes the tracked seal (it is a privileged fork branch — [§Terminology](#terminology)), so the
-tracked seal stays below `d` and the fork is **live**. Both arrival orders therefore converge to the
-same reading, **Divergent** (identical event sets, identical state). What it resolves to follows the
-tier rules above: **≤ 1 privileged branch is reconcilable** — a `Rec`/`Rpr` extends the privileged
-(or the entity's) branch and archives the rest, so a mixed `{Rot, Ixn}` recovers by extending the
-`Rot`; **≥ 2 privileged branches are irreconcilable → `disputed`**. So each node ends up holding
-both branches and **detects the divergence by a data-local walk**. The beacon's divergent witness
-receipts (see [§Federation convergence](#federation-convergence)) propagate the competing branch
-SAIDs to a node that has not yet received the events, but the verdict is the node's own. This is the
-deliberate trade-off: relaxing the seal bound to admit a competing privileged event as a _canonical_
-extension at a sealed serial would re-open the stale-authority kill-switch surface, so the bound
-stays unconditional — the chain does not extend onto the competing branch, it only retains it as the
+siblings does **not** win by arriving first: a seal-advancing event that is **itself one of the
+competing siblings at `d`** never becomes the tracked seal (it is a privileged fork branch —
+[§Terminology](#terminology)), so the tracked seal stays below `d` and the fork is **live**. (This
+is distinct from a seal-advancer that extends one branch **above** the fork: that one advances the
+seal and buries a content loser, resolving the fork — the burying case above.) Both arrival orders
+therefore converge to the same reading, **Divergent** (identical events, identical state — the
+reading is the walk's, not the arrival order's). What it resolves to follows the tier rules above:
+**≤ 1 privileged branch is reconcilable** — a `Rec`/`Rpr` extends the privileged (or the entity's)
+branch and archives the rest, so a mixed `{Rot, Ixn}` recovers by extending the `Rot`; **≥ 2
+privileged branches are irreconcilable → `disputed`**. So each node ends up holding both branches
+and **detects the divergence by a data-local walk**. The beacon's divergent witness receipts (see
+[§Federation convergence](#federation-convergence)) propagate the competing branch SAIDs to a node
+that has not yet received the events, but the verdict is the node's own. This is the deliberate
+trade-off: relaxing the seal bound to admit a competing privileged event as a _canonical_ extension
+at a sealed serial would re-open the stale-authority kill-switch surface, so the bound stays
+unconditional — the chain does not extend onto the competing branch, it only retains it as the
 evidence a data-local detection needs.
 
 **Retention is bounded — keep-all-data is not keep-everything.** **Archived** is a _status_ (a
@@ -691,9 +715,10 @@ retained spine) plus its own committed fields, never against this chain's below-
 evidence a data-local detection needs is bounded and always retained; dropping the rest is a
 storage/audit tuning knob, not a detection gap. The chain's **state** — Active / forked / disputed —
 is determined by the walk over the canonical chain plus the retained set; the effective SAID is then
-the tip's real SAID when a single tip is held, or a real digest over all the tips it holds when
-several are — the `forked` / `disputed` reading is the walk's, separate from the value — see
-[§Effective-SAID comparison](#effective-said-comparison).
+the tip's real SAID when a single **live** tip is held, or a real digest over the **live tips** it
+holds when several are — a **settled** branch (one a repair condemned, or a content sibling buried
+below the seal) drops out, and the `forked` / `disputed` reading is the walk's, separate from the
+value — see [§Effective-SAID comparison](#effective-said-comparison).
 
 **Pre-seal verifiability.** A seal is **clean** while no competing privileged branch forks
 at-or-below it; the **last clean seal** is the chain's most recent such seal-advancing event — on a
@@ -919,13 +944,16 @@ The convergence model has three components:
   property).
 - **Semantic state is a function of the events** — each node computes a chain's state (Active /
   Divergent / Decommissioned, with which events at which serials) deterministically from the events
-  it holds; identical event sets yield identical state.
+  it holds, **deriving the seal from those events**
+  ([§Divergence and repair](#divergence-and-repair)), so **identical event sets yield identical
+  state** — arrival order does not enter.
 - **Effective-SAID determinism** — the effective SAID is a deterministic function of the events a
-  node holds: a hash over **all the branch tips it holds** (a single tip yields that tip's SAID).
-  Guaranteed witnessed propagation means all nodes eventually hold the same tips and compute the
-  **same value**; until they do, their differing digests are exactly the anti-entropy signal that
-  drives the exchange — fail-secure under partition, since nodes holding different tip sets never
-  falsely agree (see [§Effective-SAID comparison](#effective-said-comparison)).
+  node holds: a hash over the **live branch tips it holds** — the canonical tip and any unresolved
+  competing branch, a settled branch dropping out (a single live tip yields that tip's SAID).
+  Guaranteed witnessed propagation means all nodes eventually hold the same live tips and compute
+  the **same value**; until they do, their differing digests are exactly the anti-entropy signal
+  that drives the exchange — fail-secure under partition, since nodes holding different live-tip
+  sets never falsely agree (see [§Effective-SAID comparison](#effective-said-comparison)).
 
 **Content-fork prevention — the majority floor.** The witness-config every federated chain carries
 (`{ threshold, signers }` — the `witnesses` role) sits above a structural **majority floor:
@@ -1158,27 +1186,34 @@ _forthcoming_).
 The effective SAID is the canonical chain-state fingerprint across KEL, IEL, and SEL — it lets nodes
 recognize each other's state cheaply and is the universal "has state changed?" comparison behind
 token reuse, deferred-dependency draining, anti-entropy, and divergence handling. It is a **hash
-over all the branch tips a node holds** — a fingerprint of _which events the node holds_, never of
-the trust reading:
+over the live branch tips a node holds** — the canonical tip and any unresolved competing branch — a
+fingerprint of the node's _live_ state, never of the trust reading:
 
-- **A single held tip** (Active / Recovered / Decommissioned) — that tip's real SAID (a
+- **A single live tip** (Active / Recovered / Decommissioned) — that tip's real SAID (a
   decommissioned chain's is its `Dec`).
-- **Several held tips** (a live fork, or a retained condemned or dead branch) — a **domain-separated
-  hash of all the held tip SAIDs, sorted**: sort ascending, length-prefix, concatenate, hash, apply
-  the domain tag (distinct from a single-tip SAID, so a linear and a forked state cannot collide).
-  Every held tip enters, the canonical one included — not a selected subset. The construction is a
-  conformance requirement: two implementations that disagree on the bytes produce a permanent digest
-  mismatch.
+- **Several live tips** (an unresolved fork — a live content fork, or a privileged branch past it) —
+  a **domain-separated hash of all the live tip SAIDs, sorted**: sort ascending, length-prefix,
+  concatenate, hash, apply the domain tag (distinct from a single-tip SAID, so a linear and a forked
+  state cannot collide). Every live tip enters, the canonical one included — not a selected subset
+  among them. The construction is a conformance requirement: two implementations that disagree on
+  the bytes produce a permanent digest mismatch.
 
-The digest is a function of the **held tips alone**, independent of the node's seal, so two nodes
-holding the same events compute the same value. The `forked` / `disputed` / trusted **reading is
+A **settled** branch does not enter the digest: one a landed repair **condemned** (its `fork` root,
+or dead by descent below it), or a content sibling **buried** below the derived seal (inert). These
+are forensic — reached by the on-chain `fork` commitment and a by-prefix fetch, never gossiped
+through the digest — so a resolved fork returns to its **canonical tip** on every node, the
+condemned branch a node happens to retain not perturbing the value, and anti-entropy never chases
+settled evidence.
+
+Both the digest and the reading are **pure functions of the events a node holds** — the walk derives
+the seal from those events, not from arrival order — so two nodes holding the same events compute
+the same digest **and** read the same region. The `forked` / `disputed` / trusted **reading value is
 separate and is never in the digest**: a data-local walk over the retained branches reads `forked`
 (at most one privileged branch past the fork — reconcilable, pending its repair; only content `Ixn`
 produces a reconcilable fork, so a federation IEL, which carries no content, never reads `forked`)
-or `disputed` (two or more privileged branches — terminal, reincept). That split is what lets the
-digest converge even when two nodes briefly read different regions: the reading additionally depends
-on each node's own seal (which competing event it accepted first) and converges as the repair
-propagates.
+or `disputed` (two or more privileged branches — terminal, reincept). A settled fork drops out of
+both at once: its condemned or buried loser leaves the live-tip set, so the digest returns to the
+canonical tip and the reading returns to Active, in lockstep, on every node.
 
 The digest is **tip-sensitive** — it moves the instant a node's held tip set changes — and that is
 load-bearing: the anti-entropy trigger is the effective-SAID delta, so a tip a node lacks must move
@@ -1191,7 +1226,8 @@ the same tips and compute the same value; the un-witnessed flood a node may brie
 by witnesses and droppable, so it self-limits. **Fail-secure under partition** — two nodes holding
 different tip sets compute different digests, so disagreement drives a fetch where the peer is
 reachable and reads as distrust where it is not; nodes never falsely agree. The one thing the
-fingerprint does not carry is a privileged branch forking **below a node's own seal**: the node that
+fingerprint cannot carry is a privileged branch a node does not hold at all — most sharply, one
+minted **below its own seal** (a reserve harvested long after that position sealed): the node that
 holds it reads `disputed` directly, and a node without it learns it from the witness beacon (or is
 eclipsed until it does) — the standing eclipse limit, not a false agreement. Differently-forked
 nodes **converge by exchanging the branches they each lack**, while the **repair** resolves the
