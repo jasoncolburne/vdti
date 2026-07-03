@@ -30,14 +30,17 @@ Three attestation modes drive most credential flows:
 
 ## Documentation
 
-- [`docs/design/`](docs/design/) — protocol design and doctrine.
+- [`docs/design/`](docs/design/) — protocol design and doctrine (start with its
+  [`README.md`](docs/design/README.md) for the full reading order).
 - [`docs/reference/`](docs/reference/) — primitive references, attestation modes, KERI comparison.
 - [`docs/operations/`](docs/operations/) — deployment, backup, node retirement, shadow-node
   patterns.
 - [`docs/analysis/`](docs/analysis/) — attack surfaces, scale, protocol analysis.
 
-Start with [`docs/design/system-thesis.md`](docs/design/system-thesis.md) for orientation. See
-[AGENTS.md](AGENTS.md) for contributor workflow conventions.
+New to the design? Start with the [design docs README](docs/design/README.md) — it gives the full
+reading order for the landed surface, beginning with
+[`system-thesis.md`](docs/design/system-thesis.md) for orientation. See [AGENTS.md](AGENTS.md) for
+contributor workflow conventions.
 
 ## Contributing
 
