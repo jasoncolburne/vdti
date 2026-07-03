@@ -36,8 +36,8 @@ produce.
 | **KelDecommissioned** | No state change. Submission rejected.                                                                                                                                                                                                                                                | Submitted event chains _from_ a `Dec` (its parent's kind is `Dec`). Caught in structural validation by the kind-schema rule — no kind admits a `Dec` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                         |
 | **RecoverRequired**   | No state change; guidance only (chain stays Divergent).                                                                                                                                                                                                                              | The chain is Divergent (frozen) and the batch is neither a `Rec` nor a privileged event — only a `Rec` resolves a divergence.                                                                                                                                                                                                                                  |
 
-A subsumed variant — `RecoverRequired` — applies when the chain is Divergent and the submitted batch
-is neither a `Rec` nor a privileged event (which would itself reject as `SiblingLocked`). The
+A guidance-only variant — `RecoverRequired` — applies when the chain is Divergent and the submitted
+batch is neither a `Rec` nor a privileged event (which would itself reject as `SiblingLocked`). The
 routing rule signals that only `Rec` resolves divergence: a live divergence **freezes** the chain,
 so no new event of any kind lands until the repair. Structurally, `RecoverRequired` is a guidance
 signal; the chain state stays Divergent.
@@ -89,7 +89,7 @@ a canonical extension with `SiblingLocked` — and, when it is a structurally-va
 ancestor, retained as non-canonical evidence. This is the structural rule that enforces
 current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
-[`recovery.md` §Repair-event bound](recovery.md#repair-event-bound-condition-2b).
+[`recovery.md` §Repair-event bound](recovery.md#repair-event-bound).
 
 The seal-cap is **unconditional** on KEL: every event class is subject to it. A `Rec` whose
 `previous.serial < seal_serial` is rejected — the locked-portion bound stops stale-authority revival

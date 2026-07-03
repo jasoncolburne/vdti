@@ -130,12 +130,13 @@ are the [event-shape reference](../event-shape.md)'s.
 
 ### The locked portion
 
-The **locked portion** of a KEL is the segment at-or-below `last_seal_advancing_event`. Events in
-this segment are structurally immutable within the chain:
+The **locked portion** of a KEL is the segment **below** `last_seal_advancing_event` (strictly — the
+seal-advancing event itself is a legal parent: the normal post-`Rot` append extends it, and a repair
+may attach at it). Events in this segment are structurally immutable within the chain:
 
 - `Rec` cannot target the locked portion. The repair's `previous` must sit at-or-after the most
   recent seal-advancing event (see
-  [`recovery.md` §Repair-event bound](recovery.md#repair-event-bound-condition-2b)).
+  [`recovery.md` §Repair-event bound](recovery.md#repair-event-bound)).
 - A new event whose `previous` points into the locked portion is **rejected as a canonical
   extension** with `SiblingLocked` — but when it is a structurally-valid fork from an ancestor the
   node holds, it is **retained as non-canonical evidence** rather than discarded, so the proof a

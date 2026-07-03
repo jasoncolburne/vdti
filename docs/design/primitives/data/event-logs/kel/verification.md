@@ -389,14 +389,14 @@ receipt counts alone do not satisfy `witnessed`.
 privileged branches at a position, it reads **`disputed:` directly from the data** —
 threshold-independent. When it holds only a **receipt** for a **privileged** event it has not yet
 fetched, it treats the position as **`forked:`** and waits for the **witness threshold** before
-acting on it as a real divergence. For **content** the signal is different: under the majority floor
-a losing content sibling never reaches threshold, so waiting for threshold on it would wait forever
-— the anomaly signal is a **sub-threshold competing receipt set** at a position, which enumerates
-the branches; the node fetches the event and the data-local walk decides (threshold authenticates
-only the winning branch). Single-rogue protection: a rogue who signs receipts on a fake
-`witnessed_said` cannot trigger a verdict — the fake event fails structural re-check, and honest
-witnesses do not sign for fakes; the verifier re-checks validity because the database cannot be
-trusted. Receipts tell a node it is _forked_; only the data-local walk tells it _disputed_.
+acting on it as a real divergence. For **content** the signal is different: a losing content sibling
+never reaches threshold under the floor, so the anomaly signal is a **sub-threshold competing
+receipt set** at a position — the node fetches the event and the data-local walk decides
+([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) derives why).
+Single-rogue protection: a rogue who signs receipts on a fake `witnessed_said` cannot trigger a
+verdict — the fake event fails structural re-check, and honest witnesses do not sign for fakes; the
+verifier re-checks validity because the database cannot be trusted. Receipts tell a node it is
+_forked_; only the data-local walk tells it _disputed_.
 
 **`minority_dissent`.** Receipts below threshold for some `witnessed_said` that don't contribute to
 pinning. Forensic signal for potentially-compromised witnesses; not load-bearing for trust

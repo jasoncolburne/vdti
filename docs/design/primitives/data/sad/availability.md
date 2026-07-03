@@ -72,9 +72,9 @@ The structural guarantees follow from the SAID commitment and from where enforce
   wrapper boundary surface as a SAID mismatch at the next verifier walk. An adversary cannot quietly
   upgrade a SAD's replication scope or extend its TTL.
 - **Enforcement is at the storage boundary.** TTL, replica scope, and one-shot semantics are applied
-  by `vdtid`. A consumer fetching an expired or already-consumed one-shot SAD receives a uniform
-  "not present" response; the absence does not distinguish "expired" from "one-shot consumed" from
-  "never existed."
+  by the storage service (`vdtid`). A consumer fetching an expired or already-consumed one-shot SAD
+  receives a uniform "not present" response; the absence does not distinguish "expired" from
+  "one-shot consumed" from "never existed."
 - **One-shot is operational, not cryptographic.** A consumer who has retrieved a one-shot SAD can
   persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the
   storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior.

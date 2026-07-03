@@ -397,7 +397,7 @@ anchor-validation doctrine, forward-referenced below.)
 | **privileged** (non-content) — a repair attempted against it, or a 2nd one present | ≥ 2 privileged → **`disputed:` → reincept**                                                                                                     | validated-not-trusted (a condemned subtree with a privileged event rejects the `Rec`, which is retained and counted); FORCE-by-provenance; a below-seal privileged branch is **not** inert |
 | **privileged** (non-content) — a **lone unretained** branch, **no repair attempt** | one privileged branch → **`forked:`-frozen** (reconcilable only by its author; reincept is the operational exit, the _reading_ stays `forked:`) | invariant 4 (≥ 2 privileged is the `disputed:` threshold; one is `forked:`) — _not_ `disputed:`                                                                                            |
 | **≥ 2 privileged branches**                                                        | **`disputed:` → reincept**                                                                                                                      | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                            |
-| **`{Dec, content}` terminal tip** (no repair)                                      | `Dec` wins on tier-rank, content archived non-canonical → **Active-at-`Dec`**; a late privileged sibling → **`disputed:`**                      | tier-rank, no repair authored; the after-seal privileged asymmetry                                                                                                                         |
+| **`{Dec, content}` terminal tip** (no repair)                                      | `Dec` wins on tier-rank, content archived non-canonical → **Decommissioned**; a late privileged sibling → **`disputed:`**                       | tier-rank, no repair authored; the after-seal privileged asymmetry                                                                                                                         |
 
 ### Safety — the guards
 
@@ -481,7 +481,8 @@ an **operator precondition** of the benign bound — absent it, honest content c
 liveness cost, not a safety one), exactly as governance serialization backs the `{Evl, Evl}` /
 `{Rpr, Rpr}` terminal cases at the IEL. On a **witnessed** chain the majority floor narrows even the
 self-cascade to stall-and-re-issue — a competing content sibling never goes live — so the discipline
-is load-bearing chiefly for direct-mode / solo chains.
+is safety-critical on direct-mode / solo chains (where cap-fill can force the terminal `{Evl, Evl}`)
+and a liveness concern on witnessed ones.
 
 ### Residuals (stated, fail-secure)
 
@@ -591,7 +592,7 @@ A second recovery-key holder submits Rec keeping branch_B (branch-tip-extending 
 
   Server (post-recovery):  v_0 → ... → v_{d-1} → branch_B → rec_B
 
-Local party detects via existence-check on the server that branch_A, branch_A' are no longer the canonical chain. They bundle [branch_A, branch_A', Dec] as an atomic batch and submit. Post-batch, Dec with previous = branch_A.said (v_d) would land at v_{d+1} as a sibling of rec_B — a below-seal sibling (its parent branch_A at v_d sits below rec_B's seal at v_{d+1}), rejected by the seal-cap (invariant 5) and retained as evidence, not a canonical extension; the chain stays at its prior server-side state (tip = rec_B at v_{d+1}). Recourse is to re-fetch the server state and submit Dec extending the current tip cleanly, or to accept the server-side state without decommissioning.
+Local party detects via an existence-check on the server that branch_A / branch_A' are no longer the canonical chain — rec_B kept branch_B and condemned branch_A's subtree. The footgun to avoid: do NOT append a privileged event to the stale branch. Submitting a Dec that extends the party's local tip (branch_A' at v_{d+2}, or branch_A) does not cleanly decommission — the Dec is a dual-signed privileged event landing on a condemned branch below rec_B's seal at v_{d+1}. The seal-cap (invariant 5) refuses it as a canonical extension, but keep-all-data retains it, and a privileged event on a condemned branch is a second privileged branch past the fork → the reading flips to disputed: and the prefix terminalizes (the reserve was revealed into a contested window — fail-secure; a condemned subtree must stay content-only). Correct recourse: re-fetch the server state, confirm the canonical tip (rec_B), then either submit Dec extending that tip cleanly or accept the server-side state without decommissioning — never append a privileged event to a branch not confirmed canonical.
 ```
 
 ### 4. Post-recovery events synced to a node holding the archived branch

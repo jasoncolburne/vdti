@@ -53,10 +53,13 @@ regardless of source.
 
 Structural concepts referenced throughout. Distinct senses; not interchangeable.
 
-- **Privileged / content**: **content** is tier 1 — `Ixn` (and the SEL's floor `Pin`);
-  **privileged** is every non-content kind — tier 2 or 3 ([§Tiers](#tiers)). Every privileged kind
-  advances the seal, and only privileged kinds do
-  ([§Forks are Seal-Bounded](#forks-are-seal-bounded)).
+- **Privileged / content** (for post-inception events): **content** is tier 1 — `Ixn` (and the SEL's
+  floor `Pin`); **privileged** is every non-content kind — tier 2 or 3 ([§Tiers](#tiers)). Every
+  **non-inception** privileged event advances the seal, and only privileged kinds do
+  ([§Forks are Seal-Bounded](#forks-are-seal-bounded)). **Inception is the exception on both
+  counts**: an `Icp` / `Fcp` is the spine root (it advances no seal) and may itself be tier 1 (KEL /
+  SEL) or tier 2 (IEL) — it never enters fork dispatch, because two distinct inceptions for one
+  prefix are impossible by whole-content prefix derivation.
 - **Locked**: the portion of a chain before its most recent privileged event. **Within-chain rule**
   — locked events are structurally immutable within their own chain: a repair cannot target them,
   and within-chain historical authorizations are not retroactively unsatisfiable. The privileged
@@ -274,10 +277,12 @@ proof that a divergence occurred is never lost even though the chain does not ex
 resolved at the event's parent is the chain's currently-tracked state, not a stale one.
 
 **Privileged** means any non-content kind — everything at tier 2 or 3 ([§Tiers](#tiers));
-**content** (`Ixn`, plus the SEL's floor `Pin`) is tier 1. Every privileged kind advances the seal,
-and only privileged kinds do — the two classes coincide, which is why the divergence rules below can
-dispatch on either. The **seal-advancing** kinds (those that open a new locked window, plus the
-terminal `Dec` which opens none) per primitive:
+**content** (`Ixn`, plus the SEL's floor `Pin`) is tier 1. Every **non-inception** privileged kind
+advances the seal, and only privileged kinds do — so **past inception** the two classes coincide,
+which is why the divergence rules below can dispatch on either. (Inception is outside this: an `Icp`
+/ `Fcp` is the spine root — it advances no seal — and may be tier 1 or tier 2; it never enters fork
+dispatch, since one prefix admits only one inception.) The **seal-advancing** kinds (those that open
+a new locked window, plus the terminal `Dec` which opens none) per primitive:
 
 - **KEL**: `Rot` / `Ror` / `Rec` / `Wit` (and `Dec`).
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
@@ -318,10 +323,10 @@ terminal; operator doctrine, forthcoming). **Governance serialization is safety-
 everywhere** — a governance race is privileged, and the witnessing majority floor never gates
 privileged events. **Content-rail serialization splits by mode**: on a **witnessed** chain the floor
 prevents a competing content sibling going live — a partitioned content rail **stalls** rather than
-forks — so the discipline is a **liveness / waste** concern there; it stays **safety-relevant on
-direct-mode / solo** chains, where no majority gates content
-([§Federation convergence](#federation-convergence)).) The exact constant, the roster-less re-seal,
-and the content-rail serialization are IEL doctrine —
+forks — so the discipline is a **liveness / waste** concern there; it stays **safety-critical on
+direct-mode / solo** chains, where no majority gates content and an un-serialized rail is the
+terminal-`{Evl, Evl}` path ([§Federation convergence](#federation-convergence)).) The exact
+constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/) (forthcoming).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -915,7 +920,7 @@ The convergence model has three components:
 **Content-fork prevention — the majority floor.** The witness-config every federated chain carries
 (`{ threshold, signers }` — the `witnesses` role) sits above a structural **majority floor:
 `threshold > signers/2`**, a strict majority of the selected witnesses (a sub-majority config is
-rejected as un-usable — its witnessed-in-full marker would no longer mean per-position exclusivity;
+rejected as un-usable — its `witnessed` signal would no longer mean per-position exclusivity;
 `threshold = 1` is usable only at `signers = 1`, the lone-witness carve-out). Witness selection is
 deterministic by position, so any two threshold-quorums at one `(prefix, serial)` share at least
 `2·threshold − signers >= 1` witnesses — and an honest witness signs at most **one content sibling

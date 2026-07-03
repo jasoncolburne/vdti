@@ -52,9 +52,9 @@ Every SAD carries:
 What content the prefix commits to is per-primitive — the KEL prefix commits to the whole inception
 SAD (the device's key state); the IEL prefix likewise commits to its whole inception SAD (the
 `roster` of member devices, the threshold vector, and the `nonce` whose randomness makes the IEL
-prefix unpredictable); the SEL prefix commits to `(owner, topic, data)`. The shared rule is the
-fixed-value mechanism; the per-primitive shapes are documented in the corresponding event-log
-primitive docs.
+prefix unpredictable); the SEL prefix likewise commits to its whole inception SAD (the populated
+`owner` / `topic` / `data` fields). The shared rule is the fixed-value mechanism; the per-primitive
+shapes are documented in the corresponding event-log primitive docs.
 
 ## Canonical serialization
 

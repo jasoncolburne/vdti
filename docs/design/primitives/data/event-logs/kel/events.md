@@ -137,10 +137,10 @@ prior pin. So a same-federation re-pin rides whatever event the chain authors ne
 (e.g. a stale terminal `Dec` re-pins and decommissions in one event). A `federationPin` on a
 non-`Icp`/`Wit` event must **resolve within the inherited `federation` prefix** — a re-pin can never
 become a backdoor rebind. Forward-only is **emergent**, not a structural check: ordering two
-federation positions is a _cross-chain_ walk (inv 3 / 5 forbid it on the self-contained KEL
-verifier), so a stale/backward pin lands chain-valid but **un-witnessed** (the currency gate refuses
-a non-current roster; the clock refuses closed-window keys) and is cleared by pinning forward. `Fcp`
-carries neither (pre-federation).
+federation positions is a _cross-chain_ walk (the KEL verifier is self-contained — it never orders
+positions on another chain), so a stale/backward pin lands chain-valid but **un-witnessed** (the
+currency gate refuses a non-current roster; the clock refuses closed-window keys) and is cleared by
+pinning forward. `Fcp` carries neither (pre-federation).
 
 A `Wit` event **rebinds** federation context (the must-change rule and the two facets are below). A
 same-federation **re-pin** (advancing `federationPin` within the same federation) is **not** a `Wit`
@@ -239,8 +239,12 @@ via the subsequent `Ror`. See [§Tiers](../../../../protocol-doctrine.md#tiers).
 
 ## Forward-key commitments
 
-Establishment events commit one or both forward-key digests; the content `Ixn` and the terminal
-`Dec` commit neither:
+An **establishment event** reveals a key (checked against the prior establishment's commitment) and
+**establishes authoritative state** — new key state, or the terminal decommissioned state. Most also
+commit one or both forward-key digests for their successor; the terminal `Dec` establishes state
+(and reveals a key) but commits **neither** — it admits no successor. The content `Ixn` establishes
+no state (it anchors content under the existing key state) and is not an establishment event; it
+commits neither:
 
 | Kind                  | `rotationHash`       | `recoveryHash`                                            |
 | --------------------- | -------------------- | --------------------------------------------------------- |

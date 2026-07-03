@@ -103,8 +103,7 @@ tier-1 content compromise), **not** the rotation key. Three structural facts clo
   archivable).
 - **The seal-cap blocks a repair at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it advances
   the seal to `v_N`; a `Rec` targeting `v_{N-1}` is then below the seal → `SiblingLocked`
-  ([§Repair-event bound](#repair-event-bound-condition-2b)). The legitimate party cannot even submit
-  it.
+  ([§Repair-event bound](#repair-event-bound)). The legitimate party cannot even submit it.
 - **A competing `Rot` is a second privileged branch.** A `Rot_legitimate` extending `v_{N-1}` lands
   as a sibling of `Rot_adversary` — two privileged branches → `disputed:`, terminal
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
@@ -145,7 +144,7 @@ attaching at the submitter's own tail instead is validated against that retained
 committed `fork` root (fetched via keep-all-data / the beacon) — also cross-node-checkable, but only
 the `v_{d-1}` attach needs no fetch.
 
-### Repair-event bound (condition 2b)
+### Repair-event bound
 
 The merge layer enforces the repair-event bound: `Rec.previous.serial >= seal_serial`. The bound
 prevents revival attacks where a party holding stale authority (a recovery preimage revealed by an
@@ -202,9 +201,9 @@ privileged event. It never trusts the submitter's commitment.
 
 `Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. One branch's root at `v_d`
 is committed as `fork` (here a branch head at `v_d` is its root); every other branch closes without
-being named — its root sits below the repair-advanced seal, its growth dead by descent (identical
-outcome, which is why a single named root suffices); `Rec` is the only canonical event at `v_d`
-after the repair runs.
+being named — its root is a sibling of `Rec` at `v_d`, barred by the seal-cap (its parent `v_{d-1}`
+sits below the repair-advanced seal), its growth dead by descent (identical outcome, which is why a
+single named root suffices); `Rec` is the only canonical event at `v_d` after the repair runs.
 
 ```
 Pre-state (divergent at v_d):
@@ -219,14 +218,15 @@ Post-state (linear, recovered, Rec is the only canonical event at v_d):
     ... → v_{d-1} → rec @ v_d
                   ↑
                   branch-1 condemned via its root in rec.fork;
-                  branch-2 closes below the seal, its growth dead by descent
+                  branch-2 barred by the seal-cap (its parent v_{d-1} sits below the seal), growth dead by descent
 ```
 
 The divergence-ancestor-extending shape is the structural primitive that gives recovery its
 cross-node-validatable property (§Locked-portion bound makes recovery cross-node-validatable). It is
-the recourse when the submitter does not want to preserve either of the existing branches at `v_d` —
-for instance, when both branches were authored under tier-1 capability and neither carries content
-the submitter wants to keep.
+the recourse when the submitter authored nothing it wants to preserve at or beyond `d` — either it
+authored nothing there (the doctrine's ancestor attach), or it chooses to discard its own content
+branch: attaching at `v_{d-1}` archives everything at or beyond `d`, the submitter's own content
+included. Both branches here are tier-1 content, so nothing privileged is overturned.
 
 ### Routing through the discriminator
 
