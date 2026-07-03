@@ -53,8 +53,11 @@ KEL has two distinct recovery primitives. They are not interchangeable.
 Both reveal the current recovery-key preimage and commit a new one (`Ror` and `Rec` both populate
 `recoveryKey` + `recoveryHash`). The difference is structural lifecycle role:
 
-- **Divergence has happened** → `Rec`. The chain is Divergent (frozen); `Rec` is the only event
-  class that can resolve it without operator-side reincept under a new prefix.
+- **Divergence has happened** → `Rec`. The chain is origination-frozen on the live fork. A `Rec`
+  resolves it by condemning the losing branch's root explicitly and is what a recovering party uses
+  to archive a fork it must repair; for a plain **content** fork, a seal-advancer on the winning
+  branch (a `Rot`/`Ror`) also resolves it by burying the loser below the new seal. Either avoids
+  operator-side reincept under a new prefix.
 - **Pre-emptive rotation** → `Ror`. The chain is Active; the operator wants to rotate both keys
   before any compromise indicator fires.
 

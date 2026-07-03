@@ -281,8 +281,11 @@ walk over the events held:
   `previous` is a branch tip, above `v_{d-1}`) → it extends that branch and advances the seal; if
   the losing branches are content, they drop below the new seal, inert, and the chain **re-reads
   Active** → outcome `Accepted`. If extending it would create a **second privileged branch**, the
-  fork is `disputed` and the content-only guard rejects the burial (a privileged branch is never
-  buried). A terminal `Dec` extending the winning tip → `Decommissioned` by tier-rank.
+  content-only guard rejects the burial (a privileged branch is never buried) → outcome
+  `SiblingLocked`, the seal-advancer retained as a competing privileged branch and counted →
+  `disputed`. A terminal `Dec` on the winning tip buries the content loser below its own seal and
+  terminates → `Decommissioned` (a seal-cap burial, distinct from the same-serial `{Dec, content}`
+  tier-rank race).
 - Batch contains a privileged event with `previous = v_{d-1}.said` (a competing sibling that would
   join the fork) → not admitted as a canonical extension; outcome `SiblingLocked`. The competing
   branch is retained as the `disputed` proof (witnessed up to two per position —

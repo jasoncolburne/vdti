@@ -47,12 +47,14 @@ protocol's safety claims hold _by construction_, not by observation.
    Surfaced by the verifier and enforced by the merge handler. See
    [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 2. **Bounded divergence.** A fork can only form at-or-after the last seal-advancing event — a
-   competing event **below** the seal is dead on arrival (never a live fork), and one **at** the
-   seal's own serial is rejected as a canonical extension (`SiblingLocked`) yet forms a live fork.
-   Combined with invariant 1, the fork is bounded on both axes: **depth** — each fork lineage
-   extends at most 64 events past the last seal (an adversary holding less than the rotation-key
-   preimage can only submit `Ixn` events, so a deeper lineage needs a seal-advancing primitive —
-   tier-2 or tier-3 capability per
+   competing **content** event **below** the seal is dead on arrival (never a live fork; a competing
+   **privileged** event below the seal is _not_ inert — it is a spine fork that flips the reading to
+   `disputed`, per [§Matrix 4](#matrix-4-repair-completeness) and pre-seal verifiability), and one
+   **at** the seal's own serial is rejected as a canonical extension (`SiblingLocked`) yet forms a
+   live fork. Combined with invariant 1, the fork is bounded on both axes: **depth** — each fork
+   lineage extends at most 64 events past the last seal (an adversary holding less than the
+   rotation-key preimage can only submit `Ixn` events, so a deeper lineage needs a seal-advancing
+   primitive — tier-2 or tier-3 capability per
    [`recovery.md` §Three-tier compromise model](recovery.md#three-tier-compromise-model)); and
    **breadth** — nodes retain ≥ 2 competing events per position as fork evidence and drop the rest,
    with the one-content-sibling witnessing rule on top ([§Matrix 4](#matrix-4-repair-completeness)).
@@ -165,11 +167,12 @@ outcome (above); the structural _why_ is in [§Notes on cell routing](#notes-on-
 - **ᵈ Divergent (either row) × seal-advancer (`Rot` / `Ror` / `Wit` / `Dec`)** — the outcome depends
   on where it attaches. **Extending the winning branch's tip** — a seal-advancer on the branch the
   chain keeps — advances the seal, so the competing **content** sibling(s) drop below the new seal,
-  inert, and the chain **re-reads Active**: **Accepted** (a `Dec` → **Decommissioned** by
-  tier-rank). If extending it would instead create a **second privileged branch**, the reading is
-  `disputed` and the shape-gate rejects the burial (a privileged branch is never buried).
-  **Extending `v_{d-1}`** — a competing sibling at the fork — is not admitted as a canonical
-  extension; it is retained as the `disputed` proof → **SiblingLocked**.
+  inert, and the chain **re-reads Active**: **Accepted** (a `Dec` → **Decommissioned** — it buries
+  the content loser below its own seal and terminates, a seal-cap burial, distinct from the
+  same-serial `{Dec, content}` tier-rank race). If extending it would instead create a **second
+  privileged branch**, the reading is `disputed` and the shape-gate rejects the burial (a privileged
+  branch is never buried). **Extending `v_{d-1}`** — a competing sibling at the fork — is not
+  admitted as a canonical extension; it is retained as the `disputed` proof → **SiblingLocked**.
 
 ### Notes on cell routing
 
@@ -228,12 +231,12 @@ to that node before the divergence was detected elsewhere). The protocol cannot 
 from chain data alone — "retained" is the branch the `Rec` (whoever holds the recovery key)
 ultimately keeps.
 
-| Source ↓ / Sink →           | Empty    | Active (retained) | Active (alternate) | Divergent       | Decommissioned |
-| --------------------------- | -------- | ----------------- | ------------------ | --------------- | -------------- |
-| **Active**                  | Accepted | Accepted          | Diverged           | RecoverRequired | SiblingLocked  |
-| **Recovered**               | Accepted | Accepted          | Recovered          | Recovered ᵈ     | SiblingLocked  |
-| **Divergent** (unrecovered) | Diverged | Diverged          | Diverged           | Accepted ᵃ      | SiblingLocked  |
-| **Decommissioned**          | Accepted | Accepted          | Diverged ᵇ         | RecoverRequired | Accepted ᶜ     |
+| Source ↓ / Sink →           | Empty    | Active (retained) | Active (alternate) | Divergent                    | Decommissioned |
+| --------------------------- | -------- | ----------------- | ------------------ | ---------------------------- | -------------- |
+| **Active**                  | Accepted | Accepted          | Diverged           | Accepted / RecoverRequired ᵉ | SiblingLocked  |
+| **Recovered**               | Accepted | Accepted          | Recovered          | Recovered ᵈ                  | SiblingLocked  |
+| **Divergent** (unrecovered) | Diverged | Diverged          | Diverged           | Accepted ᵃ                   | SiblingLocked  |
+| **Decommissioned**          | Accepted | Accepted          | Diverged ᵇ         | Decommissioned ᵉ             | Accepted ᶜ     |
 
 **Column note (the Active-source row).** "retained" / "alternate" are relative to the **source's**
 branch: a sink on the _same_ branch as the source reads "retained" (→ `Accepted`, dedup); a sink on
@@ -253,6 +256,13 @@ same-vs-different-branch.
   admits no successor; the base outcome legend has no tier-rank token, so this two-step outcome is
   the exception.)
 - **ᶜ Decommissioned → Decommissioned** — both already hold the `Dec` (dedup); already converged.
+- **ᵉ Active / Decommissioned → Divergent (a burying source)** — when the source's run carries a
+  **seal-advancer on the winning branch** (an Active source that sealed past the fork, or a `Dec`),
+  transferring it to a Divergent sink **buries** the sink's competing **content** loser below the
+  new seal: the sink re-reads **Active** (Active source → **Accepted**) or **Decommissioned** (a
+  `Dec`, by seal-cap burial / tier-rank). A content-only source (no seal-advancer past the fork)
+  lands as evidence and the sink stays `forked` → **RecoverRequired**. A privileged loser makes the
+  fork `disputed` (never buried).
 - **ᵈ Recovered → Divergent** — the source's chain carries the `Rec`, which lands in the sink's
   `since:{own seal}` window and resolves the sink's frozen divergence (edge case 2) → **Recovered**
   (merge.md's Divergent-KEL routing: a batch containing a `Rec` runs the discriminator → Recovered).
@@ -315,22 +325,24 @@ wire-format identifier, exchanged during anti-entropy. It is a **real digest ove
 node holds** (the canonical tip and any unresolved competing branch; no synthetics): a deterministic
 function of the events it holds.
 
-| State                                    | Effective SAID (the value)                                                                                                                                                                                                                                                                         | Converges?                                                                                                                                                                                                                                                                                                                                                         |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Active / Recovered**                   | the canonical **tip event SAID**                                                                                                                                                                                                                                                                   | ✓ (identical chains after gossip)                                                                                                                                                                                                                                                                                                                                  |
-| **Decommissioned**                       | the `Dec`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                                                                                                                                                                             | ✓ where the `Dec` landed uncontested; a competing privileged event racing it → both nodes hold both branches → `disputed` data-locally ([§Matrix 3](#matrix-3-race-matrix))                                                                                                                                                                                        |
-| **Divergent — `forked` _or_ `disputed`** | a **real digest over the live tips** (a deterministic hash of the sorted live-tip SAIDs, the canonical one included; a settled — repair-condemned or below-seal-inert — branch drops out; the `forked` / `disputed` verdict is a _separate_ data-local walk — ≤ 1 vs ≥ 2 privileged past the fork) | ✓ **once the branches propagate** — true convergence rests on guaranteed witnessed propagation ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence)); **fail-secure under partition** — nodes holding different branch sets compute different digests, so disagreement drives a fetch (reachable) or reads as multi-source distrust |
+| State                                    | Effective SAID (the value)                                                                                                                                                                                                                                                                                                                                                                          | Converges?                                                                                                                                                                                                                                                                                                                                                         |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Active / Recovered**                   | the canonical **tip event SAID**                                                                                                                                                                                                                                                                                                                                                                    | ✓ (identical chains after gossip)                                                                                                                                                                                                                                                                                                                                  |
+| **Decommissioned**                       | the `Dec`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                                                                                                                                                                                                                                                                              | ✓ where the `Dec` landed uncontested; a competing privileged event racing it → both nodes hold both branches → `disputed` data-locally ([§Matrix 3](#matrix-3-race-matrix))                                                                                                                                                                                        |
+| **Divergent — `forked` _or_ `disputed`** | a **real digest over the live tips** (a deterministic hash of the sorted live-tip SAIDs, the canonical one included; a settled **content** branch (repair-condemned or below-seal-inert) drops out, while a privileged event never settles — a spine fork → `disputed`, always a live tip; the `forked` / `disputed` verdict is a _separate_ data-local walk — ≤ 1 vs ≥ 2 privileged past the fork) | ✓ **once the branches propagate** — true convergence rests on guaranteed witnessed propagation ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence)); **fail-secure under partition** — nodes holding different branch sets compute different digests, so disagreement drives a fetch (reachable) or reads as multi-source distrust |
 
 The digest is **tip-sensitive** — it moves the instant a node's live-tip set changes, which is what
 lets the effective-SAID delta drive anti-entropy (a live tip a node lacks shows up as a differing
-digest, prompting the fetch that assembles it). A settled branch (repair-condemned, or a content
-sibling buried below the seal) is **not** in the live-tip set, so it does not move the digest — it
-rides the on-chain `fork` commitment and a by-prefix fetch, and a resolved fork converges on its
-canonical tip. Convergence is therefore **conditional on propagation** — eventual barring partition,
-fail-secure under partition — not the unconditional convergence a `(state, prefix)` synthetic would
-give: a branch-agnostic synthetic **masks** a missing branch (two differently-forked nodes falsely
-agree), whereas the real digest **exposes** the difference. Whether a fork is `forked` or `disputed`
-is the **branch-walk's** result over the retained branches, separate from the digest. See
+digest, prompting the fetch that assembles it). A settled **content** branch (repair-condemned, or a
+content sibling buried below the seal) is **not** in the live-tip set, so it does not move the
+digest — it rides the on-chain `fork` commitment and a by-prefix fetch, and a resolved fork
+converges on its canonical tip. A **privileged** event never settles (a spine fork → `disputed`), so
+it stays a live tip and does move the digest — that is how a dispute propagates. Convergence is
+therefore **conditional on propagation** — eventual barring partition, fail-secure under partition —
+not the unconditional convergence a `(state, prefix)` synthetic would give: a branch-agnostic
+synthetic **masks** a missing branch (two differently-forked nodes falsely agree), whereas the real
+digest **exposes** the difference. Whether a fork is `forked` or `disputed` is the **branch-walk's**
+result over the retained branches, separate from the digest. See
 [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison) for the
 cross-primitive framing.
 
@@ -490,16 +502,16 @@ identical closure either way, which is why a single named root suffices.) (The c
 SEL event on a dead owner-IEL anchor; a SEL fork riding an IEL fork — land with the `sel/` + `iel/`
 anchor-validation doctrine, forward-referenced below.)
 
-| losing branch                                                                      | reading                                                                                                                                       | closes with                                                                                                                                                                                |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **content**, root named in `fork`                                                  | condemned subtree (all descendants dead, growth-proof) → **Active** on the retained chain                                                     | root-condemnation; the seal-cap bounds each dead lineage's _depth_ (≤ 64 past the seal)                                                                                                    |
-| **content**, root named, branch **grows** after the repair (lagging node)          | grown events dead **by descent** — no follow-up repair → **Active**                                                                           | condemnation is over the subtree, not a tip; growth past depth-64 needs a seal-advancer → privileged → `disputed`                                                                          |
-| **content**, **unnamed** (additional or missed), delivered or grown after the seal | first event locked below the seal; growth dead by descent → **Active**                                                                        | seal-cap (first event) + deadness-descends (growth); no orphan-drop (kept, re-issued forward)                                                                                              |
-| **content**, unnamed, held when the repair arrives                                 | repair **accepted**, the branch drops below the advanced seal → inert → **Active**                                                            | an unnamed-content repair is accepted; the branch inerts rather than freezing the chain                                                                                                    |
-| **privileged** (non-content) — a repair attempted against it, or a 2nd one present | ≥ 2 privileged → **`disputed` → reincept**                                                                                                    | validated-not-trusted (a condemned subtree with a privileged event rejects the `Rec`, which is retained and counted); FORCE-by-provenance; a below-seal privileged branch is **not** inert |
-| **privileged** (non-content) — a **lone unretained** branch, **no repair attempt** | one privileged branch → **`forked`-frozen** (reconcilable only by its author; reincept is the operational exit, the _reading_ stays `forked`) | invariant 4 (≥ 2 privileged is the `disputed` threshold; one is `forked`) — _not_ `disputed`                                                                                               |
-| **≥ 2 privileged branches**                                                        | **`disputed` → reincept**                                                                                                                     | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                            |
-| **`{Dec, content}` terminal tip** (no repair)                                      | `Dec` wins on tier-rank, content archived non-canonical → **Decommissioned**; a late privileged sibling → **`disputed`**                      | tier-rank, no repair authored; the after-seal privileged asymmetry                                                                                                                         |
+| losing branch                                                                      | reading                                                                                                                                       | closes with                                                                                                                                                                                                                                                                         |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **content**, root named in `fork`                                                  | condemned subtree (all descendants dead, growth-proof) → **Active** on the retained chain                                                     | root-condemnation; the seal-cap bounds each dead lineage's _depth_ (≤ 64 past the seal)                                                                                                                                                                                             |
+| **content**, root named, branch **grows** after the repair (lagging node)          | grown events dead **by descent** — no follow-up repair → **Active**                                                                           | condemnation is over the subtree, not a tip; growth past depth-64 needs a seal-advancer → privileged → `disputed`                                                                                                                                                                   |
+| **content**, **unnamed** (additional or missed), delivered or grown after the seal | first event locked below the seal; growth dead by descent → **Active**                                                                        | seal-cap (first event) + deadness-descends (growth); no orphan-drop (kept, re-issued forward)                                                                                                                                                                                       |
+| **content**, unnamed, held when the repair arrives                                 | repair **accepted**, the branch drops below the advanced seal → inert → **Active**                                                            | an unnamed-content repair is accepted; the branch inerts rather than freezing the chain                                                                                                                                                                                             |
+| **privileged** (non-content) — a repair attempted against it, or a 2nd one present | ≥ 2 privileged → **`disputed` → reincept**                                                                                                    | validated-not-trusted (a condemned subtree with a privileged event rejects the `Rec`, which is retained and counted); a node that holds and re-validates ≥ 2 privileged branches reads `disputed` directly (threshold-independent); a below-seal privileged branch is **not** inert |
+| **privileged** (non-content) — a **lone unretained** branch, **no repair attempt** | one privileged branch → **`forked`-frozen** (reconcilable only by its author; reincept is the operational exit, the _reading_ stays `forked`) | invariant 4 (≥ 2 privileged is the `disputed` threshold; one is `forked`) — _not_ `disputed`                                                                                                                                                                                        |
+| **≥ 2 privileged branches**                                                        | **`disputed` → reincept**                                                                                                                     | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                                                                                                                     |
+| **`{Dec, content}` terminal tip** (no repair)                                      | `Dec` wins on tier-rank, content archived non-canonical → **Decommissioned**; a late privileged sibling → **`disputed`**                      | tier-rank, no repair authored; the after-seal privileged asymmetry                                                                                                                                                                                                                  |
 
 ### Safety — the guards
 
@@ -565,9 +577,10 @@ to the true competing set. Then:
   repair against a fork that turns out to hold a privileged branch **permanently terminalizes the
   prefix** → `disputed` — the fail-secure outcome of revealing tier-3 material into a contested
   window (Matrix 1's Divergent × `Rec` cell reads rejected → `disputed`).
-- **≥ 2 privileged** (including a beacon-late privileged branch) → **`disputed`** everywhere
-  (FORCE-by-provenance once a node holds ≥ 2; via receipt-then-fetch otherwise); the effective SAID
-  is the **real digest over the live tips** (all nodes converge on it once the branches propagate).
+- **≥ 2 privileged** (including a beacon-late privileged branch) → **`disputed`** everywhere (a node
+  that holds and re-validates ≥ 2 privileged branches reads it directly, threshold-independent; a
+  node holding only receipts fetches the branches first); the effective SAID is the **real digest
+  over the live tips** (all nodes converge on it once the branches propagate).
 
 ### Termination
 

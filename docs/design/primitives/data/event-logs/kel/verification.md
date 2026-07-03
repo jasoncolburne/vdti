@@ -236,7 +236,7 @@ KelVerification:
     root_facet: RootFacet                        # Fcp-rooted (federation-witness infra) vs Icp-rooted (user); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>      # most recent Rot/Ror/Rec/Wit/Dec on the spine
+    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Ror/Rec/Wit/Dec that landed cleanly on the linear run (not a competing sibling) — the reading is computed against it, from the held events, never arrival order
     last_recovery_revealing_event: Option<SAID>  # most recent Ror/Rec/Wit/Dec
     federation_context_per_event: ...            # per-event federation binding (for chains that have re-bound)
     anchored_saids: BTreeSet<SAID>               # registered SAIDs found anchored on the canonical branch
@@ -263,18 +263,21 @@ Token fields are private with no public constructor — the only way to obtain o
 - `last_establishment_event()` → `None` if divergent.
 - `is_decommissioned()` → `true` when the linear branch tip is a `Dec` event.
 - `is_divergent()` → `branch_tips.len() > 1`.
-- `region()` → the consumer-facing trust region computed **data-locally** from the retained
-  branches: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork with at most one
-  privileged branch — recoverable, pending its repair), or **disputed** (two or more branches each
-  carry a privileged event past the fork — terminal, reincept).
+- `region()` → the consumer-facing trust region computed **data-locally** from the events held,
+  against the **derived seal** (above): **trusted** (no fork reaching at-or-above the seal — a fork
+  buried below it is inert), **forked** (a fork at-or-above the seal with at most one privileged
+  branch — recoverable, pending its repair or a burying seal-advancer), or **disputed** (two or more
+  branches each carry a privileged event past the fork — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's **live state**: a deterministic hash over the
   **live branch tips the log holds** — the canonical tip and any unresolved competing branch. A
   single live tip yields that tip's SAID (the `Dec` SAID when decommissioned); several live tips —
-  an unresolved fork — yield a domain-separated hash over all of them, sorted. A **settled** branch
-  (one a repair condemned, or a content sibling buried below the seal) drops out — it is forensic,
-  via the on-chain `fork` commitment. It is decoupled from the trust reading value: whether a fork
-  is `forked` or `disputed` is the separate walk verdict (`region()`), never encoded in the value.
-  See [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
+  an unresolved fork — yield a domain-separated hash over all of them, sorted. A **settled content**
+  branch (a content branch a repair condemned, or a content sibling buried below the seal) drops out
+  — it is forensic, via the on-chain `fork` commitment; a **privileged** event never settles (a
+  spine fork → `disputed`), so it stays a live tip and enters the digest. It is decoupled from the
+  trust reading value: whether a fork is `forked` or `disputed` is the separate walk verdict
+  (`region()`), never encoded in the value. See
+  [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `is_said_anchored()`, `anchors_all_saids()` → inline anchor-checking results for SAIDs the caller
   registered before the walk.
 
@@ -322,10 +325,12 @@ findings.
 
 The verifier's terminal-state-determination rule:
 
-- A fork at `v_d` (a divergence in the chain data)?
-  - **At most one privileged branch** → **reconcilable** (`forked`); recoverable via `Rec`.
+- A **live** fork — a divergence at or above the **derived seal**?
+  - **At most one privileged branch** → **reconcilable** (`forked`); resolved via a `Rec` or a
+    burying seal-advancer on the winning branch.
   - **Two or more privileged branches past the fork** → **terminal** (`disputed`); reincept.
-  - No fork → Linear (Active, or Decommissioned via `Dec`).
+- No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
+  (or Decommissioned via `Dec`); a `{Dec, content}` fork ends **Decommissioned** by tier-rank.
 
 `Rec` is the repair kind — it keeps the repairing branch and commits one losing branch's **root** as
 `fork` (condemning that branch's entire subtree; every other competing branch closes below the seal

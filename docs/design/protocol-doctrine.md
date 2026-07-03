@@ -71,10 +71,12 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
 
   - **Active** — linear chain; accepts linear extension.
   - **Divergent** — a **fork**: two **distinct** events at one serial. While the fork is **live**
-    (at or above the seal) the chain is **frozen** — it accepts no new event of any kind **except
-    the resolving repair** (`Rec`/`Rpr`; a fork one of whose branches **ends in** a terminal `Dec`
-    resolves by tier-rank with no repair) until the divergence is resolved (see
-    [§Divergence and repair](#divergence-and-repair)). A fork is one of:
+    (at or above the derived seal) the chain **freezes further origination** — it originates no new
+    work onto the live fork; the moves that resolve it are the repair (`Rec`/`Rpr`), a seal-advancer
+    on the winning branch that buries a content loser below the new seal, or — where a branch **ends
+    in** a terminal `Dec` — tier-rank, with no repair (see
+    [§Divergence and repair](#divergence-and-repair)). The **reading** is the pure walk over the
+    events held, not a frozen flag. A fork is one of:
     - **reconcilable** (elsewhere: **recoverable**) — ≤ 1 privileged branch. A repair **retains one
       branch as the canonical chain** and **archives the rest** (archived ≠ discarded — they stay
       kept as non-canonical evidence, keep-all-data). The retained branch is the **repairer's own**;
@@ -659,11 +661,12 @@ that collided with a stray content event would be forced to reincept; tier-rank 
 clean and the content **non-canonical**. It only ever lets **higher** authority (the reserve-backed
 `Dec`) override **lower** (T1 content); a **second privileged** branch (`{Dec, Rot}` / `{Dec, Dec}`,
 or the content branch having sealed a competing `Fld`/`Evl`) is not this case — it is two privileged
-branches → **`disputed`**. To resolve a content fork _and_ decommission deliberately, repair first
-(the `Rpr` carries the `fork`), then the `Dec` lands cleanly on the repaired chain. (A `Kil` is
-**not** terminal — it seals a kill on a _target_, not its host IEL — so a `{Kil, content}` fork
-takes the ordinary recoverable path: an `Rpr` retains the `Kil` and archives the content, exactly
-like `{Evl, content}`.)
+branches → **`disputed`**. To resolve a content fork _and_ decommission, a `Dec` on the winning
+branch does both in one event — it buries the content loser below its own seal and terminates; a
+separate repair-first (the `Rpr` carries the `fork`) is only for an explicit condemnation record. (A
+`Kil` is **not** terminal — it seals a kill on a _target_, not its host IEL — so a `{Kil, content}`
+fork takes the ordinary recoverable path: an `Rpr` retains the `Kil` and archives the content,
+exactly like `{Evl, content}`.)
 
 **Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
 `v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where
@@ -1198,12 +1201,14 @@ fingerprint of the node's _live_ state, never of the trust reading:
   among them. The construction is a conformance requirement: two implementations that disagree on
   the bytes produce a permanent digest mismatch.
 
-A **settled** branch does not enter the digest: one a landed repair **condemned** (its `fork` root,
-or dead by descent below it), or a content sibling **buried** below the derived seal (inert). These
-are forensic — reached by the on-chain `fork` commitment and a by-prefix fetch, never gossiped
-through the digest — so a resolved fork returns to its **canonical tip** on every node, the
-condemned branch a node happens to retain not perturbing the value, and anti-entropy never chases
-settled evidence.
+A **settled content** branch does not enter the digest: a content branch a landed repair
+**condemned** (its `fork` root, or content dead by descent below it), or a content sibling
+**buried** below the derived seal (inert). These are forensic — reached by the on-chain `fork`
+commitment and a by-prefix fetch, never gossiped through the digest — so a resolved fork returns to
+its **canonical tip** on every node, the condemned branch a node happens to retain not perturbing
+the value, and anti-entropy never chases dead content. **A privileged event never settles**: even on
+a condemned or below-seal lineage it is a competing seal — a spine fork → `disputed` — so it stays a
+live tip and enters the digest, which is how a dispute propagates.
 
 Both the digest and the reading are **pure functions of the events a node holds** — the walk derives
 the seal from those events, not from arrival order — so two nodes holding the same events compute
