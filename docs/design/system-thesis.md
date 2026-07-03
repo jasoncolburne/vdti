@@ -77,9 +77,10 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   branches** so a one-branch holder can fetch and walk them, but the verdict is the verifier's own.
   The federation delivers evidence; it does not decide.
 
-A single node can still _detect_ a divergence it holds, but it forfeits the beacon's propagation and
-the witnessing freshness no single node can self-attest — so federations are not optional for
-end-verifiability.
+A single node can still _detect_ a divergence it holds — local end-verifiability needs no federation
+— but it forfeits the beacon's **propagation** (learning of divergences it does not yet hold) and
+the **freshness** that a single node cannot self-attest. So federations are not optional for
+propagation and freshness.
 
 ## Adversarial-first posture
 
