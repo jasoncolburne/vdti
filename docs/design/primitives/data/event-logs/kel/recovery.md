@@ -105,7 +105,7 @@ tier-1 content compromise), **not** the rotation key. Three structural facts clo
   the seal to `v_N`; a `Rec` targeting `v_{N-1}` is then below the seal → `SiblingLocked`
   ([§Repair-event bound](#repair-event-bound)). The legitimate party cannot even submit it.
 - **A competing `Rot` is a second privileged branch.** A `Rot_legitimate` extending `v_{N-1}` lands
-  as a sibling of `Rot_adversary` — two privileged branches → `disputed:`, terminal
+  as a sibling of `Rot_adversary` — two privileged branches → `disputed`, terminal
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
 
 The legitimate party _does_ hold the recovery preimage the adversary lacks (the dual-signature
@@ -243,10 +243,10 @@ divergence or is retained as evidence.
 
 The locked-portion bound, the seal-cap, and the recovery primitives together produce a durable
 consumer guarantee: events at-or-below `last_seal_advancing_event` remain structurally verifiable
-indefinitely, regardless of subsequent divergence or a terminal `disputed:` verdict above the seal.
+indefinitely, regardless of subsequent divergence or a terminal `disputed` verdict above the seal.
 One qualifier: the permanence claims run against the last **clean** seal — one with no competing
 privileged branch forking at-or-below it. Sealed events are never rewritten, but a below-seal
-**privileged** fork is a spine fork that flips the prefix's reading to `disputed:`; permanence then
+**privileged** fork is a spine fork that flips the prefix's reading to `disputed`; permanence then
 retreats to the last clean seal beneath the fork
 ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), _Pre-seal
 verifiability_).
@@ -283,7 +283,7 @@ guarantee:
 Above-seal content is structurally indistinguishable from work authored under captured authority.
 The boundary is the **seal**: an anchor at-or-below the seal is canonical and final on a chain's
 verification token regardless of any above-seal divergence; an anchor above the seal becomes durable
-only when a later seal-advancing event lands cleanly past it — and on a `disputed:` chain (which
+only when a later seal-advancing event lands cleanly past it — and on a `disputed` chain (which
 never seals past it) it grounds no new trust. See
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) (_Pre-seal
 verifiability_) for the cross-primitive framing and
@@ -311,12 +311,12 @@ now-advanced seal.
 
 Per-node, each chain stays linear with its own first-receive as tip — but each node now **holds both
 branches** and reads the divergence by a **data-local walk**: two privileged branches past the fork
-read **`disputed:`**
+read **`disputed`**
 ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)). The **witness
 beacon** enumerates the competing branch SAIDs so a one-branch holder fetches and walks the rest — a
 selected witness signs up to **two** distinct structurally-valid **privileged** siblings per chain
-position (two both-witnessed siblings are the `disputed:` proof, then further ones are declined),
-and adjacent receipts at the same chain position carrying different `witnessed_said` values are the
+position (two both-witnessed siblings are the `disputed` proof, then further ones are declined), and
+adjacent receipts at the same chain position carrying different `witnessed_said` values are the
 evidence that a divergence exists at that position. The federation **propagates** the branches; the
 verdict is the verifier's own walk.
 
@@ -364,10 +364,10 @@ post-rotation tier-2 and tier-3 surfaces are closed by the layers composed above
   preimages simultaneously. This is operational hardening; the protocol is custody-agnostic.
 - **Federation witnessing.** Competing **privileged** events at the same chain position are both
   witnessed — a selected witness signs up to two distinct privileged siblings per position, and two
-  both-witnessed siblings are the `disputed:` proof — so both accumulate receipts from the witness
+  both-witnessed siblings are the `disputed` proof — so both accumulate receipts from the witness
   pool, and the beacon enumerates the branches as the evidence a verifier walks. Rotation-tier
   compromise without a federation partition cannot get a fork past detection — any verifier holding
-  both branches reads the prefix as `disputed:` and refuses to bind. (A competing **content**
+  both branches reads the prefix as `disputed` and refuses to bind. (A competing **content**
   sibling, by contrast, is declined after the first seen at a position — under the majority floor a
   content fork on a witnessed chain is prevented, not merely detected; federation doctrine.)
 

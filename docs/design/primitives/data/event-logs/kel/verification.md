@@ -267,11 +267,12 @@ Token fields are private with no public constructor — the only way to obtain o
   branches: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork with at most one
   privileged branch — recoverable, pending its repair), or **disputed** (two or more branches each
   carry a privileged event past the fork — terminal, reincept).
-- `effective_said()` → the single canonical tip SAID (the `Dec` SAID when decommissioned); on a live
-  fork, a **real branch-derived digest** — a deterministic, domain-separated hash over the sorted
-  set of the held **at-or-above-seal** competing branch tips (a fork at the seal counts; a
-  below-seal loser is dead and never enters the set). Whether the fork is `forked:` or `disputed:`
-  is the separate walk verdict (`region()`), never encoded in the value. See
+- `effective_said()` → a fingerprint of **which events this node holds**: a deterministic hash over
+  **all the branch tips the log holds**. A single held tip yields that tip's SAID (the `Dec` SAID
+  when decommissioned); several held tips — a live fork, or a retained condemned or dead branch —
+  yield a domain-separated hash over all of them, sorted. It is decoupled from the trust reading:
+  whether a fork is `forked` or `disputed` is the separate walk verdict (`region()`), never encoded
+  in the value. See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `is_said_anchored()`, `anchors_all_saids()` → inline anchor-checking results for SAIDs the caller
   registered before the walk.
@@ -312,7 +313,7 @@ hard-failing. The verifier:
 
 The region is a **data-local** verdict over the retained branches — keep-all-data retains a
 competing branch as non-canonical evidence, so a node holding both privileged branches reads
-`disputed:` directly; a node holding one fetches the rest via the beacon. The merge layer resolves a
+`disputed` directly; a node holding one fetches the rest via the beacon. The merge layer resolves a
 reconcilable fork (via `Rec` admitted through the discriminator path); the verifier reports
 findings.
 
@@ -321,8 +322,8 @@ findings.
 The verifier's terminal-state-determination rule:
 
 - A fork at `v_d` (a divergence in the chain data)?
-  - **At most one privileged branch** → **reconcilable** (`forked:`); recoverable via `Rec`.
-  - **Two or more privileged branches past the fork** → **terminal** (`disputed:`); reincept.
+  - **At most one privileged branch** → **reconcilable** (`forked`); recoverable via `Rec`.
+  - **Two or more privileged branches past the fork** → **terminal** (`disputed`); reincept.
   - No fork → Linear (Active, or Decommissioned via `Dec`).
 
 `Rec` is the repair kind — it keeps the repairing branch and commits one losing branch's **root** as
@@ -363,13 +364,13 @@ carve-outs — see [`merge.md` §Kind-specific authorization](merge.md#4-kind-sp
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` is **permanently final** — it stays anchored on the
 canonical branch regardless of any later above-seal divergence. (Against a below-seal **privileged**
-fork — a spine fork — the reading flips to `disputed:` and permanence runs against the last
-**clean** seal; sealed events are still never rewritten — see
+fork — a spine fork — the reading flips to `disputed` and permanence runs against the last **clean**
+seal; sealed events are still never rewritten — see
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).) An anchor above
 the seal carries tier-1-only durable authority and becomes durable only once a later seal-advancing
 event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a consumer
 composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
-`disputed:` chain; an above-seal anchor on a `disputed:` chain grounds no new trust. See
+`disputed` chain; an above-seal anchor on a `disputed` chain grounds no new trust. See
 [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability) and
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
 
@@ -387,9 +388,9 @@ verifier independently re-checks each receipt's `witnessed_said` against structu
 receipt counts alone do not satisfy `witnessed`.
 
 **The divergence signal splits by provenance.** When a node **holds and re-validates** two or more
-privileged branches at a position, it reads **`disputed:` directly from the data** —
+privileged branches at a position, it reads **`disputed` directly from the data** —
 threshold-independent. When it holds only a **receipt** for a **privileged** event it has not yet
-fetched, it treats the position as **`forked:`** and waits for the **witness threshold** before
+fetched, it treats the position as **`forked`** and waits for the **witness threshold** before
 acting on it as a real divergence. For **content** the signal is different: a losing content sibling
 never reaches threshold under the floor, so the anomaly signal is a **sub-threshold competing
 receipt set** at a position — the node fetches the event and the data-local walk decides
@@ -439,7 +440,7 @@ independently trusted — no transitive trust. See
 and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent
 sub-issue).
 
-A consumer refuses to bind under a `disputed:` region (the federation cannot agree at this position)
+A consumer refuses to bind under a `disputed` region (the federation cannot agree at this position)
 or `witnessed = false` (insufficient attestation), and consults the config-pinned federation prefix
 set as the trust ground. Anchors at serials strictly below the last clean seal remain canonical
 regardless of above-seal divergence per

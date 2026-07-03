@@ -268,12 +268,12 @@ rotation cadence.
 terminal `Dec` also advances the seal but ends the chain) must land at least every
 `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The cap bounds the **fold**
 — the content run since the last seal — to 64 events on each branch, so the canonical two-branch
-fork plus the resolving `Rec` fits in one page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source →
-sink transfer must carry both competing branches plus the `Rec` atomically, since the sink holds
-neither branch in storage. A local discriminator's hot page is smaller — the retained branch (≤ 64)
-plus the `Rec`; the losing branch named by the `fork` root is condemned — every other closes below
-the seal and by descent — validated from retained storage. See
-[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+fork plus the resolving `Rec` is **sized to fit** one page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a
+source → sink transfer can carry both competing branches plus the `Rec` in one atomic page, since
+the sink holds neither branch in storage. The **hard** co-delivery floor is lower — only the named
+`fork` root's body must accompany the `Rec` (else it parks on a deferred dep); the rest validates
+from retained storage, and a local discriminator's hot page is smaller still (the retained branch ≤
+64 plus the `Rec`). See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Recovery-preimage rotation (operator guidance).** Operators SHOULD rotate the recovery-key

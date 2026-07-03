@@ -67,18 +67,17 @@ Whether a fork can be repaired turns on **tier**, read from the data:
   recovering party's own branch and archives the rest, naming one losing branch's **root** as its
   `fork` (every other competing branch closes below the seal and by descent, unnamed) — every
   competing branch must be content-only; the chain returns to Active. While the fork stands the
-  chain reads `forked:`; the effective SAID is the real digest over the held at-or-above-seal
-  competing tips.
+  chain reads `forked`; the effective SAID is the real digest over all the tips the log holds.
 - **Terminal (disputed)** — **two or more branches each carry a privileged event** past the fork. No
   privileged branch can be archived (a privileged event is never overturned — that would resurrect
   retired keys), so no single chain can be chosen and the prefix must **reincept**. The chain reads
-  `disputed:` — the same real branch digest as any live fork; the verdict is the walk's, never
-  encoded in the value.
+  `disputed` — the same real digest over all held tips as any live fork; the reading is the walk's,
+  never encoded in the value.
 
 Terminality is a **branch-level fact any verifier computes data-locally** by walking the
 **retained** branches — a node retains a competing branch as non-canonical evidence rather than
 discarding it at the seal-cap ([§The locked portion](#the-locked-portion)). A node holding both
-privileged branches reads `disputed:` directly; a node holding only one fetches the rest via the
+privileged branches reads `disputed` directly; a node holding only one fetches the rest via the
 **witness beacon**, which **enumerates** the competing branch SAIDs. The federation **propagates**
 the branches; it does **not** decide the verdict. See
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) and
@@ -90,10 +89,10 @@ The KEL verifier surfaces two forward-only watermarks on its
 [`KelVerification`](verification.md#kelverification-token) token, both computed from the chain's
 events.
 
-| Concept                         | Advances on                           | Used for                                                                                                                                                         |
-| ------------------------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `last_seal_advancing_event`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything at-or-below it.                                       |
-| `last_recovery_revealing_event` | `Ror` / `Rec` / `Wit` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known. |
+| Concept                         | Advances on                           | Used for                                                                                                                                                                          |
+| ------------------------------- | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_seal_advancing_event`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything strictly below it (the seal-advancing event itself is a legal parent). |
+| `last_recovery_revealing_event` | `Ror` / `Rec` / `Wit` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known.                  |
 
 The two memberships diverge only on `Rot` — it advances the seal without revealing the recovery key.
 `Dec` does both: it reveals the recovery key (dual-signed) and advances the seal to its own serial,
@@ -140,9 +139,10 @@ may attach at it). Events in this segment are structurally immutable within the 
   recent seal-advancing event (see
   [`recovery.md` §Repair-event bound](recovery.md#repair-event-bound)).
 - A new event whose `previous` points into the locked portion is **rejected as a canonical
-  extension** with `SiblingLocked` — but when it is a structurally-valid fork from an ancestor the
-  node holds, it is **retained as non-canonical evidence** rather than discarded, so the proof a
-  divergence occurred is never lost.
+  extension** with `SiblingLocked`. Whether that rejected fork is **retained as non-canonical
+  evidence** is a separate, witnessing-gated decision — a losing **content** sibling on a witnessed
+  chain never forms (nothing to retain), while a privileged branch, or any fork on a direct-mode
+  chain, is kept, so the proof a divergence occurred survives wherever a fork actually forms.
 - The seal-cap's role is to deny revival attacks: a party holding stale authority (a recovery
   preimage already revealed by an earlier `Rec` / `Ror` / `Wit`, or a key since rotated out) cannot
   construct an event targeting the locked portion to rearrange the chain. Only current authority
@@ -153,7 +153,7 @@ may attach at it). Events in this segment are structurally immutable within the 
 The at-or-below-seal portion is permanently final — for the chain itself (no future event may target
 it) and for consumers verifying anchors, credentials, and SEL bindings against it; the permanence
 claims run against the last **clean** seal (a below-seal **privileged** fork is a spine fork that
-flips the reading to `disputed:` without rewriting any sealed event). See
+flips the reading to `disputed` without rewriting any sealed event). See
 [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability) for the structural
 defense argument and
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) (_Pre-seal

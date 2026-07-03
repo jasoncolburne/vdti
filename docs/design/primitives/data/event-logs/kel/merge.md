@@ -35,6 +35,7 @@ produce.
 | **SiblingLocked**     | Not admitted as a canonical extension; no canonical state change. Retention of the rejected fork as evidence is a **separate**, witnessing-gated matter — see the keep-all-data paragraph below.                                                                                     | Submitted event's parent sits in the locked portion behind `last_seal_advancing_event` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Decommissioned chain this is the **sibling-to-`Dec`** case: an event sharing the `Dec`'s parent, racing the `Dec` at its serial. |
 | **KelDecommissioned** | No state change. Submission rejected.                                                                                                                                                                                                                                                | Submitted event chains _from_ a `Dec` (its parent's kind is `Dec`). Caught in structural validation by the kind-schema rule — no kind admits a `Dec` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                         |
 | **RecoverRequired**   | No state change; guidance only (chain stays Divergent).                                                                                                                                                                                                                              | The chain is Divergent (frozen) and the batch is neither a `Rec` nor a privileged event — only a `Rec` resolves a divergence.                                                                                                                                                                                                                                  |
+| **Rejected**          | No state change; submission rejected.                                                                                                                                                                                                                                                | Structural-validation failure — the submitted kind is inapplicable to the chain state (an inception on a non-empty chain, or a non-inception kind on an Empty chain). Caught before routing, independent of the seal-cap.                                                                                                                                      |
 
 A guidance-only variant — `RecoverRequired` — applies when the chain is Divergent and the submitted
 batch is neither a `Rec` nor a privileged event (which would itself reject as `SiblingLocked`). The
@@ -50,8 +51,8 @@ additive gate for non-witnesses (the full rule lands with
 [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
 
 - A **privileged** competing branch (`Rot` / `Ror` / `Wit` / `Dec`) is witnessed up to two per
-  position (two are the `disputed:` proof), so it is accepted and **retained** — the evidence the
-  data-local `disputed:` walk reads.
+  position (two are the `disputed` proof), so it is accepted and **retained** — the evidence the
+  data-local `disputed` walk reads.
 - A losing **content** sibling on a witnessed chain is **prevented**, not turned into retained fork
   evidence: a selected witness declines it (one content sibling per position), so it never reaches
   `threshold` receipts and a non-witness never accepts it as a witnessed branch — the content fork
@@ -61,7 +62,7 @@ additive gate for non-witnesses (the full rule lands with
   bounded query surface, never canonical).
 
 Retained evidence — privileged branches, plus everything on direct-mode chains — is what lets any
-verifier read `forked:` / `disputed:` by a data-local walk
+verifier read `forked` / `disputed` by a data-local walk
 ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
 
 ## Routing order
@@ -175,7 +176,7 @@ For events admitted past rule 3, kind-specific authorization fires:
   privileged event** (any event above tier 1 — `Rot` / `Ror` / `Rec` / `Wit` / `Dec`) — a privileged
   branch is never archived
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1), so the
-  fork is terminal (`disputed:`, reincept); a `Rec` rejected by **this** guard — it passed hard auth
+  fork is terminal (`disputed`, reincept); a `Rec` rejected by **this** guard — it passed hard auth
   and revealed the reserve, so it is a real privileged event — is itself **retained as a competing
   privileged branch and counted** (retain-and-count — dropping it would split the reading
   permanently across nodes; a `Rec` that fails hard auth, carries no `fork`, is malformed, or names
@@ -266,7 +267,7 @@ already held).
   sits in the locked portion; outcome `SiblingLocked`.
 - Batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with `previous = v_{d-1}.said`
   (which would join the fork) → not admitted as a canonical extension; outcome `SiblingLocked`. A
-  privileged competing branch is retained as the `disputed:` proof (witnessed up to two per position
+  privileged competing branch is retained as the `disputed` proof (witnessed up to two per position
   — [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
 - Otherwise → `RecoverRequired`.
 
@@ -280,7 +281,7 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
 - If the batch contains a `Rec` → discriminator runs; outcome `Recovered`.
 - If the batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with
   `previous = v_{d-1}.said` → not admitted as a canonical extension; outcome `SiblingLocked` (a
-  privileged competing branch is retained as the `disputed:` proof).
+  privileged competing branch is retained as the `disputed` proof).
 - Otherwise → the first conflicting content event is inserted as the fork event; outcome `Diverged`.
 
 ## Discriminator algorithm
@@ -318,12 +319,12 @@ plus at most one pre-fork page:
 8. **Guard the subtrees — content-only.** The merge layer **independently** walks every competing
    branch off the retained walkback that it holds or the beacon enumerates — the named root's
    subtree included — and **rejects the `Rec` on any privileged event** in them (the fork is
-   `disputed:` → reincept, and the rejected `Rec` is retained as a competing privileged branch and
+   `disputed` → reincept, and the rejected `Rec` is retained as a competing privileged branch and
    counted) — it never trusts the submitter's `fork` as proof that no privileged branch exists
-   unnamed (per §4); privileged branches are always retained (keep-all-data), so an unnamed `Rot` is
-   caught, not buried by sealing past it. The competing branches are validated from retained storage
-   and need not co-reside in the discriminator's hot page (which is the retained branch plus the
-   `Rec`).
+   unnamed (per [§Kind-specific authorization](#4-kind-specific-authorization)); privileged branches
+   are always retained (keep-all-data), so an unnamed `Rot` is caught, not buried by sealing past
+   it. The competing branches are validated from retained storage and need not co-reside in the
+   discriminator's hot page (which is the retained branch plus the `Rec`).
 9. **Condemn and insert.** Mark the named root's subtree dead — non-canonical forever, later growth
    dead by descent — moving it out of the canonical live chain into non-canonical retained storage
    (the `fork` is the on-chain audit record of what was condemned by name; unnamed competing
@@ -359,11 +360,11 @@ blanket freeze:
   author re-issues its own benign content forward on the repaired chain (adversarial dead content is
   simply non-canonical — nobody re-issues it). At most **one** repair can resolve a content-only
   divergence; a _second_, competing repair is a `{Rec, Rec}` divergence — two privileged branches →
-  `disputed:`.
+  `disputed`.
 - **An un-covered privileged (non-content) branch rejects the repair.** A privileged branch is never
   archivable: the discriminator's content-only guard rejects the `Rec`, the fork is ≥ 2 privileged →
-  `disputed:` (reincept), and the rejected `Rec` is retained as a competing privileged branch and
-  counted (retain-and-count — [§4](#4-kind-specific-authorization)).
+  `disputed` (reincept), and the rejected `Rec` is retained as a competing privileged branch and
+  counted (retain-and-count — [§Kind-specific authorization](#4-kind-specific-authorization)).
 
 The completeness question — every combination of losing-branch tier, `fork` coverage, and delivery
 timing terminating correctly, with all honest nodes converging on one reading — is proven in
@@ -393,7 +394,7 @@ independent local linear-chain extensions, cross-node convergence runs **data-lo
   canonical extension but retains it as non-canonical evidence** (keep-all-data) — so each node ends
   up holding both branches.
 - Each node **reads the divergence by a data-local walk** over the retained branches: two privileged
-  branches past the fork read `disputed:`. The witness beacon propagates the competing branch SAIDs
+  branches past the fork read `disputed`. The witness beacon propagates the competing branch SAIDs
   to a node that lacks them, but the verdict is the node's own.
 
 The merge layer enforces local invariants strictly; convergence is the data-local walk, not a
