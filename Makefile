@@ -16,7 +16,7 @@ PRETTIER := npx --yes prettier@3.3.3
 CANON_DIR := .working
 CANON_MTIME := 202001010000
 CANON_TARBALL := docs/design/canon.tar.xz
-CANON_FILES := vdti-invariants.md \
+CANON_FILES := vdti-invariants.md vdti-repair-completeness-proof.md \
 	vdti-area-delegation.md vdti-area-document-policy.md vdti-area-federation-witnessing.md \
 	vdti-area-iel.md vdti-area-kel.md vdti-area-multi-party-documents.md vdti-area-sel.md \
 	vdti-area-vdtid-services.md vdti-federation-inception-reference.md vdti-implementation-notes.md
