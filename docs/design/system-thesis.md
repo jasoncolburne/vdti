@@ -58,6 +58,12 @@ infrastructure to infer system state.
 
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
+- **Prevention for witnessed content; detection for the rest.** On a witnessed chain the
+  witness-config's **majority floor** (`threshold > signers/2`) plus
+  one-content-sibling-per-position witnessing means two competing content events can never both be
+  witnessed — a content fork is **prevented** from forming, below a priced fork-cost of
+  `2·threshold − signers` compromised witnesses. Privileged races, direct-mode chains, and the
+  byzantine residual are **detected**.
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is repairable; a divergence with
@@ -143,13 +149,14 @@ rather than an identity judgment. Whoever holds that recovery preimage resolves 
 if it is the operator (its own rotation raced by stale content) the operator recovers; if it is an
 attacker (a stolen-reserve rotation against the operator's content) the operator has no move — it
 can neither extend nor archive the privileged branch — and **reincepts**, the chain being the
-attacker's. A repair names each losing branch's **root** in its `forks`, condemning that branch's
-entire subtree — so a losing branch grown after the repair is dead by descent, and one repair
-suffices for the fork it resolves. A divergence with two or more privileged branches is terminal and
-recovers only by reincept. A kill is always sealed and is never archived. Cross-node races between
-concurrent privileged submissions **converge data-locally** — keep-all-data retains the competing
-branch, so a node holds both and detects the divergence by walking them; the witness beacon
-propagates the branches to nodes that lack them, but does not decide the verdict.
+attacker's. A repair names one losing branch's **root** as its `fork`, condemning that branch's
+entire subtree — every other competing branch closes below the seal and by descent without being
+named — so a losing branch grown after the repair is dead by descent, and one repair suffices for
+the fork it resolves. A divergence with two or more privileged branches is terminal and recovers
+only by reincept. A kill is always sealed and is never archived. Cross-node races between concurrent
+privileged submissions **converge data-locally** — keep-all-data retains the competing branch, so a
+node holds both and detects the divergence by walking them; the witness beacon propagates the
+branches to nodes that lack them, but does not decide the verdict.
 
 → [`protocol-doctrine.md` §Divergence and repair](protocol-doctrine.md#divergence-and-repair).
 
@@ -196,9 +203,14 @@ data-from-any-source rests on the data, with the federation as the propagation a
 ### Operational hardening composes on top
 
 Monitoring for unexpected governance or rotation events; fast detect-to-recover response via `Rec` /
-`Ror`; abandon-and-reincept as last resort. Multi-party governance must serialize submissions above
-the protocol layer (designated submitter, leader election, or consensus over the identity's
-membership); for high-stakes IEL identities this is load-bearing, not optional.
+`Ror`; abandon-and-reincept as last resort. Multi-party **governance** must serialize submissions
+above the protocol layer (designated submitter, leader election, or consensus over the identity's
+membership); for high-stakes IEL identities this is load-bearing, not optional — a governance race
+is privileged, and a `{Evl, Evl}` collision is terminal. **Content** serialization is the same
+discipline at lower stakes: on a **witnessed** chain the majority floor prevents a competing content
+sibling going live, so an un-serialized content race costs stalls and re-issuance — a liveness cost,
+not a safety one; it stays load-bearing for **direct-mode / solo** chains, where no majority gates
+content.
 
 → [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md)
 _(forthcoming)_.

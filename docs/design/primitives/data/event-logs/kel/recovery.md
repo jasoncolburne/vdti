@@ -40,11 +40,12 @@ composed above KEL (IEL governance with threshold redundancy across distinct cus
 KEL has two distinct recovery primitives. They are not interchangeable.
 
 - **`Rec` is the repair.** It resolves an already-divergent chain: `Rec` keeps the repairing branch
-  and archives the rest — **content-only** archival tails, condemned by the roots committed in its
-  `forks` (a privileged event in any competing branch makes the fork terminal → reincept, never
-  archived) — and returns the chain to Active. Reveals the current recovery-key preimage as a side
-  effect of dual-signing: that preimage is spent, but `Rec` commits a fresh recovery commitment (a
-  new `recoveryHash`), so the chain stays recoverable.
+  and archives the rest — **content-only** archival tails, one condemned by the root committed as
+  its `fork`, every other closing below the seal and by descent (a privileged event in any competing
+  branch makes the fork terminal → reincept, never archived) — and returns the chain to Active.
+  Reveals the current recovery-key preimage as a side effect of dual-signing: that preimage is
+  spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so the chain stays
+  recoverable.
 - **`Ror` is proactive.** Used pre-emptively — to rotate both signing and recovery keys for
   forward-secrecy hygiene, or to refresh the recovery-key preimage commitment per operator cadence
   guidance. `Ror` is not divergence-driven; it lands as a linear extension of a non-divergent chain.
@@ -95,7 +96,7 @@ tier-1 content compromise), **not** the rotation key. Three structural facts clo
 - **`Rec` cannot archive the `Rot`.** `Rot_adversary` is a privileged event, and only content
   (`Ixn`) is archivable
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1). A
-  `Rec` that committed `Rot_adversary` to its `forks` would archive a privileged event — forbidden,
+  `Rec` that committed `Rot_adversary` as its `fork` would archive a privileged event — forbidden,
   and **identity-blind on purpose**: if a recovery-key holder could archive "the adversary's" `Rot`,
   they could archive **any** `Rot` (including a legitimate operator's), resurrecting retired key
   material — the backdate surface vdti closes by treating `Rot` as a privileged branch (never
@@ -129,11 +130,11 @@ A `Rec` extending `v_{d-1}` therefore validates uniformly:
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
 - The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on
   every node.
-- The repair's resolution is uniform: every node validates the same committed roots — each must be a
+- The repair's resolution is uniform: every node validates the same committed root — it must be a
   competing child of the fork point `v_{d-1}`, off the full-span `Rec.previous` walkback (a root on
   the retained chain, or `v_{d-1}` itself, rejects the `Rec`) — and **independently** walks every
   competing branch it holds (or the beacon enumerates), rejecting the `Rec` if any carries a
-  privileged event, rather than trusting the submitter's `forks`. Independent computation is what
+  privileged event, rather than trusting the submitter's `fork`. Independent computation is what
   makes the resolution identical on every node.
 
 This is what makes the divergence-ancestor-extending shape the structural primitive that solves
@@ -141,7 +142,7 @@ cross-node propagation. A tip-extension or combined-digest approach would not ha
 the "tip" each node sees may differ across the divergence, and an attempt to recover by extending a
 tip would commit to a node-local choice the rest of the federation can't replicate. A repair
 attaching at the submitter's own tail instead is validated against that retained tail plus the
-committed `forks[]` (fetched via keep-all-data / the beacon) — also cross-node-checkable, but only
+committed `fork` root (fetched via keep-all-data / the beacon) — also cross-node-checkable, but only
 the `v_{d-1}` attach needs no fetch.
 
 ### Repair-event bound (condition 2b)
@@ -163,8 +164,9 @@ that derives from it.
 
 ## Rec parent shapes
 
-`Rec` resolves divergence by committing, in its `forks`, the **root** of each losing branch — the
-branch's first divergent event, which condemns its entire subtree. `Rec.previous` takes one of two
+`Rec` resolves divergence by committing, as its `fork`, the **root** of one losing branch — its
+first divergent event, which condemns the branch's entire subtree; every other competing branch
+closes below the repair-advanced seal, its growth dead by descent. `Rec.previous` takes one of two
 shapes:
 
 ### Branch-tip-extending shape
@@ -179,28 +181,30 @@ Pre-state (divergent at v_d):
 
 Rec construction: rec.previous = retained-branch tip's said
                   rec.serial   = d + 1
-                  rec.forks = [ other-branch root ]
+                  rec.fork = other-branch root
 
 Post-state (linear, recovered):
     ... → v_{d-1} → retained-branch tip @ v_d → rec @ v_{d+1}
                   ↑
-                  other branch condemned via its root in rec.forks
+                  other branch condemned via its root in rec.fork
 ```
 
 The submitter (whoever holds the recovery key) keeps the branch they authored as the retained
-branch; `Rec` extends it, naming the root of every losing branch (its first divergent event — here
-the losing branch's head at `v_d`, which is its root) in `forks` — each root condemning its whole
-subtree, so anything grown on the branch after the repair is dead by descent. The merge layer then
+branch; `Rec` extends it, naming one losing branch's root (its first divergent event — here the
+losing branch's head at `v_d`, which is its root) as `fork` — the root condemning its whole subtree,
+so anything grown on the branch after the repair is dead by descent. The merge layer then
 **independently** identifies the retained branch by walking back from `Rec.previous` over the full
-span, **rejects** any committed root that lies on that walkback (no self-condemnation), and walks
+span, **rejects** a committed root that lies on that walkback (no self-condemnation), and walks
 every competing branch off it that it holds — content-only, rejecting the `Rec` if any carries a
-privileged event. It never trusts the submitter's enumeration.
+privileged event. It never trusts the submitter's commitment.
 
 ### Divergence-ancestor-extending shape
 
-`Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. The root of every branch
-at `v_d` is committed to `forks` (here each branch head at `v_d` is its root); `Rec` is the only
-event at `v_d` after the repair runs.
+`Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. One branch's root at `v_d`
+is committed as `fork` (here a branch head at `v_d` is its root); every other branch closes without
+being named — its root sits below the repair-advanced seal, its growth dead by descent (identical
+outcome, which is why a single named root suffices); `Rec` is the only canonical event at `v_d`
+after the repair runs.
 
 ```
 Pre-state (divergent at v_d):
@@ -209,12 +213,13 @@ Pre-state (divergent at v_d):
 
 Rec construction: rec.previous = v_{d-1}.said
                   rec.serial   = d
-                  rec.forks = [ branch-1 root, branch-2 root ]
+                  rec.fork = branch-1 root
 
-Post-state (linear, recovered, Rec is the only event at v_d):
+Post-state (linear, recovered, Rec is the only canonical event at v_d):
     ... → v_{d-1} → rec @ v_d
                   ↑
-                  both prior branches condemned via their roots in rec.forks
+                  branch-1 condemned via its root in rec.fork;
+                  branch-2 closes below the seal, its growth dead by descent
 ```
 
 The divergence-ancestor-extending shape is the structural primitive that gives recovery its
@@ -250,7 +255,7 @@ The argument has three legs:
 
 - **Seal advances are clean.** `last_seal_advancing_event` advances only on seal-advancing events
   (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) that land cleanly on the linear chain. The seal never
-  forks: a privileged event that would create or join a divergence does not extend the canonical
+  forks — a privileged event that would create or join a divergence does not extend the canonical
   chain, so every seal advance is a clean linear-chain landing.
 - **At-or-below-seal events were authored under at-least-tier-2 capability.** Every seal advance is
   a clean privileged or repair landing — both classes require tier-2 or tier-3 capability. The
@@ -308,9 +313,10 @@ Per-node, each chain stays linear with its own first-receive as tip — but each
 branches** and reads the divergence by a **data-local walk**: two privileged branches past the fork
 read **`disputed:`**
 ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)). The **witness
-beacon** enumerates the competing branch SAIDs so a one-branch holder fetches and walks the rest —
-federation members witness every structurally-valid event they observe (always-witness), and
-adjacent receipts at the same chain position carrying different `witnessed_said` values are the
+beacon** enumerates the competing branch SAIDs so a one-branch holder fetches and walks the rest — a
+selected witness signs up to **two** distinct structurally-valid **privileged** siblings per chain
+position (two both-witnessed siblings are the `disputed:` proof, then further ones are declined),
+and adjacent receipts at the same chain position carrying different `witnessed_said` values are the
 evidence that a divergence exists at that position. The federation **propagates** the branches; the
 verdict is the verifier's own walk.
 
@@ -356,11 +362,14 @@ post-rotation tier-2 and tier-3 surfaces are closed by the layers composed above
 - **Custody separation.** KEL-internal custody hygiene (recovery key on a different device,
   HSM-resident, ceremony-gated) raises the practical bar to acquire both rotation and recovery
   preimages simultaneously. This is operational hardening; the protocol is custody-agnostic.
-- **Federation witnessing.** Under always-witness, competing privileged events at the same chain
-  position both accumulate receipts from the witness pool, and the beacon enumerates the branches as
-  the evidence a verifier walks. Rotation-tier compromise without a federation partition cannot get
-  a fork past detection — any verifier holding both branches reads the prefix as `disputed:` and
-  refuses to bind.
+- **Federation witnessing.** Competing **privileged** events at the same chain position are both
+  witnessed — a selected witness signs up to two distinct privileged siblings per position, and two
+  both-witnessed siblings are the `disputed:` proof — so both accumulate receipts from the witness
+  pool, and the beacon enumerates the branches as the evidence a verifier walks. Rotation-tier
+  compromise without a federation partition cannot get a fork past detection — any verifier holding
+  both branches reads the prefix as `disputed:` and refuses to bind. (A competing **content**
+  sibling, by contrast, is declined after the first seen at a position — under the majority floor a
+  content fork on a witnessed chain is prevented, not merely detected; federation doctrine.)
 
 The combined attack — rotation-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**
@@ -387,6 +396,7 @@ observable in the data layer. See
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
   — limit of the doctrine; layered defense; adversary patience; cascade-reincept honesty.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): always-witness, the beacon, divergent witness receipts.
+  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the majority floor, the
+  beacon, divergent witness receipts.
 - [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md) —
   operator CLI ceremony (subsequent sub-issue).

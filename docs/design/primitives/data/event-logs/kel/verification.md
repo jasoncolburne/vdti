@@ -124,7 +124,7 @@ match event.kind:
     Wit (Fcp-rooted)   -> manifest carries { anchors } (the federation IEL Wit; req), may also carry { witnesses };  federation + federationPin fbd
     Ixn                -> manifest carries { anchors } (req, >= 1)
     Rot, Ror           -> manifest may carry { anchors }
-    Rec                -> manifest carries { forks } (req, non-empty)
+    Rec                -> manifest carries { fork } (req — the single losing-branch root)
     Dec                -> no fold field (non-repair seal; retained run derivable as [previousSeal..previous])
 ```
 
@@ -324,9 +324,10 @@ The verifier's terminal-state-determination rule:
   - **Two or more privileged branches past the fork** → **terminal** (`disputed:`); reincept.
   - No fork → Linear (Active, or Decommissioned via `Dec`).
 
-`Rec` is the repair kind — it keeps the repairing branch and commits each losing branch's **root**
-in `forks` (condemning that branch's entire subtree), so after a repair the chain has a single
-linear walkback and is no longer divergent.
+`Rec` is the repair kind — it keeps the repairing branch and commits one losing branch's **root** as
+`fork` (condemning that branch's entire subtree; every other competing branch closes below the seal
+and by descent), so after a repair the chain has a single linear walkback and is no longer
+divergent.
 
 ### Verifier reports; the merge layer gates
 
@@ -386,12 +387,16 @@ receipt counts alone do not satisfy `witnessed`.
 
 **The divergence signal splits by provenance.** When a node **holds and re-validates** two or more
 privileged branches at a position, it reads **`disputed:` directly from the data** —
-threshold-independent. When it holds only a **receipt** for an event it has not yet fetched (or a
-content fork), it treats the position as **`forked:`** and waits for the **witness threshold**
-before acting on it as a real divergence. Single-rogue protection: a rogue who signs receipts on a
-fake `witnessed_said` cannot trigger a verdict — the fake event fails structural re-check, and
-honest witnesses do not sign for fakes; the verifier re-checks validity because the database cannot
-be trusted. Receipts tell a node it is _forked_; only the data-local walk tells it _disputed_.
+threshold-independent. When it holds only a **receipt** for a **privileged** event it has not yet
+fetched, it treats the position as **`forked:`** and waits for the **witness threshold** before
+acting on it as a real divergence. For **content** the signal is different: under the majority floor
+a losing content sibling never reaches threshold, so waiting for threshold on it would wait forever
+— the anomaly signal is a **sub-threshold competing receipt set** at a position, which enumerates
+the branches; the node fetches the event and the data-local walk decides (threshold authenticates
+only the winning branch). Single-rogue protection: a rogue who signs receipts on a fake
+`witnessed_said` cannot trigger a verdict — the fake event fails structural re-check, and honest
+witnesses do not sign for fakes; the verifier re-checks validity because the database cannot be
+trusted. Receipts tell a node it is _forked_; only the data-local walk tells it _disputed_.
 
 **`minority_dissent`.** Receipts below threshold for some `witnessed_said` that don't contribute to
 pinning. Forensic signal for potentially-compromised witnesses; not load-bearing for trust
@@ -517,7 +522,7 @@ spanning two pages re-fetches at the next page rather than being processed half-
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md#kel) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `forks`, the per-kind field grid.
+  `manifest` model, `previousSeal` / `fork`, the per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, the seal and spine, locked-portion bound, page
   model.
 - [`events.md`](events.md) — per-kind reference: fields, authorization, the manifest roles,

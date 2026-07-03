@@ -163,8 +163,8 @@ kels/sad/
 #   policy_satisfied  — the verifier token reports the structural-validity
 #     result, not a policy signal (authorization is structural; policy lives on
 #     documents);
-#   RecoveryRecord  — a repair commits its archival tails in folded.forks[],
-#     not a separate audit-row type;
+#   RecoveryRecord  — a repair commits a losing branch's root as the `fork`
+#     manifest role, not a separate audit-row type;
 #   witnessParams / witnessThreshold / witnessSelectionSize  — the witness
 #     config rides the `witnesses` manifest role as a { threshold, signers } SAD.
 federation-irreconcilable
@@ -194,21 +194,38 @@ folded\.forks
 folded\.canonical
 
 # ============================================================================
-# §Doc-only — root-pointing repair model (forks = roots, not tips)
+# §Doc-only — root-pointing repair model (the fork role = a root, not a tip)
 # ============================================================================
-# A repair's forks names each losing branch's ROOT — its first divergent event,
+# A repair's fork names a losing branch's ROOT — its first divergent event,
 # condemning the whole subtree (growth-proof) — never its tip. The tip-pointing
 # model and its apparatus (a re-freeze on an under-covering repair; a follow-up
-# repair required to catch post-repair growth) are retired: an under-covering
-# content repair is ACCEPTED (missed content inerts below the seal, growth dead
+# repair required to catch post-repair growth) are retired: an unnamed-content
+# repair is ACCEPTED (unnamed content inerts below the seal, growth dead
 # by descent). Bare "tip" stays live everywhere (chain tip, branch tip, the
-# SEL's IEL-anchored tip); only the forks-entry collocations and the retired
+# SEL's IEL-anchored tip); only the fork-role collocations and the retired
 # apparatus regress.
 archived[- ]branch tips?
 `forks` tips
 \bsecond repair\b
 re-freez
 re-frozen
+
+# ============================================================================
+# §Doc-only — the fork role is a single scalar root (forks list → fork)
+# ============================================================================
+# A repair's manifest role is the scalar `fork` — ONE losing branch's root;
+# every other competing branch closes below the repair-advanced seal and by
+# descent (identical outcome), so a LIST of roots was a redundant commitment
+# and the list role `forks` is retired. The plain verb ("forks", "a fork",
+# "the chain forks", "the seal never forks") and the section title "Forks are
+# seal-bounded" stay live — only the list-role name and its accessor /
+# inline-list / plural-root collocations regress.
+`forks`
+forks\[\]
+\.forks\b
+losing[- ]branch roots
+roots committed
+inline list of the losing
 
 # ============================================================================
 # §Doc-only — anchors subsumes issues/revokes/rescinds (manifest role vocab)

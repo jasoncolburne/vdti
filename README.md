@@ -60,6 +60,8 @@ tar -xvf ../docs/design/canon.tar.xz
 
 To re-bundle the canon archive under `docs/design/`, run `make canon-tarball`.
 
+You may also find `docs/supplemental.tar.xz` useful. 
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

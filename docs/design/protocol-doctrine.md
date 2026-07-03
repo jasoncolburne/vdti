@@ -226,10 +226,11 @@ other chains' authority. The per-primitive anchor matrix is in
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
-**Threshold-vector bounds** (re-checked on the post-delta roster at every roster-delta event — a
-user `Evl`, a **user `Rpr`-cut** (the repair-and-evict fold below), or a federation `Wit` — not only
-at inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard for every
-identity of `|roster| >= 2` — no single member exercises authority; the singleton below is the
+**Threshold-vector bounds** (re-checked on the post-delta config at every config-changing event — a
+user `Evl`, a **user `Rpr`-cut** (the repair-and-evict fold below), or a federation `Wit`,
+**including a config-only `Wit`** that changes `threshold` / `signers` with no roster delta — not
+only at inception): `t_use >= 1`; the authority slots carry a **security floor** `>= 2` (hard for
+every identity of `|roster| >= 2` — no single member exercises authority; the singleton below is the
 degenerate case) and a **recoverability ceiling** `<= |roster| − 1` (evict/recover without one
 member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a threshold equal to `|roster|`
 is a gratuitous hostage config and is rejected). **`t_govern <= t_recover` is a hard floor**
@@ -239,7 +240,20 @@ roster cut, so it is never priced below governance. And the roster is **never em
 `cut ∩ add = ∅`), making every singleton's roster downward-immutable. A singleton (`|roster| = 1`)
 sets all thresholds to 1. The federation IEL's recoverability ceiling is **hard** (it is critical
 infrastructure and must always be able to evict a compromised witness), so a federation requires
-`|roster| >= 3`.
+`|roster| >= 3` — and its **witness-config** carries its own recoverability cap on top:
+**`threshold <= min(|roster| − 2, signers − 1)`**, because an eviction `Wit` must self-attest
+without the evicted member (the self-attest pool is `|roster| − 2`, and at sub-pool selection the
+selected pool loses one too — the `signers − 1` leg is the one that binds for `signers >= 2`; that
+leg is **waived at `signers = 1`**, the lone-witness carve-out, where evict-one self-attestation is
+position-luck, warned). The full cap **plus the majority floor `threshold > signers/2`**
+([§Federation convergence](#federation-convergence)) are re-applied on **any `Wit` that changes
+roster, `threshold`, or `signers`** — not a `cut` alone — so a bare shrink that would strand the
+federation un-recoverable (`|roster| 5→4` at `threshold 3`), or a `signers` drop landing on the
+binding leg (`{signers 4, threshold 3} → {signers 3, threshold 3}` at `|roster| = 5`, which passes
+the roster leg yet violates `threshold <= signers − 1`), is **rejected**, forcing evict-and-replace
+or a simultaneous threshold-and-`signers` drop. This re-check is what actually enforces "the
+federation can never be brought to an unrecoverable size" — for `signers >= 2` the roster leg alone
+is the slack one.
 
 Authorization that a third party relies on — who issued a credential, who may present it — is the
 job of the **document policy layer** ([`primitives/policy/policy.md`](primitives/policy/policy.md)),
@@ -287,20 +301,27 @@ deployment fits in any other's single page (`MINIMUM_PAGE_SIZE` is a protocol co
 per-deployment knob; the `− 1` headroom accommodates the single-event repair — the
 **discriminator**'s (the merge layer's repair-resolution walk,
 [`kel/merge.md`](primitives/data/event-logs/kel/merge.md)) hot page is the retained branch plus the
-repair event, with the losing branches condemned by the roots committed in `forks` and validated
-from retained storage, not held in the page). On the IEL the cap is just as load-bearing: content
-(`Ixn` — the **content rail**, the stream issuance rides via `anchors[]`) does **not** advance the
-seal, so trailing issuances accumulate and the seal lags the tip; without the cap the post-seal
-window grows unbounded and page-atomic content-divergence repair breaks. A busy issuer that fills
-the window **re-seals with a roster-less `Evl`** (**omits `roster`** — no roster change — the
-identity-layer analogue of a KEL re-sealing via `Rot`; validation **accepts** a roster-less re-seal
-`Evl`), advancing the seal with no new kind. (Under a network partition both halves can fill the cap
-and re-seal independently; the two roster-less `Evl`s differ by `previous` and collide as
-`{Evl, Evl}` → terminal, so a **high-volume issuer serializes its content submissions** — a
-discipline separate from, and additional to, **serializing governance** (the operational rule that
-governance and kill events pass through **one designated submitter** so two never race during a
-partition — else `{Evl, Evl}` / `{Kil, Kil}` → terminal; operator doctrine, forthcoming).) The exact
-constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
+repair event, with the losing branch named by the root committed as `fork` condemned — every other
+closing below the seal and by descent — validated from retained storage, not held in the page). On
+the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the stream issuance
+rides via `anchors[]`) does **not** advance the seal, so trailing issuances accumulate and the seal
+lags the tip; without the cap the post-seal window grows unbounded and page-atomic
+content-divergence repair breaks. A busy issuer that fills the window **re-seals with a roster-less
+`Evl`** (**omits `roster`** — no roster change — the identity-layer analogue of a KEL re-sealing via
+`Rot`; validation **accepts** a roster-less re-seal `Evl`), advancing the seal with no new kind.
+(Under a network partition both halves can fill the cap and re-seal independently; the two
+roster-less `Evl`s differ by `previous` and collide as `{Evl, Evl}` → terminal, so a **high-volume
+issuer serializes its content submissions** — a discipline separate from, and additional to,
+**serializing governance** (the operational rule that governance and kill events pass through **one
+designated submitter** so two never race during a partition — else `{Evl, Evl}` / `{Kil, Kil}` →
+terminal; operator doctrine, forthcoming). **Governance serialization is safety-critical
+everywhere** — a governance race is privileged, and the witnessing majority floor never gates
+privileged events. **Content-rail serialization splits by mode**: on a **witnessed** chain the floor
+prevents a competing content sibling going live — a partitioned content rail **stalls** rather than
+forks — so the discipline is a **liveness / waste** concern there; it stays **safety-relevant on
+direct-mode / solo** chains, where no majority gates content
+([§Federation convergence](#federation-convergence)).) The exact constant, the roster-less re-seal,
+and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/) (forthcoming).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -309,18 +330,18 @@ back-link to the prior seal-advancing event, so following `previousSeal` renders
 its content run — the retained run since the prior seal is the derivable linear chain
 `[previousSeal..previous]` (nodes keep the full bodies; the flat query returns them), and "content
 was folded here" is the derived predicate `previous != previousSeal`. Only a **repair** seal carries
-a manifest fold field: the **`forks`** role, an inline list of the losing-branch **roots** it
-condemns (§Divergence and repair). The spine is a **convenience** view, verified by the same chain
-walk with `previousSeal` substituted for `previous`, yielding authority state and a
-terminal-divergence view (a spine fork is two competing seals — privileged, hence terminal) but not
-recoverable content forks or content completeness. The detection guarantee, and any decision that
-turns on a content event, use the **flat** walk; a skipped seal is caught by the flat walk (it
-appears as a seal-advancing event when `previous` traverses the run) plus spine-fork detection (the
-real skipped seal, once held, competes at its spine position). The spine alone trusts
-`previousSeal`; it is fail-secure (a forged `previousSeal` that skips a seal surfaces as a competing
-seal when the real one is held, and is otherwise bounded by the **eclipse residual** — a reader cut
-off from a branch reads stale until the beacon delivers it;
-[§Federation convergence](#federation-convergence)). Event structure:
+a manifest fold field: the **`fork`** role, the single losing-branch **root** it condemns — every
+other competing branch closes below the seal and by descent (§Divergence and repair). The spine is a
+**convenience** view, verified by the same chain walk with `previousSeal` substituted for
+`previous`, yielding authority state and a terminal-divergence view (a spine fork is two competing
+seals — privileged, hence terminal) but not recoverable content forks or content completeness. The
+detection guarantee, and any decision that turns on a content event, use the **flat** walk; a
+skipped seal is caught by the flat walk (it appears as a seal-advancing event when `previous`
+traverses the run) plus spine-fork detection (the real skipped seal, once held, competes at its
+spine position). The spine alone trusts `previousSeal`; it is fail-secure (a forged `previousSeal`
+that skips a seal surfaces as a competing seal when the real one is held, and is otherwise bounded
+by the **eclipse residual** — a reader cut off from a branch reads stale until the beacon delivers
+it; [§Federation convergence](#federation-convergence)). Event structure:
 [`event-shape.md`](primitives/data/event-logs/event-shape.md).
 
 #### Divergence and repair
@@ -340,11 +361,18 @@ single privileged branch is a **terminal `Dec`** (an identity/SEL decommission �
 carry a repair) resolves by **tier-rank** with no repair (below). A `Kil` is **not** terminal (it
 kills a _target_, not its host chain), so `{Kil, content}` repairs like `{Evl, content}`. (A
 below-seal **content** straggler that arrives after the chain already sealed past its serial is kept
-as evidence or dropped as **uncommitted** content — content condemned by no repair's `forks` and
+as evidence or dropped as **uncommitted** content — content condemned by no repair's `fork` and
 beyond the evidence bound; the keep-or-drop selector is the retention bound below — never a freeze:
 the canonical branch is already sealed past it. A below-seal **privileged** straggler is not inert —
 it is a spine fork and flips the reading to `disputed:`; see pre-seal verifiability, below.)
 Freezing the chain on divergence is the founding insight of the event-log primitives.
+
+On a **witnessed** chain, a **content** fork rarely reaches this machinery at all: the witnessing
+majority floor makes two competing content siblings un-co-witnessable, so the fork is **prevented**
+from forming below fork-cost ([§Federation convergence](#federation-convergence)). The rules below
+are what run in the **residual** — direct-mode / no-witness chains, a witness compromise at
+fork-cost, split-stalls (where the repair is the exit), and **privileged** races, which the floor
+never gates.
 
 **Divergence is resolved by tier, not by identity.** Chain data cannot tell the rightful operator
 from an adversary — both branches were structurally authorized when they landed — so resolution
@@ -443,34 +471,36 @@ the threshold-vector bounds (a stranding or hostage cut is rejected, forcing a s
 fork-causer is the motivating case, not a structural check, since chain data cannot tell operator
 from adversary. This is IEL-only (the KEL and SEL repairs carry no roster).
 
-**Condemnation is by root — growth-proof, and a repair is accepted on arrival.** A repair's `forks`
-names the losing-branch **roots the repairer holds** — for each, its first divergent event, a
-distinct child of the fork point `v_{d-1}` **off** the retained chain, never its tip. It need
-**not** name every losing branch: one the repairer never saw (a **missed** branch) is absent from
-`forks[]` and is closed by the seal-cap + deadness-descends, not by naming (below). And **all**
-named roots share the **one** fork point `v_{d-1}` — the chain freezes at the first fork, so there
-is a single active divergence and every root is a sibling at `v_{d-1}`. A named root **condemns its
-entire subtree** — every descendant is non-canonical forever. (Vocabulary: a repair **condemns** a
-losing branch by naming its root — the mechanism; the condemned events are **dead** — the state; the
-branch as a whole is **archived** non-canonical — the outcome. The three words name one operation.)
-So a repair resolves more than the branches as they stood when it was authored: a losing branch that
-a gossip-lagging node **grows after the repair** is dead **by descent**, with no follow-up repair
-needed. A content branch the repair **never named** (truly missed — e.g. a fresh `Ixn` a lagging
-node accepted while reading the chain Active, the incoming repair then landing as that `Ixn`'s
-sibling) does not freeze the chain either: the repair is **accepted**, the missed branch's **first
-event** now sits below the seal the repair advanced — the seal-cap bars **that first event** from
-being a canonical extension — and everything built on it is dead by descent — **deadness descends:
-an event whose parent is dead is dead** (the per-event seal-cap bars only a branch's _first_ event
-by its attach point; the descent rule kills the growth). Either way the losing content rides the
-**forked chain** — the bounded dead region (the retention bound below) — witnessed and propagated,
-never canonical, and **never orphan-dropped**: the events stay kept per the retention bound, and an
-honest author **re-issues its own benign content** forward on the repaired chain once it catches up
-(adversarial dead content is simply non-canonical — nobody re-issues it). At most **one** repair can
-resolve a content-only divergence; a _second_, competing repair is a `{Rec, Rec}` / `{Rpr, Rpr}`
-divergence — two privileged branches → `disputed:`. An un-covered **privileged** (non-content)
-branch is the other tier entirely: it is never archivable, so ≥ 2 privileged branches →
-**`disputed:`** regardless of the seal — a privileged branch below a seal is **not** inert
-(archiving it would bury a rotation).
+**Condemnation is by root — growth-proof, and a repair is accepted on arrival.** A repair's `fork`
+names **one** losing branch's **root** — its first divergent event, a distinct child of the fork
+point `v_{d-1}` **off** the retained chain, never its tip. It does **not** enumerate the losing
+branches: an author holding several names any one (typically the only one), and **every other
+competing branch — held, missed, or later-grown — closes without being named**, by the seal-cap +
+deadness-descends (below); named and unnamed close identically, which is why a single committed root
+suffices (the verifier still independently computes the competing set — validated, not trusted — so
+no branch escapes by being unnamed). The root is a sibling at `v_{d-1}` — the chain freezes at the
+first fork, so there is a single active divergence. The named root **condemns its entire subtree** —
+every descendant is non-canonical forever. (Vocabulary: a repair **condemns** a losing branch by
+naming its root — the mechanism; the condemned events are **dead** — the state; the branch as a
+whole is **archived** non-canonical — the outcome. The three words name one operation.) So a repair
+resolves more than the branches as they stood when it was authored: a losing branch that a
+gossip-lagging node **grows after the repair** is dead **by descent**, with no follow-up repair
+needed. A content branch the repair **did not name** (an additional held one, or one truly missed —
+e.g. a fresh `Ixn` a lagging node accepted while reading the chain Active, the incoming repair then
+landing as that `Ixn`'s sibling) does not freeze the chain either: the repair is **accepted**, the
+unnamed branch's **first event** now sits below the seal the repair advanced — the seal-cap bars
+**that first event** from being a canonical extension — and everything built on it is dead by
+descent — **deadness descends: an event whose parent is dead is dead** (the per-event seal-cap bars
+only a branch's _first_ event by its attach point; the descent rule kills the growth). Either way
+the losing content rides the **forked chain** — the bounded dead region (the retention bound below)
+— witnessed and propagated, never canonical, and **never orphan-dropped**: the events stay kept per
+the retention bound, and an honest author **re-issues its own benign content** forward on the
+repaired chain once it catches up (adversarial dead content is simply non-canonical — nobody
+re-issues it). At most **one** repair can resolve a content-only divergence; a _second_, competing
+repair is a `{Rec, Rec}` / `{Rpr, Rpr}` divergence — two privileged branches → `disputed:`. An
+un-covered **privileged** (non-content) branch is the other tier entirely: it is never archivable,
+so ≥ 2 privileged branches → **`disputed:`** regardless of the seal — a privileged branch below a
+seal is **not** inert (archiving it would bury a rotation).
 
 **Termination.** Each dead lineage is **depth-capped**: at most `MINIMUM_PAGE_SIZE − 1` events past
 the last seal (the seal-advance cap — a deeper event would itself have to be a seal-advancer,
@@ -497,7 +527,10 @@ node catches up. (The disruption — a bounded window plus an operator repair �
 and its operators; a signing-key re-forker itself spends nothing.) **Content-rail serialization is
 an operator precondition** of the benign bound (absent it, honest content can **self-cascade** (one
 honest content event, landing at a lagging node, forks a fresh divergence before the repair
-propagates, and so on) — a liveness cost, not a safety one).
+propagates, and so on) — a liveness cost, not a safety one). On a **witnessed** chain the majority
+floor narrows even the self-cascade to stall-and-re-issue — a competing content sibling never goes
+live ([§Federation convergence](#federation-convergence)) — so the discipline is load-bearing
+chiefly for **direct-mode / solo** chains.
 
 **Finality is question-dependent.** A repair is **content-final the instant it seals**:
 root-condemnation plus deadness-descends close every losing content branch, present _or_
@@ -533,21 +566,21 @@ later-grown. On the privileged side, two **distinct** properties are easy to con
   construct a repair against an old position to rearrange the chain. When the repair's `previous` is
   the divergence ancestor `v_{d-1}` (structurally shared across all nodes), the repair validates
   uniformly regardless of which divergent contents each node received. A repair attaching at the
-  submitter's own tail instead is validated against that retained tail plus the committed `forks[]`
-  (fetched via keep-all-data / the beacon) — both are cross-node-checkable, but only the `v_{d-1}`
-  attach needs no fetch.
+  submitter's own tail instead is validated against that retained tail plus the committed `fork`
+  root (fetched via keep-all-data / the beacon) — both are cross-node-checkable, but only the
+  `v_{d-1}` attach needs no fetch.
 
-A **repair must commit the divergence it resolves — validated, not trusted.** Its `forks` names each
-losing branch's root. **Two tests, easily conflated:** (i) a repair with **empty `forks[]`** is
-**malformed → rejected** — there is no divergence to resolve; (ii) a forks-bearing repair arriving
-at a **lagging node** whose local tip looks non-divergent is **not** rejected for that — its named
-roots are fetched (keep-all-data / the beacon) and validated, and an as-yet-unfetchable root is
-condemned **pending fetch** (fail-secure: a fetched root that proves privileged flips the reading to
-`disputed:`). No non-repair event ever carries `forks[]`. Condemnation is guarded twice:
+A **repair must commit the divergence it resolves — validated, not trusted.** Its `fork` names one
+losing branch's root. **Two tests, easily conflated:** (i) a repair with **no `fork`** is
+**malformed → rejected** — there is no divergence to resolve; (ii) a fork-bearing repair arriving at
+a **lagging node** whose local tip looks non-divergent is **not** rejected for that — its named root
+is fetched (keep-all-data / the beacon) and validated, and an as-yet-unfetchable root is condemned
+**pending fetch** (fail-secure: a fetched root that proves privileged flips the reading to
+`disputed:`). No non-repair event ever carries `fork`. Condemnation is guarded twice:
 
-- **No self-condemnation.** A named root must be a competing child of `v_{d-1}` **off** the retained
-  chain. The verifier knows the retained chain (it walks the repair's `previous` back), so a root
-  that lies on it — or `v_{d-1}` itself, which is on it — is **rejected**: a repair can never
+- **No self-condemnation.** The named root must be a competing child of `v_{d-1}` **off** the
+  retained chain. The verifier knows the retained chain (it walks the repair's `previous` back), so
+  a root that lies on it — or `v_{d-1}` itself, which is on it — is **rejected**: a repair can never
   condemn its own retained branch, and no root's subtree includes the canonical chain. The verifier
   tests this over the **full** retained-chain walk, down to the fork point (reaching the pre-fork
   seal always suffices, at most one extra page): over a walk truncated at the divergence serial,
@@ -556,24 +589,24 @@ condemned **pending fetch** (fail-secure: a fetched root that proves privileged 
   any tier-3 holder including a buggy client. Condemnation is safe because each event has one
   `previous`, so a genuinely off-chain root's subtree is disjoint from the retained chain — a
   property the verifier can test only over the full-span walk.
-- **No buried rotation.** Each condemned subtree must be **content-only**: the verifier walks it,
-  and a **privileged** event in it means ≥ 2 privileged branches at or beyond the divergent serial →
-  **`disputed:`**, never archived. Nor does the verifier trust `forks[]` as proof there are **no**
+- **No buried rotation.** The condemned subtree must be **content-only**: the verifier walks it, and
+  a **privileged** event in it means ≥ 2 privileged branches at or beyond the divergent serial →
+  **`disputed:`**, never archived. Nor does the verifier trust the `fork` as proof there are **no**
   privileged branches: it **independently** walks every branch off the retained walkback it holds
   (or the beacon enumerates) and **rejects the repair if any such branch carries a privileged
   event** — privileged branches are always retained (keep-all-data), so a `Rot` cannot be hidden by
-  omitting its branch from `forks[]` and letting the repair seal past it. (The walk-independent
-  closer: every privileged KEL event is a seal-advancer, so a buried rotation is a competing seal —
-  a spine fork → `disputed:` independent of any walk bound.) A repair rejected **here** — one that
-  passed hard auth (it revealed the recovery reserve, so it is a real privileged event) and failed
-  only this content-only guard — is **retained as a competing privileged branch and counted**.
+  leaving its branch unnamed and letting the repair seal past it. (The walk-independent closer:
+  every privileged KEL event is a seal-advancer, so a buried rotation is a competing seal — a spine
+  fork → `disputed:` independent of any walk bound.) A repair rejected **here** — one that passed
+  hard auth (it revealed the recovery reserve, so it is a real privileged event) and failed only
+  this content-only guard — is **retained as a competing privileged branch and counted**.
   Retain-and-count is the only convergent semantics **because this rejection is branch-dependent**:
   the content-only guard walks the branches a node holds, so a node that dropped it would read the
   prefix differently from one that counted it — the reading would split permanently. The contrast is
-  exact: a repair that fails hard auth, carries empty `forks[]`, is malformed, or names a
-  self-condemning root is **dropped, never counted** — those rejections are **deterministic from
-  data every node holds uniformly** (the repair event itself plus the retained chain), so every node
-  drops identically and convergence is preserved; junk submissions cannot terminalize a prefix. So a
+  exact: a repair that fails hard auth, carries no `fork`, is malformed, or names a self-condemning
+  root is **dropped, never counted** — those rejections are **deterministic from data every node
+  holds uniformly** (the repair event itself plus the retained chain), so every node drops
+  identically and convergence is preserved; junk submissions cannot terminalize a prefix. So a
   reserve-revealing repair authored against a fork that turns out to hold a privileged branch
   **permanently terminalizes the prefix** → `disputed:` — the fail-secure outcome of revealing
   tier-3 material into a contested window.
@@ -594,7 +627,7 @@ the `Dec` clean and the content **non-canonical**. It only ever lets **higher** 
 reserve-backed `Dec`) override **lower** (T1 content); a **second privileged** branch (`{Dec, Rot}`
 / `{Dec, Dec}`, or the content branch having sealed a competing `Fld`/`Evl`) is not this case — it
 is two privileged branches → **`disputed:`**. To resolve a content fork _and_ decommission
-deliberately, repair first (the `Rpr` carries the `forks[]`), then the `Dec` lands cleanly on the
+deliberately, repair first (the `Rpr` carries the `fork`), then the `Dec` lands cleanly on the
 repaired chain. (A `Kil` is **not** terminal — it seals a kill on a _target_, not its host IEL — so
 a `{Kil, content}` fork takes the ordinary recoverable path: an `Rpr` retains the `Kil` and archives
 the content, exactly like `{Evl, content}`.)
@@ -625,26 +658,29 @@ old position, but two competing privileged branches already prove the prefix ter
 retains the second and stops. Content breadth is bounded the same way: nodes keep **≥ 2 competing
 events per position** as fork evidence and drop the rest — a signing-key re-forker can author more
 siblings, but they sit beyond the retained set: droppable, a bounded query surface, never an
-unbounded fork. On top of retention sits the **kind-aware divergent-position gate**: a witness
-holding ≥ 2 competing events at a position **declines to witness further content siblings** there —
-while **privileged events are always witnessed** (dispute evidence — competing seals form a spine
-fork, [§Forks are seal-bounded](#forks-are-seal-bounded)) and so is the **single repair** that lands
-on a content-only divergence and resolves it. Deterministic witness co-location fixes the witness
-_set_, not arrival order, so the bound rests on retention plus kind-awareness, not on which two
-events arrive first — and _which_ two are kept is immaterial: any two competing events prove the
-fork; the bound requires keeping at least two, not a particular two. The canonical run's bodies are
-kept and retrievable by prefix (the flat query returns them); a repair's `forks` roots are
-committed, each condemned branch being its root's **subtree** (every dead event's ancestry passes
-through a named root or a below-seal first event); only the truly **uncommitted** below-seal content
-flood — condemned by no repair's `forks` and beyond the ≥ 2-per-position evidence set — is
-droppable, because detection is **content-independent**: a privileged event re-validates against the
-prior seal's key state (reached via `previousSeal` on the retained spine) plus its own committed
-fields, never against this chain's below-seal content. So the evidence a data-local detection needs
-is bounded and always retained; dropping the rest is a storage/audit tuning knob, not a detection
-gap. The chain's **state** — Active / forked / disputed — is determined by the walk over the
-canonical chain plus the retained set; the effective SAID is then the tip's real SAID (Active /
-Decommissioned) or the `(state, prefix)` synthetic (forked / disputed) — see
-[§Effective-SAID](#effective-said-synthetic-comparison).
+unbounded fork. On top of retention sits the **one-content-sibling witnessing rule**: a selected
+witness signs the **first** structurally-valid **content** sibling at a position and **declines
+every later one** — while **privileged siblings are witnessed up to two per position** (two
+both-witnessed siblings are the `disputed:` proof — dispute evidence, competing seals form a spine
+fork, [§Forks are seal-bounded](#forks-are-seal-bounded) — and further ones are declined); the
+**single repair** that lands on a content-only divergence is simply the first privileged sibling at
+that position. Deterministic witness co-location fixes the witness _set_, not arrival order — with
+the majority floor ([§Federation convergence](#federation-convergence)) at most one content sibling
+per position is ever witnessed, arrival order deciding only which — and the retention bound rests on
+retention plus kind-awareness, not on which two events arrive first; _which_ two are kept is
+immaterial: any two competing events prove the fork; the bound requires keeping at least two, not a
+particular two. The canonical run's bodies are kept and retrievable by prefix (the flat query
+returns them); a repair's `fork` root is committed, the condemned branch being its root's
+**subtree** (every dead event's ancestry passes through the named root or a below-seal first event);
+only the truly **uncommitted** below-seal content flood — condemned by no repair's `fork` and beyond
+the ≥ 2-per-position evidence set — is droppable, because detection is **content-independent**: a
+privileged event re-validates against the prior seal's key state (reached via `previousSeal` on the
+retained spine) plus its own committed fields, never against this chain's below-seal content. So the
+evidence a data-local detection needs is bounded and always retained; dropping the rest is a
+storage/audit tuning knob, not a detection gap. The chain's **state** — Active / forked / disputed —
+is determined by the walk over the canonical chain plus the retained set; the effective SAID is then
+the tip's real SAID (Active / Decommissioned) or the `(state, prefix)` synthetic (forked / disputed)
+— see [§Effective-SAID](#effective-said-synthetic-comparison).
 
 **Pre-seal verifiability.** A seal is **clean** while no competing privileged branch forks
 at-or-below it; the **last clean seal** is the chain's most recent such seal-advancing event — on a
@@ -848,12 +884,20 @@ set is restricted to `Fcp` / `Wit` / `Dec` (no content, so it never has a **reco
 needs no `Rpr`; a competing-privileged divergence — `{Wit, Wit}` / `{Dec, Dec}` under a partition —
 is still possible but **terminal** (`disputed:`), which is why a federation runs a hard
 recoverability ceiling and `|roster| >= 3` with serialized governance; no delegation, since trust is
-per-federation and non-transitive). Its trust root is a **config-pinned federation prefix** (a
-compile-time default with a runtime override) — the prefix derives from the whole inception content
-`(roster, threshold, nonce)`, so it is a binding commitment to the exact founder set. There is **no
-self-witnessing carve-out** — the `Fcp` is a structural marker the verifier dispatches on, not a
-trust shortcut: authorization is ordinary member-anchoring (the founders' `Rot`s anchor the
-federation `Fcp`), trust roots in the config-pin, and everything post-genesis is witnessed normally.
+per-federation and non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose
+**`add` is a single prefix** — one witness added per `Wit`, the `Fcp` inception alone standing up
+the founding roster wholesale (`cut` stays a list: cuts remove synced witnesses, so emergency
+multi-eviction is unaffected — evict-and-replace is `cut: [..], add: one`). Standing up a witness is
+deliberate infrastructure, never bulk — and structurally, a governance transition then introduces at
+most **one** unsynced witness, which alone cannot reach a majority `threshold` against synced
+co-selectees that decline by first-seen — so the benign two-fresh-witnesses straddle collapses into
+the priced witness-compromise residual (a fresh sibling needs a byzantine synced co-signer). Its
+trust root is a **config-pinned federation prefix** (a compile-time default with a runtime override)
+— the prefix derives from the whole inception content `(roster, threshold, nonce)`, so it is a
+binding commitment to the exact founder set. There is **no self-witnessing carve-out** — the `Fcp`
+is a structural marker the verifier dispatches on, not a trust shortcut: authorization is ordinary
+member-anchoring (the founders' `Rot`s anchor the federation `Fcp`), trust roots in the config-pin,
+and everything post-genesis is witnessed normally.
 
 The convergence model has three components:
 
@@ -868,35 +912,92 @@ The convergence model has three components:
   anti-entropy recognizes matching state across nodes uniformly (see
   [§Effective-SAID synthetic comparison](#effective-said-synthetic-comparison)).
 
-**Witnessing propagates the divergence signal; the data decides** (witnesses are reporters, not
-deciders): every selected witness signs **every** structurally-valid event it observes at a position
-(always-witness), and receipts are indexed at the chain position `(prefix, serial)` rather than at
-event SAID, so competing events at one position accumulate receipts that **enumerate the branches**
-— the **beacon**. Witness selection is deterministic by `(prefix, serial)`, and the selected
-witnesses sub-gossip the event among themselves, so a structurally-valid competing event that
-reaches any one honest selected witness reaches threshold — there is no stable "witnessed but
-sub-threshold" state for a real event. How a node acts on the signal splits by **provenance**: when
-it **holds and re-validates** two or more privileged branches it reads **disputed** directly from
-the data, threshold-independent; when it holds only a **receipt** for an event it has not yet
-fetched (or a content fork), it waits for the **witness threshold** before treating the signal as a
-real divergence — below threshold, a rogue's receipt on a fake event is inert (the verifier
-independently re-checks validity; the database cannot be trusted). Receipts tell a node it is
-_forked_; only the data-local walk tells it _disputed_. This makes divergence **locally
-determinable** on every node, without watcher infrastructure. **All inter-node mesh traffic is
-encrypted** (ML-KEM-1024 + AES-256-GCM) — the receipts and the events they propagate alike — and the
-mesh is the federation roster, so mesh contents stay within the federation.
+**Content-fork prevention — the majority floor.** The witness-config every federated chain carries
+(`{ threshold, signers }` — the `witnesses` role) sits above a structural **majority floor:
+`threshold > signers/2`**, a strict majority of the selected witnesses (a sub-majority config is
+rejected as un-usable — its witnessed-in-full marker would no longer mean per-position exclusivity;
+`threshold = 1` is usable only at `signers = 1`, the lone-witness carve-out). Witness selection is
+deterministic by position, so any two threshold-quorums at one `(prefix, serial)` share at least
+`2·threshold − signers >= 1` witnesses — and an honest witness signs at most **one content sibling
+per position** (the ladder below) — so **two competing content events can never both be witnessed**:
+a content fork on a witnessed chain is **prevented from forming**, not merely detected.
+Manufacturing one costs owning the whole quorum intersection — the **fork-cost
+`2·threshold − signers`**, a priced, tunable security parameter, not a free consequence of the
+network (the dial trades one-for-one against receipt redundancy: `fork-cost = threshold − slack`
+where `slack = signers − threshold`, so at `threshold = signers` fork resistance is maximal but one
+unreachable witness stalls the position). Paying fork-cost also means exposure: two receipts by one
+witness over two distinct **content** `witnessed_said`s at one position (or a third distinct
+privileged sibling past the two-per-position cap) are cryptographic proof of misbehavior —
+forensics, then eviction. The floor holds at KEL positions **and user-IEL positions**: a user IEL's
+content events must reach a majority quorum at their own `(IEL prefix, serial)` — a fork-prevention
+gate **alongside** their anchor-based authorization, closing the two-disjoint-member-sub-quorums
+content fork — while the **federation IEL is exempt** (it authors no content; its every fork is
+privileged → `disputed:`), and a SEL rides the cross-layer theorem (a valid SEL fork implies an IEL
+fork beneath it, so closing IEL content forks closes SEL content forks). What survives the floor is
+the **residual**: direct-mode / no-witness chains, a witness compromise owning the intersection, and
+— rarely — a roster-delta straddle (two full quorums under disjoint contexts), which under the
+propagation premise below requires the new selectees cut off from the already-propagated old quorum
+— an entrance to the partition/eclipse family, not a freestanding race. In the residual, the
+machinery of [§Divergence and repair](#divergence-and-repair) runs unchanged.
+
+**Witnessing is kind-scoped — the ladder; the data decides** (witnesses are reporters, not
+deciders): a selected witness signs the **first** structurally-valid **content** event it sees at a
+`(prefix, serial)` and **declines any later content sibling** there (first-seen, one per serial); it
+signs up to **two** distinct structurally-valid **privileged** siblings per position and declines
+further ones — two both-witnessed privileged siblings ARE the `disputed:` proof (a third adds no
+evidence, and a spent preimage can mint unbounded distinct siblings, so the witnessing duty caps
+where the proof completes). On a content-only divergence the first privileged sibling at the
+position is exactly the **single resolving repair** — a repair is privileged, needing no separate
+clause — and a second competing repair is the proving pair `{Rec, Rec}` → `disputed:`. Receipts are
+indexed at the chain position `(prefix, serial)` rather than at event SAID, so competing receipts at
+one position **enumerate the branches** — the **beacon**. Selection is a function of the position
+over the current roster membership only — never the event's bytes or its pin, so an adversary cannot
+mint sibling-specific witness sets — and the selected witnesses sub-gossip the event among
+themselves, so a **privileged** event that reaches any one honest selected witness reaches
+threshold: there is no stable "witnessed but sub-threshold" state for a real **privileged** event. A
+losing **content** sibling, by contrast, is deliberately, permanently sub-threshold under the floor.
+How a node acts on the signal splits by **provenance**: when it **holds and re-validates** two or
+more privileged branches it reads **disputed** directly from the data, threshold-independent; when
+it holds only a **receipt** for a **privileged** event it has not yet fetched, it waits for the
+**witness threshold** before treating the signal as a real divergence — below threshold, a rogue's
+receipt on a fake event is inert (the verifier independently re-checks validity; the database cannot
+be trusted). For **content** the signal is a **sub-threshold competing receipt set** at a position —
+a losing content sibling never reaches threshold, so waiting for threshold on it would wait forever;
+the receipts enumerate, the node fetches the event (push / beacon), and the data-local walk decides
+(threshold authenticates only the winning branch). Receipts tell a node it is _forked_; only the
+data-local walk tells it _disputed_. This makes divergence **locally determinable** on every node,
+without watcher infrastructure. **All inter-node mesh traffic is encrypted** (ML-KEM-1024 +
+AES-256-GCM) — the receipts and the events they propagate alike — and the mesh is the federation
+roster, so mesh contents stay within the federation.
+
+**The propagation premise and the split stall.** Prevention's success rate — never its safety —
+rests on prompt roster-wide propagation once an event is witnessed in full (the push-gossip mesh): a
+roster member ordinarily sees a completed quorum before any later sibling arrives, which is what
+arms the first-seen declines. A fork that forms despite the premise lands in freeze → repair;
+nothing false becomes canonical on any node. First-seen-one-per-serial partitions the receipts at a
+contested position (`a + b <= signers`); when neither content sibling reaches majority (an
+even-`signers` tie, abstentions, or a partition) the **position stalls, fail-secure** — signed
+witnesses cannot switch, so a minority partition **stalls, never forks** (consistency over
+availability). The **exit is the repair**: a `Rec` / `Rpr` at the position is privileged — the first
+privileged sibling there, signed by every selected witness under the two-per-position cap, including
+those that signed a content sibling — and reaches majority; the stalled honest content re-issues
+forward. Odd `signers` avoids the pure tie (operator guidance: with every selected witness voting,
+an odd set always yields a strict majority for one sibling).
 
 Receipts are evaluated **as-of the event's federation context** — a receipt counts iff its signer is
-in the roster of the federation at the position the event pins (`federationPin`), never at the
-federation's current tip — so an event stays witnessed forever (no re-witnessing of history), and a
-since-removed witness's established receipts keep counting. A witness's receipting key-window is
-bounded by the **federation clock** (above): a cut or rotated-out witness earns no new pinned
-window, and a witness **wipes superseded private keys on rotation and removal** (forward secrecy;
-durability is unaffected because old receipts verify with public keys). Together — wipe plus the
-clock — these close the harvested-old-key forgery on a dormant chain (it reads stale → detectable).
-Witness rotation is legal **only** as a synchronized federation `Wit` (the witness's KEL `Wit` is
-the rotation and anchors the federation IEL `Wit`); an off-ceremony rotation produces receipts the
-federation does not honor.
+among the witnesses **selected** for the position,
+`select(prefix, serial, roster(F @ federationPin), signers)`, the deterministic selection derived
+over the as-of roster — never mere roster membership (the fork-cost intersection is over the
+selection, so the counting predicate must be selection-scoped too), and never at the federation's
+current tip — so an event stays witnessed forever (no re-witnessing of history), and a since-removed
+witness's established receipts keep counting. A witness's receipting key-window is bounded by the
+**federation clock** (above): a cut or rotated-out witness earns no new pinned window, and a witness
+**wipes superseded private keys on rotation and removal** (forward secrecy; durability is unaffected
+because old receipts verify with public keys). Together — wipe plus the clock — these close the
+harvested-old-key forgery on a dormant chain (it reads stale → detectable). Witness rotation is
+legal **only** as a synchronized federation `Wit` (the witness's KEL `Wit` is the rotation and
+anchors the federation IEL `Wit`); an off-ceremony rotation produces receipts the federation does
+not honor.
 
 **Detection is eventual, not at-decision-time.** Every detection guarantee assumes the consumer can
 reach enough honest witnesses / converged gossip to see the competing branch. A consumer eclipsed to

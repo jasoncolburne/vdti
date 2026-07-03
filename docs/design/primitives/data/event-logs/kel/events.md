@@ -3,7 +3,7 @@
 Per-kind structural reference for the KEL event taxonomy: eight event kinds across two inception
 variants, one content kind, two rotation kinds, one recovery kind, one federation-mutation kind, and
 one terminal kind. The cross-primitive field shape — common fields, the `manifest` model,
-`previousSeal` / `forks`, and the full per-kind field grid — is the
+`previousSeal` / `fork`, and the full per-kind field grid — is the
 [event-shape reference](../event-shape.md#kel); this doc states the KEL-specific semantics: the
 key-state fields, two-kind inception, the manifest roles a KEL event carries, forward-key
 commitments, the three-tier capability model, sort priority, and the seal-advance cap.
@@ -14,16 +14,16 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 
 ## Event taxonomy
 
-| Kind  | Topic                    | Class      | Tier | Purpose                                                                                                                                                                                                                                                                   |
-| ----- | ------------------------ | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | `vdti/kel/v1/events/fcp` | inception  | 1    | Founder pre-federation inception (no federation exists yet).                                                                                                                                                                                                              |
-| `Icp` | `vdti/kel/v1/events/icp` | inception  | 1    | Standard inception (member or end-user KEL) — bound to an existing federation, or **direct-mode** if it omits `federation`.                                                                                                                                               |
-| `Ixn` | `vdti/kel/v1/events/ixn` | content    | 1    | Interaction. Hosts tier-1 anchors. Changes no keys and does not advance the seal. The **repairable** kind.                                                                                                                                                                |
-| `Rot` | `vdti/kel/v1/events/rot` | privileged | 2    | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. Seal-advancing.                                                                                                            |
-| `Ror` | `vdti/kel/v1/events/ror` | privileged | 3    | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. Seal-advancing.                                                                                                                                                            |
-| `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (their roots committed in `forks`, each condemning its subtree). Returns the chain to Active. Seal-advancing.                                                          |
-| `Wit` | `vdti/kel/v1/events/wit` | privileged | 3    | Federation **rebind** on a **user** (`Icp`-rooted) KEL — changes `federation` and/or `witnesses` (a same-federation re-pin is **not** a `Wit`); federation **governance** on an `Fcp`-rooted witness KEL (rotation + `clock` is the change). Dual-signed; seal-advancing. |
-| `Dec` | `vdti/kel/v1/events/dec` | terminal   | 3    | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                                                                 |
+| Kind  | Topic                    | Class      | Tier | Purpose                                                                                                                                                                                                                                                                                    |
+| ----- | ------------------------ | ---------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Fcp` | `vdti/kel/v1/events/fcp` | inception  | 1    | Founder pre-federation inception (no federation exists yet).                                                                                                                                                                                                                               |
+| `Icp` | `vdti/kel/v1/events/icp` | inception  | 1    | Standard inception (member or end-user KEL) — bound to an existing federation, or **direct-mode** if it omits `federation`.                                                                                                                                                                |
+| `Ixn` | `vdti/kel/v1/events/ixn` | content    | 1    | Interaction. Hosts tier-1 anchors. Changes no keys and does not advance the seal. The **repairable** kind.                                                                                                                                                                                 |
+| `Rot` | `vdti/kel/v1/events/rot` | privileged | 2    | Rotation. May host tier-2 anchors. Reveals the next signing key (committed by the prior establishment's `rotationHash`) and commits a new one. Seal-advancing.                                                                                                                             |
+| `Ror` | `vdti/kel/v1/events/ror` | privileged | 3    | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. Seal-advancing.                                                                                                                                                                             |
+| `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (one losing branch's root committed as `fork`, condemning its subtree; every other competing branch closes below the seal and by descent). Returns the chain to Active. Seal-advancing. |
+| `Wit` | `vdti/kel/v1/events/wit` | privileged | 3    | Federation **rebind** on a **user** (`Icp`-rooted) KEL — changes `federation` and/or `witnesses` (a same-federation re-pin is **not** a `Wit`); federation **governance** on an `Fcp`-rooted witness KEL (rotation + `clock` is the change). Dual-signed; seal-advancing.                  |
+| `Dec` | `vdti/kel/v1/events/dec` | terminal   | 3    | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                                                                                  |
 
 The **class** column names the event's role under the
 [divergence-and-repair rules](../../../../protocol-doctrine.md#divergence-and-repair): only
@@ -89,11 +89,11 @@ A KEL event's manifest may carry only these roles; one carrying any role outside
 malformed and rejected, and a role is consumed only after dispatching on a kind permitted to carry
 it (read kind-first):
 
-| Role        | Carried by                               | Commits to                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)                                                                                                                                                                                                                                                                                                                                                                                            |
-| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `forks`     | `Rec` (req, non-empty)                   | an inline list of the losing-branch **root** SAIDs the repair condemns — each entry a branch's first divergent event (a competing child of the fork point, off the retained chain), condemning that branch's entire subtree (growth after the repair is dead by descent). **Repair-only** — `Rot` / `Ror` / `Wit` / `Dec` carry no fold field; the retained run since the prior seal is the derivable `[previousSeal..previous]`, and "content was folded" is the predicate `previous != previousSeal` |
+| Role        | Carried by                               | Commits to                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `fork`      | `Rec` (req)                              | the single losing-branch **root** SAID the repair condemns — a branch's first divergent event (a competing child of the fork point, off the retained chain), condemning that branch's entire subtree (growth after the repair is dead by descent). Every other competing branch — held, missed, or later-grown — closes without being named: its first event sits below the repair-advanced seal, its growth is dead by descent. **Repair-only** — `Rot` / `Ror` / `Wit` / `Dec` carry no fold field; the retained run since the prior seal is the derivable `[previousSeal..previous]`, and "content was folded" is the predicate `previous != previousSeal` |
 
 ### Anchors
 
@@ -265,9 +265,9 @@ terminal `Dec` also advances the seal but ends the chain) must land at least eve
 `MINIMUM_PAGE_SIZE − 1 = 64` non-seal-advancing events. The cap bounds the **fold** — the content
 run since the last seal — to 64 events on a branch, so a divergence-and-repair fits in one page. The
 `− 1` headroom accommodates the single-event repair (`Rec`) appended after a full fold: the
-discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the losing branches are
-condemned by the roots committed in `forks` and validated from retained storage. See
-[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+discriminator's hot page is the retained branch (≤ 64) plus the `Rec`; the losing branch named by
+the `fork` root is condemned — every other closes below the seal and by descent — validated from
+retained storage. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Recovery-preimage rotation (operator guidance).** Operators SHOULD rotate the recovery-key
@@ -374,13 +374,13 @@ s6   kind=rec  previous=s5a.said,                       ← Rec extends the bran
                 publicKey=k6, recoveryKey=r0,            dual-signed (k5 + r0)
                 rotationHash=h(k7), recoveryHash=h(r1),
                 previousSeal=<prior seal>.said,
-                manifest={ forks: [s5b.said] }
+                manifest={ fork: s5b.said }
 ```
 
 The `Rec` keeps the branch its submitter authored and archives the rest; the losing branch's
-**root** — its first divergent event, here `s5b` — is committed in the `Rec`'s `forks`, condemning
+**root** — its first divergent event, here `s5b` — is committed as the `Rec`'s `fork`, condemning
 the branch's entire subtree (anything later grown on it is dead by descent). The merge layer walks
-the retained branch from `Rec.previous` over the full span, rejects any root that lies on that
+the retained branch from `Rec.previous` over the full span, rejects a root that lies on that
 walkback, and checks every competing branch content-only. See
 [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two attachment patterns
 and the structural property that makes the divergence-ancestor-extending shape
@@ -405,7 +405,7 @@ at the same serial on another node is retained as non-canonical evidence and rea
 ## Cross-references
 
 - [`../event-shape.md`](../event-shape.md#kel) — cross-primitive event shape: common fields, the
-  `manifest` model, `previousSeal` / `forks`, the canonical per-kind field grid.
+  `manifest` model, `previousSeal` / `fork`, the canonical per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, prefix derivation, the seal and spine,
   locked-portion bound, page model.
 - [`merge.md`](merge.md) — merge-layer routing.
