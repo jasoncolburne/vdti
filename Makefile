@@ -21,6 +21,14 @@ CANON_FILES := vdti-invariants.md vdti-repair-completeness-proof.md \
 	vdti-area-iel.md vdti-area-kel.md vdti-area-multi-party-documents.md vdti-area-sel.md \
 	vdti-area-vdtid-services.md vdti-federation-inception-reference.md vdti-implementation-notes.md
 
+# Split from canon so canon.tar.xz stays canon-only: the working-surface snapshot
+# (working.tar.xz) and the supplemental refs (docs/supplemental.tar.xz). Same .working/ source
+# + deterministic mtime as canon-tarball.
+WORKING_TARBALL := working.tar.xz
+WORKING_FILES := 00-INDEX.md design-resume.md warm-resume.md vdti-1-roadmap.md
+SUPP_TARBALL := docs/supplemental.tar.xz
+SUPP_FILES := vdti-keri-acdc-comparison.md vdti-lib-storage-stub.md vdti-token-store-idea.md
+
 all: lint-terminology lint-docs lint-diagrams fmt-md-check
 
 lint-terminology:
@@ -45,6 +53,27 @@ canon-tarball:
 	@COPYFILE_DISABLE=1 tar --no-mac-metadata -cJf $(CANON_TARBALL) -C .canon-stage $(sort $(CANON_FILES))
 	@rm -rf .canon-stage
 	@echo "wrote $(CANON_TARBALL): $$(wc -c < $(CANON_TARBALL) | tr -d ' ') bytes from $(words $(CANON_FILES)) canon files"
+
+# Refresh the working-surface snapshot (working.tar.xz) from .working/.
+working-tarball:
+	@rm -rf .work-stage && mkdir .work-stage
+	@cd $(CANON_DIR) && cp $(WORKING_FILES) $(CURDIR)/.work-stage/
+	@touch -t $(CANON_MTIME) .work-stage/*
+	@COPYFILE_DISABLE=1 tar --no-mac-metadata -cJf $(WORKING_TARBALL) -C .work-stage $(sort $(WORKING_FILES))
+	@rm -rf .work-stage
+	@echo "wrote $(WORKING_TARBALL): $$(wc -c < $(WORKING_TARBALL) | tr -d ' ') bytes from $(words $(WORKING_FILES)) working-surface files"
+
+# Refresh the supplemental-refs snapshot (docs/supplemental.tar.xz) from .working/.
+supplemental-tarball:
+	@rm -rf .supp-stage && mkdir .supp-stage
+	@cd $(CANON_DIR) && cp $(SUPP_FILES) $(CURDIR)/.supp-stage/
+	@touch -t $(CANON_MTIME) .supp-stage/*
+	@COPYFILE_DISABLE=1 tar --no-mac-metadata -cJf $(SUPP_TARBALL) -C .supp-stage $(sort $(SUPP_FILES))
+	@rm -rf .supp-stage
+	@echo "wrote $(SUPP_TARBALL): $$(wc -c < $(SUPP_TARBALL) | tr -d ' ') bytes from $(words $(SUPP_FILES)) supplemental files"
+
+# Refresh all three snapshots.
+tarballs: canon-tarball working-tarball supplemental-tarball
 
 # Reflow human-read Markdown (docs/, root, .github/) to .prettierrc (100 cols).
 fmt-md:
