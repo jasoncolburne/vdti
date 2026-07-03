@@ -138,29 +138,21 @@ extend the chain even if the adversary still holds it.
 
 ### Divergence is resolved by tier; a divergent chain freezes further origination
 
-A chain carrying a **live** fork — two distinct events at one serial, at or above the derived seal —
-freezes further **origination**: it originates no new work onto the live fork until the fork is
-resolved, by a repair or — for a content fork — a seal-advancer on the winning branch that buries
-the loser below the new seal. The **reading** is a pure function of the events held, so this freeze
-is a merge-origination posture, not the reading (a below-seal straggler arriving after the chain
-sealed past it is inert, retained as evidence, not a freeze; and a fork whose lone privileged branch
-is a terminal resolves by tier-rank — the terminal wins, no repair). Resolution is by **tier, not
-identity** — the chain cannot tell the operator from an attacker (both branches were authorized when
-they landed), so it decides by tier. Only content (`Ixn`) is archivable, so a privileged branch is
-never archived — a repair keeps it, and **only its author can**, since the keep is gated by that
-branch's own recovery commitment, a cryptographic fact rather than an identity judgment. Whoever
-holds that recovery preimage resolves it: illustratively, if it is the operator (its own rotation
-raced by stale content) the operator recovers; if it is an attacker (a stolen-reserve rotation
-against the operator's content) the operator has no move — it can neither extend nor archive the
-privileged branch — and **reincepts**, the chain being the attacker's. A repair names one losing
-branch's **root** as its `fork`, condemning that branch's entire subtree — every other competing
-branch closes below the seal and by descent without being named — so a losing branch grown after the
-repair is dead by descent, and one repair suffices for the fork it resolves. A divergence with two
-or more privileged branches is terminal and recovers only by reincept. A kill is always sealed and
-is never archived. Cross-node races between concurrent privileged submissions **converge
-data-locally** — keep-all-data retains the competing branch, so a node holds both and detects the
-divergence by walking them; the witness beacon propagates the branches to nodes that lack them, but
-does not decide the verdict.
+A **live** fork — two distinct events at one serial, at or above the seal — freezes further work and
+resolves by **tier**, never by identity:
+
+- **Freeze is origination, not the reading.** No new work lands on a live fork until it resolves (a
+  repair, or — for a content fork — a seal-advancer on the winning branch that buries the loser).
+  The chain's reading stays a pure function of the events held; "frozen" is a write posture, not the
+  verdict.
+- **Resolution is by tier, not identity.** The chain cannot tell the operator from an attacker —
+  both branches were authorized when they landed — so it decides by tier: only content (`Ixn`) is
+  archivable, and a privileged branch is kept only by whoever holds its recovery preimage — a
+  cryptographic fact, not a who-is-legit judgment.
+- **Terminal forks reincept; races converge data-locally.** Two or more privileged branches are
+  terminal — recovered only by reincept. Concurrent privileged races converge with every node
+  holding both branches and walking the verdict itself; the federation propagates, it does not
+  decide.
 
 → [`protocol-doctrine.md` §Divergence and repair](protocol-doctrine.md#divergence-and-repair).
 
