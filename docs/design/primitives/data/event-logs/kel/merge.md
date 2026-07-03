@@ -32,7 +32,7 @@ produce.
 | **Accepted**          | Linear extension; new tip established; seal advances on seal-advancing kinds.                                                                                                                                                                                                        | Submitted events chain cleanly from the current tip on an Active chain (or from inception on an Empty chain).                                                                                                                                                                                                                                                  |
 | **Diverged**          | New content event lands as a fork at an earlier serial; chain transitions Active → Divergent (frozen).                                                                                                                                                                               | Submitted batch contains a content event (`Ixn`) whose `previous` points at a pre-tip serial where the existing chain holds a competing event. Only the first conflicting event is written.                                                                                                                                                                    |
 | **Recovered**         | Divergence resolved; the repairing branch is kept and one losing branch's **root** is committed as the `Rec`'s `fork`, condemning its subtree (every other competing branch closes below the seal and by descent); chain returns to Active; the seal advances to the `Rec`'s serial. | Submitted batch contains a `Rec` whose parent shape (branch-tip-extending or divergence-ancestor-extending) routes through the discriminator.                                                                                                                                                                                                                  |
-| **SiblingLocked**     | Not admitted as a canonical extension. A structurally-valid fork from a held ancestor is **retained as non-canonical evidence** (keep-all-data); no canonical state change.                                                                                                          | Submitted event's parent sits in the locked portion behind `last_seal_advancing_event` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Decommissioned chain this is the **sibling-to-`Dec`** case: an event sharing the `Dec`'s parent, racing the `Dec` at its serial. |
+| **SiblingLocked**     | Not admitted as a canonical extension; no canonical state change. Retention of the rejected fork as evidence is a **separate**, witnessing-gated matter — see the keep-all-data paragraph below.                                                                                     | Submitted event's parent sits in the locked portion behind `last_seal_advancing_event` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Decommissioned chain this is the **sibling-to-`Dec`** case: an event sharing the `Dec`'s parent, racing the `Dec` at its serial. |
 | **KelDecommissioned** | No state change. Submission rejected.                                                                                                                                                                                                                                                | Submitted event chains _from_ a `Dec` (its parent's kind is `Dec`). Caught in structural validation by the kind-schema rule — no kind admits a `Dec` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                         |
 | **RecoverRequired**   | No state change; guidance only (chain stays Divergent).                                                                                                                                                                                                                              | The chain is Divergent (frozen) and the batch is neither a `Rec` nor a privileged event — only a `Rec` resolves a divergence.                                                                                                                                                                                                                                  |
 
@@ -42,12 +42,26 @@ routing rule signals that only `Rec` resolves divergence: a live divergence **fr
 so no new event of any kind lands until the repair. Structurally, `RecoverRequired` is a guidance
 signal; the chain state stays Divergent.
 
-**Keep-all-data: rejected-as-canonical is not discarded.** When a `SiblingLocked` submission is a
-structurally-valid fork from an ancestor the node holds, the node **retains it as non-canonical
-evidence** rather than dropping it. The chain does not extend onto the competing branch, but the
-proof a divergence occurred is never lost — competing events are retained to ≥ 2 per position
-(privileged per spine position; content as fork evidence), the uncommitted below-seal flood is
-droppable. This is what lets any verifier read `forked:` / `disputed:` by a data-local walk
+**Rejection and retention are separate; retention is witnessing-gated.** `SiblingLocked` is only the
+canonical-admission verdict — the competing branch does not extend the chain. Whether the node also
+**retains** that branch as non-canonical evidence is a _separate_ decision, layered on top of the
+structural checks (it never replaces them); on a witnessed chain it is governed by witnessing — the
+additive gate for non-witnesses (the full rule lands with
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
+
+- A **privileged** competing branch (`Rot` / `Ror` / `Wit` / `Dec`) is witnessed up to two per
+  position (two are the `disputed:` proof), so it is accepted and **retained** — the evidence the
+  data-local `disputed:` walk reads.
+- A losing **content** sibling on a witnessed chain is **prevented**, not turned into retained fork
+  evidence: a selected witness declines it (one content sibling per position), so it never reaches
+  `threshold` receipts and a non-witness never accepts it as a witnessed branch — the content fork
+  does not form.
+- On a **direct-mode / solo** chain (no witnesses) nothing gates acceptance, so keep-all-data
+  retains every competing branch as evidence, bounded to ≥ 2 per position (the rest droppable — a
+  bounded query surface, never canonical).
+
+Retained evidence — privileged branches, plus everything on direct-mode chains — is what lets any
+verifier read `forked:` / `disputed:` by a data-local walk
 ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
 
 ## Routing order
@@ -85,11 +99,11 @@ regardless of chain state. The verifier walks each event and checks:
 
 The submitted event's parent must sit at-or-after `last_seal_advancing_event` in chain order
 (`parent_serial >= seal_serial`). A submission whose parent is in the locked portion is rejected as
-a canonical extension with `SiblingLocked` — and, when it is a structurally-valid fork from a held
-ancestor, retained as non-canonical evidence. This is the structural rule that enforces
+a canonical extension with `SiblingLocked`. This is the structural rule that enforces
 current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
-[`recovery.md` §Repair-event bound](recovery.md#repair-event-bound).
+[`recovery.md` §Repair-event bound](recovery.md#repair-event-bound). Whether a rejected fork is
+separately retained as evidence is witnessing-gated — the keep-all-data paragraph above.
 
 The seal-cap is **unconditional** on KEL: every event class is subject to it. A `Rec` whose
 `previous.serial < seal_serial` is rejected — the locked-portion bound stops stale-authority revival
@@ -251,9 +265,9 @@ already held).
   that wasn't gossiped before the divergence formed), the seal-cap rejects the `Rec` whose parent
   sits in the locked portion; outcome `SiblingLocked`.
 - Batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with `previous = v_{d-1}.said`
-  (which would join the fork) → not admitted as a canonical extension, retained as non-canonical
-  evidence per [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair);
-  outcome `SiblingLocked`.
+  (which would join the fork) → not admitted as a canonical extension; outcome `SiblingLocked`. A
+  privileged competing branch is retained as the `disputed:` proof (witnessed up to two per position
+  — [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
 - Otherwise → `RecoverRequired`.
 
 **Overlap (non-divergent chain).** Submitted events chain from an earlier point in a linear chain,
@@ -262,11 +276,11 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
 
 - If a seal-advancing event has already landed between the branch point and the chain's current
   state → the locked-portion bound rejects any extension whose parent sits in the locked portion;
-  outcome `SiblingLocked` (retained as evidence if a valid fork).
+  outcome `SiblingLocked`.
 - If the batch contains a `Rec` → discriminator runs; outcome `Recovered`.
 - If the batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with
-  `previous = v_{d-1}.said` → not admitted as a canonical extension, retained as evidence; outcome
-  `SiblingLocked`.
+  `previous = v_{d-1}.said` → not admitted as a canonical extension; outcome `SiblingLocked` (a
+  privileged competing branch is retained as the `disputed:` proof).
 - Otherwise → the first conflicting content event is inserted as the fork event; outcome `Diverged`.
 
 ## Discriminator algorithm
