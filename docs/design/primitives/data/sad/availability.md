@@ -23,8 +23,8 @@ Each sub-field is independently optional and covers one operational axis:
 
 - **`replicas`** — replication scope. Names which storage replicas hold the bytes. Absent →
   broadcast to all replicas (default; the SAD is replicated everywhere). Present → carries the SAID
-  of a ReplicaSet SAD listing eligible replicas; only those replicas participate in replication for
-  this SAD. The ReplicaSet is a separately-stored SAD per the canonical-form rule (see
+  of a replica-set SAD listing eligible replicas; only those replicas participate in replication for
+  this SAD. The replica set is a separately-stored SAD per the canonical-form rule (see
   [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)).
 - **`ttl`** — time-to-live. How long the bytes are retained at the storage boundary. Expired SADs
   are garbage-collected; fetches against an expired SAID return the same "not present" response a
@@ -79,7 +79,7 @@ The structural guarantees follow from the SAID commitment and from where enforce
   persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the
   storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior.
   Cryptographic deletion is not a property the protocol offers.
-- **Replica-scope enforcement is fail-secure.** When `replicas` references a ReplicaSet that cannot
+- **Replica-scope enforcement is fail-secure.** When `replicas` references a replica set that cannot
   be resolved (fetch failure, parse error), replication MUST default to skip rather than to
   broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's
   author declared.

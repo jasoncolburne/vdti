@@ -2,7 +2,7 @@
 
 A **Self-Addressed Data** record (SAD) is a serializable object whose own identifier — its
 [SAID](said.md) — is derived from its content. Every content-bearing primitive in VDTI is a SAD:
-chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, ReplicaSets,
+chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, replica sets,
 and the content payloads SEL events anchor.
 
 This doc states the SAD shape and the structural patterns that follow from it. The derivation
@@ -24,7 +24,7 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   indivisible units. Their kind-specific schemas have no slots for custody or availability fields,
   so those fields cannot appear on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
-  ReplicaSets, and the content payloads chain events anchor. Stored in the SAD object store and
+  replica sets, and the content payloads chain events anchor. Stored in the SAD object store and
   retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field
   and per-object replication scope via an independent [`availability`](availability.md) field on the
   same wrapper.
