@@ -42,16 +42,16 @@ structural behavior on the kind; consumer trust composes through the
 
 ## Per-node chain states
 
-A KEL is in exactly one of three states **on any given node** — Active, Divergent, or
-Decommissioned. State is computed from the events the node holds, never tracked as a separate flag.
-Whether a divergence is **reconcilable** or **terminal** is a further fact any verifier reads
-**data-locally** by walking the branches it holds (below) — not a fourth state.
+A KEL is in exactly one of three states **on any given node** — Active, Divergent, or Terminated.
+State is computed from the events the node holds, never tracked as a separate flag. Whether a
+divergence is **reconcilable** or **terminal** is a further fact any verifier reads **data-locally**
+by walking the branches it holds (below) — not a fourth state.
 
-| State              | Description                                                                                                                                                                                   | Accepts new events?                                                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Active**         | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                 | Yes — `Ixn` / `Rot` / `Ror` / `Rec` / `Wit` / `Dec` per their authorization and seal-cap requirements.                                                                                                                                                                                                                                                                                                                  |
-| **Divergent**      | A **fork**: two **distinct** (different-SAID) events at one serial, at or above the derived seal. The **reading** (below) is a pure walk of the events held; what freezes is **origination**. | **None originated** onto the live fork — the ways forward are a `Rec`, or (for a content fork) a seal-advancer on the winning branch that buries the loser, after which the chain re-reads Active (carve-out: a `{Dec, content}` fork resolves by tier-rank — the terminal `Dec` wins, no repair). A below-seal straggler arriving after the chain sealed past its serial is inert, retained as evidence, not a freeze. |
-| **Decommissioned** | A terminal `Dec` landed cleanly. The `Dec` advances the seal to its own serial; the chain is sealed there.                                                                                    | None. A sibling to the `Dec` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`).                                                                                                                                                                                                                                             |
+| State          | Description                                                                                                                                                                                   | Accepts new events?                                                                                                                                                                                                                                                                                                                                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active**     | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                 | Yes — `Ixn` / `Rot` / `Ror` / `Rec` / `Wit` / `Trm` per their authorization and seal-cap requirements.                                                                                                                                                                                                                                                                                                                  |
+| **Divergent**  | A **fork**: two **distinct** (different-SAID) events at one serial, at or above the derived seal. The **reading** (below) is a pure walk of the events held; what freezes is **origination**. | **None originated** onto the live fork — the ways forward are a `Rec`, or (for a content fork) a seal-advancer on the winning branch that buries the loser, after which the chain re-reads Active (carve-out: a `{Trm, content}` fork resolves by tier-rank — the terminal `Trm` wins, no repair). A below-seal straggler arriving after the chain sealed past its serial is inert, retained as evidence, not a freeze. |
+| **Terminated** | A terminal `Trm` landed cleanly. The `Trm` advances the seal to its own serial; the chain is sealed there.                                                                                    | None. A sibling to the `Trm` is rejected by the seal-cap (`SiblingLocked`); a submission chaining from the `Trm` is rejected by the kind-schema rule (`KelTerminated`).                                                                                                                                                                                                                                                 |
 
 A repair keeps the recovering party's own branch and archives the rest, returning the chain to
 Active — possible only when no archived branch carries a privileged event (see
@@ -92,11 +92,11 @@ events.
 
 | Concept                         | Advances on                           | Used for                                                                                                                                                                                                                                                                                                                                                                                                     |
 | ------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `last_seal_advancing_event`     | `Rot` / `Ror` / `Rec` / `Wit` / `Dec` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything strictly below it (the seal-advancing event itself is a legal parent). This is the **derived seal** — the most recent such event that landed **cleanly** on the linear run (not a competing sibling) — and the chain's reading is computed against it, from the events held, never arrival order. |
-| `last_recovery_revealing_event` | `Ror` / `Rec` / `Wit` / `Dec`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known.                                                                                                                                                                                                                                             |
+| `last_seal_advancing_event`     | `Rot` / `Ror` / `Rec` / `Wit` / `Trm` | Seal-cap rule: every new event's parent must sit at-or-after this serial. The locked portion is everything strictly below it (the seal-advancing event itself is a legal parent). This is the **derived seal** — the most recent such event that landed **cleanly** on the linear run (not a competing sibling) — and the chain's reading is computed against it, from the events held, never arrival order. |
+| `last_recovery_revealing_event` | `Ror` / `Rec` / `Wit` / `Trm`         | Spent-key rule: tracks which recovery-key preimage is currently committed. Once a recovery-revealing event lands, the recovery key it reveals is publicly known.                                                                                                                                                                                                                                             |
 
 The two memberships diverge only on `Rot` — it advances the seal without revealing the recovery key.
-`Dec` does both: it reveals the recovery key (dual-signed) and advances the seal to its own serial,
+`Trm` does both: it reveals the recovery key (dual-signed) and advances the seal to its own serial,
 where it is terminal — it opens no new window, since no successor may land. The orthogonality lets
 the protocol bound chain-state changes (via the seal-advance cap, below) while leaving
 recovery-preimage rotation cadence to operator guidance — recovery keys are hardware-held and
@@ -115,7 +115,7 @@ commit its content run: the retained run since the prior seal is the derivable l
 was folded here" is the derived predicate `previous != previousSeal`. Only a **repair** carries a
 manifest fold field — the **`fork`** role, a required single losing-branch **root** SAID the `Rec`
 condemns (the root — a branch's first divergent event — condemns its entire subtree; every other
-competing branch closes below the seal and by descent); `Rot` / `Ror` / `Wit` / `Dec` carry no such
+competing branch closes below the seal and by descent); `Rot` / `Ror` / `Wit` / `Trm` carry no such
 role.
 
 The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for
@@ -166,12 +166,12 @@ Once a recovery-revealing event lands, the dual signature it proves is final. Su
 or revocation of the keys it revealed does not retroactively unsatisfy the past authorization — the
 chain's history at that serial is locked. Without this, history could be invalidated retroactively
 by anyone who later comes to control the revealed key material, making terminal states (recovered,
-decommissioned) unstable. The trade-off: a key controller who later turns adversarial cannot undo
-their past contributions; only the going-forward spent-key effect applies.
+terminated) unstable. The trade-off: a key controller who later turns adversarial cannot undo their
+past contributions; only the going-forward spent-key effect applies.
 
 ## Seal-advance cap
 
-A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the terminal `Dec` also advances the seal but
+A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the terminal `Trm` also advances the seal but
 ends the chain) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events
 **per lineage**. The cap bounds the **fold** — the content run since the last seal — to 64 events on
 each branch, so the canonical two-branch fork anchored at the last seal — both lineages (≤ 64 each)
@@ -228,7 +228,7 @@ adversarial chains.
 The structural rules above produce three lifecycle paths per node.
 
 - **Active extension.** Each new event extends the linear chain via `previous = tip.said`.
-  Seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) advance `last_seal_advancing_event`
+  Seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Trm`) advance `last_seal_advancing_event`
   to their own serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it
   was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
@@ -241,11 +241,11 @@ The structural rules above produce three lifecycle paths per node.
   branch plus the `Rec` fits in one page. See
   [`recovery.md` §Rec parent shapes](recovery.md#rec-parent-shapes) for the two ways a `Rec` can
   attach.
-- **Clean retirement.** `Dec` lands as a linear extension of the current tip; the chain becomes
-  Decommissioned. `Dec` advances the seal to its own serial and sits on the spine, but opens no new
+- **Clean retirement.** `Trm` lands as a linear extension of the current tip; the chain becomes
+  Terminated. `Trm` advances the seal to its own serial and sits on the spine, but opens no new
   window — it permits no successor. Subsequent submissions are rejected by two independent
-  mechanisms — the seal-cap rejects a sibling to the `Dec`; the kind-schema rule rejects a
-  submission chaining from the `Dec` (see [`merge.md` §Routing order](merge.md#routing-order)). Past
+  mechanisms — the seal-cap rejects a sibling to the `Trm`; the kind-schema rule rejects a
+  submission chaining from the `Trm` (see [`merge.md` §Routing order](merge.md#routing-order)). Past
   content keeps its meaning under the locked-portion bound.
 
 Cross-node privileged-vs-privileged races — two federation nodes accepting different privileged

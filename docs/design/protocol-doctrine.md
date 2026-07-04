@@ -21,7 +21,7 @@ the structural rules that realize those properties.
   - [Divergence and repair](#divergence-and-repair)
   - [Kills are sealed; validity bounds are contiguous](#kills-are-sealed-validity-bounds-are-contiguous)
   - [Inception tiers](#inception-tiers)
-  - [Decommission and clean retirement](#decommission-and-clean-retirement)
+  - [Terminate and clean retirement](#terminate-and-clean-retirement)
   - [Limit of the doctrine — current-state compromise](#limit-of-the-doctrine--current-state-compromise)
 
 **[Part 2 — Cross-Cutting Doctrines](#part-2-cross-cutting-doctrines):**
@@ -74,7 +74,7 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     (at or above the derived seal) the chain **freezes further origination** — it originates no new
     work onto the live fork; the moves that resolve it are the repair (`Rec`/`Rpr`), a seal-advancer
     on the winning branch that buries a content loser below the new seal, or — where a branch **ends
-    in** a terminal `Dec` — tier-rank, with no repair (see
+    in** a terminal `Trm` — tier-rank, with no repair (see
     [§Divergence and repair](#divergence-and-repair)). The **reading** is the pure walk over the
     events held, not a frozen flag. A fork is one of:
     - **reconcilable** (elsewhere: **recoverable**) — ≤ 1 privileged branch. A repair **retains one
@@ -83,15 +83,15 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
       a lone privileged branch can be retained **only by its own author** — a different party's
       repair attaches at a different branch, which would have to archive the privileged one
       (forbidden), so only its author can resolve the fork. The chain returns to **Active**. When
-      the lone privileged branch is a **terminal `Dec`** (an identity or SEL decommission — it
-      admits no successor to carry a repair), the fork resolves by **tier-rank** with no repair —
-      the terminal outranks the content, which is archived non-canonical; a `{Dec, content}` fork
-      thus ends **Decommissioned**, the same reading as a cleanly-landed `Dec` (the effective SAID
-      is the `Dec`'s own — a resolved fork carries no fork digest —
-      [§Divergence and repair](#divergence-and-repair)). A `Kil` is **not** terminal (it seals a
-      kill on a _target_, not its host chain, which continues), so a `{Kil, content}` fork is an
-      ordinary reconcilable one — the `Kil` retained, the content archived, resolved by a repair
-      like `{Evl, content}`.
+      the lone privileged branch is a **terminal `Trm`** (an identity or SEL terminate — it admits
+      no successor to carry a repair), the fork resolves by **tier-rank** with no repair — the
+      terminal outranks the content, which is archived non-canonical; a `{Trm, content}` fork thus
+      ends **Terminated**, the same reading as a cleanly-landed `Trm` (the effective SAID is the
+      `Trm`'s own — a resolved fork carries no fork digest —
+      [§Divergence and repair](#divergence-and-repair)). A `Rev`/`Dth` is **not** terminal (it seals
+      a kill on a _target_, not its host chain, which continues), so a `{Rev|Dth, content}` fork is
+      an ordinary reconcilable one — the `Rev`/`Dth` retained, the content archived, resolved by a
+      repair like `{Evl, content}`.
     - **irreconcilable** (elsewhere: **terminal**) — **two or more branches each carry a privileged
       event at or beyond the divergent serial**. No branch can be archived (a privileged event is
       never archived), so no single chain can be chosen and the prefix must **reincept**. This is a
@@ -103,7 +103,7 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
       beacon enumerates the competing branch SAIDs, the node fetches and walks them. The federation
       **propagates** the branches; it does **not** decide terminality. A fork with no privileged
       branch, or only one, is **reconcilable**, not this.
-  - **Decommissioned** — a terminal `Dec` has landed cleanly. Fully terminal: accepts no submission.
+  - **Terminated** — a terminal `Trm` has landed cleanly. Fully terminal: accepts no submission.
 
   _Divergence_ is the umbrella over every fork; the per-node state for a fork is **Divergent**
   (reading `forked`). A branch-level walk that finds two or more privileged branches reads the
@@ -111,7 +111,7 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   branches**, read over the chain's events at-and-beyond the divergent serial, where events strictly
   below stay canonical. The beacon's role is to deliver the branches to a one-branch holder, never
   to decide the verdict. It is **not** a fourth per-node state; the per-node states stay Active /
-  Divergent / Decommissioned.
+  Divergent / Terminated.
 
 - **Cross-chain anchor satisfaction**: whether a document's or upper-layer event's authorization
   still holds is checked against its contributing lower-layer anchors. How a contributing anchor
@@ -200,12 +200,12 @@ Two **reserve** preimages back the upper tiers, both held apart from the signing
 reserve** (the rotation preimage) gates tier 2, and the **recovery reserve** (the recovery preimage)
 gates tier 3 alongside it. A reserve is required when a forgery would be high-harm or irreversible,
 **or** when the act must be **permanent on arrival** (sealed). A **kill** (revoke / close / rescind
-/ decommission) is the permanence case: low-danger (it only removes trust) but **monotone** (a third
+/ terminate) is the permanence case: low-danger (it only removes trust) but **monotone** (a third
 party relies on it), so it must be sealed — it rides a dedicated sealed kill-anchor and is tier 2
 (an identity-kill is tier 3). Only content is tier 1.
 
 The old signing key is **not** a prerequisite for tier 2 or 3 — the rotation preimage reveals the
-new signing key. On the KEL, `Rot` is single-signed (tier 2); `Ror` / `Rec` / `Wit` / `Dec` are
+new signing key. On the KEL, `Rot` is single-signed (tier 2); `Ror` / `Rec` / `Wit` / `Trm` are
 dual-signed (tier 3, new signing + recovery). IEL and SEL events have no intrinsic key state, so
 they reach a tier by **anchoring in a lower-layer event of the matching kind** — **kind-strict**:
 each IEL / SEL kind is anchored by **exactly** the kind that reveals the capability it exercises
@@ -222,13 +222,13 @@ other chains' authority. The per-primitive anchor matrix is in
 
 - **KEL** — the device's own key state (tier 1/2/3 above).
 - **IEL** — a roster of member KELs plus a **threshold vector**
-  `{t_use, t_govern, t_delegate, t_recover}`, indexed by the event's kind. Every IEL kind **prices
-  itself**: `Ixn` from `t_use`, `Evl` from `t_govern`, `Del` from `t_delegate`, `Rpr` from
-  `t_recover`, `Wit` and the terminal `Dec` from `t_govern`. The one count-parametrized kind is the
-  sealed kill-anchor `Kil`, whose committed `threshold` slot (`govern` / `delegate`) names the count
-  — **backed** by the `Kil`'s own signatures at the IEL walk and **demanded** by the anchored kill's
-  kind at the SEL check. So verifying an IEL chain's validity needs **no SEL input** — each event
-  prices from its own kind.
+  `{t_use, t_govern, t_authorize, t_recover}`, indexed by the event's kind. Every IEL kind **prices
+  itself**: `Ixn` from `t_use`, `Evl` from `t_govern`, `Ath` from `t_authorize`, `Rpr` from
+  `t_recover`, `Wit` and the terminal `Trm` from `t_govern`. The two sealed kill-anchors price the
+  same way: `Rev` (revocation) from `t_govern`, `Dth` (rescission) from `t_authorize` — the count is
+  **implied by the kind**, **backed** by the event's own signatures at the IEL walk and **demanded**
+  by the anchored kill's kind at the SEL check. So verifying an IEL chain's validity needs **no SEL
+  input** — each event prices from its own kind.
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
@@ -287,22 +287,22 @@ advances the seal, and only privileged kinds do — so **past inception** the tw
 which is why the divergence rules below can dispatch on either. (Inception is outside this: an `Icp`
 / `Fcp` is the spine root — it advances no seal — and may be tier 1 or tier 2; it never enters fork
 dispatch, since one prefix admits only one inception.) The **seal-advancing** kinds (those that open
-a new locked window, plus the terminal `Dec` which opens none) per primitive:
+a new locked window, plus the terminal `Trm` which opens none) per primitive:
 
-- **KEL**: `Rot` / `Ror` / `Rec` / `Wit` (and `Dec`).
+- **KEL**: `Rot` / `Ror` / `Rec` / `Wit` (and `Trm`).
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
-  kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Del` / `Kil` /
-  `Rpr` / `Dec` / `Wit`) are the window-openers.
-- **SEL**: `Fld` / `Rpr` (and `Dec`) — `Fld` is the SEL's re-seal, a tier-2 privileged kind (the
+  kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Ath` / `Rev` /
+  `Dth` / `Rpr` / `Trm` / `Wit`) are the window-openers.
+- **SEL**: `Fld` / `Rpr` (and `Trm`) — `Fld` is the SEL's re-seal, a tier-2 privileged kind (the
   `Rot` / re-seal-`Evl` analog for a primitive with no keys or roster to evolve); a content `Ixn`
   and a floor `Pin` do not advance the seal.
 
-The terminal `Dec` advances the seal to its own serial and permits no successor. The seal-cap
-rejects any submission whose parent sits before the `Dec`; a direct `Dec`-child passes the cap and
+The terminal `Trm` advances the seal to its own serial and permits no successor. The seal-cap
+rejects any submission whose parent sits before the `Trm`; a direct `Trm`-child passes the cap and
 is rejected by the terminal-state gate.
 
 KEL additionally tracks which recovery-key preimage is currently committed: once a recovery preimage
-is spent (revealed by an `Ror` / `Rec` / `Wit` / `Dec`), it cannot be reused to recover against an
+is spent (revealed by an `Ror` / `Rec` / `Wit` / `Trm`), it cannot be reused to recover against an
 earlier divergence.
 
 **Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
@@ -327,7 +327,7 @@ two roster-less `Evl`s differ by `previous` and collide as `{Evl, Evl}` → term
 **high-volume issuer serializes its content submissions** — a discipline separate from, and
 additional to, **serializing governance** (the operational rule that governance and kill events pass
 through **one designated submitter** so two never race during a partition — else `{Evl, Evl}` /
-`{Kil, Kil}` → terminal; operator doctrine, forthcoming). **Governance serialization is
+`{kill, kill}` → terminal; operator doctrine, forthcoming). **Governance serialization is
 safety-critical everywhere** — a governance race is privileged, and the witnessing majority floor
 never gates privileged events. **Content-rail serialization splits by mode**: on a **witnessed**
 chain the floor prevents a competing content sibling going live — a partitioned content rail
@@ -363,7 +363,7 @@ it; [§Federation convergence](#federation-convergence)). Event structure:
 A chain **diverges** the instant it carries two **distinct** events at one serial. Distinct means
 different-SAID: SAIDs are content-addressable, so two byte-identical events **are** one event (the
 submit path accepts an already-present event idempotently, never as a second branch). So identical
-acts dedupe — two parties revoking the same credential produce the same `Dec` SAID and there is no
+acts dedupe — two parties revoking the same credential produce the same `Trm` SAID and there is no
 divergence (signatures live adjacent to the event, outside the SAID'd bytes —
 [event-shape](primitives/data/event-logs/event-shape.md) — so the same act by two parties is
 byte-identical); only distinct events at one position collide.
@@ -379,16 +379,16 @@ governance, rotation, kill — onto that live fork. The ways forward are the rep
 (you cannot fork the past, so a below-seal content loser is inert). Freezing is an **origination
 posture**, not a stored flag and not the reading: a node that comes to hold a burying seal-advancer
 re-reads the chain **Active**, exactly as a node that sealed before it ever saw the loser. One
-carve-out on the resolving move: a fork whose single privileged branch is a **terminal `Dec`** (an
-identity/SEL decommission — no successor to carry a repair) resolves by **tier-rank** with no repair
-(below). A `Kil` is **not** terminal (it kills a _target_, not its host chain), so `{Kil, content}`
-repairs like `{Evl, content}`. (A below-seal **content** straggler that arrives after the chain
-already sealed past its serial is kept as evidence or dropped as **uncommitted** content — content
-condemned by no repair's `fork` and beyond the evidence bound; the keep-or-drop selector is the
-retention bound below — never a freeze: the canonical branch is already sealed past it. A below-seal
-**privileged** straggler is not inert — it is a spine fork and flips the reading to `disputed`; see
-pre-seal verifiability, below.) Freezing origination on divergence is the founding insight of the
-event-log primitives.
+carve-out on the resolving move: a fork whose single privileged branch is a **terminal `Trm`** (an
+identity/SEL terminate — no successor to carry a repair) resolves by **tier-rank** with no repair
+(below). A `Rev`/`Dth` is **not** terminal (it kills a _target_, not its host chain), so
+`{Rev|Dth, content}` repairs like `{Evl, content}`. (A below-seal **content** straggler that arrives
+after the chain already sealed past its serial is kept as evidence or dropped as **uncommitted**
+content — content condemned by no repair's `fork` and beyond the evidence bound; the keep-or-drop
+selector is the retention bound below — never a freeze: the canonical branch is already sealed past
+it. A below-seal **privileged** straggler is not inert — it is a spine fork and flips the reading to
+`disputed`; see pre-seal verifiability, below.) Freezing origination on divergence is the founding
+insight of the event-log primitives.
 
 On a **witnessed** chain, a **content** fork rarely reaches this machinery at all: the witnessing
 majority floor makes two competing content siblings un-co-witnessable, so the fork is **prevented**
@@ -413,9 +413,9 @@ turns on **tier**, never on who is presumed legitimate. Two rules govern every r
 **machine-enforced**, the second **automatic by construction**, not a check any verifier could run:
 
 - **Only tier-1 events are archivable** (content `Ixn`; on the SEL, also the floor `Pin`). A
-  privileged event — a rotation, a `Evl`, a `Kil`, a terminal — is **never** archived or overturned:
-  reversing a rotation resurrects retired keys, and un-doing a kill breaks a third party's reliance.
-  Enforced by the merge layer on every repair (the content-only guard below).
+  privileged event — a rotation, a `Evl`, a `Rev`/`Dth`, a terminal — is **never** archived or
+  overturned: reversing a rotation resurrects retired keys, and un-doing a kill breaks a third
+  party's reliance. Enforced by the merge layer on every repair (the content-only guard below).
 - **An honest repair never extends an adversarial event.** Chain data carries no authorship, so this
   is not enforceable as a check — it holds by construction for the honest submitter, who attaches at
   their **own** last event. (A dishonest submitter's "own branch" _is_ the adversarial branch; what
@@ -442,10 +442,10 @@ retained chain**. The repair attaches **at** `v_{d-1}` when the entity authored 
 way at or above `v_{d-1}`, never below it.** Each archival tail's root is a competing **child of
 `v_{d-1}`** at serial `d`, off the retained chain — there may be several. When the entity did author
 at or beyond `d` (its retained tip content, or a privileged tip —
-`Evl`/`Rot`/`Del`/`Wit`/`Fld`/`Kil`/a prior repair — at or above the seal), attaching at `v_{d-1}`
-would archive the entity's **own** events (its content, or **worse** a privileged tip, which rule 1
-forbids archiving at all); it attaches at its retained **tip** instead (never in the locked
-portion), so the repair's `previous` is that tip — at or above the seal.
+`Evl`/`Rot`/`Ath`/`Wit`/`Fld`/`Rev`/`Dth`/a prior repair — at or above the seal), attaching at
+`v_{d-1}` would archive the entity's **own** events (its content, or **worse** a privileged tip,
+which rule 1 forbids archiving at all); it attaches at its retained **tip** instead (never in the
+locked portion), so the repair's `previous` is that tip — at or above the seal.
 
 The permission check is a single question about the **archival tails**: **does any of them contain a
 privileged event?**
@@ -454,17 +454,17 @@ privileged event?**
   and advances forward. Your retained tail may carry your _own_ rotation — it is kept, not archived;
   only the archival tails are checked. An adversary holding your signing key can append only
   content, and a tier-3 `Rec` archives it — so **the recovery reserve defends the signing key.**
-- **Yes — any privileged event sits in an archival tail** (a rotation, a `Evl`, a `Del`, a `Kil`, a
-  `Wit`, a `Dec`, or a competing repair) → **forbidden → reincept** (for a **delegated** KEL — one
-  chartered under an IEL delegation, whose doctrine is the IEL's — the delegator `Kil`s it instead).
-  That event cannot be archived (rule 1), cannot be extended (rule 2 — it is not your branch), and
-  forking past it is a second privileged branch (terminal). So **the recovery reserve does not
-  defend the rotation key: a `Rot` in an archival tail is the point of no return** — the chain is
-  the attacker's. (This check asks only about the branches you **archive**. A _winning_ terminal
-  `Dec` sits on the **retained** branch and resolves by tier-rank, above — it never triggers this
-  arm; a `Kil`, being non-terminal, is likewise retained in a `{Kil, content}` repair. A `Kil` or
-  `Dec` reaches an _archival_ tail only alongside a **second** privileged branch — and then that
-  second branch is the trigger.)
+- **Yes — any privileged event sits in an archival tail** (a rotation, a `Evl`, a `Ath`, a
+  `Rev`/`Dth`, a `Wit`, a `Trm`, or a competing repair) → **forbidden → reincept** (for a
+  **delegated** KEL — one chartered under an IEL delegation, whose doctrine is the IEL's — the
+  delegator `Dth`s it instead). That event cannot be archived (rule 1), cannot be extended (rule 2 —
+  it is not your branch), and forking past it is a second privileged branch (terminal). So **the
+  recovery reserve does not defend the rotation key: a `Rot` in an archival tail is the point of no
+  return** — the chain is the attacker's. (This check asks only about the branches you **archive**.
+  A _winning_ terminal `Trm` sits on the **retained** branch and resolves by tier-rank, above — it
+  never triggers this arm; a `Rev`/`Dth`, being non-terminal, is likewise retained in a
+  `{Rev|Dth, content}` repair. A `Rev`/`Dth` or `Trm` reaches an _archival_ tail only alongside a
+  **second** privileged branch — and then that second branch is the trigger.)
 
 A divergence with two or more privileged branches is **irreconcilable**
 ([§Terminology](#terminology)) — terminal for _everyone_, not just the recovering party: any party
@@ -648,25 +648,25 @@ is fetched (keep-all-data / the beacon) and validated, and an as-yet-unfetchable
 
 Root-condemnation reaches no _live_ state — it marks a subtree dead, never extends or revives an
 event. There is **no below-seal archival operation**, and the seal-cap stays unconditional. A race
-whose retained branch's **tip** is a **terminal `Dec`** — an identity/SEL decommission, whatever
-precedes it on that branch (a bare `Dec`, or a `[…, Rot, Dec]` run) — needs no repair: this is the
+whose retained branch's **tip** is a **terminal `Trm`** — an identity/SEL terminate, whatever
+precedes it on that branch (a bare `Trm`, or a `[…, Rot, Trm]` run) — needs no repair: this is the
 **tier-rank** resolution (the freeze rule's one carve-out). The terminal admits no successor to
-carry a repair, so it outranks the losing content outright — the chain decommissions on the `Dec`,
-the content is archived non-canonical (retained as fork evidence per the ≥ 2-per-position bound,
-like any archived content — droppable only beyond that evidence set), and the resulting reading is
-the ordinary **Decommissioned** one (the effective SAID is the `Dec`'s SAID — the fork is resolved,
-so no fork digest applies). The rule exists because a `Dec` **admits no successor** — you cannot
-author an `Rpr` after it to archive the content the normal way — so without it a benign decommission
-that collided with a stray content event would be forced to reincept; tier-rank keeps the `Dec`
-clean and the content **non-canonical**. It only ever lets **higher** authority (the reserve-backed
-`Dec`) override **lower** (T1 content); a **second privileged** branch (`{Dec, Rot}` / `{Dec, Dec}`,
-or the content branch having sealed a competing `Fld`/`Evl`) is not this case — it is two privileged
-branches → **`disputed`**. To resolve a content fork _and_ decommission, a `Dec` on the winning
-branch does both in one event — it buries the content loser below its own seal and terminates; a
-separate repair-first (the `Rpr` carries the `fork`) is only for an explicit condemnation record. (A
-`Kil` is **not** terminal — it seals a kill on a _target_, not its host IEL — so a `{Kil, content}`
-fork takes the ordinary recoverable path: an `Rpr` retains the `Kil` and archives the content,
-exactly like `{Evl, content}`.)
+carry a repair, so it outranks the losing content outright — the chain terminates on the `Trm`, the
+content is archived non-canonical (retained as fork evidence per the ≥ 2-per-position bound, like
+any archived content — droppable only beyond that evidence set), and the resulting reading is the
+ordinary **Terminated** one (the effective SAID is the `Trm`'s SAID — the fork is resolved, so no
+fork digest applies). The rule exists because a `Trm` **admits no successor** — you cannot author an
+`Rpr` after it to archive the content the normal way — so without it a benign terminate that
+collided with a stray content event would be forced to reincept; tier-rank keeps the `Trm` clean and
+the content **non-canonical**. It only ever lets **higher** authority (the reserve-backed `Trm`)
+override **lower** (T1 content); a **second privileged** branch (`{Trm, Rot}` / `{Trm, Trm}`, or the
+content branch having sealed a competing `Fld`/`Evl`) is not this case — it is two privileged
+branches → **`disputed`**. To resolve a content fork _and_ terminate, a `Trm` on the winning branch
+does both in one event — it buries the content loser below its own seal and terminates; a separate
+repair-first (the `Rpr` carries the `fork`) is only for an explicit condemnation record. (A
+`Rev`/`Dth` is **not** terminal — it seals a kill on a _target_, not its host IEL — so a
+`{Rev|Dth, content}` fork takes the ordinary recoverable path: an `Rpr` retains the `Rev`/`Dth` and
+archives the content, exactly like `{Evl, content}`.)
 
 **Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
 `v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where
@@ -768,9 +768,9 @@ identity: the identity evicts the member and continues on its quorum.
 
 #### Kills are sealed; validity bounds are contiguous
 
-A **kill** — revoke, close, rescind, decommission — is **always sealed on arrival**. It is anchored
-in a dedicated sealed kill-anchor (the IEL `Kil`, tier 2; an identity-kill rides a tier-3 terminal),
-distinct from the roster-changing `Evl`. Because a sealed kill-anchor is privileged and
+A **kill** — revoke, close, rescind, terminate — is **always sealed on arrival**. It is anchored in
+a dedicated sealed kill-anchor (the IEL `Rev`/`Dth`, tier 2; an identity-kill rides a tier-3
+terminal), distinct from the roster-changing `Evl`. Because a sealed kill-anchor is privileged and
 terminal-on-divergence, the kill can **never** be archived by a repair (no silent un-revoke), and
 there is no unsealed window to undo. A kill is **monotone**: restoring a killed thing is **never** a
 retraction — the party reincepts under a **new prefix** and is granted or issued afresh. A re-grant
@@ -782,7 +782,7 @@ invalidated — never a non-contiguous subset. **Nothing past the bound is honor
 kills alike**; there is no per-kind exception across a validity bound (honoring an event past the
 bound would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
 exactly the attacker's contiguous tail from the divergence point — legitimate and attacker events
-never interleave into a subset worth keeping. A bound is **set once** at the rescission `Dec`: it
+never interleave into a subset worth keeping. A bound is **set once** at the rescission `Trm`: it
 can't move later (no un-kill) nor be tightened earlier; a sealed kill is never retracted. Recovery
 from a mis-set bound is operational (reincept and re-grant / reissue), not a rewind.
 
@@ -798,28 +798,28 @@ Inception tier follows what the inception establishes:
   down-pin rides a **serial-1 `Pin`** batched with the `Icp`, uniformly for every SEL. A
   **credential SEL**'s `data` **is** the credential's SAID (the whole reference; the `Icp` carries
   no manifest); a **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes the
-  prefix from (e.g. a rescinded prefix), and its rescission kill rides a terminal `Dec` sealed by an
-  IEL `Kil`@`delegate`.
+  prefix from (e.g. a rescinded prefix), and its rescission kill rides a terminal `Trm` sealed by an
+  IEL `Dth`.
 
 A compromised tier-1 signing key can already issue content in your name, so letting it also create a
 SEL adds no blast radius — tier-1 inception is sound. Issuing a credential is tier 1 because a
-credential is **content** (one bounded, revocable claim); an authority-grant (a delegation, `Del`)
+credential is **content** (one bounded, revocable claim); an authority-grant (a delegation, `Ath`)
 is tier 2 because it **expands who may act with your authority** going forward (an ongoing forgery,
 not one revocable assertion).
 
-#### Decommission and clean retirement
+#### Terminate and clean retirement
 
-When a terminal `Dec` lands cleanly on a linear chain, it is a clean-retirement signal — no
-compromise indicated, pre-`Dec` content keeps its meaning. Once it lands the chain is Decommissioned
-and accepts nothing further. A `Dec` is privileged, so a `Dec` that would land in a divergent set is
-subject to the divergence rules above (a `{Dec, content}` collision is recoverable by keeping the
-`Dec` — the single privileged branch wins on tier-rank, the content is archived as non-canonical,
+When a terminal `Trm` lands cleanly on a linear chain, it is a clean-retirement signal — no
+compromise indicated, pre-`Trm` content keeps its meaning. Once it lands the chain is Terminated and
+accepts nothing further. A `Trm` is privileged, so a `Trm` that would land in a divergent set is
+subject to the divergence rules above (a `{Trm, content}` collision is recoverable by keeping the
+`Trm` — the single privileged branch wins on tier-rank, the content is archived as non-canonical,
 and **no repair is authored**: the terminal admits no successor to carry one, and none is needed
-since the chain is decommissioning. A `{Dec, Dec}` or `{Dec, Rot}` collision is two privileged
-branches → terminal). An IEL `Dec` freezes all the identity's SELs.
+since the chain is terminating. A `{Trm, Trm}` or `{Trm, Rot}` collision is two privileged branches
+→ terminal). An IEL `Trm` freezes all the identity's SELs.
 
 A submitter who detects compromise pre-emptively has no dedicated "compromise signal" event:
-available paths are to rotate the compromised key out (chain stays alive), to `Dec` (clean
+available paths are to rotate the compromised key out (chain stays alive), to `Trm` (clean
 retirement — semantically loose when compromise is the cause), or to attest out-of-band under a
 separate KEL. This trade-off is accepted; the chain layer has no identity concept, so a
 "terminate-with-prejudice" primitive justified by submitter intent would be structurally incoherent.
@@ -836,7 +836,7 @@ adversary's rotation lands.
 
 **Defense is layered** — the layers compose; none is load-bearing alone:
 
-- **KEL dual-signature** on `Ror` / `Rec` / `Wit` / `Dec` blocks signing- and rotation-key
+- **KEL dual-signature** on `Ror` / `Rec` / `Wit` / `Trm` blocks signing- and rotation-key
   compromise regardless of where the recovery key is custodied. A single-device deployment is
   first-class.
 - **IEL threshold composition** (high thresholds, `M > N` redundancy across **distinct custody
@@ -901,7 +901,7 @@ advisory and checked by the verifier against its own clock). None influence chai
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
 consensus-attested clock **for freshness / staleness detection only** — the `clock` role on each
-federation governance event (`Fcp` / `Wit` / `Dec`'s `manifest`, an inline timestamp value, one per
+federation governance event (`Fcp` / `Wit` / `Trm`'s `manifest`, an inline timestamp value, one per
 governance change), sealed and monotonic, **not** a field on any chain event. It bounds each witness
 key's validity window so a closed-window key can only stamp old receipts, which makes a backdated
 dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats** backdating rather
@@ -921,8 +921,8 @@ pronounce the verdict.
 
 The federation is **a restricted IEL rooted at an `Fcp` inception marker** — there is no separate
 consensus algorithm and no central state machine. Its roster is **witness KELs directly**; its kind
-set is restricted to `Fcp` / `Wit` / `Dec` (no content, so it never has a **reconcilable** fork and
-needs no `Rpr`; a competing-privileged divergence — `{Wit, Wit}` / `{Dec, Dec}` under a partition —
+set is restricted to `Fcp` / `Wit` / `Trm` (no content, so it never has a **reconcilable** fork and
+needs no `Rpr`; a competing-privileged divergence — `{Wit, Wit}` / `{Trm, Trm}` under a partition —
 is still possible but **terminal** (`disputed`), which is why a federation runs a hard
 recoverability ceiling and `|roster| >= 3` with serialized governance; no delegation, since trust is
 per-federation and non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose
@@ -946,10 +946,9 @@ The convergence model has three components:
   nodes within a bounded window (the bound is operational; the doctrine asserts only the eventual
   property).
 - **Semantic state is a function of the events** — each node computes a chain's state (Active /
-  Divergent / Decommissioned, with which events at which serials) deterministically from the events
-  it holds, **deriving the seal from those events**
-  ([§Divergence and repair](#divergence-and-repair)), so **identical event sets yield identical
-  state** — arrival order does not enter.
+  Divergent / Terminated, with which events at which serials) deterministically from the events it
+  holds, **deriving the seal from those events** ([§Divergence and repair](#divergence-and-repair)),
+  so **identical event sets yield identical state** — arrival order does not enter.
 - **Effective-SAID determinism** — the effective SAID is a deterministic function of the events a
   node holds: a hash over the **live branch tips it holds** — the canonical tip and any unresolved
   competing branch, a settled branch dropping out (a single live tip yields that tip's SAID).
@@ -1192,8 +1191,8 @@ token reuse, deferred-dependency draining, anti-entropy, and divergence handling
 over the live branch tips a node holds** — the canonical tip and any unresolved competing branch — a
 fingerprint of the node's _live_ state, never of the trust reading:
 
-- **A single live tip** (Active / Recovered / Decommissioned) — that tip's real SAID (a
-  decommissioned chain's is its `Dec`).
+- **A single live tip** (Active / Recovered / Terminated) — that tip's real SAID (a terminated
+  chain's is its `Trm`).
 - **Several live tips** (an unresolved fork — a live content fork, or a privileged branch past it) —
   a **domain-separated hash of all the live tip SAIDs, sorted**: sort ascending, length-prefix,
   concatenate, hash, apply the domain tag (distinct from a single-tip SAID, so a linear and a forked

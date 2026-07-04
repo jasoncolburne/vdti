@@ -35,15 +35,15 @@ divergence was detected), and the new tip SAID (when the chain advanced linearly
 The merge outcomes name what happened to the chain — the structural verdicts the routing rules
 produce.
 
-| Outcome               | Chain effect                                                                                                                                                                                                                                                                         | Triggering condition                                                                                                                                                                                                                                                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Accepted**          | Linear extension; new tip established; seal advances on seal-advancing kinds.                                                                                                                                                                                                        | Submitted events chain cleanly from the current tip on an Active chain (or from inception on an Empty chain).                                                                                                                                                                                                                                                  |
-| **Diverged**          | New content event lands as a fork at an earlier serial; chain transitions Active → Divergent (frozen).                                                                                                                                                                               | Submitted batch contains a content event (`Ixn`) whose `previous` points at a pre-tip serial where the existing chain holds a competing event. Only the first conflicting event is written.                                                                                                                                                                    |
-| **Recovered**         | Divergence resolved; the repairing branch is kept and one losing branch's **root** is committed as the `Rec`'s `fork`, condemning its subtree (every other competing branch closes below the seal and by descent); chain returns to Active; the seal advances to the `Rec`'s serial. | Submitted batch contains a `Rec` whose parent shape (branch-tip-extending or divergence-ancestor-extending) routes through the discriminator.                                                                                                                                                                                                                  |
-| **SiblingLocked**     | Not admitted as a canonical extension; no canonical state change. Retention of the rejected fork as evidence is a **separate**, witnessing-gated matter — see the keep-all-data paragraph below.                                                                                     | Submitted event's parent sits in the locked portion behind `last_seal_advancing_event` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Decommissioned chain this is the **sibling-to-`Dec`** case: an event sharing the `Dec`'s parent, racing the `Dec` at its serial. |
-| **KelDecommissioned** | No state change. Submission rejected.                                                                                                                                                                                                                                                | Submitted event chains _from_ a `Dec` (its parent's kind is `Dec`). Caught in structural validation by the kind-schema rule — no kind admits a `Dec` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                         |
-| **RecoverRequired**   | The submitted content event is retained as evidence; it does not resolve the fork (guidance). The reading stays `forked`; origination stays frozen.                                                                                                                                  | The chain holds a live fork and the batch is a content event that neither resolves it (a `Rec`) nor buries it (a seal-advancer on the winning branch).                                                                                                                                                                                                         |
-| **Rejected**          | No state change; submission rejected.                                                                                                                                                                                                                                                | Structural-validation failure — the submitted kind is inapplicable to the chain state (an inception on a non-empty chain, or a non-inception kind on an Empty chain). Caught before routing, independent of the seal-cap.                                                                                                                                      |
+| Outcome             | Chain effect                                                                                                                                                                                                                                                                         | Triggering condition                                                                                                                                                                                                                                                                                                                                       |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Accepted**        | Linear extension; new tip established; seal advances on seal-advancing kinds.                                                                                                                                                                                                        | Submitted events chain cleanly from the current tip on an Active chain (or from inception on an Empty chain).                                                                                                                                                                                                                                              |
+| **Diverged**        | New content event lands as a fork at an earlier serial; chain transitions Active → Divergent (frozen).                                                                                                                                                                               | Submitted batch contains a content event (`Ixn`) whose `previous` points at a pre-tip serial where the existing chain holds a competing event. Only the first conflicting event is written.                                                                                                                                                                |
+| **Recovered**       | Divergence resolved; the repairing branch is kept and one losing branch's **root** is committed as the `Rec`'s `fork`, condemning its subtree (every other competing branch closes below the seal and by descent); chain returns to Active; the seal advances to the `Rec`'s serial. | Submitted batch contains a `Rec` whose parent shape (branch-tip-extending or divergence-ancestor-extending) routes through the discriminator.                                                                                                                                                                                                              |
+| **SiblingLocked**   | Not admitted as a canonical extension; no canonical state change. Retention of the rejected fork as evidence is a **separate**, witnessing-gated matter — see the keep-all-data paragraph below.                                                                                     | Submitted event's parent sits in the locked portion behind `last_seal_advancing_event` — its target serial already holds a locked sibling — or a privileged event's landing would otherwise create or join a divergence. On a Terminated chain this is the **sibling-to-`Trm`** case: an event sharing the `Trm`'s parent, racing the `Trm` at its serial. |
+| **KelTerminated**   | No state change. Submission rejected.                                                                                                                                                                                                                                                | Submitted event chains _from_ a `Trm` (its parent's kind is `Trm`). Caught in structural validation by the kind-schema rule — no kind admits a `Trm` parent. Independent of the seal-cap; see [§Routing order](#routing-order) rule 1.                                                                                                                     |
+| **RecoverRequired** | The submitted content event is retained as evidence; it does not resolve the fork (guidance). The reading stays `forked`; origination stays frozen.                                                                                                                                  | The chain holds a live fork and the batch is a content event that neither resolves it (a `Rec`) nor buries it (a seal-advancer on the winning branch).                                                                                                                                                                                                     |
+| **Rejected**        | No state change; submission rejected.                                                                                                                                                                                                                                                | Structural-validation failure — the submitted kind is inapplicable to the chain state (an inception on a non-empty chain, or a non-inception kind on an Empty chain). Caught before routing, independent of the seal-cap.                                                                                                                                  |
 
 A guidance-only variant — `RecoverRequired` — applies when the chain holds a live fork and the
 submitted content event neither resolves nor buries it. Origination onto a live fork is frozen, so
@@ -60,7 +60,7 @@ structural checks (it never replaces them); on a witnessed chain it is governed 
 additive gate for non-witnesses (the full rule lands with
 [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
 
-- A **privileged** competing branch (`Rot` / `Ror` / `Wit` / `Dec`) is witnessed up to two per
+- A **privileged** competing branch (`Rot` / `Ror` / `Wit` / `Trm`) is witnessed up to two per
   position (two are the `disputed` proof), so it is accepted and **retained** — the evidence the
   data-local `disputed` walk reads.
 - A losing **content** sibling on a witnessed chain is **prevented**, not turned into retained fork
@@ -99,12 +99,11 @@ regardless of chain state. The verifier walks each event and checks:
   [`events.md` §Authorization and signature shapes](events.md#authorization-and-signature-shapes).
 - Chain linkage: `previous` resolves to an event in the verifier's branch state; `previousSeal` (on
   a seal-advancing kind) resolves to the prior seal.
-- **Kind-schema predecessor rule.** No kind admits a `Dec` parent. A submission whose parent's kind
-  is `Dec` is rejected with `KelDecommissioned`. This is `Dec`-terminality expressed as a
-  kind-schema property — the same class of structural rejection as a forbidden field appearing on an
-  event, not a routing-order outcome. `Dec`'s kind semantics mean "no more events"; the kind-schema
-  forbids any successor, so the rejection is caught here at merge entry rather than by a downstream
-  rule.
+- **Kind-schema predecessor rule.** No kind admits a `Trm` parent. A submission whose parent's kind
+  is `Trm` is rejected with `KelTerminated`. This is `Trm`-terminality expressed as a kind-schema
+  property — the same class of structural rejection as a forbidden field appearing on an event, not
+  a routing-order outcome. `Trm`'s kind semantics mean "no more events"; the kind-schema forbids any
+  successor, so the rejection is caught here at merge entry rather than by a downstream rule.
 
 ### 2. Seal-cap
 
@@ -120,18 +119,18 @@ The seal-cap is **unconditional** on KEL: every event class is subject to it. A 
 `previous.serial < seal_serial` is rejected — the locked-portion bound stops stale-authority revival
 of the chain regardless of who holds the recovery key.
 
-The seal-cap and `Dec`-terminality (rule 1's kind-schema check) are **independent** rejection
-mechanisms. Both surface on a Decommissioned chain, but they catch different shapes:
+The seal-cap and `Trm`-terminality (rule 1's kind-schema check) are **independent** rejection
+mechanisms. Both surface on a Terminated chain, but they catch different shapes:
 
-- **Sibling to the `Dec`** — a submission whose parent is the `Dec`'s parent, racing the `Dec` at
-  its serial. The `Dec` advanced the seal to its own serial, so the candidate's parent sits in the
+- **Sibling to the `Trm`** — a submission whose parent is the `Trm`'s parent, racing the `Trm` at
+  its serial. The `Trm` advanced the seal to its own serial, so the candidate's parent sits in the
   locked portion and the seal-cap rejects with `SiblingLocked`.
-- **Chains from the `Dec`** — a submission whose parent IS the `Dec`. Its parent sits at the seal
-  boundary, so it _passes_ the seal-cap and would append after the `Dec`. The seal-cap does **not**
-  catch it; only the kind-schema rule in rule 1 does, rejecting with `KelDecommissioned`.
+- **Chains from the `Trm`** — a submission whose parent IS the `Trm`. Its parent sits at the seal
+  boundary, so it _passes_ the seal-cap and would append after the `Trm`. The seal-cap does **not**
+  catch it; only the kind-schema rule in rule 1 does, rejecting with `KelTerminated`.
 
-The kind-schema rule is load-bearing — the seal-cap does not subsume `Dec`-terminality. Without rule
-1's check, an event could append after a `Dec`; the seal-cap alone would not stop it.
+The kind-schema rule is load-bearing — the seal-cap does not subsume `Trm`-terminality. Without rule
+1's check, an event could append after a `Trm`; the seal-cap alone would not stop it.
 
 ### 3. Fork-detect
 
@@ -163,7 +162,7 @@ For events admitted past rule 3, kind-specific authorization fires:
 - **Single-sig signature verification** for `Ixn` / `Rot` / `Fcp` / `Icp` against the appropriate
   key (current signing key for `Ixn`; new signing key revealed by `rotationHash` preimage for `Rot`;
   declared `publicKey` for inception kinds).
-- **Dual-sig signature verification** for `Ror` / `Rec` / `Wit` / `Dec` against the parent's
+- **Dual-sig signature verification** for `Ror` / `Rec` / `Wit` / `Trm` against the parent's
   `rotationHash` AND `recoveryHash` commitments.
 - **Forward-key commitment checks** for establishment events (see
   [`events.md` §Forward-key commitments](events.md#forward-key-commitments)).
@@ -183,7 +182,7 @@ For events admitted past rule 3, kind-specific authorization fires:
   branches are content: it **independently** walks every branch off the retained (`Rec.previous`)
   walkback that it holds (keep-all-data retains every privileged branch) or the beacon enumerates —
   the named root's subtree included — and **rejects the `Rec` if any such branch carries a
-  privileged event** (any event above tier 1 — `Rot` / `Ror` / `Rec` / `Wit` / `Dec`) — a privileged
+  privileged event** (any event above tier 1 — `Rot` / `Ror` / `Rec` / `Wit` / `Trm`) — a privileged
   branch is never archived
   ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1), so the
   fork is terminal (`disputed`, reincept); a `Rec` rejected by **this** guard — it passed hard auth
@@ -228,10 +227,10 @@ correctness, and naming the _cause_ rather than the _symptom_ is part of that po
 ([`../../../../system-thesis.md` §Adversarial-first posture](../../../../system-thesis.md#adversarial-first-posture)).
 
 The four-rule sequence is what guarantees the chain's three per-node states (Active, Divergent,
-Decommissioned) are the only states the rules can produce. The seal never forks (rule 2 plus rule 3
-jointly); a Decommissioned chain accepts nothing — a sibling to the `Dec` is rejected by the
-seal-cap (rule 2, `SiblingLocked`) and any chain-from-`Dec` submission by the kind-schema rule (rule
-1, `KelDecommissioned`).
+Terminated) are the only states the rules can produce. The seal never forks (rule 2 plus rule 3
+jointly); a Terminated chain accepts nothing — a sibling to the `Trm` is rejected by the seal-cap
+(rule 2, `SiblingLocked`) and any chain-from-`Trm` submission by the kind-schema rule (rule 1,
+`KelTerminated`).
 
 ## Routing by chain state
 
@@ -283,8 +282,8 @@ walk over the events held:
   Active** → outcome `Accepted`. If extending it would create a **second privileged branch**, the
   content-only guard rejects the burial (a privileged branch is never buried) → outcome
   `SiblingLocked`, the seal-advancer retained as a competing privileged branch and counted →
-  `disputed`. A terminal `Dec` on the winning tip buries the content loser below its own seal and
-  terminates → `Decommissioned` (a seal-cap burial, distinct from the same-serial `{Dec, content}`
+  `disputed`. A terminal `Trm` on the winning tip buries the content loser below its own seal and
+  terminates → `Terminated` (a seal-cap burial, distinct from the same-serial `{Trm, content}`
   tier-rank race).
 - Batch contains a privileged event with `previous = v_{d-1}.said` (a competing sibling that would
   join the fork) → not admitted as a canonical extension; outcome `SiblingLocked`. The competing
@@ -301,7 +300,7 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
   state → the locked-portion bound rejects any extension whose parent sits in the locked portion;
   outcome `SiblingLocked`.
 - If the batch contains a `Rec` → discriminator runs; outcome `Recovered`.
-- If the batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Dec`) with
+- If the batch contains a privileged event (`Rot` / `Ror` / `Wit` / `Trm`) with
   `previous = v_{d-1}.said` → not admitted as a canonical extension; outcome `SiblingLocked` (a
   privileged competing branch is retained as the `disputed` proof).
 - Otherwise → the first conflicting content event is inserted as the fork event; outcome `Diverged`.
@@ -464,9 +463,9 @@ for truncation.
    branch (typically via a node-local extension that hasn't gossiped to peers), the locked-portion
    bound rejects further `Rec` submissions against `v_{d-1}`, and non-privileged submissions return
    `SiblingLocked`.
-4. **Decommissioned KEL is fully terminal.** No event of any kind lands. A submission chaining from
-   the `Dec` is rejected by the kind-schema rule (`KelDecommissioned`); a sibling to the `Dec` —
-   sharing its parent — is rejected by the seal-cap (`SiblingLocked`).
+4. **Terminated KEL is fully terminal.** No event of any kind lands. A submission chaining from the
+   `Trm` is rejected by the kind-schema rule (`KelTerminated`); a sibling to the `Trm` — sharing its
+   parent — is rejected by the seal-cap (`SiblingLocked`).
 5. **Branch-scoped verifier input on `Rec`.** Rec verification is branch-scoped, not chain-scoped;
    the repair runs only after verification succeeds, and commits one losing branch's root as `fork`
    (every other competing branch closes below the seal and by descent).

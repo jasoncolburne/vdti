@@ -23,13 +23,13 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 | `Ror` | `vdti/kel/v1/events/ror` | privileged | 3    | Rotate-recovery. May host tier-3 anchors. Dual-signed; rotates both signing and recovery keys. Seal-advancing.                                                                                                                                                                             |
 | `Rec` | `vdti/kel/v1/events/rec` | repair     | 3    | Recover. Dual-signed; resolves a divergence by keeping the repairing branch and archiving the rest (one losing branch's root committed as `fork`, condemning its subtree; every other competing branch closes below the seal and by descent). Returns the chain to Active. Seal-advancing. |
 | `Wit` | `vdti/kel/v1/events/wit` | privileged | 3    | Federation **rebind** on a **user** (`Icp`-rooted) KEL — changes `federation` and/or `witnesses` (a same-federation re-pin is **not** a `Wit`); federation **governance** on an `Fcp`-rooted witness KEL (rotation + `clock` is the change). Dual-signed; seal-advancing.                  |
-| `Dec` | `vdti/kel/v1/events/dec` | terminal   | 3    | Decommission. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                                                                                  |
+| `Trm` | `vdti/kel/v1/events/dec` | terminal   | 3    | Terminate. Dual-signed; ends the chain on a clean linear landing. Advances the seal to its own serial.                                                                                                                                                                                     |
 
 The **class** column names the event's role under the
 [divergence-and-repair rules](../../../../protocol-doctrine.md#divergence-and-repair): only
 **content** (`Ixn`) is archivable. Everything above tier 1 is **privileged** — never archived or
 overturned — including the **repair** kind (`Rec`, which also resolves a divergence) and the
-**terminal** kind (`Dec`, which also ends the chain); so a branch carrying a `Rec` or a `Dec` counts
+**terminal** kind (`Trm`, which also ends the chain); so a branch carrying a `Rec` or a `Trm` counts
 as privileged in the divergence walk just as a `Rot` branch does. The **tier** column names which
 key material is required to forge the event — see
 [§Three-tier capability model](#three-tier-capability-model).
@@ -71,13 +71,13 @@ the [event-shape reference](../event-shape.md#kel). The KEL-specific key-state s
 | `Ixn`                 | fbd         | fbd            | fbd           | fbd            |
 | `Rot`                 | req         | req            | fbd           | fbd            |
 | `Ror` / `Rec` / `Wit` | req         | req            | req           | req            |
-| `Dec`                 | req         | fbd            | req           | fbd            |
+| `Trm`                 | req         | fbd            | req           | fbd            |
 
 `publicKey` is the signing key effective at this event; `rotationHash` and `recoveryHash` are the
 forward-key digests committing the next signing and recovery keys; `recoveryKey` reveals the
 recovery-key preimage on the dual-signed kinds. The forward-key commitment fields drive the
 dual-signature mechanic — see [§Forward-key commitments](#forward-key-commitments). The
-seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) additionally carry the top-level
+seal-advancing kinds (`Rot` / `Ror` / `Rec` / `Wit` / `Trm`) additionally carry the top-level
 `previousSeal` spine back-link ([`log.md` §The spine](log.md#the-spine)).
 
 ## The manifest — roles a KEL event carries
@@ -93,7 +93,7 @@ it (read kind-first):
 | ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `fork`      | `Rec` (req)                              | the single losing-branch **root** SAID the repair condemns — a branch's first divergent event (a competing child of the fork point, off the retained chain), condemning that branch's entire subtree (growth after the repair is dead by descent). Every other competing branch — held, missed, or later-grown — closes without being named: its first event sits below the repair-advanced seal, its growth is dead by descent. **Repair-only** — `Rot` / `Ror` / `Wit` / `Dec` carry no fold field; the retained run since the prior seal is the derivable `[previousSeal..previous]`, and "content was folded" is the predicate `previous != previousSeal` |
+| `fork`      | `Rec` (req)                              | the single losing-branch **root** SAID the repair condemns — a branch's first divergent event (a competing child of the fork point, off the retained chain), condemning that branch's entire subtree (growth after the repair is dead by descent). Every other competing branch — held, missed, or later-grown — closes without being named: its first event sits below the repair-advanced seal, its growth is dead by descent. **Repair-only** — `Rot` / `Ror` / `Wit` / `Trm` carry no fold field; the retained run since the prior seal is the derivable `[previousSeal..previous]`, and "content was folded" is the predicate `previous != previousSeal` |
 
 ### Anchors
 
@@ -115,8 +115,8 @@ optionally. A **`Wit`** carries **exactly one** anchor — the IEL `Wit` it part
 (kind-strict, tier-3 ↔ tier-3) — alongside its top-level `federation` / `federationPin` binding and
 its `witnesses` role. **`Fcp` / `Icp`** carry their federation binding in the top-level fields and
 their witnessing policy in `witnesses` — never as anchors — keeping inception minimal. **`Rec` and
-`Dec` carry no anchors:** `Rec` is repair-only (a recovered member participates via the subsequent
-`Ror`), and `Dec` ends the chain.
+`Trm` carry no anchors:** `Rec` is repair-only (a recovered member participates via the subsequent
+`Ror`), and `Trm` ends the chain.
 
 KEL verification validates anchor **format** only — each entry is a SAID-shaped token. Anchor
 **satisfaction** — what a SAID points to, and which kind-strict anchor rules apply — is
@@ -132,9 +132,9 @@ position; the `witnesses` role commits the witness-config SAD `{ threshold, sign
 req / fbd / opt per kind is the [event-shape reference](../event-shape.md#kel)'s. On a user
 (`Icp`-rooted) KEL the `federation` **prefix** is carried only by `Icp` (the root binding) and `Wit`
 (an actual **rebind**). `federationPin` is **optional on every body event** (`Ixn` / `Rot` / `Ror` /
-`Rec` / `Dec`): present = a forward **re-pin** within the inherited federation, absent = inherit the
+`Rec` / `Trm`): present = a forward **re-pin** within the inherited federation, absent = inherit the
 prior pin. So a same-federation re-pin rides whatever event the chain authors next — no `Wit` needed
-(e.g. a stale terminal `Dec` re-pins and decommissions in one event). A `federationPin` on a
+(e.g. a stale terminal `Trm` re-pins and terminates in one event). A `federationPin` on a
 non-`Icp`/`Wit` event must **resolve within the inherited `federation` prefix** — a re-pin can never
 become a backdoor rebind. Forward-only is **emergent**, not a structural check: ordering two
 federation positions is a _cross-chain_ walk (the KEL verifier is self-contained — it never orders
@@ -183,16 +183,16 @@ preimage reveals. Tier-3 events are dual-signed by the new signing key AND the r
 | `Ror` | new signing key (preimage of prior `rotationHash`)                                    | recovery key revealed by `recoveryKey` (preimage of prior `recoveryHash`) |
 | `Rec` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
 | `Wit` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
-| `Dec` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
+| `Trm` | new signing key (preimage of prior `rotationHash`)                                    | recovery key (preimage of prior `recoveryHash`)                           |
 
-`Ror` / `Rec` / `Wit` / `Dec` reveal the recovery key — they are the **recovery-revealing**
+`Ror` / `Rec` / `Wit` / `Trm` reveal the recovery key — they are the **recovery-revealing**
 sub-class. Once a recovery-revealing event lands, the recovery key it reveals is publicly known.
 Tracked via `last_recovery_revealing_event` on the verification token — see
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound).
 
-`Rot` / `Ror` / `Rec` / `Wit` / `Dec` advance the seal — they are the **seal-advancing** kinds,
+`Rot` / `Ror` / `Rec` / `Wit` / `Trm` advance the seal — they are the **seal-advancing** kinds,
 tracked via `last_seal_advancing_event`. The two sub-classes overlap on `Ror` / `Rec` / `Wit` /
-`Dec` but diverge on `Rot` (seal-advancing without revealing the recovery key); `Dec` belongs to
+`Trm` but diverge on `Rot` (seal-advancing without revealing the recovery key); `Trm` belongs to
 both (it reveals the recovery key, advances the seal to its own serial, and is terminal).
 
 ## Three-tier capability model
@@ -213,7 +213,7 @@ the event. The tier names the captured material, not the number of signatures on
   compromised; requiring the old signing key to authorize rotation would defeat the purpose.
 - **Tier 3 — rotation-key preimage AND recovery-key preimage.** Adversary holds both preimages: the
   preimage of the prior `rotationHash` AND the preimage of the prior `recoveryHash`. They can land
-  `Ror` / `Rec` / `Wit` / `Dec`. The dual signature is over (new signing key revealed by the
+  `Ror` / `Rec` / `Wit` / `Trm`. The dual signature is over (new signing key revealed by the
   rotation preimage) + (recovery key revealed by the recovery preimage) — two signatures, two roles,
   neither requiring the old signing key.
 
@@ -240,8 +240,8 @@ via the subsequent `Ror`. See [§Tiers](../../../../protocol-doctrine.md#tiers).
 ## Forward-key commitments
 
 An **establishment event** reveals a key (checked against the prior establishment's commitment) and
-**establishes authoritative state** — new key state, or the terminal decommissioned state. Most also
-commit one or both forward-key digests for their successor; the terminal `Dec` establishes state
+**establishes authoritative state** — new key state, or the terminal terminated state. Most also
+commit one or both forward-key digests for their successor; the terminal `Trm` establishes state
 (and reveals a key) but commits **neither** — it admits no successor. The content `Ixn` establishes
 no state (it anchors content under the existing key state) and is not an establishment event; it
 commits neither:
@@ -251,7 +251,7 @@ commits neither:
 | `Fcp` / `Icp`         | required             | required                                                  |
 | `Rot`                 | required             | forbidden (`Rot` does not change the recovery commitment) |
 | `Ror` / `Rec` / `Wit` | required             | required                                                  |
-| `Dec`                 | forbidden (terminal) | forbidden (terminal)                                      |
+| `Trm`                 | forbidden (terminal) | forbidden (terminal)                                      |
 | `Ixn`                 | forbidden            | forbidden                                                 |
 
 The verifier seeds tracked `rotationHash` / `recoveryHash` from the inception event and updates them
@@ -265,7 +265,7 @@ KEL has one protocol-enforced cap (the seal-advance cap) plus operator guidance 
 rotation cadence.
 
 **Seal-advance cap (protocol-enforced).** A seal-advancing event (`Rec` / `Ror` / `Rot` / `Wit`; the
-terminal `Dec` also advances the seal but ends the chain) must land at least every
+terminal `Trm` also advances the seal but ends the chain) must land at least every
 `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The cap bounds the **fold**
 — the content run since the last seal — to 64 events on each branch, so the canonical two-branch
 fork plus the resolving `Rec` is **sized to fit** one page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a
@@ -306,7 +306,7 @@ The merge layer orders events at the same serial deterministically by
 | `Ror` | 4             |
 | `Wit` | 5             |
 | `Rec` | 6             |
-| `Dec` | 7             |
+| `Trm` | 7             |
 
 The ordering matters for adversarial-input diagnostics. Two competing `Ixn` events in a fork get the
 same priority and break the tie by SAID — identical ordering across all nodes, so deduplication and
@@ -392,19 +392,19 @@ walkback, and checks every competing branch content-only. See
 and the structural property that makes the divergence-ancestor-extending shape
 cross-node-validatable.
 
-### Clean decommission
+### Clean terminate
 
 ```
 s0..sN   normal chain
-sN+1     kind=dec   ← Dec ends the KEL cleanly; dual-signed (kN + recovery key);
+sN+1     kind=dec   ← Trm ends the KEL cleanly; dual-signed (kN + recovery key);
                       advances the seal to its own serial; previousSeal=<prior seal>.said
 ```
 
-After `Dec`, the chain is fully terminal. Two independent merge-layer mechanisms reject every
-subsequent submission: a sibling to the `Dec` (sharing parent `v_{N}`) is rejected by the seal-cap
-(`SiblingLocked`), and a submission chaining from the `Dec` is rejected by the kind-schema rule
-(`KelDecommissioned` — no kind admits a `Dec` parent). See
-[`merge.md` §Routing order](merge.md#routing-order). A concurrent privileged event racing the `Dec`
+After `Trm`, the chain is fully terminal. Two independent merge-layer mechanisms reject every
+subsequent submission: a sibling to the `Trm` (sharing parent `v_{N}`) is rejected by the seal-cap
+(`SiblingLocked`), and a submission chaining from the `Trm` is rejected by the kind-schema rule
+(`KelTerminated` — no kind admits a `Trm` parent). See
+[`merge.md` §Routing order](merge.md#routing-order). A concurrent privileged event racing the `Trm`
 at the same serial on another node is retained as non-canonical evidence and read data-locally — see
 [`recovery.md` §Cross-node privileged-vs-privileged races](recovery.md#cross-node-privileged-vs-privileged-races).
 

@@ -27,7 +27,7 @@ chain primitive plays a distinct structural role:
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of
   custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
 - **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold
-  vector** `{t_use, t_govern, t_delegate, t_recover}` — how many member devices must act for
+  vector** `{t_use, t_govern, t_authorize, t_recover}` — how many member devices must act for
   content, governance, delegation, and recovery respectively. A rule spanning several identities
   lives in the document policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
@@ -46,9 +46,9 @@ on authenticated identity, and are revocable by their issuer.
 
 Any verifier, given **data from any source** plus the **trusted federation set**
 (compile-time-baked, runtime-overridable), can determine system-wide state — including whether a
-prefix is divergent, decommissioned, or disputed. Source location matters for cost (cache,
-replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier
-catches inconsistencies at page boundaries regardless of where the bytes came from.
+prefix is divergent, terminated, or disputed. Source location matters for cost (cache, replication,
+retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches
+inconsistencies at page boundaries regardless of where the bytes came from.
 
 This is the property that justifies the architecture. **End-verifiability over
 data-from-any-source** is what differentiates VDTI from systems that require trusted-watcher
@@ -169,16 +169,16 @@ repair is cross-node-validatable.
 
 ### Defense against current-state compromise is layered
 
-KEL dual-signature on `Ror` / `Rec` / `Wit` / `Dec` (rotate-recovery, recover, federation-bind,
-decommission) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced
-signing, side channels — regardless of where the recovery key is custodied. A single-device
-deployment is first-class. IEL threshold composition (high thresholds, `M > N` redundancy across
-distinct custodians) handles total device compromise: burn the device, evict it via a `Evl`
-(governance change). KEL-internal custody separation — recovery key on a different device, HSM,
-ceremony-gated — is an optional deployment hardening for threat shapes where signing and recovery
-would otherwise fall together. A biometric or device PIN gating the keystore is a further on-device
-layer — it raises the cost of using a stolen, locked device, but gates _access_ rather than custody:
-it can be coerced, and an unlocked device remains usable.
+KEL dual-signature on `Ror` / `Rec` / `Wit` / `Trm` (rotate-recovery, recover, federation-bind,
+terminate) blocks signing- and rotation-key compromise — exfiltration, brute force, coerced signing,
+side channels — regardless of where the recovery key is custodied. A single-device deployment is
+first-class. IEL threshold composition (high thresholds, `M > N` redundancy across distinct
+custodians) handles total device compromise: burn the device, evict it via a `Evl` (governance
+change). KEL-internal custody separation — recovery key on a different device, HSM, ceremony-gated —
+is an optional deployment hardening for threat shapes where signing and recovery would otherwise
+fall together. A biometric or device PIN gating the keystore is a further on-device layer — it
+raises the cost of using a stolen, locked device, but gates _access_ rather than custody: it can be
+coerced, and an unlocked device remains usable.
 
 →
 [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).

@@ -75,7 +75,7 @@ protocol's safety claims hold _by construction_, not by observation.
    only the retained branch (≤ 64) plus the `Rec`, validating the competing branches from storage;
    the full-span membership walk adds at most one pre-fork page.)
 4. **A privileged divergence is terminal; a content divergence is repairable.** A privileged event
-   (`Rot` / `Ror` / `Wit` / `Dec`) that would create or join a divergence does **not** extend the
+   (`Rot` / `Ror` / `Wit` / `Trm`) that would create or join a divergence does **not** extend the
    canonical chain — it is retained as non-canonical evidence (keep-all-data) rather than discarded.
    A fork with **at most one** privileged branch is **reconcilable** (`forked`): a `Rec` keeps the
    single privileged-or-content branch and archives the **content-only** rest, naming one losing
@@ -98,7 +98,7 @@ The proof matrices below rely on invariants 4–5.
 Recovery-preimage rotation cadence (how often `Ror` should land to refresh the recovery commitment)
 is **operator guidance**, not a protocol-enforced invariant — see
 [`events.md` §Seal-advance cap](events.md#seal-advance-cap). Reconciliation correctness does not
-depend on a cap on `Rec` / `Ror` / `Dec` frequency.
+depend on a cap on `Rec` / `Ror` / `Trm` frequency.
 
 ## KEL chain states (proof states)
 
@@ -114,7 +114,7 @@ not a separate per-node state.
 | **Divergent**          | A live fork: two distinct events at one serial. The chain is **origination-frozen** (a node originates no new work onto the live fork); the **reading** is the pure walk of the events held — `forked` (≤ 1 privileged branch) or `disputed` (≥ 2), data-locally. A privileged event extending `v_{d-1}` is retained as non-canonical evidence per invariant 4, not extended onto. A seal-advancer extending the **winning** branch buries a content loser and the chain re-reads Active (Divergent (sealed), below).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **Divergent (sealed)** | A live fork **at the seal** — a competing event at the seal-advancer's own serial `N` (both children of `v_{N-1}`). You can fork the **present**, not the **past**: below the seal is locked, so a competing event there is inert (dead), never a live fork — with one exception, a competing event **at** the seal serial `N`, which does form a live fork. The node accepts the seal-advancer (`Rot`/`Ror`/`Wit`/`Rec` at `N`; seal → `N`), then a competing `Ixn@N` arrives — `SiblingLocked` (not admitted as a canonical extension), retained as evidence — and the chain reads `forked` / `disputed` by a walk over its competing tips ([§Effective-SAID convergence](#effective-said-convergence)). The resolving move is a **seal-advancer on the winning branch** — extending `S@N` with a `Rot@N+1` advances the seal to `N+1`, so the competing `Ixn@N` drops below it, inert, and the chain re-reads Active — or a **`Rec`**, which condemns the losing branch's root explicitly (root-condemnation marks it dead — distinct from the forbidden below-seal _extension_, invariant 5). Either resolving event lands **after** the seal (`previous = seal.said` ⇒ serial `N+1`; an event _at_ the seal's serial would itself be a competing sibling → dispute). |
 | **Recovered**          | Clean chain after the `Rec` committed one losing branch's root as its `fork` in the merge transaction (the root condemning its subtree; every other competing branch closes below the seal and by descent). Equivalent to Active in subsequent rules.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| **Decommissioned**     | A terminal `Dec` with no competing privileged event at its position — the `Dec` is the canonical tip. Fully terminal: all submissions rejected by the seal-cap or the kind-schema rule. (A content event that raced the `Dec` lands as a dead sibling — the `Dec` wins on tier-rank; see [§Matrix 4](#matrix-4-repair-completeness).)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Terminated**         | A terminal `Trm` with no competing privileged event at its position — the `Trm` is the canonical tip. Fully terminal: all submissions rejected by the seal-cap or the kind-schema rule. (A content event that raced the `Trm` lands as a dead sibling — the `Trm` wins on tier-rank; see [§Matrix 4](#matrix-4-repair-completeness).)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 ## Merge outcomes — the cell vocabulary
 
@@ -123,30 +123,30 @@ submitted kind) — the single verdict the real merge engine produces per submis
 ([`merge.md` §Merge outcomes](merge.md#merge-outcomes) is authoritative). Each outcome is one
 verdict with a fixed effect on the chain:
 
-| Outcome               | Verdict                                                                                                       | Chain after                                        |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **Accepted**          | admitted                                                                                                      | extends linearly (→ **Decommissioned** on a `Dec`) |
-| **Diverged**          | admitted as a fork                                                                                            | **Active → Divergent**                             |
-| **Recovered**         | repair admitted — resolves a divergence, _forming_ it too when the repair attaches **before** the current tip | → **Active**                                       |
-| **RecoverRequired**   | retained as evidence; does not resolve the fork (guidance)                                                    | reading stays `forked`; origination frozen         |
-| **SiblingLocked**     | rejected — parent below the seal, or would fork the spine                                                     | unchanged                                          |
-| **KelDecommissioned** | rejected — a `Dec` admits no successor                                                                        | unchanged (terminal)                               |
-| **Rejected**          | rejected — structurally inapplicable here                                                                     | unchanged                                          |
+| Outcome             | Verdict                                                                                                       | Chain after                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Accepted**        | admitted                                                                                                      | extends linearly (→ **Terminated** on a `Trm`) |
+| **Diverged**        | admitted as a fork                                                                                            | **Active → Divergent**                         |
+| **Recovered**       | repair admitted — resolves a divergence, _forming_ it too when the repair attaches **before** the current tip | → **Active**                                   |
+| **RecoverRequired** | retained as evidence; does not resolve the fork (guidance)                                                    | reading stays `forked`; origination frozen     |
+| **SiblingLocked**   | rejected — parent below the seal, or would fork the spine                                                     | unchanged                                      |
+| **KelTerminated**   | rejected — a `Trm` admits no successor                                                                        | unchanged (terminal)                           |
+| **Rejected**        | rejected — structurally inapplicable here                                                                     | unchanged                                      |
 
 ## Matrix 1: Local submissions
 
 What happens when a client submits events to the merge engine on a single node. Each cell is a merge
 outcome (above); the structural _why_ is in [§Notes on cell routing](#notes-on-cell-routing).
 
-| Chain state            | `Icp` / `Fcp` | `Ixn`             | `Rot`                      | `Ror` / `Wit`              | `Rec`                  | `Dec`                            |
-| ---------------------- | ------------- | ----------------- | -------------------------- | -------------------------- | ---------------------- | -------------------------------- |
-| **Empty**              | Accepted      | Rejected          | Rejected                   | Rejected                   | Rejected               | Rejected                         |
-| **Active**             | Rejected      | Accepted          | Accepted                   | Accepted                   | Accepted / Recovered ᵃ | Accepted                         |
-| **Active (sealed)**    | Rejected      | SiblingLocked     | SiblingLocked              | SiblingLocked              | SiblingLocked          | SiblingLocked                    |
-| **Divergent** (frozen) | Rejected      | RecoverRequired   | Accepted / SiblingLocked ᵈ | Accepted / SiblingLocked ᵈ | Recovered ᵇ            | Decommissioned / SiblingLocked ᵈ |
-| **Divergent (sealed)** | Rejected      | SiblingLocked     | Accepted / SiblingLocked ᵈ | Accepted / SiblingLocked ᵈ | Recovered ᶜ            | Decommissioned / SiblingLocked ᵈ |
-| **Recovered**          | Rejected      | as Active         | as Active                  | as Active                  | as Active              | as Active                        |
-| **Decommissioned**     | Rejected      | KelDecommissioned | KelDecommissioned          | KelDecommissioned          | KelDecommissioned      | KelDecommissioned                |
+| Chain state            | `Icp` / `Fcp` | `Ixn`           | `Rot`                      | `Ror` / `Wit`              | `Rec`                  | `Trm`                        |
+| ---------------------- | ------------- | --------------- | -------------------------- | -------------------------- | ---------------------- | ---------------------------- |
+| **Empty**              | Accepted      | Rejected        | Rejected                   | Rejected                   | Rejected               | Rejected                     |
+| **Active**             | Rejected      | Accepted        | Accepted                   | Accepted                   | Accepted / Recovered ᵃ | Accepted                     |
+| **Active (sealed)**    | Rejected      | SiblingLocked   | SiblingLocked              | SiblingLocked              | SiblingLocked          | SiblingLocked                |
+| **Divergent** (frozen) | Rejected      | RecoverRequired | Accepted / SiblingLocked ᵈ | Accepted / SiblingLocked ᵈ | Recovered ᵇ            | Terminated / SiblingLocked ᵈ |
+| **Divergent (sealed)** | Rejected      | SiblingLocked   | Accepted / SiblingLocked ᵈ | Accepted / SiblingLocked ᵈ | Recovered ᶜ            | Terminated / SiblingLocked ᵈ |
+| **Recovered**          | Rejected      | as Active       | as Active                  | as Active                  | as Active              | as Active                    |
+| **Terminated**         | Rejected      | KelTerminated   | KelTerminated              | KelTerminated              | KelTerminated          | KelTerminated                |
 
 ### Guarded cells
 
@@ -164,20 +164,20 @@ outcome (above); the structural _why_ is in [§Notes on cell routing](#notes-on-
   `Rec` _at_ the seal's own serial `N` would itself be a competing event → dispute. On this row the
   `Ixn` cell is a below-seal-parent submission (`SiblingLocked`); the seal-advancer cells are
   guarded (ᵈ).
-- **ᵈ Divergent (either row) × seal-advancer (`Rot` / `Ror` / `Wit` / `Dec`)** — the outcome depends
+- **ᵈ Divergent (either row) × seal-advancer (`Rot` / `Ror` / `Wit` / `Trm`)** — the outcome depends
   on where it attaches. **Extending the winning branch's tip** — a seal-advancer on the branch the
   chain keeps — advances the seal, so the competing **content** sibling(s) drop below the new seal,
-  inert, and the chain **re-reads Active**: **Accepted** (a `Dec` → **Decommissioned** — it buries
-  the content loser below its own seal and terminates, a seal-cap burial, distinct from the
-  same-serial `{Dec, content}` tier-rank race). If extending it would instead create a **second
-  privileged branch**, the reading is `disputed` and the shape-gate rejects the burial (a privileged
-  branch is never buried). **Extending `v_{d-1}`** — a competing sibling at the fork — is not
-  admitted as a canonical extension; it is retained as the `disputed` proof → **SiblingLocked**.
+  inert, and the chain **re-reads Active**: **Accepted** (a `Trm` → **Terminated** — it buries the
+  content loser below its own seal and terminates, a seal-cap burial, distinct from the same-serial
+  `{Trm, content}` tier-rank race). If extending it would instead create a **second privileged
+  branch**, the reading is `disputed` and the shape-gate rejects the burial (a privileged branch is
+  never buried). **Extending `v_{d-1}`** — a competing sibling at the fork — is not admitted as a
+  canonical extension; it is retained as the `disputed` proof → **SiblingLocked**.
 
 ### Notes on cell routing
 
 - **Privileged event creating or joining a divergence (any chain state).** A privileged event
-  (`Rot`, `Ror`, `Wit`, or `Dec`) with `previous = v_{d-1}.said` whose landing would create or join
+  (`Rot`, `Ror`, `Wit`, or `Trm`) with `previous = v_{d-1}.said` whose landing would create or join
   a divergence does not extend the canonical chain — it is retained as non-canonical evidence per
   invariant 4; the merge engine returns `SiblingLocked`. When the retained event is another
   federation peer's locally-landed privileged event (a cross-node privileged-vs-privileged race),
@@ -191,10 +191,10 @@ outcome (above); the structural _why_ is in [§Notes on cell routing](#notes-on-
   [`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability)) is what makes this
   rejection sound: the chain segment at-or-below the seal stays structurally trustworthy regardless
   of subsequent above-seal disruption.
-- **Decommissioned.** Fully terminal. A local submission extends the chain's tip — the `Dec` — so
-  its parent kind is `Dec` and the kind-schema rule rejects it with `KelDecommissioned` (see
-  [`merge.md` §Routing order](merge.md#routing-order) rule 1). The distinct **sibling-to-`Dec`**
-  case — a competing event sharing the `Dec`'s parent, which arises in cross-node races rather than
+- **Terminated.** Fully terminal. A local submission extends the chain's tip — the `Trm` — so its
+  parent kind is `Trm` and the kind-schema rule rejects it with `KelTerminated` (see
+  [`merge.md` §Routing order](merge.md#routing-order) rule 1). The distinct **sibling-to-`Trm`**
+  case — a competing event sharing the `Trm`'s parent, which arises in cross-node races rather than
   local tip-extension — is rejected by the seal-cap with `SiblingLocked` (see
   [§Matrix 3](#matrix-3-race-matrix)).
 
@@ -231,12 +231,12 @@ to that node before the divergence was detected elsewhere). The protocol cannot 
 from chain data alone — "retained" is the branch the `Rec` (whoever holds the recovery key)
 ultimately keeps.
 
-| Source ↓ / Sink →           | Empty    | Active (retained) | Active (alternate) | Divergent                    | Decommissioned |
-| --------------------------- | -------- | ----------------- | ------------------ | ---------------------------- | -------------- |
-| **Active**                  | Accepted | Accepted          | Diverged           | Accepted / RecoverRequired ᵉ | SiblingLocked  |
-| **Recovered**               | Accepted | Accepted          | Recovered          | Recovered ᵈ                  | SiblingLocked  |
-| **Divergent** (unrecovered) | Diverged | Diverged          | Diverged           | Accepted ᵃ                   | SiblingLocked  |
-| **Decommissioned**          | Accepted | Accepted          | Diverged ᵇ         | Decommissioned ᵉ             | Accepted ᶜ     |
+| Source ↓ / Sink →           | Empty    | Active (retained) | Active (alternate) | Divergent                    | Terminated    |
+| --------------------------- | -------- | ----------------- | ------------------ | ---------------------------- | ------------- |
+| **Active**                  | Accepted | Accepted          | Diverged           | Accepted / RecoverRequired ᵉ | SiblingLocked |
+| **Recovered**               | Accepted | Accepted          | Recovered          | Recovered ᵈ                  | SiblingLocked |
+| **Divergent** (unrecovered) | Diverged | Diverged          | Diverged           | Accepted ᵃ                   | SiblingLocked |
+| **Terminated**              | Accepted | Accepted          | Diverged ᵇ         | Terminated ᵉ                 | Accepted ᶜ    |
 
 **Column note (the Active-source row).** "retained" / "alternate" are relative to the **source's**
 branch: a sink on the _same_ branch as the source reads "retained" (→ `Accepted`, dedup); a sink on
@@ -250,19 +250,19 @@ same-vs-different-branch.
   competing branch each lacks and each **retains** it as evidence (keep-all-data — this branch
   ingestion, not a canonical merge outcome, is what moves the digest), so they converge on the same
   real value. No new canonical state.
-- **ᵇ Decommissioned → Active (alternate)** — the incoming `Dec` and the sink's content branch form
-  a divergence; the `Dec` wins on **tier-rank** and the content archives dead → the sink reads
-  **Decommissioned**. (This is the one fork that auto-resolves without a `Rec` — a terminal `Dec`
-  admits no successor; the base outcome legend has no tier-rank token, so this two-step outcome is
-  the exception.)
-- **ᶜ Decommissioned → Decommissioned** — both already hold the `Dec` (dedup); already converged.
-- **ᵉ Active / Decommissioned → Divergent (a burying source)** — when the source's run carries a
-  **seal-advancer on the winning branch** (an Active source that sealed past the fork, or a `Dec`),
+- **ᵇ Terminated → Active (alternate)** — the incoming `Trm` and the sink's content branch form a
+  divergence; the `Trm` wins on **tier-rank** and the content archives dead → the sink reads
+  **Terminated**. (This is the one fork that auto-resolves without a `Rec` — a terminal `Trm` admits
+  no successor; the base outcome legend has no tier-rank token, so this two-step outcome is the
+  exception.)
+- **ᶜ Terminated → Terminated** — both already hold the `Trm` (dedup); already converged.
+- **ᵉ Active / Terminated → Divergent (a burying source)** — when the source's run carries a
+  **seal-advancer on the winning branch** (an Active source that sealed past the fork, or a `Trm`),
   transferring it to a Divergent sink **buries** the sink's competing **content** loser below the
-  new seal: the sink re-reads **Active** (Active source → **Accepted**) or **Decommissioned** (a
-  `Dec`, by seal-cap burial / tier-rank). A content-only source (no seal-advancer past the fork)
-  lands as evidence and the sink stays `forked` → **RecoverRequired**. A privileged loser makes the
-  fork `disputed` (never buried).
+  new seal: the sink re-reads **Active** (Active source → **Accepted**) or **Terminated** (a `Trm`,
+  by seal-cap burial / tier-rank). A content-only source (no seal-advancer past the fork) lands as
+  evidence and the sink stays `forked` → **RecoverRequired**. A privileged loser makes the fork
+  `disputed` (never buried).
 - **ᵈ Recovered → Divergent** — the source's chain carries the `Rec`, which lands in the sink's
   `since:{own seal}` window and resolves the sink's frozen divergence (edge case 2) → **Recovered**
   (merge.md's Divergent-KEL routing: a batch containing a `Rec` runs the discriminator → Recovered).
@@ -277,13 +277,13 @@ state — and its per-node classification + digest are pinned in the state table
 
 ### Notes on cell routing
 
-- **Sink terminal state** (Decommissioned). The source branched before the sink's `Dec`, so its
-  competing event shares the `Dec`'s parent — it is a **sibling to the `Dec`**, not a chain _from_
-  the `Dec`. The seal-cap rejects it with `SiblingLocked`. (The `KelDecommissioned` diagnostic — a
-  chain-from-`Dec`, parent kind `Dec` — arises for local tip-extension as in
+- **Sink terminal state** (Terminated). The source branched before the sink's `Trm`, so its
+  competing event shares the `Trm`'s parent — it is a **sibling to the `Trm`**, not a chain _from_
+  the `Trm`. The seal-cap rejects it with `SiblingLocked`. (The `KelTerminated` diagnostic — a
+  chain-from-`Trm`, parent kind `Trm` — arises for local tip-extension as in
   [Matrix 1](#matrix-1-local-submissions), not for gossiped chains, which never carry an event built
-  on the sink's `Dec`.) When the source carries a competing privileged event racing the sink's
-  `Dec`, both nodes end up holding both branches and read `disputed` data-locally.
+  on the sink's `Trm`.) When the source carries a competing privileged event racing the sink's
+  `Trm`, both nodes end up holding both branches and read `disputed` data-locally.
 - **Send-side partitioning** (Source: Divergent). The source partitions the chain into sub-batches
   the sink will accept under its routing rules. The structural requirement is on the sender:
   receive-side ordering can sort what arrived, but cannot fix composition problems where the sink's
@@ -328,7 +328,7 @@ function of the events it holds.
 | State                                    | Effective SAID (the value)                                                                                                                                                                                                                                                                                                                                                                          | Converges?                                                                                                                                                                                                                                                                                                                                                         |
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Active / Recovered**                   | the canonical **tip event SAID**                                                                                                                                                                                                                                                                                                                                                                    | ✓ (identical chains after gossip)                                                                                                                                                                                                                                                                                                                                  |
-| **Decommissioned**                       | the `Dec`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                                                                                                                                                                                                                                                                              | ✓ where the `Dec` landed uncontested; a competing privileged event racing it → both nodes hold both branches → `disputed` data-locally ([§Matrix 3](#matrix-3-race-matrix))                                                                                                                                                                                        |
+| **Terminated**                           | the `Trm`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                                                                                                                                                                                                                                                                              | ✓ where the `Trm` landed uncontested; a competing privileged event racing it → both nodes hold both branches → `disputed` data-locally ([§Matrix 3](#matrix-3-race-matrix))                                                                                                                                                                                        |
 | **Divergent — `forked` _or_ `disputed`** | a **real digest over the live tips** (a deterministic hash of the sorted live-tip SAIDs, the canonical one included; a settled **content** branch (repair-condemned or below-seal-inert) drops out, while a privileged event never settles — a spine fork → `disputed`, always a live tip; the `forked` / `disputed` verdict is a _separate_ data-local walk — ≤ 1 vs ≥ 2 privileged past the fork) | ✓ **once the branches propagate** — true convergence rests on guaranteed witnessed propagation ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence)); **fail-secure under partition** — nodes holding different branch sets compute different digests, so disagreement drives a fetch (reachable) or reads as multi-source distrust |
 
 The digest is **tip-sensitive** — it moves the instant a node's live-tip set changes, which is what
@@ -367,23 +367,23 @@ rejects it as a canonical extension (`parent_serial < seal_serial`) **but retain
 non-canonical evidence** (keep-all-data). Each node ends up holding both branches and reads the
 divergence by a **data-local walk** — two privileged branches past the fork read `disputed`.
 
-The race participants — any pairing across `{Rec, Ror, Rot, Wit, Dec}` — produce identical
+The race participants — any pairing across `{Rec, Ror, Rot, Wit, Trm}` — produce identical
 structural outcomes per-node:
 
 - Each node keeps its locally-landed first-receive as its canonical tip.
 - The gossip-arriving competing event is not admitted as a canonical extension (the seal-cap returns
-  `SiblingLocked`) but is retained as non-canonical evidence. On the Dec'd side the treatment is
-  identical — a Decommissioned chain is sealed at its `Dec`, so the seal-cap rejects per
+  `SiblingLocked`) but is retained as non-canonical evidence. On the Trm'd side the treatment is
+  identical — a Terminated chain is sealed at its `Trm`, so the seal-cap rejects per
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 - Each node reads the prefix as `disputed` by a data-local walk over the two retained privileged
   branches; the witness beacon enumerates the competing branch SAIDs so a one-branch holder fetches
   and walks the rest.
 
-### Worked race: `Dec` versus `Ror` / `Dec` at `v_d`
+### Worked race: `Trm` versus `Ror` / `Trm` at `v_d`
 
 Two parties submit concurrent privileged events extending `v_{d-1}` at the same serial `d` to
-different nodes: party 1 submits `Dec` (clean retirement); party 2 submits another privileged event
-(e.g., `Ror` or `Dec`) extending the same parent.
+different nodes: party 1 submits `Trm` (clean retirement); party 2 submits another privileged event
+(e.g., `Ror` or `Trm`) extending the same parent.
 
 ```
 Pre-state (linear at v_{d-1}):
@@ -399,7 +399,7 @@ Each event lands as a linear-chain extension on its submitting node.
 
 Gossip propagates:
 
-  Node A (Decommissioned at v_d via dec) receives ror_alt:
+  Node A (Terminated at v_d via dec) receives ror_alt:
     ror_alt.parent_serial = d-1 < seal_serial = d
     → rejected as a canonical extension (SiblingLocked); retained as evidence.
     Node A canonical tip unchanged: dec. Node A now holds both branches.
@@ -438,11 +438,11 @@ The race surface partitions by adversary tier (per
 - **Tier-2 path.** An adversary holding the rotation-key preimage can force a `disputed` divergence
   by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
   different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
-  tier-3 bar required to forge `Ror` / `Rec` / `Wit` / `Dec`. A `{Rot, Rot}` divergence is moreover
+  tier-3 bar required to forge `Ror` / `Rec` / `Wit` / `Trm`. A `{Rot, Rot}` divergence is moreover
   a **proof of rotation-reserve compromise** — two valid rotations reveal the one rotation preimage
   in force at `v_{d-1}`.
 - **Tier-3 path.** An adversary holding both preimages can force a `disputed` divergence by racing
-  any recovery-revealing event (`Ror` / `Rec` / `Wit` / `Dec`) against operator submissions. Once an
+  any recovery-revealing event (`Ror` / `Rec` / `Wit` / `Trm`) against operator submissions. Once an
   adversary's tier-3 event has landed on any federation node, no in-band protocol recourse exists.
 
 Both paths produce identical per-node structural outcomes (matrix above) and resolve to the same
@@ -511,7 +511,7 @@ anchor-validation doctrine, forward-referenced below.)
 | **privileged** (non-content) — a repair attempted against it, or a 2nd one present | ≥ 2 privileged → **`disputed` → reincept**                                                                                                    | validated-not-trusted (a condemned subtree with a privileged event rejects the `Rec`, which is retained and counted); a node that holds and re-validates ≥ 2 privileged branches reads `disputed` directly (threshold-independent); a below-seal privileged branch is **not** inert |
 | **privileged** (non-content) — a **lone unretained** branch, **no repair attempt** | one privileged branch → **`forked`-frozen** (reconcilable only by its author; reincept is the operational exit, the _reading_ stays `forked`) | invariant 4 (≥ 2 privileged is the `disputed` threshold; one is `forked`) — _not_ `disputed`                                                                                                                                                                                        |
 | **≥ 2 privileged branches**                                                        | **`disputed` → reincept**                                                                                                                     | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                                                                                                                     |
-| **`{Dec, content}` terminal tip** (no repair)                                      | `Dec` wins on tier-rank, content archived non-canonical → **Decommissioned**; a late privileged sibling → **`disputed`**                      | tier-rank, no repair authored; the after-seal privileged asymmetry                                                                                                                                                                                                                  |
+| **`{Trm, content}` terminal tip** (no repair)                                      | `Trm` wins on tier-rank, content archived non-canonical → **Terminated**; a late privileged sibling → **`disputed`**                          | tier-rank, no repair authored; the after-seal privileged asymmetry                                                                                                                                                                                                                  |
 
 ### Safety — the guards
 
@@ -707,7 +707,7 @@ A second recovery-key holder submits Rec keeping branch_B (branch-tip-extending 
 
   Server (post-recovery):  v_0 → ... → v_{d-1} → branch_B → rec_B
 
-Local party detects via an existence-check on the server that branch_A / branch_A' are no longer the canonical chain — rec_B kept branch_B and condemned branch_A's subtree. The footgun to avoid: do NOT append a privileged event to the stale branch. Submitting a Dec that extends the party's local tip (branch_A' at v_{d+2}, or branch_A) does not cleanly decommission — the Dec is a dual-signed privileged event landing on a condemned branch below rec_B's seal at v_{d+1}. The seal-cap (invariant 5) refuses it as a canonical extension, but keep-all-data retains it, and a privileged event on a condemned branch is a second privileged branch past the fork → the reading flips to disputed and the prefix terminalizes (the reserve was revealed into a contested window — fail-secure; a condemned subtree must stay content-only). Correct recourse: re-fetch the server state, confirm the canonical tip (rec_B), then either submit Dec extending that tip cleanly or accept the server-side state without decommissioning — never append a privileged event to a branch not confirmed canonical.
+Local party detects via an existence-check on the server that branch_A / branch_A' are no longer the canonical chain — rec_B kept branch_B and condemned branch_A's subtree. The footgun to avoid: do NOT append a privileged event to the stale branch. Submitting a Trm that extends the party's local tip (branch_A' at v_{d+2}, or branch_A) does not cleanly terminate — the Trm is a dual-signed privileged event landing on a condemned branch below rec_B's seal at v_{d+1}. The seal-cap (invariant 5) refuses it as a canonical extension, but keep-all-data retains it, and a privileged event on a condemned branch is a second privileged branch past the fork → the reading flips to disputed and the prefix terminalizes (the reserve was revealed into a contested window — fail-secure; a condemned subtree must stay content-only). Correct recourse: re-fetch the server state, confirm the canonical tip (rec_B), then either submit Trm extending that tip cleanly or accept the server-side state without terminating — never append a privileged event to a branch not confirmed canonical.
 ```
 
 ### 4. Post-recovery events synced to a node holding the archived branch

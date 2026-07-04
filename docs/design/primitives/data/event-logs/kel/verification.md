@@ -30,9 +30,9 @@ For every event the verifier walks, it ensures:
   placeholder).
 - Events chain correctly from inception to tip via `previous` links; each seal-advancing event's
   `previousSeal` resolves to the prior seal (the spine).
-- Pre-rotation commitments are honored: each `Rot` / `Ror` / `Rec` / `Wit` / `Dec` reveals a
+- Pre-rotation commitments are honored: each `Rot` / `Ror` / `Rec` / `Wit` / `Trm` reveals a
   `publicKey` whose digest matches the prior establishment's `rotationHash`.
-- Recovery commitments are honored: each tier-3 event (`Ror` / `Rec` / `Wit` / `Dec`) reveals a
+- Recovery commitments are honored: each tier-3 event (`Ror` / `Rec` / `Wit` / `Trm`) reveals a
   `recoveryKey` whose digest matches the prior establishment's `recoveryHash`.
 - All signatures verify against the SAID bytes — single-signature for tier-1 / tier-2 kinds,
   dual-signature for tier-3 kinds.
@@ -127,7 +127,7 @@ match event.kind:
     Ixn                -> manifest carries { anchors } (req, >= 1)
     Rot, Ror           -> manifest may carry { anchors }
     Rec                -> manifest carries { fork } (req — the single losing-branch root)
-    Dec                -> no fold field (non-repair seal; retained run derivable as [previousSeal..previous])
+    Trm                -> no fold field (non-repair seal; retained run derivable as [previousSeal..previous])
 ```
 
 The verifier establishes the chain's **root facet** (`Fcp`-rooted vs `Icp`-rooted) **before**
@@ -140,7 +140,7 @@ The federation binding is read from the **top-level** `federation` / `federation
 the manifest. On a **user** (`Icp`-rooted) chain, `federation` (the prefix) appears only on `Icp`
 (initial binding) and `Wit` (a **rebind**) — and an `Icp` that omits it is **direct-mode**; a
 **federation-witness** (`Fcp`-rooted) `Wit` carries neither (governance, never self-bound).
-`federationPin` is **optional on every user body event** (`Ixn` / `Rot` / `Ror` / `Rec` / `Dec`) as
+`federationPin` is **optional on every user body event** (`Ixn` / `Rot` / `Ror` / `Rec` / `Trm`) as
 a forward **re-pin** that must resolve within the inherited `federation` prefix (no backdoor rebind)
 — forward-only is **emergent**, enforced at the witnessing layer, not the KEL walk (a stale pin is
 chain-valid but un-witnessed; see [`events.md`](events.md)). Generic manifest `anchors` on `Ixn` /
@@ -169,7 +169,7 @@ at the next page so partial state never leaks into the walker.
 
 ### Establishment-event processing
 
-When an establishment event is encountered (`Fcp` / `Icp` / `Rot` / `Ror` / `Rec` / `Wit` / `Dec`),
+When an establishment event is encountered (`Fcp` / `Icp` / `Rot` / `Ror` / `Rec` / `Wit` / `Trm`),
 the verifier checks the forward-key commitments made by the previous establishment event. The
 branch's tracked `rotationHash` and `recoveryHash` are the digests committed by the prior
 establishment; the current event must reveal a public key whose digest matches.
@@ -224,7 +224,7 @@ verify_signatures(signed_event, public_key):
 
 Per-kind signature shapes are documented in
 [`events.md` §Authorization and signature shapes](events.md#authorization-and-signature-shapes).
-Tier-3 events (`Ror` / `Rec` / `Wit` / `Dec`) require both signatures to verify and both digest
+Tier-3 events (`Ror` / `Rec` / `Wit` / `Trm`) require both signatures to verify and both digest
 commitments to match.
 
 ## KelVerification token
@@ -238,8 +238,8 @@ KelVerification:
     root_facet: RootFacet                        # Fcp-rooted (federation-witness infra) vs Icp-rooted (user); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Ror/Rec/Wit/Dec that landed cleanly on the linear run (not a competing sibling) — the reading is computed against it, from the held events, never arrival order
-    last_recovery_revealing_event: Option<SAID>  # most recent Ror/Rec/Wit/Dec
+    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Ror/Rec/Wit/Trm that landed cleanly on the linear run (not a competing sibling) — the reading is computed against it, from the held events, never arrival order
+    last_recovery_revealing_event: Option<SAID>  # most recent Ror/Rec/Wit/Trm
     federation_context_per_event: ...            # per-event federation binding (for chains that have re-bound)
     anchored_saids: BTreeSet<SAID>               # registered SAIDs found anchored on the canonical branch
     queried_saids: BTreeSet<SAID>                # caller-registered SAIDs of interest
@@ -263,7 +263,7 @@ Token fields are private with no public constructor — the only way to obtain o
 
 - `current_public_key()` → `None` if divergent (ambiguous which branch's key is current).
 - `last_establishment_event()` → `None` if divergent.
-- `is_decommissioned()` → `true` when the linear branch tip is a `Dec` event.
+- `is_terminated()` → `true` when the linear branch tip is a `Trm` event.
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** from the events held,
   against the **derived seal** (above): **trusted** (no fork reaching at-or-above the seal — a fork
@@ -272,8 +272,8 @@ Token fields are private with no public constructor — the only way to obtain o
   branches each carry a privileged event past the fork — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's **live state**: a deterministic hash over the
   **live branch tips the log holds** — the canonical tip and any unresolved competing branch. A
-  single live tip yields that tip's SAID (the `Dec` SAID when decommissioned); several live tips —
-  an unresolved fork — yield a domain-separated hash over all of them, sorted. A **settled content**
+  single live tip yields that tip's SAID (the `Trm` SAID when terminated); several live tips — an
+  unresolved fork — yield a domain-separated hash over all of them, sorted. A **settled content**
   branch (a content branch a repair condemned, or a content sibling buried below the seal) drops out
   — it is forensic, via the on-chain `fork` commitment; a **privileged** event never settles (a
   spine fork → `disputed`), so it stays a live tip and enters the digest. It is decoupled from the
@@ -332,7 +332,7 @@ The verifier's terminal-state-determination rule:
     burying seal-advancer on the winning branch.
   - **Two or more privileged branches past the fork** → **terminal** (`disputed`); reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
-  (or Decommissioned via `Dec`); a `{Dec, content}` fork ends **Decommissioned** by tier-rank.
+  (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
 `Rec` is the repair kind — it keeps the repairing branch and commits one losing branch's **root** as
 `fork` (condemning that branch's entire subtree; every other competing branch closes below the seal
@@ -358,7 +358,7 @@ Per-kind signature verification produces:
 - **`Ixn` / `Rot`** — single-sig verified against the appropriate key. Failure flips
   `structurally_valid = false`; the event lands at the merge layer only if the batch's post-walk
   token shows `structurally_valid = true`.
-- **`Ror` / `Rec` / `Wit` / `Dec`** — dual-sig verified against the rotation-preimage and
+- **`Ror` / `Rec` / `Wit` / `Trm`** — dual-sig verified against the rotation-preimage and
   recovery-preimage commitments at the parent event. Both signatures must verify; both digest
   commitments must match. Failure flips `structurally_valid = false`.
 - **`Fcp` / `Icp`** — single-sig verified against the declared `publicKey`. Prefix re-derives from
@@ -521,10 +521,10 @@ spanning two pages re-fetches at the next page rather than being processed half-
 | Serial monotonicity            | Each event's serial equals previous event's serial + 1.                                                                                                            |
 | Inception serial               | Inception events (no `previous`) have serial 0.                                                                                                                    |
 | Inception kind dispatch        | Verifier branches on `Fcp` / `Icp` per [§Inception kind dispatch](#inception-kind-dispatch).                                                                       |
-| Pre-rotation commitment        | `digest(publicKey) == prior.rotationHash` on each `Rot` / `Ror` / `Rec` / `Wit` / `Dec`.                                                                           |
-| Recovery commitment            | `digest(recoveryKey) == prior.recoveryHash` on each `Ror` / `Rec` / `Wit` / `Dec`.                                                                                 |
+| Pre-rotation commitment        | `digest(publicKey) == prior.rotationHash` on each `Rot` / `Ror` / `Rec` / `Wit` / `Trm`.                                                                           |
+| Recovery commitment            | `digest(recoveryKey) == prior.recoveryHash` on each `Ror` / `Rec` / `Wit` / `Trm`.                                                                                 |
 | Single-signature validity      | `Ixn` / `Rot` / `Fcp` / `Icp`: signature verifies against the appropriate key per [§Signature verification](#signature-verification).                              |
-| Dual-signature validity        | `Ror` / `Rec` / `Wit` / `Dec`: primary signature against revealed `publicKey`; recovery signature against revealed `recoveryKey`.                                  |
+| Dual-signature validity        | `Ror` / `Rec` / `Wit` / `Trm`: primary signature against revealed `publicKey`; recovery signature against revealed `recoveryKey`.                                  |
 | Manifest roles + anchor format | The `manifest` carries only roles in the kind's allowlist; each `anchors` entry is a valid SAID-shaped token ([§Manifest-role dispatch](#manifest-role-dispatch)). |
 | Federation context             | Verifier records federation binding per event (declared by inception `Icp` or `Wit`).                                                                              |
 | Witness state                  | Token surfaces `witnessed`, the divergence signal, `minority_dissent`, `witnessed_anchors` per the federation-witnessing layer.                                    |

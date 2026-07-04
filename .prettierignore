@@ -1,3 +1,7 @@
 # The .working/ canon (+ its archive) is kept line-per-concept for machine editing
 # and stable file:line review references — NOT prose-wrapped (it is not human-read).
 .working/
+
+# The design canon (moved from .working/ into docs/canon/) keeps the same
+# line-per-concept format for machine editing + stable file:line review refs.
+docs/canon/

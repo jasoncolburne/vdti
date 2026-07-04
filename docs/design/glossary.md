@@ -44,22 +44,24 @@ canonical** wherever they differ.
 The full set across KEL / IEL / SEL. A kind's precise role varies per log — the taxonomy tables are
 authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
 
-| Kind  | Meaning                                                                                                                      |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker.               |
-| `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root).                               |
-| `Ixn` | Interaction — content; anchors lower-layer SAIDs. The **only repairable** kind.                                              |
-| `Rot` | Rotation (KEL) — reveals the next signing key, commits the new one. Tier 2, seal-advancing.                                  |
-| `Ror` | Rotate-recovery (KEL) — proactive hygiene rotation of signing **and** recovery keys. Tier 3.                                 |
-| `Rec` | Recover (KEL) — the KEL's repair kind; archives a losing `Ixn` branch, returns the chain to Active. Tier 3.                  |
-| `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). Tier 3. |
-| `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta. Tier 2.                                                      |
-| `Del` | Delegate (IEL) — a positive inclusion list of delegate prefixes. Tier 2.                                                     |
-| `Kil` | Sealed kill-anchor (IEL) — seals a SEL `Dec` at the `govern` (revocation) or `delegate` (rescission) slot. Tier 2.           |
-| `Rpr` | Repair (IEL / SEL) — the divergence repair; may fold in an evicting roster `cut`. Tier 3.                                    |
-| `Fld` | Fold (SEL) — the SEL re-seal (no roster or keys to evolve); caps the content run. Tier 2, seal-advancing.                    |
-| `Pin` | Pin (SEL) — the floor re-pin to the owner IEL's current tip; carries a SEL's serial-1 issuance floor. Tier 1.                |
-| `Dec` | Decommission — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission).                               |
+| Kind  | Meaning                                                                                                                                                                                                 |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker.                                                                                          |
+| `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root).                                                                                                          |
+| `Ixn` | Interaction — content; anchors lower-layer SAIDs. The **only repairable** kind.                                                                                                                         |
+| `Rot` | Rotation (KEL) — reveals the next signing key, commits the new one. Tier 2, seal-advancing.                                                                                                             |
+| `Ror` | Rotate-recovery (KEL) — proactive hygiene rotation of signing **and** recovery keys. Tier 3.                                                                                                            |
+| `Rec` | Recover (KEL) — the KEL's repair kind; archives a losing `Ixn` branch, returns the chain to Active. Tier 3.                                                                                             |
+| `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). Tier 3.                                                                            |
+| `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta. Tier 2.                                                                                                                                 |
+| `Ath` | Authorize (IEL) — the "authorize a party to act" anchor. Carries `delegates` (a positive inclusion list of delegate prefixes) and/or `anchors` (the SEL `Gnt` grant it seals). Tier 2, `t_authorize`.   |
+| `Gnt` | Grant (SEL) — a doc-membership grant; opens editor / commenter validity periods. The additive twin of the SEL `Trm` rescission; anchored by an IEL `Ath`. Tier 2, seal-advancing.                       |
+| `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; seals a SEL `Trm` that revokes / closes a credential. Tier 2, `t_govern`.                                                              |
+| `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; seals a SEL `Trm` that rescinds a delegation or doc-membership grant. The polarity-inverse of `Ath`. Tier 2, `t_authorize`. |
+| `Rpr` | Repair (IEL / SEL) — the divergence repair; may fold in an evicting roster `cut`. Tier 3.                                                                                                               |
+| `Fld` | Fold (SEL) — the SEL re-seal (no roster or keys to evolve); caps the content run. Tier 2, seal-advancing.                                                                                               |
+| `Pin` | Pin (SEL) — the floor re-pin to the owner IEL's current tip; carries a SEL's serial-1 issuance floor. Tier 1.                                                                                           |
+| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission).                                                                                                             |
 
 ### Chain structure
 
@@ -77,7 +79,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **branch / competing branch / retained / losing branch / archival tail** — the shapes of a
   divergence: the kept chain versus the archived ones a repair condemns.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md#matrix-4-repair-completeness))
-- **threshold vector** — an IEL's `{t_use, t_govern, t_delegate, t_recover}` — the **count** an act
+- **threshold vector** — an IEL's `{t_use, t_govern, t_authorize, t_recover}` — the **count** an act
   of each kind requires (orthogonal to tier).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#tiers--the-three-tier-capability-model))
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
@@ -86,7 +88,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 ### Federation and witnessing
 
-- **federation** — a restricted IEL (`Fcp` / `Wit` / `Dec`) whose roster is witness KELs; it
+- **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`) whose roster is witness KELs; it
   propagates and time-stamps, it never decides.
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
@@ -101,8 +103,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 ### Readings and states
 
-- **Active / forked / disputed / divergent / decommissioned** — a chain's reading: linear-and-live,
-  one competing branch (reconcilable), ≥ 2 privileged (terminal), forked, or killed.
+- **Active / forked / disputed / divergent / terminated** — a chain's reading: linear-and-live, one
+  competing branch (reconcilable), ≥ 2 privileged (terminal), forked, or killed.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md#kel-chain-states-proof-states))
 
 ## Concepts

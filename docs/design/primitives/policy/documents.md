@@ -106,7 +106,7 @@ rescission bound; each **upstream hop** iff _that hop's committed grant position
 _that hop's_ bound, on the granting delegator's chain. The document is authorized iff **every** hop
 is grandfathered. (A grant authored before trust was withdrawn at its hop stays valid; one that
 post-dates that hop's bound does not — and the bound is **set once** at rescission — the rescission
-is a terminal `Dec`, so it can't be moved later to un-kill, nor tightened earlier; a mis-set bound
+is a terminal `Trm`, so it can't be moved later to un-kill, nor tightened earlier; a mis-set bound
 is recovered operationally, not by adjusting it.) To give several delegators kill-authority over a
 document, issue it under a threshold spanning their legs, so every leg lands in the committed chain.
 The delegation mechanics — the delegate list, the rescission lookup, and the bound — are the IEL

@@ -6,7 +6,7 @@ compromise scenarios the design defends against, why dual-signature plus recover
 closes those scenarios, why the locked-portion bound makes recovery cross-node-validatable, and how
 pre-seal verifiability composes with the three-tier compromise model.
 
-This is doctrine, not workflow. Operator CLI ceremony and the choreography for `Rec` / `Ror` / `Dec`
+This is doctrine, not workflow. Operator CLI ceremony and the choreography for `Rec` / `Ror` / `Trm`
 lives in
 [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md)
 (subsequent sub-issue). Per-kind event-shape rules live in [`events.md`](events.md); merge-layer
@@ -25,7 +25,7 @@ capability statement.
 | ---- | ------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1    | Current signing key.                             | `Ixn`.                         | A forked content branch is archived by `Rec` (content is archivable — this is what the recovery reserve defends); a linear takeover is rotated out via `Rot`.                                                                                                    |
 | 2    | Rotation-key preimage alone.                     | `Rot`.                         | **Proactive only:** rotate-recovery via `Ror` _before_ the adversary rotates, retiring the preimage they hold. Once their `Rot` lands it is a privileged event no repair can archive → **reincept** (the reserve defends the signing key, not the rotation key). |
-| 3    | Rotation-key preimage AND recovery-key preimage. | `Ror` / `Rec` / `Wit` / `Dec`. | No in-band recourse. The protocol provides no recovery primitive against tier-3 compromise; defense is operational (custody separation, threshold redundancy at the IEL layer, abandon-and-reincept).                                                            |
+| 3    | Rotation-key preimage AND recovery-key preimage. | `Ror` / `Rec` / `Wit` / `Trm`. | No in-band recourse. The protocol provides no recovery primitive against tier-3 compromise; defense is operational (custody separation, threshold redundancy at the IEL layer, abandon-and-reincept).                                                            |
 
 The protocol's recovery primitive `Rec` closes the **tier-1 (content) surface** — it archives an
 adversary's content branch, which is what the recovery reserve defends: the **signing** key, never
@@ -67,7 +67,7 @@ moments and produce different chain-state outcomes.
 
 ## Dual-signature is the tier-3 defense
 
-`Rec` / `Ror` / `Wit` / `Dec` are dual-signed: one signature by the new signing key (revealed by the
+`Rec` / `Ror` / `Wit` / `Trm` are dual-signed: one signature by the new signing key (revealed by the
 rotation-key preimage), one signature by the recovery key (revealed by the recovery-key preimage).
 Both signatures must verify; both digest commitments (`digest(publicKey) == prior.rotationHash` and
 `digest(recoveryKey) == prior.recoveryHash`) must match.
@@ -93,7 +93,7 @@ commitments, regardless of what other key material they hold.
 
 When an adversary holds the rotation-key preimage and lands `Rot_adversary` at `v_N`, the chain is
 **the attacker's** — there is **no in-band recourse**; the legitimate party **reincepts** (for a
-delegated KEL, the delegator `Kil`s it instead). The recovery reserve defends the **signing** key (a
+delegated KEL, the delegator `Dth`s it instead). The recovery reserve defends the **signing** key (a
 tier-1 content compromise), **not** the rotation key. Three structural facts close every escape:
 
 - **`Rec` cannot archive the `Rot`.** `Rot_adversary` is a privileged event, and only content
@@ -235,7 +235,7 @@ included. Both branches here are tier-1 content, so nothing privileged is overtu
 
 Both parent shapes route through the merge layer's discriminator. `Rec` is the repair kind, not a
 privileged extension — its acceptance resolves the divergence rather than producing one. A
-privileged event (`Rot` / `Ror` / `Wit` / `Dec`) sharing the divergence-ancestor-extending parent
+privileged event (`Rot` / `Ror` / `Wit` / `Trm`) sharing the divergence-ancestor-extending parent
 shape (`previous = v_{d-1}.said`) on a chain with an existing event at `v_d` is declined as a
 canonical extension per
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair); the kind
@@ -257,7 +257,7 @@ verifiability_).
 The argument has three legs:
 
 - **Seal advances are clean.** `last_seal_advancing_event` advances only on seal-advancing events
-  (`Rot` / `Ror` / `Rec` / `Wit` / `Dec`) that land cleanly on the linear chain. The seal never
+  (`Rot` / `Ror` / `Rec` / `Wit` / `Trm`) that land cleanly on the linear chain. The seal never
   forks — a privileged event that would create or join a divergence does not extend the canonical
   chain, so every seal advance is a clean linear-chain landing.
 - **At-or-below-seal events were authored under at-least-tier-2 capability.** Every seal advance is
@@ -328,7 +328,7 @@ The cross-node race surface covers all privileged-event shapes:
 - **Tier-2 path.** A tier-2 adversary (holding only the rotation preimage) can force non-convergence
   by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
   different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
-  tier-3 bar required for `Ror` / `Rec` / `Wit` / `Dec`. A `{Rot, Rot}` divergence is moreover a
+  tier-3 bar required for `Ror` / `Rec` / `Wit` / `Trm`. A `{Rot, Rot}` divergence is moreover a
   **proof of rotation-reserve compromise** — two valid rotations reveal the one rotation preimage in
   force at `v_{d-1}`.
 - **Tier-3 path.** A tier-3 adversary (holding both preimages) can force non-convergence by racing
