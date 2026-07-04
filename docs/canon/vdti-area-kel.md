@@ -5,7 +5,7 @@ key-state machine is intact; the deltas are (a) the archiving kind's name, (b) t
 (c) divergence scoped to `Ixn`. Audited against the post-reshape core + the canonical `event-shape.md` +
 the archived VDTI-10 build. Load-bearing claims marked for the adversarial pass; nothing locks until it survives.
 **Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-down/pin-up,
-[inv 7] prefix-vs-SAID, [inv 11] tier, [inv 13] divergence-scoped-to-`Ixn`, [inv 14] federation/witnessing,
+[inv 7] prefix-vs-SAID, [inv 11] tier, [inv 13] divergence-scoped-to-T1-content, [inv 14] federation/witnessing,
 [inv 15] inception-tier.
 
 ## Sources audited (disposition)
@@ -58,13 +58,13 @@ the archived VDTI-10 build. Load-bearing claims marked for the adversarial pass;
     divergent `Ixn`s and you archive all of them). Rule 2 is automatic (you extend *your own* branch). *Not* the
     common/divergence ancestor unless you authored nothing past it (then every branch is archival; with your `Ixn`s
     preceding the adversary's, recovering at the ancestor would archive **your own** content). The permission check
-    is one question about the archival tails — **does any contain a privileged event (a `Rot`/`Evl`/`Rev`/`Dth`)?**
+    is one question about the archival tails — **does any contain a privileged event (a `Rot`/`Evl`/`Ath`/`Rev`/`Dth`)?**
     - **No** — every archival tail is content (`Ixn`) → **permitted**: `Rec` at your last event archives them, then
       `Ror` forward. (Your retained tail may carry your *own* `Rot` — kept, not archived; only the archival tails are
       checked.) A T1 adversary can't counter a T3 `Rec`: **this is what the recovery reserve is *for* — it defends
       the *signing* key.** Bounded by the seal-cap — a content tail that fills the window forces a `Rot`, which puts
       a privileged event in an archival tail → reincept.
-    - **Yes** — a `Rot` (forked or tip-appended), `Evl`, or `Rev`/`Dth` in any archival tail → **not permitted →
+    - **Yes** — a `Rot` (forked or tip-appended), `Evl`, `Ath`, or `Rev`/`Dth` in any archival tail → **not permitted →
       reincept** (or, for a **delegated KEL, the delegator `Dth`s it**). You can't *archive* it (rule 1), *extend*
       it (rule 2), or *fork* it (`{Rot, Ror}` → ≥ 2 priv → terminal). **A `Rot` in an archival tail is the point of
       no return; the recovery reserve does *not* defend the rotation key** — "if the attacker rotates, they have

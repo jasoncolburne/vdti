@@ -180,7 +180,7 @@ ancestry, roster and delegation state — is judged by the **anchoring position*
 committing event, append-only-fixed via the chain `document ← SEL ← IEL Ixn ← KEL Ixn` (each
 `previous`-linked). There is no self-asserted document value to backdate: the as-of is read directly
 from the anchoring position, which lives on the append-only chain and cannot be inserted into the
-past. The structural SEL down-pin that floors each log to its owner still satisfies
+past. The structural SEL up-pin that floors each log to its owner still satisfies
 `pin == anchor.previous` as a chain link, but that is a chain field, not a document's claim
 ([`primitives/policy/documents.md`](primitives/policy/documents.md)).
 
@@ -488,11 +488,12 @@ Two distinct `Rot`s at one serial — the irreconcilable case — look like:
 
 ```mermaid
 flowchart RL
-  Ra["Rot s=2 — branch A"] -->|previous| X1["Ixn s=1"]
-  Rb["Rot s=2 — branch B"] -->|previous| X1
-  X1 -->|previous| I0["Icp s=0"]
+  Ra["Rot s=2 — branch A"]:::kel -->|previous| X1["Ixn s=1"]:::kel
+  Rb["Rot s=2 — branch B"]:::kel -->|previous| X1
+  X1 -->|previous| I0["Icp s=0"]:::kel
   Ra -.->|previousSeal| I0
   Rb -.->|previousSeal| I0
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
 ```
 
 Neither `Rot` can be **archived** (overturning a rotation would resurrect a retired key), and
@@ -690,11 +691,12 @@ authored — looks like:
 
 ```mermaid
 flowchart RL
-  Trm["Trm s=3 — terminal, retained"] -->|previous| X2["Ixn s=2"]
-  X2 -->|previous| X1["Ixn s=1"]
-  X1 -->|previous| I0["Icp s=0"]
+  Trm["Trm s=3 — terminal, retained"]:::kel -->|previous| X2["Ixn s=2"]:::kel
+  X2 -->|previous| X1["Ixn s=1"]:::kel
+  X1 -->|previous| I0["Icp s=0"]:::kel
   Trm -.->|previousSeal| I0
-  Xc["Ixn s=3 — competing content, archived"] -->|previous| X2
+  Xc["Ixn s=3 — competing content, archived"]:::kel -->|previous| X2
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
 ```
 
 The `Trm` (privileged, reserve-backed) outranks the tier-1 content at the same serial and wins

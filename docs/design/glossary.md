@@ -73,8 +73,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **anchor** — a commitment from an event to the SAID of the layer below (manifest `anchors`);
   kind-strict both directions.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
-- **pin / pins / federationPin** — an event's forward down-pins to the tips it depends on (a SEL's
-  owner IEL event; an IEL's member KEL events; the as-of federation position).
+- **pin / pins / federationPin** — an event's up-pins to the tips it depends on (a SEL's owner IEL
+  event; an IEL's member KEL events; the as-of federation position).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#cross-cutting-fields))
 - **branch / competing branch / retained / losing branch / archival tail** — the shapes of a
   divergence: the kept chain versus the archived ones a repair condemns.

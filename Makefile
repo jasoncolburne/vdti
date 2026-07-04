@@ -6,7 +6,7 @@
 # Phase 1.
 
 # Pinned so local `fmt-md` and CI `fmt-md-check` agree byte-for-byte. The canon
-# under .working/ is exempt via .prettierignore (kept line-per-concept).
+# under docs/canon/ (+ the .working/ surface) is exempt via .prettierignore (kept line-per-concept).
 PRETTIER := npx --yes prettier@3.3.3
 
 # Working surface snapshot

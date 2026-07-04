@@ -9,7 +9,7 @@ This stub carries the repair-cascade diagrams ahead of the prose.
 ## Repair cascade — a surviving member recovers
 
 An IEL divergence is repaired by a threshold of surviving members. Each authors a KEL `Ror` (tier 3,
-`t_recover`) that anchors an IEL `Rpr`; the IEL `Rpr` names the losing IEL branch in its
+`t_recover`) that anchors an IEL `Rpr`; the IEL `Rpr` names the losing IEL branch's **root** in its
 `manifest.fork` (and may fold in a roster `cut` that evicts the fork-causing member — the
 repair-and-evict fold), and in turn anchors a SEL `Rpr` for each owned SEL that forked beneath it.
 The cascade is authored **bottom-up** (KEL → IEL → SEL) and committed **top-down**, landing as one
@@ -17,11 +17,14 @@ atomic batch:
 
 ```mermaid
 flowchart TB
-  Ror["KEL Ror — surviving member (t_recover)"]
-  Rpr_i["IEL Rpr — fork = losing IEL branch (opt: roster cut)"]
-  Rpr_s["SEL Rpr — fork = losing SEL branch"]
+  Ror["KEL Ror — surviving member (t_recover)"]:::kel
+  Rpr_i["IEL Rpr — fork = losing IEL branch root (opt: roster cut)"]:::iel
+  Rpr_s["SEL Rpr — fork = losing SEL branch root"]:::sel
   Ror ==>|anchors| Rpr_i
   Rpr_i ==>|anchors| Rpr_s
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 ```
 
 The `fork` root condemns the losing branch's whole subtree, so growth after the repair is dead by
@@ -37,11 +40,14 @@ hosts no anchor). The IEL / SEL cascade is otherwise identical:
 
 ```mermaid
 flowchart TB
-  Rec["KEL Rec — recover the compromised KEL; fork = losing KEL branch"]
-  Ror["KEL Ror — participates in the IEL repair"]
-  Rpr_i["IEL Rpr — fork = losing IEL branch"]
-  Rpr_s["SEL Rpr — fork = losing SEL branch"]
-  Rec -->|previous| Ror
+  Rec["KEL Rec — recover the compromised KEL; fork = losing KEL branch root"]:::kel --> Ror["KEL Ror — participates in the IEL repair"]:::kel
+  Rpr_i["IEL Rpr — fork = losing IEL branch root"]:::iel
+  Rpr_s["SEL Rpr — fork = losing SEL branch root"]:::sel
   Ror ==>|anchors| Rpr_i
   Rpr_i ==>|anchors| Rpr_s
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 ```
+
+Solid arrows are chain order (`previous` points back); thick arrows are `manifest.anchors`.

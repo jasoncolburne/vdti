@@ -42,7 +42,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      `federationPin`, `manifest`, the federation `prefix`.
      *(Why top-level: these are the chain's own structural links — a verifier walks the layered structure from them
      **without fetching the manifest**; the manifest carries content commitments, looked up on demand. `pins`/`pin`
-     live in `vdti.excalidraw`; full encoding lands with the IEL/SEL/federation doctrine PR. `sealPins`, a
+     are encoded in `event-shape.md` (landed with the IEL/SEL/federation doctrine). `sealPins`, a
      seal-level analog, was considered and dropped — it only reached the terminal-divergence view, which the flat walk
      subsumes, inv 17.)*
    - **Manifest (role-labeled) = everything it *commits to below*:** anchored lower-layer **event SAIDs** *and*
@@ -123,7 +123,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      both redundant. Collapsed again 2026-07-02: the `forks` list → the single **`fork`** root, above. Supersedes
      folds-2026-06-23 / the `folded`→`folds` rename-2026-06-29. Landed `docs/design/`
      still carries the old `folds` shape → reconcile on the encode after review.)*
-   **Two enforcement classes (F1):** `anchors`/`fork` are **back-checked** — a mislabel is caught when the
+   **Two enforcement classes (F1):** `anchors`/`fork`/`grant` are **back-checked** — a mislabel is caught when the
    referenced event is validated against its required kind. **The anchor matrix is enforced *kind-strict* on both
    cross-layer legs — the IEL→SEL leg (C1, 2026-06-27) and the KEL→IEL member-participation leg (2026-06-28) — each
    direction:** on the IEL→SEL leg, each SEL kind is valid **only** when anchored by exactly its matching IEL kind,
@@ -782,7 +782,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     re-pin, absent ⇒ inherit), the `witnesses` config ([inv 4] `witnesses` — present-iff-changed on `Wit`, mandatory
     only at inception where there is no prior to inherit).
     **Corollary — no empty events.** Every event must encode **≥ 1 change**, across **either layer** of the event: a
-    **manifest role** (`anchors`/`roster`/`witnesses`/`clock`/`delegates`/`fork`/`content`) **or** a **top-level
+    **manifest role** (`anchors`/`roster`/`witnesses`/`clock`/`delegates`/`fork`/`content`/`grant`/`bound`) **or** a **top-level
     structural field** (`pins`/`pin`, the rotation key-state + next-key commitment, `previousSeal`). An event that
     changes nothing is **malformed → rejected**. *(So a `Wit` is never a no-op even with an empty manifest — it **is**
     a rotation, so its structural side always moves: `pins` on an IEL `Wit`, the key-state on a KEL `Wit`. That is why

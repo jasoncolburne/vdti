@@ -149,9 +149,12 @@ cost, not trust.
 - **`.working/`** is gitignored. Durable in-progress docs (issue / PR bodies, design drafts, audit
   outputs, agent briefs) live there per the `kels/` precedent. Filenames follow `vdti-{N}-{slug}.md`
   once an issue number is assigned, or `vdti-{slug}.md` pre-submit.
+- **Design canon (`docs/canon/`).** The `vdti-area-*.md` area canon, `vdti-invariants.md`, and
+  `vdti-implementation-notes.md` are tracked under `docs/canon/` (line-per-concept, prettier-exempt
+  — stable `file:line` review refs). Unlike `docs/design/`, the canon tracks history
+  (greenfield-exempt).
 - **`.working/` surface.** Organized around `00-INDEX.md` (the read-order map), `design-resume.md`
-  (live state — read first to resume), the `vdti-area-*.md` area canon, `vdti-invariants.md`,
-  `vdti-implementation-notes.md`, and the roadmap (synced to
+  (live state — read first to resume), the review briefs / findings, and the roadmap (synced to
   [vdti#1](https://github.com/jasoncolburne/vdti/issues/1)). Keep the index, resume, and roadmap
   **current**; **archive aggressively** — the day a doc is superseded move it to `archived/`
   (recoverable), don't leave drift.

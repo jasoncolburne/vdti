@@ -16,17 +16,17 @@ carrying the federation `clock`.
 
 ```mermaid
 flowchart TB
-  subgraph fed["federation IEL (restricted: Fcp / Wit / Trm)"]
-    fFcp["Fcp — inception marker (roster = witness KELs)"]
-    fWit["Wit — governance: rotate / add / cut a witness (+ clock)"]
-    fFcp -->|previous| fWit
-  end
-  subgraph w["founder witness KEL (Fcp-rooted infra)"]
-    wFcp["Fcp"] -->|previous| wRot["Rot"]
-  end
+  wFcp["witness KEL: Fcp"]:::kel --> wRot["Rot — genesis"]:::kel
+  wWit["witness KEL: Wit (t_govern)"]:::kel
+  fFcp["federation IEL: Fcp — inception marker (roster = witness KELs)"]:::iel --> fWit["Wit — rotate / add / cut a witness (+ clock)"]:::iel
   wRot ==>|anchors, T2↔T2| fFcp
-  wWit["witness KEL Wit (t_govern)"] ==>|anchors, T3↔T3| fWit
+  wWit ==>|anchors, T3↔T3| fWit
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
 ```
+
+The federation is a restricted IEL (`Fcp` / `Wit` / `Trm` only). Solid arrows are chain order (each
+event's `previous` points back to the prior); thick arrows are `manifest.anchors`.
 
 ## Rebinding — a user identity binds to a federation
 
@@ -37,14 +37,16 @@ event is witnessed by whichever federation was current when it landed.
 
 ```mermaid
 flowchart TB
-  subgraph user["user IEL"]
-    uIcp["Icp — federation = F1, federationPin = F1 tip"]
-    uWit["Wit — rebind: federation = F2, federationPin = F2 tip"]
-    uIcp -->|previous| uWit
-  end
-  F1["federation F1 (Fcp-rooted)"]
-  F2["federation F2 (Fcp-rooted)"]
+  uIcp["user IEL: Icp — federation = F1, federationPin = F1 tip"]:::iel --> uWit["Wit — rebind: federation = F2, federationPin = F2 tip"]:::iel
+  kWit["member KEL: Wit (t_govern)"]:::kel
+  F1["federation F1 (Fcp-rooted)"]:::iel
+  F2["federation F2 (Fcp-rooted)"]:::iel
   uIcp -.->|federation / federationPin| F1
   uWit -.->|federation / federationPin| F2
-  kWit["member KEL Wit (t_govern)"] ==>|anchors, T3↔T3| uWit
+  kWit ==>|anchors, T3↔T3| uWit
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
 ```
+
+Solid arrows are chain order (`previous` points back); dotted arrows are the `federation` /
+`federationPin` binding; the thick arrow is `manifest.anchors`.

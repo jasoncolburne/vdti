@@ -15,7 +15,7 @@ backdate-proof, the asymmetry between the write and read sides, the four combina
 and the adversarial framing the model is designed against. How an IEL event resolves to members and
 threshold is the IEL primitive's — [`../event-logs/iel/`](../event-logs/iel/).
 
-## The two sub-fields
+## The three sub-fields
 
 `custody` is a top-level inline struct on the SAD wrapper:
 
@@ -125,7 +125,7 @@ members + threshold, and the edge cases at IEL governance changes, are the IEL p
 
 ## The four combinations
 
-The two sub-fields are independently optional, so a SAD object has four valid custody shapes:
+The two axes are independently optional, so a SAD object has four valid custody shapes:
 
 | `owner` + `topic` | `readPolicy` | Pattern                                           |
 | ----------------- | ------------ | ------------------------------------------------- |
@@ -172,8 +172,8 @@ either axis independently.
 
 ## Adversarial framing
 
-The two sub-fields each carry their own adversarial argument; both are enforced at the storage
-boundary and re-checked by consumers.
+The two axes each carry their own adversarial argument; both are enforced at the storage boundary
+and re-checked by consumers.
 
 - **Writer-binding forgery requires IEL-level compromise.** Attributing a write to identity X
   requires a **SEL anchor on X's IEL** (`SEL.owner == X ∧ SEL.data == said`), whose v1 (the `Pin`)
@@ -202,8 +202,8 @@ boundary and re-checked by consumers.
   rate-limits by default; cred-or-policy-language gated under lockdown) at the storage boundary. The
   anonymity attribute lives in the SAD; the acceptance decision lives in the operator's policy.
 
-The two sub-fields and the four combinations are the protocol-level surface; the consumer-side
-checks (current-mode policy evaluation for `readPolicy`, SEL-anchor resolution for the `owner` +
-`topic` writer-binding) and the operator-side write-gate are the enforcement surfaces. Both are
-required — the SAD by itself is just data; the structural authority model is what the storage
-service and consumers enforce against it.
+The two axes and the four combinations are the protocol-level surface; the consumer-side checks
+(current-mode policy evaluation for `readPolicy`, SEL-anchor resolution for the `owner` + `topic`
+writer-binding) and the operator-side write-gate are the enforcement surfaces. Both are required —
+the SAD by itself is just data; the structural authority model is what the storage service and
+consumers enforce against it.

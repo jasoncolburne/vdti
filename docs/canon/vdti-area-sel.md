@@ -1,12 +1,12 @@
 # vdti — area note: SEL (single-owner data log)
 
 **Status: FIRST CUT (2026-06-20).** This note **supersedes design-pass §3** (and the SEL-inception parts of
-§2.1/§2.2) for the SEL primitive — it folds in `inv 15` (inception tier + the uniform serial-1 `Pin`) and the document-layer
+§2.1/§2.2) for the SEL primitive — it folds in `inv 15` (inception tier + the fallback serial-1 floor) and the document-layer
 decisions (cred-as-a-SEL, SEL `Trm`, no registry). **Note:** §2.1's `≤1 Ixn per SEL` rule + seal-bounding still
 *hold* — only its inception-pair description changes. Driven *down* from the document/policy area, exactly as the
 document-first sequencing intended.
 **Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-down/pin-up,
-[inv 5] pin-floored, [inv 10] lookup-SELs, [inv 13] divergence-scoped-to-`Ixn`, [inv 15] inception/pin.
+[inv 5] pin-floored, [inv 10] lookup-SELs, [inv 13] divergence-scoped-to-T1-content, [inv 15] inception/pin.
 
 ## Sources
 - `vdti-log-primitive-reshape-design-pass.md` §2.1, §3 — the prior SEL model; **partially superseded here**
@@ -77,7 +77,7 @@ document-first sequencing intended.
    reserve (repair / identity-kill). Set by **danger-of-forgery OR need-for-permanence**, **⊥ count** — count is a
    dial, tier is set by kind (a content `Ixn` is T1 even at a high `t_use`).
 3. **Anchor → finality follows the KIND (2026-06-21)**: a content **`Ixn`** rides an IEL **`Ixn`** → **delayed /
-   repairable** (the **only divergeable kind** — an unsealed window is fine, content is repairable anyway); a
+   repairable** (the **divergeable content kind**, as is the floor `Pin` §4 — an unsealed window is fine, content is repairable anyway); a
    **kill** (`Trm`) rides an IEL **`Rev`/`Dth`** → **sealed on arrival** (it *must* be — a kill is
    monotone). **There is no delayed kill.** The anchor **kind** matches the event kind (kind-strict, inv 4); tier-elevation is then a trivial floor, not the check. *(The round-3 `content: user |
    governing` flag is **removed** — its only intended user was the federation clock, which is **not a SEL kind**:
