@@ -66,10 +66,11 @@ pattern generalized to every attested document. An `owner`-bearing SAD **must be
 (the [SEL primitive](../event-logs/sel/)):
 
 - The anchoring SEL's prefix is **`derive(owner, topic, said)`** and its `data` **is the SAD's
-  SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's inception is anchored by an owner IEL
-  `Ixn` whose **append-only position is the write's as-of** — it cannot be inserted in the past, so
-  the attribution cannot be backdated. Forging it would require a fresh IEL `Ixn` at the owner's
-  **current** tip, which a rotated-out or broken old key cannot author.
+  SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's **serial-1 event (its v1 — a `Pin`)**
+  is anchored by an owner IEL `Ixn` whose **append-only position is the write's as-of** (the `Icp`
+  itself is never anchored — it rides `v1.previous`, per the SEL inception rule) — it cannot be
+  inserted in the past, so the attribution cannot be backdated. Forging it would require a fresh IEL
+  `Ixn` at the owner's **current** tip, which a rotated-out or broken old key cannot author.
 - The anchor is **self-locating**: a holder re-derives the SEL prefix from the doc it holds
   (`derive(owner, topic, said)`) and walks that SEL **by prefix** — no SAID is inverted (see
   [`said.md`](said.md)). This is the same mechanism a credential holder uses to reach a cred's SEL.
@@ -175,8 +176,8 @@ The two sub-fields each carry their own adversarial argument; both are enforced 
 boundary and re-checked by consumers.
 
 - **Writer-binding forgery requires IEL-level compromise.** Attributing a write to identity X
-  requires a **SEL anchor on X's IEL** (`SEL.owner == X ∧ SEL.data == said`), whose inception is
-  anchored by a fresh IEL `Ixn` at X's **current** tip satisfying X's `t_use` threshold. An
+  requires a **SEL anchor on X's IEL** (`SEL.owner == X ∧ SEL.data == said`), whose v1 (the `Pin`)
+  is anchored by a fresh IEL `Ixn` at X's **current** tip satisfying X's `t_use` threshold. An
   adversary who does not control X cannot author that anchor — and a broken **old** key cannot
   either, nor insert one in the past — so a write can be neither forged under X's name nor backdated
   ([`../../../protocol-doctrine.md` §Structural authorization](../../../protocol-doctrine.md#structural-authorization)).
