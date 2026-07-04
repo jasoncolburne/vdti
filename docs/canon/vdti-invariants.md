@@ -49,9 +49,9 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      **documents** (SADs). Entities are named by **prefix** (inv 7); events/positions and documents by **SAID**.
    **Role vocabulary:**
    - `anchors` — lower-layer SAD / event SAIDs this event commits to below. **Carried by** KEL `Ixn` (required, ≥ 1) /
-     `Rot` / `Ror` / `Wit` (the KEL `Wit` anchors the IEL `Wit` — uniformly, user binding **and** federation governance; **`Rec` hosts no anchor** — see the KEL→IEL kind-strict rule below) and IEL `Ixn` / `Evl` / `Rpr` / `Rev` / `Dth` (optional on the non-`Ixn` kinds — a rotation or a
+     `Rot` / `Ror` / `Wit` (the KEL `Wit` anchors the IEL `Wit` — uniformly, user binding **and** federation governance; **`Rec` hosts no anchor** — see the KEL→IEL kind-strict rule below) and IEL `Ixn` / `Evl` / `Ath` / `Rpr` / `Rev` / `Dth` (optional on the non-`Ixn` kinds — a rotation or a
      repair cascade commits the events it realizes; an IEL `Evl` commits the SEL `Fld`s it re-seals at one of the
-     IEL's own fold boundaries; an IEL `Rev`/`Dth` commits the SEL `Trm`(s) it seals). **Subsumes the former
+     IEL's own fold boundaries; an IEL `Ath` commits the SEL `Gnt`(s) it seals, and an IEL `Rev`/`Dth` the SEL `Trm`(s) it seals). **Subsumes the former
      `issues`/`revokes`/`rescinds` (2026-06-27):** those were **credential / feature vocabulary on a log primitive**
      (inv 1 — features live on documents, never on primitives). The IEL is now **feature-blind** — it anchors a lower
      SEL event; **the feature layer names it** (a cred-SEL `Icp` on an IEL `Ixn` *is* an issuance; a cred-SEL `Trm` on
@@ -71,9 +71,12 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    - `bound` — carried by the rescission `Trm`: the SAID of the **last valid (honoured) event** on the delegated
      chain — the inclusive grandfather boundary (a cred is honoured iff its anchoring position is an ancestor of the
      `bound`; the dial runs tip → inception). *(Renamed from "cut-off"/"terminator" — 2026-06-26.)*
+   - `grant` — the gated grant-doc SAD `G` a **SEL `Gnt`** commits (the editors/commenters + their `from`
+     validity-period starts). The additive twin of the rescission `Trm`'s `bound`; back-checked (a `Gnt` is valid
+     only anchored by an `Ath` — kind-strict), so unlike `content` it is *not* a directly-consumed role.
    - `content` — the content SAD(s) a **SEL `Ixn`** records (single-owner data — e.g. a cred-SEL amendment). The
      cred-SEL `Icp` itself uses `data` (= the cred's SAID), **not** a manifest; only the content `Ixn` carries this
-     role. *(The only SEL-borne manifest role; added 2026-06-22 — inv 4 had no SEL role, but a SEL `Ixn` must commit
+     role. *(The first SEL-borne manifest role — later joined by `bound`, `fork`, and `grant`; added 2026-06-22 — inv 4 had no SEL role, but a SEL `Ixn` must commit
      its content SADs, and the principle puts documents in the manifest.)*
    - `fork` — the **fork a repair resolves**: a **single inline root SAID** (an inline scalar, like `previous`),
      carried **ONLY by a repair** (KEL `Rec`; IEL·SEL `Rpr`) — **required** (a repair with no
@@ -124,7 +127,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    referenced event is validated against its required kind. **The anchor matrix is enforced *kind-strict* on both
    cross-layer legs — the IEL→SEL leg (C1, 2026-06-27) and the KEL→IEL member-participation leg (2026-06-28) — each
    direction:** on the IEL→SEL leg, each SEL kind is valid **only** when anchored by exactly its matching IEL kind,
-   **and** each IEL kind anchors **only** its matching SEL kinds — content `Ixn` (and a cred-SEL **v1**: a serial-1
+   **and** each IEL kind anchors **only** its matching SEL kinds — content `Ixn` (and a content-SEL **v1**: a serial-1
    `Pin`, or the first content `Ixn`) ↔ IEL **`Ixn`**; SEL `Gnt` ↔ IEL **`Ath`**; SEL `Trm` ↔ IEL **`Rev`** (revoke) / **`Dth`** (rescind); SEL `Fld` ↔ IEL **`Evl`**;
    SEL `Rpr` ↔ IEL **`Rpr`**. **Tier-elevation (anchor tier ≥ event tier) is an *additional* floor, not the check** —
    a tier-only reading would let a T2 kill-anchor (`Rev`/`Dth`) host T1 content (2 ≥ 1), laundering content onto the
@@ -359,7 +362,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     **Every IEL kind prices itself (S1 closure, 2026-06-21; count-parametrization retired 2026-07-04).** The
     required count of an IEL event is fixed by its **own kind**, never derived from the lower-layer payload it
     anchors, and **every kind draws from exactly one slot**: `Ixn` → `t_use`, `Evl` → `t_govern`, `Ath` →
-    `t_authorize`, `Dth` → `t_authorize`, `Rev` → `t_govern`, `Rpr` → `t_recover`, `Trm` → `t_govern`. **There is
+    `t_authorize`, `Dth` → `t_authorize`, `Rev` → `t_govern`, `Rpr` → `t_recover`, `Trm` → `t_govern`, `Wit` → `t_govern`. **There is
     no count-parametrized kind and no `threshold` slot-name field** — the former `Kil` (a single kill-anchor
     parametrized by a `govern`/`authorize` slot) is **split into `Rev`** (revoke your own artifact, `t_govern`)
     **and `Dth`** (deauthorize a grant, `t_authorize`), so each kill-anchor's count is implied by its kind exactly
@@ -373,8 +376,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     `Rpr` → `t_recover` from its own kind — and IEL validity still needs no SEL input.)*
     **Threshold declaration — the active set is fixed at `Icp` (locked 2026-06-25).** The `Icp` declares
     **exactly** the authority kinds the IEL will ever exercise — equivalently, **a threshold is declared iff its
-    consuming kind is in the IEL's kind set** (`Ixn`→`t_use`, `Ath`→`t_authorize`, `Rpr`→`t_recover`,
-    `Evl`/`Wit`/`Trm`→`t_govern`). A **user** IEL (kind set has `Ixn`/`Ath`/`Rpr` + governance) → `t_govern` +
+    consuming kind is in the IEL's kind set** (`Ixn`→`t_use`, `Ath`/`Dth`→`t_authorize`, `Rpr`→`t_recover`,
+    `Evl`/`Rev`/`Wit`/`Trm`→`t_govern`). A **user** IEL (kind set has `Ixn`/`Ath`/`Rpr` + governance) → `t_govern` +
     `t_recover` **mandatory**, `t_use` + `t_authorize` **optional and lockable**. A **federation** IEL (`Fcp`/`Wit`/`Trm`
     — no `Ixn`, no `Ath`, **no `Rpr`**) declares **exactly `{t_govern}`** — `t_use`, `t_authorize`, **and `t_recover`**
     all forbidden (a federation `Fcp` declaring any is **malformed → rejected** — the threshold-declaration analog of
@@ -407,14 +410,14 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     on a *target*, not its host IEL, so the IEL continues; `{Rev|Dth, content}` is therefore **recoverable** exactly like
     `{Evl, content}` (retain the kill-anchor branch, archive + re-issue the content via an `Rpr`), terminal only when it is
     one of ≥ 2 privileged branches. The attach-at-your-last-event form is for a
-    **privileged-but-not-terminal** retained tip (`Evl`/`Rot`/`Fld`/`Rev`/`Dth`); to both resolve a content fork **and**
+    **privileged-but-not-terminal** retained tip (`Evl`/`Rot`/`Ath`/`Fld`/`Rev`/`Dth`); to both resolve a content fork **and**
     identity-kill, a `Trm` on the winning branch does both in **one** event — it buries the content loser below its own
     seal and terminates; a separate repair-first is only for an explicit condemnation record (a privileged loser is
     `disputed`, un-killable anyway). *Not* the common/divergence ancestor unless you authored nothing past it (recovering there archives
     your own content when your `Ixn`s precede the adversary's). The permission check is one question about the
     archival tails — **does any contain a privileged event?** **No** (all content `Ixn`) → **permitted** (`Rec` at
     your last event; your retained tail may carry your *own* `Rot`, kept-not-archived). **Yes** (a `Rot` — forked
-    *or* tip-appended — `Evl`, or `Rev`/`Dth` in any archival tail) → **not** permitted (can't archive — rule 1, extend —
+    *or* tip-appended — `Evl`, `Ath`, or `Rev`/`Dth` in any archival tail) → **not** permitted (can't archive — rule 1, extend —
     rule 2, or fork — `{Rot, Ror}` ≥ 2 priv → terminal) → **reincept**. So the recovery reserve defends the
     **signing** key (a T1/content compromise), **not** the **rotation** key — a `Rot` in an archival tail is the
     point of no return.
@@ -513,7 +516,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     the chain order) or **archive a privileged event**. So a "merge" is **not** a reorder — it would mean *removing*
     both colliding kills and **re-authoring** new ones with the full `t_govern`/`t_authorize` the IEL requires (enough
     devices re-signing): a carve-out against privileged-divergence-is-terminal. The kills **do commute** (a key-less
-    a kill-anchor resurrects no key), so the merge is **sound in principle** — we **decline** it on model-cleanliness /
+    kill-anchor resurrects no key), so the merge is **sound in principle** — we **decline** it on model-cleanliness /
     don't-relax-finality grounds (minimize carve-outs), **not** because it's unsound, and **not** the earlier wrong
     "zero availability gain" (a merge *would* preserve the identity; no-merge forces **reincept + reissue**).
     **Identical kills dedup** (SAID over content, sigs adjacent → same target/position → same SAID regardless of
@@ -568,7 +571,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
 15. **Inception tier follows what it establishes; every SEL's `Icp` is floored by its serial-1 event.**
     - **KEL `Icp`** = T1 (the root, self-authorizing — no chain above it).
     - **IEL `Icp`** = T2 (it establishes *governance* — roster + thresholds; a genuine state-establishment).
-    - **SEL `Icp`** = **T1** (it establishes single-owner *data*, not governance — an IEL `Ixn` anchors it). The
+    - **SEL `Icp`** = **T1** (it establishes single-owner *data*, not governance; an IEL `Ixn` anchors its v1, never the `Icp` itself — see below). The
       `Icp` carries **no `pin`** (it must stay recomputable for lookup), so it is **floored by its serial-1 event**,
       which carries the pin the `Icp` can't (`pin == anchoring IEL Ixn.previous`). Now that **every event pins**, that
       floor is **any event** — a content `Ixn`, a `Trm`, etc. — so a bare **`Pin` is the fallback floor, used only

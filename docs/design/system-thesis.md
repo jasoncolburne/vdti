@@ -28,7 +28,7 @@ chain primitive plays a distinct structural role:
   custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
 - **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold
   vector** `{t_use, t_govern, t_authorize, t_recover}` — how many member devices must act for
-  content, governance, delegation, and recovery respectively. A rule spanning several identities
+  content, governance, authorization, and recovery respectively. A rule spanning several identities
   lives in the document policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
   **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are
@@ -146,9 +146,9 @@ resolves by **tier**, never by identity:
   The chain's reading stays a pure function of the events held; "frozen" is a write posture, not the
   verdict.
 - **Resolution is by tier, not identity.** The chain cannot tell the operator from an attacker —
-  both branches were authorized when they landed — so it decides by tier: only content (`Ixn`) is
-  archivable, and a privileged branch is kept only by whoever holds its recovery preimage — a
-  cryptographic fact, not a who-is-legit judgment.
+  both branches were authorized when they landed — so it decides by tier: only content (`Ixn`, plus
+  the SEL's floor `Pin`) is archivable, and a privileged branch is kept only by whoever holds its
+  recovery preimage — a cryptographic fact, not a who-is-legit judgment.
 - **Terminal forks reincept; races converge data-locally.** Two or more privileged branches are
   terminal — recovered only by reincept. Concurrent privileged races converge with every node
   holding both branches and walking the verdict itself; the federation propagates, it does not

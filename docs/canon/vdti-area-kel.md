@@ -19,7 +19,7 @@ the archived VDTI-10 build. Load-bearing claims marked for the adversarial pass;
 - Memory `project_kels_two_key_roles` (tier roles). ⚠ `project_kels_ror_vs_rec` (the **kels** "Rec = reactive,
   locks the KEL" framing) **does NOT carry to vdti** — vdti `Rec` = **recover** (= repair on the KEL, reveals the
   recovery key, does not lock). Importing the kels meaning was the mistake this note corrects (§4).
-- No `kel/` dir exists in `docs/design/` yet — `event-shape.md` is the only landed KEL surface.
+- The six `kel/` docs landed via PR #11 — `event-shape.md` remains the shared shape reference.
 
 ## 1. Locked-candidate — the current KEL model
 - **KEL = one device's key state.** The **root** primitive — self-authorizing, **no chain above it** [inv 2].

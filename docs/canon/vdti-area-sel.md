@@ -88,7 +88,7 @@ document-first sequencing intended.
   | SEL kind | Count | Tier | Anchored by (IEL) | Finality | |
   |---|---|---|---|---|---|
   | `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | delayed | `owner` (the owner IEL prefix, immutable) + `topic` + `data` (opt — the cred SAID for a cred-SEL); **no manifest, no `pin`** (stays recomputable for lookup). Establishes the SEL; the pin rides the batched serial-1 `Pin`. |
-  | `Ixn` (content) | `t_use` | T1 | `Ixn` | delayed | content SAD(s) + re-`pin`; **≤1 per SEL per IEL `Ixn`**; the **only divergeable / repairable kind**. |
+  | `Ixn` (content) | `t_use` | T1 | `Ixn` | delayed | content SAD(s) + re-`pin`; **≤1 per SEL per IEL `Ixn`**; the **divergeable content kind** (tier-1/repairable — as is the floor `Pin`, §4). |
   | `Trm` | **`t_govern`** (revoke) · **`t_authorize`** (rescind) | **T2** (identity-kill → T3) | **`Rev`** (`t_govern`) / **`Dth`** (`t_authorize`) | **sealed on arrival** | The SEL **kill** (the kill-anchor's `manifest.anchors` names the `Trm`). `Rev` = cred revocation / closure; `Dth` = a delegation **or doc-membership** **rescission** (lookup-SEL `{Icp, Trm}`; the `Trm` carries `manifest.bound`). **Always sealed** — monotone, terminal-on-divergence (can't be repaired-away **F-B** / un-done **LF1**). The killed thing = which SEL its `Trm` extends. |
   | `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **sealed on arrival** | The doc-governance **grant** — the **additive twin of `Trm`** (opens editor/commenter validity periods; the `Gnt`'s `manifest` names the gated grant-doc `G`). Anchored by the owner IEL's **`Ath`** (kind-strict — an `Ath` anchors **only** `Gnt`s). Privileged / seal-advancing, **non-archivable** — walked back by a rescission (a SEL `Trm` via `Dth`, or reincept), never a repair. Doc-governance SELs only (a plain SEL has no membership). |
   | `Pin` (floor re-pin) | `t_use` | **T1** | `Ixn` | delayed | Re-pins the SEL→owner-IEL floor, carrying only the top-level `pin` (no manifest/seal/fold). The **fallback serial-1 floor** — used only when inception batches no other event (the `Icp` can't hold a pin). **Not** seal-advancing — promotes nothing; repairable like content. |
@@ -107,13 +107,13 @@ document-first sequencing intended.
   an SEL event at all — it's an inline timestamp on each federation `Wit`'s manifest; federation §1f.)*
 - **The SEL seals itself via `Fld`; trust-finality floors to the owner IEL.** A content `Ixn` sits in the SEL's
   unsealed window until the SEL's next **`Fld`** (the re-seal, riding an owner IEL `Evl`) — then permanent (and
-  repairable until then); `Fld`/`Rpr`/`Trm` are the SEL's seal-advancers (`previousSeal`; a repair `Rpr` also carries `fork` — the single losing-branch root, inv 4). The SEL's
+  repairable until then); `Fld`/`Gnt`/`Rpr`/`Trm` are the SEL's seal-advancers (`previousSeal`; a repair `Rpr` also carries `fork` — the single losing-branch root, inv 4). The SEL's
   **trust-finality** additionally floors to the owner IEL's seal via its `pin` (it holds no trust-seal of its own).
   A **kill** is **`Rev`/`Dth`-anchored → sealed on arrival**, owner-proof immediately and terminal-on-divergence.
   **There is no delayed kill.**
 - **Divergence resolution — the archival-tail rule** [inv 13]: **content `Ixn` and the floor `Pin` are
   archivable** (both T1); a repair (`Rpr`) attaches at **your last event**, retaining your branch and archiving the
-  **archival tail(s)**; **permitted iff no archival tail holds a privileged event** (a `Fld`/`Trm`/`Rpr` — the
+  **archival tail(s)**; **permitted iff no archival tail holds a privileged event** (a `Fld`/`Gnt`/`Trm`/`Rpr` — the
   seal-advancing SEL kinds — never overturned) — else → reincept. Node-agnostic, **data-local** condition: **≥ 2 retained branches each carrying a
   privileged event past the fork → irreconcilable/disputed** (any verifier walks it — inv 13/17; the beacon
   propagates the branches, it does not decide). E.g. `{Trm, Ixn}` → the `Trm` is the single privileged branch, so it **wins on tier-rank with no `Rpr` authored**
@@ -162,8 +162,8 @@ document-first sequencing intended.
   cred-SEL **v1**s (the serial-1 `Pin`) **batch** under one IEL `Ixn` via `manifest.anchors[]` — the `Icp` rides `v1.previous`, never anchored — inv 4), (b) a
   lookup `Icp` + its `Trm` (rescission kill) via an IEL `Dth` (sealed), (c) a cred-SEL `Trm` (kill) via an IEL
   `Rev` (sealed), (d) a SEL `Fld` (re-seal) via an IEL `Evl`'s `anchors` (symmetric with the IEL `Rpr`
-  anchoring a SEL `Rpr`), (e) a doc-governance **`Gnt`** (grant) via an IEL **`Ath`**@`authorize` (sealed — the
-  additive twin of the `Dth`-rescission). **Kills ride the IEL `Rev`/`Dth` rail; grants the IEL `Ath` rail; content the
+  anchoring a SEL `Rpr`), (e) a doc-governance **`Gnt`** (grant) via an IEL **`Ath`** (sealed — the
+  additive twin of the `Dth`-rescission; the `@`-slot notation is retired — the count is implied by the kind). **Kills ride the IEL `Rev`/`Dth` rail; grants the IEL `Ath` rail; content the
   IEL `Ixn` rail; a SEL `Fld` the IEL `Evl` rail; a SEL `Rpr` the IEL `Rpr` rail.**
 - **Count travels with the anchored event's KIND — re-scoped: every IEL kind prices itself (Jason 2026-06-20/21).**
   The required count for an anchored SEL event is set by **its kind** (`t_use` content · `t_govern` `Trm`-kill ·
@@ -186,7 +186,7 @@ document-first sequencing intended.
     caps the content run so a SEL divergence repair stays page-atomic, promotes below-fold content to durable. The
     SEL's analog of KEL `Rot` / IEL re-seal-`Evl` — *pure* fold because a SEL has no roster/keys to ride it on.
   This keeps **"seal-advancing ⇒ privileged"** intact (the `Pin` simply isn't seal-advancing) — **no** inv 13/17
-  carve-out. SEL seal-advancers = **`Fld`/`Trm`/`Rpr`**; tier-1/archivable = `Ixn`/`Pin`. A **rescission** is a terminal
+  carve-out. SEL seal-advancers = **`Fld`/`Gnt`/`Trm`/`Rpr`**; tier-1/archivable = `Ixn`/`Pin`. A **rescission** is a terminal
   **`Trm`** (`t_authorize`, T2, sealed, carries the `bound`) — not a `Pin`/`Fld`.
 - **The `Fld`'s IEL anchor = IEL `Evl` — RESOLVED (Jason 2026-06-27).** A SEL `Fld` rides an owner **IEL `Evl`** — a
   SEL fold lands at one of the IEL's own fold boundaries (which T2 implies, and is sensible: that's where the IEL

@@ -58,12 +58,11 @@ and Phase 0–9 sequencing. Quick orientation:
 
 ## Build & Verify
 
-- `make` verifies changes (lint-terminology, lint-docs, lint-diagrams, fmt, deny, clippy, test,
-  build). Never use naked cargo commands.
-- The doc/drawing linters work from day one — `lint-terminology`, `lint-docs` (doc
-  cross-references), `lint-diagrams` (excalidraw dangling arrows); `make all` runs all three, and CI
-  runs each as its own job. The code targets (fmt, deny, clippy, test, build) become meaningful as
-  the Cargo workspace lands in Phase 1.
+- `make` verifies changes (lint-terminology, lint-docs, fmt, deny, clippy, test, build). Never use
+  naked cargo commands.
+- The doc linters work from day one — `lint-terminology` and `lint-docs` (doc cross-references);
+  `make all` runs them alongside `fmt-md-check`, and CI runs each as its own job. The code targets
+  (fmt, deny, clippy, test, build) become meaningful as the Cargo workspace lands in Phase 1.
 - When landing a rename, add retired tokens to `.terminology-forbidden` so `make lint-terminology`
   catches future regressions.
 - `TEST_ARGS` on `make test` forwards flags to `cargo test` for iterating on one suite or one

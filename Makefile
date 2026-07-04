@@ -1,6 +1,6 @@
-.PHONY: all lint-terminology lint-docs lint-diagrams lint-diagrams-prune fmt-md fmt-md-check working-tarball
+.PHONY: all lint-terminology lint-docs fmt-md fmt-md-check working-tarball
 
-# Phase 0 — lint-terminology, lint-docs, lint-diagrams, and fmt-md-check are the
+# Phase 0 — lint-terminology, lint-docs, and fmt-md-check are the
 # meaningful targets. Markdown formatting (prettier) is wired now; the Rust
 # targets (cargo fmt/clippy/test/build) land alongside the Cargo workspace in
 # Phase 1.
@@ -15,21 +15,13 @@ WORKING_MTIME := 202001010000
 WORKING_TARBALL := working.tar.xz
 WORKING_FILES := 00-INDEX.md design-resume.md warm-resume.md vdti-1-roadmap.md
 
-all: lint-terminology lint-docs lint-diagrams fmt-md-check
+all: lint-terminology lint-docs fmt-md-check
 
 lint-terminology:
 	@./scripts/lint-terminology.sh
 
 lint-docs:
 	@./scripts/check-doc-xrefs.py
-
-lint-diagrams:
-	@./scripts/lint-diagrams.py
-
-# Hygiene: delete isDeleted (soft-removed) elements Excalidraw leaves in the JSON.
-# Byte-faithful via jq — touches nothing else, so it never changes a lint verdict.
-lint-diagrams-prune:
-	@./scripts/lint-diagrams.py --prune
 
 # Refresh the working-surface snapshot (working.tar.xz) from .working/.
 working-tarball:

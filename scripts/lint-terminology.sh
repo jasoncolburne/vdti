@@ -24,10 +24,6 @@ if [ ${#deep_first[@]} -eq 0 ]; then
 fi
 
 # All tracked files we'll potentially scan.
-# TEMPORARY (2026-07-04): *.excalidraw excluded — the vdti.excalidraw diagram
-# still carries pre-rename kind names (Dec/Kil/Del) in its text nodes, and it is
-# slated to be re-encoded as inline mermaid (which IS terminology-checked as .md).
-# Remove this exclusion once the excalidraw diagrams are eliminated.
 all_files=()
 while IFS= read -r f; do
     all_files+=("$f")
@@ -35,8 +31,7 @@ done < <(git ls-files \
     ':!:Makefile' \
     ':!:.terminology-forbidden' \
     ':!:**/.terminology-forbidden' \
-    ':!:scripts/lint-terminology.sh' \
-    ':!:**/*.excalidraw')
+    ':!:scripts/lint-terminology.sh')
 
 # Track which files have been claimed by a deeper forbid file.
 claimed_marker=$(mktemp)

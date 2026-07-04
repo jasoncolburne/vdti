@@ -48,7 +48,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker.                                                                                          |
 | `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root).                                                                                                          |
-| `Ixn` | Interaction — content; anchors lower-layer SAIDs. The **only repairable** kind.                                                                                                                         |
+| `Ixn` | Interaction — content; anchors lower-layer SAIDs. The divergeable content kind — tier-1, repairable (on the SEL the floor `Pin` is tier-1 too).                                                         |
 | `Rot` | Rotation (KEL) — reveals the next signing key, commits the new one. Tier 2, seal-advancing.                                                                                                             |
 | `Ror` | Rotate-recovery (KEL) — proactive hygiene rotation of signing **and** recovery keys. Tier 3.                                                                                                            |
 | `Rec` | Recover (KEL) — the KEL's repair kind; archives a losing `Ixn` branch, returns the chain to Active. Tier 3.                                                                                             |
@@ -58,7 +58,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 | `Gnt` | Grant (SEL) — a doc-membership grant; opens editor / commenter validity periods. The additive twin of the SEL `Trm` rescission; anchored by an IEL `Ath`. Tier 2, seal-advancing.                       |
 | `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; seals a SEL `Trm` that revokes / closes a credential. Tier 2, `t_govern`.                                                              |
 | `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; seals a SEL `Trm` that rescinds a delegation or doc-membership grant. The polarity-inverse of `Ath`. Tier 2, `t_authorize`. |
-| `Rpr` | Repair (IEL / SEL) — the divergence repair; may fold in an evicting roster `cut`. Tier 3.                                                                                                               |
+| `Rpr` | Repair (IEL / SEL) — the divergence repair; an **IEL** `Rpr` may fold in an evicting roster `cut` (the KEL and SEL repairs carry no roster). Tier 3.                                                    |
 | `Fld` | Fold (SEL) — the SEL re-seal (no roster or keys to evolve); caps the content run. Tier 2, seal-advancing.                                                                                               |
 | `Pin` | Pin (SEL) — the floor re-pin to the owner IEL's current tip; carries a SEL's serial-1 issuance floor. Tier 1.                                                                                           |
 | `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission).                                                                                                             |
@@ -103,8 +103,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 ### Readings and states
 
-- **Active / forked / disputed / divergent / terminated** — a chain's reading: linear-and-live, one
-  competing branch (reconcilable), ≥ 2 privileged (terminal), forked, or killed.
+- **Active / Divergent / Terminated** (per-node states) vs **forked / disputed** (walk readings) —
+  the state a node tracks for a chain (linear-and-live / holding a live fork / killed) is distinct
+  from what a data-local walk _reports_ about a fork: `forked` (≤ 1 privileged branch past the fork,
+  reconcilable and pending its repair) or `disputed` (≥ 2 privileged branches, terminal).
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md#kel-chain-states-proof-states))
 
 ## Concepts

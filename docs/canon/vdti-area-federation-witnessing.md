@@ -19,8 +19,9 @@ adversarial pass.
   **superseded** by one-content-sibling-per-serial + the majority floor — §1e/§2, 2026-07-02.)*
 - `../kels/.working/kels-214-doctrine-simplification.md` — the *federation-dispute* (no-`Cnt`) framing
   (already reflected; "contested" → "irreconcilable" → "disputed").
-- `docs/design/protocol-doctrine.md` §Federation + `event-shape.md` (IEL `Fcp` row, `federationBinding`,
-  self-signing carve-out) — **pre-reshape; superseded** (§3). The land targets.
+- `docs/design/protocol-doctrine.md` §Federation + `event-shape.md` are **reconciled to the reshape** — the
+  landed docs carry the current `Fcp`-marker + `federation`/`federationPin` model, not the old
+  `federationBinding` or the self-signing carve-out (§3). The remaining land targets are the `federation/` docs.
 - `vdti-area-kel.md` — the member-KEL witness-config + `Fcp`/`Wit`/federation fields (cross-ref; `Fed` → `Wit`).
 
 ## 1. Locked-candidate — the current model
@@ -527,8 +528,8 @@ adversarial pass.
 
 ## 5. Drift → land backlog
 - **Write `docs/design/federation/{bootstrap,witnessing}.md`** fresh from this note (genesis ceremony +
-  the witnessing model). Reconcile `protocol-doctrine.md` §Federation and strip `event-shape.md`'s IEL `Fcp` row +
-  self-signing carve-out + `federationBinding`.
+  the witnessing model). (`protocol-doctrine.md` §Federation and `event-shape.md` are already reconciled — the
+  old `federationBinding` and self-signing carve-out are gone; only the `federation/` docs remain to write.)
 - **Apply the design-pass §2.2 matrix fix** (federation inception = `Rot → IEL Fcp` (the marker); founder `Rot` anchor — kind-strict, T2 ↔ T2; no founder `Fed`/`Wit`, 2026-06-28).
 - **`event-shape.md` KEL:** witness-config SAD `{ threshold, signers }` as the manifest **`witnesses`** role (shared with the KEL note's land item).
 - Carry the witnessing mechanics (one-content-sibling-per-serial + privileged/repair always-witness · `(prefix,serial)`

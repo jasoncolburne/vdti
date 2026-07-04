@@ -201,7 +201,7 @@ same-serial siblings still force an IEL fork. cold F1's deadlock assumed an unat
 transient split, a residual, not a deadlock (below).
 
 **Recoverability — a signing-key (tier-1) compromise is fully deadenable.** A T1 adversary holds no
-reserve → can author **no privileged event** (no `Rot`/`Rev`/`Dth`/`Trm`/`Rpr`). If `t_use ≥ 2` a lone key is
+reserve → can author **no privileged event** (no `Rot`/`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm`/`Rpr`). If `t_use ≥ 2` a lone key is
 inert (can't reach threshold) — nothing reaches the identity. If `t_use = 1` it can fork/spew content and
 anchor spurious SEL content (it **cannot** author a SEL `Trm` — that needs a `Rev`/`Dth`, privileged) — but one
 recovery `Rpr` (T3, from the reserve-holder) attaches at the last good event and archives the adversary's

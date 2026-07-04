@@ -293,9 +293,9 @@ a new locked window, plus the terminal `Trm` which opens none) per primitive:
 - **IEL**: every non-inception **privileged** event advances the seal — `Ixn` is the lone content
   kind, and an IEL `Ixn` does not advance the seal; the privileged kinds (`Evl` / `Ath` / `Rev` /
   `Dth` / `Rpr` / `Trm` / `Wit`) are the window-openers.
-- **SEL**: `Fld` / `Rpr` (and `Trm`) — `Fld` is the SEL's re-seal, a tier-2 privileged kind (the
-  `Rot` / re-seal-`Evl` analog for a primitive with no keys or roster to evolve); a content `Ixn`
-  and a floor `Pin` do not advance the seal.
+- **SEL**: `Fld` / `Gnt` / `Rpr` (and `Trm`) — `Fld` is the SEL's re-seal, a tier-2 privileged kind
+  (the `Rot` / re-seal-`Evl` analog for a primitive with no keys or roster to evolve); a content
+  `Ixn` and a floor `Pin` do not advance the seal.
 
 The terminal `Trm` advances the seal to its own serial and permits no successor. The seal-cap
 rejects any submission whose parent sits before the `Trm`; a direct `Trm`-child passes the cap and
@@ -442,7 +442,7 @@ retained chain**. The repair attaches **at** `v_{d-1}` when the entity authored 
 way at or above `v_{d-1}`, never below it.** Each archival tail's root is a competing **child of
 `v_{d-1}`** at serial `d`, off the retained chain — there may be several. When the entity did author
 at or beyond `d` (its retained tip content, or a privileged tip —
-`Evl`/`Rot`/`Ath`/`Wit`/`Fld`/`Rev`/`Dth`/a prior repair — at or above the seal), attaching at
+`Evl`/`Rot`/`Ath`/`Wit`/`Fld`/`Gnt`/`Rev`/`Dth`/a prior repair — at or above the seal), attaching at
 `v_{d-1}` would archive the entity's **own** events (its content, or **worse** a privileged tip,
 which rule 1 forbids archiving at all); it attaches at its retained **tip** instead (never in the
 locked portion), so the repair's `previous` is that tip — at or above the seal.
@@ -455,10 +455,10 @@ privileged event?**
   only the archival tails are checked. An adversary holding your signing key can append only
   content, and a tier-3 `Rec` archives it — so **the recovery reserve defends the signing key.**
 - **Yes — any privileged event sits in an archival tail** (a rotation, a `Evl`, a `Ath`, a
-  `Rev`/`Dth`, a `Wit`, a `Trm`, or a competing repair) → **forbidden → reincept** (for a
-  **delegated** KEL — one chartered under an IEL delegation, whose doctrine is the IEL's — the
-  delegator `Dth`s it instead). That event cannot be archived (rule 1), cannot be extended (rule 2 —
-  it is not your branch), and forking past it is a second privileged branch (terminal). So **the
+  `Rev`/`Dth`, a `Wit`, a `Fld`, a `Gnt`, a `Trm`, or a competing repair) → **forbidden → reincept**
+  (for a **delegated** KEL — one chartered under an IEL delegation, whose doctrine is the IEL's —
+  the delegator `Dth`s it instead). That event cannot be archived (rule 1), cannot be extended (rule
+  2 — it is not your branch), and forking past it is a second privileged branch (terminal). So **the
   recovery reserve does not defend the rotation key: a `Rot` in an archival tail is the point of no
   return** — the chain is the attacker's. (This check asks only about the branches you **archive**.
   A _winning_ terminal `Trm` sits on the **retained** branch and resolves by tier-rank, above — it
@@ -483,6 +483,23 @@ issuance and governance are serialized). Genuine reincept is an **irreconcilable
 2 competing privileged branches** (`{Rot, Rot}`, `{Evl, Evl}`, any pair — **tier 2 or 3**),
 equivalently a privileged event in an archival tail — which a one-branch holder detects once the
 beacon delivers the second branch.
+
+Two distinct `Rot`s at one serial — the irreconcilable case — look like:
+
+```mermaid
+flowchart RL
+  Ra["Rot s=2 — branch A"] -->|previous| X1["Ixn s=1"]
+  Rb["Rot s=2 — branch B"] -->|previous| X1
+  X1 -->|previous| I0["Icp s=0"]
+  Ra -.->|previousSeal| I0
+  Rb -.->|previousSeal| I0
+```
+
+Neither `Rot` can be **archived** (overturning a rotation would resurrect a retired key), and
+neither can be **extended** past: authoring an event after a `Rot` requires the key that `Rot`
+established, so a party can extend at most the one branch whose established key it controls — never
+both. With ≥ 2 privileged branches and neither resolvable, the two seals share one `previousSeal`,
+so the walk sees a single spine fork and reads **`disputed`** → reincept.
 
 **Repair-and-evict is a single event.** When the divergence was caused by a member that must be
 removed, the eviction **folds into the `Rpr`** as a roster `cut` rather than a following `Evl`, and
@@ -668,6 +685,22 @@ repair-first (the `Rpr` carries the `fork`) is only for an explicit condemnation
 `{Rev|Dth, content}` fork takes the ordinary recoverable path: an `Rpr` retains the `Rev`/`Dth` and
 archives the content, exactly like `{Evl, content}`.)
 
+A `{Trm, content}` race — the `Trm` retained, the competing content archived non-canonical, no `Rpr`
+authored — looks like:
+
+```mermaid
+flowchart RL
+  Trm["Trm s=3 — terminal, retained"] -->|previous| X2["Ixn s=2"]
+  X2 -->|previous| X1["Ixn s=1"]
+  X1 -->|previous| I0["Icp s=0"]
+  Trm -.->|previousSeal| I0
+  Xc["Ixn s=3 — competing content, archived"] -->|previous| X2
+```
+
+The `Trm` (privileged, reserve-backed) outranks the tier-1 content at the same serial and wins
+outright; the chain reads **Terminated** at the `Trm`. A `Trm` never carries `fork` — it admits no
+successor, so it cannot author an `Rpr`; tier-rank keeps it clean without one.
+
 **Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
 `v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where
 the late arrival **lands as a competing event at serial `d`** — a fork. A seal-advancer among the
@@ -771,10 +804,11 @@ identity: the identity evicts the member and continues on its quorum.
 A **kill** — revoke, close, rescind, terminate — is **always sealed on arrival**. It is anchored in
 a dedicated sealed kill-anchor (the IEL `Rev`/`Dth`, tier 2; an identity-kill rides a tier-3
 terminal), distinct from the roster-changing `Evl`. Because a sealed kill-anchor is privileged and
-terminal-on-divergence, the kill can **never** be archived by a repair (no silent un-revoke), and
-there is no unsealed window to undo. A kill is **monotone**: restoring a killed thing is **never** a
-retraction — the party reincepts under a **new prefix** and is granted or issued afresh. A re-grant
-of the _same_ killed prefix does not restore it; its kill locus permanently caps that prefix.
+durable against repair — it seals a kill on a _target_, not its host chain — the kill can **never**
+be archived away (no silent un-revoke), the host chain itself stays recoverable, and there is no
+unsealed window to undo. A kill is **monotone**: restoring a killed thing is **never** a retraction
+— the party reincepts under a **new prefix** and is granted or issued afresh. A re-grant of the
+_same_ killed prefix does not restore it; its kill locus permanently caps that prefix.
 
 A **validity bound** (a rescission's bound, or a compromise rewind) removes a **contiguous suffix**
 of a chain. By chain linearity every event builds on the prior, so only a contiguous tail can be
@@ -793,13 +827,14 @@ Inception tier follows what the inception establishes:
 - **KEL `Icp`** — tier 1. The root is self-authorizing; there is no chain above it.
 - **IEL `Icp`** — tier 2. It establishes governance (a roster + threshold vector) — a genuine
   state-establishment.
-- **SEL `Icp`** — tier 1. It establishes single-owner data, not governance, and an IEL `Ixn` anchors
-  it. The `Icp` carries **no `pin`** (it must stay recomputable for lookup), so the SEL's first
-  down-pin rides a **serial-1 `Pin`** batched with the `Icp`, uniformly for every SEL. A
-  **credential SEL**'s `data` **is** the credential's SAID (the whole reference; the `Icp` carries
-  no manifest); a **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes the
-  prefix from (e.g. a rescinded prefix), and its rescission kill rides a terminal `Trm` sealed by an
-  IEL `Dth`.
+- **SEL `Icp`** — tier 1. It establishes single-owner data, not governance. It carries **no `pin`**
+  (it must stay recomputable for lookup) and is **never itself anchored** — the SEL's **serial-1
+  event (its v1)** is what an IEL `Ixn` anchors, and the `Icp` rides `v1.previous`. That v1 is a
+  bare **`Pin`** when inception carries no other first event (issue-and-sit), otherwise the first
+  event itself. A **credential SEL**'s `data` **is** the credential's SAID (the whole reference; the
+  `Icp` carries no manifest); a **lookup SEL**'s `data` is the recompute input the verifier
+  blind-recomputes the prefix from (e.g. a rescinded prefix), and its rescission kill rides a
+  terminal `Trm` sealed by an IEL `Dth`.
 
 A compromised tier-1 signing key can already issue content in your name, so letting it also create a
 SEL adds no blast radius — tier-1 inception is sound. Issuing a credential is tier 1 because a
@@ -1213,11 +1248,12 @@ Both the digest and the reading are **pure functions of the events a node holds*
 the seal from those events, not from arrival order — so two nodes holding the same events compute
 the same digest **and** read the same region. The `forked` / `disputed` / trusted **reading value is
 separate and is never in the digest**: a data-local walk over the retained branches reads `forked`
-(at most one privileged branch past the fork — reconcilable, pending its repair; only content `Ixn`
-produces a reconcilable fork, so a federation IEL, which carries no content, never reads `forked`)
-or `disputed` (two or more privileged branches — terminal, reincept). A settled fork drops out of
-both at once: its condemned or buried loser leaves the live-tip set, so the digest returns to the
-canonical tip and the reading returns to Active, in lockstep, on every node.
+(at most one privileged branch past the fork — reconcilable, pending its repair; only content
+produces a reconcilable fork (a tier-1 `Ixn`, or the SEL's floor `Pin`), so a federation IEL, which
+carries no content, never reads `forked`) or `disputed` (two or more privileged branches — terminal,
+reincept). A settled fork drops out of both at once: its condemned or buried loser leaves the
+live-tip set, so the digest returns to the canonical tip and the reading returns to Active, in
+lockstep, on every node.
 
 The digest is **tip-sensitive** — it moves the instant a node's held tip set changes — and that is
 load-bearing: the anti-entropy trigger is the effective-SAID delta, so a tip a node lacks must move
