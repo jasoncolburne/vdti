@@ -129,17 +129,17 @@ scalar** (the federation `clock` — an inline timestamp value, the lone non-SAI
 
 **Role vocabulary:**
 
-| Role        | Carried by                                                                                 | Commits to                                         |
-| ----------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Ror` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Rpr` | lower-layer event / SAD SAIDs (the down-commit)    |
-| `roster`    | IEL `Icp` / `Evl` / `Rpr`; federation `Fcp` / `Wit`                                        | the roster / threshold **delta** SAD               |
-| `delegates` | IEL `Ath`                                                                                  | delegate **prefixes** (act for the delegator)      |
-| `grant`     | SEL `Gnt`                                                                                  | the gated grant-doc SAD `G`                        |
-| `content`   | SEL `Ixn`                                                                                  | the content SAD(s) the `Ixn` records               |
-| `bound`     | SEL `Trm` (rescission)                                                                     | the last honoured event on a delegated chain       |
-| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                          | the witness-config SAD `{ threshold, signers }`    |
-| `clock`     | federation `Fcp` / `Wit` / `Trm`                                                           | the federation-clock timestamp (inline, non-SAID)  |
-| `fork`      | a repair only — KEL `Rec`; IEL / SEL `Rpr`                                                 | the single losing-branch **root** SAID it condemns |
+| Role        | Carried by                                                                                 | Commits to                                          |
+| ----------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
+| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Ror` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Rpr` | lower-layer event SAIDs (the down-commit)                |
+| `roster`    | IEL `Icp` / `Evl` / `Rpr`; federation `Fcp` / `Wit`                                        | the roster **delta** / threshold SAD SAID           |
+| `delegates` | IEL `Ath`                                                                                  | delegate **prefixes** (act for the delegator)       |
+| `grant`     | SEL `Gnt`                                                                                  | the gated grant-doc SAD SAID                        |
+| `content`   | SEL `Ixn`                                                                                  | the content-SAD SAIDs the `Ixn` records          |
+| `bound`     | SEL `Trm` (rescission)                                                                     | the last honoured event SAID on an authorized chain |
+| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                          | the witness-config SAD's SAID                       |
+| `clock`     | federation `Fcp` / `Wit` / `Trm`                                                           | the federation-clock timestamp (inline, non-SAID)   |
+| `fork`      | a repair only — KEL `Rec`; IEL / SEL `Rpr`                                                 | the single losing-branch **root** SAID it condemns  |
 
 The roles that carry discrimination or shape rules, in prose:
 
