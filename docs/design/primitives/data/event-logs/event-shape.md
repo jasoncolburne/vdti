@@ -134,7 +134,7 @@ scalar** (the federation `clock` — an inline timestamp value, the lone non-SAI
 | `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Ror` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Rpr` | lower-layer event SAIDs (the down-commit)           |
 | `roster`    | IEL `Icp` / `Evl` / `Rpr`; federation `Fcp` / `Wit`                                        | the roster **delta** / threshold SAD SAID           |
 | `delegates` | IEL `Ath`                                                                                  | delegate **prefixes** (act for the delegator)       |
-| `grant`     | SEL `Gnt`                                                                                  | the gated grant-doc SAD SAID                        |
+| `grant`     | SEL `Gnt`                                                                                  | the grant-doc SAD SAID                              |
 | `content`   | SEL `Ixn`                                                                                  | the content-SAD SAIDs the `Ixn` records             |
 | `bound`     | SEL `Trm` (rescission)                                                                     | the last honoured event SAID on an authorized chain |
 | `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                          | the witness-config SAD SAID                         |
