@@ -120,8 +120,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **the three tiers (T1 / T2 / T3)** — the cryptographic capability to forge an event, set by
   danger-or-permanence: signing key / rotation preimage / rotation + recovery preimage.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#tiers--the-three-tier-capability-model))
-- **privileged event** — any tier-2+ (seal-advancing) event; never archived or overturned by a
-  repair. ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md#invariants))
+- **privileged event** — a tier-2+ event; **seal-advancing** except the tier-2 inception (which
+  roots the spine but advances no seal). Never archived or overturned by a repair.
+  ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md#invariants))
 - **divergence and repair** — divergence is permanent and visible; a repair archives the losing
   branch atomically and is scoped to tier-1 content.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md#matrix-4-repair-completeness))

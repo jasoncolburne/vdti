@@ -89,11 +89,11 @@ A KEL event's manifest may carry only these roles; one carrying any role outside
 malformed and rejected, and a role is consumed only after dispatching on a kind permitted to carry
 it (read kind-first):
 
-| Role        | Carried by                               | Commits to                                                                                                        |
-| ----------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | lower-layer event / SAD SAIDs this event anchors (a `Wit` anchors exactly the IEL `Wit` it participates in)       |
-| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                   |
-| `fork`      | `Rec` (req)                              | the single losing-branch **root** SAID the repair condemns (its whole subtree dies by descent). **Repair-only.**ᵃ |
+| Role        | Carried by                               | Commits to                                                                                                                     |
+| ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Rot` / `Ror` / `Wit` | IEL event SAIDs this event anchors — never a SEL event or a raw SAD (a `Wit` anchors exactly the IEL `Wit` it participates in) |
+| `witnesses` | `Icp` / `Wit`                            | the witness-config SAD `{ threshold, signers }`                                                                                |
+| `fork`      | `Rec` (req)                              | the single losing-branch **root** SAID the repair condemns (its whole subtree dies by descent). **Repair-only.**ᵃ              |
 
 - ᵃ **`fork`** — the root is a branch's first divergent event (a competing child of the fork point,
   off the retained chain); every other competing branch closes unnamed, its first event below the
@@ -403,7 +403,7 @@ cross-node-validatable.
 
 ```
 s0..sN   normal chain
-sN+1     kind=dec   ← Trm ends the KEL cleanly; dual-signed (kN + recovery key);
+sN+1     kind=trm   ← Trm ends the KEL cleanly; dual-signed (kN + recovery key);
                       advances the seal to its own serial; previousSeal=<prior seal>.said
 ```
 

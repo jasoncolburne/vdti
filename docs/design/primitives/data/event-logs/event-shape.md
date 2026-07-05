@@ -132,7 +132,7 @@ terminal `Trm` from `t_govern`. The bounds:
   now carry a roster `cut` (the repair-and-evict fold — [`iel/`](iel/)), so recovery must never be
   priced below governance. (Vacuous for a federation, which declares no `t_recover`, and for a
   singleton.)
-- The roster is **never emptied**: post-delta **`|roster| = |roster| + |add| − |cut| >= 1`** — an
+- The roster is **never emptied**: the post-delta size is **`|roster| + |add| − |cut| >= 1`** — an
   absolute floor beneath the security floor and the singleton exception. A roster is a **set**, so a
   delta is well-formed only with `add ∉` the current roster, `cut ⊆` it, and `cut ∩ add = ∅` (the
   size arithmetic then holds). This makes every singleton's roster downward-immutable — a singleton
@@ -269,7 +269,9 @@ from the event kind, never stored.
 - **Tier 1 — signing key only.** Content. A `t_use`-counted `Ixn` is tier 1 even at a high count.
 - **Tier 2 — rotation preimage.** Establishment-mutation, authority-grant, and **any sealed kill**
   (a kill must be permanent on arrival).
-- **Tier 3 — rotation preimage + recovery preimage.** Repair and identity-kill.
+- **Tier 3 — rotation preimage + recovery preimage.** Repair, identity-kill, and any act that also
+  refreshes the recovery reserve — proactive rotate-recovery (`Ror`) and federation
+  binding/governance (`Wit`).
 
 ```mermaid
 flowchart LR
@@ -455,6 +457,7 @@ are KEL + federation doctrine — [`kel/`](kel/), [`../../../federation/`](../..
 | `Rpr` | fbd   | req  | req          | req (`fork`; `anchors`, `roster` opt)                                                |
 | `Trm` | fbd   | req  | req          | opt (a federation `Trm` carries `clock` req)                                         |
 | `Wit` | fbd   | req  | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                |
+| `Fcp` | req   | req  | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker             |
 
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **optional** (absent ⇒ a direct-mode identity), and `witnesses` is **mandatory iff federated**

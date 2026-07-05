@@ -392,20 +392,20 @@ Pre-state (linear at v_{d-1}):
 
 Concurrent submissions:
 
-  Party 1 → Node A:    dec.previous     = v_{d-1}.said, dec.serial     = d
+  Party 1 → Node A:    trm.previous     = v_{d-1}.said, trm.serial     = d
   Party 2 → Node B:    ror_alt.previous = v_{d-1}.said, ror_alt.serial = d
 
 Each event lands as a linear-chain extension on its submitting node.
 
 Gossip propagates:
 
-  Node A (Terminated at v_d via dec) receives ror_alt:
+  Node A (Terminated at v_d via trm) receives ror_alt:
     ror_alt.parent_serial = d-1 < seal_serial = d
     → rejected as a canonical extension (SiblingLocked); retained as evidence.
-    Node A canonical tip unchanged: dec. Node A now holds both branches.
+    Node A canonical tip unchanged: trm. Node A now holds both branches.
 
-  Node B (Active at v_d via ror_alt) receives dec:
-    dec.parent_serial = d-1 < seal_serial = d
+  Node B (Active at v_d via ror_alt) receives trm:
+    trm.parent_serial = d-1 < seal_serial = d
     → rejected as a canonical extension (SiblingLocked); retained as evidence.
     Node B canonical tip unchanged: ror_alt. Node B now holds both branches.
 
@@ -424,7 +424,7 @@ evidence that a divergence exists at that position — the beacon **propagates**
 data-local walk **decides** the verdict. The prefix is disputed at-and-beyond the divergent serial;
 events strictly below the last clean seal stay canonical. See
 [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) and
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) _(forthcoming)_.
 
 The seal-cap stays unconditional. Relaxing it to admit a competing event as a canonical extension at
 a sealed serial would re-open the stale-authority killswitch surface that the locked-portion bound

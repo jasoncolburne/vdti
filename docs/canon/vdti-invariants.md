@@ -437,8 +437,14 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     is moreover a **confirmed reserve compromise** (two valid rotations reveal the *one* preimage at `v_{d-1}`);
     `{Evl, Evl}` is terminal for the same branch-level reason but is **not** a reserve-compromise proof — disjoint
     sub-quorums reveal *different* preimages, so it can arise from an honest partition (hence content/governance
-    serialization). Genuine reincept = a **T3 compromise**, a privileged event in an archival tail, or a second
-    privileged branch a one-branch holder detects once the beacon delivers it (F7).
+    serialization). **Reincept** is what a party does when **no valid repair exists for it**: a **T3 compromise**, or a **competing
+    branch it must archive carries a privileged event it did not author** (a key-state branch you didn't author is
+    un-archivable → the point of no return; the party that *did* author it recovers by **retaining** it). This is
+    **broader than `disputed`** — `disputed` (≥ 2 privileged branches, node-agnostic) forces reincept on *everyone*, while a
+    *single* privileged branch you didn't author reads `forked` yet still forces *your* reincept. *(Clarified 2026-07-05,
+    freshread-8 B: "genuine reincept ≡ a privileged event in an archival tail" wrongly equated the party-relative recovery
+    block with the node-agnostic `disputed` condition; a branch you *archive* is content-only, so a privileged competing
+    branch is what blocks recovery, not an "archival tail.")*
     *(Removed as wrong: "anchor realized on recovery," the "singleton residual," and "tip-appended `Rot` recoverable
     by forward `Ror`" — each had the victim extend, archive, or realize an adversary's `Rot` (rules 1/2), or recover
     at the ancestor and archive their own content.)*
@@ -483,9 +489,12 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     insight of the primitive (it's why `../kels` exists). **Divergence is *distinct*-events-at-one-position;
     identical events dedupe — SAIDs are content-addressable, so two byte-identical events ARE one event** (the
     submit path accepts an already-present event idempotently, never as a second branch; detection keys on distinct
-    `witnessed_said`, federation §1e). So a `{kill, kill}` collision (two competing `Rev`/`Dth` kill-anchors) only arises for **distinct** kills (different
-    target/content); two sides issuing the *same* kill — e.g. both revoking the same compromised cred — dedupe to
-    one event, **no divergence** (R3-1). It makes F-F's scenario *unreachable*: a governance event can never sit
+    `witnessed_said`, federation §1e). So a `{kill, kill}` collision (two competing `Rev`/`Dth` kill-anchors) is always of **distinct** events — only an
+    *idempotent re-submit* of byte-identical bytes dedupes; two **independently authored** kills are never byte-identical
+    (each commits its own `pins`/position), so even the *same* kill by two sub-quorums is two SAIDs → a genuine collision,
+    serialized away (one submitter), never a silent merge (R3-1). *(The "both revoking the same cred → dedupe" example was
+    **wrong** — corrected 2026-07-05, freshread-8 E; a cred-SEL moreover can't fork under a *linear* issuer IEL
+    (anchor-monotonicity), so two parties revoking one cred only forks if the issuer IEL forked — resolved by the IEL `Rpr`.)* It makes F-F's scenario *unreachable*: a governance event can never sit
     *above* an **unresolved** divergence, because a node originates nothing onto a live fork — the only appends onto
     one are the resolving repair or a **content-fork-burying seal-advancer** (which resolves it), never new governance. (A divergence with
     **≥ 2 privileged branches** — e.g. `{Evl, Evl}` — is irreconcilable → reincept; a `{Evl, content}` collision is
@@ -519,8 +528,11 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     kill-anchor resurrects no key), so the merge is **sound in principle** — we **decline** it on model-cleanliness /
     don't-relax-finality grounds (minimize carve-outs), **not** because it's unsound, and **not** the earlier wrong
     "zero availability gain" (a merge *would* preserve the identity; no-merge forces **reincept + reissue**).
-    **Identical kills dedup** (SAID over content, sigs adjacent → same target/position → same SAID regardless of
-    signer subset), so "both sides revoke the same cred" is a non-event; only **distinct** kills at one position
+    **Only a byte-identical re-submit dedups** (SAID over content; sigs are adjacent, but the `pins`/`pin` an event
+    commits **are** in the content, so a different signer subset anchors different member-KEL tips → a *different* SAID —
+    "same SAID regardless of signer subset" was **wrong**, corrected 2026-07-05 freshread-8 E), so "both sides revoke the
+    same cred" is **not** a dedupe — two independent acts are distinct events (different pins), a genuine collision
+    serialized away; only **distinct** kills at one position
     collide — rare, and avoided by serializing kills (one submitter; no free-for-all kills under a suspected split,
     which is load-bearing, not a nicety). This **decouples R3/R3-8** — `t_govern ≤ t_recover` stands on its own (and is now a **hard** floor — inv 12 / 2026-06-30).)* Separately, a **validity
     bound** (a rescission's bound, or a compromise rewind) removes a **contiguous suffix** of a chain — by
