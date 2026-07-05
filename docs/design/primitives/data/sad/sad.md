@@ -87,8 +87,8 @@ without changing every SAID at-and-above that node.
 
 ## Adversarial framing
 
-A SAD's identity IS its content hash. Verification reduces to recomputation; trust in the source is
-not required.
+A SAD's identity IS its content hash (SAID). Verification reduces to recomputation; trust in the
+source is not required.
 
 - A verifier given a SAD and its claimed SAID checks `computed_said == declared_said` from the bytes
   alone. The source can be a hostile peer, a tampered database, or a cached blob of unknown
