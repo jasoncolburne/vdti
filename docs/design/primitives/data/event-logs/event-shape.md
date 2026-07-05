@@ -322,7 +322,7 @@ federation IEL's **`Fcp`** marker (kind-strict, tier-2 → tier-2 — there is n
 **same atomic batch** (`Fcp` v=0 → `Rot` v=1). The full ceremony is KEL + federation doctrine —
 [`kel/`](kel/), [`federation/`](../../../federation/).
 
-### IEL — 9 kinds
+### IEL — 10 kinds
 
 | Kind  | Tier | Count                                      | Role                                                                                                                                                                                                                                   |
 | ----- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -335,6 +335,7 @@ federation IEL's **`Fcp`** marker (kind-strict, tier-2 → tier-2 — there is n
 | `Rpr` | 3    | `t_recover`                                | Divergence repair; may fold in an evicting roster `cut` (repair-and-evict).ᵉ                                                                                                                                                           |
 | `Trm` | 3    | `t_govern`                                 | **Terminal** — freezes all the IEL's SELs.                                                                                                                                                                                             |
 | `Wit` | 3    | `t_govern`                                 | **Federation rebind** (`federation` / `federationPin` + `witnesses`); anchored by member KEL `Wit`s (kind-strict, T3 ↔ T3). `{Wit, Wit}` terminal. The **one** witness/federation kind; on a federation IEL it is governance (below). |
+| `Fcp` | 2    | all founders consent                       | **Federation inception marker** _(federation IEL only)_ — the federation IEL's `Icp`; anchored kind-strict by each founder's KEL `Rot` (T2 ↔ T2). See the restricted-IEL note below.                                                  |
 
 - ᵃ **`Evl`** — the `roster` delta is `add` + `cut`; added members consent at tier 1 via their own
   KEL anchor, the binding authorization tier 2 from the continuing quorum; anchors no kills (those
