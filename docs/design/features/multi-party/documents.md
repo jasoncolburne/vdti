@@ -33,7 +33,7 @@ flowchart TB
   vA1["vA1"]:::doc
   vB1["vB1"]:::doc
   vM["vM — merge"]:::doc
-  gGnt -.->|grant| G
+  gGnt -.->|manifest.grant| G
   gGnt -. rescind .-> Resc
   vA -.->|data| vA1
   vB -.->|data| vB1

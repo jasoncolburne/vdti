@@ -103,11 +103,11 @@ it (read kind-first):
 
 ### Anchors
 
-The `anchors` role is a flat, ordered list of generic SAIDs — an IEL event SAID, a SEL event SAID, a
-credential SAID, a custody pointer, or any other content-addressable target. The KEL does not
-constrain what a generic SAID points at; IEL / SEL anchoring is the canonical use named at the
-cross-primitive layer ([§Tiers](../../../../protocol-doctrine.md#tiers)). Two properties motivate
-the bare-SAID list shape:
+The `anchors` role is a flat, ordered list of **IEL event SAIDs** — a KEL **always** anchors IEL
+events, **never** a SEL event or a raw SAD (an SEL event is anchored only by its owner IEL; a
+document reaches the chain only through its SEL). Which KEL kind anchors which IEL kind is the
+kind-strict cross-primitive anchor matrix ([§Tiers](../../../../protocol-doctrine.md#tiers)). Two
+properties motivate the bare-SAID list shape:
 
 - **Privacy.** The list carries bare SAIDs, never per-entry role tags. SAIDs are opaque —
   type-qualified base64 hashes that reveal nothing without fetching the target — so anchor structure
@@ -126,8 +126,9 @@ their witnessing policy in `witnesses` — never as anchors — keeping inceptio
 
 KEL verification validates anchor **format** only — each entry is a SAID-shaped token. Anchor
 **satisfaction** — what a SAID points to, and which kind-strict anchor rules apply — is
-downstream-verifier responsibility: IEL and SEL verifiers enforce anchor _kind_ and _tier_ per
-[§Tiers](../../../../protocol-doctrine.md#tiers) when resolving authorization against KEL anchors.
+downstream-verifier responsibility: the **IEL** verifier enforces the anchored IEL event's _kind_
+and _tier_ per [§Tiers](../../../../protocol-doctrine.md#tiers) when resolving an IEL event's
+authorization against its KEL anchors.
 
 ### Federation binding and witnesses
 

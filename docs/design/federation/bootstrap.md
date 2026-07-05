@@ -19,8 +19,8 @@ flowchart TB
   wFcp["witness KEL: Fcp"]:::kel --> wRot["Rot"]:::kel
   wWit["witness KEL: Wit"]:::kel
   fFcp["federation IEL: Fcp"]:::iel --> fWit["Wit"]:::iel
-  wRot ==>|anchors, T2↔T2| fFcp
-  wWit ==>|anchors, T3↔T3| fWit
+  wRot ==>|manifest.anchors, T2↔T2| fFcp
+  wWit ==>|manifest.anchors, T3↔T3| fWit
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
 ```
@@ -43,7 +43,7 @@ flowchart TB
   F2["federation F2"]:::iel
   uIcp -.->|federation / federationPin| F1
   uWit -.->|federation / federationPin| F2
-  kWit ==>|anchors, T3↔T3| uWit
+  kWit ==>|manifest.anchors, T3↔T3| uWit
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
 ```

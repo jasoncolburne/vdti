@@ -96,9 +96,9 @@ flowchart TB
   iel["IEL — an identity (a threshold over member KELs)"]:::iel
   sel["SEL — a single-owner data log"]:::sel
   sad["SAD — a document"]:::doc
-  kel ==>|anchors| iel
-  iel ==>|anchors| sel
-  sel -.->|data / content| sad
+  kel ==>|manifest.anchors| iel
+  iel ==>|manifest.anchors| sel
+  sel -.->|data / manifest.content| sad
   sel -.->|pin| iel
   iel -.->|pins| kel
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
@@ -400,12 +400,12 @@ kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's ty
 
 ```mermaid
 flowchart LR
-  Ixn["IEL Ixn"]:::iel ==>|anchors| c["SEL content / v1"]:::sel
-  Evl["IEL Evl"]:::iel ==>|anchors| Fld["SEL Fld"]:::sel
-  Ath["IEL Ath"]:::iel ==>|anchors| Gnt["SEL Gnt"]:::sel
-  Rev["IEL Rev"]:::iel ==>|anchors| Trm["SEL Trm"]:::sel
-  Dth["IEL Dth"]:::iel ==>|anchors| Trm
-  Rpr["IEL Rpr"]:::iel ==>|anchors| RprS["SEL Rpr"]:::sel
+  Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
+  Evl["IEL Evl"]:::iel ==>|manifest.anchors| Fld["SEL Fld"]:::sel
+  Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
+  Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
+  Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm
+  Rpr["IEL Rpr"]:::iel ==>|manifest.anchors| RprS["SEL Rpr"]:::sel
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 ```
@@ -523,9 +523,9 @@ flowchart TB
   wRot["W: Rot"]:::kel
   zRot["Z: Rot"]:::kel
   yIxn["Y: Ixn (joiner)"]:::kel
-  wRot ==>|anchors, t_govern| iEvl
-  zRot ==>|anchors, t_govern| iEvl
-  yIxn ==>|consent-of-added| iEvl
+  wRot ==>|manifest.anchors, t_govern| iEvl
+  zRot ==>|manifest.anchors, t_govern| iEvl
+  yIxn ==>|manifest.anchors, consent-of-added| iEvl
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
 ```
@@ -633,10 +633,10 @@ flowchart TB
   iIxn["IEL Ixn"]:::iel --> iRev["IEL Rev"]:::iel
   sIcp["SEL Icp"]:::sel --> sPin["SEL Pin"]:::sel --> sTrm["SEL Trm"]:::sel
   Cred["cred SAD"]:::doc
-  kIxn ==>|anchors| iIxn
-  kRot ==>|anchors| iRev
-  iIxn ==>|anchors| sPin
-  iRev ==>|anchors| sTrm
+  kIxn ==>|manifest.anchors| iIxn
+  kRot ==>|manifest.anchors| iRev
+  iIxn ==>|manifest.anchors| sPin
+  iRev ==>|manifest.anchors| sTrm
   sIcp -.->|data| Cred
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff

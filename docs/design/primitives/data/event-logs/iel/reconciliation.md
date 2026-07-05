@@ -20,8 +20,8 @@ flowchart TB
   Ror["KEL Ror"]:::kel
   Rpr_i["IEL Rpr"]:::iel
   Rpr_s["SEL Rpr"]:::sel
-  Ror ==>|anchors| Rpr_i
-  Rpr_i ==>|anchors| Rpr_s
+  Ror ==>|manifest.anchors| Rpr_i
+  Rpr_i ==>|manifest.anchors| Rpr_s
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
@@ -43,8 +43,8 @@ flowchart TB
   Rec["KEL Rec"]:::kel --> Ror["KEL Ror"]:::kel
   Rpr_i["IEL Rpr"]:::iel
   Rpr_s["SEL Rpr"]:::sel
-  Ror ==>|anchors| Rpr_i
-  Rpr_i ==>|anchors| Rpr_s
+  Ror ==>|manifest.anchors| Rpr_i
+  Rpr_i ==>|manifest.anchors| Rpr_s
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
