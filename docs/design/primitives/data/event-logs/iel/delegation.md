@@ -17,14 +17,16 @@ anchored by an IEL `Dth` (tier 2, `t_authorize`). Present at the derived locus �
 
 ```mermaid
 flowchart TB
-  dAth["delegator IEL: Ath — delegates = [delegate prefix] (t_authorize)"]:::iel --> dDth["Dth — deauthorize (t_authorize)"]:::iel
-  rIcp["rescission lookup-SEL: Icp — derive(delegator, RSC_TOPIC, delegate)"]:::sel --> rTrm["Trm — bound = last honoured event on the delegate's chain"]:::sel
-  P["delegate IEL prefix"]:::iel
-  dAth -.->|delegates| P
-  dDth ==>|anchors| rTrm
+  dAth["delegator IEL: Ath (t_authorize)"]:::iel --> dDth["Dth (t_authorize)"]:::iel
+  rIcp["rescission lookup-SEL: Icp — derive(delegator, RSC_TOPIC, delegate)"]:::sel --> rTrm["Trm"]:::sel
+  P["delegate IEL: Icp"]:::iel --> Q["Ixn"]:::iel
+  dAth -.->|manifest.delegates| P
+  dDth ==>|manifest.anchors| rTrm
+  rTrm ==>|manifest.bound| Q
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 ```
 
-Solid arrows are chain order (`previous` points back); the dotted arrow is `manifest.delegates`; the
-thick arrow is `manifest.anchors` (the `Dth` sealing the rescission `Trm`).
+Solid arrows are chain order; the dotted arrow is `manifest.delegates`; the thick arrows are
+`manifest.anchors` (the `Dth` sealing the rescission `Trm`) and `manifest.bound` (the `Trm`
+selecting the last valid event on the delegated chain).
