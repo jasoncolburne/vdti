@@ -99,10 +99,10 @@ KEL inception is one of two kinds — `Fcp`, `Icp` (see
 [`events.md` §Two-kind inception](events.md#two-kind-inception)). At v=0, the verifier dispatches on
 kind:
 
-| Inception kind | Federation binding at v=0                               | Verifier behavior                                                                                                                                                                                                                                                          |
-| -------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp`          | absent                                                  | Pre-federation chain. No `federation` binding; no witnessing applies. The chain's v=1 `Rot` anchors the federation IEL's `Fcp` marker (founder bootstrap), entering the federation-bound lifecycle.                                                                        |
-| `Icp`          | `federation` + `federationPin`, or absent (direct-mode) | **Federation-bound:** the verifier reads `federation` / `federationPin` as the federation context and records it per event; witnessing applies per the `witnesses` role. **Direct-mode** (`federation` absent): un-federated, no witnessing, until a later `Wit` binds it. |
+| Inception kind | Federation binding at v=0                               | Verifier behavior                                                                                                                                                                                                         |
+| -------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp`          | absent                                                  | Pre-federation — no `federation`, no witnessing; the v=1 `Rot` anchors the federation IEL `Fcp` (founder bootstrap), entering the federation-bound lifecycle.                                                             |
+| `Icp`          | `federation` + `federationPin`, or absent (direct-mode) | **Federation-bound:** reads `federation` / `federationPin` as context (recorded per event); witnessing per `witnesses`. **Direct-mode** (`federation` absent): un-federated, no witnessing, until a later `Wit` binds it. |
 
 The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the
 carve-out from chain data alone rather than consulting consumer configuration. Consumer trust
