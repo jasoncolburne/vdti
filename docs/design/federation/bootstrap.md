@@ -16,9 +16,9 @@ carrying the federation `clock`.
 
 ```mermaid
 flowchart TB
-  wFcp["witness KEL: Fcp"]:::kel --> wRot["Rot — genesis"]:::kel
-  wWit["witness KEL: Wit (t_govern)"]:::kel
-  fFcp["federation IEL: Fcp — inception marker (roster = witness KELs)"]:::iel --> fWit["Wit — rotate / add / cut a witness (+ clock)"]:::iel
+  wFcp["witness KEL: Fcp"]:::kel --> wRot["Rot"]:::kel
+  wWit["witness KEL: Wit"]:::kel
+  fFcp["federation IEL: Fcp"]:::iel --> fWit["Wit"]:::iel
   wRot ==>|anchors, T2↔T2| fFcp
   wWit ==>|anchors, T3↔T3| fWit
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
@@ -37,10 +37,10 @@ event is witnessed by whichever federation was current when it landed.
 
 ```mermaid
 flowchart TB
-  uIcp["user IEL: Icp — federation = F1, federationPin = F1 tip"]:::iel --> uWit["Wit — rebind: federation = F2, federationPin = F2 tip"]:::iel
-  kWit["member KEL: Wit (t_govern)"]:::kel
-  F1["federation F1 (Fcp-rooted)"]:::iel
-  F2["federation F2 (Fcp-rooted)"]:::iel
+  uIcp["user IEL: Icp"]:::iel --> uWit["Wit — rebind"]:::iel
+  kWit["member KEL: Wit"]:::kel
+  F1["federation F1"]:::iel
+  F2["federation F2"]:::iel
   uIcp -.->|federation / federationPin| F1
   uWit -.->|federation / federationPin| F2
   kWit ==>|anchors, T3↔T3| uWit

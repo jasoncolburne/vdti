@@ -1185,15 +1185,29 @@ post-batch walk reports a structural failure, with no per-kind carve-out.
 `derive(owner, topic, data)` and reading it (present → yes, O(1)), **never** by scanning a chain or
 list for the absence of a kill. A scan-for-absence forces deep-inspecting everything it touches; the
 positive lookup is O(1) and tamper-evident. This is why rescission and closure are lookup-SELs
-rather than list-walks. Logs are referenced **by prefix**; a SAID is an integrity commitment, not a
-global lookup key — there is no SAID→event index — so a SAID harvested off a public chain does not
-invert to a private chain's prefix **for any party outside the federation mesh** (the witness beacon
-pairs a prefix with its `said(Icp)`, so a federation witness can correlate — a standing
-confidentiality property of mesh membership; see
-[§Federation convergence](#federation-convergence)). A prefix-bearing request likewise keeps the
-prefix out of the **address** — it rides in the request **body** (a safe, body-carrying read like
-HTTP QUERY), never the request line or query string, since a URL-encoded prefix leaks into common
-access and proxy logs that aren't otherwise privacy-controlled.
+rather than list-walks.
+
+```mermaid
+flowchart LR
+locus["the derived lookup-SEL locus"]:::sel
+locus -->|present| hit["a {Icp, Trm} sits here → killed"]:::sel
+locus -->|absent| miss["nothing here → not killed"]:::none
+classDef sel fill:#122a44,stroke:#1971c2,color:#fff
+classDef none fill:#2a2a2a,stroke:#888888,color:#fff
+```
+
+A negative check — "is X revoked / rescinded / closed?" — recomputes one lookup-SEL address
+`derive(owner, topic, data)` and reads it: **present → yes** (O(1), tamper-evident), **absent →
+no**. No scan for the absence of a kill, and no SAID→event index to invert.
+
+Logs are referenced **by prefix**; a SAID is an integrity commitment, not a global lookup key —
+there is no SAID→event index — so a SAID harvested off a public chain does not invert to a private
+chain's prefix **for any party outside the federation mesh** (the witness beacon pairs a prefix with
+its `said(Icp)`, so a federation witness can correlate — a standing confidentiality property of mesh
+membership; see [§Federation convergence](#federation-convergence)). A prefix-bearing request
+likewise keeps the prefix out of the **address** — it rides in the request **body** (a safe,
+body-carrying read like HTTP QUERY), never the request line or query string, since a URL-encoded
+prefix leaks into common access and proxy logs that aren't otherwise privacy-controlled.
 
 ### Merge verification and advisory locking
 

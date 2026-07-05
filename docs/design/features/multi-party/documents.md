@@ -24,15 +24,15 @@ intra-chain, append-only, clock-free membership test.
 
 ```mermaid
 flowchart TB
-  V0["V0 — constitution SAD (derives the doc prefix)"]:::doc
-  gGnt["governance SEL: Gnt — grant (Ath-anchored, t_authorize)"]:::sel
-  G["grant-doc G (gated): editors / commenters + from-periods"]:::doc
-  Resc["rescission SEL {Icp, Trm} — key = hash(G | said_b); closes a period"]:::sel
-  vA["version SEL A: Icp — data = vA1 (serial-1 Pin anchored at V_A)"]:::sel
-  vB["version SEL B: Icp — data = vB1 (serial-1 Pin anchored at V_B)"]:::sel
-  vA1["vA1 — version SAD"]:::doc
-  vB1["vB1 — version SAD"]:::doc
-  vM["vM — merge version SAD"]:::doc
+  V0["V0 — constitution SAD"]:::doc
+  gGnt["governance SEL: Gnt"]:::sel
+  G["grant-doc G (gated)"]:::doc
+  Resc["rescission SEL: {Icp, Trm}"]:::sel
+  vA["version SEL A: Icp"]:::sel
+  vB["version SEL B: Icp"]:::sel
+  vA1["vA1"]:::doc
+  vB1["vB1"]:::doc
+  vM["vM — merge"]:::doc
   gGnt -.->|grant| G
   gGnt -. rescind .-> Resc
   vA -.->|data| vA1

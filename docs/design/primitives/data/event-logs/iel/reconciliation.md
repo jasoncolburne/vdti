@@ -17,9 +17,9 @@ atomic batch:
 
 ```mermaid
 flowchart TB
-  Ror["KEL Ror — surviving member (t_recover)"]:::kel
-  Rpr_i["IEL Rpr — fork = losing IEL branch root (opt: roster cut)"]:::iel
-  Rpr_s["SEL Rpr — fork = losing SEL branch root"]:::sel
+  Ror["KEL Ror"]:::kel
+  Rpr_i["IEL Rpr"]:::iel
+  Rpr_s["SEL Rpr"]:::sel
   Ror ==>|anchors| Rpr_i
   Rpr_i ==>|anchors| Rpr_s
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
@@ -40,9 +40,9 @@ hosts no anchor). The IEL / SEL cascade is otherwise identical:
 
 ```mermaid
 flowchart TB
-  Rec["KEL Rec — recover the compromised KEL; fork = losing KEL branch root"]:::kel --> Ror["KEL Ror — participates in the IEL repair"]:::kel
-  Rpr_i["IEL Rpr — fork = losing IEL branch root"]:::iel
-  Rpr_s["SEL Rpr — fork = losing SEL branch root"]:::sel
+  Rec["KEL Rec"]:::kel --> Ror["KEL Ror"]:::kel
+  Rpr_i["IEL Rpr"]:::iel
+  Rpr_s["SEL Rpr"]:::sel
   Ror ==>|anchors| Rpr_i
   Rpr_i ==>|anchors| Rpr_s
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff

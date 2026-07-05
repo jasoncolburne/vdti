@@ -57,6 +57,21 @@ The two hashes see different canonical bytes, so on the inception event `prefix 
 is the stable chain identifier — copied forward on every subsequent event of the chain. The SAID is
 the per-event content hash that turns over each event.
 
+```mermaid
+flowchart LR
+  cnt["inception content"]:::doc
+  cnt -->|said + prefix = placeholder| pfx["prefix — stable chain id"]:::id
+  cnt -->|prefix real, said = placeholder| sid["said — per-event hash"]:::id
+  pfx -.->|used in the said hash| sid
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef id fill:#2a2a2a,stroke:#888888,color:#fff
+```
+
+Two Blake3-256 hashes over the same canonical content. The **prefix** hash blanks both `said` and
+`prefix` to the fixed-length placeholder; the **said** hash uses the real `prefix` and blanks only
+`said`. Different bytes → **`prefix ≠ said`** (correlation resistance), and the placeholder's fixed
+byte-length lets a SAID name its own SAD without circularity.
+
 **Why two hashes, not one — correlation resistance.** A single hash would set the inception event's
 SAID equal to the prefix — and the prefix is the chain's lookup key, while a SAID is an opaque
 per-event commitment (effectively an event's primary key) that is not itself a lookup key. So an

@@ -59,6 +59,22 @@ This composition is what makes the three-tier capability model uniform across pr
 SEL operation inherits its authentication tier from the event that anchors it. See
 [`../../../protocol-doctrine.md` §Tiers](../../../protocol-doctrine.md#tiers).
 
+```mermaid
+flowchart TB
+  sig["adjacent signature"]:::sig -.->|signs| kel["member KEL: Ixn"]:::kel
+  kel ==>|manifest.anchors| iel["owner IEL: Ixn"]:::iel
+  iel ==>|manifest.anchors| sel["SEL: Ixn"]:::sel
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
+  classDef sig fill:#3d2f12,stroke:#f08c00,color:#fff
+```
+
+IEL and SEL events carry **no signature** of their own. Thick arrows are `manifest.anchors` (the
+down-commit); a verifier reading the SEL event walks them **upward** — SEL → owner IEL → member KEL
+— to that KEL event's **adjacent signature**, which authenticates the chain. The act's tier comes
+from the anchoring kind (all `Ixn` here → tier 1).
+
 ## Structural authorization — the three mechanisms
 
 Each primitive authorizes its own events structurally.
@@ -73,6 +89,28 @@ Each primitive authorizes its own events structurally.
 - **SEL — single-owner ownership.** A SEL is owned by exactly one IEL. Its events are authorized by
   that owner IEL: the owner's IEL event anchors the SEL event (commits to its SAID), and the
   required count is set by the SEL event's kind. A SEL hosts no roster of its own.
+
+```mermaid
+flowchart TB
+  kel["KEL — a device's key state"]:::kel
+  iel["IEL — an identity (a threshold over member KELs)"]:::iel
+  sel["SEL — a single-owner data log"]:::sel
+  sad["SAD — a document"]:::doc
+  kel ==>|anchors| iel
+  iel ==>|anchors| sel
+  sel -.->|data / content| sad
+  sel -.->|pin| iel
+  iel -.->|pins| kel
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+```
+
+The composition stack. Each layer **commits down** to the one below via `manifest.anchors` (thick)
+and **pins up** to the one above (dotted); a SEL names its documents by `data` / `content`.
+Authority resolves **up** the anchor chain to a KEL signature; the as-of / freshness floors **up**
+the pins.
 
 **The threshold vector and its bounds.** Each IEL kind draws its required count from one slot of the
 vector: content (`Ixn`) from `t_use`; a roster/threshold change (`Evl`) from `t_govern`; an
@@ -233,6 +271,20 @@ from the event kind, never stored.
   (a kill must be permanent on arrival).
 - **Tier 3 — rotation preimage + recovery preimage.** Repair and identity-kill.
 
+```mermaid
+flowchart LR
+  sk["signing key"]:::mat -->|Tier 1| k1["Ixn"]:::kel
+  rp["rotation preimage"]:::mat -->|Tier 2| k2["Rot"]:::kel
+  rp -->|Tier 3| k3["Ror / Rec / Wit / Trm"]:::kel
+  vp["recovery preimage"]:::mat --> k3
+  classDef mat fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+```
+
+The material an adversary must hold to forge each kind. **The signing key gates only Tier 1** —
+Tiers 2–3 require the reserve preimages (held apart from the signing key), **not** the old signing
+key; Tier 3 needs both the rotation _and_ recovery preimage.
+
 The reserve (rotation / recovery preimage, held apart from the signing key) is required when a
 forgery would be high-harm or irreversible, **or** when the act must be permanent on arrival
 (sealed). A **kill** (revoke / close / rescind / terminate) is the permanence case: low-danger (it
@@ -348,12 +400,12 @@ kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's ty
 
 ```mermaid
 flowchart LR
-  Ixn["IEL Ixn — content (t_use)"]:::iel -->|anchors| c["SEL content Ixn / v1"]:::sel
-  Evl["IEL Evl — evolve (t_govern)"]:::iel -->|anchors| Fld["SEL Fld — re-seal"]:::sel
-  Ath["IEL Ath — authorize (t_authorize)"]:::iel -->|anchors| Gnt["SEL Gnt — grant"]:::sel
-  Rev["IEL Rev — revoke (t_govern)"]:::iel -->|anchors| Trm["SEL Trm — kill"]:::sel
-  Dth["IEL Dth — deauthorize (t_authorize)"]:::iel -->|anchors| Trm
-  Rpr["IEL Rpr — repair (t_recover)"]:::iel -->|anchors| RprS["SEL Rpr — repair"]:::sel
+  Ixn["IEL Ixn"]:::iel ==>|anchors| c["SEL content / v1"]:::sel
+  Evl["IEL Evl"]:::iel ==>|anchors| Fld["SEL Fld"]:::sel
+  Ath["IEL Ath"]:::iel ==>|anchors| Gnt["SEL Gnt"]:::sel
+  Rev["IEL Rev"]:::iel ==>|anchors| Trm["SEL Trm"]:::sel
+  Dth["IEL Dth"]:::iel ==>|anchors| Trm
+  Rpr["IEL Rpr"]:::iel ==>|anchors| RprS["SEL Rpr"]:::sel
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 ```
@@ -578,8 +630,8 @@ member KEL `Rot`:
 ```mermaid
 flowchart TB
   kIxn["KEL Ixn"]:::kel --> kRot["KEL Rot"]:::kel
-  iIxn["IEL Ixn — issue (t_use)"]:::iel --> iRev["IEL Rev — revoke (t_govern)"]:::iel
-  sIcp["SEL Icp — data = cred SAID"]:::sel --> sPin["SEL Pin — v1 (issued)"]:::sel --> sTrm["SEL Trm — revocation"]:::sel
+  iIxn["IEL Ixn"]:::iel --> iRev["IEL Rev"]:::iel
+  sIcp["SEL Icp"]:::sel --> sPin["SEL Pin"]:::sel --> sTrm["SEL Trm"]:::sel
   Cred["cred SAD"]:::doc
   kIxn ==>|anchors| iIxn
   kRot ==>|anchors| iRev
