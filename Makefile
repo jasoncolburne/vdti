@@ -13,7 +13,11 @@ PRETTIER := npx --yes prettier@3.3.3
 WORKING_DIR := .working
 WORKING_MTIME := 202001010000
 WORKING_TARBALL := working.tar.xz
-WORKING_FILES := 00-INDEX.md design-resume.md warm-resume.md vdti-1-roadmap.md
+# Snapshot every live .working/*.md, minus the exclusions below. The non-recursive
+# glob already skips .working/archived/ — demote consumed reviews / landed PR bodies
+# there and they drop out of the snapshot with no edit to this file.
+WORKING_EXCLUDE := jason-notes.md
+WORKING_FILES := $(filter-out $(WORKING_EXCLUDE),$(notdir $(wildcard $(WORKING_DIR)/*.md)))
 
 all: lint-terminology lint-docs fmt-md-check
 
