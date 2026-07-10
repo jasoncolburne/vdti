@@ -33,6 +33,15 @@ Doctrine is the leading edge — these follow it.
   filter. The verdict is the separate held-set walk (the seal it reads is itself derived from the held events
   — inv 13 / area-vdtid-services §1e), and the synthetic **carries** that verdict value; both are pure
   functions of the held set (the cold-F2 / warm-H1 fix).
+  - **The synthetic's exact bytes are a cross-node protocol constant (SS-2).** The "qualified by position" encoding —
+    the type tag, the `prefix`, and the position field, with a fixed delimiter and ordering — must be
+    **byte-identical across conforming implementations**: two impls holding the same event set must emit the same
+    synthetic, or their effective-SAIDs mismatch permanently (a `since:seal` fetch can't close it — the events are
+    identical on both sides) and anti-entropy spins (area-vdtid-services §1i). So the exact synthetic bytes are
+    **pinned by the reference lib / at the encode**, not assumed. *(This resolves the apparent §1b-vs-§1i tension:
+    the Rust `lib/vdti` is the **reference** impl, but the ecosystem is deliberately **multi-impl** — you audit it
+    yourself and re-implement / bind from other languages — so the wire formats are pinned protocol constants, not
+    "identical because there is only one lib".)*
   - **The machinery already exists in kels** (`lib/derive/src/lib.rs::compute_prefix_effective_said`):
     leaves are found with a **`NOT EXISTS` correlated anti-join** (an event whose `said` is no other
     event's `previous`), `ORDER BY said ASC`; single live tip → its SAID, ≥ 2 → **no single tip**. The

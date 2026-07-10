@@ -257,7 +257,7 @@ case. **Preferred over adding an availability field to every event.** *(One fact
 
 ### 1k. Receipt-encoded threshold + on-receiving-node routing (first-seen hardening, 2026-07-08; ⚠ NOT previously design-reviewed — the encode-review is its first decorrelated pass)
 
-The match-check *safety* was verified this session; one *value*-scope point is **[REVIEW-PENDING]**. **Receipt-encoded
+The match-check *safety* was verified this session; the *value*-scope point is **resolved** (below). **Receipt-encoded
 threshold:** each receipt carries the **witness-config `threshold`**, so witnessed-detection becomes **count
 `threshold`-many agreeing receipts on `(event SAID, threshold)`** — no chain-walk to resolve the in-effect threshold.
 On pull the receipts' threshold must **exactly match the chain-authoritative threshold** (the committed witness-config

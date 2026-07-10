@@ -37,7 +37,13 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   | `Trm` | T2 | single | terminal (terminate); signed with the rotation reserve. |
 
 - **Two-tier capability model** [inv 11]: **T1 = signing key** (content — the everyday key); **T2 = the rotation
-  reserve** (every key change — reveals the new signing key). The **old signing key is NOT a prerequisite** for T2
+  reserve** (every key change — reveals the new signing key). **Key-state = single-stream pre-rotation (KERI-style):**
+  the reserve committed at each epoch (via `rotationHash`) is **revealed to sign the next rotation and thereby becomes
+  that epoch's signing key**, and that same rotation commits the next reserve — so a device holds exactly **two live
+  keys**, the **current signing key** (last epoch's revealed reserve, for content) and the **next reserve** (committed,
+  unrevealed, for the next key change); the two tiers are the *current* and *next* members of **one** key stream, not
+  two independent keys (this is why "today's signing key **is** the secret that authored the current epoch's rotation",
+  §1 first-seen — SS-3). The **old signing key is NOT a prerequisite** for T2
   (a rotation reveals the new key; you don't sign with the key you're abandoning). **All key changes are
   single-signed with the rotation reserve** — `Rot`/`Wit`/`Trm` (no dual-sig, no recovery key). The rotation reserve
   is held *apart* from the signing key in the device's hardware, and lets that device heal a suspected signing-key

@@ -21,8 +21,9 @@ and the resolution converged this session. Feeds the eventual designer note + br
   (rescission, `t_authorize`), and **`Fed` was renamed/merged to `Wit`** 2026-06-28: the one kind
   that does both the user federation-binding and federation governance); a **federation** IEL is the restricted set
   **`Fcp`/`Wit`/`Trm`** (`Fcp` = its inception marker, `Wit` = governance — roster + rotation, **T2**, **`Wit`-anchored**
-  (field-match = witness-config only, Q3) — replaces `Evl` for the federation; 2026-06-28, cold-4 B1); see `vdti-area-iel.md`. KEL is **6**
-  (`Fcp`/`Icp`/`Ixn`/`Rot`/`Wit`/`Trm` — `Ror`/`Rec` dropped in the first-seen pivot; `Fed` → `Wit`).
+  (field-match = witness-config only, Q3) — replaces `Evl` for the federation; 2026-06-28, cold-4 B1); see `vdti-area-iel.md`. KEL is **6 labels**
+  (`Fcp`/`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`) but **5 per KEL** (`Fcp` **XOR** `Icp` as root — area-kel:33) — `Ror`/`Rec`
+  dropped in the first-seen pivot; `Fed` → `Wit`.
 
 Both layers carry `Fcp` (KEL = federation-infrastructure inception; IEL = the federation inception marker) — **dispatched by layer**, an intentional shared marker, not a collision.
 

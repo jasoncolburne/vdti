@@ -40,9 +40,10 @@ and **miss a loss-of-trust event** — a freshness attack, not merely an unneces
 
 So: the effective-SAID the token-store trusts for a loss-of-trust-sensitive reuse must be as **fresh and
 attested** as that decision requires — i.e. sourced from **federation-witnessed / gossiped** effective-SAIDs
-(multiple sources), not a single server's claim. This is the same freshness bar the credential non-revocation
-proof already carries (`vdti-creds-issuance-revocation-model.md §4.2`). For decisions that don't run to tip the
-plain comparison is fine.
+(multiple sources), not a single server's claim. This is the same freshness bar the credential **revocation check**
+now carries (fail-secure — the `kills[]` declaration on the issuer's witnessed IEL rides inv 8's freshness gate;
+`vdti-area-vdtid-services.md §1d` / `inv 8` / `inv 10`, superseding the pre-rework "non-revocation proof" framing).
+For decisions that don't run to tip the plain comparison is fine.
 
 ## Composition with the pin-everything reshape
 

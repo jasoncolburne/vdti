@@ -664,7 +664,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       **rescission** is the same kill shape on a lookup-SEL — a lookup-SEL **`Trm`** anchored by a `Dth`
       (whose `kills[]` carries the `bound` — **delegate**, public; a **doc-member** rescission's participant-identifying
       `bound` instead rides a **gated rescind-doc committed by the `Trm`**, `kills[]` carrying only the blind target —
-      R3, multi-party §1; the `Trm` carries only its pin — 2026-07-09). The kill-anchors are **distinct from `Evl`** (roster/threshold-change only, always
+      R3, multi-party §1; the **cred/delegate** `Trm` carries only its pin — 2026-07-09). The kill-anchors are **distinct from `Evl`** (roster/threshold-change only, always
       `t_govern`): they carry no roster delta, so a roster change can never ride at a kill's count (**S1**
       closed), and a `Rev`/`Dth` **forces a `Rot`** (each authorizing member — a T2/permanent act needs a ≥T2 KEL anchor;
     **R3-2's "signatures only" is corrected, A** — the `Evl`-vs-kill-anchor distinction is the roster delta, not the

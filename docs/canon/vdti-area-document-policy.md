@@ -19,7 +19,10 @@ policy-on-documents, [inv 8] walk-semantics, [inv 10] negative-checks-are-lookup
   on-chain proof; current: tip / attestations / challenge). **[DONE — §C]**
 - **D. Document context** — fixed by the **anchoring position** (no body `pin`, dropped 2026-06-26); multi-identity
   uses an `issuers[]` SAD + independent attestations. **[RESOLVED — §A]**
-- **E. Policy-satisfaction matching** — how a server/verifier decides "satisfied." [fresh]
+- **E. Policy-satisfaction matching** — how a server/verifier decides "satisfied" **is the shared composer of §C**
+  (distinct-by-prefix counting · per-prefix-max weight · `and`-over-disjoint-pools · fail-secure-on-unknown ·
+  `max_depth`/work caps); there is no separate satisfaction mechanism. Its **exact composer mechanics are imported at
+  the feature encode** from the policy-DSL canon (SS-4). **[RESOLVED — = §C]**
 - **F. Revocation** — a cred is a **direct-anchored SAD** (no cred-SEL; issuance commitment
   `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`); revocation is a **`kills[]` declaration** on the issuer's
   witnessed IEL `Rev` (`target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, a flat qualified hash) + a

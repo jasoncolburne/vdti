@@ -30,6 +30,7 @@ Three attestation modes drive most credential flows:
 
 ## Documentation
 
+- [`MODEL.md`](MODEL.md) — a plain english description of VDTI and its rules.
 - [`docs/design/`](docs/design/) — protocol design and doctrine (start with its
   [`README.md`](docs/design/README.md) for the full reading order).
 - [`docs/reference/`](docs/reference/) — primitive references, attestation modes, KERI comparison.
