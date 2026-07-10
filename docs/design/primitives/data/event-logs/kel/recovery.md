@@ -2,269 +2,225 @@
 
 KEL recovery is the structural mechanism that lets a chain resolve divergence and defend against
 tiered key compromise without surrendering the locked portion. This doc states the doctrine: what
-compromise scenarios the design defends against, why dual-signature plus recovery-key preimage
-closes those scenarios, why the locked-portion bound makes recovery cross-node-validatable, and how
-pre-seal verifiability composes with the three-tier compromise model.
+compromise scenarios the design defends against, why recovery is a plain rotation that buries the
+adversary's run, why the locked-portion bound makes recovery cross-node-validatable, and how
+pre-seal verifiability composes with the two-tier compromise model.
 
-This is doctrine, not workflow. Operator CLI ceremony and the choreography for `Rec` / `Ror` / `Trm`
-lives in
+This is doctrine, not workflow. Operator CLI ceremony and the choreography for recovery `Rot` /
+`Trm` lives in
 [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md)
 (subsequent sub-issue). Per-kind event-shape rules live in [`events.md`](events.md); merge-layer
 routing in [`merge.md`](merge.md); the cross-node correctness proof in
 [`reconciliation.md`](reconciliation.md).
 
-## Three-tier compromise model
+## Two-tier compromise model
 
 The defense surface KEL recovery covers is structured by tier — the cryptographic material an
 adversary holds. Each tier names what the adversary needs and only what they need; the old signing
-key is not a prerequisite for tier 2 or tier 3. See
-[`events.md` §Three-tier capability model](events.md#three-tier-capability-model) for the canonical
+key is not a prerequisite for tier 2. See
+[`events.md` §Two-tier capability model](events.md#two-tier-capability-model) for the canonical
 capability statement.
 
-| Tier | Adversary holds                                  | Adversary can forge            | Defense                                                                                                                                                                                                                  |
-| ---- | ------------------------------------------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1    | Current signing key.                             | `Ixn`.                         | A forked content branch is archived by `Rec`; a linear takeover is rotated out via `Rot`. (Content is archivable — what the recovery reserve defends.)                                                                   |
-| 2    | Rotation-key preimage alone.                     | `Rot`.                         | **Proactive only** — `Ror` _before_ the adversary rotates, retiring the preimage they hold. Once their `Rot` lands, no repair can archive it → **reincept** (the reserve defends the signing key, not the rotation key). |
-| 3    | Rotation-key preimage AND recovery-key preimage. | `Ror` / `Rec` / `Wit` / `Trm`. | No in-band recourse — defense is operational (custody separation, IEL-layer threshold redundancy, abandon-and-reincept).                                                                                                 |
+| Tier | Adversary holds       | Adversary can forge    | Defense                                                                                                                                                                                                                                |
+| ---- | --------------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Current signing key.  | `Ixn`.                 | A forked content branch is buried by a recovery `Rot`; a linear takeover is rotated out. Content is buriable — what the rotation reserve defends: the **signing** key.                                                                 |
+| 2    | The rotation reserve. | `Rot` / `Wit` / `Trm`. | **None in-band.** A reserve holder just extends the chain with a rotation to their own key — a takeover-by-extend witnesses sign as an ordinary next event → **reincept** (the reserve defends the signing key, not the rotation key). |
 
-The protocol's recovery primitive `Rec` closes the **tier-1 (content) surface** — it archives an
-adversary's content branch, which is what the recovery reserve defends: the **signing** key, never
-the rotation key. Tier-2 is defended only **proactively** (`Ror` before the adversary rotates); once
-an adversary `Rot` lands it is a privileged event no repair can archive → **reincept**. Tier-3 has
-no in-band defense. Post-rotation tier-2 and tier-3 defense is the responsibility of the layers
-composed above KEL (IEL governance with threshold redundancy across distinct custodians; see
-[§Limit of the doctrine — current-state compromise](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)).
+The recovery `Rot` closes the **tier-1 (content) surface** — it buries an adversary's content
+branch, which is what the rotation reserve defends: the **signing** key, never the rotation key.
+Tier-2 has **no in-band recourse**: a reserve holder can just extend the chain with a rotation to
+their own key, a takeover-by-extend that witnesses sign willingly as an ordinary next event, so it
+forces nothing and is silent to third parties on a dormant chain (caught only by owner vigilance).
+Once an adversary rotation lands, survivability is decided one layer up — IEL governance with
+threshold redundancy across distinct custodians; see
+[§Limit of the doctrine — current-state compromise](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
-## Rec versus Ror — repair versus proactive rotation
+## Recovery is a plain `Rot` that buries at the root
 
-KEL has two distinct recovery primitives. They are not interchangeable.
+Recovery is not a special kind — it is an ordinary `Rot`, applied at the right position. When your
+signing key is stolen, you rotate to a fresh key at the **first** event that isn't yours. That
+single rotation does two things at once:
 
-- **`Rec` is the repair.** It resolves an already-divergent chain: `Rec` keeps the repairing branch
-  and archives the rest — **content-only** archival tails, one condemned by the root committed as
-  its `fork`, every other closing below the seal and by descent (a privileged event in any competing
-  branch makes the fork terminal → reincept, never archived) — and returns the chain to Active.
-  Reveals the current recovery-key preimage as a side effect of dual-signing: that preimage is
-  spent, but `Rec` commits a fresh recovery commitment (a new `recoveryHash`), so the chain stays
-  recoverable.
-- **`Ror` is proactive.** Used pre-emptively — to rotate both signing and recovery keys for
-  forward-secrecy hygiene, or to refresh the recovery-key preimage commitment per operator cadence
-  guidance. `Ror` is not divergence-driven; it lands as a linear extension of a non-divergent chain.
+- **It locks the thief out.** The rotation reveals the next reserve as the new signing key; the
+  thief lacks it, so they can mint no new content on the recovered chain.
+- **It buries their run.** Everything below the rotation that isn't on the surviving line is dead,
+  and anything grown from a dead point is dead too (**deadness descends** — an event whose parent is
+  dead is dead). You go for the **root**, not their tip, so however long a run the thief piled on,
+  it all hangs off that one point and dies at once.
 
-Both reveal the current recovery-key preimage and commit a new one (`Ror` and `Rec` both populate
-`recoveryKey` + `recoveryHash`). The difference is structural lifecycle role:
+There is **no repair kind, no recovery key, and nothing to prove** — no losing-branch commitment, no
+content-only guard walk. Burial is by **position + descent**: the burying `Rot`'s seal-cap locks the
+loser's first event below the new seal, and the descent rule kills its growth. A content fork on a
+witnessed chain is prevented upstream (the majority floor); the recovery `Rot` is the resolution for
+the residual (an owner burying a compromised content run, or a lagging-node content fork).
 
-- **Divergence has happened** → `Rec`. The chain is origination-frozen on the live fork. A `Rec`
-  resolves it by condemning the losing branch's root explicitly and is what a recovering party uses
-  to archive a fork it must repair; for a plain **content** fork, a seal-advancer on the winning
-  branch (a `Rot`/`Ror`) also resolves it by burying the loser below the new seal. Either avoids
-  operator-side reincept under a new prefix.
-- **Pre-emptive rotation** → `Ror`. The chain is Active; the operator wants to rotate both keys
-  before any compromise indicator fires.
+**Recovery closes the fork window; the rotation closes new forks.** One recovery `Rot` buries the
+whole current fork, and its key rotation then closes the culprit's ability to mint a **new** fork:
+they lack the new signing key, so after the rotation propagates they can mint no more. A sustained
+signing-key adversary merely spews **dead** content into a **bounded** fork (depth-capped at 64 per
+lineage, breadth bounded by retention + the one-content-sibling witnessing rule) — then the
+depth-cap forces a seal-advancer.
 
-Don't conflate. Operator guidance for "the chain is divergent, what now?" is `Rec`. Operator
-guidance for "scheduled rotation cadence" is `Ror`. The two primitives map to different lifecycle
-moments and produce different chain-state outcomes.
+## The reserve defends the signing key, not the rotation key
 
-## Dual-signature is the tier-3 defense
+The rotation reserve is what makes recovery a real cryptographic boundary, not a policy convention.
+A party who lacks the reserve cannot produce a rotation against the parent's `rotationHash`
+commitment, regardless of what other key material they hold. But that boundary defends the
+**signing** key only:
 
-`Rec` / `Ror` / `Wit` / `Trm` are dual-signed: one signature by the new signing key (revealed by the
-rotation-key preimage), one signature by the recovery key (revealed by the recovery-key preimage).
-Both signatures must verify; both digest commitments (`digest(publicKey) == prior.rotationHash` and
-`digest(recoveryKey) == prior.recoveryHash`) must match.
+- **A tier-1 (signing-key) compromise is fully recoverable.** The adversary can land `Ixn` content;
+  a recovery `Rot` at the root buries the whole tail (all content) → every anchored downstream event
+  dead by descent, no reincept.
+- **A tier-2 (reserve) theft is the point of no return.** When an adversary holds the reserve and
+  lands `Rot_adversary` at `v_N`, the chain is **the attacker's** — there is **no in-band
+  recourse**; the legitimate party **reincepts** (for a delegated KEL, the delegator `Dth`s it
+  instead). Three structural facts close every escape:
 
-The dual-signature requirement is what makes these events structurally tier-3:
+  - **You cannot bury the `Rot`.** `Rot_adversary` is a sealed event, and only content (`Ixn`) is
+    buriable ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery),
+    rule 1). Burying "the adversary's" `Rot` would require a rule that could bury **any** `Rot`
+    (including a legitimate operator's), resurrecting retired key material — the backdate surface
+    vdti closes by treating `Rot` as a sealed branch (never buriable).
+  - **The seal-cap blocks a recovery at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it
+    advances the seal to `v_N`; a recovery `Rot` targeting `v_{N-1}` is then below the seal →
+    `Sealed`. The legitimate party cannot even submit it.
+  - **A competing `Rot` is a second sealed branch.** A `Rot_legitimate` extending `v_{N-1}` lands as
+    a sibling of `Rot_adversary` — two sealed branches → `disputed`, terminal
+    ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 
-- **Forging the primary signature requires the rotation preimage.** A tier-1 adversary holding only
-  the current signing key cannot satisfy this leg — the rotation preimage is committed by the prior
-  establishment's `rotationHash` and not yet revealed.
-- **Forging the recovery signature requires the recovery preimage.** A tier-2 adversary holding only
-  the rotation preimage cannot satisfy this leg — the recovery preimage is independently committed
-  by the prior establishment's `recoveryHash`.
-- **Both signatures over the SAID.** The signatures commit to the event's content (via the SAID,
-  which hashes the canonical bytes). An adversary cannot substitute a different recovery-key
-  preimage to bypass the commitment check — the prior establishment's `recoveryHash` pins what
-  preimage satisfies.
-
-This is the structural property that makes recovery a real cryptographic boundary, not a policy
-convention. A party who lacks the recovery-key preimage cannot produce a `Rec` against the parent's
-commitments, regardless of what other key material they hold.
-
-### A tier-2 `Rot` takeover is the point of no return
-
-When an adversary holds the rotation-key preimage and lands `Rot_adversary` at `v_N`, the chain is
-**the attacker's** — there is **no in-band recourse**; the legitimate party **reincepts** (for a
-delegated KEL, the delegator `Dth`s it instead). The recovery reserve defends the **signing** key (a
-tier-1 content compromise), **not** the rotation key. Three structural facts close every escape:
-
-- **`Rec` cannot archive the `Rot`.** `Rot_adversary` is a privileged event, and only content
-  (`Ixn`) is archivable
-  ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), rule 1). A
-  `Rec` that committed `Rot_adversary` as its `fork` would archive a privileged event — forbidden,
-  and **identity-blind on purpose**: if a recovery-key holder could archive "the adversary's" `Rot`,
-  they could archive **any** `Rot` (including a legitimate operator's), resurrecting retired key
-  material — the backdate surface vdti closes by treating `Rot` as a privileged branch (never
-  archivable).
-- **The seal-cap blocks a repair at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it advances
-  the seal to `v_N`; a `Rec` targeting `v_{N-1}` is then below the seal → `SiblingLocked`
-  ([§Repair-event bound](#repair-event-bound)). The legitimate party cannot even submit it.
-- **A competing `Rot` is a second privileged branch.** A `Rot_legitimate` extending `v_{N-1}` lands
-  as a sibling of `Rot_adversary` — two privileged branches → `disputed`, terminal
-  ([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)).
-
-The legitimate party _does_ hold the recovery preimage the adversary lacks (the dual-signature
-crypto boundary above) — but that buys nothing here, because there is no permitted move to spend it
-on. The **only** tier-2 defense is therefore **proactive**: rotate-recovery via `Ror` _before_ the
-adversary rotates, retiring the preimage they hold. Once their `Rot` lands, survivability is decided
-one layer up — IEL threshold redundancy evicts the compromised member via a `Evl`
-([§Defense layers above KEL](#defense-layers-above-kel)) — never by salvaging this chain.
+  A hostile `Rot` at a _forked_ position is likewise the reserve-theft takeover, not a recoverable
+  fork. So the only defense against reserve theft is one layer up — IEL threshold redundancy evicts
+  the compromised member via an `Evl` ([§Defense layers above KEL](#defense-layers-above-kel)) —
+  never by salvaging this chain. Reserve theft is unrecoverable → reincept.
 
 ## Locked-portion bound makes recovery cross-node-validatable
 
-A `Rec` extends from one of two parent shapes (see [§Rec parent shapes](#rec-parent-shapes)). The
-**divergence-ancestor-extending shape** — where `Rec.previous = v_{d-1}.said` (the divergence
-ancestor) — has a structural property that makes recovery cross-node-validatable: `v_{d-1}` is the
-unique shared parent of all events at `v_d`, and `v_{d-1}` itself lands cleanly on the linear chain
-before any divergence. So `v_{d-1}` is structurally identical on every node that holds the chain,
-regardless of which divergent contents each node received.
+A recovery `Rot` extends from one of two parent shapes (see
+[§Recovery attach shapes](#recovery-attach-shapes)). The **ancestor-extending shape** — where
+`Rot.previous = v_{d-1}.said` (the divergence ancestor) — has a structural property that makes
+recovery cross-node-validatable: `v_{d-1}` is the unique shared parent of all events at `v_d`, and
+`v_{d-1}` itself lands cleanly on the linear chain before any divergence. So `v_{d-1}` is
+structurally identical on every node that holds the chain, regardless of which divergent contents
+each node received.
 
-A `Rec` extending `v_{d-1}` therefore validates uniformly:
+A recovery `Rot` extending `v_{d-1}` therefore validates uniformly:
 
 - Every node sees the same `v_{d-1}` content (it's part of the locked or pre-divergence portion).
-- The `Rec` signs against the same commitments (`v_{d-1}.rotationHash`, `v_{d-1}.recoveryHash`) on
-  every node.
-- The repair's resolution is uniform: every node validates the same committed root — it must be a
-  competing child of the fork point `v_{d-1}`, off the full-span `Rec.previous` walkback (a root on
-  the retained chain, or `v_{d-1}` itself, rejects the `Rec`) — and **independently** walks every
-  competing branch it holds (or the beacon enumerates), rejecting the `Rec` if any carries a
-  privileged event, rather than trusting the submitter's `fork`. Independent computation is what
-  makes the resolution identical on every node.
+- The `Rot` signs against the same commitment (`v_{d-1}.rotationHash`) on every node.
+- The resolution is uniform: the `Rot` advances the seal past `v_d`, so every competing branch at
+  `v_d` (and everything grown on it) sits below the new seal, dead by position + descent — an
+  outcome every node computes identically, with no submitter-supplied fork commitment to trust.
 
-This is what makes the divergence-ancestor-extending shape the structural primitive that solves
-cross-node propagation. A tip-extension or combined-digest approach would not have this property —
-the "tip" each node sees may differ across the divergence, and an attempt to recover by extending a
-tip would commit to a node-local choice the rest of the federation can't replicate. A repair
-attaching at the submitter's own tail instead is validated against that retained tail plus the
-committed `fork` root (fetched via keep-all-data / the beacon) — also cross-node-checkable, but only
-the `v_{d-1}` attach needs no fetch.
+This is what makes the ancestor-extending shape cross-node-validatable. A tip-extension that keeps
+the submitter's own branch is also cross-node-checkable (validated against that retained tail), but
+only the `v_{d-1}` attach needs no fetch.
 
-### Repair-event bound
+### Locked-portion bound
 
-The merge layer enforces the repair-event bound: `Rec.previous.serial >= seal_serial`. The bound
-prevents revival attacks where a party holding stale authority (a recovery preimage revealed by an
-earlier `Rec` / `Ror` / `Wit`, or a key that has since been rotated out) constructs a `Rec`
-targeting the locked portion to rearrange the chain. Only current authority gates repair events.
+The merge layer enforces the locked-portion bound: `Rot.previous.serial >= seal_serial`. The bound
+prevents revival attacks where a party holding stale authority (a reserve already revealed — spent —
+by an earlier `Rot` / `Wit`, or a signing key that has since been rotated out) constructs an event
+targeting the locked portion to rearrange the chain. Only current authority gates further extension.
 
-When the bound holds vacuously — no privileged event has landed yet on the chain (only inception
-plus content events) — `Rec.previous` may be any chain event including the inception. Once any
-privileged event advances the seal past `v_{N-1}`, a `Rec` targeting `v_{N-1}` is rejected as
-`SiblingLocked`.
+When the bound holds vacuously — no seal-advancing event has landed yet on the chain (only inception
+plus content events) — a recovery `Rot`'s `previous` may be any chain event including the inception.
+Once any seal-advancing event advances the seal past `v_{N-1}`, an event targeting `v_{N-1}` is
+rejected as `Sealed`.
 
-See [§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) for the
+See [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) for the
 structural rule and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) for the seal-cap
 that derives from it.
 
-## Rec parent shapes
+## Recovery attach shapes
 
-`Rec` resolves divergence by committing, as its `fork`, the **root** of one losing branch — its
-first divergent event, which condemns the branch's entire subtree; every other competing branch
-closes below the repair-advanced seal, its growth dead by descent. `Rec.previous` takes one of two
-shapes:
+You attach the burying `Rot` at your **last good event**, retaining your branch and burying every
+competing content branch below the new seal. `Rot.previous` takes one of two shapes.
 
 ### Branch-tip-extending shape
 
-`Rec.previous` is a branch tip at `v_d`. Rec extends that branch at `v_{d+1}`; the other branch
-becomes an archival tail, condemned by its root.
+`Rot.previous` is your own branch tip at `v_d`. The `Rot` extends that branch at `v_{d+1}`; the
+other branch's first event is below the new seal, dead by descent.
 
 ```
 Pre-state (divergent at v_d):
     ... → v_{d-1} ─┬─ retained-branch tip @ v_d
                    └─ other-branch root   @ v_d
 
-Rec construction: rec.previous = retained-branch tip's said
-                  rec.serial   = d + 1
-                  rec.fork = other-branch root
+Recovery: rot.previous = retained-branch tip's said
+          rot.serial   = d + 1
 
 Post-state (linear, recovered):
-    ... → v_{d-1} → retained-branch tip @ v_d → rec @ v_{d+1}
+    ... → v_{d-1} → retained-branch tip @ v_d → rot @ v_{d+1}
                   ↑
-                  other branch condemned via its root in rec.fork
+                  other branch below the advanced seal → dead by descent
 ```
 
-The submitter (whoever holds the recovery key) keeps the branch they authored as the retained
-branch; `Rec` extends it, naming one losing branch's root (its first divergent event — here the
-losing branch's head at `v_d`, which is its root) as `fork` — the root condemning its whole subtree,
-so anything grown on the branch after the repair is dead by descent. The merge layer then
-**independently** identifies the retained branch by walking back from `Rec.previous` over the full
-span, **rejects** a committed root that lies on that walkback (no self-condemnation), and walks
-every competing branch off it that it holds — content-only, rejecting the `Rec` if any carries a
-privileged event. It never trusts the submitter's commitment.
+The submitter keeps the branch they authored; the burying `Rot` extends it and advances the seal, so
+the competing branch (its first event now below the seal) and everything grown on it are dead by
+descent — no submitter-supplied commitment, no content-only guard walk. Every competing content
+branch closes the same way; a competing **sealed** branch is never buried (≥ 2 sealed → `disputed`).
 
-### Divergence-ancestor-extending shape
+### Ancestor-extending shape
 
-`Rec.previous` is `v_{d-1}`, the divergence ancestor. Rec lands at `v_d`. One branch's root at `v_d`
-is committed as `fork` (here a branch head at `v_d` is its root); every other branch closes without
-being named — its root is a sibling of `Rec` at `v_d`, barred by the seal-cap (its parent `v_{d-1}`
-sits below the repair-advanced seal), its growth dead by descent (identical outcome, which is why a
-single named root suffices); `Rec` is the only canonical event at `v_d` after the repair runs.
+`Rot.previous` is `v_{d-1}`, the divergence ancestor. The `Rot` lands at `v_d`; every branch at
+`v_d` is a sibling of the `Rot`, barred by the seal-cap (its parent `v_{d-1}` now sits below the
+advanced seal), its growth dead by descent; the `Rot` is the only canonical event at `v_d` after
+recovery.
 
 ```
 Pre-state (divergent at v_d):
     ... → v_{d-1} ─┬─ branch-1 root @ v_d
                    └─ branch-2 root @ v_d
 
-Rec construction: rec.previous = v_{d-1}.said
-                  rec.serial   = d
-                  rec.fork = branch-1 root
+Recovery: rot.previous = v_{d-1}.said
+          rot.serial   = d
 
-Post-state (linear, recovered, Rec is the only canonical event at v_d):
-    ... → v_{d-1} → rec @ v_d
+Post-state (linear, recovered, rot is the only canonical event at v_d):
+    ... → v_{d-1} → rot @ v_d
                   ↑
-                  branch-1 condemned via its root in rec.fork;
-                  branch-2 barred by the seal-cap (its parent v_{d-1} sits below the seal), growth dead by descent
+                  both branches below the advanced seal → dead by descent
 ```
 
-The divergence-ancestor-extending shape is the structural primitive that gives recovery its
+The ancestor-extending shape is the structural primitive that gives recovery its
 cross-node-validatable property (§Locked-portion bound makes recovery cross-node-validatable). It is
 the recourse when the submitter authored nothing it wants to preserve at or beyond `d` — either it
-authored nothing there (the doctrine's ancestor attach), or it chooses to discard its own content
-branch: attaching at `v_{d-1}` archives everything at or beyond `d`, the submitter's own content
-included. Both branches here are tier-1 content, so nothing privileged is overturned.
+authored nothing there, or it chooses to discard its own content branch: attaching at `v_{d-1}`
+buries everything at or beyond `d`, the submitter's own content included. Every branch here is
+tier-1 content, so nothing sealed is overturned.
 
-### Routing through the discriminator
+### Routing through the merge layer
 
-Both parent shapes route through the merge layer's discriminator. `Rec` is the repair kind, not a
-privileged extension — its acceptance resolves the divergence rather than producing one. A
-privileged event (`Rot` / `Ror` / `Wit` / `Trm`) sharing the divergence-ancestor-extending parent
-shape (`previous = v_{d-1}.said`) on a chain with an existing event at `v_d` is declined as a
-canonical extension per
-[§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair); the kind
-discriminator (repair `Rec` versus privileged) determines whether the parent shape resolves the
-divergence or is retained as evidence.
+Both attach shapes route through the merge layer. A recovery `Rot` is an ordinary sealed extension —
+its acceptance buries the losing content by position + descent rather than producing a divergence. A
+sealed event sharing the ancestor-extending parent shape (`previous = v_{d-1}.said`) on a chain that
+already holds a sealed event at `v_d` is a **second** sealed branch → `disputed`; a burying `Rot`
+extending the winning branch's own tip is the recovery. See
+[`merge.md` §Full path](merge.md#full-path-divergence-recovery-overlap).
 
 ## Pre-seal verifiability
 
-The locked-portion bound, the seal-cap, and the recovery primitives together produce a durable
+The locked-portion bound, the seal-cap, and the recovery rotation together produce a durable
 consumer guarantee: events at-or-below `last_seal_advancing_event` remain structurally verifiable
 indefinitely, regardless of subsequent divergence or a terminal `disputed` verdict above the seal.
 One qualifier: the permanence claims run against the last **clean** seal — one with no competing
-privileged branch forking at-or-below it. Sealed events are never rewritten, but a below-seal
-**privileged** fork is a spine fork that flips the prefix's reading to `disputed`; permanence then
-retreats to the last clean seal beneath the fork
-([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair), _Pre-seal
+sealed branch forking at-or-below it. Sealed events are never rewritten, but a below-seal **sealed**
+fork is a spine fork that flips the prefix's reading to `disputed`; permanence then retreats to the
+last clean seal beneath the fork
+([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), _Pre-seal
 verifiability_).
 
 The argument has three legs:
 
 - **Seal advances are clean.** `last_seal_advancing_event` advances only on seal-advancing events
-  (`Rot` / `Ror` / `Rec` / `Wit` / `Trm`) that land cleanly on the linear chain. The seal never
-  forks — a privileged event that would create or join a divergence does not extend the canonical
-  chain, so every seal advance is a clean linear-chain landing.
-- **At-or-below-seal events were authored under at-least-tier-2 capability.** Every seal advance is
-  a clean privileged or repair landing — both classes require tier-2 or tier-3 capability. The
-  protocol accepts that authoring as structurally valid sealing-level authority regardless of
-  submitter identity (which the chain layer has no concept of).
-- **The locked portion cannot be rearranged.** The repair-event bound denies any future `Rec` from
+  (`Rot` / `Wit` / `Trm`) that land cleanly on the linear chain. The seal never forks — a sealed
+  event that would create or join a divergence does not extend the canonical chain, so every seal
+  advance is a clean linear-chain landing.
+- **At-or-below-seal events were authored under tier-2 capability.** Every seal advance is a clean
+  sealed landing, which requires the rotation reserve. The protocol accepts that authoring as
+  structurally valid sealing-level authority regardless of submitter identity (which the chain layer
+  has no concept of).
+- **The locked portion cannot be rearranged.** The locked-portion bound denies any future event from
   targeting the locked portion; the seal-cap denies any forward extension whose parent is in the
   locked portion. Together they make the at-or-below-seal segment structurally immutable.
 
@@ -288,7 +244,7 @@ The boundary is the **seal**: an anchor at-or-below the seal is canonical and fi
 verification token regardless of any above-seal divergence; an anchor above the seal becomes durable
 only when a later seal-advancing event lands cleanly past it — and on a `disputed` chain (which
 never seals past it) it grounds no new trust. See
-[§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair) (_Pre-seal
+[§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) (_Pre-seal
 verifiability_) for the cross-primitive framing and
 [§Structural problems error; everything else is reported](../../../../protocol-doctrine.md#structural-problems-error-everything-else-is-reported)
 for the verifier-reports / consumer-composes split.
@@ -303,78 +259,74 @@ tokens cannot be augmented with claims that originated outside the chain. Consum
 own out-of-band judgment about specific above-seal events; the protocol cannot make those judgments
 for them.
 
-## Cross-node privileged-vs-privileged races
+## Cross-node sealed-vs-sealed races
 
-Two federation nodes can each accept a competing privileged event extending `v_{d-1}` via
-independent linear-chain extensions: each event lands cleanly on its submitting node (the seal
-advances locally), gossip then delivers each event to the other node, and the seal-cap **rejects
-each late arrival as a canonical extension but retains it as non-canonical evidence**
-(keep-all-data) — the locally-landed first-receive already occupies the target serial behind the
-now-advanced seal.
+Two federation nodes can each accept a competing sealed event extending `v_{d-1}` via independent
+linear-chain extensions: each event lands cleanly on its submitting node (the seal advances
+locally), gossip then delivers each event to the other node, and the seal-cap **rejects each late
+arrival as a canonical extension but retains it as non-canonical evidence** (keep-all-data) — the
+locally-landed first-receive already occupies the target serial behind the now-advanced seal.
 
 Per-node, each chain stays linear with its own first-receive as tip — but each node now **holds both
-branches** and reads the divergence by a **data-local walk**: two privileged branches past the fork
-read **`disputed`**
-([§Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair)). The **witness
-beacon** enumerates the competing branch SAIDs so a one-branch holder fetches and walks the rest — a
-selected witness signs up to **two** distinct structurally-valid **privileged** siblings per chain
-position (two both-witnessed siblings are the `disputed` proof, then further ones are declined), and
-adjacent receipts at the same chain position carrying different `witnessed_said` values are the
-evidence that a divergence exists at that position. The federation **propagates** the branches; the
-verdict is the verifier's own walk.
+branches** and reads the divergence by a **data-local walk**: two sealed branches past the fork read
+**`disputed`**
+([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). The
+**witness beacon** enumerates the competing branch SAIDs so a one-branch holder fetches and walks
+the rest — a selected witness signs up to **two** distinct structurally-valid **sealed** siblings
+per chain position (two both-witnessed siblings are the `disputed` proof, then further ones are
+declined), and adjacent receipts at the same chain position carrying different `witnessed_said`
+values are the evidence that a divergence exists at that position. The federation **propagates** the
+branches; the verdict is the verifier's own walk.
 
-The cross-node race surface covers all privileged-event shapes:
+The cross-node race surface covers all sealed-event shapes:
 
-- **Tier-2 path.** A tier-2 adversary (holding only the rotation preimage) can force non-convergence
-  by racing `Rot_adversary` against an honest concurrent `Rot_operator` or `Ror_operator` on
-  different federation nodes. The forging bar is tier-2 (one preimage), strictly easier than the
-  tier-3 bar required for `Ror` / `Rec` / `Wit` / `Trm`. A `{Rot, Rot}` divergence is moreover a
-  **proof of rotation-reserve compromise** — two valid rotations reveal the one rotation preimage in
-  force at `v_{d-1}`.
-- **Tier-3 path.** A tier-3 adversary (holding both preimages) can force non-convergence by racing
-  any recovery-revealing event against operator submissions. Once an adversary's tier-3 event has
-  landed on any federation node, no in-band protocol recourse exists.
+- **A `{Rot, Rot}` divergence is a proof of rotation-reserve compromise** — two valid rotations
+  reveal the one reserve preimage in force at `v_{d-1}`. The forging bar is tier-2 (the reserve).
+  Once an adversary's rotation has landed on any federation node, no in-band protocol recourse
+  exists.
+- **A `{Wit, Wit}` or `{Trm, *}` sealed divergence** is terminal the same way — any two sealed
+  branches past the fork read `disputed`.
 
 The CAP-axis trade-off is structural. The seal-cap and locked-portion bound prevent stale-authority
 chain rearrangement: a party holding past-position private keys must not be able to land an event
-targeting the locked portion at any future time. Relaxing the bounds to admit a competing privileged
+targeting the locked portion at any future time. Relaxing the bounds to admit a competing sealed
 event as a _canonical_ extension at a sealed serial would re-open the long-tail killswitch surface.
 The bounds stay unconditional; the competing branch is retained as evidence, not extended onto, and
 the divergence is resolved data-locally rather than by fork-merging.
 
 ### Operator response to a disputed prefix
 
-When a data-local walk finds a prefix **disputed** (two or more privileged branches past the fork),
-no further extension on that prefix is consumer-trustable at-and-beyond the divergent serial.
-Operator recourse is **reincept under a new prefix**. The pre-seal verifiability guarantee bounds
-the damage: at-or-below-seal anchors, credentials, and SEL bindings stay verifiable; only
-forward-extending operations against above-seal state lose their trust grounding. See
+When a data-local walk finds a prefix **disputed** (two or more sealed branches past the fork), no
+further extension on that prefix is consumer-trustable at-and-beyond the divergent serial. Operator
+recourse is **reincept under a new prefix**. The pre-seal verifiability guarantee bounds the damage:
+at-or-below-seal anchors, credentials, and SEL bindings stay verifiable; only forward-extending
+operations against above-seal state lose their trust grounding. See
 [§Cascade-reincept honesty](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
 for the cross-primitive cascade rules.
 
 ## Defense layers above KEL
 
-KEL recovery closes the tier-1 (content) surface structurally; tier-2 is defended only
-**proactively** (`Ror` before the adversary rotates — once a `Rot` lands, the chain reincepts). The
-post-rotation tier-2 and tier-3 surfaces are closed by the layers composed above KEL:
+KEL recovery closes the tier-1 (content) surface structurally; tier-2 (reserve theft) has no in-band
+defense — once an adversary rotation lands, the chain reincepts. The post-rotation tier-2 surface is
+closed by the layers composed above KEL:
 
 - **IEL threshold composition.** Threshold-redundant governance (`M > N` across distinct custodians,
   where `M` is the threshold count and the roster has more candidates than the threshold requires)
-  tolerates single-KEL tier-3 compromise. The surviving members can rotate the compromised KEL out
-  via the IEL's `Evl` event without losing the IEL prefix.
-- **Custody separation.** KEL-internal custody hygiene (recovery key on a different device,
-  HSM-resident, ceremony-gated) raises the practical bar to acquire both rotation and recovery
-  preimages simultaneously. This is operational hardening; the protocol is custody-agnostic.
-- **Federation witnessing.** Competing **privileged** events at the same chain position are both
-  witnessed — a selected witness signs up to two distinct privileged siblings per position, and two
+  tolerates single-KEL tier-2 compromise. The surviving members rotate the compromised KEL out via
+  the IEL's `Evl` event (a `cut`) without losing the IEL prefix.
+- **Custody separation.** KEL-internal custody hygiene (the reserve on a different device,
+  HSM-resident, ceremony-gated) raises the practical bar to acquire the reserve. This is operational
+  hardening; the protocol is custody-agnostic.
+- **Federation witnessing.** Competing **sealed** events at the same chain position are both
+  witnessed — a selected witness signs up to two distinct sealed siblings per position, and two
   both-witnessed siblings are the `disputed` proof — so both accumulate receipts from the witness
-  pool, and the beacon enumerates the branches as the evidence a verifier walks. Rotation-tier
+  pool, and the beacon enumerates the branches as the evidence a verifier walks. Reserve-tier
   compromise without a federation partition cannot get a fork past detection — any verifier holding
   both branches reads the prefix as `disputed` and refuses to bind. (A competing **content**
   sibling, by contrast, is declined after the first seen at a position — under the majority floor a
   content fork on a witnessed chain is prevented, not merely detected; federation doctrine.)
 
-The combined attack — rotation-tier compromise PLUS adversary-controlled federation partition — is
+The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**
 post-resolution rather than preventing it: receipts are indexed at chain position rather than at
 event SAID, so when gossip resolves the partition the competing receipts land in the same row group
@@ -386,14 +338,14 @@ observable in the data layer. See
 
 - [`log.md`](log.md) — chain primitive: states, the seal and spine, locked-portion bound, page
   model.
-- [`events.md`](events.md) — per-kind reference: three-tier capability model, dual-signature shape,
+- [`events.md`](events.md) — per-kind reference: two-tier capability model, signature shape,
   forward-key commitments, seal-advance cap.
-- [`merge.md`](merge.md) — merge-layer routing: discriminator algorithm, privileged-event handling,
-  repair-event bound enforcement.
+- [`merge.md`](merge.md) — merge-layer routing: routing order, sealed-event handling, locked-portion
+  bound enforcement.
 - [`reconciliation.md`](reconciliation.md) — cross-node convergence proof; race matrix;
   effective-SAID convergence.
-- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#divergence-and-repair) —
-  divergence and repair; the universal recovery rule; repair conditions.
+- [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#divergence-and-recovery) —
+  divergence and recovery; the universal recovery rule; recovery conditions.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#forks-are-seal-bounded) —
   seal-cap and locked-portion bound; the spine.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)

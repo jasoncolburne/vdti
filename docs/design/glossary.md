@@ -98,12 +98,15 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   witness key-windows for freshness.
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 
-### Readings and states
+### Chain states
 
-- **Active / Divergent / Terminated** (per-node states) vs **forked / disputed** (walk readings) —
-  the state a node tracks for a chain (linear-and-live / holding a live fork / killed) is distinct
-  from what a data-local walk _reports_ about a fork: `forked` (≤ 1 sealed branch past the fork,
-  recoverable by a burying seal) or `disputed` (≥ 2 sealed branches, terminal).
+- **Active / Forked / Disputed / Terminated** — the four per-node chain states, each **derived** by
+  a data-local walk over the events a node holds, never a stored flag. **Active**: a linear, live
+  chain. **Forked**: a live fork with ≤ 1 sealed branch past it — recoverable by a burying
+  seal-advancer on the winning branch. **Disputed**: a fork with ≥ 2 sealed branches — terminal
+  (reincept). **Terminated**: killed by a `Trm`. Forked and Disputed are **distinct, detectable
+  states** — the walk that tells them apart (≤ 1 vs ≥ 2 sealed past the fork) is how the state is
+  computed, not a "reading" layered on one divergent state.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 
 ## Concepts
