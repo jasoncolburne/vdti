@@ -150,7 +150,7 @@ declared threshold set; each `Evl` (user) or governance `Wit` (federation) carri
 (`add` + `cut` + changed thresholds), and the live roster is the running accumulation — a `cut`
 `Evl` also evicts. The roster is a **set** (a delta is well-formed only with `add ∉ roster`,
 `cut ⊆ roster`, `cut ∩ add = ∅`), and the verifier **re-checks the bounds on the post-delta config
-at every config-changing event** — the security floor, the recoverability ceiling, the majority
+at every config-changing event** — the security floor, the recoverability ceiling, the authorization
 floor, the live-set cap of 32, and the non-empty floor. A delta pushing the live set past 32 is
 rejected (a DoS backstop). A `cut` is priced the **outgoing** `t_govern` (the pre-change gate). This
 is why the token exposes the roster **as of a queried position** — the accumulation up to that

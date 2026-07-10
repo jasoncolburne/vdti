@@ -267,8 +267,9 @@ One IEL kind set spans two structurally distinct chains, dispatched by the **roo
 inception fixes:
 
 - A **user IEL** roots at `Icp` and uses all eight kinds. It is federation-bound (its `Icp` carries
-  `{federation, federationPin}`), its content is majority-witnessed at its own position, and its
-  `Wit` is the federation **rebind**.
+  `{federation, federationPin}`), its content is majority-witnessed at its own position (the
+  **position gate**, [`merge.md`](merge.md#the-content-versus-governance-split)), and its `Wit` is
+  the federation **rebind**.
 - A **federation IEL** roots at the `Fcp` marker and uses the restricted set `Fcp` / `Wit` / `Trm`
   only — its roster is witness KELs directly, it authors no content, and its `Wit` is **governance**
   (roster + rotation + clock). Every federation event is governance → record-both → every federation

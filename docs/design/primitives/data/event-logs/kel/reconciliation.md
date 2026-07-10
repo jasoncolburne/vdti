@@ -446,8 +446,8 @@ and
 
 ### Burial by position + descent
 
-On a **witnessed** chain, content forks are **prevented** below fork-cost — the witnessing majority
-floor plus one-content-sibling-per-position witnessing makes two content siblings un-co-witnessable
+On a **witnessed** chain, content forks are **prevented** below fork-cost — the witnessing floor
+plus one-content-sibling-per-position witnessing makes two content siblings un-co-witnessable
 ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence)) — so the
 population this matrix recovers is the **residual**: witness compromise at fork-cost, roster-delta
 straddles (the partition/eclipse family's entrance), split-stalls (the burying seal-advancer is the

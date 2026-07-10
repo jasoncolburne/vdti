@@ -128,7 +128,7 @@ kind draws from exactly one slot, so an IEL chain's validity needs no lower-laye
   is **advisory at `|roster| = 2`** (a two-device identity is valid but cannot evict/recover without
   both — the wallet warns) and **hard at `|roster| >= 3`** (a threshold equal to `|roster|` is a
   gratuitous hostage config — rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
-- The authority slots also carry a **authorization floor** — `t_govern`, `t_authorize > |roster|/2`
+- The authority slots also carry an **authorization floor** — `t_govern`, `t_authorize > |roster|/2`
   — so any two authorizing quorums overlap and a governance fork always names a double-dealer.
 - The roster is **hard-capped at 32** (a DoS backstop — the verifier rebuilds the roster in memory
   as it walks; any delta pushing the live set past 32 is rejected, all IELs including the

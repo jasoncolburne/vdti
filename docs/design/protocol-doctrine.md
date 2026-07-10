@@ -238,7 +238,7 @@ no roster delta — not only at inception): `t_use >= 1`; the authority slots (`
 single member exercises authority; the singleton below is the degenerate case), a **recoverability
 ceiling** `<= |roster| − 1` (evict/recover without one member — advisory at `|roster| = 2`, hard at
 `|roster| >= 3`, where a threshold equal to `|roster|` is a gratuitous hostage config and is
-rejected), and a **authorization floor `> |roster|/2`** (a strict majority signs every governance /
+rejected), and an **authorization floor `> |roster|/2`** (a strict majority signs every governance /
 grant, so any two authorizing quorums overlap and a governance fork always names a double-dealer;
 `t_use` is exempt, content being first-seen / recoverable). And the roster is **never emptied**: the
 post-delta size is **`|roster| + |add| − |cut| >= 1`** (the roster is a set — `add ∉` it, `cut ⊆`

@@ -103,7 +103,7 @@ inception):
   two-device identity is valid but cannot evict / recover without both — the wallet warns) and
   **hard at `|roster| ≥ 3`** (a threshold equal to `|roster|` is a gratuitous hostage config →
   rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
-- **A authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
+- **An authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
   overlap and a governance fork always names a double-dealer (closing the disjoint-quorum
   attribution loss).
 - **The roster is hard-capped at 32** — a DoS backstop; the verifier rebuilds the roster in memory

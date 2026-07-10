@@ -343,9 +343,9 @@ its SELs), so the population this matrix recovers is the **residual**: witness c
 fork-cost, roster-delta straddles, split-stalls (the burying governance seal is the exit), and mixed
 `{governance, content}` races. The machinery is uniform.
 
-Recovery is a **burying governance seal** on the winning branch — any governance seal-advancer,
-typically an `Evl` or the `cut` `Evl` when it also evicts — with no repair event and no
-losing-branch commitment. It advances the seal, so every losing **content** branch has its first
+Recovery is a **burying governance seal** on the winning branch — any non-terminal governance
+seal-advancer, typically an `Evl` or the `cut` `Evl` when it also evicts — with no repair event and
+no losing-branch commitment. It advances the seal, so every losing **content** branch has its first
 event locked below the seal and everything built on it dead by descent (**deadness descends: an
 event whose parent is dead is dead**) — so a losing branch a lagging node grows after the burial is
 dead by descent, growth-proof. The loser rides the **forked chain**, a bounded region: each dead
