@@ -47,8 +47,8 @@ its own reading-order note in `sad.md`.)
 
 ## 2 — Cross-cutting doctrine
 
-7. [`protocol-doctrine.md`](protocol-doctrine.md) — the rules that span every primitive: the three
-   capability tiers, the seal and locked-portion bound, divergence and repair, federation
+7. [`protocol-doctrine.md`](protocol-doctrine.md) — the rules that span every primitive: the two
+   capability tiers, the seal and locked-portion bound, divergence and recovery, federation
    convergence, the verification walk, and the shared terminology. Dense; read it here for the
    concept map, and revisit its divergence and federation sections after the event-log group — they
    land deeper once the event shapes are concrete.
@@ -64,16 +64,16 @@ The KEL / IEL / SEL chains — the heart of the protocol.
 Then the KEL (Key Event Log) primitive, in order:
 
 9. [`primitives/data/event-logs/kel/log.md`](primitives/data/event-logs/kel/log.md) — the chain
-   primitive: the three-state per-node machine, the seal / spine / locked-portion, paging.
+   primitive: the four-state per-node machine, the seal / spine / locked-portion, paging.
 10. [`primitives/data/event-logs/kel/events.md`](primitives/data/event-logs/kel/events.md) — the
-    kind taxonomy, the three-tier capability model, the kind-strict anchor matrix, and forward-key
+    kind taxonomy, the two-tier capability model, the kind-strict anchor matrix, and forward-key
     commitments.
 11. [`primitives/data/event-logs/kel/verification.md`](primitives/data/event-logs/kel/verification.md)
     — the verifier walk and the verification token: how a chain is read and validated.
 12. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
-    path: divergence resolution, the archival-tail rule, `SiblingLocked`.
+    path: divergence resolution, burial by position and descent, and the single-word merge outcomes.
 13. [`primitives/data/event-logs/kel/recovery.md`](primitives/data/event-logs/kel/recovery.md) —
-    recovery and repair: `Rec` versus `Ror`, the repair shapes, the repair-event bound.
+    recovery as a plain burying `Rot`: the reserve defends the signing key, not the rotation key.
 14. [`primitives/data/event-logs/kel/reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md)
     — the exhaustive correctness proof: every divergence case resolved, and the argument that all
     honest nodes converge. The densest doc; read it last.

@@ -47,8 +47,9 @@ kels/sad/
 # ============================================================================
 # These kels-era / pre-reshape tokens must not regress into docs. Whole-token
 # word boundaries only — Upd / Sea are substring-dangerous (recovery, SeaweedFS,
-# …). NOTE: Rec is NOT forbidden — the log-primitive reshape uses it as the KEL
-# repair kind ("recover"); the superseded reshape tokens are in the block below.
+# …). NOTE: Rec is NOW forbidden too — the first-seen pivot dropped the KEL
+# repair kind (there is no repair event; recovery is a plain Rot). Rec / Ror /
+# Rpr / Fld and the two-tier tokens live in the first-seen block at end-of-file.
 
 # === kels-era event kinds (Dip folded into Icp + delegating; Upd/Sea retired) ===
 \bUpd\b
@@ -138,12 +139,13 @@ kels/sad/
 \bevaluate_anchored\b
 
 # ============================================================================
-# §Doc-only — seal-cap rejection error name (SiblingLocked, not ParentLocked)
+# §Doc-only — seal-cap rejection error name (Sealed, not ParentLocked)
 # ============================================================================
-# The seal-cap rejection is SiblingLocked — the candidate would sibling a
-# locked event. There is no ParentLocked error: a parent AT the seal is
-# extendable (parent_serial == seal_serial passes the cap), so "parent locked"
-# is not a rejection condition.
+# The seal-cap rejection is `Sealed` (first-seen single-word merge outcome).
+# There is no ParentLocked error: a parent AT the seal is extendable
+# (parent_serial == seal_serial passes the cap), so "parent locked" is not a
+# rejection condition. The interim name SiblingLocked is retired too — banned in
+# the first-seen block at end-of-file.
 \bParentLocked\b
 
 # ============================================================================
@@ -161,13 +163,11 @@ kels/sad/
 #     reads: a single confirmed tip → its real SAID; NO single tip → a type-tagged
 #     `synthetic` marker recoupled to the verdict (forked: / disputed:), qualified
 #     by prefix + position — NOT a digest over the competing tips (adversarially
-#     extensible → flood-unstable). That first-seen synthetic is the CANON model:
-#     the verdict-recoupled forked: / disputed: colon forms are live ONLY under
-#     docs/canon/, where the deeper docs/canon/.terminology-forbidden omits their
-#     ban. At THIS (docs/) scope they STAY BANNED — the root ban guards docs/design/,
-#     which stays on the old real-digest model until phase 2; lift it here (or add a
-#     docs/design/-scoped exception) only when the synthetic lands in design. The
-#     kels divergent: / irreconcilable: colon forms stay dead everywhere;
+#     extensible → flood-unstable). That first-seen synthetic is the CANON model,
+#     now landed in docs/design (phase-2 reconcile): the verdict-recoupled
+#     forked: / disputed: colon forms are LIVE at docs/ scope — their bans were
+#     lifted here once the synthetic landed in design. The kels divergent: /
+#     irreconcilable: colon forms stay dead everywhere;
 #   policy_satisfied  — the verifier token reports the structural-validity
 #     result, not a policy signal (authorization is structural; policy lives on
 #     documents);
@@ -178,8 +178,6 @@ kels/sad/
 federation-irreconcilable
 divergent:\{prefix\}
 irreconcilable:\{prefix\}
-forked:
-disputed:
 \bpolicy_satisfied\b
 \bRecoveryRecord\b
 \bwitnessParams\b
@@ -277,3 +275,38 @@ rescinds\[\]
 \bAut\b
 \bt_delegate\b
 [Dd]ecommission
+
+# ============================================================================
+# §Doc-only — first-seen pivot: two-tier collapse + no repair (2026-07-08)
+# ============================================================================
+# The first-seen pivot collapsed the KEL to two tiers and removed the whole
+# repair / recovery-key apparatus. Recovery is now a plain burying Rot (KEL) or
+# a governance seal / cut-Evl (IEL) — there is no repair EVENT and no recovery
+# KEY. The dead kinds and tier tokens must not regress into docs/design:
+#   Ror (proactive rotate-recovery), Rec (KEL repair — reveals the recovery
+#     key), Rpr (IEL/SEL repair), Fld (SEL re-seal) — all dropped;
+#   the recovery reserve: field names recoveryKey / recoveryHash and the count
+#     t_recover are gone (the prose "recovery key" survives ONLY in negations —
+#     "no recovery key" — so ban the camelCase field forms + t_recover, never
+#     the spaced prose);
+#   the third tier: "three-tier" and T3 are dead (two tiers — T1 signing key /
+#     T2 rotation reserve);
+#   privileged → sealed (the non-content event class is "sealed", never
+#     "privileged"; guards docs/design only — docs/canon/ has its own deeper file);
+#   the interim merge-outcome names SiblingLocked / KelTerminated are retired —
+#     the first-seen single-word outcomes are Sealed / Terminal / Invalid /
+#     Ignored (Rejected is NOT banned — indistinguishable from the verb).
+# \bRec\b is whole-token (recovery / record / recompute fail the boundary);
+# \bT3\b is distinctive; \bRor\b / \bRpr\b / \bFld\b are whole-token.
+\bRor\b
+\bRec\b
+\bRpr\b
+\bFld\b
+\bt_recover\b
+\brecoveryKey\b
+\brecoveryHash\b
+three-tier
+\bT3\b
+\bprivileged\b
+\bSiblingLocked\b
+\bKelTerminated\b
