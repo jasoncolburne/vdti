@@ -24,6 +24,7 @@ docs/design/federation/*
 
 # --- Operations playbooks (subsequent sub-issues) ---
 docs/design/operations/recovery-workflow.md
+docs/design/operations/governance-workflow.md
 docs/operations/multi-party-governance.md
 
 # --- Infrastructure service docs (subsequent sub-issue) ---
