@@ -19,10 +19,10 @@ Every SAD carries a `said` field. From there, one specialization matters at this
 
 - **Chain events** are SADs with chain-linkage fields — `prefix` (chain identifier) + `previous`
   (parent SAID) + `serial` (monotonic position) + kind-specific fields, including SAD references
-  that point to what an event commits to (a KEL or IEL event's role-grouped `manifest`, a credential
-  SEL inception's `data`). Chain events live on a KEL, IEL, or SEL chain and replicate as
-  indivisible units. Their kind-specific schemas have no slots for custody or availability fields,
-  so those fields cannot appear on a chain event.
+  that point to what an event commits to (a KEL or IEL event's role-grouped `manifest`, a lookup SEL
+  inception's `data`). Chain events live on a KEL, IEL, or SEL chain and replicate as indivisible
+  units. Their kind-specific schemas have no slots for custody or availability fields, so those
+  fields cannot appear on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
   replica sets, and the content payloads chain events anchor. Stored in the SAD object store and
   retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field
@@ -33,6 +33,22 @@ A chain event is a SAD with additional structural commitments — chain identity
 continuity via `previous`. A standalone SAD is independently addressable and carries its content
 directly. The doctrine that follows uses "SAD" as the general term and specializes to "chain event"
 or "standalone SAD" where the distinction matters.
+
+**Events are never fetchable by SAID from the SAD object store.** Chain events live in the chain
+log, addressed **by prefix** ([`said.md`](said.md): a SAID is an integrity commitment, not a global
+lookup key). Only standalone SADs are stored in — and served by SAID from — the SAD object store, so
+its write path **classifies a submission by `kind` and rejects event kinds** (`kind` is required on
+SAD data). The principle: **nothing whose SAID must stay opaque is fetchable by SAID from the
+store.** This closes a correlation vector — event SAIDs float free of their prefix by design
+(`said ≠ prefix`, and an IEL's `anchors[]` are opaque commitments), so an attacker who harvests the
+`anchors[]` SAIDs off a **public** issuer IEL (each committing to a revocation / rescission
+lookup-SEL event) could, if the store answered a fetch-by-SAID for an **event** body, recover the
+lookup-SEL and re-derive its prefix, using the store as an inversion oracle for the issuer's
+revocations. Rejecting event kinds makes that physically impossible; a **public** credential's body
+(a content kind) stays fetchable by SAID (intended), while a **private** credential's body is simply
+unpublished. Storage-side enforcement lands in
+[`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md) (forward-ref; lands in a
+subsequent sub-issue).
 
 ## Required fields
 

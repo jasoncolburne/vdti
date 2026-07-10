@@ -56,10 +56,10 @@ Compaction is the structural prerequisite for partial disclosure of nested conte
 
 - **Credentials.** A credential SAD can carry nested claim SADs; a disclosure presents the
   credential's claims in compacted form, with only the disclosed claims expanded. The verifier
-  checks the credential's SAID (matching the issuer's anchor in a KEL) and then verifies that each
-  expanded claim is the SAD whose SAID appears at that position. Undisclosed claims remain
-  represented by their SAIDs alone, revealing nothing about the disclosed content beyond what is
-  presented.
+  checks the credential's SAID (matching the issuer's issuance-commitment anchor on its IEL —
+  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`) and then verifies that each expanded claim
+  is the SAD whose SAID appears at that position. Undisclosed claims remain represented by their
+  SAIDs alone, revealing nothing about the disclosed content beyond what is presented.
 - **Policy SADs.** A policy declaration with nested sub-policies can be transmitted compacted;
   verifiers expand only the leaves they need to evaluate.
 - **Exchange envelopes.** An envelope containing a payload SAD plus metadata SADs can be transmitted

@@ -31,9 +31,9 @@ Each sub-field is independently optional:
   [`../../../protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 - **`topic`** — the doc's **namespace / schema**: a discriminator naming what kind of document this
   is. With `owner` it locates the write's SEL anchor (next section). A `topic` is either a
-  **vdti-reserved** namespace (`CRED_TOPIC`, `RSC_TOPIC`, …) **or** an author-defined topic paired
-  with its own schema. `owner` and `topic` are **both present** (an attested write) or **both
-  absent** (an anonymous write) — the writer-binding is both-or-neither.
+  **vdti-reserved** namespace (`CRED_REVOCATION_TOPIC`, `DLG_RSC_TOPIC`, `DOC_RSC_TOPIC`, …) **or**
+  an author-defined topic paired with its own schema. `owner` and `topic` are **both present** (an
+  attested write) or **both absent** (an anonymous write) — the writer-binding is both-or-neither.
 - **`readPolicy`** — the SAID of a [policy](../../policy/policy.md) that gates read access at fetch
   time. The referenced policy is fetched and evaluated in **current mode**
   ([`../../policy/evaluation.md`](../../policy/evaluation.md)) against the verified prefixes of a
@@ -61,9 +61,15 @@ of its own. A writer-binding that merely _asserted_ its position (a self-chosen 
 at a past position where that key was still authorized and forge a "valid as-of-then" attestation.
 Over a long enough horizon any key breaks, so this is a real forgery, not a hypothetical.
 
-So a write attribution is **corroborated by a SEL anchor**, not self-asserted — the credential
-pattern generalized to every attested document. An `owner`-bearing SAD **must be anchored by a SEL**
-(the [SEL primitive](../event-logs/sel/)):
+So a write attribution is **corroborated by an append-only anchor**, not self-asserted. **The
+custody rule: direct-anchor an immutable SAD that is _presented_; SEL-wrap anything _mutable_ or
+_looked-up-by-address_.** A **credential** is the direct-anchor case — the issuer anchors its
+issuance commitment on its own IEL and presents the cred, which needs no derived-address lookup, so
+a cred carries **no `custody { owner, topic }`** (its writer is a body `issuer` field, attributed by
+that anchor). The `custody` writer-binding covers the **other** case: a standalone SAD a holder must
+**self-locate by a derived address** (the revocation / rescission lookup SELs; any looked-up
+attested document). Such an `owner`-bearing SAD **must be anchored by a SEL** (the
+[SEL primitive](../event-logs/sel/)):
 
 - The anchoring SEL's prefix is **`derive(owner, topic, said)`** and its `data` **is the SAD's
   SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's **serial-1 event (its v1 — a `Pin`)**
@@ -73,7 +79,8 @@ pattern generalized to every attested document. An `owner`-bearing SAD **must be
   `Ixn` at the owner's **current** tip, which a rotated-out or broken old key cannot author.
 - The anchor is **self-locating**: a holder re-derives the SEL prefix from the doc it holds
   (`derive(owner, topic, said)`) and walks that SEL **by prefix** — no SAID is inverted (see
-  [`said.md`](said.md)). This is the same mechanism a credential holder uses to reach a cred's SEL.
+  [`said.md`](said.md)). This mirrors how a credential holder reaches a cred's revocation lookup SEL
+  by re-deriving its address.
 - Enforcement is **structural at two levels**: the storage service refuses to land an
   `owner`-bearing SAD without its corroborating SEL (`SEL.owner == owner ∧ SEL.data == said`),
   **and** a consumer verifies the anchor independently — the store is untrusted (end-verifiability).
