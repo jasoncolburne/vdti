@@ -3,7 +3,7 @@
 _Forthcoming._ The full IEL reconciliation doctrine lands here (mirroring
 [`../kel/reconciliation.md`](../kel/reconciliation.md)); the cross-primitive rules it rests on are
 in
-[`../../../../protocol-doctrine.md` §Divergence and repair](../../../../protocol-doctrine.md#divergence-and-repair).
+[`../../../../protocol-doctrine.md` §Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 This stub carries the repair-cascade diagrams ahead of the prose.
 
 ## Repair cascade — a surviving member recovers
