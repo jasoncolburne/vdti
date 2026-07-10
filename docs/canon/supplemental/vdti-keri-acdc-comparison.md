@@ -211,8 +211,8 @@ answers need the keripy scan. **Questions, not claims** — don't bank the KERI 
 - [ ] **SEL vs TEL/registry.** vdti's per-artifact SEL rides its owner IEL (the IEL is its clock). Map to
       KERI's **TEL** (transaction event log / credential registry) — same "data log anchored to a KEL" shape,
       or different? (Extends #5 from ACDC to the _log_ layer.)
-- [ ] **Witness/governance bounds.** vdti added a **roster cap (32)**, a **majority floor on governance**
-      (`t_govern` / `t_authorize > |roster|/2`), and the **witness majority floor** (`threshold > signers/2`,
+- [ ] **Witness/governance bounds.** vdti added a **roster cap (32)**, a **authorization floor on governance**
+      (`t_govern` / `t_authorize > |roster|/2`), and the **witnessing floor** (`threshold > signers/2`,
       fork-cost = `2·threshold − signers`). Does KERI constrain its witness threshold (`toad`) with a
       majority/attribution requirement, or leave it unconstrained? (Feeds #2 — the federation pitch rests on
       these being a real governance layer KERI lacks.)

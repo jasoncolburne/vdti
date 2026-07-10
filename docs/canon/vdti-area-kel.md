@@ -222,7 +222,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   matched — a *user* IEL vs its member KELs, different chains); the **federation IEL carries its own** (on `Fcp`/`Wit`,
   adjusted each governance `Wit` — cold-7 F1), and at the **federation-governance facet that own config *is*
   field-matched** by the approvers' KEL `Wit`s (a consensus vote — area-iel:32 / cold-9 C1; not a contradiction with
-  "independent," which is about member KELs' own configs); a **SEL inherits** its owner IEL's (single-owner). See inv 4:61 / federation §1e. **Resolved (federation area, 2026-07-02):** the majority floor `threshold > signers/2`
+  "independent," which is about member KELs' own configs); a **SEL inherits** its owner IEL's (single-owner). See inv 4:61 / federation §1e. **Resolved (federation area, 2026-07-02):** the witnessing floor `threshold > signers/2`
   **is structurally required** — with one-content-sibling-per-serial witnessing it *prevents* content forks on
   witnessed chains (below fork-cost `2·threshold − signers`); sub-majority configs are rejected; sealed forks and
   the witness-compromise (byzantine) residual stay detection — federation §1e.

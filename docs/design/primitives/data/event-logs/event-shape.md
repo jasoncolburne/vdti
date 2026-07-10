@@ -120,7 +120,7 @@ authorization (`Ath`) from `t_authorize`; a deauthorization (`Dth`) from `t_auth
 kind draws from exactly one slot, so an IEL chain's validity needs no lower-layer input. The bounds:
 
 - `t_use >= 1` (`t_use = 1` is single-device by choice — no content resilience). `t_use` is exempt
-  from the majority floor (content is first-seen / recoverable).
+  from the authorization floor (content is first-seen / recoverable).
 - The authority slots (`t_govern`, `t_authorize`) carry **two bounds**: a **security floor** `>= 2`
   (hard for every identity of `|roster| >= 2` — no single member exercises authority; the singleton
   below is the degenerate case) and a **recoverability ceiling** `<= |roster| − 1` (lets the
@@ -128,8 +128,8 @@ kind draws from exactly one slot, so an IEL chain's validity needs no lower-laye
   is **advisory at `|roster| = 2`** (a two-device identity is valid but cannot evict/recover without
   both — the wallet warns) and **hard at `|roster| >= 3`** (a threshold equal to `|roster|` is a
   gratuitous hostage config — rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
-- The authority slots also carry a **majority floor** — `t_govern`, `t_authorize > |roster|/2` — so
-  any two authorizing quorums overlap and a governance fork always names a double-dealer.
+- The authority slots also carry a **authorization floor** — `t_govern`, `t_authorize > |roster|/2`
+  — so any two authorizing quorums overlap and a governance fork always names a double-dealer.
 - The roster is **hard-capped at 32** (a DoS backstop — the verifier rebuilds the roster in memory
   as it walks; any delta pushing the live set past 32 is rejected, all IELs including the
   federation).
@@ -143,7 +143,7 @@ kind draws from exactly one slot, so an IEL chain's validity needs no lower-laye
   `Evl` (including a `cut` `Evl` that evicts), or a federation `Wit` (including a config-only `Wit`
   that changes `threshold` / `signers` with no roster delta) — not only at inception. For the
   **federation** the re-check covers the full **witness-config validity** too: the recoverability
-  cap `threshold <= min(|roster| − 2, signers − 1)` and the majority floor `threshold > signers/2`
+  cap `threshold <= min(|roster| − 2, signers − 1)` and the witnessing floor `threshold > signers/2`
   must both hold after the change — so a `signers` / `threshold` change is re-checked even with the
   roster untouched ([§Federation convergence](../../../protocol-doctrine.md#federation-convergence)
   derives which leg binds). A `cut` `Evl` (and any `threshold` it carries) is authorized at the
@@ -167,16 +167,16 @@ timestamp value, the lone non-SAID role).
 
 **Role vocabulary:**
 
-| Role        | Carried by                                                                 | Commits to                                                     |
-| ----------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` | lower-layer event SAIDs (the down-commit)                      |
-| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                | the roster **delta** / threshold SAD SAID                      |
-| `delegates` | IEL `Ath`                                                                  | delegate **prefixes** (act for the delegator)                  |
-| `grant`     | SEL `Gnt`                                                                  | the grant-doc SAD SAID                                         |
-| `content`   | SEL `Ixn`                                                                  | the content-SAD SAIDs the `Ixn` records                        |
-| `kills`     | IEL `Rev` / `Dth`                                                          | the revocation / rescission declaration `[{ target, bound? }]` |
-| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                          | the witness-config SAD SAID                                    |
-| `clock`     | federation `Fcp` / `Wit` / `Trm`                                           | the federation-clock timestamp (inline, non-SAID)              |
+| Role        | Carried by                                                         | Commits to                                                     |
+| ----------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Ath` / `Rev` / `Dth` | lower-layer event SAIDs (the down-commit)                      |
+| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                        | the roster **delta** / threshold SAD SAID                      |
+| `delegates` | IEL `Ath`                                                          | delegate **prefixes** (act for the delegator)                  |
+| `grant`     | SEL `Gnt`                                                          | the grant-doc SAD SAID                                         |
+| `content`   | SEL `Ixn`                                                          | the content-SAD SAIDs the `Ixn` records                        |
+| `kills`     | IEL `Rev` / `Dth`                                                  | the revocation / rescission declaration `[{ target, bound? }]` |
+| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                  | the witness-config SAD SAID                                    |
+| `clock`     | federation `Fcp` / `Wit` / `Trm`                                   | the federation-clock timestamp (inline, non-SAID)              |
 
 The roles that carry discrimination or shape rules, in prose:
 
@@ -201,7 +201,7 @@ The roles that carry discrimination or shape rules, in prose:
   / `Dth`) is the only structural rule; the IEL never dereferences a target or interprets a bound
   (all revocation / grandfather logic is the feature layer's).
 - **`witnesses`** is mandatory iff federated at inception and present-iff-changed on a `Wit`; its
-  `threshold` sits above a **majority floor** (`threshold > signers/2`), and it gates a user IEL's
+  `threshold` sits above a **witnessing floor** (`threshold > signers/2`), and it gates a user IEL's
   content events at their own position
   ([§Federation convergence](../../../protocol-doctrine.md#federation-convergence)).
 
@@ -227,7 +227,8 @@ downstream type-check, so the allowlist is their sole protection (a `kills` on a
 malformed → rejected, closing declare-a-revoke-at-`t_use`). The back-checked role `anchors` is
 additionally caught when each referenced event is validated against its required kind — the anchor
 matrix is **kind-strict** both directions: an IEL `Rev`'s or `Dth`'s anchors resolve **only** to SEL
-`Trm`s, an IEL `Ixn`'s only to content or a credential-SEL v1, and neither the reverse.
+`Trm`s, an IEL `Ixn`'s only to content SEL v1s or a credential's issuance commitment, and neither
+the reverse.
 
 ## Cross-cutting fields
 
@@ -446,7 +447,7 @@ KEL + federation doctrine — [`kel/`](kel/), [`../../../federation/`](../../../
 | ----- | ----- | ---- | ------------ | ------------------------------------------------------------------------------------ |
 | `Icp` | req   | req  | fbd          | req (`roster`; `witnesses` mandatory iff federated; a federation `Fcp` adds `clock`) |
 | `Ixn` | fbd   | req  | fbd          | req (`anchors`)                                                                      |
-| `Evl` | fbd   | req  | req          | opt (`roster`, `anchors`)                                                            |
+| `Evl` | fbd   | req  | req          | opt (`roster`)                                                                       |
 | `Ath` | fbd   | req  | req          | req (`delegates` and/or `anchors`)                                                   |
 | `Rev` | fbd   | req  | req          | req (`anchors`, `kills`)                                                             |
 | `Dth` | fbd   | req  | req          | req (`anchors`, `kills`)                                                             |

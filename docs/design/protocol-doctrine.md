@@ -238,7 +238,7 @@ no roster delta — not only at inception): `t_use >= 1`; the authority slots (`
 single member exercises authority; the singleton below is the degenerate case), a **recoverability
 ceiling** `<= |roster| − 1` (evict/recover without one member — advisory at `|roster| = 2`, hard at
 `|roster| >= 3`, where a threshold equal to `|roster|` is a gratuitous hostage config and is
-rejected), and a **majority floor `> |roster|/2`** (a strict majority signs every governance /
+rejected), and a **authorization floor `> |roster|/2`** (a strict majority signs every governance /
 grant, so any two authorizing quorums overlap and a governance fork always names a double-dealer;
 `t_use` is exempt, content being first-seen / recoverable). And the roster is **never emptied**: the
 post-delta size is **`|roster| + |add| − |cut| >= 1`** (the roster is a set — `add ∉` it, `cut ⊆`
@@ -250,7 +250,7 @@ be able to evict a compromised witness), so a federation requires `|roster| >= 4
 **`threshold <= min(|roster| − 2, signers − 1)`**, because an eviction `Wit` must self-attest
 without the evicted member (the self-attest pool is `|roster| − 2`, and at sub-pool selection the
 selected pool loses one too — the `signers − 1` leg is the one that binds for `signers >= 3`, the
-witness-pool floor). The full cap **plus the majority floor `threshold > signers/2`**
+witness-pool floor). The full cap **plus the witnessing floor `threshold > signers/2`**
 ([§Federation convergence](#federation-convergence)) are re-applied on **any `Wit` that changes
 roster, `threshold`, or `signers`** (not only a roster `cut`) — so a bare shrink that would strand
 the federation un-recoverable (`|roster| 5→4` at `threshold 3`), or a `signers` drop landing on the
@@ -321,13 +321,12 @@ issuer serializes its content submissions** — a discipline separate from, and 
 **serializing governance** (the operational rule that governance and kill events pass through **one
 designated submitter** so two never race during a partition — else `{Evl, Evl}` / `{kill, kill}` →
 Disputed; operator doctrine, forthcoming). **Governance serialization is safety-critical
-everywhere** — a governance race is sealed, and the witnessing majority floor never gates sealed
-events. **Content-rail serialization is a liveness / waste discipline:** every chain is
-federation-witnessed (there is no direct mode), and the majority floor prevents a competing content
-sibling going live — a partitioned content rail **stalls** rather than forks — so an un-serialized
-rail costs stalls and re-issuance, not terminality
-([§Federation convergence](#federation-convergence)).) The exact constant, the roster-less re-seal,
-and the content-rail serialization are IEL doctrine —
+everywhere** — a governance race is sealed, and the witnessing floor never gates sealed events.
+**Content-rail serialization is a liveness / waste discipline:** every chain is federation-witnessed
+(there is no direct mode), and the witnessing floor prevents a competing content sibling going live
+— a partitioned content rail **stalls** rather than forks — so an un-serialized rail costs stalls
+and re-issuance, not terminality ([§Federation convergence](#federation-convergence)).) The exact
+constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/) (forthcoming).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -388,11 +387,11 @@ pre-seal verifiability, below.) Freezing origination on divergence is the foundi
 event-log primitives.
 
 Every chain is **federation-witnessed** — there is no direct mode. On a witnessed chain a
-**content** fork rarely reaches this machinery at all: the witnessing majority floor makes two
-competing content siblings un-co-witnessable, so the fork is **prevented** from forming below
-fork-cost ([§Federation convergence](#federation-convergence)). The rules below run in the
-**residual** — a **witness compromise** owning the intersection, split-stalls (where a burying
-seal-advancer is the exit), and **sealed** races, which the floor never gates.
+**content** fork rarely reaches this machinery at all: the witnessing floor makes two competing
+content siblings un-co-witnessable, so the fork is **prevented** from forming below fork-cost
+([§Federation convergence](#federation-convergence)). The rules below run in the **residual** — a
+**witness compromise** owning the intersection, split-stalls (where a burying seal-advancer is the
+exit), and **sealed** races, which the floor never gates.
 
 The **shape-validity gate** — reject a seal-advancer that would bury a **sealed** branch, or a
 self-burial (a burying seal-advancer siblinging its own retained chain) — runs wherever an event is
@@ -566,7 +565,7 @@ re-issued, terminating as honest members catch up to the recovered tip. So termi
 (≤ `(MINIMUM_PAGE_SIZE − 1)/2` deep), and once the neutralizing move — the rotation, or the cut —
 propagates, no new fork can be minted; a benign lag terminates as soon as its node catches up.
 **Content-rail serialization is an operator liveness discipline**: every chain is
-federation-witnessed and the majority floor keeps a content self-cascade to stall-and-re-issue — a
+federation-witnessed and the witnessing floor keeps a content self-cascade to stall-and-re-issue — a
 competing content sibling never goes live ([§Federation convergence](#federation-convergence)) — so
 an un-serialized rail costs stalls and re-issuance, not terminality.
 
@@ -704,7 +703,7 @@ Disputed proof — dispute evidence, competing seals form a spine fork,
 [§Forks are seal-bounded](#forks-are-seal-bounded) — and further ones are declined); the **single
 burying seal-advancer** that lands on a content-only divergence is simply the first sealed sibling
 at that position. Deterministic witness co-location fixes the witness _set_, not arrival order —
-with the majority floor ([§Federation convergence](#federation-convergence)) at most one content
+with the witnessing floor ([§Federation convergence](#federation-convergence)) at most one content
 sibling per position is ever witnessed, arrival order deciding only which — and the retention bound
 rests on retention plus kind-awareness, not on which two events arrive first; _which_ two are kept
 is immaterial: any two competing events prove the fork; the bound requires keeping at least two, not
@@ -967,8 +966,8 @@ The convergence model has three components:
   under partition, since nodes holding different state never falsely agree (see
   [§Effective-SAID comparison](#effective-said-comparison)).
 
-**Content-fork prevention — the majority floor.** The witness-config every federated chain carries
-(`{ threshold, signers }` — the `witnesses` role) sits above a structural **majority floor:
+**Content-fork prevention — the witnessing floor.** The witness-config every federated chain carries
+(`{ threshold, signers }` — the `witnesses` role) sits above a structural **witnessing floor:
 `threshold > signers/2`**, a strict majority of the selected witnesses (a sub-majority config is
 rejected as un-usable — its `witnessed` signal would no longer mean per-position exclusivity; every
 config clears the `signers >= 3` witness-pool floor, so there is no lone-witness degenerate).

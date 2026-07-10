@@ -510,7 +510,7 @@ the `sel/` + `iel/` anchor-validation doctrine, forward-referenced below.)
   the **Disputed** proof — competing seals form a spine fork; further spray is declined and
   droppable). The **single burying seal-advancer** on a content-only divergence is simply the first
   sealed sibling at that position (a _second_, competing seal-advancer is `{Rot, Rot}` →
-  **Disputed**; at most one buries a content-only divergence). With the majority floor this bounds
+  **Disputed**; at most one buries a content-only divergence). With the witnessing floor this bounds
   co-witnessed content breadth to ≤ 1 absent fork-cost byzantine witnesses; arrival order decides
   only _which_ content sibling is the witnessed one — the bound rests on **retention +
   kind-awareness**, arrival-independent. A signing-key (tier-1) re-forker can _author_ more content
@@ -552,10 +552,10 @@ mints costs it one bounded fork window, and once the neutralizing event — the 
 propagates, it can mint no more; a benign gossip-lag terminates as soon as its node catches up.
 Content-rail serialization is an **operator precondition** of the benign bound — absent it, honest
 content can self-cascade (a liveness cost, not a safety one); governance serialization backs the
-`{Evl, Evl}` terminal cases at the IEL. On a **witnessed** chain the majority floor narrows even the
-self-cascade to stall-and-re-issue — a competing content sibling never goes live — so the discipline
-is a **liveness** concern (every chain is federation-witnessed; the residual safety concern is only
-a witness compromise).
+`{Evl, Evl}` terminal cases at the IEL. On a **witnessed** chain the witnessing floor narrows even
+the self-cascade to stall-and-re-issue — a competing content sibling never goes live — so the
+discipline is a **liveness** concern (every chain is federation-witnessed; the residual safety
+concern is only a witness compromise).
 
 ### Residuals (stated, fail-secure)
 
@@ -687,5 +687,5 @@ to a one-branch holder. The seal-cap stays unconditional.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#effective-said-comparison) —
   effective-SAID comparison (cross-primitive).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the majority floor, the
+  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the witnessing floor, the
   beacon, divergent witness receipts.

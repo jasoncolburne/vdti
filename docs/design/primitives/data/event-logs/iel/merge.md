@@ -39,12 +39,11 @@ The IEL is a mixed chain, and the one test that routes divergence is: **could a 
 already-revealed secret author a competing sealed sibling?**
 
 - **Content (`Ixn`)** → **first-seen**. Witnesses take the first content event at a position and
-  decline the copies. A **user** IEL's content additionally must reach a **majority quorum at its
-  own `(prefix, serial)`** — the position gate, alongside its anchor-based authorization — so two
-  disjoint member sub-quorums cannot both land a content event at one IEL serial (with the majority
-  floor this closes the two-disjoint-sub-quorums content fork). A content conflict is
-  **recoverable**: the next sealed governance event buries the loser below the seal, no repair
-  event.
+  decline the copies. A **user** IEL's content additionally must reach a **witness majority at its
+  own `(prefix, serial)`** — the **position gate**, alongside its anchor-based authorization — so
+  two disjoint member sub-quorums cannot both land a content event at one IEL serial, closing the
+  two-disjoint-sub-quorums content fork. A content conflict is **recoverable**: the next sealed
+  governance event buries the loser below the seal, no repair event.
 - **Governance (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`, sealed)** → **record-both**. A
   threshold chain cannot be forked by one stolen key, so a second sealed decision is proof the
   quorum was subverted, surfaced loudly. `{Evl, Evl}` (any two sealed branches) → **≥ 2 sealed →
@@ -53,7 +52,7 @@ already-revealed secret author a competing sealed sibling?**
 
 The **federation** IEL is the pure case — every event is governance → record-both → every federation
 conflict is disputed / terminal. The witnessing mechanics that make content first-seen work (the
-majority floor, one-content-sibling-per-position, the beacon) are federation doctrine —
+position gate, one-content-sibling-per-position witnessing, the beacon) are federation doctrine —
 [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md); this doc states the
 chain-scoped routing that composes with them.
 
@@ -148,8 +147,9 @@ rule 1 → `Terminal`.
 The event's `(parent_said, serial)` is checked against the chain's existing events at that serial:
 
 - **Sealed event whose landing would create or join a divergence** (a governance kind extending
-  `v_{d-1}`) — not admitted as a canonical extension; retained as non-canonical evidence. The chain
-  moves to `Forked` (the fork's first sealed branch) or `Disputed` (its second).
+  `v_{d-1}`, the last common event before the fork) — not admitted as a canonical extension;
+  retained as non-canonical evidence. The chain moves to `Forked` (the fork's first sealed branch)
+  or `Disputed` (its second).
 - **Content event** (`Ixn`) — admitted. If a competing event already exists at the same serial, a
   fork forms; a second content sibling on a witnessed chain is `Ignored`, and the residual is
   `Forked`. If no event sits at the candidate's serial, the event extends linearly (`Extended`).
@@ -170,7 +170,7 @@ against the threshold vector, kind-strict:
   verifies. An **`Evl` add** additionally requires each added member's tier-1 KEL `Ixn` consent,
   counted toward consent-of-added, never `t_govern`.
 - **Roster-delta bounds** re-checked on the post-delta config (the security floor, the
-  recoverability ceiling, the majority floor, the roster cap; a `cut` priced the **outgoing**
+  recoverability ceiling, the authorization floor, the roster cap; a `cut` priced the **outgoing**
   `t_govern`).
 - **`Wit` change-requirement (user facet)** — a user `Wit` is a rebind: it must change `federation`
   or `witnesses`, and its `{federation, federationPin}` must field-match every anchoring KEL `Wit`.
@@ -216,7 +216,7 @@ facet** (`Fcp`-rooted federation versus `Icp`-rooted user —
 **establishes the root facet before reading any `Wit` payload** — on **every** `Wit`-reading path:
 the from-scratch walk, a `resume` from a cached token, and a `search_only` walk that ends early. The
 verification token carries the root facet, so a `resume` re-applies the dispatch without re-deriving
-it. **This is a done-criterion.**
+it. **No `Wit`-reading path is exempt.**
 
 A facet-blind allowlist would admit a governance-shaped payload (a roster delta) on a user `Wit` —
 and the directly-consumed governance roles have **no** downstream type-check, so the kind → role
@@ -378,5 +378,5 @@ batch composition. See
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the majority floor, the beacon, content-fork prevention,
+  witnessing (subsequent sub-issue): the witnessing floor, the beacon, content-fork prevention,
   cross-node propagation.

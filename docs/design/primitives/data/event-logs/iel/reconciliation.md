@@ -207,12 +207,12 @@ convergence.
 "Active (winning)" means the sink holds the eventual winning branch; "Active (losing)" the eventual
 buried branch. The protocol cannot distinguish the two from chain data alone.
 
-| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked              | Terminated |
-| ------------------------------ | -------- | ---------------- | --------------- | ------------------- | ---------- |
-| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵉ | Sealed     |
-| **Recovered** (source burying) | Extended | Extended         | Recovered ᵉ     | Recovered ᵉ         | Sealed     |
-| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ          | Sealed     |
-| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated ᵉ        | Extended ᶜ |
+| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated |
+| ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | ---------- |
+| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵉ     | Sealed     |
+| **Recovered** (source burying) | Extended | Extended         | Recovered ᵉ     | Recovered / Disputed ᵉ  | Sealed     |
+| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed     |
+| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵉ | Extended ᶜ |
 
 **Row note (no Disputed source).** A **Disputed** source (≥ 2 sealed branches) needs no separate
 row: it transfers like a **Forked** source — its retained sealed branches propagate, and the sink
@@ -337,20 +337,21 @@ combination of {tier of the losing branch} × {delivered before or after the sea
 
 ### Burial by position + descent
 
-On a **witnessed** IEL, content forks are **prevented** below fork-cost (the majority floor plus
+On a **witnessed** IEL, content forks are **prevented** below fork-cost (the position gate plus
 one-content-sibling-per-position witnessing, at both the user IEL's own position and, cross-layer,
 its SELs), so the population this matrix recovers is the **residual**: witness compromise at
 fork-cost, roster-delta straddles, split-stalls (the burying governance seal is the exit), and mixed
 `{governance, content}` races. The machinery is uniform.
 
-Recovery is a **burying governance seal** (an `Evl`, or the `cut` `Evl` when it also evicts) on the
-winning branch — there is no repair event and no losing-branch commitment. It advances the seal, so
-every losing **content** branch has its first event locked below the seal and everything built on it
-dead by descent (**deadness descends: an event whose parent is dead is dead**) — so a losing branch
-a lagging node grows after the burial is dead by descent, growth-proof. The loser rides the **forked
-chain**, a bounded region: each dead lineage extends at most 64 events past the last seal (a deeper
-event needs a governance seal, sealed → Disputed), and its breadth is bounded by retention (≥ 2
-competing events per position) with the one-content-sibling witnessing rule on top.
+Recovery is a **burying governance seal** on the winning branch — any governance seal-advancer,
+typically an `Evl` or the `cut` `Evl` when it also evicts — with no repair event and no
+losing-branch commitment. It advances the seal, so every losing **content** branch has its first
+event locked below the seal and everything built on it dead by descent (**deadness descends: an
+event whose parent is dead is dead**) — so a losing branch a lagging node grows after the burial is
+dead by descent, growth-proof. The loser rides the **forked chain**, a bounded region: each dead
+lineage extends at most 64 events past the last seal (a deeper event needs a governance seal, sealed
+→ Disputed), and its breadth is bounded by retention (≥ 2 competing events per position) with the
+one-content-sibling witnessing rule on top.
 
 ### The completeness matrix
 
@@ -408,7 +409,7 @@ The forked chain is depth-capped at 64 past the last seal per lineage — one bu
 closes the whole current content fork, and the `cut` `Evl` then closes the culprit's ability to
 re-fork (by eviction). **Governance serialization** (one designated submitter) backs the
 `{Evl, Evl}` terminal cases; **content-rail serialization** is a liveness precondition of the benign
-bound. On a witnessed IEL the majority floor narrows even the self-cascade to stall-and-re-issue — a
+bound. On a witnessed IEL the position gate narrows even the self-cascade to stall-and-re-issue — a
 competing content sibling never goes live — so the discipline is a liveness concern (every chain is
 federation-witnessed; the residual safety concern is only a witness compromise).
 
@@ -436,7 +437,7 @@ the anchor edge from its side, the SEL-side detail lands with [`../sel/`](../sel
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the majority floor, the beacon, the federation-IEL schism
+  witnessing (subsequent sub-issue): the witnessing floor, the beacon, the federation-IEL schism
   mechanics.
 - [`../../../../operations/governance-workflow.md`](../../../../operations/governance-workflow.md) —
   the governance-serialization operator playbook (subsequent sub-issue).

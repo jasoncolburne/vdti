@@ -153,7 +153,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **kind-strict anchor matrix** — each lower-layer kind is anchored by exactly the upper kind that
   reveals the matching capability; no higher-tier stand-in.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
-- **fork-cost / majority floor** — a strict witness majority (`threshold > signers/2`) makes two
+- **fork-cost / witnessing floor** — a strict witness majority (`threshold > signers/2`) makes two
   conflicting content siblings un-co-witnessable, preventing the fork.
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is answered by

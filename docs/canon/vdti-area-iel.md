@@ -53,13 +53,18 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   12):** `t_use ≥ 1`; the authority kinds (`t_govern`/`t_authorize`) have **two bounds of different kinds** — **`≥ 2`**
   (security: no single-member authority — **hard, every identity**) and **`≤ |roster| − 1`** (recoverability:
   evict/recover without one — **advisory only at `|roster| = 2`** (verifier accepts, wallet warns), **hard at
-  `|roster| ≥ 3`** for every identity); singleton → all = 1. **Plus a majority floor: `t_govern`, `t_authorize >
+  `|roster| ≥ 3`** for every identity); singleton → all = 1. **Plus an authorization floor: `t_govern`, `t_authorize >
   |roster|/2`** (2026-07-08 — closes the disjoint-quorum attribution loss; `t_use` is **exempt**, content being
   first-seen / recoverable). A **2-member identity is valid but unrecoverable** (warned — a compromised device can
   *freeze* you, not just self-lockout; add a 3rd key). **At `|roster| ≥ 3` a threshold `= |roster|` is rejected**
   (gratuitous hostage — Finding 3); recoverable governance needs `|roster| ≥ 3`. **The roster is hard-capped at 32**
   (a DoS backstop — the verifier rebuilds the roster in memory as it walks; any delta pushing the live set past 32 is
   rejected). [inv 11, 12; G1]
+- **Two distinct floors — don't conflate (2026-07-10).** The **witnessing floor** (`threshold > signers/2`, over
+  the **witness signers** — federation §1e) and the **authorization floor** (`t_govern`/`t_authorize > |roster|/2`,
+  over the **roster members** — above) are distinct thresholds over distinct sets; the **position gate** is the IEL
+  applying the **witnessing floor at its own `(prefix, serial)`** (option (b), federation §1e). Both are separate
+  again from the **roster-floor `|roster| ≥ 1`** (never-emptied) and the **security floor `≥ 2`**. [inv 12]
 - **Threshold declaration (locked 2026-06-25).** The **`Icp` declares the active threshold set** — exactly the
   authority kinds the IEL will ever use — **a threshold is declared iff its consuming kind is in the IEL's kind set**
   (`Ixn`→`t_use`, `Ath`/`Dth`→`t_authorize`, `Evl`/`Rev`/`Wit`/`Trm`→`t_govern`). A **user** IEL → `t_govern`
@@ -112,7 +117,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   single already-revealed secret author a competing sealed sibling?*):
   - **Content (`Ixn`)** → **first-seen**: witnesses take the first content event at a position and decline the
     copies; a **user** IEL's content additionally must reach a **majority quorum at its own `(prefix, serial)`** (the
-    option-(b) position gate), which — with the majority floor — closes the two-disjoint-sub-quorums content fork.
+    option-(b) position gate), which — with the witnessing floor — closes the two-disjoint-sub-quorums content fork.
     A content conflict is **recoverable**: the next sealed governance event (or the agreed next content) buries the
     loser below the seal (deadness-descends), no repair event.
   - **Governance (`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm` — sealed)** → **record-both**: a threshold chain can't be forked
@@ -206,7 +211,7 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   layer is recoverable.
 - **★★ A governance change during a network split (F7) — RESOLVED, REFINED 2026-06-21; witness-scoped 2026-07-02.**
   When the network splits, one half can change the roster (a `Evl`) while the other half keeps issuing content. Both
-  land at the same chain position; on heal they collide. **Under the majority floor (federation §1e) the collision
+  land at the same chain position; on heal they collide. **Under the witnessing floor (federation §1e) the collision
   mostly doesn't form:** a half holding only a witness *minority* has its content stall sub-majority (fail-secure —
   never witnessed; non-witness nodes defer it), so that side contributes no live branch — the `Evl` (sealed —
   witnessed, federation §1e) wins and the stalled content re-issues, a no-collision. The collision still forms when the
@@ -255,7 +260,7 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   role-allowlist:** evicting a compromised / divergence-causing member is an **ordinary `Evl` carrying a roster
   `cut`** (there is **no** `Rpr` repair-and-evict fold — there is no `Rpr`). One governance seal buries the fork
   *and* evicts, atomically. The `cut` is priced the **outgoing** `t_govern` (pre-change); the post-cut roster is
-  re-checked against the inv 12 bounds (`≥ 2`, recoverability ceiling, majority floor, roster cap 32); a stranding /
+  re-checked against the inv 12 bounds (`≥ 2`, recoverability ceiling, authorization floor, roster cap 32); a stranding /
   hostage cut is rejected, forcing a simultaneous `threshold` drop or reincept. The timing-attack rationale (the
   eviction must be atomic with the burying, else the still-rostered member re-forks the resolved tip) belongs in the
   merge/reconciliation doc.
@@ -273,7 +278,7 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   = 64 content events): keep one branch, archive + reissue the other (SAIDs lock `previous` — can't interleave).
   **Beyond one window it is NOT recoverable** — both halves fill the cap and are *forced* to re-seal with a
   roster-less `Evl`; the two re-seals differ by `previous` → `{Evl, Evl}` → **terminal → reincept**. **On a witnessed
-  chain the majority floor demotes this discipline from safety-critical to LIVENESS (federation §1e):** the
+  chain the witnessing floor demotes this discipline from safety-critical to LIVENESS (federation §1e):** the
   witness-minority half's content never witnesses (every event reads sub-threshold — a loud fail-secure signal), and
   honest members following acceptance-gating never extend an unwitnessed tip into a re-seal `Evl` — so reaching
   `{Evl, Evl}` by cap-fill requires *ignoring* the signal and governing into a suspected split (negligence, not a

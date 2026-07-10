@@ -18,28 +18,28 @@
 
 # === Removed primitives (post-kels#214 simplification) ===
 # Cnt removed; per-node Contested removed; upgrade rule removed.
-upgrade[ _]rule
+\bupgrade[ _]rule\b
 
 # === Removed identifiers (post-kels#218 federation trust model) ===
 # Static trusted prefix list replaced with federation Fcp SAID set.
-TRUSTED_REGISTRY_PREFIXES
-TRUSTED_REGISTRY_MEMBERS
+\bTRUSTED_REGISTRY_PREFIXES\b
+\bTRUSTED_REGISTRY_MEMBERS\b
 
 # === Rejected design directions (post-kels#218) ===
 # Federation-Dip / Fip ruled out — federation IEL uses Fcp self-signing carve-out.
-Federation-Dip
-Fip
+\bFederation-Dip\b
+\bFip\b
 
 # === Renamed services (kels consolidation) ===
 # sadstore + kels-service consolidated into vdtid; gossip-service → witnessd.
-kels-service
-gossip-service
-kels-sadstore
+\bkels-service\b
+\bgossip-service\b
+\bkels-sadstore\b
 
 # === kels-internal tool / agent names (out-of-context in vdti) ===
 # Distinctive enough to forbid; common words ("max", "min") rely on review.
-claudit
-xhigh
+\bclaudit\b
+\bxhigh\b
 
 # === kels protocol namespace leakage ===
 # vdti has its own namespace: vdti/witness/v1/topics/*, vdti/sad/v1/*, etc.
@@ -61,10 +61,10 @@ kels/sad/
 # authPolicy context-mapped to governance / authentication / operation;
 # governancePolicy → governance; identity_leaves removed (pool = governance
 # DSL expansion); delegatingPrefix → delegating.
-authPolicy
-governancePolicy
-identity_leaves
-delegatingPrefix
+\bauthPolicy\b
+\bgovernancePolicy\b
+\bidentity_leaves\b
+\bdelegatingPrefix\b
 
 # === Old policy-DSL leaf / composer names ===
 # The policy language: leaves id (identity) / del (delegate), reference pol;
@@ -76,13 +76,13 @@ kels/sad/
 #               iel( → id( ; kel( → (dropped) ; mem( → (dropped).
 # Call-form (trailing "(") so the uppercase IEL/KEL/SEL primitives and the
 # kel/ // iel/ doc paths are NOT matched.
-Endorse\(
-threshold\(
-Weighted
-Policy\(
-iel\(
-kel\(
-mem\(
+\bEndorse\(
+\bthreshold\(
+\bWeighted\b
+\bPolicy\(
+\biel\(
+\bkel\(
+\bmem\(
 
 # === Superseded SEL prefix tuples ===
 # Settled tuple is (governance, operation, topic).
@@ -95,10 +95,10 @@ kels/sad/
 # ielEvent / ielPrefix / policyBinding / "binding SAD" are superseded spellings;
 # no such field exists. (Their one-time successors policyPin and
 # federationBinding are THEMSELVES superseded by the log-primitive reshape —
-# forbidden in the reshape block below.) ielEvent does not match custody's
+# forbidden in the reshape block below.) \bielEvent\b does not match custody's
 # ownerIelEvent (case differs at the boundary).
-ielEvent
-policyBinding
+\bielEvent\b
+\bpolicyBinding\b
 [bB]inding[ -]SAD
 
 # ============================================================================
@@ -117,18 +117,20 @@ kels/sad/
 #   KEL federationBinding → federation (prefix) + federationPin (SAID);
 #   policy-DSL leaves dev() / grp() dropped (identity composition is thr / wgt /
 #     and over id()). Call-form ("(") so device/develop/group are not matched.
-Gov
-Est
-dev\(
-grp\(
+#     Only \bdev\( is banned here: the canon quotes grp( as dropped history
+#     (vdti-keri-acdc-comparison.md — "the reshape dropped foreign-`grp`"), and
+#     this file is the parent MINUS canon-quoted patterns, so \bgrp\( is omitted.
+\bGov\b
+\bEst\b
+\bdev\(
 # The 3-function policy evaluator (gate / anchored / current) collapsed to two
 # modes (as-issued / current) sharing one composer; all the old function names —
 # including the earlier evaluate_single_policy — are retired. The interim
 # 2-function name evaluate_anchored was renamed to evaluate_as_issued (the mode
 # is "as-issued"; "anchored" stays the structural verb — manifest anchors, the
 # anchoring position — so only the evaluate_ form is forbidden):
-evaluate_single_policy
-evaluate_anchored
+\bevaluate_single_policy\b
+\bevaluate_anchored\b
 
 # ============================================================================
 # §Doc-only — seal-cap rejection error name (Sealed — four-state/merge-outcome pass)
@@ -170,9 +172,9 @@ kels/sad/
 federation-irreconcilable
 divergent:\{prefix\}
 irreconcilable:\{prefix\}
-policy_satisfied
-RecoveryRecord
-witnessParams
+\bpolicy_satisfied\b
+\bRecoveryRecord\b
+\bwitnessParams\b
 
 # ============================================================================
 # §Doc-only — Fed→Wit + folded→folds remodel
@@ -185,7 +187,7 @@ irreconcilable:\{prefix\}
 # verb "folded" (the content run folded since the prior seal) stays live — only
 # the role name and its dotted accessors regress, so forbid the role/accessor
 # forms (`folded`, folded.forks, folded.canonical), never the bare verb.
-# Fed does not match "federation" (word boundary fails at the trailing e).
+# \bFed\b does not match "federation" (word boundary fails at the trailing e).
 folded\.forks
 folded\.canonical
 
@@ -214,7 +216,7 @@ re-frozen
 # "the chain forks", "the seal never forks") and the section title "Forks are
 # seal-bounded" stay live — only the list-role name and its accessor /
 # inline-list / plural-root collocations regress.
-\.forks
+\.forks\b
 losing[- ]branch roots
 roots committed
 inline list of the losing
@@ -250,8 +252,22 @@ rescinds\[\]
 #     Ath.)
 # The policy-DSL leaf del( and the words delegate/delegation/delegates stay live
 # (already gated to their own forms) — only the uppercase kind tokens regress.
-# Dec does not match "December" (boundary fails at the trailing e); dates use
-# ISO 8601. Del / Kil / Aut are whole-token (Delegate(/kill/Author
+# \bDec\b does not match "December" (boundary fails at the trailing e); dates use
+# ISO 8601. \bDel\b / \bKil\b / \bAut\b are whole-token (Delegate(/kill/Author
 # fail the boundary).
-Aut
+\bAut\b
 [Dd]ecommission
+
+# ============================================================================
+# §Doc-only — floor terminology disambiguation (2026-07-10)
+# ============================================================================
+# "majority floor" named two distinct thresholds over distinct sets and misled a
+# review pass. Split into names that say which threshold over which set:
+#   witnessing floor    — threshold > signers/2 (over the witness signers) —
+#     content-fork prevention (KEL + IEL);
+#   authorization floor — t_govern / t_authorize > |roster|/2 (over the roster
+#     members) — any two authorizing quorums overlap (IEL only; t_use exempt);
+#   position gate       — the IEL applying the witnessing floor at its own
+#     (prefix, serial). (Kept — already correct, never renamed.)
+# The bare term must not return; the new names carry no "majority" substring.
+majority floor

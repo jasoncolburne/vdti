@@ -115,8 +115,9 @@ that ends early). A `Wit` on an `Icp`-rooted chain may carry `{federation, feder
 carries `root_facet` (set at inception) so a `resume` re-applies the dispatch without re-deriving it
 — a `resume` can never process a `Wit` payload facet-blind. A facet-blind allowlist would admit a
 governance-shaped roster delta on a user `Wit`, and since the kind → role allowlist is the **only**
-gate on the directly-consumed governance roles, **facet dispatch on every `Wit`-reading path is a
-done-criterion** ([`merge.md` §Facet dispatch](merge.md#facet-dispatch-on-every-wit-reading-path)).
+gate on the directly-consumed governance roles, **the facet is established on every `Wit`-reading
+path without exception**
+([`merge.md` §Facet dispatch](merge.md#facet-dispatch-on-every-wit-reading-path)).
 
 ## Threshold anchoring — fresh participation up, `pins` down
 
@@ -267,10 +268,10 @@ termination rides the orthogonal `is_terminated()` accessor.
 
 The caller registers SAIDs of interest before the walk via `verifier.check_anchors(saids)`. As the
 verifier processes events, it checks each event's `manifest.anchors` against the registered SAIDs —
-the `anchors` role lives on `Ixn` (SEL v1s + credential issuance commitments), `Evl` / `Ath` (a
-`Gnt`), and `Rev` / `Dth` (a `Trm`). Results are on the token via `is_said_anchored()` /
-`anchors_all_saids()`. The token surfaces the **anchoring IEL event's kind** on each matched anchor,
-so a cross-chain consumer (the SEL verifier) can enforce the kind-strict anchor matrix
+the `anchors` role lives on `Ixn` (SEL v1s + credential issuance commitments), `Ath` (a `Gnt`), and
+`Rev` / `Dth` (a `Trm`). Results are on the token via `is_said_anchored()` / `anchors_all_saids()`.
+The token surfaces the **anchoring IEL event's kind** on each matched anchor, so a cross-chain
+consumer (the SEL verifier) can enforce the kind-strict anchor matrix
 ([`events.md` §The kind-strict anchor matrix](events.md#the-kind-strict-anchor-matrix)).
 Registration before the walk lets the verifier record observations without a second database pass —
 the uniform verification-token pattern
@@ -332,16 +333,16 @@ propagates** — receipts deliver competing branches and freshness, never a verd
 - **`witnessed`.** An IEL event has **no key of its own**, so its witnessing **is** the witnessing
   of its **member KEL anchors** — the event is trusted when the required threshold of its anchoring
   member KEL participations are witnessed (the IEL's own `witnesses` config sets `threshold` /
-  `signers`). A **user** IEL adds a second gate for **fork prevention**: its content events must
-  also reach a **majority quorum at their own `(IEL prefix, serial)`**, so two disjoint member
-  sub-quorums cannot both land a content event at one IEL serial. The **federation** IEL keeps pure
-  anchor-based self-attestation (no position gate — its every fork is sealed → `disputed` anyway),
-  its witnesses witnessing each other **exclude-self**.
+  `signers`). A **user** IEL adds a second gate for **fork prevention** — the **position gate**: its
+  content events must also reach a **witness majority at their own `(IEL prefix, serial)`**, so two
+  disjoint member sub-quorums cannot both land a content event at one IEL serial. The **federation**
+  IEL keeps pure anchor-based self-attestation (no position gate — its every fork is sealed →
+  `disputed` anyway), its witnesses witnessing each other **exclude-self**.
 - **The divergence signal splits by provenance.** When a node **holds and re-validates** two or more
   sealed branches at a position, it reads **`disputed` directly** — threshold-independent. When it
   holds only a **receipt** for a sealed event it has not yet fetched, it treats the position as
   **`forked`** and waits for the witness threshold. For content, a losing sibling never reaches
-  threshold under the majority floor, so the signal is a sub-threshold competing receipt set — the
+  threshold under the position gate, so the signal is a sub-threshold competing receipt set — the
   node fetches the event and the data-local walk decides.
 - **`witnessed_anchors`.** The subset of the IEL's own anchored SEL SAIDs witnessed on the canonical
   branch; the SEL verifier consults it during kind-strict anchor authorization — only witnessed
@@ -389,18 +390,18 @@ configurable).
 
 ## Per-event check summary
 
-| Property                        | Verification method                                                                                                                                                       |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SAID / prefix integrity         | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from roster + thresholds + `nonce`).                            |
-| Event chaining                  | `previous` resolves to a verified prior event; each governance event's `previousSeal` resolves to the prior seal.                                                         |
-| Serial monotonicity             | Each event's serial equals the previous serial + 1; inception is serial 0.                                                                                                |
-| Inception kind + facet dispatch | Branch on `Icp` / `Fcp`; fix `root_facet`; read `Wit` payloads facet-correctly on every path.                                                                             |
-| Threshold authority             | A threshold of members' fresh KEL participations (kind-strict up) anchor the event; each anchoring KEL signature valid and witnessed.                                     |
-| Roster accumulation + bounds    | Accumulate every `add` / `cut` / threshold delta; re-check the post-delta bounds (security floor, recoverability ceiling, majority floor, cap 32) at every config change. |
-| Manifest roles + anchor format  | The `manifest` carries only roles in the kind's facet-aware allowlist; each `anchors` entry a valid SAID-shaped token.                                                    |
-| Delegation / rescission         | Bounded per-candidate delegation walk; `kills[]` forward-match (fail-secure by default).                                                                                  |
-| Federation context              | Records the IEL's own binding per event (user); a federation IEL carries none.                                                                                            |
-| Witness state                   | Token surfaces `witnessed` (member-anchor witnessing; a user IEL's own position gate), the divergence signal, `witnessed_anchors`.                                        |
+| Property                        | Verification method                                                                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SAID / prefix integrity         | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from roster + thresholds + `nonce`).                                 |
+| Event chaining                  | `previous` resolves to a verified prior event; each governance event's `previousSeal` resolves to the prior seal.                                                              |
+| Serial monotonicity             | Each event's serial equals the previous serial + 1; inception is serial 0.                                                                                                     |
+| Inception kind + facet dispatch | Branch on `Icp` / `Fcp`; fix `root_facet`; read `Wit` payloads facet-correctly on every path.                                                                                  |
+| Threshold authority             | A threshold of members' fresh KEL participations (kind-strict up) anchor the event; each anchoring KEL signature valid and witnessed.                                          |
+| Roster accumulation + bounds    | Accumulate every `add` / `cut` / threshold delta; re-check the post-delta bounds (security floor, recoverability ceiling, authorization floor, cap 32) at every config change. |
+| Manifest roles + anchor format  | The `manifest` carries only roles in the kind's facet-aware allowlist; each `anchors` entry a valid SAID-shaped token.                                                         |
+| Delegation / rescission         | Bounded per-candidate delegation walk; `kills[]` forward-match (fail-secure by default).                                                                                       |
+| Federation context              | Records the IEL's own binding per event (user); a federation IEL carries none.                                                                                                 |
+| Witness state                   | Token surfaces `witnessed` (member-anchor witnessing; a user IEL's own position gate), the divergence signal, `witnessed_anchors`.                                             |
 
 ## Cross-references
 

@@ -225,7 +225,7 @@ the tier-1 buriable kinds.
   - **Cross-layer deadness-descends** — a SEL event whose anchoring IEL event is dead (condemned / below-seal-inert)
     is itself dead (the **IEL→SEL** anchor edge only — not KEL→IEL, which is forward-only).
   **Content-fork prevention rides the theorem transitively (2026-07-02):** a witnessed SEL content fork would force
-  its two same-serial siblings to anchor at IEL content siblings at one IEL position — which the majority floor +
+  its two same-serial siblings to anchor at IEL content siblings at one IEL position — which the witnessing floor +
   option (b) prevent on the witnessed owner IEL (federation §1e / inv 4) — so a witnessed SEL content fork carries
   the **same fork-cost** and needs **no SEL-local witness gate**; the residual (witness-compromise / roster-delta
   straddle) is the IEL's residual inherited.

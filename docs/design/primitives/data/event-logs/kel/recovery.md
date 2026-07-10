@@ -51,8 +51,8 @@ single rotation does two things at once:
 There is **no repair kind, no recovery key, and nothing to prove** — no losing-branch commitment, no
 content-only guard walk. Burial is by **position + descent**: the burying `Rot`'s seal-cap locks the
 loser's first event below the new seal, and the descent rule kills its growth. A content fork on a
-witnessed chain is prevented upstream (the majority floor); the recovery `Rot` is the resolution for
-the residual (an owner burying a compromised content run, or a lagging-node content fork).
+witnessed chain is prevented upstream (the witnessing floor); the recovery `Rot` is the resolution
+for the residual (an owner burying a compromised content run, or a lagging-node content fork).
 
 **Recovery closes the fork window; the rotation closes new forks.** One recovery `Rot` buries the
 whole current fork, and its key rotation then closes the culprit's ability to mint a **new** fork:
@@ -323,8 +323,8 @@ closed by the layers composed above KEL:
   pool, and the beacon enumerates the branches as the evidence a verifier walks. Reserve-tier
   compromise without a federation partition cannot get a fork past detection — any verifier holding
   both branches reads the prefix as `disputed` and refuses to bind. (A competing **content**
-  sibling, by contrast, is declined after the first seen at a position — under the majority floor a
-  content fork on a witnessed chain is prevented, not merely detected; federation doctrine.)
+  sibling, by contrast, is declined after the first seen at a position — under the witnessing floor
+  a content fork on a witnessed chain is prevented, not merely detected; federation doctrine.)
 
 The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**
@@ -351,7 +351,7 @@ observable in the data layer. See
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
   — limit of the doctrine; layered defense; adversary patience; cascade-reincept honesty.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the majority floor, the
+  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the witnessing floor, the
   beacon, divergent witness receipts.
 - [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md) —
   operator CLI ceremony (subsequent sub-issue).

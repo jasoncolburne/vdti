@@ -95,7 +95,7 @@ The bounds (re-checked on the post-delta config at **every** config-changing eve
 inception):
 
 - **`t_use ≥ 1`** (`t_use = 1` is single-device content by choice — no content resilience). `t_use`
-  is **exempt from the majority floor** — content is first-seen and recoverable.
+  is **exempt from the authorization floor** — content is first-seen and recoverable.
 - **The authority slots (`t_govern`, `t_authorize`) carry two bounds of different kinds.** A
   **security floor `≥ 2`** (hard for every identity of `|roster| ≥ 2` — no single member exercises
   authority) and a **recoverability ceiling `≤ |roster| − 1`** (the identity can evict a compromised
@@ -103,8 +103,9 @@ inception):
   two-device identity is valid but cannot evict / recover without both — the wallet warns) and
   **hard at `|roster| ≥ 3`** (a threshold equal to `|roster|` is a gratuitous hostage config →
   rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
-- **A majority floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums overlap
-  and a governance fork always names a double-dealer (closing the disjoint-quorum attribution loss).
+- **A authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
+  overlap and a governance fork always names a double-dealer (closing the disjoint-quorum
+  attribution loss).
 - **The roster is hard-capped at 32** — a DoS backstop; the verifier rebuilds the roster in memory
   as it walks, and any delta pushing the live set past 32 is rejected (all IELs, including the
   federation).
@@ -227,7 +228,7 @@ forward-matching it against each `Rev` / `Dth`'s `kills[]` — in some `kills[]`
 `kills[]` **is** the definition of killed, and it rides the same witnessed-IEL freshness gate as
 divergence, so a hidden kill needs a stale IEL the verifier already refuses. A verifier may opt
 **down** to a **fail-open** content-addressed lookup at the derived locus (present → killed), never
-up. This is the negative-check-as- positive-lookup rule
+up. This is the negative-check-as-positive-lookup rule
 ([§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 
 ### `Trm` — the identity kill (tier 2, `t_govern`)
@@ -240,7 +241,7 @@ a device; the SEL `Trm` kills a downstream artifact).
 ### The facet-dependent `Wit`
 
 One `Wit` kind spans both facets; the verifier dispatches its allowed roles on the chain's **root**
-(`Fcp` vs `Icp`) — **a done-criterion, checked before reading any `Wit` payload** on every
+(`Fcp` vs `Icp`). The **root is established before any `Wit` payload is read** on every
 `Wit`-reading path (fresh walk, `resume`, early-exit), so a governance-shaped payload never rides a
 user `Wit` or vice versa. A `Wit` is **never a no-op**, but _what_ makes it non-trivial is
 facet-specific.
@@ -293,7 +294,7 @@ load-bearing).
 | Role        | Carried by                                       | Commits to                                                                                                          |
 | ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` / `Evl` / `Ath` / `Rev` / `Dth`            | lower-layer event SAIDs (the down-commit)                                                                           |
+| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | lower-layer event SAIDs (the down-commit)                                                                           |
 | `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list                                                                   |
 | `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                     |
@@ -363,11 +364,11 @@ Every IEL event is anchored by a threshold of members' **fresh KEL participation
 own current tip, of **exactly** the kind that reveals the capability the act exercises (kind-strict
 up):
 
-| IEL act                                                                                           | Member KEL participation |
-| ------------------------------------------------------------------------------------------------- | ------------------------ |
-| content (`Ixn`)                                                                                   | KEL `Ixn`                |
-| tier-2 governance / kill / terminal (`Evl` / `Ath` / `Rev` / `Dth` / `Trm`; the federation `Fcp`) | KEL `Rot`                |
-| the federation binding (IEL `Wit`)                                                                | KEL `Wit`                |
+| IEL act                                                                                                               | Member KEL participation |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| content (`Ixn`)                                                                                                       | KEL `Ixn`                |
+| tier-2 inception / governance / kill / terminal (`Icp` / `Evl` / `Ath` / `Rev` / `Dth` / `Trm`; the federation `Fcp`) | KEL `Rot`                |
+| the federation binding (IEL `Wit`)                                                                                    | KEL `Wit`                |
 
 A rotated-out key cannot produce a fresh participation, which closes the rotated-out-member
 backdate. The IEL event records the **down-pins** — each participating member's **prior KEL tip**
@@ -395,7 +396,7 @@ The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always
 be able to evict one compromised witness and recover without it, so `|roster| ≥ 4` is structurally
 required (≥ 5 recommended). Its `witnesses` config carries the tighter recoverability cap
-`threshold ≤ min(|roster| − 2, signers − 1)` and the majority floor `threshold > signers/2`,
+`threshold ≤ min(|roster| − 2, signers − 1)` and the witnessing floor `threshold > signers/2`,
 re-checked on every governance `Wit` (including a config-only one). The witness-config validity, the
 clock, and witness selection are federation doctrine —
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and

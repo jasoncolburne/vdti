@@ -59,7 +59,7 @@ infrastructure to infer system state.
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
 - **Prevention for witnessed content; detection for the rest.** On a witnessed chain the
-  witness-config's **majority floor** (`threshold > signers/2`) plus
+  witness-config's **witnessing floor** (`threshold > signers/2`) plus
   one-content-sibling-per-position witnessing means two competing content events can never both be
   witnessed — a content fork is **prevented** from forming, below a priced fork-cost of
   `2·threshold − signers` compromised witnesses. Every chain is federation-witnessed; sealed races
@@ -204,7 +204,7 @@ abandon-and-reincept as last resort. Multi-party **governance** must serialize s
 protocol layer (designated submitter, leader election, or consensus over the identity's membership);
 for high-stakes IEL identities this is load-bearing, not optional — a governance race is sealed, and
 a `{Evl, Evl}` collision is terminal. **Content** serialization is the same discipline at lower
-stakes: every chain is federation-witnessed, and the majority floor prevents a competing content
+stakes: every chain is federation-witnessed, and the witnessing floor prevents a competing content
 sibling going live, so an un-serialized content race costs stalls and re-issuance — a liveness cost,
 not a safety one (the residual safety concern is a witness compromise).
 
