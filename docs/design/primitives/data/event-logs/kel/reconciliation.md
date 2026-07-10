@@ -76,11 +76,17 @@ protocol's safety claims hold _by construction_, not by observation.
    the retained branches. A sealed branch is never buried — that would resurrect retired key
    material. See
    [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
-5. **Locked-portion bound is unconditional.** Every event class is subject to the seal-cap:
-   `event.parent.serial >= seal_serial`. Stale-authority revival is structurally impossible; a valid
-   fork below the seal is never extended onto. (Whether such a fork is retained as evidence is a
-   separate, witnessing-gated matter — see [`merge.md` §Merge outcomes](merge.md#merge-outcomes);
-   the rejection of the below-seal parent is unconditional regardless.)
+5. **Locked-portion bound is unconditional.** No event class is exempt from the seal-cap — not even
+   a recovery `Rot`: a clean canonical extension requires `event.parent.serial >= seal_serial`, so
+   nothing ever _extends the canonical chain_ from a parent in the locked portion, and
+   stale-authority revival is structurally impossible. That refusal-as-a-canonical-extension is
+   unconditional; the **disposition** of the refused event is not. A parent **strictly** below the
+   seal is inert — a content child is rejected `Sealed`, a sealed child is retained and read
+   `Disputed`. A **sibling at the seal's own serial** (parent `v_{seal−1}`) is not in the locked
+   portion at all: it forms a **live fork** (Forked / Disputed, invariant 2), retained as evidence —
+   the cap bounds content extended **from** the seal, not a sibling to it.
+   (Retention-versus-rejection is the witnessing-gated matter — see
+   [`merge.md` §Merge outcomes](merge.md#merge-outcomes).)
 
 These invariants make synchronous resolution, single-page recovery, and atomic batched submissions
 feasible. The proof matrices below rely on invariants 4–5.

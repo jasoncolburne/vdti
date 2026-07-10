@@ -108,11 +108,14 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   type-tagged `synthetic`** marker recoupled to the verdict (`forked`/`disputed`), qualified by prefix + position —
   **not** a digest over the competing tips (that set is adversarially extensible → flood-unstable;
   area-vdtid-services §1e). [F2; `vdti-area-vdtid-services.md` §1e]
-- **Locked-portion bound.** Events at-or-below the last seal-advancing event are immutable; a submission whose
-  `previous` points into the locked portion is rejected at merge as **`Sealed`** (the merge-rejection name — an inert
-  below-seal parent, `parent.serial < seal_serial`; renamed from `SiblingLocked`/`ParentLocked` at the four-state /
-  merge-outcome formalization. A parent *at* the seal is **extendable** (`parent_serial == seal_serial` passes the
-  cap), so a below-seal parent — not a "locked parent" — is the rejection condition). **Cap-satisfying seal-advancers = `{Rot, Wit}`** (`Trm` also advances the seal — `previousSeal`, on the
+- **Locked-portion bound.** History **strictly below** the last seal-advancing event is immutable; a submission
+  whose `previous` points there is not a clean canonical extension. The **inert** case — a below-seal parent that
+  changes nothing, `parent.serial < seal_serial` — is rejected at merge as **`Sealed`** (the merge-rejection name;
+  renamed from `SiblingLocked`/`ParentLocked` at the four-state / merge-outcome formalization). Not every below-seal
+  parent is `Sealed`: a parent *at* the seal (`parent_serial == seal_serial`) **extends** cleanly, and a **sibling at
+  the seal's own serial** (parent `v_{seal−1}`, `parent_serial == seal_serial − 1`) forms a **live fork** (Forked /
+  Disputed), retained — not `Sealed`. So the seal-cap bounds content extended **from** the seal; `Sealed` is the
+  **inert** below-seal parent — not a "locked parent," and not a sibling to the seal. **Cap-satisfying seal-advancers = `{Rot, Wit}`** (`Trm` also advances the seal — `previousSeal`, on the
   spine — but is terminal, so not a mid-chain cap-satisfier) — `Rot` is the default cap-satisfier, auto-inserted when
   an `Ixn` would exceed the cap. The bound makes recovery cross-node-validatable.
 - **Federation binding = the prefix/SAID split** [inv 7, 14]: **`federation`** = the federation IEL **prefix**

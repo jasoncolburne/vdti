@@ -133,11 +133,14 @@ kels/sad/
 # ============================================================================
 # §Doc-only — seal-cap rejection error name (Sealed — four-state/merge-outcome pass)
 # ============================================================================
-# The seal-cap rejection is Sealed (an inert below-seal parent: parent.serial <
-# seal_serial) — renamed from SiblingLocked (and earlier ParentLocked) at the
-# four-state / formalized-merge-outcome pass. A parent AT the seal is extendable
-# (parent_serial == seal_serial passes the cap), so a below-seal parent — not a
-# "locked parent" — is the rejection condition.
+# The seal-cap rejection is Sealed (an INERT below-seal parent that changes
+# nothing: parent.serial < seal_serial) — renamed from SiblingLocked (and earlier
+# ParentLocked) at the four-state / formalized-merge-outcome pass. Not every
+# below-seal parent is Sealed: a parent AT the seal (parent_serial == seal_serial)
+# extends cleanly, and a sibling at the seal's own serial (parent v_{seal-1},
+# parent_serial == seal_serial - 1) forms a live fork (Forked / Disputed),
+# retained — not Sealed. The cap bounds content extended FROM the seal; Sealed is
+# the inert below-seal parent — not a "locked parent," and not a sibling to the seal.
 
 # ============================================================================
 # §Doc-only — KEL reshape: data-local detection + the manifest/spine model
