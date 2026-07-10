@@ -20,34 +20,37 @@ Doctrine is the leading edge — these follow it.
   competing-branch SAIDs from the receipts, so a separate round-trip would add detection latency.
 
 - **Effective-SAID computation — on-demand, bounded by the seal cap (no side table, no dedicated
-  lock).** The effective SAID is a deterministic hash over the **live tips** the node holds for a
+  lock).** The effective SAID is derived from the **live tips** the node holds for a
   prefix (the canonical tip + any **unresolved** competing branch tip — a live fork at-or-above the
-  derived seal, or a below-seal **privileged** spine fork) — sorted `said` ASC, length-prefixed,
-  concatenated, domain-tagged. A **settled** branch does **not** enter: a repair-**condemned** branch is
-  already moved **out of the live table** into non-canonical retained storage (so the live-table leaf
-  enumeration never sees it), and a below-seal-inert **content** leaf is excluded by the seal filter.
-  This is the **real branch-derived digest** (live-tips; Jason 2026-07-03) replacing kels'
-  `divergent:{prefix}` / `contested:{prefix}` synthetic — a pure live-tip fingerprint, decoupled from
-  the `forked`/`disputed`/Active verdict **value** (the verdict is the separate walk; the seal it reads
-  is itself derived from the held events, so both the digest and the verdict are pure functions of the
-  held set — inv 13 / area-vdtid-services §1e; this is the cold-F2 / warm-H1 fix).
+  derived seal, or a below-seal **sealed** spine fork): **a single confirmed tip → its real SAID; no
+  single tip → a type-tagged `synthetic` marker recoupled to the verdict** (`forked:{prefix}` / `disputed:{prefix}`,
+  qualified by position), **NOT a hash over the competing tips** (that set is adversarially extensible under
+  dishonest signers → flood-unstable; a set-independent synthetic is flood-stable, still distinct from any
+  single-tip SAID so it still triggers anti-entropy, and is verdict-sufficient — REVERSES the earlier "real
+  branch-derived digest over live tips", area-vdtid-services §1e). A **settled** branch does **not** enter: a
+  **buried** loser is already moved **out of the live table** into non-canonical retained storage (so the
+  live-table leaf enumeration never sees it), and a below-seal-inert **content** leaf is excluded by the seal
+  filter. The verdict is the separate held-set walk (the seal it reads is itself derived from the held events
+  — inv 13 / area-vdtid-services §1e), and the synthetic **carries** that verdict value; both are pure
+  functions of the held set (the cold-F2 / warm-H1 fix).
   - **The machinery already exists in kels** (`lib/derive/src/lib.rs::compute_prefix_effective_said`):
     leaves are found with a **`NOT EXISTS` correlated anti-join** (an event whose `said` is no other
-    event's `previous`), `ORDER BY said ASC`; single live tip → its SAID, ≥ 2 → a deterministic hash. The
-    vdti delta: (a) replace the synthetic (`divergent:`/`contested:` string hash, ~:344/:354) with
-    `hash(sorted live-tip SAIDs)`; (b) drop the `is_contest` branch (no `Cnt` kind); (c) add the window
-    bound below; (d) **filter the enumerated leaves to the live ones — every tip at serial ≥ the last
+    event's `previous`), `ORDER BY said ASC`; single live tip → its SAID, ≥ 2 → **no single tip**. The
+    vdti delta: (a) on ≥ 2 live tips emit the **verdict-recoupled synthetic** (`forked:{prefix}`/`disputed:{prefix}`
+    qualified by position), **not** a hash over the tips (kels emitted its own `divergent:`/`contested:` string
+    synthetic, ~:344/:354; vdti keeps a synthetic but recouples it to the verdict); (b) drop the `is_contest`
+    branch (no `Cnt` kind); (c) add the window bound below; (d) **filter the enumerated leaves to the live ones — every tip at serial ≥ the last
     clean seal** (Jason 2026-07-03). The **last clean seal** is the most recent seal-advancer with no
-    competing privileged sibling at-or-below it — the trust boundary: a live fork sits above it; a
-    resolved / buried loser is sealed past it (below it); and a competing **privileged** branch *retreats*
+    competing sealed sibling at-or-below it — the trust boundary: a live fork sits above it; a
+    resolved / buried loser is sealed past it (below it); and a competing **sealed** branch *retreats*
     the clean-seal line beneath itself (pre-seal verifiability, area-kel), so "≥ the clean seal" pulls the
-    dispute back in — **F5 falls out of the query for free** (a privileged fork is always reported because
-    it drags the clean-seal line down below it). A condemned **content** subtree is already off the live
-    table (the repair moved it to non-canonical retained storage), so a grown dead branch never surfaces —
-    only **content** ever leaves the digest; a privileged event never settles. All the query primitives
+    dispute back in — **F5 falls out of the query for free** (a sealed fork is always reported because
+    it drags the clean-seal line down below it). A **buried content** subtree is already off the live
+    table (the burial moved it to non-canonical retained storage), so a grown dead branch never surfaces —
+    only **content** ever leaves the digest; a sealed event never settles. All the query primitives
     exist in `verifiable-storage-rs` (`not_exists` + `CorrelatedSubquery`, `group_by` +
     `having_count_gt`, `gte`, `order_by`). **The last clean seal is cheap** — query (1)'s duplicate-serial
-    check already finds any competing-privileged serial, so the clean-seal floor is the most recent
+    check already finds any competing-sealed serial, so the clean-seal floor is the most recent
     seal-advancer above the last such fork (usually just `last_seal_advancing_event`).
   - **Why it must be bounded — the log is indefinite.** kels' anti-join and its divergence check
     (`GROUP BY prefix, serial HAVING COUNT > 1`, `services/kels/src/repository.rs:212`) scan the **whole
@@ -77,8 +80,8 @@ Doctrine is the leading edge — these follow it.
     forked (the `Divergent (sealed)` case) — otherwise it could anchor on a forked seal unaware. Once
     a divergence is seen at a position the cap bounds it — you need only the one competing event, never a
     rescan.
-  - **The deep-mint case is not a digest gap (D1).** A privileged event injected **below a node's
-    already-advanced seal** (harvested-reserve, `vdti-repair-completeness-proof.md` D1) is not reached by
+  - **The deep-mint case is not a digest gap (D1).** A sealed event injected **below a node's
+    already-advanced seal** (the harvested-reserve deep-mint — inv 8) is not reached by
     that node's own since-fetch — but it is **not a hole the digest must close**: whoever **holds** it
     reads `disputed` directly (holds-and-revalidates, FORCE-by-provenance), and a node that does **not**
     hold it sits in the standing **eclipse residual** (inv 8) — if the event is witnessed it propagates
@@ -102,9 +105,9 @@ Doctrine is the leading edge — these follow it.
   single-member IEL (`members = [the witness KEL]`) **derived from the witness KEL prefix** (+ a purpose
   discriminator), not separately incepted, so it does **not** break the `Fcp` founder bootstrap (the
   device KEL incepts first via `Fcp`, its degenerate IEL derives, that IEL owns the key SEL; "reincept"
-  = re-derive from the recovered KEL). Its kind set excludes `Evl` (≈ `{Icp, Ixn, Rpr, Trm}`), and the general **post-delta `|roster| ≥ 1`** rule (inv 12) forbids cutting the sole
-  member (a `Rpr`-cut — the other roster-mutating kind since the 2026-06-30 fold — computes `1 + 0 − 1 = 0`,
-  rejected), so it can neither grow (no `Evl`) nor shrink → roster immutable (no new field; singleton → all
+  = re-derive from the recovered KEL). Its kind set excludes `Evl` (≈ `{Icp, Ixn, Trm}`), and the general **post-delta `|roster| ≥ 1`** rule (inv 12) forbids cutting the sole
+  member (a lone-member `cut` would compute `1 + 0 − 1 = 0`, rejected — and with no `Evl` there is no kind to carry a `cut` regardless),
+  so it can neither grow nor shrink → roster immutable (no new field; singleton → all
   thresholds 1). Discovery: federation roster
   → witness KEL prefixes → derive each degenerate IEL → its key SEL. See
   `vdti-area-federation-witnessing.md` §1e.
@@ -125,16 +128,11 @@ Doctrine is the leading edge — these follow it.
   verification and write — verify the existing chain under the lock, obtain a trusted token, verify
   the incoming events against it, write, never re-querying the DB between verify and use. Doctrine
   names the *mechanism* (advisory lock); the Postgres specifics live here.
-- **`fork`-root membership test — the formal candidate-selection (2026-07-02).** Moved here out of
-  `protocol-doctrine.md` §Divergence, which keeps only the prose ("the named root is a competing child of
-  `v_{d-1}`, off the retained chain") — a formal selection rule is implementation, not doctrine. The
-  verifier walks the **full-span** retained chain (from the repair's `previous` down to at least the
-  pre-fork seal — at most one extra page), identifying the fork point `v_{d-1}` and the retained set
-  (`walkback`). The committed `fork` root (a single SAID — the list collapsed 2026-07-02, inv 4) must satisfy
-  **`root.parent = v_{d-1} ∧ root ∉ walkback`** — a
-  competing (losing) child of the single fork point, off the retained chain. *Single fork point:* the chain
-  freezes at the first fork, so there is one active divergence and the root is a sibling at `v_{d-1}`.
-  *Why full-span:* it is load-bearing for the `root ∉ walkback` half and the censorship guard — a walk
-  truncated at the divergence serial would read `v_{d-1}` and every trunk ancestor as off-chain, letting a
-  root condemn the canonical chain. The parent test is **`= v_{d-1}`**, not the looser `∈ walkback` an
-  earlier doctrine draft carried (the loose form is a safe superset but not the model).
+- **No `fork`-root membership test (first-seen, 2026-07-08).** The `fork` manifest role — a repair naming a
+  losing branch's root — is **deleted** (no repair event, no root-condemnation; inv 4 / inv 13). Recovery is
+  **burial by position + deadness-descends**: a recovery `Rot` (KEL) / a burying governance seal-advancer (IEL)
+  attaches at the surviving line, the per-event **seal-cap** locks the first losing sibling below the advanced
+  seal, and **everything built on it dies by descent** — so the verifier applies the seal-cap + deadness-descent
+  **directly**, with **no candidate-root to select or validate** and no full-span walkback membership test.
+  *(Supersedes the 2026-07-02 formal `fork`-root candidate-selection `root.parent = v_{d-1} ∧ root ∉ walkback` —
+  gone with the `fork` role.)*

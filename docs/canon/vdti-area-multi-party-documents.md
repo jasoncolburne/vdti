@@ -164,13 +164,27 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     the membership authority's dial, _not_ structurally the tip-at-grant. The backdate argument rests on
     X's append-only chain, not on where `F`/`B` sit, so it holds regardless: a garbage `F_x` matches no
     version (fail-secure); a deep `F_x` retro-honors within creator authority.
-  - **The open-by-absence read needs the freshness bar (warm F4).** `B_x` **absent → open** is a **to-tip
-    loss-of-trust read** — a stale view of the rescission locus hides a closure and would honor a
-    rescinded editor's _new_ versions. So honoring an open-period version requires the **multi-source /
-    witnessed bar (inv 8)** on the rescission locus **and** the grant's governance SEL, **REFUSE** on an
-    unconfirmable read — the same mandatory to-tip step creds run (`document-policy §F`). Asymmetry worth
-    stating: once `B_x` exists it is set-once / sealed, so **closed periods are freshness-insensitive** —
-    only the absence read is.
+  - **The open-by-absence read is FAIL-SECURE again (warm F4 → B1 fail-secure rework 2026-07-09).** `B_x`
+    **absent → open** is answered like delegate rescission (area-delegation §1, inv 10): the doc-membership
+    rescission is a **`kills[]` declaration on the creator's witnessed IEL `Dth`** + a `{Icp, Trm}` lookup SEL, with
+    `target = hash('{DOC_RSC_TOPIC}:{creator}:{hash(G | said_b)}')` — the doc's existing **per-period,
+    participant-/grant-blind** key `hash(G | said_b)` as the `data` (**kept, not retargeted to `said(Gnt)`** — flag #4
+    resolved), so the target is safe in public. So honoring an open-period version **walks the creator's fresh IEL and
+    forward-matches the `target`** — a stale / withheld view **can't** hide a closure (a hidden rescission needs a
+    stale IEL, which the multi-source / witnessed bar (inv 8) already refuses — **REFUSE** on an unconfirmable read;
+    the grant's governance SEL freshness rides the same bar). **Fail-secure by default.** *(This makes the **freeze
+    version-stopper hard again** — cold F3; the earlier best-effort / `attribute-all` reclassification is dropped,
+    cold/warm re-review-2 F1.)* **The bound `B_x` is GATED, not public** (unlike a delegate's public bound): a bound
+    is **participant-identifying by matching** (a witness holding member `b`'s IEL would de-anonymize `b`), so
+    `kills[]` carries **only the blind `target`** and the `B_x` lives in a **gated rescind-doc *committed by the
+    rescission `Trm`*** (its manifest — so this `Trm` legitimately commits a manifest, R3; the "`Trm` carries only its
+    pin / self-contained walk" phrasing is cred+delegate, not doc-member). The walk detects the rescission from the
+    (un-gated) `target`, then **fetches** the gated rescind-doc for `B_x` (an authorized reader already holds it) →
+    **withheld → conservative (don't honor)** — the narrow price of participant-blindness (flag #4). **Walk lower
+    bound (R3/cold F6):** a `Dth` before this period's grant `G_x` existed can't rescind it, so the fresh-IEL
+    forward-match runs `[G_x-anchor .. tip]` (a sound floor, not a lossy cap). **Asymmetry KEPT:** once `B_x` exists it
+    is set-once / sealed, so **closed periods are freshness-insensitive** (fail-closed) — and now the
+    open-by-**absence** read is fail-secure too.
 - **Periods for a participant must be disjoint — enforced at doc-validation, not the SEL walk (Q1, folds cold
   F3's retroactive-`from` + the double-grant open).** A version pins its authorizing grant; the creator
   **may author** a retroactive or overlapping grant (a structurally-valid SEL event — the SEL walk does
@@ -230,7 +244,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
   - **The anchor edge is genuine inv 13 reuse.** If the IEL resolves with the version's v1 anchored in a
     **non-canonical** member event, the version SEL dies by **cross-layer deadness-descends** across the
-    **IEL→SEL anchor edge** (the repair proof's §Cross-layer — that edge is exactly what inv 13 provides).
+    **IEL→SEL anchor edge** (inv 13's cross-layer theorem — that edge is exactly what inv 13 provides).
   - **DAG descent is _this feature's own_ rule, derived as a placement consequence — not inv 13/17.**
     `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-descends is defined only over
     `previous`-linkage and the IEL→SEL anchor edge, so claiming the primitives provide descent down the
@@ -263,11 +277,11 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   recoverable, **no whole-doc reincept.**
 - **Creator-side divergence is the symmetric leg — Kill-sealing gives it a clean asymmetry (cold F5).**
   During the creator IEL's own divergence the doc reads suspect by the same seal-boundary rule. **Grants
-  are now T2 (`Gnt` ← `Ath`) → `Ath`-sealed, privileged, non-archivable** (inv 13: a privileged
-  event is never archived), **same as** the rescission and governance `Trm`s. So **both** the additive act
-  (a grant) and the monotone acts (a removal, a freeze) are repair-proof — a rogue grant in a
-  post-compromise archival tail forces **reincept**, not a silent repair-archival. Walking back a grant is
-  therefore **rescind-forward** (`Dth`), never a repair. The asymmetry that remains is
+  are now T2 (`Gnt` ← `Ath`) → `Ath`-sealed, sealed-on-arrival, non-buriable** (inv 13: a sealed
+  event is never buried below a later seal), **same as** the rescission and governance `Trm`s. So **both** the
+  additive act (a grant) and the monotone acts (a removal, a freeze) survive a burial — a rogue grant below a
+  post-compromise tip can't be silently buried; it forces **reincept**. Walking back a grant is
+  therefore **rescind-forward** (`Dth`), never an in-chain undo. The asymmetry that remains is
   **finality-shaped, not threshold**: a grant is additive (the SEL continues; walk it back by rescinding), a
   kill is terminal (monotone, un-undoable). _(Re-granting after a rescission is the retroactive-`from` case —
   caught by the disjoint-periods rule at validation, §1.)_ (This supersedes the earlier "grants are T1
@@ -372,7 +386,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     - `anchors` — the downstream SEL **`Gnt`** event(s) (the doc-membership grant; the authorized party
       acts **as itself** on the doc). Kind-strict: `Ath.anchors` names **only** `Gnt`s.
     The new SEL kind **`Gnt`** is the doc-membership grant — the **additive twin of the SEL `Trm`**
-    rescission (T2, `t_authorize`, anchored by `Ath`, sealed-on-arrival / privileged),
+    rescission (T2, `t_authorize`, anchored by `Ath`, sealed-on-arrival / sealed),
     carrying the gated grant-doc `G` (editors/commenters + `from` periods).
   - **Why not reuse an existing anchor.** `Evl` and old-`Del` carry an **IEL-own-state delta**
     (`roster` / `delegates`) — reusing either says "the creator's _own_ identity governance changed,"
@@ -380,7 +394,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     shape (no own-state delta; purely seals a downstream SEL effect at T2) but the wrong polarity (a kill).
     `Ath` is a `Rev`/`Dth` with the polarity flipped — additive, not terminal. Anchoring is **passthrough** (each
     IEL kind carries its SEL counterpart atomically): the matrix gains one pair, **`Ath ↔ Gnt`**, beside
-    `Ixn ↔ content`, `Evl ↔ Fld`, `Rev`/`Dth` ↔ `Trm`, `Rpr ↔ Rpr`. A single parametrized `Anc(tier, threshold)`
+    `Ixn ↔ content` and `Rev`/`Dth` ↔ `Trm`. A single parametrized `Anc(tier, threshold)`
     was considered and rejected — it would leave every governing IEL event anchoring nothing, forcing a
     second event per SEL side-effect (no passthrough → double events, broken atomicity, seal-cap pressure).
   - **No S1 reopened.** Both `Ath` roles price at `t_authorize`, so carrying both in one event is
@@ -388,10 +402,10 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     is its guard), `anchors→Gnt` is additionally back-checked (a `Gnt` is valid only anchored by an `Ath`,
     like `Trm ← Rev`/`Dth`). **"Membership is not delegation" survives:** the manifest role is the semantic switch
     (act-for-X vs act-as-self); same anchor, distinct effects.
-  - **Grants are non-archivable (bless — the one consequence).** A T2 grant is **privileged →
-    sealed-on-arrival, not T1-archivable.** "Walk back a grant by a repair" is gone; the replacement is
-    **rescind forward** (`Dth`, already in the model), and a rogue grant in a post-compromise
-    archival tail → **reincept** (like any rogue `Ath`/`Rev`/`Dth`) — but minting it needed the **reserve** in the
+  - **Grants are non-buriable (bless — the one consequence).** A T2 grant is **sealed-on-arrival, not
+    T1-buriable.** "Walk back a grant by a repair" is gone (there is no repair event); the replacement is
+    **rescind forward** (`Dth`, already in the model), and a rogue grant below a post-compromise
+    tip → **reincept** (like any rogue `Ath`/`Rev`/`Dth`) — but minting it needed the **reserve** in the
     first place, so a bare signing-key compromise can't produce one at all. A net strengthening, consistent
     with "don't relax finality; recover operationally." (Supersedes the §4-F5 "a grant can be walked back"
     line — corrected there.)
@@ -403,9 +417,10 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     inv 4/11/12/15 + area iel/sel/delegation/federation + the landed doctrine
     (`event-shape`/`protocol-doctrine`/`glossary`/`policy`) + `.terminology-forbidden`. The
     external-authorization lifecycle: **add** via `Ath` (delegate or grant), **remove** via `Dth` (rescind
-    either — a SEL `Trm` anchored by `Dth`); a credential revocation is a SEL `Trm` anchored by `Rev`. Net
-    taxonomy: **SEL 6→7** (`+Gnt`; `Dec`→`Trm` rename), **IEL 8→9** (`Del`→`Ath` net-0; `Kil`→`Rev`/`Dth`
-    split `+1`; `Dec`→`Trm` rename). The `del(X, N)` policy leaf, the `delegates` manifest role, and
+    either — a SEL `Trm` anchored by `Dth`); a credential revocation is a **revocation-SEL** `Trm` anchored by `Rev`. Net
+    taxonomy **at the 2026-07-04 grant-tier resolution:** **SEL 6→7** (`+Gnt`; `Dec`→`Trm` rename), **IEL 8→9**
+    (`Del`→`Ath` net-0; `Kil`→`Rev`/`Dth` split `+1`; `Dec`→`Trm` rename) — *the later first-seen pivot dropped
+    `Fld`/`Rpr`, so the current counts are **SEL 5** / **IEL 8***. The `del(X, N)` policy leaf, the `delegates` manifest role, and
     "delegation" the concept are **unchanged** (only the kind/count tokens rename).
 - **Sharing (`readPolicy`) evolution + read-invariance outcome (was warm F14, RESOLVED).** `readPolicy`
   is **read-set integrity, not confidentiality** (§5 — a co-author can exfiltrate regardless), so sharing

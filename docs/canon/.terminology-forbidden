@@ -146,13 +146,16 @@ kels/sad/
 # retained branches; the witness beacon propagates, never decides), so the
 # federation-decides framing and its vocabulary are retired:
 #   federation-irreconcilable  — the federation does not pronounce a verdict;
-#     a fork with >= 2 privileged branches reads "disputed" by a data-local walk;
-#   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix}, plus
-#     the vestigial colon readings forked: / disputed:  — the effective SAID is a
-#     real digest over all held tips (no hash-prefix strings), and the two
-#     readings are the bare words "forked" / "disputed". Bare "divergent" /
-#     "irreconcilable" stay live (the per-node fork state and the fork
-#     classification), so only the colon forms are forbidden;
+#     a fork with >= 2 sealed branches reads "disputed" by a data-local walk;
+#   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix} — the
+#     truly-dead kels synthetics stay banned. vdti's first-seen effective-SAID is:
+#     a single confirmed tip → its real SAID; NO single tip → a type-tagged
+#     `synthetic` marker recoupled to the verdict (forked: / disputed:), qualified
+#     by prefix + position, NOT a digest over the competing tips (adversarially
+#     extensible → flood-unstable, deleted). So the verdict-recoupled colon forms
+#     forked: / disputed: are LIVE (the synthetic value on a no-single-tip chain);
+#     bare "divergent" / "irreconcilable" and the "forked"/"disputed" verdict words
+#     stay live too — only the kels divergent: / irreconcilable: colon forms are dead;
 #   policy_satisfied  — the verifier token reports the structural-validity
 #     result, not a policy signal (authorization is structural; policy lives on
 #     documents);
@@ -161,6 +164,7 @@ kels/sad/
 #   witnessParams / witnessThreshold / witnessSelectionSize  — the witness
 #     config rides the `witnesses` manifest role as a { threshold, signers } SAD.
 federation-irreconcilable
+divergent:\{prefix\}
 irreconcilable:\{prefix\}
 policy_satisfied
 RecoveryRecord

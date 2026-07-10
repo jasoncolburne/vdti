@@ -62,24 +62,37 @@ IEL token's `policy_history` + `satisfied_saids`, not by re-walking.
 Cache tokens keyed by prefix (tip SAID encoded); on use, compare the token's **full pinned-dependency
 effective-SAID set** — the chain's own **and every chain it transitively pins** (the KEL(s) beneath an IEL, the
 IEL beneath a SEL): **all match → reuse** (no walk); **any moved → `since`-query the new events + `resume`**
-(incremental, not a re-walk). **Transitive is load-bearing (F5, 2026-06-20):** a lower-layer `Rec` breaks an
+(incremental, not a re-walk). **Transitive is load-bearing (F5, 2026-06-20):** a lower-layer recovery `Rot` breaks an
 upper event while the upper chain's *own* effective-SAID doesn't move — only the transitive check catches it
 (the warm-cache path for the cross-layer cascade). This **refines** "DB cannot be trusted" — the effective-SAID
 is the cheap integrity gate; any tamper/advance **moves it** → re-verify. **Freshness, made *detectable* (F8,
-2026-06-20):** a to-tip loss-of-trust decision (rescission / revocation / withdrawal) must use a **witnessed /
-multi-source** effective-SAID (a single server can report a stale one to hide a revocation) — and the token
-carries that **provenance** (single-source vs witnessed, as-of-when) as contextual info [inv 9], so "this decision
-used insufficient-freshness data" is **detectable** — and when it can't be multi-source-confirmed the decision **fails-secure: REFUSE**, never proceeds on the flag (cold-5 C2, inv 8). Not a mere prose obligation. Non-to-tip / resolving checks: a
-plain single-source comparison is fine.
+2026-06-20; B1 fail-secure rework 2026-07-09):** the to-tip loss-of-trust read — divergence / staleness **and cred
+revocation / rescission** (a `kills[]` declaration on the same witnessed IEL — inv 10) — must use a **witnessed /
+multi-source** effective-SAID (a single server can report a stale one to hide a divergence, a dormant-chain forgery,
+**or a revocation**) — and the token carries that **provenance** (single-source vs witnessed, as-of-when) as
+contextual info [inv 9], so "this decision used insufficient-freshness data" is **detectable** — and when it can't be
+multi-source-confirmed the decision **fails-secure: REFUSE**, never proceeds on the flag (cold-5 C2, inv 8).
+Revocation/rescission are **inv-8 dependencies now** (fail-secure by default — the earlier best-effort carve-out is
+dropped, cold/warm re-review-2 F1). **Revocation is NOT `vdtid`'s concern (R6):** `vdtid` validates / serves / merges
+chains + SADs, and a revoked subject is **still structurally-valid data** — the revocation check lives in the
+**verifier** (`lib/vdti`) and is run by a **consumer** (client / app server) making a trust decision, so the
+fail-secure / fail-open / timeout posture (and any bricking) is the **consumer's**, at the application layer — there
+is **no revocation walk at `vdtid`** (nothing to brick there). The consumer may deliberately opt **down** to a
+**fail-open content-addressed lookup** (a *verifier* read strategy over data `vdtid` serves by address — found +
+validated → fast refuse; not-found → fall back to the walk, or best-effort not-revoked if it has opted fail-open / a
+walk-timeout — §1g / document-policy §F). Not a mere prose obligation. Non-to-tip / resolving checks: a plain
+single-source comparison is fine.
 - **Freshness composes over the whole transitive set (F-E, 2026-06-21).** The multi-source bar above is **not**
   per-"the chain" — it applies to **every chain the token transitively pins** (cred · issuer · *every* delegator
   above it · the devices beneath each identity). A single stale source on **any** one of them can hide a
-  revocation, so a loss-of-trust decision confirms *each* dependency's effective-SAID multi-source (a witnessed
+  **positive-state break** (a fork / dormant-chain forgery / stale roster), so a loss-of-trust decision confirms
+  *each* dependency's effective-SAID multi-source (a witnessed
   effective-SAID *is* multi-source → cheap; an unwitnessed dependency **can't meet the bar → the decision fails-secure: REFUSE**, cold-5 C2). **"Is
   this chain forked / disputed?" is itself a loss-of-trust question** (a one-branch holder sees a normal
   tip; only the federation signal reveals the fork) → it goes in the multi-source bucket. And **`resume` re-runs
   the to-tip negative checks** (revocation / rescission / divergence) against the new tip whenever any pinned chain
-  moves — never just staple on newer events, or it advances past a revocation. (So F9's cross-layer-break
+  moves — never just staple on newer events, or it advances past a revocation. *(Revocation / rescission re-run on
+  the fresh walk with divergence — all fail-secure now (no best-effort carve-out); the fail-open lookup is the opt-out, inv 10.)* (So F9's cross-layer-break
   detection is F5+F8 over the full set, not a separate mechanism.) [inv 8]
 - **Freshness is a wall-clock overlay, recomputed at decision-time (cold-12 F1).** The effective-SAID-movement gate
   certifies **structure** (unchanged ⇒ skip the re-walk); it does **not** certify **freshness**. The federation
@@ -92,87 +105,63 @@ plain single-source comparison is fine.
   verdict. (The staleness *machinery* already exists, §1f; this names the **cache/reuse** path so it can't skip the
   wall-clock re-check.)
 
-### 1e. Effective-SAID — a real digest over LIVE held tips (NO synthetics; live-tips, Jason 2026-07-03)
+### 1e. Effective-SAID — single confirmed tip → real SAID; no single tip → a verdict-recoupled synthetic (first-seen, 2026-07-08 — REVERSES the earlier live-tips digest)
 
-The effective SAID is a **live-tip fingerprint** — a deterministic hash over the **live tips** a node holds for a
-prefix in its active window: the canonical tip plus any **unresolved** competing branch the walk still reads as
-live (a live fork at-or-above the seal, or a below-seal **privileged** spine fork). It answers "**has my
-trust-relevant held state changed / do two nodes hold the same live events?**" and is **decoupled from the
-`forked` / `disputed` / Active verdict value** (the verdict label is the separate walk, below — the digest hashes
-tips, never the label).
+The effective SAID answers "**has my trust-relevant held state changed / do two nodes hold the same state?**" It is:
 
-Concretely — the query intuition: **the last clean seal → every live-table tip at serial ≥ it.** A live fork sits
-above the seal; a resolved/buried loser is sealed past (below it); and a competing **privileged** branch retreats
-the clean-seal line beneath itself (pre-seal verifiability, area-kel), so "≥ the clean seal" pulls it back in — the
-dispute is always reported.
+- **A single confirmed tip** (a linear active window, or a fork already settled below the seal — Active / Recovered /
+  Terminated) → **that tip's real SAID** (a terminated chain's is its `Trm`).
+- **No single tip** (an unresolved fork — a live content fork, or ≥ 1 **sealed** branch past it) → a **type-tagged
+  `synthetic` marker recoupled to the verdict** (`forked` / `disputed`), qualified by **prefix + position**, and
+  **structurally distinct from any real SAID** (a distinct type tag — so the "single-tip SAID ≠ synthetic"
+  inequality that fires anti-entropy is *structural*, never a probabilistic collision; the encoder must not reduce it
+  to a bare SAID-shaped digest — cold M3). **There is NO digest over the competing tips.**
 
-A **settled CONTENT** branch does **not** enter the digest: a content branch a landed repair **condemned** (its
-`fork` root, or content dead by descent below it — moved off the live table by the repair), or a content sibling
-**buried** below the node's derived seal (inert). These are forensic — reached by the on-chain `fork` commitment +
-a by-prefix fetch, never gossiped through the digest — so a resolved fork converges on its canonical tip on
-**every** node, and anti-entropy never spins on dead content (each node retains a non-deterministic ≥ 2-per-position
-subset of it, so a digest that counted it could never converge — which is *why* it must be excluded).
+**Why a synthetic, not a real digest (this REVERSES the earlier four-round-reviewed "real digest over LIVE held
+tips, NO synthetics").** That real-digest was sound **under live, honest, first-seen witnesses** (which bound the
+branch count); the **first-seen pivot + federation-death + the dishonest-signer adversary void that assumption.** A
+digest over the competing branch set is **flood-unstable**: under dishonest signers the set is adversarially
+extensible (no production cap — a compromised quorum can threshold-witness a 3rd/Nth sealed sibling), so the hash
+changes as the set grows and differently-viewed verifiers disagree / thrash; "which 2" is view-dependent. The old
+defense ("the un-witnessed flood is dropped") covered only *un*-witnessed floods — exactly the case first-seen
+can't lean on. A **synthetic is set-independent → flood-stable**, still **triggers anti-entropy** (a single-tip SAID
+≠ a synthetic), and is **verdict-sufficient** — the exact set is never needed for the value: **root-bury kills all
+content branches by position** (masking is harmless — the value still moves on tip-advance and verdict-transition),
+**Disputed reincepts** (outcome invariant to the set), and **attribution walks the stored events, not the digest.**
 
-**A privileged event never settles.** Even on a condemned or below-seal lineage, a privileged event is a competing
-seal — a spine fork → `disputed` (inv 13/17: you cannot bury a rotation) — so it stays a **live tip** and enters
-the digest. That is how a dispute propagates: a node holding it and a node without it compute different digests, so
-anti-entropy delivers the dispute proof. Only **content** ever leaves the digest.
+**The verdict rides the synthetic (they converge).** A data-local walk reads `forked` (≤ 1 sealed branch past the
+fork — reconcilable) or `disputed` (≥ 2 sealed — terminal, reincept), inv 13/17, with the seal **derived** from the
+held events (the highest cleanly-linear seal-advancer). The synthetic **carries** that reading. **Both the value and
+the verdict are pure functions of the held event set** — no arrival-order dependence (the F2/H1 fix; a divergent
+chain's "frozen" is a **merge-origination** posture, not the reading; §1i / inv 13). Identical held sets yield an
+identical verdict **and** an identical value; a settled fork drops both back to the canonical tip (verdict → Active,
+value → the real tip SAID), in lockstep, on every node. *(The `chainEffSaid` and `transientChainState` of §1h now
+**converge** — the synthetic itself carries the forked/disputed reading.)*
 
-- **A single live tip** (a purely linear active window, or a fork already settled below the seal — Active /
-  Recovered / Terminated) → that tip's real SAID (a terminated chain's is its `Trm`).
-- **Multiple live tips** (an unresolved fork — a live content fork, or ≥ 1 privileged branch past it) → a
-  **domain-separated hash of all live tip SAIDs, sorted** (sort ascending, length-prefix, concatenate, hash, apply
-  the domain tag — distinct from a single-tip SAID so a linear and a forked state can't collide). **All** live
-  tips, the canonical one included — **not** a selected subset among the live ones.
+**The value can't hide a revocation (cold B1 — verdict-based, refuse *any* non-single-tip chain).** A consumer's
+*trust* decision reads the **verdict** (from held events), never branch content. **Any non-single-tip state —
+`forked` *or* `disputed` — grounds no new trust → fail-secure refuse** (document-policy §F / inv 8): a `forked`
+issuer IEL can't advance past the fork, so a pending revocation (a `Rev` declaring `kills[]`) can't land on a
+confirmed tip; if `forked` granted trust, a T1 thief who wins one content race would read "not revoked" and get a
+being-revoked cred accepted. So the value can't
+*hide* a revocation, and no branch identity is needed. *(A `forked`→refuse degrades an induced fork to a *denial*,
+never a *grant*.)*
 
-**The verdict label is separate — never hashed into the value.** A data-local walk reads `forked` (≤ 1 privileged
-branch past the fork — reconcilable, pending its repair) or `disputed` (≥ 2 privileged — terminal, reincept), inv
-13/17. **Both the digest and the verdict are pure functions of the held event set.** The seal the verdict reads is
-itself **derived** from the held events (the highest cleanly-linear seal-advancer the node holds), **not** tracked
-by arrival order — so there is no separate "own seal" input and no acceptance-order dependence. Identical held
-sets therefore yield an identical verdict **and** an identical digest: a fork-first node that comes to hold a
-burying seal-advancer re-reads exactly as a seal-first node does (the F2/H1 fix — a divergent chain's "frozen" is
-a **merge-origination** posture, not the reading; §1i / inv 13). A settled fork drops out of both — its condemned
-or buried loser leaves the live-tip set, so the digest returns to the canonical tip and the verdict returns to
-Active, in lockstep, on every node.
-
-**Boundedly computable — the seal cap** (build detail: `vdti-implementation-notes.md`). The log is indefinite, but
-every **live** tip lands within one page below `MAX(serial)`: a live fork sits ≤ 64/lineage above a seal, a chain
-that has stopped originating onto a live fork sits at the very top, and events can't be backdated — so the digest
-is a bounded on-demand walk over `serial > MAX(serial) − MINIMUM_PAGE_SIZE`, no side table (a settled branch
-already dropped out — §1e above — so nothing below the window needs hashing). A privileged event minted **below a node's own last
-seal** (the harvested-reserve case, `vdti-repair-completeness-proof.md` D1) falls outside the window — **not a
-digest gap**: whoever holds it reads `disputed` directly, and a node without it sits in the standing eclipse
-residual (inv 8 — beacon-delivered if witnessed, inert if not), no worse than any eclipse. **Deterministic
-construction is a conformance requirement** — two implementations that disagree on the bytes produce a permanent
-digest mismatch; the exact bytes are the implementer's to pin, the sort / length-prefix / tag discipline is
-load-bearing.
-
-**Why real, not synthetic (supersedes the kels-inherited synthetics — retires `project_kels_effective_said_synthetics`
-§vdti).** kels used `hash("forked:"/"disputed:" + prefix)` because it **could not guarantee every node holds the same
-branches**, so it faked convergence with a branch-_agnostic_ value — two differently-forked nodes "agree" without
-syncing. vdti has **true convergence**: witnessed events always propagate (don't-drop-witnessed + the
-`since` anti-entropy, §1i), so all nodes eventually hold the same branches and compute a **real** value
-over them. Not just simpler — **required and safer**:
-
-- **Required** — the anti-entropy trigger _is_ the effective-SAID delta (§1i). For a missing branch to trigger a fetch
-  the value must be **branch-sensitive**; the synthetic (branch-agnostic) would not move → would not trigger → the
-  exact **R4 masking** below.
-- **Safer** — under partition/eclipse two nodes with different branch sets compute **different** real values, so
-  disagreement drives a fetch (reachable) or reads as multi-source loss-of-trust (**fail-secure**). The synthetic made
-  them **falsely agree** (fail-open).
-- **R4 caveat — RESOLVED (not annotated).** The old caveat (a branch-agnostic synthetic masks a missing branch _after_
-  detection, so anti-entropy detects but cannot assemble the branches for repair) is **gone**: a real digest differs
-  the instant the held branch sets differ, and `since` (§1i) assembles them.
+**The one thing branch-sensitivity gave up (cold B2): forensic eviction-completeness rides the receipt/event-gossip
+channel, not the digest.** Cheating-witness eviction needs the **union** of competing sealed events (which witness
+double-signed which pair). The old real-digest synced that union for free via anti-entropy; the synthetic doesn't.
+This is **not a safety break** — the identity outcome is set-independent, each fork stays detected/attributable, and
+incomplete eviction only means "contained again next time" (a liveness/hygiene cost). The events are recoverable
+from stored data **iff gossiped**, so **eviction-completeness rides the independent receipt/event-gossip channel
+(best-effort, per-node)**, not the effective-SAID anti-entropy. State this so the narrowed claim isn't misread as
+"the union is free."
 
 **Convergence rests on propagation** — eventual barring partition, fail-secure under partition. Witnessed events
-propagate and are never dropped, so all nodes converge to the **same held-tip set → the same digest**; the
-un-witnessed adversarial flood is declined by witnesses and droppable, so it self-limits and doesn't perturb the
-converged value; a direct-mode chain has no such guarantee and is **fail-secure** (different held sets → different
-digests → distrust/fetch, never false agreement). Per-node state stays {Active, Divergent, Terminated};
-`disputed` is the data-local terminal reading (≥ 2 privileged branches, walk-found), never a fourth per-node state.
-**This digest is the universal "has state changed?" comparison** behind token-reuse, deferred-deps drain,
-anti-entropy, and divergence.
+propagate and are never dropped, so all nodes converge to the **same held state → the same value** (a single tip's
+real SAID, or a set-independent synthetic); the un-witnessed adversarial flood is declined by witnesses and
+droppable, so it never perturbs the value. Per-node state stays {Active, Divergent, Terminated}; `disputed` is the
+data-local terminal reading (≥ 2 sealed branches, walk-found), never a fourth per-node state. **This value is the
+universal "has state changed?" comparison** behind token-reuse, deferred-deps drain, anti-entropy, and divergence.
 
 ### 1f. The transfer engine — the one sanctioned data-mover
 One `transfer_*_events` walk with swappable **source / sink / verifier**: `verify_*` = +verifier, `forward_*` =
@@ -190,7 +179,8 @@ as trust, except behind the effective-SAID gate.
 An event can arrive before a dependency on **another** chain (independent gossip). Flow: verifier **collect-mode**
 accumulates deferrable failures (`MissingIelEvent`/`MissingKelAnchor`/`MissingSadObject`) and continues soft →
 `vdtid` emits a **typed 422** (`DeferredDepsResponse`: the missing deps each tagged with the dep chain's
-`chainEffSaid`, plus the `transientChainState` reading for forked/disputed — the effective-SAID itself is now the real branch-derived digest, §1e) → **`witnessd` parks** the message
+`chainEffSaid` — which for a non-single-tip chain **is** the verdict-recoupled synthetic, so `chainEffSaid` and the
+`transientChainState` forked/disputed reading now **converge**, §1e) → **`witnessd` parks** the message
 in Redis (`pending:msg/said/chain`, **secondaries-before-primary** so a crash orphans a self-TTLing primary, never
 dangling indexes) → **drains** (replays via the transfer engine / get-post-sad) when the awaited dep commits
 (pubsub) or the chain's effective-SAID moves past `eff_said_at_park`.
@@ -201,65 +191,94 @@ hash → query peers' effective-SAIDs → sync only from peers that differ) and 
 page vs random peer; skipped if Phase 1 had work). The **effective-SAID is the compare key**; sync moves through
 the transfer engine.
 
-**The explicit branch-assembly fetch — `since: last_seal.said` (Jason 2026-07-03; resolves the R4 caveat above,
-lines ~102-110).** The effective-SAID delta is only the **trigger** (it moved → re-sync this prefix — the Phase-1
-compare). The **fetch** that assembles the branches the compare misses is `since: {your-own-last-seal}.said` — pull
-every event after the **querier's** last seal and dedup (SAID-addressable → clean reconcile, no special-casing).
-This works, **for state above your own last seal**, because of **bounded divergence**: a fork can only form after
-the last seal, so `since` your seal captures the canonical tip, every **above-seal** competing/dead branch, and a
-resolving `Rec` (even one that advanced a *peer's* seal past the fork — you anchor on **your** seal). But `since` is
-**node-relative**: a node that advanced its **own** seal past a content fork **accept-first-learn-later** (accept
-`a`, seal-advance on it, then the competing `b` arrives below the new seal) reads `b` as **inert** — you can't fork
-the past, so a below-seal loser is dead and the node reads **Active** (reconciliation Divergent (sealed)). A
-**fork-first** node still holding the loser at-or-above its **derived** seal reads `forked` — and converges the
-instant it comes to hold a **burying seal-advancer** on the winning branch: its seal advances, the loser drops
-below it → inert → the walk re-reads **Active**, **no `Rec` required** (the seal-first node's outcome, reached by a
-different arrival order — the pure-walk reading, inv 13). A `Rec` is needed only for an **all-content open fork**
-with no seal-advancer above it — there the repair *is* the burying seal-advancer (it archives the loser and
-advances the seal). Under the **live-tips** digest (§1e) a live fork shows in **both** nodes' digests (driving the
-sync that assembles it) and drops out of both the instant it is buried or repaired — digest and verdict converge
-in lockstep, with **no** same-tips-different-verdict window. **So there are two channels, by design:**
+**A plain by-prefix pull, no branch-assembly-for-repair (first-seen, 2026-07-08).** The effective-SAID delta is the
+**trigger** (it moved → re-sync this prefix — the Phase-1 compare). The **fetch** is `since: {your-own-last-seal}.said`
+— pull every event after the **querier's** last seal and dedup (SAID-addressable → clean reconcile). This works, for
+state above your own last seal, because of **bounded divergence**: a fork can only form after the last seal, so
+`since` your seal captures the canonical tip and every **above-seal** competing branch. `since` is **node-relative**:
+a node that advanced its own seal past a content fork (accept-first-learn-later — accept `a`, seal-advance, then the
+competing `b` arrives below the new seal) reads `b` as **inert** (you can't fork the past → **Active**); a
+**fork-first** node still holding the loser at-or-above its **derived** seal reads `forked`, and converges the instant
+it comes to hold a **burying seal-advancer** on the winning branch (its seal advances, the loser drops below it →
+inert → **Active**), **no repair event required** (the seal-first node's outcome by a different arrival order — the
+pure-walk reading, inv 13). *(There is no branch-assembly `since`-drag and no `fork`-commitment fetch — the repair
+machinery is deleted; a settled content loser is buried by position, retained by keep-all-data, reached by a plain
+by-prefix flat fetch, never gossiped through the value — §1e.)* **Two channels, by design:**
 
-- **In your active window (the last page, at-or-around your last seal) → the effective-SAID delta + `since`
-  fetch** (pull). Under **live-tips** (§1e) the digest moves on any **live**-tip difference in the window — the
-  canonical tip or a live-fork sibling — so the ordinary delta+`since` channel assembles an **unresolved** fork
-  (exactly what needs syncing). A **settled** branch (repair-condemned, or a buried below-seal content sibling)
-  does **not** move the digest — it is forensic, reached by the on-chain `fork` commitment + by-prefix fetch, not
-  `since` — so a fresh sink and an evidence-holder converge on the canonical tip without either chasing the
-  other's condemned branch (the cold-F1 spin, closed). Bounded: the seal-advance cap keeps your last seal ≤ 64
-  events back in steady state. The `since` **response includes the cursor's own siblings** (adjacent-to-cursor),
-  so you also learn if the seal you anchor on is **itself** forked (the `Divergent (sealed)` case — else you'd
-  anchor on a forked seal unaware).
-- **Below your own seal → beacon / eclipse residual (out of the digest).** A privileged event minted below your
-  own seal (the harvested-reserve D1 case) is out of the window, so `since` can't reach it and the digest doesn't
-  move for it — **not a gap**: whoever holds it reads `disputed` directly; a node without it is in the standing
-  eclipse residual (inv 8), beacon-delivered if witnessed, inert if not. Old below-window forensic evidence
-  (a long-buried `{Trm, content}` loser, `Rot`-buried unnamed branches) rides the on-chain `fork` commitment +
-  by-prefix fetch, not `since`.
+- **In your active window → the effective-SAID delta + `since` fetch** (pull). The value moves on any live-tip
+  difference in the window (the canonical tip, or a live-fork surfacing as the synthetic — §1e), so the ordinary
+  delta+`since` channel assembles an **unresolved** fork. A **settled** branch (a buried below-seal content sibling)
+  does **not** move the value — reached by a plain by-prefix flat fetch, not `since`, so a fresh sink and an
+  evidence-holder converge on the canonical tip without chasing the other's buried branch (the spin closed). The
+  `since` **response includes the cursor's own siblings** so you learn if the seal you anchor on is itself forked
+  (the `Divergent (sealed)` case).
+- **Below your own seal → beacon / eclipse residual (out of the value).** A **sealed** event minted below your own
+  seal (the harvested-reserve case) is out of the window, so `since` can't reach it and the value doesn't move for it
+  — **not a gap**: whoever holds it reads `disputed` directly; a node without it is in the standing eclipse residual
+  (inv 8), beacon-delivered if witnessed, inert if not.
 
-So the effective SAID stays load-bearing (cheap change-detector **and** gating value, inv 8), and a
-**Merkle-root-over-all-events was considered and dropped** — the delta triggers and the seal bounds. **On a digest
-mismatch `since:seal` can't close** (chiefly cross-implementation digest-encoding drift — which the pinned
-deterministic construction, §1e, exists to prevent), a node escalates to a **by-prefix flat fetch** (the full
-retained set) or a **beacon-driven targeted fetch** — else the anti-entropy loop spins.
-- **Live vs. historical split.** While the fork is above the seal, `since: seal` carries it. Once a `Rec` buries it
-  below the *new* seal, a **from-scratch** node (no prior seal) reaches the dead branches via the on-chain **`fork`
-  commitment** + by-prefix fetch of the retained bodies (reconstructable from the root — inv 17 archival bounds); a
-  **lagging** node with an old seal just uses `since: {old-seal}` and gets everything in one pull.
+So the effective SAID stays load-bearing (cheap change-detector **and** gating value, inv 8). **On a value mismatch
+`since:seal` can't close** (chiefly cross-implementation encoding drift of the synthetic — which the pinned type-tag
+discipline, §1e, exists to prevent), a node escalates to a **by-prefix flat fetch** (the full retained set) or a
+**beacon-driven targeted fetch** — else the anti-entropy loop spins.
 
-- **Send-side ordering (source → sink; the `transfer_*_events` order).** The **source** (ahead, at `seal2`) partitions
-  the run for a **sink** behind at `seal1` so each sub-batch is acceptable in arrival order:
-  **`seal1` (shared anchor, dedups) → Ixns(`seal1` → fork point) → the condemned branch(es) (`seal2`'s `fork` root) →
-  Ixns(fork point → `seal2`) → `seal2` (the resolving `Rec`)**. Every event's `previous` is present before it lands
-  (the pre-fork Ixns precede the fork roots — a mid-window fork's roots chain off them, not off `seal1`), all
-  competing branches are in the sink's store before the `Rec` so its content-only guard can walk them, and the `Rec`
-  lands **last**. A fork anchored right at `seal1` has an empty pre-fork run and collapses to
-  `seal1 → forks → Ixns → seal2`. This is the recovered-chain specialization of send-side partitioning (a
-  divergent-but-unrecovered source just omits the trailing `Rec`). The **atomic unit** — the condemned branch
-  (≤ 64) + the post-fork retained window (≤ 64) + the `Rec` — fits **one `MINIMUM_PAGE_SIZE = 129` page** (area-kel);
-  any pre-fork run (and, for an own-`Rot` in the retained tail, the pre-`Rot` window) rides earlier plain-linear
-  pages, and a ≥ 3-branch residual fork's extra branches ride later pages (reconciliation invariant 3) — the
-  whole run is **not** one page, only each seal-window atomic unit is.
+- **Send-side ordering (source → sink; the `transfer_*_events` order).** The **source** (ahead) partitions a
+  divergent run into sub-batches the **sink** accepts in arrival order — the shared anchor seal first (dedups), then
+  the pre-fork run, then each competing content branch, so every event's `previous` is present before it lands
+  (`send_divergent_events`). *(There is no `fork`-root sequencing and no trailing repair event — a burying
+  seal-advancer, when present, lands **last** like any seal-advancer.)* The **atomic unit** — the competing content
+  branches (≤ 64 each) + the burying seal — fits **one `MINIMUM_PAGE_SIZE = 129` page** (area-kel); a ≥ 3-branch
+  residual fork's extra branches ride later pages (reconciliation invariant 3).
+
+### 1j. SAD-store write path — the `kind` filter (first-seen hardening, 2026-07-08; ⚠ NOT previously design-reviewed — the encode-review is its first decorrelated pass)
+
+A pure subtraction enforcing **inv 16** at the storage boundary. **The attack:** event SAIDs float free of their
+prefix by design (`said ≠ prefix`; the opaque `anchors[]` commitment — area-sel:129). From a **public** issuer IEL
+an attacker harvests every `anchors[]` SAID (commitments to the issuer's **lookup-SEL events** — revocation /
+rescission `Trm`s); if the SAD store answered a **fetch-by-SAID for an event body**, they look each up → get the SEL
+`v1`/`Icp` → recompute `derive(owner, topic, data)` → recover the **lookup-SEL prefix** → correlate the issuer's
+revocations, using vdti's own store as the inversion oracle. **The fix:** the `vdtid` SAD-store write path **detects
+an event by `kind` and rejects it** — nothing legitimate needs an event body in the SAD store (events live in the
+chain log, prefix-addressed — inv 16), so a fetch-by-SAID **physically cannot return an event**. *(A **credential**
+is anchored as the **issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** — an immutable SAD,
+**not** an event; the content/event `kind` split lets a **public** cred's body be fetched by SAID (intended) while a
+**private** cred's body is unpublished. The private-cred privacy interaction is **closed** (inv 16): `cred.said`
+appears **nowhere raw** on the public IEL — the issuance commitment, the revocation kill-target
+`hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, and the lookup SEL's prefix/said are all hashes of the
+high-entropy preimage, so a passive observer can compute none of them.)* Bypass-robust: stripping
+the `kind` changes the content → changes the SAID → misses the attacker's harvested *real* event SAID. **`kind` is
+required on SAD data** (a clean per-kind store policy — allow content kinds, reject event kinds; the authoritative
+classifier, no fragile shape-match). Write it as the **principle** — *"nothing whose SAID must stay opaque is
+fetchable by SAID from the store"* (catches a future free-floating opaque SAD type). **Scope to events (by kind)
+now** — manifest-role SADs (roster/threshold delta, pins-SAD) also carry identifiers, but their SAIDs are reachable
+only *through* a chain you already have the prefix for, so they give the attacker nothing new; events are the sharp
+case. **Preferred over adding an availability field to every event.** *(One factual to-do before build: verify
+`kind` is populated on every SAD kind.)*
+
+### 1k. Receipt-encoded threshold + on-receiving-node routing (first-seen hardening, 2026-07-08; ⚠ NOT previously design-reviewed — the encode-review is its first decorrelated pass)
+
+The match-check *safety* was verified this session; one *value*-scope point is **[REVIEW-PENDING]**. **Receipt-encoded
+threshold:** each receipt carries the **witness-config `threshold`**, so witnessed-detection becomes **count
+`threshold`-many agreeing receipts on `(event SAID, threshold)`** — no chain-walk to resolve the in-effect threshold.
+On pull the receipts' threshold must **exactly match the chain-authoritative threshold** (the committed witness-config
+in effect at that position, never the self-asserted receipt field); a mismatch is **invalid, even if higher**
+(faithfulness — a witness misrepresenting one field can't be trusted on the rest; + liveness/DoS; + the `(SAID,
+threshold)` agreement makes an inflated receipt disagree with honest ones → detected). The consistent lie (event +
+receipts both say 2, real config 4) is defeated because the match is against the **committed SAD**, not the receipt
+field. **Value scope (resolved):** the fast receipt-count is a **hint**; the **committed-config match on pull is
+authoritative**. The count **defers, not eliminates**, the chain read — it saves the *in-effect-threshold walk*
+specifically, **not** the roster/selection (the detecting witness already holds the live roster as mesh state), so
+"no chain read" isn't read bigger than it is. Position-deterministic (the config committed
+at-or-before the serial); a stale-config witness emits a non-matching receipt → discarded (a liveness cost around
+config changes, not a safety hole). Composes with the key-window gate: a valid receipt needs {valid sig, inside
+key-window, threshold-matches}. **On-receiving-node routing:** the mesh is witness-only + encrypted; the event body
+never floods (targeted transfer), only receipts flood. Flow: user → their **preferred witness** (usually *not*
+selected — fine) → that witness **computes the selection locally** from `(prefix, serial)` + the roster it holds →
+routes the body to the ~`signers` selected witnesses → they receipt + sub-gossip the body → **receipts flood** → the
+preferred witness answers "witnessed?" **from receipts alone** (no body, no walk) → the body is **pulled on-demand**
+only when the content is wanted. Not load-bearing that the user reach the selected witnesses. **Keep straight:**
+*witnessed*-detection (is it backed?) is distinct from *disputed*-detection (data-local, ≥ 2 sealed branches); they
+compose — the receipt-threshold makes "should I pull" cheap, disputed stays a data-local re-validation.
 
 ## 2. Mined from kels (carries; confirm in build)
 - Redis park-map **write-order invariant** (secondaries before primary; `DepRef` variant order is load-bearing
@@ -272,7 +291,7 @@ retained set) or a **beacon-driven targeted fetch** — else the anti-entropy lo
 - **The `eventsd` / `sadd` split** (vdti's *own earlier* conception, mirroring kels' `kels`/`sadstore`) →
   **merged into `vdtid`** (read-path hops, §1a). ⚠ fix `project_vdti_compacted_only_submission`.
 - **kels' separate `registry` / `mail` / `identity` daemons + old taxonomy** (`Cnt`/`Upd`/`Sea`/`Evl`,
-  `is_contested`) → vdti features are **libs**; taxonomy is the reshape's (`Icp`/`Ixn`/`Evl`/`Rec`/…, no `Cnt`).
+  `is_contested`) → vdti features are **libs**; taxonomy is the first-seen model's (`Icp`/`Ixn`/`Rot`/`Wit`/…, no `Cnt`, no `Rec`/`Rpr`).
 - **kels' re-verify-every-write** (`completed_verification` each submit) → vdti **token-cache + effective-SAID +
   `resume`** (§1d). The kels code is the correctness baseline; the cache is the scale refinement.
 - **"gossip" as a service name** → `witnessd` ("gossip" stays the pattern name).
@@ -292,11 +311,11 @@ retained set) or a **beacon-driven targeted fetch** — else the anti-entropy lo
 - Define the `lib/vdti` crate layout (verifiers/tokens, transfer, merge, resolvers, effective-SAID, deferred-deps,
   custody, compaction) + the thin `vdtid`/`witnessd`/`cli` binaries.
 - **Fix `project_vdti_compacted_only_submission`** (`eventsd`/`sadd` → `vdtid` + `witnessd`).
-- **Archived-aware fetch (repair-archived content).** `vdtid`'s fetch endpoint must expose **archived** events
-  (kels' `get_archived_events` / `get_recovery_archived_events` shape), so a walk that returns the full
-  graph/history also surfaces events archived by a **repair** (a divergence cascade archives the losing branch).
-  *(Updated 2026-06-21: this is no longer for detecting a delayed un-rescind — kills are always sealed now, there
-  is no un-rescind, see `vdti-area-sel.md` §1. The endpoint stays for repair-archived content.)*
+- **Buried-content-aware fetch (keep-all-data).** `vdtid`'s fetch endpoint must expose **buried** events (kels'
+  `get_archived_events` shape), so a walk that returns the full graph/history also surfaces events **buried by a
+  burying seal** (a content loser dropped below the seal by position + descent, retained by keep-all-data — inv 13/17,
+  never dropped). *(Not for detecting a delayed un-rescind — kills are always sealed, there is no un-rescind, see
+  `vdti-area-sel.md` §1.)*
 
 ## 6. Confidence / what's owed
 - §1a–§1i — **high** on the decomposition + machinery (grounded in the kels `main` code + Jason's decisions). The

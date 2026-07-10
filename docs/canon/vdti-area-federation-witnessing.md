@@ -2,7 +2,7 @@
 
 **Status: FIRST CUT (2026-06-20).** Federation = an ordinary (restricted) IEL; witnessing = as-of-context
 **prevention for witnessed content + detection for everything else** (the majority floor, 2026-07-02 — content forks
-are prevented on witnessed chains below fork-cost; privileged races, direct mode, and the byzantine residual are
+are prevented on witnessed chains below fork-cost; sealed races and the byzantine residual are (there is no direct mode — every identity is federation-witnessed, §1d)
 detected), evolved from kels-216's detection-only model. Grounded in
 design-pass §7 + the federation reference doc + `inv 14`, with the witnessing mechanism sourced from kels-216
 (Jason confirmed 2026-06-20 it carries as-is, adapting only kind language). Load-bearing claims marked for the
@@ -37,14 +37,14 @@ adversarial pass.
   roster," not "serves many.")*
 - **Restricted kind set: `Fcp` / `Wit` / `Trm` only** (Q1, Jason 2026-06-20; `Fcp` = the federation IEL's **inception
   marker** — a structural disambiguator the verifier dispatches on, §inv 4 / federation-ref §2, **not** a trust
-  carve-out; `Wit` = the federation's single governance kind — roster + rotation, T3, replacing `Evl`; 2026-06-28,
+  carve-out; `Wit` = the federation's single governance kind — roster + rotation, T2, replacing `Evl`; 2026-06-28,
   cold-4 B1). A federation authors **no `Ixn`**
-  (no content) → it has **no *repairable* divergence → no `Rpr`** [inv 13] (a `{Wit, Wit}` race is terminal → `disputed` → reincept, never repaired); and **no `Ath`** (trust is
+  (no content) → **every federation event is a key change → record-both → every federation conflict is terminal** [inv 13] (a `{Wit, Wit}` race is `disputed` → reincept); and **no `Ath`** (trust is
   per-federation, non-transitive). Lifecycle: incept (`Fcp`) → all governance (add/remove a witness, rotate) via `Wit` → `Trm`. Its threshold-vector
-  is **exactly `{t_govern}`** (+ Rule A for additions): no `Ixn`/`Ath`/`Rpr` ⇒ no `t_use`/`t_authorize`/**`t_recover`** (a threshold is declared iff its consuming kind is in the kind set — inv 12; a federation `Fcp` declaring any of the three is malformed → rejected). **`t_recover` is *not* needed** — the federation never authors an `Rpr` (a `{Wit, Wit}` divergence is terminal → reincept, never repaired), so nothing consumes it. *(Corrects the earlier E4 "`t_recover` declared-but-moot-as-a-count, not-moot-as-a-tier" — a category confusion, tier ⊥ count (inv 11): the `Wit`'s **T3 tier** (each witness's KEL `Wit` refreshes signing + recovery) is enforced **structurally** by the kind-strict KEL `Wit` ↔ IEL `Wit` anchor and gated by the **`t_govern`** count — not by a `t_recover` threshold; the reserve is still exercised every `Wit`, there is simply no `t_recover` count to declare.)*
+  is **exactly `{t_govern}`** (+ Rule A for additions): no `Ixn`/`Ath` ⇒ no `t_use`/`t_authorize` (a threshold is declared iff its consuming kind is in the kind set — inv 12; a federation `Fcp` declaring either is malformed → rejected). *(There is no `t_recover` — no repair anywhere; tier ⊥ count (inv 11): the `Wit`'s **T2 tier** (each witness's KEL `Wit` refreshes the signing key + rotation reserve) is enforced **structurally** by the kind-strict KEL `Wit` ↔ IEL `Wit` anchor and gated by the **`t_govern`** count.)*
   **The recoverability ceiling `≤ |roster| − 1` is HARD for the federation** (unlike a general identity, where it's
   advisory — G1 / inv 12): the federation is critical infra and must always be able to evict **one** compromised
-  witness and recover without it, so `|roster| ≥ 3` is required (no fragile 1–2-witness federation). *(Surviving
+  witness and recover without it, so `|roster| ≥ 4` is **structurally required** — the `signers ≥ 3` witness-config floor (§4) plus the federation's exclude-self pool (`signers ≤ |roster| − 1`) forces `|roster| ≥ signers + 1 ≥ 4`; **≥ 5 recommended** (§1c). No fragile 1–3-witness federation. *(Surviving
   `k > 1` simultaneous losses is the operator's sizing choice — set `threshold ≤ |roster| − 1 − k`, §1e.)*
   **Compromise recovery = re-incept under a new prefix, not repair** [inv 13; `feedback_end_verifiability_not_pristine`].
   **A LOST member key (operator lost access — can't rotate it) is an operational failure mode, not an in-chain repair
@@ -62,10 +62,10 @@ adversarial pass.
 - Witness **key rotation** is **a federation `Wit`** that pins the
   **pre-rotation KEL state** — recording the retired key's boundary into the
   federation timeline (this is what gives the clock each key's `T_end`, closing Finding 1). **The `Wit` IS the
-  rotation: `Wit` anchors `Wit` (kind-strict, T3 ↔ T3, inv 4 — the governance-facet match is the **witness-config only**, Q3; the roster rides the manifest `Evl`-style, the `clock` is a single IEL-side value, monotonic + `≤ now+band`) — each participating witness
-  authors a *single* KEL `Wit` that refreshes signing + recovery **and** anchors the federation IEL `Wit`; no
-  separate `Ror`, no phantom key, and `pins = Wit.previous` so the retiring receipt key's `T_end` lands correctly
-  (cold-4 B1; supersedes the round-4 `Evl`-rotation-pin and the round-7 `Ror`-anchors-`Wit` framing).** **Add/remove a witness
+  rotation: `Wit` anchors `Wit` (kind-strict, T2 ↔ T2, inv 4 — the governance-facet match is the **witness-config only**, Q3; the roster rides the manifest `Evl`-style, the `clock` is a single IEL-side value, monotonic + `≤ now+band`) — each participating witness
+  authors a *single* KEL `Wit` that refreshes the signing key + rotation reserve **and** anchors the federation IEL `Wit`; no
+  phantom key, and `pins = Wit.previous` so the retiring receipt key's `T_end` lands correctly
+  (cold-4 B1).** **Add/remove a witness
   is *also* a `Wit` (the federation has no `Evl` — a `Wit` carries any roster delta too).** **Roster-add consent (A1, 2026-06-28):** a *joining* witness consents via a KEL `Ixn` (joining-not-rotating — its `Fcp`→`Ixn` anchors the `Wit`), exactly the user-`Evl` joiner pattern; the **pre-add** witnesses approve via their KEL `Wit`s, which **alone** satisfy `t_govern`. **The load-bearing gate is pre-add-(outgoing)-roster membership (cold-8 F5), not just the kind:** `t_govern` counts **only KEL `Wit`s whose author ∈ the pre-add roster** — so a colluding `W_new` authoring its own KEL `Wit` (instead of an `Ixn`) cannot manufacture a `t_govern` vote (it is not in the pre-add roster). The kind split (`Ixn` joiner vs `Wit` approver) is the *additional* backstop that keeps the joiner's consent out of `t_govern` (Rule-A only, never `t_govern` — restoring C6); but the primary count is gated on **outgoing-roster membership** (inv 12). This closes the joiner-authors-a-`Wit`-and-self-approves takeover. `Wit.pins` = each approver's `Wit.previous` (a `T_end`) + the joiner's `Ixn.previous` (a `T_join`, never a `T_end` — cold-7 F2; diagram example 6). **Every federation governance change — a `Wit` (a rotation always, optionally also a roster change — A2) —
   commits an inline `clock` timestamp in its manifest** (§1f) and carries the federation's **own witness-config** (D1 / cold-7 F1). **This is a RARE event:** witnesses rotate
   **at least once every 365 days** (a hard auto-expiry — §1f; ML-DSA-87 handles annual rotation easily), and rotations are **typically synchronized** (one `Wit` covering all witnesses is the
@@ -76,20 +76,22 @@ adversarial pass.
   is `Fcp → Rot`, 2026-06-28; the old founder-`Fed`-via-tier-elevation is gone — inception-reference §2).
 - **Roster is a *delta*, not a full snapshot (B / F-A resolution, 2026-06-21).** A `Wit` carries
   `{ said, add: Prefix, cut: Prefix[], …thresholds }` — members joined and members removed, not
-  the whole list (this delta SAD is the **`manifest.roster`** role, inv 4). **`add` is a *single* prefix, not a list — one witness added per `Wit` (except inception `Fcp`, which stands up the founding roster wholesale) — cold-seam P5, 2026-07-02.** Both an operational match (standing up a witness is deliberate infra, never bulk) and a **structural closure of the multi-add straddle**: a governance `Wit` never introduces more than **one unsynced witness**, and one fresh witness alone cannot reach a majority `threshold` (`≥ 2` for `signers ≥ 2` — its co-selectees are synced and decline the fresh sibling by first-seen), so the benign multi-add straddle-enabler (two fresh witnesses co-signing from routine join latency) **collapses into the priced witness-compromise residual** (a fresh sibling now needs a *byzantine* synced co-signer); the `signers = 1` degenerate straddle is unchanged (the pre-existing lone-witness case, warned). **`cut` stays a list** (cuts remove *synced* witnesses — no fresh-witness straddle — so emergency multi-eviction is unaffected; evict-and-replace is `cut: [..], add: one`). **Reachability property (VERIFIED, encode review 2026-07-02):** every valid target config is reached from a valid config by single-adds through valid intermediates — and stronger than hedged: a `Wit` carries `add` **and** `threshold` **and** `signers` in one event and the post-delta re-check runs against the **target** config, so any valid config at `|roster| = n+1` is reachable in **one** `Wit` from any valid config at `n`, no forced invalid intermediate (worked `{1,1}@3 → {2,3}@4 → {3,4}@5`). The only friction is the authoring step's self-attestation under the at-or-before config (no-self-weakening), which "usable" already guarantees, modulo the standing `{1,1}` position-luck warning. The current roster is reconstructed by
+  the whole list (this delta SAD is the **`manifest.roster`** role, inv 4). **`add` is a *single* prefix, not a list — one witness added per `Wit` (except inception `Fcp`, which stands up the founding roster wholesale) — cold-seam P5, 2026-07-02.** Both an operational match (standing up a witness is deliberate infra, never bulk) and a **structural closure of the multi-add straddle**: a governance `Wit` never introduces more than **one unsynced witness**, and one fresh witness alone cannot reach a majority `threshold` (`≥ 2` for `signers ≥ 2` — its co-selectees are synced and decline the fresh sibling by first-seen), so the benign multi-add straddle-enabler (two fresh witnesses co-signing from routine join latency) **collapses into the priced witness-compromise residual** (a fresh sibling now needs a *byzantine* synced co-signer) — and with `signers ≥ 3` (§4) there is no lone-witness degenerate to carve out. **`cut` stays a list** (cuts remove *synced* witnesses — no fresh-witness straddle — so emergency multi-eviction is unaffected; evict-and-replace is `cut: [..], add: one`). **Reachability property (VERIFIED, encode review 2026-07-02):** every valid target config is reached from a valid config by single-adds through valid intermediates — and stronger than hedged: a `Wit` carries `add` **and** `threshold` **and** `signers` in one event and the post-delta re-check runs against the **target** config, so any valid config at `|roster| = n+1` is reachable in **one** `Wit` from any valid config at `n`, no forced invalid intermediate (worked `{2,3}@4 → {3,4}@5`, from the `|roster| ≥ 4` floor). The only friction is the authoring step's self-attestation under the at-or-before config (no-self-weakening), which "usable" already guarantees (with `signers ≥ 3` there is no lone-witness position-luck case). The current roster is reconstructed by
   **accumulating add/cut while walking** (the live set is always in memory). A `cut` removes a witness **by
   prefix**; **which of its keys may still sign valid receipts is bounded by the federation clock** (§1f), not a
   position-`terminator` (**dropped 2026-06-21** — see below). *(The cut-a-chain primitive survives only as the
   **delegate rescission** `bound` — delegations have no clock — inv 13 / delegation §5; federation removal no
   longer shares it.)*
-  - **Hard cap on the live set:** while accumulating, if the live roster would exceed a cap (≈128/256), **reject
-    the event as invalid** (a likely DoS / resource-exhaustion attempt). Bounds signature/threshold work + memory.
+  - **Hard cap on the live set = 32** (first-seen, 2026-07-08 — the same cap as every user IEL, inv 12): while
+    accumulating, if the live roster would exceed **32**, **reject the event as invalid** (a likely DoS /
+    resource-exhaustion attempt). Bounds signature/threshold work + memory. *(Operator doctrine is ≥ 5 witnesses, so
+    32 leaves ~6× headroom; the max federation shrank 4–8× from the old ≈128/256, intended — §L8.)*
   - **The live roster is a SET (cold-9 Q2):** a `Wit` whose `add` names an **already-live** prefix is **rejected** —
     re-adding a current member would reset its `T_join` (re-open its key-window); the set discipline removes that
     ambiguity (defense-in-depth; the `t_govern`/Rule-A double-count is already closed by the kind-split). **`add` membership is tested against the *pre-delta* roster** — so a same-event `cut` + `add` of the **same** prefix (`cut ∩ add ≠ ∅`) is rejected too (cutting `W1` then re-adding it with a fresh `T_join` in one event can't route around the set discipline by ordering); evict-and-replace (`cut W1`, `add W2`, disjoint) is unaffected — the rule is **order-independent** (cold-14 F1). A **config change**
     is **re-checked on the post-delta config** (inv 12 — on **any `Wit` that changes roster, `threshold`, or `signers`**, not a `cut` alone; for the federation, its `Wit`): valid
-    only if the **full witness-config validity** holds after the change — the **recoverability cap `threshold ≤ min(|roster| − 2, signers − 1)`** with the `signers = 1` waiver (a bare `cut` re-applies the roster leg; a `signers`/`threshold` change re-applies the tighter `signers − 1` leg — the leg that actually binds for `signers ≥ 2`, F-obs — so a `signers` drop `{s 4, t 3}@5 → {s 3, t 3}@5` that passes `|roster| ≥ threshold + 2` but violates `t ≤ min(3,2)` is **rejected**, cold-seam F1), the **majority floor `threshold > signers/2`**, and the `t_govern` bounds still hold. So a **bare `cut`** that would strand the federation un-recoverable —
-    even one that passes a naive `≥ 3` floor (e.g. `|roster| 5→4` at `threshold 3`) — is **rejected**, forcing
+    only if the **full witness-config validity** holds after the change — the **recoverability cap `threshold ≤ min(|roster| − 2, signers − 1)`** (a bare `cut` re-applies the roster leg; a `signers`/`threshold` change re-applies the tighter `signers − 1` leg — the leg that actually binds for `signers ≥ 2`, F-obs — so a `signers` drop `{s 4, t 3}@5 → {s 3, t 3}@5` that passes `|roster| ≥ threshold + 2` but violates `t ≤ min(3,2)` is **rejected**, cold-seam F1), the **majority floor `threshold > signers/2`**, and the `t_govern` bounds still hold. So a **bare `cut`** that would strand the federation un-recoverable —
+    even one that passes the bare `≥ 4` structural floor (§4) (e.g. `|roster| 5→4` at `threshold 3`) — is **rejected**, forcing
     **evict-and-replace** (one `Wit` carrying both `cut` and `add`) or a simultaneous threshold-and-`signers` drop, never
     a bare shrink (cold-9 B1 / cold-13 F1 / §1e).
   - **Durability is kept (default):** a cut witness's **established receipts still count** (no re-witnessing); the
@@ -121,7 +123,7 @@ adversarial pass.
     flagged it, and the drop rested on the false "durability needs the key.")*
 
 ### 1b. KEL federation binding
-- KEL keeps **`Fcp`** (federation-infrastructure inception, T1) + **`Wit`** (the one witness/federation kind, T3): on
+- KEL keeps **`Fcp`** (federation-infrastructure inception, T1) + **`Wit`** (the one witness/federation kind, T2): on
   an `Icp`-rooted **user** KEL a `Wit` is its federation bind/rebind; on an `Fcp`-rooted **witness** KEL a `Wit` is
   federation governance (a witness never self-binds — it is governed *into* the roster). Two fields on
   `Fcp`/`Icp`/`Wit`: **`federation`** = the federation **prefix** (which F; follows F's evolution) and
@@ -137,9 +139,9 @@ adversarial pass.
   (a *coordinator* is an operational convention — no election/leader). The **clock is incepted in this same batch**
   (the federation `Fcp`'s `manifest.clock` sets the founders' `T_join` = genesis time), so the timeline has a lower bound from event zero
   (Finding 6 — otherwise the pre-first-`Wit` window is unbounded).
-- **Run `≥ 5` live witnesses, not the bare `≥ 3` (operator doctrine, Finding 3).** The hard floor counts *roster
+- **Run `≥ 5` live witnesses, not the bare `≥ 4` structural floor (operator doctrine, Finding 3).** The hard floor counts *roster
   membership*, but a witness KEL can die **without a `Wit` cut** (lost key, destroyed device → can't rotate). At
-  `|roster| = 3`, two such silent deaths drop the *live* set below `t_govern` → the federation can't author the
+  the `|roster| = 4` floor, two such silent deaths drop the *live* set below `t_govern` → the federation can't author the
   `Wit` to replace them → stuck → federation reincept (global rebind). `≥ 5` keeps **`t_govern` reachable** with 2 losses
   — **but authoring is not enough: the replacement `Wit` must also self-attest** (cold-10 F1), which with `k = 2`
   unavailable needs **`threshold ≤ |roster| − 3`** (§1e general form), not the `|roster| − 2` cap. So to *recover* from 2
@@ -167,9 +169,9 @@ adversarial pass.
   non-transitive**: a verifier independently trusts *each* federation prefix the chain bound to, and each event is
   witnessed by whichever F was current when it landed — so witnessing is **range-based** (a contiguous run between
   `Wit`s shares one context). The verification token reports the **witnessing ranges** (`[from, to) → F | none`),
-  **per range, not per event** (bounded by the `Wit` count — `Wit`s are rare privileged acts; a **hard cap on
+  **per range, not per event** (bounded by the `Wit` count — `Wit`s are rare sealed acts; a **hard cap on
   `Wit`s/chain** rejects a ping-pong DoS, inv-14 pattern — over-cap → reincept). A consumer **must not** assume "has a
-  `Wit` ⇒ all events witnessed" (cold-5 C1a; the rule applies to rebind chains too, not only direct-mode).
+  `Wit` ⇒ all events witnessed" (cold-5 C1a; the rule applies to rebind chains — a run bound to a since-changed federation).
 - **The migration window is cooperative-only (cold-4 B2).** *(This is **user-identity** rebind overlap — distinct
   from a witness serving two federations, which is **dropped**: witnesses are single-federation, §1a.)* The
   overlapping-federation trust that bridges a **user-identity** rebind
@@ -179,16 +181,14 @@ adversarial pass.
   the target federation alone (its lagging members are old-F-witnessed). **Escaping a compromised federation is a
   hard cutover / reincept, not a graceful overlap.** Multi-federation migration is **application-level** — the
   framework gives the per-federation primitives + recommendations, not an orchestrated protocol.
-- **Direct mode is a reachable mode (cold-5 C1a).** A user `Icp` **may omit** its `federation`/`federationPin`
-  (*absent ⇒ direct-mode*, intentional; *present ⇒ federated*) — so a chain can incept **un-federated**. Its **first
-  `Wit`** then binds a federation and witnessing **starts forward** from that event (the early range stays unwitnessed
-  — a `Wit` never witnesses the past; the as-of-context rule, so no retroactive witnessing / no backdate vector). A
-  direct-mode chain is fully **end-verifiable** (SAID + sig + chain linkage need no federation) but earns **no witness
-  receipts**, and it **keeps *local* divergence detection** (a held fork freezes the chain, inv 13 / F-F) — it only
-  lacks the **beacon's propagation** to one-branch holders + multi-source. **Fail-secure (cold-5 C2):** a loss-of-trust
-  decision that can't multi-source-confirm a `Trm` (direct-mode, or any eclipse/single-source) **refuses**, never
-  proceeds-with-a-flag. **Mixing** a direct-mode member into a *federated* identity silently degrades that identity's
-  freshness (that member is single-source) → keep a direct-mode identity **whole-solo** (guidance, not a hard reject).
+- **There is no direct mode (first-seen, 2026-07-08).** Every identity is **federation-witnessed** — witnessing is
+  what every guarantee rests on. A user `Icp` **must** carry its `federation`/`federationPin` (a user `Icp` omitting
+  them is malformed → rejected — inv 4); a chain **cannot** incept un-federated, and there is no "witnessing starts
+  from a later `Wit`, early range unwitnessed" allowance. **Fail-secure (cold-5 C2):** a loss-of-trust decision that
+  can't multi-source-confirm a `Trm` (any eclipse/single-source) **refuses**, never proceeds-with-a-flag. *(The `Fcp`
+  federation-genesis bootstrap is **not** direct mode — the `Fcp` genesis is unwitnessed only because it is the
+  config-pinned trust root, kept — §1a. The residual where a content fork can still form is a **witness compromise**,
+  not an un-witnessed chain — §1e.)*
 - **Multi-federation is out-of-scope-but-allowed** (the per-federation, non-transitive model **is** the whole
   allowance — no orchestration is designed). Multi-source *independence* is a **policy/app-layer** choice (`thr`/`and`;
   a consumer counts **distinct witness KELs**, not federations — document-policy R4).
@@ -205,37 +205,37 @@ adversarial pass.
   user-IEL content event is majority-witnessed **at its own position** — the fork-prevention gate alongside its
   anchor-based authorization (§witness-config / inv 12; **option (b)**, 2026-07-02) — and **SEL rides the cross-layer
   theorem** (a valid SEL fork ⇒ an IEL fork, so closing IEL content forks closes SEL content forks — inv 4 /
-  repair-completeness proof). The **federation IEL is exempt** (it authors no content; its every fork is privileged →
-  `disputed`). A content fork survives **only** where no majority gates it — **direct-mode / no-witness**, a
+  inv 13's cross-layer theorem). The **federation IEL is exempt** (it authors no content; its every fork is sealed →
+  `disputed`). A content fork survives **only** where no majority gates it — a
   **witness compromise** owning the whole intersection (`≥ 2·threshold − signers` witnesses, the fork-cost), or —
   rarely — **across a roster delta** (two full quorums under disjoint contexts, zero double-signers — the F5
   straddle, §witness-config: under the propagation premise below it additionally requires the new selectees cut off
   from the already-propagated old quorum, so it is an entrance to the partition/eclipse residual, not a
   freestanding race).
-- **Privileged: sign up to TWO distinct siblings per position (Jason 2026-07-02 — subsumes the repair clause):** a
-  selected witness signs the first **two** distinct structurally-valid **privileged** siblings
-  (`Rot`/`Ror`/`Rec`/`Wit`/`Trm` + IEL/SEL analogs) at a `(prefix, serial)` and **declines further ones** — two
-  both-witnessed privileged siblings ARE the **`disputed`** proof (≥ 2 privileged branches — terminal + absorbing; a
+- **Sealed: sign up to TWO distinct siblings per position (Jason 2026-07-02 — subsumes the former repair-witnessing clause):** a
+  selected witness signs the first **two** distinct structurally-valid **sealed** siblings
+  (`Rot`/`Wit`/`Trm` + IEL/SEL analogs) at a `(prefix, serial)` and **declines further ones** — two
+  both-witnessed sealed siblings ARE the **`disputed`** proof (≥ 2 sealed branches — terminal + absorbing; a
   third adds no evidence, and a spent preimage can mint unbounded distinct siblings, so the duty must cap where the
-  proof completes — the witnessing twin of inv 17's ≥ 2-per-position retention). A privileged fork is **dispute
-  evidence** that must reach the beacon; on a content-only divergence the first privileged sibling at the position is
-  exactly the **single resolving repair** (a repair is privileged — no separate exemption needed), and a *second*
-  competing repair is the proving pair `{Rec, Rec}` → `disputed`. So **divergence detection is now privileged-only**
+  proof completes — the witnessing twin of inv 17's ≥ 2-per-position retention). A sealed fork is **dispute
+  evidence** that must reach the beacon; on a content-only divergence the first sealed sibling at the position is
+  exactly the **single resolving burying seal-advancer** (a `Rot`/`Evl` — itself sealed, no separate exemption needed), and a *second*
+  competing seal-advancer is the proving pair `{Rot, Rot}` (or `{Evl, Evl}`) → `disputed`. So **divergence detection is now sealed-only**
   (content is prevented upstream). **Residual** content-fork
-  evidence (direct-mode / witness-compromise) is still retention-bounded at **≥ 2 per position** (the content analog of
-  inv 17's privileged **≥ 2-per-spine-position** — "two prove the fork, then stop"), depth ≤ 64 per lineage (the
-  seal-cap); a witness holding a repair declines to re-witness dead content (efficiency only — deadness descends
+  evidence (the witness-compromise residual) is still retention-bounded at **≥ 2 per position** (the content analog of
+  inv 17's sealed **≥ 2-per-spine-position** — "two prove the fork, then stop"), depth ≤ 64 per lineage (the
+  seal-cap); a witness holding the burying seal-advancer declines to re-witness dead content (efficiency only — deadness descends
   regardless).
 - **The split/tie stall + its exit (warm F3):** one-content-sibling-per-serial partitions the receipts at a forked
   position (`a + b ≤ signers`); if neither content sibling reaches majority (an even-`signers` tie, or
   abstentions / a partition) the **position stalls, fail-secure** — signed witnesses cannot switch. A **minority
   partition therefore stalls, never forks** (consistency over availability — the CP corner of the floor). The **exit
-  is the repair**: a `Rec`/`Rpr` at the position is privileged — the first privileged sibling there, signed by every
+  is a burying seal-advancer**: a `Rot`/`Evl` at the position is sealed — the first sealed sibling there, signed by every
   selected witness under the two-cap above (including those that signed a content sibling) — and reaches
-  majority. Attached at the author's own stalled sibling it **retains** that branch (the witnessed repair commits it
+  majority. Attached at the author's own stalled sibling it **retains** that branch (the witnessed seal commits it
   as `previous` — local progress below) and the competing sibling closes below the seal; attached at the shared
-  ancestor (the author authored neither) it archives both — `fork` names one root, the second closes below the seal +
-  by descent (inv 4). Content-only → permitted; stalled honest content re-issues forward. **Odd
+  ancestor (the author authored neither) it buries both — the losing roots close below the new seal + by descent,
+  no `fork` role (inv 4 / inv 17). Content-only → permitted; stalled honest content re-issues forward. **Odd
   `signers` avoids the pure tie** (operator guidance): with every selected witness voting, an odd set always yields a
   strict majority for one sibling — the stall then needs abstentions, not just a race.
 - **Propagation premise (stated 2026-07-02, Jason — load-bearing for prevention, never for safety):** once an event
@@ -243,51 +243,73 @@ adversarial pass.
   a roster member ordinarily sees a completed quorum before any later sibling arrives, which is what arms the
   first-seen declines above (a newly-selected witness declines a sibling at a position it has already seen taken).
   The premise carries the prevention layer's **success rate** and detection **latency** only — **safety never rests
-  on it**: a fork that forms despite it lands in freeze → repair (inv 13), and nothing false becomes canonical on
+  on it**: a fork that forms despite it lands in freeze → burying-seal recovery (inv 13), and nothing false becomes canonical on
   any node. Without the premise the prevention leg falls apart; with it, the F5 roster-delta straddle requires the
   new selectees to have been **cut off from the already-propagated old quorum** — an entrance to the
   partition/eclipse residual, not a freestanding race. **The *benign* multi-add case is structurally closed
   (cold-seam P5, §1a):** `add` is one witness per `Wit`, so a transition never yields ≥ 2 fresh unsynced
   selectees co-signing from routine join latency — one fresh witness can't reach a majority `threshold`
   against synced co-selectees who decline by first-seen, so the straddle now needs a *byzantine* synced
-  witness (the priced witness-compromise residual) or the `signers = 1` degenerate (the pre-existing
-  lone-witness warn). So the residual is genuinely just partition/eclipse + witness-compromise, no benign
+  witness (the priced witness-compromise residual) — with `signers ≥ 3` there is no lone-witness degenerate. So the residual is genuinely just partition/eclipse + witness-compromise, no benign
   race. **Rejected — the cold-F5 "prior-context receipt"
   hardening** (a witness declines a position for which it holds a threshold-real receipt set under any
   *prior* roster context): it is the **same trust class** as first-seen (witness behavior, honest-majority
   priced, unverifiable from chain data — not a structural rule), it only closes the *informed* half of the
   straddle (the new selectees must already hold the old quorum's receipts — which under this premise they
   hold *anyway*, so first-seen already declines), and it puts cross-context historical verification in the
-  witnessing hot path. The straddle is a recoverable content fork (freeze → one repair); the honest fix is
+  witnessing hot path. The straddle is a recoverable content fork (freeze → one burying seal); the honest fix is
   the per-context marker scoping above, not more witness machinery.
-- **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the repair** (`Rec`/`Rpr`)
-  that condemned a fork **declines to witness** dead **content** events on a **dead** branch — one whose ancestry passes through a
-  condemned `fork` root or a below-seal fork. **A privileged event is witnessed even in a dead subtree** (up to the two-per-position cap) — it
+- **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the burying seal-advancer** (a `Rot`/`Evl`)
+  that condemned a fork **declines to witness** dead **content** events on a **dead** branch — one whose ancestry passes
+  below the burying seal or through a below-seal fork. **A sealed event is witnessed even in a dead subtree** (up to the two-per-position cap) — it
   is dispute evidence (it forces `disputed` and must reach the beacon; F5), never garbage. This is an **efficiency gate, not load-bearing:** deadness descends
   (inv 13 — an event whose parent is dead is dead), so a dead event that a lagging witness signs before it holds the
-  repair is still **retained (keep-all-data) and dead-by-descent**, never canonical. It just keeps witnesses from
-  amplifying a signing-key adversary's dead content — the one-content-sibling rule + retention above are the primary bounds (breadth ≥ 2-per-position, depth ≤ 64 per lineage; inv 4 / inv 13); this is their post-repair complement for a lagging witness.
+  burying seal is still **retained (keep-all-data) and dead-by-descent**, never canonical. It just keeps witnesses from
+  amplifying a signing-key adversary's dead content — the one-content-sibling rule + retention above are the primary bounds (breadth ≥ 2-per-position, depth ≤ 64 per lineage; inv 4 / inv 13); this is their post-burial complement for a lagging witness.
 - **Deterministic selection by `(prefix, serial)` + sub-mesh event-gossip (2026-06-23):** competing events at a
   position route to the **same** selected witness set (so the quorum-intersection is over **one** set), and the
   selected witnesses **sub-gossip the event among themselves**. A receipt counts toward an event's threshold **only if
   its signer ∈ `select(prefix, serial, …)`** — the *selected* set, not merely `roster(F @ context)` (F3, 2026-07-02;
-  the intersection guarantee is over the selection, so the counting predicate must be selection-scoped). For a
-  **privileged** event, sub-gossip means it reaches every selected witness → **no stable "witnessed but sub-threshold"
+  the intersection guarantee is over the selection, so the counting predicate must be selection-scoped).
+  **Receipt-encoded threshold — exact-match (§2b, hardening thread; ⚠ NOT previously design-reviewed — this is the
+  encode-reviewer's first decorrelated pass):** each receipt also **carries the witness-config `threshold`**, so
+  witnessed-detection is a receipt count — count `threshold`-many agreeing on `(event SAID, threshold)`, **no
+  chain-walk to resolve the in-effect threshold** (the detecting witness already holds the live roster as mesh
+  state, so the receipt saves the *in-effect-threshold walk* specifically — **not** the roster/selection, still
+  needed to know a receipt is from a selected witness). **The count is load-bearing on an exact match against the
+  chain-authoritative committed witness-config SAD in effect at that position** (committed at-or-before the serial —
+  position-deterministic), **never the self-asserted receipt field**: a mismatch is **invalid even if higher** (a
+  low bar under-counts a forgery; a high bar is a faithfulness + liveness/DoS failure and disagrees with honest
+  receipts on `(SAID, threshold)` → detected; the consistent lie — event and receipts both understate — is defeated
+  because the match is against the committed SAD, not the field). A **stale-config** witness (lagging a governance
+  `Wit`) emits a non-matching receipt → **discarded** (a liveness cost around config changes, not a safety hole);
+  composes with the key-window gate (§1a/§1f) — a valid receipt needs {valid sig, inside key-window,
+  threshold-matches}. *Witnessed*-detection (is it backed?) stays distinct from *disputed*-detection (data-local,
+  ≥ 2 sealed branches) — they compose: the receipt-threshold makes "should I pull?" cheap, disputed stays a
+  data-local re-validation. *(One value-scope point is flagged `[REVIEW-PENDING]` for the encode-reviewer — see
+  vdtid-services §1k.)* For a
+  **sealed** event, sub-gossip means it reaches every selected witness → **no stable "witnessed but sub-threshold"
   state** (the only ways to hold it sub-threshold are pure eclipse or a byzantine witness signing-then-withholding, a
-  rogue phantom receipt → discard + evict, bounded by `< T`); two competing privileged siblings therefore both reach
-  threshold → `disputed` (further privileged siblings at the position are declined — the two-cap above). For
+  rogue phantom receipt → discard + evict, bounded by `< T`); two competing sealed siblings therefore both reach
+  threshold → `disputed` (further sealed siblings at the position are declined — the two-cap above). For
   **content**, first-seen-one-per-serial + the majority floor mean a competing content
   sibling **does not** reach threshold — the fork is prevented, so there is no sub-threshold content state to
-  reconcile. **For a federation member's own KEL events** (a witness's `Wit`/`Ror`/etc.): the same algorithm with
+  reconcile. **For a federation member's own KEL events** (a witness's `Wit`/`Rot`/etc.): the same algorithm with
   **that witness's own prefix removed** (exclude-self — a witness never receipts its own event), select from
   `roster − {self}` seeded by `(prefix, serial)` → pool `|roster| − 1` (Q1). *(The federation **IEL** `Wit` keeps pure
-  **self-attestation** — no position gate — because its every fork is privileged → `disputed` anyway; the **user
+  **self-attestation** — no position gate — because its every fork is sealed → `disputed` anyway; the **user
   IEL** gets a position gate — option (b), §witness-config. So an all-witness federation rotation never bricks.)*
 - **ALL inter-node mesh traffic is ENCRYPTED (2026-06-23, generalized from receipt-gossip-only):** ML-KEM-1024 KEM +
   AES-256-GCM AEAD — receipts AND the events they propagate. Confidentiality, not trust (trust is end-verifiable).
-  The mesh = the federation roster, so mesh contents (including a cred-SEL receipt's `(prefix, said(v1))` pair) stay
-  within the federation; a witness can correlate `issuer ↔ private-prefix` (passive, undetectable → a standing
-  confidentiality property of membership — inv 16). AEAD nonce/key-scope discipline is owed at the doc layer.
+  The mesh = the federation roster, so mesh contents stay within the federation. **A credential's anchor and its
+  revocation/rescission lookup-SELs are never witnessed directly (§1g / §2c Decision 1), so no sensitive
+  `(prefix, said)` enters a receipt** — the cred is anchored as its issuance commitment
+  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque `anchors[]` (cred = anchored SAD, no
+  cred-SEL — 2026-07-09; `cred.said` never raw), and the lookup-SEL `Trm` rides a witnessed `Rev`/`Dth`, closing the
+  `issuer ↔ private-subject` correlation **at the source** (not merely confining it to the membership — inv 16 /
+  §9). The residual receipt prefix is a public
+  **IEL/KEL identity** prefix (§1g Decision 2), route-metadata fine under the trust model. AEAD nonce/key-scope
+  discipline is owed at the doc layer.
   **Push over pull (Jason):** prefer gossiping events to a separate inter-node *query* — the sub-mesh event-gossip
   already pushes competing events to selected witnesses; extend it so a one-branch holder gets the branches by push,
   so there's no second channel to secure (the residual by-prefix fetch shrinks, rides the same encrypted mesh). Build
@@ -295,33 +317,33 @@ adversarial pass.
   **⚠ RESOLVED (Jason 2026-06-26):** the encryption **public key lives in a SEL** owned by a **degenerate per-device
   IEL** — a single-member IEL (`members = [the witness device KEL]`), **derivable from the KEL prefix** (+ a purpose
   discriminator). It's a **restricted IEL** whose kind set **excludes `Evl`**, and the general **post-delta `|roster| ≥ 1`** rule (inv 12) forbids cutting the
-  sole member (a `Rpr`-cut computes `1 + 0 − 1 = 0`, rejected), so — with no `Evl` to grow — its roster is
+  sole member (a lone-member `cut` would compute `1 + 0 − 1 = 0`, rejected — and with no `Evl` there is no kind to carry a `cut` regardless), so — with no `Evl` to grow — its roster is
   **immutable** (a general rule, not a federation-member special case); no new "immutable" manifest field, and
-  `t_govern` stays mandatory (singleton exception → all thresholds = 1). Kind set ≈ `{Icp, Ixn, Rpr, Trm}`.
+  `t_govern` stays mandatory (singleton exception → all thresholds = 1). Kind set ≈ `{Icp, Ixn, Trm}`.
   **It does NOT break the `Fcp` bootstrap** — the IEL is *derived*, not separately incepted: the device KEL exists
   first (`Fcp`) → its degenerate IEL derives → it owns the key SEL; "reincept" = re-derive from the recovered KEL
   (the KEL carries the rotation/recovery story). Discovery: federation roster → witness KEL prefixes → derive each
   degenerate IEL → its key SEL.
 - **Receipts ENUMERATE the branches; the data decides (reframed 2026-06-23; re-keyed post-floor 2026-07-02):**
   competing receipts at a position list the branches a verifier must gather — but **terminality is a data-local
-  branch-level walk** (inv 13 / 17: ≥ 2 branches each with a privileged event past the fork, over **retained**
+  branch-level walk** (inv 13 / 17: ≥ 2 branches each with a sealed event past the fork, over **retained**
   branches), **not** a receipt count. The **FORCE rule splits by provenance:** a node that **holds and re-validates**
-  ≥ 2 privileged branches forces `disputed` **immediately**, threshold-independent; a node holding only a **receipt**
-  for a *privileged* event it hasn't fetched waits for the **witness `threshold`** before treating the signal as real
+  ≥ 2 sealed branches forces `disputed` **immediately**, threshold-independent; a node holding only a **receipt**
+  for a *sealed* event it hasn't fetched waits for the **witness `threshold`** before treating the signal as real
   (below threshold a rogue's receipt on a fake event is inert — the verifier re-checks validity). For **content** the
   signal re-derives (F1-consequence): a losing content sibling **never reaches threshold** under the floor, so
   waiting for threshold on it means waiting forever — the anomaly signal is a **sub-threshold competing receipt set
   at a position**, which *enumerates* → fetch the event (push/beacon) → the data-local walk decides; threshold
   authenticates only the *winning* branch. Receipts say *forked*; the data-local walk says *disputed*. Divergence
   stays **locally determinable on every node** (no watcher infra) — a first-class, queryable chain state — a
-  **privileged** fork is **detected** once the branches reach a verifier; a **content** fork on a witnessed chain is
+  **sealed** fork is **detected** once the branches reach a verifier; a **content** fork on a witnessed chain is
   **prevented** upstream (§1e), detected the same way in the residual.
 - **Witness-config SAD** (the manifest **`witnesses`** role, inv 4) `{ said, threshold, signers }` on `Icp`/`Wit`
   (KEL **and** user IEL; the **federation IEL** carries its own on `Fcp`/`Wit`, adjusted each governance `Wit` — D1 /
   cold-7 F1, below), **mandatory iff federated** (else fail-secure reject — cold-7 F3): **`threshold`** = valid
-  receipts required for **consumer trust** — app/operator choice **by chain criticality, above a structural majority floor `threshold > signers/2`** (a strict majority of the *selected* witnesses — two threshold-quorums **within one roster context** share `2·threshold − signers ≥ 1` witnesses, and an honest witness signs at most one **content** sibling per serial, so **two conflicting content siblings can never both be witnessed** (privileged siblings are always co-witnessed → `disputed` — §1e) → no partition / disjoint-sub-quorum **content** fork; manufacturing a content fork costs owning the whole intersection, **fork-cost = `2·threshold − signers`** — a priced, tunable security parameter, not a free consequence of the network (the dial trades against availability: `fork-cost = threshold − slack` where `slack = signers − threshold`, so fork resistance and receipt redundancy trade one-for-one — at `threshold = signers` fork-cost is maximal but one unreachable witness stalls the position; and the one-content-sibling **violation is attributable** — two receipts by one witness over **two distinct *content* `witnessed_said`s** at one position (or a **third** distinct privileged sibling past the two-cap) are cryptographic proof of misbehavior → the minority-dissent forensics → eviction, so paying fork-cost means owning *and exposing* the intersection — warm F7. **The predicate is tier-scoped (cold-2 F1):** an honest witness legitimately holds `{≤ 1 content} ∪ {≤ 2 privileged}` at a position — the mandated **cross-tier co-sign** (a content sibling **and** the resolving repair, when the repair attaches at the shared ancestor — split-stall exit above; or any `{Evl/Rev/Dth, content}` recoverable fork) is **not** misbehavior and must be excluded by construction, else the forensics would evict the honest witnesses the split-stall exit requires and muddy the clean attribution the fork-cost pricing rests on). **The intersection rests on the selection-input rule (warm F4):** selection is a function of **`(prefix, serial)` over the current roster membership only** — never the event's bytes or its pin — and the **currency gate** (below) pins the membership input (a stale-membership pin earns zero countable receipts), so an adversary cannot mint sibling-specific witness sets. **Across a roster delta the two quorums need not intersect (F5):** receipts are durable and judged as-of their own pin, so a sibling witnessed-in-full under the old membership + a fresh-pin sibling under the new can hold disjoint quorums with zero double-signers — a **residual** = a roster delta × a propagation failure (under the propagation premise, §1e, the new selectees have ordinarily seen the old quorum and first-seen declines the fresh sibling) — the partition/eclipse family's entrance, not a freestanding race; detection unaffected (the branches still collide and freeze on co-observation); so witnessed-in-full is a **per-context** uniqueness certificate, not an absolute one); **`signers`** (M ≥ threshold) = witnesses **selected per event**, over-provisioned for redundancy
+  receipts required for **consumer trust** — app/operator choice **by chain criticality, above a structural majority floor `threshold > signers/2`** (a strict majority of the *selected* witnesses — two threshold-quorums **within one roster context** share `2·threshold − signers ≥ 1` witnesses, and an honest witness signs at most one **content** sibling per serial, so **two conflicting content siblings can never both be witnessed** (sealed siblings are always co-witnessed → `disputed` — §1e) → no partition / disjoint-sub-quorum **content** fork; manufacturing a content fork costs owning the whole intersection, **fork-cost = `2·threshold − signers`** — a priced, tunable security parameter, not a free consequence of the network (the dial trades against availability: `fork-cost = threshold − slack` where `slack = signers − threshold`, so fork resistance and receipt redundancy trade one-for-one — at `threshold = signers` fork-cost is maximal but one unreachable witness stalls the position; and the one-content-sibling **violation is attributable** — two receipts by one witness over **two distinct *content* `witnessed_said`s** at one position (or a **third** distinct sealed sibling past the two-cap) are cryptographic proof of misbehavior → the minority-dissent forensics → eviction, so paying fork-cost means owning *and exposing* the intersection — warm F7. **The predicate is tier-scoped (cold-2 F1):** an honest witness legitimately holds `{≤ 1 content} ∪ {≤ 2 sealed}` at a position — the mandated **cross-tier co-sign** (a content sibling **and** the resolving burying seal-advancer, when the seal attaches at the shared ancestor — split-stall exit above; or any `{Evl/Rev/Dth, content}` recoverable fork) is **not** misbehavior and must be excluded by construction, else the forensics would evict the honest witnesses the split-stall exit requires and muddy the clean attribution the fork-cost pricing rests on). **The intersection rests on the selection-input rule (warm F4):** selection is a function of **`(prefix, serial)` over the current roster membership only** — never the event's bytes or its pin — and the **currency gate** (below) pins the membership input (a stale-membership pin earns zero countable receipts), so an adversary cannot mint sibling-specific witness sets. **Across a roster delta the two quorums need not intersect (F5):** receipts are durable and judged as-of their own pin, so a sibling witnessed-in-full under the old membership + a fresh-pin sibling under the new can hold disjoint quorums with zero double-signers — a **residual** = a roster delta × a propagation failure (under the propagation premise, §1e, the new selectees have ordinarily seen the old quorum and first-seen declines the fresh sibling) — the partition/eclipse family's entrance, not a freestanding race; detection unaffected (the branches still collide and freeze on co-observation); so witnessed-in-full is a **per-context** uniqueness certificate, not an absolute one); **`signers`** (M ≥ threshold) = witnesses **selected per event**, over-provisioned for redundancy
   (M − threshold receipts can fail and the event stays trusted). Bounds `signers/2 < threshold ≤ signers ≤ |roster(F @ context)|` (lower bound = the majority floor above). (this `|roster(F @ context)|` bound is the **user/KEL** chain's, external witnesses; the **federation IEL** is tighter — `threshold ≤ min(|roster| − 2, signers − 1)`, the recoverability cap below / cold-9 B1 + F6.) **Orthogonal** to the federation's own `t_govern` (Q3): that governs F's roster changes; this governs
-  a member's receipt-gathering. (`signers` = kels `witness_selection_size`, renamed this session.) **Per-layer (D1, 2026-06-28):** a **KEL** carries its own config (for its KEL events); a **user IEL** carries its **own authoritative** config (for IEL events — an IEL event is witnessed and could otherwise fork without any member KEL forking, two disjoint sub-quorums each authoring a valid event at one position — the content case now closed by the option-(b) gate below, the privileged `{Evl, Evl}` remaining — so it needs its own), **independent** of member configs (not matched — different chains' events); the **federation IEL** carries its own (cold-7 F1); a **SEL inherits** its owner IEL's (single-owner). On `Icp`/`Wit` (user/KEL) or `Fcp`/`Wit` (federation IEL). **Q1 RESOLVED (Jason 2026-06-29) — self-attestation:** an IEL has no key of its own (it is a threshold over member KELs), so an IEL event's witnessing **is** the witnessing of its **member KEL anchors** — the event is trusted when a threshold of its anchoring KEL events are witnessed (this config's `threshold`/`signers` set that bar). IEL events propagate + earn receipts **as per usual**. **Authorization** stays the witnessed KEL anchors (Q1); **fork-prevention** adds a second gate — **option (b), 2026-07-02: a *user* IEL's content events must also reach a majority quorum at their own `(IEL prefix, serial)`** (the same content-fork prevention as a KEL — §1e), so two disjoint member sub-quorums can't both land a content event at one IEL serial (`{Evl, Evl}` and other **privileged** IEL forks are unaffected — always-witnessed → `disputed`). The **federation IEL keeps pure anchor-based self-attestation** (no position gate — its every fork is privileged → `disputed` anyway): its member witness-KELs witness **each other's** KEL events **exclude-self** (a witness never receipts its own), pool **`|roster| − 1`** — so for federation member events `signers/2 < threshold ≤ min(|roster| − 2, signers − 1)` (the majority floor **and** the **recoverability cap** — below) and `threshold ≤ signers ≤ |roster| − 1` (a user chain stays `signers/2 < threshold ≤ signers ≤ |roster(F @ context)|`, external witnesses). **The quantifier (cold-9 Q1):** the IEL `Wit` is trusted when the **`t_govern`** member KEL `Wit`s that anchor it are **each** witnessed at the witness-config `threshold` — two distinct counts (`t_govern` = how many anchoring KEL `Wit`s; the witness-config `threshold` = receipts per anchor) — and the anchors counted are only those witnessed **consistently with the IEL `Wit`'s own at-or-before context** — for a **user** IEL its `federationPin` context, for the **federation** IEL its own position on the federation chain (which carries **no** `federationPin` — that's a user/SEL binding field, forbidden on the `Fcp`-rooted chain; the no-self-weakening rule already pins it — cold-10 F3) — or freshly, for a loss-of-trust read; so a stale-context KEL anchor (from an old roster where a since-cut witness still counted) can't self-attest a current-context IEL `Wit`. **Recoverability cap `threshold ≤ min(|roster| − 2, signers − 1)` (cold-9 B1 + F6, verifier-rejects higher):** an eviction/recovery `Wit` is authored by the remaining members **and must self-attest** — the evicted/dead member won't co-witness, so the self-attest pool is `|roster| − 2`, and at **sub-pool selection** (`signers < |roster|`) the *selected* pool loses one too, so `threshold ≤ signers − 1` also binds (the `|roster| − 2` cap is exact only at full-pool selection — worked `{signers 3, threshold 3} @ |roster| 5` passes `≤ |roster| − 2` yet can't self-attest the eviction). **The `signers − 1` leg is WAIVED at `signers = 1`** (the lone-witness carve-out, exactly as the majority floor is vacuous there) — otherwise it would read `threshold ≤ 0` and empty the `|roster| = 3` config space, a de-facto floor bump the `≥ 3` decision rejected; the honest statement is that at `{1, 1}` **evict-one self-attestation is position-luck, not a guarantee** (the eviction anchor's selection of 1 from its pool of 2 may name the dead member → stuck → reincept) — **warned**; the *guaranteed* evict-one begins at `|roster| = 4` `{2, 3}` (full-pool: the dead member's absence still leaves `threshold = 2` receipts). *(Composition — the two legs never conflict, warm F-obs: for `signers ≥ 2`, `threshold ≤ signers − 1` together with `signers ≤ |roster| − 1` already gives `threshold ≤ |roster| − 2`, so the `min`'s **roster leg binds only at the waiver** (`signers = 1`, where the `signers − 1` leg is off); everywhere else the `signers − 1` leg is the tighter one.)* Capping `threshold` there (the direct analog of `t_govern`'s gratuitous-hostage rejection, inv 12) guarantees the federation can always evict **one** compromised witness and get the cut trusted. **General form (cold-10 F1):** self-attesting a governance `Wit` with `k` members unavailable needs `threshold ≤ |roster| − 1 − k` (each remaining author's KEL `Wit` is witnessed by the *other* available members, exclude-self → `|roster| − k − 1` receipts). The **hard cap is `|roster| − 2`** (`k = 1`, the *evict-one* guarantee); surviving `k > 1` simultaneous losses is the **operator's sizing choice** — choose the **tolerated simultaneous-loss count `k`** explicitly (an operator parameter, not buried in doctrine; cold-11), then set `threshold ≤ |roster| − 1 − k` and grow the roster to keep `t_govern` reachable too (§1c). At the `≥ 3` floor this forces **`{threshold 1, signers 1}`** at `|roster| = 3` (the majority floor rejects `{1, 2}` as sub-majority, so the `signers` collapse rides along) — **governance** stays safe (it rides `t_govern`, not this bar), but **witnessing byzantine-tolerance at `threshold = 1` is 0** (a single byzantine member's receipt makes a branch read "witnessed," so under eclipse one rogue can mask a fork — cold-10 F2; it *does* weaken witnessing, contra "weakens nothing"). That degenerate floor case is why the operator doctrine is **run `≥ 5`** (§1c), where `threshold` rises to give real witnessing fault-tolerance — and the **config-time warn family covers every fork-cost-1 config** (`signers = 2·threshold − 1`, the minimal majority — F11/cold-F4): deterministic selection makes a thin intersection a **precomputable target** — an attacker can enumerate in advance exactly which witness(es) gate a given `(prefix, serial)` — with the forced `{1, 1}` lone witness at `|roster| = 3` the extreme case (0 witnessing byzantine-tolerance isn't a free choice — analogous to the 2-device-identity warn-not-reject, inv 12; cold-11). **The rule (Jason 2026-06-29):** the verifier **rejects only *un-usable* configs** — a hostage `t_govern = |roster|`, a can't-self-attest `threshold > min(|roster| − 2, signers − 1)` (**both** cap legs — the `signers − 1` leg is the binding one for `signers ≥ 2`, cold-seam F1; waived at `signers = 1`), a **sub-majority `threshold ≤ signers/2`** (it re-opens the disjoint-sub-quorum fork the majority floor closes — witness-config bullet above), a sub-`≥3` roster (for the spine, *un-recoverable* counts as un-usable) — where **un-usable = cannot function, or cannot deliver the semantics the witnessed-in-full marker asserts** (F10: a sub-majority config *functions* — receipts flow, propagation + data-local detection work — but its marker no longer means per-position exclusivity, a consumer footgun; the intentional casualty is detection-only low-`threshold`/high-`signers` configs, e.g. `{3, 10}` for latency) — and **allows any *usable* config, warning of the consequences** (`threshold = 1` is usable + recoverable **only at `signers = 1`** — a lone-witness config, majority-vacuous with 0 byzantine-tolerance; any multi-signer config must clear the majority floor — cold-12 F4). The **floor stays `≥ 3`**, no bump; a `cut` is **re-checked on the post-delta config** (inv 12 — on any `Wit` changing roster, `threshold`, or `signers`) — valid only if the **full cap `threshold ≤ min(|roster| − 2, signers − 1)`** (with the `signers = 1` waiver) **and the majority floor `threshold > signers/2`** both hold after the change, so a bare shrink that would strand the federation un-recoverable (`|roster| 5→4` at `threshold 3`) **or a `signers`-drop landing on the binding leg** (`{s 4, t 3}@5 → {s 3, t 3}@5`, cold-seam F1) is rejected, forcing **evict-and-replace** or a threshold-and-`signers` drop, §1a (cold-13 F1). A **`Wit`'s own self-attestation is judged under the at-or-before witness-config + roster** (no self-weakening — a sub-quorum can't lower its own trust bar or pad its pool in the very event whose trust is in question), **but under the NEW key-windows the rotation establishes** — the fresh keys its anchoring KEL `Wit`s reveal (`T_join` = the rotation's own clock, F4-bounded), **not** the possibly-expired at-or-before windows (**the clock axis is carved out of no-self-weakening — cold-11**; judging a rotation's fresh-key receipts under expired old windows is a category error and would brick the federation on a single missed annual ceremony). So an **all-windows-lapsed federation reads stale (fail-secure), then recovers via a catch-up rotation** that self-attests under its new windows — stale-but-recoverable, never bricked. This does **not** let a lone broken/old key mint a current window: a witness rotation is honored **only** as a federation `Wit`, needing `t_govern` authors **and** `threshold` self-attestation — one key reaches neither (a current-window takeover needs `≥ t_govern` keys = the byzantine assumption violated → reincept; a *lost* key is evicted/reincepted operationally, §1a). The federation `Wit` thus **never bricks** even when every witness participates (its trust rides its cross-witnessed exclude-self KEL anchors, not an exclude-all-participants aggregate). Divergence stays data-local: a `Wit` fork's competing branches are anchored by witnessed KEL `Wit`s that propagate, surfaced by the keep-all-data walk. *(Supersedes the round-8-draft `|roster| − |participants|` aggregate-gate — it bricked an all-witness rotation; cold-8 F1.)*
+  a member's receipt-gathering. (`signers` = kels `witness_selection_size`, renamed this session.) **Per-layer (D1, 2026-06-28):** a **KEL** carries its own config (for its KEL events); a **user IEL** carries its **own authoritative** config (for IEL events — an IEL event is witnessed and could otherwise fork without any member KEL forking, two disjoint sub-quorums each authoring a valid event at one position — the content case now closed by the option-(b) gate below, the sealed `{Evl, Evl}` remaining — so it needs its own), **independent** of member configs (not matched — different chains' events); the **federation IEL** carries its own (cold-7 F1); a **SEL inherits** its owner IEL's (single-owner). On `Icp`/`Wit` (user/KEL) or `Fcp`/`Wit` (federation IEL). **Q1 RESOLVED (Jason 2026-06-29) — self-attestation:** an IEL has no key of its own (it is a threshold over member KELs), so an IEL event's witnessing **is** the witnessing of its **member KEL anchors** — the event is trusted when a threshold of its anchoring KEL events are witnessed (this config's `threshold`/`signers` set that bar). IEL events propagate + earn receipts **as per usual**. **Authorization** stays the witnessed KEL anchors (Q1); **fork-prevention** adds a second gate — **option (b), 2026-07-02: a *user* IEL's content events must also reach a majority quorum at their own `(IEL prefix, serial)`** (the same content-fork prevention as a KEL — §1e), so two disjoint member sub-quorums can't both land a content event at one IEL serial (`{Evl, Evl}` and other **sealed** IEL forks are unaffected — always-witnessed → `disputed`). The **federation IEL keeps pure anchor-based self-attestation** (no position gate — its every fork is sealed → `disputed` anyway): its member witness-KELs witness **each other's** KEL events **exclude-self** (a witness never receipts its own), pool **`|roster| − 1`** — so for federation member events `signers/2 < threshold ≤ min(|roster| − 2, signers − 1)` (the majority floor **and** the **recoverability cap** — below) and `threshold ≤ signers ≤ |roster| − 1` (a user chain stays `signers/2 < threshold ≤ signers ≤ |roster(F @ context)|`, external witnesses). **The quantifier (cold-9 Q1):** the IEL `Wit` is trusted when the **`t_govern`** member KEL `Wit`s that anchor it are **each** witnessed at the witness-config `threshold` — two distinct counts (`t_govern` = how many anchoring KEL `Wit`s; the witness-config `threshold` = receipts per anchor) — and the anchors counted are only those witnessed **consistently with the IEL `Wit`'s own at-or-before context** — for a **user** IEL its `federationPin` context, for the **federation** IEL its own position on the federation chain (which carries **no** `federationPin` — that's a user/SEL binding field, forbidden on the `Fcp`-rooted chain; the no-self-weakening rule already pins it — cold-10 F3) — or freshly, for a loss-of-trust read; so a stale-context KEL anchor (from an old roster where a since-cut witness still counted) can't self-attest a current-context IEL `Wit`. **Recoverability cap `threshold ≤ min(|roster| − 2, signers − 1)` (cold-9 B1 + F6, verifier-rejects higher):** an eviction/recovery `Wit` is authored by the remaining members **and must self-attest** — the evicted/dead member won't co-witness, so the self-attest pool is `|roster| − 2`, and at **sub-pool selection** (`signers < |roster|`) the *selected* pool loses one too, so `threshold ≤ signers − 1` also binds (the `|roster| − 2` cap is exact only at full-pool selection — worked `{signers 3, threshold 3} @ |roster| 5` passes `≤ |roster| − 2` yet can't self-attest the eviction). With `signers ≥ 3` (§4) the `signers − 1` leg is `≥ 2` — it always binds cleanly (no waiver, no `threshold ≤ 0` degenerate, no floor-bump concern) — and the **guaranteed** evict-one begins at the `|roster| = 4` structural floor `{threshold 2, signers 3}` (full-pool: the dead member's absence still leaves `threshold = 2` receipts). *(Composition — the two legs never conflict, warm F-obs: for `signers ≥ 3`, `threshold ≤ signers − 1` together with `signers ≤ |roster| − 1` already gives `threshold ≤ |roster| − 2`, so the `signers − 1` leg is always the tighter one and the `min`'s roster leg is always slack.)* Capping `threshold` there (the direct analog of `t_govern`'s gratuitous-hostage rejection, inv 12) guarantees the federation can always evict **one** compromised witness and get the cut trusted. **General form (cold-10 F1):** self-attesting a governance `Wit` with `k` members unavailable needs `threshold ≤ |roster| − 1 − k` (each remaining author's KEL `Wit` is witnessed by the *other* available members, exclude-self → `|roster| − k − 1` receipts). The **hard cap is `|roster| − 2`** (`k = 1`, the *evict-one* guarantee); surviving `k > 1` simultaneous losses is the **operator's sizing choice** — choose the **tolerated simultaneous-loss count `k`** explicitly (an operator parameter, not buried in doctrine; cold-11), then set `threshold ≤ |roster| − 1 − k` and grow the roster to keep `t_govern` reachable too (§1c). At the `|roster| = 4` structural floor the minimal config is **`{threshold 2, signers 3}`** (fork-cost `2·2 − 3 = 1`); `signers ≥ 3` gives real witnessing byzantine-tolerance — there is no forced lone-witness. The operator doctrine is nonetheless **run `≥ 5`** (§1c), where `threshold` rises to lift the fork-cost dial — and the **config-time warn family covers every fork-cost-1 config** (`signers = 2·threshold − 1`, the minimal majority — F11/cold-F4): deterministic selection makes a thin intersection a **precomputable target** — an attacker can enumerate in advance exactly which witness(es) gate a given `(prefix, serial)` — so a fork-cost-1 config is warned (not a free choice — analogous to the 2-device-identity warn-not-reject, inv 12; cold-11). **The rule (Jason 2026-06-29):** the verifier **rejects only *un-usable* configs** — a hostage `t_govern = |roster|`, a can't-self-attest `threshold > min(|roster| − 2, signers − 1)` (**both** cap legs — the `signers − 1` leg is the binding one for `signers ≥ 3`, cold-seam F1), a **sub-majority `threshold ≤ signers/2`** (it re-opens the disjoint-sub-quorum fork the majority floor closes — witness-config bullet above), a **sub-`signers ≥ 3`** witness pool (byzantine tolerance), a sub-`≥ 4` federation roster (for the spine, *un-recoverable* counts as un-usable) — where **un-usable = cannot function, or cannot deliver the semantics the witnessed-in-full marker asserts** (F10: a sub-majority config *functions* — receipts flow, propagation + data-local detection work — but its marker no longer means per-position exclusivity, a consumer footgun; the intentional casualty is detection-only low-`threshold`/high-`signers` configs, e.g. `{3, 10}` for latency) — and **allows any *usable* config, warning of the consequences** (every config clears `signers ≥ 3` + the majority floor + the recoverability cap; a fork-cost-1 config is the warned minimum — cold-12 F4). The structural **floor is `|roster| ≥ 4`** (`≥ 5` recommended — a consequence of `signers ≥ 3`, §4); a `cut` is **re-checked on the post-delta config** (inv 12 — on any `Wit` changing roster, `threshold`, or `signers`) — valid only if the **full cap `threshold ≤ min(|roster| − 2, signers − 1)`** **and the majority floor `threshold > signers/2`** both hold after the change, so a bare shrink that would strand the federation un-recoverable (`|roster| 5→4` at `threshold 3`) **or a `signers`-drop landing on the binding leg** (`{s 4, t 3}@5 → {s 3, t 3}@5`, cold-seam F1) is rejected, forcing **evict-and-replace** or a threshold-and-`signers` drop, §1a (cold-13 F1). A **`Wit`'s own self-attestation is judged under the at-or-before witness-config + roster** (no self-weakening — a sub-quorum can't lower its own trust bar or pad its pool in the very event whose trust is in question), **but under the NEW key-windows the rotation establishes** — the fresh keys its anchoring KEL `Wit`s reveal (`T_join` = the rotation's own clock, F4-bounded), **not** the possibly-expired at-or-before windows (**the clock axis is carved out of no-self-weakening — cold-11**; judging a rotation's fresh-key receipts under expired old windows is a category error and would brick the federation on a single missed annual ceremony). So an **all-windows-lapsed federation reads stale (fail-secure), then recovers via a catch-up rotation** that self-attests under its new windows — stale-but-recoverable, never bricked. This does **not** let a lone broken/old key mint a current window: a witness rotation is honored **only** as a federation `Wit`, needing `t_govern` authors **and** `threshold` self-attestation — one key reaches neither (a current-window takeover needs `≥ t_govern` keys = the byzantine assumption violated → reincept; a *lost* key is evicted/reincepted operationally, §1a). The federation `Wit` thus **never bricks** even when every witness participates (its trust rides its cross-witnessed exclude-self KEL anchors, not an exclude-all-participants aggregate). Divergence stays data-local: a `Wit` fork's competing branches are anchored by witnessed KEL `Wit`s that propagate, surfaced by the keep-all-data walk. *(Supersedes the round-8-draft `|roster| − |participants|` aggregate-gate — it bricked an all-witness rotation; cold-8 F1.)*
 - **As-of-context evaluation (durability):** a receipt counts iff its signer ∈ **`select(prefix, serial, roster(F @ federationPin), signers)`**
   — the deterministic selection derived over the as-of roster (the selection-scoped predicate, F3 — §1e above), the pin being the most-recent `Icp`/`Wit` at-or-before the event (an **IEL** event uses the identity's **own** authoritative `Wit`/`Icp` binding, never an individual member KEL anchor; a **SEL** inherits its owner IEL's — cold-3 B2),
   forward-floored on the KEL. **Never at F's current tip.** F and witness KELs are append-only, so an event stays
@@ -330,20 +352,20 @@ adversarial pass.
   Witnesses refuse to witness an event whose `federationPin`'s **roster (membership)** isn't current, forcing an
   active chain to advance `federationPin` by carrying a fresh one on its **next event of any kind** (no `Wit` needed — `federationPin` is optional on every event, 2026-06-25) — **lazily, on next activity**. **The gate compares
   roster MEMBERSHIP, so it fires on a *cut* (a witness removed), NOT on a pure rotation-pin** (same witnesses, new
-  keys — the clock §1f bounds key time-validity, so a pre-rotation pin is safe). This bounds the re-pin to **rare cuts**, not every rotation — and the re-pin is **cheap** now (it rides any event; a tier-3 `Wit` is needed only to *rebind*, or when a cut shrinks the roster below the chain's `signers`). **No grace window:** a since-cut witness earns **zero**
+  keys — the clock §1f bounds key time-validity, so a pre-rotation pin is safe). This bounds the re-pin to **rare cuts**, not every rotation — and the re-pin is **cheap** now (it rides any event; a `Wit` (T2) is needed only to *rebind*, or when a cut shrinks the roster below the chain's `signers`). **No grace window:** a since-cut witness earns **zero**
   countable receipts immediately — any `graceSeconds > 0` would re-admit the pre-cut roster for that window,
   reviving exactly the backdate sliver the gate exists to stop (and would have to be set to 0 in the very
   emergency it was sold for). A stale in-flight event is **not stranded** — it lands sub-threshold and the next
   `Wit` re-pins under the current roster and witnesses, transitively covering it (see *local progress* below).
 - **Local progress on own un-witnessed events (load-bearing for exact-tip recovery, 2026-06-24).** A submitter's
   node accepts its **own** structurally-valid, sub-threshold events as the local tip — you can't extend a
-  `Rot`/`Rec` you haven't landed — so it makes forward progress *ahead of* witnessing; the **re-pinning event**
+  `Rot` you haven't landed — so it makes forward progress *ahead of* witnessing; the **re-pinning event**
   (any event carrying the current `federationPin`) is what earns **cross-node** acceptance for the run (peers defer an un-witnessed
   event but fetch it once the witnessed re-pin commits it as `previous`). This is what recovers a stranded
-  irreversible `Rot` (extend it with a witnessed re-pin) and a frozen-chain `Rec` (land the repair → chain is
-  locally Active → re-pin under the current roster) **without any grace window** — the recovery rests on the **recovery reserve**
-  (the standing tier-3 requirement), never on retaining the old signing key (the "delay the wipe" idea was a
-  no-op — the re-pin signs with the *next* rotation preimage + the recovery reserve, neither being the old key).
+  irreversible `Rot` (extend it with a witnessed re-pin) and a frozen-chain recovery `Rot` (land the burying `Rot` → chain is
+  locally Active → re-pin under the current roster) **without any grace window** — the recovery rests on the **rotation reserve**
+  (the standing T2 requirement), never on retaining the old signing key (the "delay the wipe" idea was a
+  no-op — the re-pin signs with the rotation reserve preimage committed at the prior event, not the old key).
 - **Backdate closure — wipe (forward secrecy) + the federation clock; the forward-floor covers only active chains
   (corrected 2026-06-21, F-A / S2).** The forward-floor stops an *active* chain pinning an old context — but a
   **dormant** chain's forged extension isn't an active chain, so the forward-floor doesn't reach it (§1a). The
@@ -359,16 +381,16 @@ adversarial pass.
 - **The witness decline IS the shape-validity acceptance gate; merge is relaxed (2026-07-03, inv 13 — resolves cold F2 / warm H1).**
   Merge integrates every structurally-valid event (keep-all-data) + the seal-cap and computes the reading as a
   **pure walk** (the seal derived from the held events); it does **not** stick-freeze the *reading* — that made it
-  arrival-order-dependent. The **shape-validity gate** — reject a seal-advancer that would bury a *privileged*
-  branch, a `Rec`/`Rpr` condemning a privileged branch or its own retained chain — runs at the
-  **acceptance-to-trusted-state** point in **both** modes: a **selected witness** applies it before signing
-  (decline → the shape never reaches `threshold`); a **non-witness** gates on `threshold` (above); and on a
-  **direct-mode** chain the **merging node self-gates** at merge (no witness to defer to). "Frozen" survives only
+  arrival-order-dependent. The **shape-validity gate** — reject a seal-advancer that would bury a *sealed*
+  branch, or a self-burial (a burying seal-advancer siblinging its own retained chain) — runs at the
+  **acceptance-to-trusted-state** point: a **selected witness** applies it before signing
+  (decline → the shape never reaches `threshold`); a **non-witness** gates on `threshold` (above). Every chain is
+  federation-witnessed — there is no direct-mode self-gate. "Frozen" survives only
   as a **merge-origination** posture (a node originates no new work onto a live fork), never as the reading — so a
   fork-first and a seal-first node holding the same events read identically. Content-fork **prevention** (the
-  one-content-sibling floor above) stays **witnessed-only**; a direct-mode content fork forms, reads `forked`
-  (fail-secure), and resolves by repair or by a burying seal-advancer — declining it by first-seen with no shared
-  witness would silently split (fail-open).
+  one-content-sibling floor above) is **witnessed** — and every chain is federation-witnessed (no direct mode);
+  the residual is a **witness compromise**, where a content fork forms, reads `forked`
+  (fail-secure), and resolves by a burying seal-advancer.
 - **Security assumption / residual:** **< `threshold` byzantine** federation members at attestation time; beyond
   that = operational + reincept (same posture as the divergence model). **The co-witnessing exclusivity carries its
   own, tighter bound (F4):** it holds against **< `2·threshold − signers` byzantine double-signers *within the
@@ -383,7 +405,7 @@ adversarial pass.
   state. A consumer **eclipsed** to a malicious subset, or reading **during an incomplete heal**, sees the
   detection **later**, not at decision time — so a binding made in that window can transiently trust the wrong
   branch. This is the standard cost of the **detection** leg (everything beyond witnessed-content prevention — the
-  floor prevents a content fork *forming*, it can't make a formed privileged fork visible any sooner); the F8
+  floor prevents a content fork *forming*, it can't make a formed sealed fork visible any sooner); the F8
   multi-source freshness bar *shrinks* the window (more independent sources → harder eclipse) but doesn't close it. Recovery is operational
   (re-verify before binding; reincept on a surfaced divergence).
 
@@ -398,7 +420,7 @@ adversarial pass.
   **membership change** — commits an **inline timestamp value as `manifest.clock`** (alongside `manifest.roster`), so **the
   timestamp lives in the data, never on a chain event** ([inv 4] role-grouped manifest, [inv 6] preserved). The
   `Wit` is **sealed** (terminal-on-divergence) and the timeline is **monotonic** (each `Wit`'s clock time ≥ the
-  prior, enforced at the seal — can't be rolled back); the federation IEL is restricted to `Fcp`/`Wit`/`Trm` — the genesis `Fcp` and the **terminal `Trm` carry `manifest.clock` too** (the `Trm`'s clock ≥ the prior `Wit`; its `Ror`-revealed key-windows are clock-bounded and self-attest under the carve-out — so an all-windows-lapsed federation can still terminate).
+  prior, enforced at the seal — can't be rolled back); the federation IEL is restricted to `Fcp`/`Wit`/`Trm` — the genesis `Fcp` and the **terminal `Trm` carry `manifest.clock` too** (the `Trm`'s clock ≥ the prior `Wit`; its `Rot`-revealed key-windows are clock-bounded and self-attest under the carve-out — so an all-windows-lapsed federation can still terminate).
   Consumers read the timeline by **walking the federation IEL they already walk for the roster** —
   reading each `Wit`'s `manifest.clock`. Witness key-windows change exactly at federation
   `Wit`s — **a rotation, optionally also a roster change (§1a)** — each carrying a clock timestamp, so timestamping
@@ -413,6 +435,23 @@ adversarial pass.
   check:** a receipt counts only if its timestamp `τ ∈ [T_join(K) − band, T_end(K) + band]` per the clock. A
   harvested / rotated-out key (closed window) can therefore only validly stamp **old** receipts → a dormant forgery
   on it reads stale. Without this check the attacker just stamps "now"; with it, a closed-window key can't.
+- **Second conjunct — forward-of-the-last-confirmed tip (backdate defense, §5; `vdti-adversary-cases` case 8).**
+  Key-window containment (above) is conjunct (a); a counted receipt must **also** be **forward of the chain's last
+  confirmed — fully-witnessed — tip.** It is a **current-vs-ancient** test, not a fine-grained ordering: on an
+  **active** chain the confirmed tip is recent, so a **harvested old key** (closed window) satisfies **neither**
+  conjunct (its window is old; the check demands current); on a **dormant** chain the confirmed tip is old, so a
+  harvested receipt can read forward — the known **reserve-theft-takeover residual** (owner vigilance, "no silent
+  *forgery*", §5 / inv 8). The reference is the **last confirmed tip** — deliberately **not** the
+  immediately-preceding event, **not** a cross-witness pairwise aggregate over adjacent events (per-witness
+  wall-clock skew breaks the pairwise form), and **not** the seal (the earlier "forward-of-the-seal" patch had no
+  margin right after a seal — retired). **Batching reintroduces no skew:** with IEL/KEL-only witnessing (§1g /
+  §2c Decision 1) every witnessed unit is a **single** IEL/KEL event (SEL batches collapse into one IEL `Ixn`'s
+  `anchors[]`), and any structural batch is witnessed **atomically** (the verifier knows it is one unit → no
+  intra-batch ordering claim); **across** batches the client **serializes** — waits until batch N is fully
+  witnessed before N+1 (the same key-deletion-recourse discipline, `area-iel §5`) — so the confirmed tip is
+  well-defined at **batch granularity**. Plus **per-witness monotonicity** — a witness never backdates *its own*
+  receipt stream. **Event *order* stays the chain's job** (`previous`-linkage); the receipts carry only this
+  **forward-of-confirmed-tip + key-window** requirement, never a pairwise aggregate.
 - **Staleness → fail-secure.** A consumer computes a tip's freshest *valid* witnessing time; an ancient one is
   **flagged stale** and not trusted for loss-of-trust / current-state decisions without fresh re-confirmation
   ([inv 8] / F-E). This is a **decision-time wall-clock** check, recomputed against current `now` on **every**
@@ -440,7 +479,7 @@ adversarial pass.
   at every `Wit` (a synchronized all-witness rotation is the operational norm, not a hard per-`Wit` rule; a
   non-participating witness keeps its open key-window until it next participates). A key-window closes only at a federation `Wit`
   (the federation's only governance kind), so a witness rotation is **legal only as a synchronized federation
-  `Wit`** (the witness's KEL `Wit` **is** the rotation and anchors the IEL `Wit` — no separate `Ror`) — an **off-ceremony `Ror`** (a witness `Ror` anchoring no `Wit`) on a witness KEL produces receipts the federation **does not honor** (the new
+  `Wit`** (the witness's KEL `Wit` **is** the rotation and anchors the IEL `Wit` — no separate rotation event) — an **off-ceremony `Rot`** (a witness `Rot` anchoring no `Wit`) on a witness KEL produces receipts the federation **does not honor** (the new
   key earns no pinned window; the old key's window is treated as closed at the most recent federation `Wit`), and an
   observed off-ceremony rotation is a **cut/eviction signal**. **Max-window auto-expiry — `MAX_WINDOW = 365 days` (cold-9 C2 / cold-10 F4, Jason 2026-06-29).** A key-window
   may stay open at most `MAX_WINDOW`: an un-refreshed window is treated as **closed at `T_join + 365 days`** (a fixed
@@ -480,11 +519,97 @@ adversarial pass.
   §1a). The federation roster `cut` is now `cut: Prefix[]`. *(The cut-a-chain mechanism survives only as the
   delegate rescission **`bound`**; the `terminator` name is fully retired — delegation §5.)*
 
+### 1g. Witness receipt — shape + scope (§2c, RESOLVED 2026-07-08; ⚠ NOT previously design-reviewed — flag to the encode-review as its first decorrelated pass)
+
+- **Scope: IEL/KEL only (Decision 1).** A witness receipts an **IEL or KEL** event; **a SEL is never witnessed
+  directly** — it rides its IEL anchor (integrity via anchor-monotonicity + the cross-layer theorem; freshness via
+  the anchoring IEL event's receipts — a revocation/rescission lookup-SEL `Trm` is sealed by a witnessed IEL
+  `Rev`/`Dth`, whose `kills[]` declares the target — §7 / `area-sel`). This is the load-bearing **correlation
+  protection**: a sensitive **subject prefix / `cred.said`** **never enters a receipt** (a cred is anchored as its
+  issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque `anchors[]` — cred
+  = anchored SAD, no cred-SEL, 2026-07-09; `cred.said` never raw; the lookup-SEL flat `kills[]` target lives only on a
+  witnessed `Rev`/`Dth`, ≠ the SEL's prefix). Retires the former cred-SEL
+  `(prefix, said(v1))` receipt. *Verify-first (confirmed against the SEL kind list, `area-sel`):* every SEL event that
+  needs witnessing rides an IEL anchor (`Icp` via its v1's `previous`; content/`Pin` via IEL `Ixn`; `Gnt`/`Trm` via
+  `Ath`/`Rev`/`Dth`) — nothing needs a standalone SEL receipt.
+- **The prefix rides in the clear (Decision 2).** A receipt is only ever gossiped **witness-only + encrypted** or
+  **bundled with the event it witnesses**, so any holder already has the body (+ prefix) or the bundled document
+  (which already carries the `prefix ↔ said` link). With Decision 1 removing the sensitive subject prefix, the
+  residual is a public **IEL/KEL identity** prefix — mesh route-metadata, fine under the trust model (federation
+  infra, `< threshold` byzantine) and un-linkable to credentials (separate unwitnessed SELs under the issuer's
+  opaque anchors). No `basis`, no computed selection-input — plain `prefix`.
+- **The receipt is itself a SAD (Decision 3)** (own `said`, own `kind` — §9's kind-required-on-SAD applied to the
+  receipt); its **signature rides adjacent, never in the body** (a SAD cannot contain a signature over its own
+  `said`; receipts are adjacent attestation data, §1e). Body:
+
+  ```
+  {
+    said,            // the RECEIPT's own SAID
+    kind,            // a receipt kind (§9 kind-required)
+    threshold,       // witness-config threshold IN EFFECT at this position — stateful (§2b; cheap detect + match-on-pull)
+    signers,         // witness-config selection size IN EFFECT at this position — stateful (select() needs it with the roster)
+    federationPin,   // the chain's federation binding at this position → resolves roster(F @ federationPin) for selection
+    chain_prefix,    // the witnessed chain's prefix (plain — Decision 2)
+    event_said,      // the one committing SAID of the witnessed event
+    event_serial,    // its serial
+    timestamp,       // witness's asserted time (§1f key-window + §5 forward-of-confirmed-tip; τ INSIDE the signed payload)
+    witness_prefix   // signing witness's KEL prefix (resolve its key-window; confirm selected)
+  }
+  ```
+
+  \+ the witness **signature adjacent** (over `said`). A **batch** is witnessed by the **one committing SAID**
+  (`event_said` — committed in the event body by chain linkage `tip.previous` or the anchoring event's `anchors[]`),
+  never an enumerated list — single-SAID keeps receipts small → floodable (§2b).
+- **Binds the full as-of-position selection context `{federationPin, threshold, signers}` (Decision 4).** Binding
+  `federationPin` + `signers` (+ `threshold` for the count) lets a **mesh witness resolve `roster(F @ federationPin)`
+  from its OWN federation IEL and validate `witness_prefix ∈ select(chain_prefix, event_serial, roster, signers)`
+  without the chain body** → sound cheap detection, fakes dropped at the mesh edge. The context is **stateful** (the
+  value in effect at this event's position, not a chain constant). **Both IEL and KEL carry `federationPin`,
+  matched** (the user IEL's `{federation, federationPin}` matched on its anchoring member-KEL `Wit`s; the
+  **federation IEL carries none** — it *is* the federation; a SEL inherits). The checks are **equality**, not
+  `> chain-pin`: the receipt context must **equal** the chain's actual as-of-position config, **plus** the currency
+  gate — a stale-membership pin earns **zero** countable receipts. **Orthogonal to §5's tip-ordering:** that gates
+  *time* (freshness/backdate); `federationPin` gates *roster version* (which witnesses are selected).
+- **Federation-pin currency (Decision 5).** *Stale* = a governance `Wit` moved the roster **since** the pin, by
+  **more than the key-window band** (§1f). Detection is a **local pre-check at the receiving node returning a SIGNAL
+  only** (any node the user reaches is a current F member holding F's state): stale → a positive "stale — rebind"
+  signal (not an absence-of-receipts timeout). **The signal is a hint, not authoritative** — the consumer **walks
+  the federation chain** from the config-pinned `FEDERATION_IEL_PREFIX` to the **verified** current position and
+  rebinds to a value **it verified**, never the node's asserted value (end-verifiability — trust the data, not the
+  service). **Witnesses refuse a beyond-band-stale event** (not sign-then-not-count — a signed stale event would
+  consume the position's first-seen slot and block the rebind `Wit`). **The submitter's own node likewise drops a
+  declined stale-pin local tip** — it is **not carried forward** as local progress (§1e), so it can't self-collide
+  with the rebind at the same serial; the rebind `Wit` takes the serial cleanly (C2). **Rebind = a `Wit` carrying the verified
+  current `{federation, federationPin}`** (**T2** — the rotation reserve; `t_govern`; member-KEL-`Wit`-anchored +
+  matched): it declares the current pin, so its own selection is `roster(F @ current)` = current witnesses →
+  witnessed → **self-bootstraps** into the current federation; takes the clean serial; content `Ixn`s inherit the
+  new pin. **Recourse-safe** — the stale event was never confirmed → keys never deleted (§5 wait-until-witnessed) →
+  the rebind is always authorable. **Resubmit is idempotent (dedup by SAID) → dedup doubles as a liveness check**
+  (resubmit any event to learn live-vs-declined); resubmitting a *stale-pin* event never fixes it (the pin is baked
+  into its SAID) — rebind + submit a **new** event.
+  - **The roster-change race** (event accepted at current pin P, then F rotates before the selectees receipt): the
+    selection is **fixed by P** (as-of-context) — the rotation doesn't change who should witness *this* event. A
+    selectee **cut during the race still receipts within the key-window band** (§1f); if threshold is reached the
+    event is **witnessed and durable** (established receipts keep counting after F advances past P). The currency
+    gate is an **establishment-time** check (can't *start* gathering under a beyond-band-stale pin) — it **never
+    voids** receipts established under a then-current pin. **One band, three jobs:** cut-witness receipting,
+    just-stale-pin grace, race absorption. Beyond the band → refuse → rebind + resubmit (recoverable).
+- **Batching collapses out (consequence of Decision 1).** Every witnessed unit is a single IEL/KEL event (one
+  committing SAID); SEL batches (inception `Icp`+`Pin`; the cred-v1 fan-out) become `anchors[]` content under one
+  IEL `Ixn` → **no multi-event witnessing batch remains**, so the intra-batch receipt-skew (§5) has nothing to bite.
+  Client serialization stays, at **IEL granularity**. The one remaining multi-event batch — federation genesis
+  (`Fcp` + founder `Rot`s) — is the **bootstrap exception**, not a receipt batch: its trust is the config-pinned
+  `FEDERATION_IEL_PREFIX` (`vdti-federation-inception-reference.md`), not a receipt count; serial-0 root → nothing
+  to be forward-of → it sidesteps the receipt-monotonicity machinery entirely.
+- **KERI reference.** A KERI `rct` `{v, t, d, i, s}` binds `prefix ↔ said` the same way (no threshold/timestamp);
+  VDTI's receipt is that shape **plus** `threshold` + a payload-`timestamp`, **scoped to IEL/KEL only** — VDTI
+  relies on Decision 1 for cred privacy, not on hiding the prefix (KERI AIDs are public).
+
 ## 2. Mined from kels-216 — patterns that carry (confirm in land)
 - **Receipts indexed by `(prefix, serial)`**, *not* event SAID — structural; this is what lets **competing receipts
   at a position** aggregate into one detectable signal. *(kels' threshold-two-events — both branches at threshold —
   is under the majority floor precisely the impossible state for honest witnesses; it remains reachable only at
-  fork-cost or for privileged siblings. Detection re-keys on competing receipts + fetched data — 2026-07-02.)*
+  fork-cost or for sealed siblings. Detection re-keys on competing receipts + fetched data — 2026-07-02.)*
 - **Minority dissent** = sub-threshold receipts on a losing `witnessed_said`, attributable to specific members →
   a forensic signal for evicting a compromised member via a federation `Wit`.
 - **Defense in depth — "the DB cannot be trusted":** receipts are *evidence*; the verifier **independently
@@ -508,18 +633,18 @@ adversarial pass.
 - **Design-pass §2.2 matrix** — the federation-inception cell becomes `Rot → IEL Fcp(federation)` (the `Fcp` marker, anchored by a founder **`Rot`**, kind-strict, T2 ↔ T2 — no founder `Fed`/`Wit`, 2026-06-28).
 
 ## 4. Open / route to the adversarial pass
-- **Which vdti kinds get witnessed?** kels witnessed "privileged events"; vdti's taxonomy differs (`Ixn` diverges,
-  rotations terminal-at-merge). Map kels' "privileged" onto vdti's kinds — likely **all chain-advancing /
-  security-relevant events**, so federation-layer divergence is uniformly detectable. Doctrine-reconciliation
-  detail, not a design blocker.
-- **Receipt encoding** (the remaining mechanism detail): exact fields binding a receipt to (a) the event's
-  `federationPin` context, (b) the signing witness's KEL position, and (c) the witness's **timestamp `τ`** — so the
-  verifier resolves `witness ∈ select(prefix, serial, roster(F @ context), signers)` with the right key version and checks `τ` against that key's
-  clock-window (§1f) — the receipt must bind the context so the selection is checkable (F3). **Hard requirement (round 4): `τ` is INSIDE the witness-signed payload** (alongside the
-  `(prefix, serial)`, `witnessed_said`, and `federationPin`-context binding) — otherwise a harvested validly-signed
-  receipt's `τ` is rewritable to "now" and the §1f clock check is moot. **The cut witness's key-range bound is the
-  federation clock** (§1a/§1f) — a receipt from a cut witness counts only within a federation-pinned key-window
-  (`τ ≤ T_end`); the position-`terminator` is dropped. Remaining detail: the exact field layout. Doctrine-reconciliation.
+- **Which vdti kinds get witnessed? — RESOLVED (§1g / §2c Decision 1).** **IEL and KEL events are witnessed; a
+  SEL is never witnessed directly** — it rides its IEL anchor (integrity via anchor-monotonicity + the cross-layer
+  theorem, freshness via the anchoring IEL event's receipts — §7 / `area-sel`). This is the load-bearing
+  **correlation protection**: a sensitive subject prefix / `said(cred)` never enters a receipt (cred = anchored SAD, no cred-SEL — 2026-07-09). Within KEL/IEL, all
+  chain-advancing / security-relevant events earn receipts, so federation-layer divergence stays uniformly
+  detectable.
+- **Receipt encoding — RESOLVED (§1g / §2c).** The receipt-SAD shape (the fields binding the event's
+  `federationPin` context, the signing witness's KEL position, and the payload-`timestamp` `τ`), the IEL/KEL-only
+  witnessing scope, and the currency/rebind machinery are settled in **§1g**. `τ` is **inside** the witness-signed
+  payload (else a harvested receipt's `τ` is rewritable to "now" and the §1f clock check is moot); a cut witness's
+  receipt counts only within its federation-pinned key-window (`τ ≤ T_end`, §1a/§1f); the position-`terminator` is
+  dropped.
 - **Federation `Trm` semantics** — terminating a federation: chains still bound to it must `Wit`-rebind or
   become unwitnessable. Confirm the intended consumer experience.
 - **Per-witness address/discovery** — kels gives each witness a deterministic-prefix address SEL holding endpoints
@@ -532,7 +657,7 @@ adversarial pass.
   old `federationBinding` and self-signing carve-out are gone; only the `federation/` docs remain to write.)
 - **Apply the design-pass §2.2 matrix fix** (federation inception = `Rot → IEL Fcp` (the marker); founder `Rot` anchor — kind-strict, T2 ↔ T2; no founder `Fed`/`Wit`, 2026-06-28).
 - **`event-shape.md` KEL:** witness-config SAD `{ threshold, signers }` as the manifest **`witnesses`** role (shared with the KEL note's land item).
-- Carry the witnessing mechanics (one-content-sibling-per-serial + privileged/repair always-witness · `(prefix,serial)`
+- Carry the witnessing mechanics (one-content-sibling-per-serial + sealed-siblings-always-witnessed-up-to-two-per-position · `(prefix,serial)`
   selection · the majority floor + fork-cost · competing-receipt detection · destruction-on-witnessing) into the vdti
   witnessing doctrine, in vdti kind language (kels-216's unconditional always-witness + threshold-two-events are
   superseded — §1e/§2).

@@ -59,8 +59,10 @@ equivocation, not issuance-time. **But KERI's multisig group-AID model resolves 
 (rotate the issuing set without reissue, block ex-members) by making issuance a **governed write on the
 group's own append-only chain**, validated **as-of its anchoring position** — old creds grandfather across
 rotation, removed members can't append. That is exactly the "issue as the aggregate from its own chain"
-direction. **vdti mapping (reshape):** revocable-without-reissue issuance ⇒ **per-cred SELs issued by the issuer
-IEL** — issuance = the cred-SEL `Icp` (T1), pinned to the issuer-IEL's position so it validates **as-of issuance**
-and grandfathers across rotation; revocation = the cred-SEL `Trm`. **Not** a foreign-`grp(X, group)` splice (the
-reshape dropped foreign-`grp` and `policyPin` entirely): a unilateral-claim splice can't be made forgery-proof
-end-verifiably; issuing-as-the-aggregate — each cred its own SEL under the issuer IEL — sidesteps the whole fork.
+direction. **vdti mapping (B1 fail-secure rework 2026-07-09):** revocable-without-reissue issuance ⇒ **a credential
+is an anchored SAD issued by the issuer IEL** — issuance = the issuer anchors the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` on its IEL via an `Ixn`
+(T1), so it validates **as-of the anchoring position** and grandfathers across rotation; revocation = a **`kills[]`
+declaration** on the issuer's witnessed IEL `Rev` + a `{Icp, Trm}` lookup SEL (fail-secure, read on the same fresh
+walk). **Not** a foreign-`grp(X, group)` splice (the reshape dropped foreign-`grp` and `policyPin` entirely): a
+unilateral-claim splice can't be made forgery-proof end-verifiably; issuing-as-the-aggregate — each cred anchored
+under the issuer IEL — sidesteps the whole fork.

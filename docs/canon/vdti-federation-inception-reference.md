@@ -9,20 +9,20 @@ and the resolution converged this session. Feeds the eventual designer note + br
 - **Federation = a restricted IEL incepting `Fcp`** (the inception **marker** — a structural disambiguator the
   verifier dispatches on, **not** a trust carve-out; §4). The federation IEL is `Fcp`/`Wit`/`Trm`.
 - **Roster = witness KELs *directly*** (threshold over them). No per-witness identity wrapper.
-- **KEL keeps `Fcp`** (federation-infrastructure inception) **and `Wit`** (the one witness/federation kind, tier-3 —
+- **KEL keeps `Fcp`** (federation-infrastructure inception) **and `Wit`** (the one witness/federation kind, T2 —
   a **user** bind/rebind on an `Icp`-rooted KEL, **federation governance** on an `Fcp`-rooted KEL; `Wit` anchors `Wit`, anchor-kind uniform but field-match **facet-specific** — Q3).
 - **Genesis trust = config-pinned `FEDERATION_IEL_PREFIX`** (out-of-band root) + ordinary founder-anchor
   authorization. **No self-*witnessing* carve-out** (the `Fcp` marker is interpretation, not trust — §4).
 - **Witnessing = as-of-context, never tip** — receipts are adjacent/unanchored; durable with **no
   re-witnessing**; a **currency gate** makes witnesses refuse stale-`federationPin` events (the chain must
   advance `federationPin`, riding any event — a `Wit` to *rebind*); backdate closed by the gate + HSM key destruction (§5).
-- **Taxonomies:** the general/user IEL is **9** (`Icp`/`Ixn`/`Evl`/`Ath`/`Rev`/`Dth`/`Rpr`/`Trm`/`Wit` — the `Kil`
+- **Taxonomies:** the general/user IEL is **8** (`Icp`/`Ixn`/`Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit` — `Rpr` dropped in the first-seen pivot; the `Kil`
   sealed kill-anchor was split out 2026-06-21 and later split into `Rev` (revocation, `t_govern`) + `Dth`
   (rescission, `t_authorize`), and **`Fed` was renamed/merged to `Wit`** 2026-06-28: the one kind
   that does both the user federation-binding and federation governance); a **federation** IEL is the restricted set
-  **`Fcp`/`Wit`/`Trm`** (`Fcp` = its inception marker, `Wit` = governance — roster + rotation, T3, **`Wit`-anchored**
-  (field-match = witness-config only, Q3) — replaces `Evl` for the federation; 2026-06-28, cold-4 B1); see `vdti-area-iel.md`. KEL stays 8
-  (`Fcp`/`Icp`/`Ixn`/`Rot`/`Ror`/`Rec`/`Wit`/`Trm` — `Fed` → `Wit`).
+  **`Fcp`/`Wit`/`Trm`** (`Fcp` = its inception marker, `Wit` = governance — roster + rotation, **T2**, **`Wit`-anchored**
+  (field-match = witness-config only, Q3) — replaces `Evl` for the federation; 2026-06-28, cold-4 B1); see `vdti-area-iel.md`. KEL is **6**
+  (`Fcp`/`Icp`/`Ixn`/`Rot`/`Wit`/`Trm` — `Ror`/`Rec` dropped in the first-seen pivot; `Fed` → `Wit`).
 
 Both layers carry `Fcp` (KEL = federation-infrastructure inception; IEL = the federation inception marker) — **dispatched by layer**, an intentional shared marker, not a collision.
 
@@ -43,10 +43,10 @@ Both layers carry `Fcp` (KEL = federation-infrastructure inception; IEL = the fe
   (federation governance). *(This **reverses** the earlier "a witness serves many federations / blast-radius
   fan-out." **User-identity** federation migration via rebind + cooperative overlapping trust is a **separate**
   mechanism that **stays** — federation-witnessing §1d; it is the user's IEL rebinding, not a witness on two rosters.)*
-- A witness rotates as a federation **`Wit`**: its KEL `Wit` **IS** the rotation (refreshes signing + recovery) **and
-  anchors the federation IEL `Wit`** (kind-strict, T3 ↔ T3; the governance-facet match is the **witness-config only**
+- A witness rotates as a federation **`Wit`**: its KEL `Wit` **IS** the rotation (refreshes signing + rotation reserve) **and
+  anchors the federation IEL `Wit`** (kind-strict, T2 ↔ T2; the governance-facet match is the **witness-config only**
   — Q3; roster rides the manifest `Evl`-style, `clock` is monotonic + `≤ now+band`; `pins = Wit.previous`, the
-  pre-rotation KEL tip → the clock's `T_end`; **no separate `Ror`**, no phantom key — cold-4 B1), with an inline
+  pre-rotation KEL tip → the clock's `T_end`; the `Wit` is itself the rotation — **no separate rotation event**, no phantom key — cold-4 B1), with an inline
   **`clock`** timestamp in the `Wit`'s `manifest` — so the rotation boundary is recorded in the federation timeline
   (closes Finding 1). Adding/removing a witness is **also a `Wit`** (the federation has **no `Evl`** — `Wit` does all
   governance; a `Wit` is always a rotation, optionally also carrying a roster delta + its `manifest.clock`).
@@ -92,12 +92,12 @@ every node holding the same config-pinned prefix; a doctored root mismatches con
   witness/federation kind — §1b; the other is federation governance, on an `Fcp`-rooted witness KEL). A user KEL
   `Wit`s to move to a new witness set/federation. It carries **`federation = F`** (the **prefix** — binding is to the
   entity, so it follows F's roster evolution) and **`federationPin`** → the F-event it pins (the as-of context, §5).
-  **Tier-3** (changing who witnesses you is high-assurance — a forged rebind would move you to a malicious
+  **T2** (changing who witnesses you is high-assurance — a forged rebind would move you to a malicious
   federation). *(There is **no** genesis `Wit`-rebind: a federation's own witnesses are `Fcp`-rooted, governed into
   the roster, never self-bound — §2.)*
 - **The identity's federation is recorded at the IEL — the `IEL Wit` kind (2026-06-28; was `Fed`).** A user
-  identity's federation choice is a first-class IEL event (tier-3, `t_govern`), **anchored by its members' KEL `Wit`s**
-  (kind-strict, T3 ↔ T3 — inv 4; `Wit` anchors `Wit`; the user-rebind facet field-matches `{federation, federationPin}`, C4). The IEL `Wit`'s **federation-binding fields** —
+  identity's federation choice is a first-class IEL event (**T2**, `t_govern`), **anchored by its members' KEL `Wit`s**
+  (kind-strict, T2 ↔ T2 — inv 4; `Wit` anchors `Wit`; the user-rebind facet field-matches `{federation, federationPin}`, C4). The IEL `Wit`'s **federation-binding fields** —
   the **closed set `{federation, federationPin}`** (no optional fields; cold-5 C4) — must **match exactly** those of
   every anchoring KEL `Wit`, **checked on every walk** — so the IEL `Wit`
   records only what its members signed (auditable, never self-asserted). The **identity's federation is the IEL's own
@@ -186,8 +186,8 @@ precise "current member set" tolerance the acceptance gate enforces (exact-tip v
 
 - **kels canonical (the reference model — federation-as-plain-IEL):**
   `../kels/docs/design/infrastructure/federation.md` (2026-05-22; zero `Fcp`/`Fed`) +
-  `../kels/docs/design/primitives/data/event-logs/iel/events.md` (IEL kinds `Icp`/`Evl`/`Trm`; `Icp` anchored by
-  tier-2 `Rot`, `Trm` by tier-3 `Ror`).
+  `../kels/docs/design/primitives/data/event-logs/iel/events.md` (the kels baseline taxonomy; vdti's first-seen
+  kinds differ, above).
 - **Reframe rationale:** `../kels/.working/kels-190-federation-as-identity.md` (why the registry-service /
   Raft-vote model collapses into an IEL).
 - **Superseded `Fcp`/`Fed` model (what vdti's *pre-remodel* model mirrored — read only to see the old shape; the
@@ -211,5 +211,5 @@ precise "current member set" tolerance the acceptance gate enforces (exact-tip v
   it to context + witness KEL position, and the acceptance-gate currency tolerance) — folds into the
   witnessing-doctrine reconciliation.
 - Inherits the reshape's remaining smaller opens: IEL `Evl` roster/threshold-delta field shape (proposed:
-  full-state snapshot), SEL `Fld` repair-window/exposure-window cap, and the rest of the doctrine reconciliation
+  full-state snapshot), and the rest of the doctrine reconciliation
   (effective-SAID, divergence "valid-for-binding" cutoff).

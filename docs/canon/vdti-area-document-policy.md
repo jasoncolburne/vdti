@@ -20,8 +20,12 @@ policy-on-documents, [inv 8] walk-semantics, [inv 10] negative-checks-are-lookup
 - **D. Document context** — fixed by the **anchoring position** (no body `pin`, dropped 2026-06-26); multi-identity
   uses an `issuers[]` SAD + independent attestations. **[RESOLVED — §A]**
 - **E. Policy-satisfaction matching** — how a server/verifier decides "satisfied." [fresh]
-- **F. Revocation** — a cred is its **own SEL**; revocation = the cred-SEL's **`Trm`** (T2 governance, anchored
-  in an IEL `Rev` via manifest). Status = walk the cred-SEL, `Trm` present → revoked. **[RESOLVED — §F]**
+- **F. Revocation** — a cred is a **direct-anchored SAD** (no cred-SEL; issuance commitment
+  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`); revocation is a **`kills[]` declaration** on the issuer's
+  witnessed IEL `Rev` (`target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, a flat qualified hash) + a
+  sealed `{Icp, Trm}` lookup SEL. Status = **fail-secure by default** (walk the fresh IEL, forward-match
+  `kills[].target`); a content-addressed **fail-open** lookup is the opt-out (vdtid / walk-timeout).
+  **[RESOLVED — §F / B1 reworked]**
   (Supersedes the earlier "`withdraw` `Ixn` on a shared registry" — that was a pre-reshape revert.)
 - **G. Delegation in documents** — the `del(X)` node; the multi-delegator path commitment (delegation §5);
   the cred's transitive authorizing-chain commitment (delegation §2). [integrate]
@@ -49,13 +53,13 @@ policy-on-documents, [inv 8] walk-semantics, [inv 10] negative-checks-are-lookup
   (distinct-by-prefix) + **`and`** (disjoint pools) — a document needing independence **establishes it in its own
   policy** and picks non-overlapping sources; the system guarantees no fixed independence. **Multi-federation
   operation is out-of-scope-but-allowed** — the per-federation, non-transitive trust model (federation-witnessing §1d)
-  already lets an identity relate to several federations; no orchestration is added. **Direct mode is a reachable mode**
-  (cold-5 C1a — the KERI analogy): a user `Icp` **may omit** its federation binding (*absent ⇒ direct-mode*); its first
-  `Wit` binds forward (witnessing starts from that event, early range unwitnessed). A direct-mode chain is fully
-  **end-verifiable** (SAID + sig + chain linkage need no federation) but earns **no witness receipts**, keeping only
-  **local** divergence detection (a held fork freezes the chain, inv 13) — it lacks beacon **propagation** +
-  multi-source. **A loss-of-trust decision it can't multi-source-confirm fails-secure: REFUSE** (cold-5 C2), never
-  proceed-with-a-flag. Witnessing is **range-based**, reported by the token **per range** (federation-witnessing §1d).
+  already lets an identity relate to several federations; no orchestration is added. **There is no direct mode** (removed,
+  first-seen 2026-07-08 — federation-witnessing §1d / §6): every identity is federation-witnessed, so a user `Icp`
+  **must** carry its `{federation, federationPin}` binding (a federated `Icp` omitting it is malformed → rejected,
+  fail-secure — inv 4). The `Fcp` federation-genesis bootstrap is **not** direct mode (it is the config-pinned trust
+  root — kept). So there is no unwitnessed early range and no receipt-less chain. **A loss-of-trust decision that
+  can't multi-source-confirm fails-secure: REFUSE** (cold-5 C2), never proceed-with-a-flag. Witnessing is
+  **range-based**, reported by the token **per range** (federation-witnessing §1d).
 
 ## Open decisions (the real design work, to adjudicate with Jason)
 1. **Confirm the gate dissolves** (C) — chain-event authorization is purely structural (IEL threshold vector +
@@ -74,7 +78,7 @@ policy-on-documents, [inv 8] walk-semantics, [inv 10] negative-checks-are-lookup
 ### C. Evaluation model — the canon has THREE functions; the reshape keeps TWO
 The landed canon (`evaluation.md`):
 1. **`evaluate_gate_policy`** — anchored single-policy GATE for *chain governance events* (IEL `Evl`/`Trm`, SEL
-   `Evl`/`Rpr`/`Trm`), driven by the chain's floored `policyPin`.
+   `Trm`), driven by the chain's floored pin.
 2. **`evaluate_anchored_policy`** — multi-party anchored validity (cred *issuance*; parties present pinnings;
    resolves as-of).
 3. **`evaluate_current_policy`** — challenge-response *current* control (attestations at chain tip).
@@ -127,15 +131,24 @@ share their core:
 (distinct-by-prefix counting, per-prefix-max weight, `and` over disjoint pools, fail-secure-on-unknown,
 `max_depth`/work caps).
 
-### A. What a document / cred IS — 2026-06-20 (cred = a per-cred SEL; refined 2026-06-21)
+### A. What a document / cred IS — 2026-06-20 (cred = a per-cred SEL; refined 2026-06-21; cred = anchored SAD, B1 fail-secure 2026-07-09)
 
-**A cred IS its own per-cred SEL** — prefix `derive(issuer, CRED_TOPIC, data)` where **`data` = the credential's
-SAID**; **no registry object, no registry identifier** (KERI needs one because creds live *in* a registry; vdti's
-SEL **topic + derivation** already give the grouping/addressing a registry identifier provided). Lifecycle:
-`Icp` (issued, T1) → optional content `Ixn`s → optional `Trm` (revoked, T2, §F). The **credential is a SAD**; the
-cred-SEL `Icp` carries **no manifest** — its `data` IS that SAD's `said`, the whole reference.
+**A cred is an anchored SAD — not a SEL** (issuance SEL dropped, B1 fail-secure rework 2026-07-09 — area-sel §1),
+plus — **iff it is ever revoked** — a **`kills[]` declaration** on the issuer's witnessed IEL and a content-addressed
+lookup SEL.
+- **Issuance = a direct-anchored SAD** — the issuer anchors the **issuance commitment
+  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an **`Ixn`** (`manifest.anchors` names
+  it); **that anchor is the validity proof** (an issuance commitment with no resolvable anchor on the issuer's fresh
+  IEL is not validly issued). **No registry object / identifier**, **no cred-SEL** (the cred is immutable and
+  presented by the holder — never looked up by address). As-of = the **anchoring position** (inv 5). T1 content.
+  *(Drops the `{Icp, Pin}` / "serial ≥ 2 inert" cred-SEL scaffolding — there is no cred-SEL to junk.)*
+- **Revocation = a `kills[]` declaration + a lookup SEL** — to revoke, the issuer signs a **`Rev`** on its own IEL
+  declaring `kills[] = [{ target }]` with `target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, alongside
+  a sealed `{Icp, Trm}` lookup SEL (built two-pass from `Icp{owner, topic, data=cred.said}`; prefix ≠ target). Revocation is read
+  **fail-secure by default** (walk the issuer's fresh IEL, forward-match the `target` in `kills[]`), with a
+  content-addressed **fail-open** lookup opt-out (§F) — never a cred-SEL (there is none).
 
-**Shape (the credential SAD; the cred-SEL `Icp`'s `data` = its `said`):**
+**Shape (the credential SAD; the issuer anchors `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` on its IEL — no cred-SEL):**
 ```
 cred = {
   said,
@@ -150,18 +163,17 @@ cred = {
 }
 ```
 - **No body `pin` (dropped 2026-06-26).** The cred body carries **no** `pin`; its issuer context is fixed by the
-  **anchoring position** — the issuer IEL `Ixn` that commits the cred-SEL via `manifest.anchors` (anchoring its serial-1 v1; the `Icp` rides `v1.previous`, never itself anchored) (append-only).
-  The cred-SEL floors to the issuer IEL **structurally**, via its **serial-1 `Pin`** (a chain field, not a doc
-  field); the as-of authority is the anchoring position, never a self-asserted value, so nothing can select a
-  permissive past while the issuance anchors in the restrictive present (closes F1). The anchoring `Ixn`
-  **transitively commits** the issuer IEL (roster/threshold) + the whole delegation chain via committed `delegating`
-  links [inv 4]. Non-circular: the cred SAID is fixed from its content, *then* the issuer authors the anchoring
-  `Ixn` naming it. [inv 5] *(A `public` cred's prefix is
-  recomputable from the cred itself — **self-locating** revocation, area-sel §1 — yet still safe by **owner-rooting**
-  [F-J]. A `private` cred's privacy rests on three things together (F2, inv 16): the `nonce` keeps the prefix
-  unguessable, logs are **referenced by prefix only** (the `said(v1)` in the public `anchors[]` is an opaque
-  commitment that doesn't invert to the prefix (`said(Icp) == v1.previous`, one hop back) — no by-SAID lookup), and the **private cred body is not published**
-  to the shared store.)*
+  **anchoring position** — the issuer IEL `Ixn` that commits the **issuance commitment
+  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** via `manifest.anchors` (the cred is anchored **directly**, no
+  cred-SEL — 2026-07-09) (append-only). The as-of authority is the anchoring position,
+  never a self-asserted value, so nothing can select a permissive past while the issuance anchors in the restrictive
+  present (closes F1). The anchoring `Ixn` **transitively commits** the issuer IEL (roster/threshold) + the whole
+  delegation chain via committed `delegating` links [inv 4]. Non-circular: the cred SAID is fixed from its content,
+  *then* the issuer authors the anchoring `Ixn` naming it. [inv 5] *(A `public` cred's `cred.said` is public →
+  public revocation status via `hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, safe by **owner-rooting**
+  [F-J]. A `private` cred stays private because **`cred.said` appears nowhere raw** on the public IEL — issuance
+  commitment, kill target, and the lookup SEL's prefix/said are all hashes of it, and the `nonce`-in-body keeps
+  `cred.said` unguessable (fully closed — F2, inv 16).)*
 - **Multi-identity authorization — `issuers[]` SAD + independent attestations (Jason 2026-06-26).** A document whose
   *authorizing* policy spans **separate identities** (e.g. `thr(2,[id(A),id(B),id(C)])`) can't collapse to a joint
   IEL (a device-threshold ≠ an identity-threshold). It names a custodied **`issuers` SAD** `{ issuers: [prefix, …] }`,
@@ -187,53 +199,96 @@ cred = {
 - **`nonce` = public vs private issuance:** omit → SAID derivable (observers can tell you issued it from your
   logs); add an unguessable `nonce` → SAID not reconstructable → private issuance.
 
-### F. Revocation — a cred IS a SEL (2026-06-20)
+### F. Revocation — a `kills[]` declaration on the issuer's witnessed IEL + a lookup SEL (2026-06-20; B1 fail-secure rework 2026-07-09)
 
-**A cred is its own per-cred SEL** (not content on a shared registry):
-- **Issuance** = the cred-SEL's **`Icp`** — T1, **`data` = the credential's SAID** (no body `pin`; floored by its serial-1 `Pin`/v1);
-  the IEL `Ixn` anchors the **v1** (the `Pin`) via `manifest.anchors[]` (cheap, frequent, batched) and the `Icp` rides `v1.previous` — never itself anchored
-  (inv 4). Plus content `Ixn`s if needed.
-- **Revocation** = the cred-SEL's **`Trm`** — T2 governance, anchored in an IEL `Rev` via
-  `manifest.anchors`; sealed-on-arrival (can't be un-revoked by repair). Batchable (one IEL `Rev` revokes many
-  cred-SELs). The killed cred is identified by *which SEL its `Trm` extends* — no prefix in the `Rev`.
-- **Status** = **self-locating** — from the cred you hold, compute `said(cred)` → `derive(issuer, CRED_TOPIC, that)`
-  → the cred-SEL prefix → walk it; `Trm` present → revoked. Positive check, no separate registry pointer. [inv 10
-  in spirit — positive, not a scan]
-  **Freshness (F8 / F3):** revocation is a to-tip loss-of-trust check, so the status must be read against a
-  **witnessed / multi-source** effective-SAID (provenance surfaced on the token, `vdti-area-vdtid-services.md` §1d)
-  — never a single server's possibly-stale claim, which could hide the `Trm`. **So cred-SELs ARE witnessed** (their
-  effective-SAID is multi-source → hiding a `Trm` is *detected*, not merely flagged). **Addressing (F2, inv 16):**
-  the cred-SEL is reached **by prefix only** (logs are never looked up by SAID; the `said(v1)` in `anchors[]` is an
-  opaque commitment; `said(Icp) == v1.previous`), so only a holder (who derives the prefix from the cred) or a party it's disclosed to can
-  locate it; a non-holder can't — which is the private-cred boundary, and why a *private* cred's revocation is
-  third-party-checkable only at disclosure.
+**A cred is an anchored SAD; revocation is a `kills[]` declaration on the issuer's witnessed IEL + a
+content-addressed lookup SEL** (not content on a shared registry, not a cred-SEL):
+- **Issuance** = **the issuer anchors the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`
+  directly** on its own IEL via one `Ixn` (`manifest.anchors` names it; the anchor **is** the validity proof). **No
+  cred-SEL** (dropped 2026-07-09 — the cred is immutable + presented, so it needs no lookup object; **custody rule:**
+  direct-anchor an immutable presented SAD, SEL-wrap anything mutable / looked-up); no `{Icp, Pin}` scaffolding, no
+  "serial ≥ 2 inert" machinery.
+- **Revocation = a `kills[]` declaration + a lookup SEL.** To revoke, the issuer signs a **`Rev`** on its own IEL
+  declaring **`kills[] = [{ target }]`** with **`target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`** (a
+  flat, `:`-delimited, domain-qualified hash), alongside the unchanged `anchors[] = [said(Trm)]` and a sealed
+  `{Icp, Trm}` lookup SEL (built from `Icp{owner, topic, data=cred.said}`, usual two-pass — its **prefix ≠ the flat
+  `target`**, so `kills[]` doesn't leak the object's address; the `Trm` v1 carries only its pin, `Rev`-anchored,
+  `t_govern`/T2). A non-issuer can't declare it (**no forged revocation**); a witnessed `Rev` + a sealed monotone
+  `Trm` can't be rolled back (**no silent un-revocation**). A `Trm` whose target is in **no** `kills[]` is a
+  terminated SEL that isn't a revocation → reads not-revoked (no coverage hole).
+- **Status = two reads; fail-secure is the DEFAULT.**
+  - **Fail-secure walk (default):** compute `target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')` and walk the issuer's
+    **fresh** IEL over `[issuance-position .. tip]`, forward-matching `target` against each `Rev`/`Dth`'s `kills[]`.
+    **In some `kills[]` → revoked; in none on the fully-walked fresh chain → not-revoked** (being in a `kills[]` **is**
+    the definition of revoked — nothing to miss). This **rides inv 8's freshness gate**: hiding a revocation needs a
+    **stale** IEL, which the verifier already refuses when trusting the issuer at all — so revocation is fail-secure,
+    not best-effort. Bounded (streams the subject-in-scope, O(range) time, no lossy cap); self-contained (a cred has
+    **no bound** to fetch — a doc-member rescission's gated bound is fetched instead, R3 / multi-party §1).
+  - **Fail-open lookup (opt-out):** recompute the `target`, fetch its `{Icp, Trm}` lookup SEL (content-addressed,
+    O(1)) — **found → revoked; not-found → best-effort not-revoked** (a withheld object reads not-found;
+    `Trm`-existence is a conservative proxy for the authoritative `kills[]`-membership — equal only for a canonical
+    revocation, over-refuse fail-safe — area-sel §1). A verifier opts **down** to fail-open, never up.
+- **Who does which — the revocation check is the consumer's, not `vdtid`'s (R6).** **`vdtid` is a structural store,
+  not a revocation authority** — it validates / serves / merges chains + SADs; a revoked subject is **still
+  structurally-valid data**, so there is **no revocation walk at `vdtid`** (nothing to brick there). The revocation
+  check lives in the **verifier** (`lib/vdti`) and is run by a **consumer** (client / app server) making a trust
+  decision; the fail-secure / fail-open / timeout posture (and any bricking) is the **consumer's**, at the
+  application layer. A consumer under a latency budget may opt down to the O(1) fail-open lookup or run the walk with
+  a **timeout, fail-secure on timeout where it matters** — its own read strategy over data `vdtid` serves by address.
+- **inv 8 — revocation IS an inv-8 dependency (no carve-out).** inv 8's fail-secure freshness gate governs the
+  **whole** loss-of-trust read: validly-issued **and** not-revoked/not-rescinded, both confirmed on the multi-source
+  fresh walk (revocation is a `kills[]` declaration on the same witnessed IEL). Trust = **grant iff (validly-issued)
+  AND (not-revoked AND not-rescinded)**, all fail-secure. The earlier best-effort "negative overlay" /
+  positive-vs-negative carve-out / `attribute-all` escape hatch is **dropped** (cold/warm re-review-2 F1 broke it);
+  the fail-open lookup is a deliberate opt-out (vdtid / walk-timeout), not the default. R4's "loss-of-trust that
+  can't confirm → REFUSE" now **stands** for the default walk.
+- **Addressing + privacy (F2, inv 16 — CLOSED).** `cred.said` appears **nowhere raw** on the public IEL: issuance
+  commitment, kill `target`, and the lookup SEL's prefix/said are all hashes of it; the kill target derives from the
+  **preimage** `cred.said`, never from a public hash. A private cred's `cred.said` is high-entropy (`nonce`), so a
+  non-holder recovers none of them → **its revocation status stays private**. **Residual:** revocation is
+  **grant-instance-gated confirm-a-known-subject** — you can only *confirm* a subject whose cred you hold, never
+  invert a `target` or bulk-enumerate (the earlier create-on-revoke "revocation-list enumerable per issuer" is
+  superseded — inv 16).
 - **The to-tip freshness step is MANDATORY for any trust-granting acceptance (round 4).** An *as-issued*-only resolve
   (was-this-validly-issued, as-of the pin) is **fooled by a forged dormant-chain extension** — the forgery is a
   clean linear extension (no divergence to detect), and the as-issued path doesn't check current-state freshness.
-  Only the **to-tip step** (F-E: is the issuer revoked / rescinded / divergent? + the federation-clock **staleness**
-  flag — §1f) catches it. So accepting a cred or honoring a grant **must** run the as-issued resolve **and** the
-  to-tip freshness/staleness step; the as-issued resolver alone is **insufficient** for binding.
-- **What the to-tip step *returns* on a divergent / terminal chain — the seal is the boundary (locked 2026-06-22)**
-  [inv 8, 13]. The honor decision splits on *recoverable vs terminal*, but the cut is the **seal**, never the
-  divergence point: an anchor **at-or-below `last_seal_advancing_event`** is **final** and honored regardless of any
-  later divergence; an anchor **above the seal** is durable only once a later seal-advancing event lands cleanly
-  past it. So **as-issued** over a sealed anchor stays answerable even on a forked chain (the verifier surfaces the
-  below-seal portion); **current** over a *frozen-divergent* chain is suspect (no clean tip). A **recoverable**
-  divergence's repair seals the surviving branch → its above-seal anchors become durable; a **terminal** (≥ 2
-  privileged / disputed) chain never seals → its post-seal window grounds **no new trust** (whole-*above-seal*-
-  suspect — below-seal still final). A dependent surviving an issuer's *member*-KEL terminal is a **composition-
-  redundancy** outcome (`M > N` anchors clear the threshold without the suspect member — inv 12), not prefix-salvage.
+  Only the **to-tip step** (F-E: is the issuer divergent / stale, and is the cred revoked / the grant rescinded — all
+  fail-secure on the fresh walk, inv 10 — via the federation-clock **staleness** flag, §1f) catches it. So accepting a cred or honoring a grant
+  **must** run the as-issued resolve **and** the to-tip freshness/staleness step; the as-issued resolver alone is
+  **insufficient** for binding. **The to-tip step is uniformly fail-secure (B1 fail-secure rework 2026-07-09):** the
+  **divergence / staleness** read **and** the **revocation / rescission** checks all confirm on the multi-source
+  fresh walk — a no-single-tip or stale chain grounds no new trust (REFUSE), and a revocation/rescission is a
+  `kills[]` declaration on that same witnessed IEL, so hiding one needs a stale IEL the bar already refuses (inv 8,
+  inv 10). The **fail-open** content-addressed lookup is a deliberate opt-out (vdtid / walk-timeout), not the default.
+- **What the to-tip step *returns* on a divergent chain — read the VERDICT; the seal is the boundary (locked
+  2026-06-22; verdict-based first-seen 2026-07-08)** [inv 8, 13, 17]. The consumer reads the chain's **effective-SAID
+  verdict** (a single confirmed tip → its real SAID; **no** single tip → a type-tagged synthetic recoupled to
+  `forked` / `disputed` — `vdti-area-vdtid-services.md` §1e / inv 17), never reconstructing a winner itself. The cut
+  is the **seal**, never the divergence point: an anchor **at-or-below `last_seal_advancing_event`** is **final** and
+  honored regardless of any later divergence; an anchor **above the seal** is durable only once a later
+  seal-advancing event lands cleanly past it. So **as-issued** over a sealed anchor stays answerable even on a forked
+  chain (the verifier surfaces the below-seal portion). **B1 — any non-single-tip chain grounds no *new* trust
+  (fail-secure refuse):** a loss-of-trust / current-state read requires a **single confirmed tip**, so **both**
+  verdicts short of that refuse — a **`forked`** chain (M ≤ 1 sealed, operationally recoverable) as well as a
+  **`disputed`** one (M ≥ 2 sealed, terminal → reincept). A forked chain grounds no new trust until its **burying
+  seal-advancer** (a recovery `Rot` / a governance-seal burial — inv 13; **not** a repair event) resolves it back to
+  a single tip and re-establishes a clean seal past the fork; a disputed chain never resolves (its post-seal window
+  is whole-*above-seal*-suspect — below-seal still final). A dependent surviving an issuer's *member*-KEL terminal is
+  a **composition-redundancy** outcome (`M > N` anchors clear the threshold without the suspect member — inv 12), not
+  prefix-salvage.
 - **Cost allocation:** cheap T1 issuance (the frequent op), governance-gated T2 revocation (rarer, deliberate).
 - See **[inv 15]** (inception tier + SEL `Trm`).
 
 **★ Ripples (confirmed 2026-06-20):**
-- **A reworked ✓** — cred = a per-cred SEL (above); **no registry object / no registry identifier** (the SEL
-  topic + derivation replaces KERI's registry identifier).
+- **A reworked ✓** — cred = an **anchored SAD** (no cred-SEL); revocation = a **`kills[]` declaration** on the
+  issuer's witnessed IEL `Rev` + a **`{Icp, Trm}` lookup SEL** (above); **no registry object / no registry
+  identifier** (the topic + derivation replaces KERI's registry identifier).
 - **F8 closure → `Trm` ✓** — closing any SEL = terminate it (T2); the F8 derived-lookup-SEL-for-closure is
   **superseded by SEL `Trm`**. (Rescission *stays* a lookup-SEL — it cuts off a *foreign* delegate's chain,
-  which the delegator can't `Trm`.) Fold into §H.
+  which the delegator can't `Trm` — and, like cred revocation, it is **fail-secure by default** (the `Dth`'s
+  `kills[]` on the delegator's witnessed IEL — inv 10; area-delegation §1), with a fail-open lookup opt-out.) Fold into §H.
 - **Primitive drift (owed):** design-pass §2.1/§3 ("every SEL is `Icp`+`Evl`", "no SEL `Trm`") superseded by
-  inv 15 — SEL taxonomy regains `Trm`; SEL `Icp` is T1 (cred-SEL: `data` = cred SAID, no body pin; a serial-1 **`Pin`**
-  floors every SEL; the rescission lookup-SEL is `Icp` + `Trm`). Owed: a SEL
+  inv 15 — SEL taxonomy regains `Trm`; SEL `Icp` is T1 (a credential is **not** a SEL — an anchored SAD; a serial-1 **`Pin`**
+  floors a content SEL; the revocation/rescission lookup-SEL is `Icp` + `Trm`). Owed: a SEL
   area note + design-pass reconciliation. *(The delegation note's "registry-SEL" wording is already fixed — LF8c
   2026-06-21.)*

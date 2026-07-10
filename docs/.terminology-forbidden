@@ -155,12 +155,19 @@ kels/sad/
 # federation-decides framing and its vocabulary are retired:
 #   federation-irreconcilable  — the federation does not pronounce a verdict;
 #     a fork with >= 2 privileged branches reads "disputed" by a data-local walk;
-#   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix}, plus
-#     the vestigial colon readings forked: / disputed:  — the effective SAID is a
-#     real digest over all held tips (no hash-prefix strings), and the two
-#     readings are the bare words "forked" / "disputed". Bare "divergent" /
-#     "irreconcilable" stay live (the per-node fork state and the fork
-#     classification), so only the colon forms are forbidden;
+#   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix} — the
+#     truly-dead kels synthetics (kels lacked guaranteed convergence and faked
+#     agreement with a branch-agnostic value). vdti's first-seen effective-SAID
+#     reads: a single confirmed tip → its real SAID; NO single tip → a type-tagged
+#     `synthetic` marker recoupled to the verdict (forked: / disputed:), qualified
+#     by prefix + position — NOT a digest over the competing tips (adversarially
+#     extensible → flood-unstable). That first-seen synthetic is the CANON model:
+#     the verdict-recoupled forked: / disputed: colon forms are live ONLY under
+#     docs/canon/, where the deeper docs/canon/.terminology-forbidden omits their
+#     ban. At THIS (docs/) scope they STAY BANNED — the root ban guards docs/design/,
+#     which stays on the old real-digest model until phase 2; lift it here (or add a
+#     docs/design/-scoped exception) only when the synthetic lands in design. The
+#     kels divergent: / irreconcilable: colon forms stay dead everywhere;
 #   policy_satisfied  — the verifier token reports the structural-validity
 #     result, not a policy signal (authorization is structural; policy lives on
 #     documents);

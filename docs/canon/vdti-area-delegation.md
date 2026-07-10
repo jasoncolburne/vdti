@@ -21,18 +21,31 @@ negative-checks-are-lookup-SELs, [inv 12] thresholds (`t_authorize`).
   (inv 4); an inclusion proof. Cheap batch authoring. `t_authorize`-gated (T2). [inv 12]
 - **Multi-hop `del(X, N)`** = the single-hop primitive per hop; each hop = a self-recorded `delegating` link +
   that delegator's rescission lookup-SEL + ancestry check. Cost O(N) O(1)-reads; depth cap = hop count.
-- **Rescission (negative — "is P *not* rescinded?")** = a **derived lookup SEL**, NOT an IEL event, NOT a list.
-  [inv 10]
-  - prefix = `derive(owner = X, RSC_TOPIC, data = P)` — recomputable by any verifier from `(X, P)`; `data = P`
-    makes it discoverable; no decoy substitution.
-  - `Icp` + a **`Trm`** (the terminal kill — anchored via X's IEL `Dth`, whose **`anchors`** names
-    the lookup-SEL's `Trm`). The `Trm` carries `pin` → X's tip (uniform — every event pins) and **`manifest.bound`** →
-    SAID of the last valid event on P's delegated chain. *(Split: the `pin` is the event's own structural link →
-    **top-level**; the `bound` commits a position on **P's** chain → a **manifest** role, inv 4. The `bound` is the
-    surviving rescission boundary — the federation roster cut dropped its copy, inv 14. Renamed from
-    "cut-off"/"terminator" 2026-06-26; the second event is a `Trm` not a `Pin`, 2026-06-26.)*
-  - Check = recompute the prefix, read that one locus → present → rescinded (with the bound), absent → not. A
-    **positive O(1) read** — the verifier *derives* the locus; the presenter furnishes nothing.
+- **Rescission (negative — "is P *not* rescinded?")** = a **`kills[]` declaration on X's witnessed IEL `Dth`** + a
+  **derived lookup SEL** (the fail-open object), NOT a scan, NOT a list. [inv 10]
+  - `target` = `hash('{DLG_RSC_TOPIC}:{X}:{said({ grant: said(Ath), delegate: P })}')` — a flat, `:`-delimited,
+    domain-qualified hash over the **grant-instance** `data = said({ grant: said(Ath), delegate: P })` (the granting
+    `Ath` + the delegate prefix `P`, since an `Ath` grants a *list*), recomputable by a verifier that walked the
+    delegation grant; a **re-grant** after a rescission gets a **fresh** `target` (each grant epoch → its own kill
+    locus); no decoy substitution. The `target` (flat hash) is **≠ the lookup SEL's prefix** (a separate two-pass over
+    `Icp{owner=X, topic=DLG_RSC_TOPIC, data}`), so the public `kills[]` doesn't leak the object's address. *(Was
+    `derive(X, RSC_TOPIC, P)`; now the qualified-hash target with a distinct `DLG_RSC_TOPIC`, B1 fail-secure rework
+    2026-07-09.)*
+  - `Icp` + a **`Trm`** (the terminal kill — anchored via X's IEL `Dth`, whose **`anchors`** names the lookup-SEL's
+    `Trm`). The `Trm` carries **only its pin** → X's tip (uniform — every event pins). The **`bound`** (→ SAID of the
+    last valid event on P's delegated chain) lives in the **`Dth`'s `kills[]`** entry (`{ target, bound }`), **not**
+    on the `Trm` — so it is **un-withholdable** on X's witnessed IEL and the fail-secure walk reads it directly.
+    *(The `bound` moved off the `Trm` to `kills[]` — B1 fail-secure rework 2026-07-09; it is the surviving rescission
+    boundary — the federation roster cut dropped its copy, inv 14. Renamed from "cut-off"/"terminator" 2026-06-26;
+    the second event is a `Trm` not a `Pin`, 2026-06-26.)*
+  - **Check = fail-secure by default (B1 fail-secure rework 2026-07-09).** Compute the `target` and **walk X's fresh
+    IEL, forward-matching `target` against each `Dth`'s `kills[]`** (reading `bound` from the same entry): **in some
+    `kills[]` → rescinded (with its `bound`); in none on the fully-walked fresh chain → not rescinded** — being in a
+    `kills[]` **is** the definition of rescinded. This **rides inv 8's freshness gate** (hiding a rescission needs a
+    stale IEL, which the verifier already refuses when trusting X at all), so it is **fail-secure, not best-effort** —
+    the earlier "positive O(1) read, best-effort / client-side attribute-all" is **dropped** (cold/warm re-review-2 F1
+    broke that escape hatch). A verifier may opt **down** to a **fail-open** content-addressed lookup (recompute the
+    `target`, fetch its `{Icp, Trm}` lookup SEL — found → rescinded; not-found → best-effort not-rescinded), never up.
   - **Grandfather = ancestry:** a cred from P stays valid iff its **anchoring position** (the IEL `Ixn` that
     committed it — append-only-fixed, *not* the cred's self-asserted `pin`, which the verifier checks `==
     anchor.previous`) is an **ancestor of** the bound SAID. A rescinded-but-live P can author a fresh cred only
@@ -66,14 +79,20 @@ The per-delegator doc's *mechanism* is superseded, but it proved requirements th
 - **Multi-path:** a cred commits the *one* path it was issued under; to give several delegators kill-authority,
   issue under a **threshold** spanning their legs (all legs land in the committed chain).
 - **Temporal split — "frozen-which, current-whether."** The check-*set* is frozen (the cred's committed chain at
-  issuance); the *whether-rescinded* query is current (fresh effective-SAID per hop). No collision.
+  issuance); the *whether-rescinded* query is against current state — **fail-secure** (B1 fail-secure rework
+  2026-07-09): the fresh to-tip walk of the delegator's chain forward-matches the `target` in each `Dth`'s `kills[]`,
+  so the rescission declaration rides the same witnessed-IEL freshness gate as divergence / staleness (inv 8,
+  inv 10) — a hidden rescission needs a stale IEL the bar already refuses. The blast-radius a *withheld* rescission
+  would have carried (no `bound` seen → the cut-off delegate's *new* creds honored) **closes** under fail-secure: the
+  `kills[]` declaration is un-withholdable on the witnessed chain. No collision.
 - **Cost: O(N = depth), parallelizable, no rollup** (a rollup reintroduces the cross-chain coupling the
   per-locus model exists to avoid). N is small (hop-cap).
 
 ## 3. Superseded — do NOT carry forward
-- **Per-delegator revocation registries** `R_{D_i}` with `gov = op = id(D_i)` → reshape: single-owner lookup
-  SEL `derive(X, RSC_TOPIC, P)`, no policy (policy moved up). [inv 1]
-- **Non-membership proofs / status-accumulator / compact-witness** → reshape: **positive O(1) read**
+- **Per-delegator revocation registries** `R_{D_i}` with `gov = op = id(D_i)` → reshape: single-owner `kills[]`
+  declaration (`target = hash('{DLG_RSC_TOPIC}:{X}:{data}')`) + lookup SEL (two-pass over `Icp{X, DLG_RSC_TOPIC, data}`), no policy (policy moved up). [inv 1]
+- **Non-membership proofs / status-accumulator / compact-witness** → reshape: a **fail-secure `kills[]`
+  forward-match** on X's fresh IEL (default) with a **fail-open O(1)** content-addressed lookup opt-out
   (present → rescinded). The whole non-membership-witness machinery is gone. [inv 10]
 - **`T_rev` / positioned-issuance (§3.1)** → dissolved; pin-everything-floored closes backdate by construction.
   [inv 5]
