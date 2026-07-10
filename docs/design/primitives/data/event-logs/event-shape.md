@@ -305,7 +305,7 @@ capability — no higher-tier stand-in) are the protocol doctrine's —
 
 ## Event taxonomy
 
-### KEL — 5 kinds
+### KEL — 5 kinds (+ the founder `Fcp` inception variant)
 
 | Kind  | Tier | Sig    | Role                                                                                                                |
 | ----- | ---- | ------ | ------------------------------------------------------------------------------------------------------------------- |
@@ -467,13 +467,13 @@ per-kind anchor matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL
 
-| Kind  | owner | topic | data | pin | previousSeal | manifest                                                  |
-| ----- | ----- | ----- | ---- | --- | ------------ | --------------------------------------------------------- |
-| `Icp` | req   | req   | opt  | fbd | fbd          | fbd                                                       |
-| `Ixn` | fbd   | fbd   | fbd  | req | fbd          | opt (`content`)                                           |
-| `Pin` | fbd   | fbd   | fbd  | req | fbd          | fbd                                                       |
-| `Gnt` | fbd   | fbd   | fbd  | req | req          | req (`grant`)                                             |
-| `Trm` | fbd   | fbd   | fbd  | req | req          | opt (`grant`-doc for a gated doc-member rescission bound) |
+| Kind  | owner | topic | data | pin | previousSeal | manifest                                                           |
+| ----- | ----- | ----- | ---- | --- | ------------ | ------------------------------------------------------------------ |
+| `Icp` | req   | req   | opt  | fbd | fbd          | fbd                                                                |
+| `Ixn` | fbd   | fbd   | fbd  | req | fbd          | opt (`content`)                                                    |
+| `Pin` | fbd   | fbd   | fbd  | req | fbd          | fbd                                                                |
+| `Gnt` | fbd   | fbd   | fbd  | req | req          | req (`grant`)                                                      |
+| `Trm` | fbd   | fbd   | fbd  | req | req          | opt (a gated rescind-doc carrying a doc-member rescission `bound`) |
 
 `owner` (the owner IEL prefix, immutable — `Icp` only), `topic`, and `data` participate in the SEL
 prefix derivation (§Prefix derivation), so the `Icp` carries **no `pin`**: a pin field would make

@@ -264,6 +264,20 @@ Token fields are private with no public constructor — the only way to obtain o
 - `is_said_anchored()`, `anchors_all_saids()` → inline anchor-checking results for SAIDs the caller
   registered before the walk.
 
+The capital chain **states**, the `region()` trust projection, and the `effective_said` type tags
+are three views of the one data-local walk:
+
+| chain state | `region()` | `effective_said`     |
+| ----------- | ---------- | -------------------- |
+| Active      | `trusted`  | real tip SAID        |
+| Forked      | `forked`   | `forked` synthetic   |
+| Disputed    | `disputed` | `disputed` synthetic |
+| Terminated  | `trusted`  | real `Trm` SAID      |
+
+`region()` is the **divergence** axis, so Active and Terminated both project to `trusted` (a
+terminated chain is final, not divergent); **termination rides the orthogonal `is_terminated()`
+accessor**, never a `region()` value.
+
 ## Inline anchor checking
 
 The caller registers SAIDs of interest before the walk via `verifier.check_anchors(saids)`. As the

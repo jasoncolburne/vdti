@@ -108,6 +108,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   states** — the walk that tells them apart (≤ 1 vs ≥ 2 sealed past the fork) is how the state is
   computed, not a "reading" layered on one divergent state.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+- **`Terminated` vs `Terminal` vs `Trm`** — three near-homographs, one letter apart, with distinct
+  meanings: **`Terminated`** is the fourth chain **state** (a chain ended by a `Trm`);
+  **`Terminal`** is the merge **rejection** for an event chaining _from_ a `Trm` (which admits no
+  successor); **`Trm`** is the terminate **event kind**.
+  ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 
 ## Concepts
 

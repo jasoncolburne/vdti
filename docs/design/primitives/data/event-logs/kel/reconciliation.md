@@ -101,6 +101,10 @@ layered on a single divergent state).
 | **Disputed**   | A live fork with **≥ 2 sealed branches** past it — terminal. No sealed branch can be buried (that would resurrect retired keys), so nothing resolves it and the prefix must **reincept**. Derived by the same data-local walk as Forked; the discriminator is the sealed count (≥ 2). Witnesses decline any extension of a disputed chain (barring a partition), so a new submission is `Ignored`; the only exit is reincept.                                      |
 | **Terminated** | The `Trm` is the **permanent** end of the canonical chain (its tier-2 signature authorizes ending it there). **Not absorbing**: a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling beside or beyond → `Disputed`; a content sibling → `Sealed`.                                                                                                                                                                                                 |
 
+**Empty** is the pre-inception (no-chain) case, included for matrix completeness; the four
+**live-chain** states are **Active** / **Forked** / **Disputed** / **Terminated**. A "proof state"
+counts Empty alongside those four (five rows), while the state _machine_ is four-state.
+
 ## Merge outcomes — the cell vocabulary
 
 Every cell in Matrices 1–2 is a **transition** (the chain moved to or held a state) or a
@@ -142,8 +146,12 @@ parent fixes which.
    seal→tip run (content-only by definition); its parent may be the seal, or any later run event up
    to the tip's predecessor.
 
-The attach-position, not the chain state, carries this distinction — the state stays one of the
-five. Outcomes are the `Result<MergeTransition, MergeRejection>` vocabulary above.
+A parent **strictly below** the last seal is none of these three — it lies in the locked portion, so
+by the seal-cap (invariant 5) the submission is rejected `Sealed` (a content child) or reads
+`Disputed` (a sealed child), independent of attach-position.
+
+The attach-position, not the chain state, carries this distinction — the state stays one of the four
+live-chain states. Outcomes are the `Result<MergeTransition, MergeRejection>` vocabulary above.
 
 ### Position 1 — the new event extends the tip (trivial: linear)
 
@@ -226,6 +234,12 @@ chain data alone.
 branch: a sink on the _same_ branch as the source reads "winning" (→ `Extended`, dedup); a sink on a
 _different_ branch reads "losing" (→ `Forked`, a fork forms). For a not-yet-recovered Active source,
 which branch is eventually kept isn't known — the outcome depends only on same-vs-different-branch.
+
+**Row note (no Disputed source).** A **Disputed** source (≥ 2 sealed branches past a fork) needs no
+separate row: it transfers like a **Forked** source — its retained sealed branches propagate
+(§Transfer ordering), and the sink reads **Disputed** by sealed-count (the Forked → Disputed
+escalation below, [§Matrix 3](#matrix-3-race-matrix)). **Terminated** gets its own row because it
+resolves by tier-rank, not by sealed-count.
 
 **Guarded cells:**
 
