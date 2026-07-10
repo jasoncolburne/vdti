@@ -113,15 +113,21 @@ mechanism.
 ## Canonical form for SAID computation
 
 Two rules govern the canonical form a SAD presents to the SAID-computation hash. They are jointly
-load-bearing: together they make the SAID identity-invariant under wire-form choices and propagate
-tamper-evidence downward through any inline embedding.
+load-bearing: together they define the SAID over the **fully-compacted** canonical form —
+re-derivable from any wire form by compacting down — and propagate tamper-evidence downward through
+any inline embedding.
 
-**Rule 1 — Canonical form represents nested SADs by SAID.** The canonical form used for SAID
-computation always represents nested SADs by their SAIDs (type-qualified base64 strings), regardless
-of wire form. A SAD MAY be transmitted with sub-SADs embedded inline (an expanded wire form; see
-[`compaction.md`](compaction.md)) or with sub-SADs referenced by SAID (a compacted wire form); the
-SAID computation sees the SAID-referenced form in either case. The canonical bytes the hash sees do
-not change when wire form does, so the SAD's SAID is the same in either form.
+**Rule 1 — The canonical form is the fully-compacted form (nested SADs by SAID).** The canonical
+form used for SAID computation represents every nested SAD by its SAID (a type-qualified base64
+string) — the **fully-compacted** form. A SAD's SAID is **defined over this canonical form**, and
+every reference in the system commits to that value, so the SAID is **form-dependent**: it is the
+fully-compacted form's SAID, not a property shared by every wire form's literal bytes. A SAD MAY be
+transmitted with sub-SADs embedded inline (an expanded wire form; see
+[`compaction.md`](compaction.md)) or with sub-SADs referenced by SAID (a compacted wire form). To
+compute or verify the SAID from **any** wire form, a verifier **compacts it down** — replacing each
+nested SAD with its SAID (verifying each per Rule 2) until the fully-compacted canonical form is
+reached — then hashes that. The SAID must always stay **re-derivable from the data** this way;
+hashing an expanded form's literal bytes does not yield it.
 
 **Recognition rule.** A nested object is a nested SAD iff it carries a `said` field. The `said`
 field is reserved at every nesting level; its presence is the structural marker by which a

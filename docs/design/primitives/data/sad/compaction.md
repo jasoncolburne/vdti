@@ -1,12 +1,13 @@
 # SAD Compaction
 
-**SAD compaction** is the structural transform between a fully-expanded SAD and a compacted
-representation that replaces nested sub-SADs with their SAIDs. The transform is SAID-preserving — by
-Rule 1 in
-[`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation), a
-SAD's [SAID](said.md), computed from the canonical form rather than the wire form, is the same in
-expanded and compacted shapes. A verifier can validate the compacted shape and fetch sub-SADs on
-demand when full content is needed.
+**SAD compaction** is the structural transform between a fully-expanded SAD and its
+**fully-compacted** representation, which replaces nested sub-SADs with their SAIDs. A SAD's
+[SAID](said.md) is **defined over the fully-compacted canonical form** (Rule 1 in
+[`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation));
+every wire form **re-derives to that one canonical SAID by compacting down** (verifying each child),
+so a differently-compacted wire form is checked against the committed SAID, never assumed equal to
+it. A verifier can validate the compacted shape and fetch sub-SADs on demand when full content is
+needed.
 
 This doc states the compaction rule, the SAID-preservation invariant that makes the rule
 load-bearing, and the resource-amplification defense that constrains compactor implementations.
@@ -26,20 +27,22 @@ sub-SADs.
 
 ## SAID-preservation invariant
 
-All wire forms of a SAD canonicalize to the same bytes — wire forms embed sub-SADs differently, but
-Rule 1 (canonical form represents nested SADs by SAID) in
-[`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation) makes
-the canonical bytes invariant across wire forms. The SAID — computed from the canonical form, not
-from the wire form — is therefore the same. This is what makes compaction operationally useful: the
-parent's SAID — already committed to in `previous` pointers, anchor SAIDs, signatures, and custody
-references — does not change when sub-SADs are compacted or re-expanded.
+Every wire form of a SAD **re-derives to the same canonical (fully-compacted) SAID by compacting
+down** — wire forms embed sub-SADs differently, but Rule 1 (the canonical form represents nested
+SADs by SAID) in
+[`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation) fixes
+the canonical bytes as the **fully-compacted** form's, and a verifier reaches them from any wire
+form by compacting (verifying each child per Rule 2). The SAID — defined over the fully-compacted
+canonical form, not read off the wire bytes — is therefore the value already committed in `previous`
+pointers, anchor SAIDs, signatures, and custody references, and it does not change when sub-SADs are
+compacted or re-expanded. This is what makes compaction operationally useful.
 
 The invariant is a direct corollary of the two rules in
 [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation):
 
-- **Rule 1** says the canonical form the hash sees always represents nested SADs by SAID. Wire form
-  does not affect which bytes the hash sees — both compacted and expanded wire forms yield the same
-  canonical bytes, and therefore the same SAID.
+- **Rule 1** says the canonical form the hash sees always represents nested SADs by SAID. Both
+  compacted and expanded wire forms **compact down to the same canonical bytes**, and therefore
+  re-derive the same SAID — the fully-compacted form's.
 - **Rule 2** says a verifier receiving an expanded form must verify each embedded child's declared
   SAID against the child's own bytes before substituting it into the parent's canonical form.
   Tamper-evidence recurses down through inline embedding, so an expanded form cannot lie about what

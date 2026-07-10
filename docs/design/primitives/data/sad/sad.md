@@ -91,11 +91,12 @@ independent hashes (see [`said.md` §Derivation](said.md#derivation)).
 ## Composition by reference
 
 A SAD that depends on another SAD commits to that child by SAID. The canonical form for SAID
-computation always uses SAIDs at sub-SAD positions, never inline content (see
-[`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)).
+computation — the **fully-compacted** form — uses SAIDs at sub-SAD positions, never inline content
+(see [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)).
 Over-the-wire representations MAY embed children inline for atomicity or transport efficiency (see
-[`compaction.md`](compaction.md)); the canonical bytes the parent's SAID hashes over are the same
-regardless of wire form.
+[`compaction.md`](compaction.md)); the parent's SAID is **defined over the fully-compacted canonical
+form** and re-derived by compacting any wire form down (verifying each child), never read off the
+wire bytes as-is.
 
 The reference graph composes: a parent SAD's SAID commits to the SAIDs of its referenced children,
 which commit to their own children, and so on. An adversary cannot substitute any node in the graph
