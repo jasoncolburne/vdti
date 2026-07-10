@@ -71,12 +71,15 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
 - **`del(X, N)` — a live delegate of `X`, within `N` hops.** Satisfied by a party that holds a live,
   non-rescinded delegation from `X`, reachable by walking **up** its own delegation chain to `X` in
   **at most `N` hops** (`del(X)` abbreviates `del(X, 1)` — a direct delegate). Whether each hop's
-  delegation is still live is answered by a **positive lookup** — the verifier derives one address
-  and reads it (present → rescinded; absent → live) — never by scanning a chain for the absence of a
-  rescission. The verifier walks **up** from the **presented party** rather than down from `X`:
-  `X`'s _transitive_ delegate closure (delegates of delegates …) is unbounded, so it is never
-  enumerated; instead the verifier follows the **one authorizing path the document commits** (each
-  hop a self-recorded `delegating` link pinning up toward `X` — [`documents.md`](documents.md)),
+  delegation is still live is answered by a **positive match** — is the hop's derived `target` in a
+  `kills[]` declaration on the delegator's chain (present → rescinded; absent → live) — **never** by
+  scanning a chain for the absence of a rescission. The read is **fail-secure by default**
+  (forward-match the `target` on the delegator's **fresh** IEL, so a stale view cannot hide a
+  rescission — [`evaluation.md`](evaluation.md)), with a content-addressed lookup as the fail-open
+  opt-out. The verifier walks **up** from the **presented party** rather than down from `X`: `X`'s
+  _transitive_ delegate closure (delegates of delegates …) is unbounded, so it is never enumerated;
+  instead the verifier follows the **one authorizing path the document commits** (each hop a
+  self-recorded `delegating` link pinning up toward `X` — [`documents.md`](documents.md)),
   confirming each hop's grant against that delegator's `Ath` inclusion list (the positive lookup
   above). The walk is bounded by `N` **and** by a verifier-wide depth/work cap, and exceeding
   **either** denies (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates,

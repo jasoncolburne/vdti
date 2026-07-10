@@ -63,7 +63,7 @@ three things the caller composes:
   as-issued validity is **final** and stays final regardless of any divergence later landing _above_
   the seal;
 - **the current region** at and above the anchor — **trusted**, **forked** (a recoverable
-  divergence, pending its repair), or **disputed** (terminal); and
+  divergence, pending its burying seal-advancer), or **disputed** (terminal); and
 - **freshness** — whether the chain's current state is fresh, read against **multi-source /
   witnessed** state, never a single source's possibly-stale claim (a single stale or malicious
   source could hide a revocation).

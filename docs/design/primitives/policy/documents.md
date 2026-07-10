@@ -34,11 +34,11 @@ mode.
 
 A document **carries no self-asserted pin.** Its issuer context is fixed by the **anchoring
 position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
-`Ixn` whose `manifest` names the document (for a credential, the issuance `Ixn` that lists the
-credential SEL's serial-1 `Pin` (its `v1`, the `Icp` riding `v1.previous` and never itself anchored)
-under `manifest.anchors`, [`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)).
-That event sits at a fixed serial on the append-only chain, and it fixes the context two ways at
-once:
+`Ixn` whose `manifest.anchors` names the document. For a **credential** — a direct-anchored SAD,
+never a SEL — that is the issuance `Ixn` naming the **issuance commitment**
+`hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, and that anchor **is** the validity proof
+([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
+fixed serial on the append-only chain, and it fixes the context two ways at once:
 
 - It **commits the point-in-time** so a verifier can find and verify the issuer's context — the
   state immediately **before** the anchoring event transitively commits the issuer's identity (its
@@ -49,14 +49,25 @@ once:
   it actually anchors in the restrictive present.
 
 So **authority-affecting resolution is judged by the anchoring position.** The _document_ carries no
-self-asserted value the issuer chose — the as-of is read from where it is anchored. (The cred-SEL's
-structural serial-1 `Pin` does name a position, but it is **checked, not trusted**: the verifier
-locates the anchoring `Ixn` — whose `manifest.anchors` carries the cred-SEL's serial-1 `Pin` — and
-enforces `Pin.pin == that anchor's previous`, so a served `Pin` can't resolve under a stale roster.)
-There is no separate machinery to establish "when": the append-only chain is the clock. (A
-credential SEL floors to its issuer's IEL through its own serial-1 `Pin`, a structural chain field —
-that is how the chain locates the anchoring event, not a value the document asserts; see
-[`../data/event-logs/sel/`](../data/event-logs/sel/).)
+self-asserted value the issuer chose — the as-of is read from where it is anchored, and there is no
+separate machinery to establish "when": the append-only chain is the clock.
+
+**Under multiple anchors of the same commitment, the anchoring position is the EARLIEST.** A cred's
+issuance commitment is a flat hash in `anchors[]`, not a chain event, so nothing structurally
+forbids re-anchoring it — and a later re-anchor must not move the as-of forward. Concretely: a **T1
+`Ixn` re-anchor** landing _after_ a **T2 `Rev`** revoked the cred would push a naive latest-anchor
+floor _past_ the revocation, silently un-revoking it — a **tier inversion**. So the feature layer
+resolves the issuance position as the **first** matching anchor on the fresh inception→tip walk and
+treats any later re-anchor as **inert** (never trusting a supplied or cached later position). The
+earliest floor is load-bearing alongside the fresh tip — the two ends of the revocation walk's range
+([`evaluation.md`](evaluation.md)).
+
+A document that is instead **looked up by a derived address** rather than presented — a
+multi-identity **attestation SEL** (below), or any looked-up attested SAD — is located through the
+serial-1 `Pin` (its `v1`) of its anchoring SEL. That `Pin` names a position but is **checked, not
+trusted**: the verifier enforces `Pin.pin ==` the anchoring `Ixn`'s `previous`, so a served `Pin`
+can't resolve under a stale roster (the custody SEL-anchor mechanism,
+[`../data/sad/custody.md`](../data/sad/custody.md)).
 
 ### Non-circular
 
@@ -99,18 +110,19 @@ each hop's delegating link is recorded on the delegate's own identity, pinning u
 verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
 never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
 furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and that the
-grant has not been **rescinded** (a positive lookup, [`policy.md`](policy.md)). The **grandfather**
-check is **per hop, on that hop's own chain** — there is no cross-chain clock: the **issuer's own
-hop** is grandfathered iff the document's **anchoring position** is an ancestor of the issuer's
-rescission bound; each **upstream hop** iff _that hop's committed grant position_ is an ancestor of
-_that hop's_ bound, on the granting delegator's chain. The document is authorized iff **every** hop
-is grandfathered. (A grant authored before trust was withdrawn at its hop stays valid; one that
-post-dates that hop's bound does not — and the bound is **set once** at rescission — the rescission
-is a terminal `Trm`, so it can't be moved later to un-kill, nor tightened earlier; a mis-set bound
-is recovered operationally, not by adjusting it.) To give several delegators kill-authority over a
-document, issue it under a threshold spanning their legs, so every leg lands in the committed chain.
-The delegation mechanics — the delegate list, the rescission lookup, and the bound — are the IEL
-primitive's; see [`../data/event-logs/iel/`](../data/event-logs/iel/).
+grant has not been **rescinded** (a positive `kills[]` match, fail-secure by default —
+[`policy.md`](policy.md)). The **grandfather** check is **per hop, on that hop's own chain** — there
+is no cross-chain clock: the **issuer's own hop** is grandfathered iff the document's **anchoring
+position** is an ancestor of the issuer's rescission bound; each **upstream hop** iff _that hop's
+committed grant position_ is an ancestor of _that hop's_ bound, on the granting delegator's chain.
+The document is authorized iff **every** hop is grandfathered. (A grant authored before trust was
+withdrawn at its hop stays valid; one that post-dates that hop's bound does not — and the bound is
+**set once** at rescission — the rescission is a terminal `Trm`, so it can't be moved later to
+un-kill, nor tightened earlier; a mis-set bound is recovered operationally, not by adjusting it.) To
+give several delegators kill-authority over a document, issue it under a threshold spanning their
+legs, so every leg lands in the committed chain. The delegation mechanics — the delegate list, the
+rescission lookup, and the bound — are the IEL primitive's; see
+[`../data/event-logs/iel/`](../data/event-logs/iel/).
 
 ## Timestamps are advisory
 
