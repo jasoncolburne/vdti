@@ -35,9 +35,10 @@ transition, the resulting state and new tip SAID.
 A merge returns one of two things — a **`MergeTransition`** on success (what the batch did to the
 chain, named by the resulting state) or a **`MergeRejection`** when the batch changes nothing.
 
-**Transitions** — each names the state the chain is in after the batch lands. The Forked-versus-
-Disputed split is by the **sealed-branch count** past the fork (≤ 1 → Forked, ≥ 2 → Disputed); the
-content-branch count does not affect it.
+**Transitions** — each is named for its action or the state the chain is in after the batch lands
+(`Extended` and `Recovered` both land **Active**). The Forked-versus-Disputed split is by the
+**sealed-branch count** past the fork (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch count does
+not affect it.
 
 | Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                        |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |

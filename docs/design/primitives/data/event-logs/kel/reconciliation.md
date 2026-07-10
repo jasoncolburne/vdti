@@ -112,7 +112,8 @@ Every cell in Matrices 1–2 is a **transition** (the chain moved to or held a s
 engine returns per submission ([`merge.md` §Merge outcomes](merge.md#merge-outcomes) is
 authoritative).
 
-**Transitions** — each names the resulting state:
+**Transitions** — each is named for its action or resulting state (`Extended` and `Recovered` both
+land **Active**):
 
 | Transition     | Verdict                                                                                 | Chain after               |
 | -------------- | --------------------------------------------------------------------------------------- | ------------------------- |
@@ -146,9 +147,11 @@ parent fixes which.
    seal→tip run (content-only by definition); its parent may be the seal, or any later run event up
    to the tip's predecessor.
 
-A parent **strictly below** the last seal is none of these three — it lies in the locked portion, so
-by the seal-cap (invariant 5) the submission is rejected `Sealed` (a content child) or reads
-`Disputed` (a sealed child), independent of attach-position.
+A new event whose **own serial is below the seal's** (its parent below `v_{seal−1}`) is none of
+these three — it lands in the locked portion, so by the seal-cap (invariants 2, 5) it is rejected
+`Sealed` (a content child) or reads `Disputed` (a sealed child), independent of attach-position. A
+sibling **at** the seal's own serial (parent `v_{seal−1}`) is Position 2 — a live fork, not below
+it.
 
 The attach-position, not the chain state, carries this distinction — the state stays one of the four
 live-chain states. Outcomes are the `Result<MergeTransition, MergeRejection>` vocabulary above.
@@ -240,6 +243,11 @@ separate row: it transfers like a **Forked** source — its retained sealed bran
 (§Transfer ordering), and the sink reads **Disputed** by sealed-count (the Forked → Disputed
 escalation below, [§Matrix 3](#matrix-3-race-matrix)). **Terminated** gets its own row because it
 resolves by tier-rank, not by sealed-count.
+
+**Column note (no Disputed sink).** A **Disputed** sink is a terminal fixed point: every transfer
+dedups or retains the incoming branches as evidence and leaves the reading **Disputed**; a new
+canonical extension is `Ignored` (the Disputed rule in [Matrix 1](#matrix-1-local-submissions)). No
+column is needed.
 
 **Guarded cells:**
 

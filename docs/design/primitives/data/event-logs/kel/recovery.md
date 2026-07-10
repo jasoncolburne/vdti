@@ -311,9 +311,9 @@ defense — once an adversary rotation lands, the chain reincepts. The post-rota
 closed by the layers composed above KEL:
 
 - **IEL threshold composition.** Threshold-redundant governance (`M > N` across distinct custodians,
-  where `M` is the threshold count and the roster has more candidates than the threshold requires)
-  tolerates single-KEL tier-2 compromise. The surviving members rotate the compromised KEL out via
-  the IEL's `Evl` event (a `cut`) without losing the IEL prefix.
+  where `M` is the roster size and `N` the threshold — the roster has more members than the
+  threshold requires) tolerates single-KEL tier-2 compromise. The surviving members rotate the
+  compromised KEL out via the IEL's `Evl` event (a `cut`) without losing the IEL prefix.
 - **Custody separation.** KEL-internal custody hygiene (the reserve on a different device,
   HSM-resident, ceremony-gated) raises the practical bar to acquire the reserve. This is operational
   hardening; the protocol is custody-agnostic.

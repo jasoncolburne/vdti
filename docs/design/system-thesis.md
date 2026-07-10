@@ -14,7 +14,7 @@ framing; the others elaborate it.
 
 Terms used throughout, briefly:
 
-- **SAID** — Self-Addressing IDentifier. Blake3-256 hash of the content with the SAID field
+- **SAID** — Self-Addressing Identifier. Blake3-256 hash of the content with the SAID field
   populated with a fixed value.
 - **SAD** — Self-Addressed Data. A content-addressable data structure identified by its SAID.
 
