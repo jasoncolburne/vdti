@@ -29,11 +29,21 @@
 
 # === kels-internal tool / agent names (out-of-context in vdti) ===
 # Distinctive enough to forbid; common words ("max", "min") rely on review.
+# xhigh is allowed — it names a real Claude Code effort tier in PROCESS.md.
 \bclaudit\b
-\bxhigh\b
 
 # === kels protocol namespace leakage ===
 # vdti has its own namespace: vdti/witness/v1/topics/*, vdti/sad/v1/*, etc.
 kels/gossip/
 kels/witness/
 kels/sad/
+
+# === Retired IEL policy model (post-iel-policies-audit) ===
+# Two-field authPolicy / governancePolicy replaced by the PoliciesSet model
+# (policies["governance"] / ["delegation"] / ["sel"] + app-level kinds).
+# "governance-authorized" conflated policy (who) with tier (auth level) — the
+# two axes are named separately now (see protocol-doctrine.md
+# §Policy and tier are orthogonal axes).
+\bauthPolicy\b
+\bgovernancePolicy\b
+governance-authorized

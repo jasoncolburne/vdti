@@ -18,4 +18,4 @@ labels: doctrine
 
 ## Cross-references
 
-<docs/design/* sections, related issues, prior discussions>
+<docs/design/\* sections, related issues, prior discussions>

@@ -1,15 +1,16 @@
 # Documents — where policy lives
 
-Part of the policy layer — see [`policy.md`](policy.md) for the language and the two
-authorization mechanisms.
+Part of the policy layer — see [`policy.md`](policy.md) for the language and the two authorization
+mechanisms.
 
-Policy lives on **documents**, never on a chain event. A document is a [SAD](../data/sad/sad.md):
-an application-defined payload (a credential, an attestation, a signed declaration) that carries,
+Policy lives on **documents**, never on a chain event. A document is a [SAD](../data/sad/sad.md): an
+application-defined payload (a credential, an attestation, a signed declaration) that carries,
 alongside its content, the policy that authorizes it. This doc states the generic shape every
-policy-bearing document shares — the two conditions it can carry, the pin that fixes its issuer
-context, and how that pin is anchored so it cannot name a more permissive past. The lifecycle of
-any specific document kind (how a **credential** is issued and revoked, for instance) is a feature
-layered above this one — see [`../../features/credentials/`](../../features/credentials/) *(a feature; landed separately)*.
+policy-bearing document shares — the two conditions it can carry, and how its issuer context is
+fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
+specific document kind (how a **credential** is issued and revoked, for instance) is a feature
+layered above this one — see [`../../features/credentials/`](../../features/credentials/) _(a
+feature; forthcoming)_.
 
 ## A document's two conditions
 
@@ -17,11 +18,11 @@ A policy-bearing document carries up to two policy references (each the SAID of 
 [`policy.md`](policy.md)):
 
 - **The authorizing condition — who could issue it.** When a single identity issues the document,
-  this condition is **structural**: the issuer's own IEL **`t_use`** threshold authorizes the issuance, and
-  there is no policy expression to evaluate (the structural mechanism, [`policy.md`](policy.md),
-  covers it). The condition becomes an explicit policy only when issuance **spans separate
-  identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of three institutions) —
-  there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
+  this condition is **structural**: the issuer's own IEL **`t_use`** threshold authorizes the
+  issuance, and there is no policy expression to evaluate (the structural mechanism,
+  [`policy.md`](policy.md), covers it). The condition becomes an explicit policy only when issuance
+  **spans separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of three
+  institutions) — there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
 - **The acceptance condition — who may present it.** The rule for who may later present or act on
   the document. This is evaluated **current** — against live proof at the time of presentation
   ([`evaluation.md`](evaluation.md)).
@@ -29,69 +30,77 @@ A policy-bearing document carries up to two policy references (each the SAID of 
 The composing logic is the same language in both cases; only how each leaf is resolved differs by
 mode.
 
-## The pin — fixing the issuer context
+## The anchoring position — fixing the issuer context
 
-A document carries a **`pin`**: the SAID of the issuer identity's IEL event **prior to** the
-issuance. The pin does two things at once:
+A document **carries no self-asserted pin.** Its issuer context is fixed by the **anchoring
+position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
+`Ixn` whose `manifest.anchors` names the document. For a **credential** — a direct-anchored SAD,
+never a SEL — that is the issuance `Ixn` naming the **issuance commitment**
+`hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, and that anchor **is** the validity proof
+([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
+fixed serial on the append-only chain, and it fixes the context two ways at once:
 
-- It **commits the point-in-time** so a verifier can find and verify the issuer's context — that
-  one event transitively commits the issuer's identity state (its members and threshold) and its
-  whole delegation chain, because each of those is committed by the events the pinned event builds
-  on.
-- It is **checked, never trusted.** The document is committed to the chain by an **anchoring
-  event** on the issuer's IEL — the event whose `manifest` references the document
-  ([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). The verifier enforces
+- It **commits the point-in-time** so a verifier can find and verify the issuer's context — the
+  state immediately **before** the anchoring event transitively commits the issuer's identity (its
+  members and threshold) and its whole delegation chain, because each is committed by the events the
+  anchoring event builds on.
+- It **cannot be backdated.** The anchoring position is append-only — it cannot be inserted into the
+  past — so the issuer cannot make the document appear authorized under a more permissive past while
+  it actually anchors in the restrictive present.
 
-  ```
-  pin == (the anchoring event).previous
-  ```
+So **authority-affecting resolution is judged by the anchoring position.** The _document_ carries no
+self-asserted value the issuer chose — the as-of is read from where it is anchored, and there is no
+separate machinery to establish "when": the append-only chain is the clock.
 
-  so the pinned context is exactly the state immediately before the anchoring position. The
-  anchoring position is append-only — it cannot be inserted into the past — so the pin cannot
-  select a more permissive past while the issuance actually anchors in the restrictive present.
+**Under multiple anchors of the same commitment, the anchoring position is the EARLIEST.** A cred's
+issuance commitment is a flat hash in `anchors[]`, not a chain event, so nothing structurally
+forbids re-anchoring it — and a later re-anchor must not move the as-of forward. Concretely: a **T1
+`Ixn` re-anchor** landing _after_ a **T2 `Rev`** revoked the cred would push a naive latest-anchor
+floor _past_ the revocation, silently un-revoking it — a **tier inversion**. So the feature layer
+resolves the issuance position as the **first** matching anchor on the fresh inception→tip walk and
+treats any later re-anchor as **inert** (never trusting a supplied or cached later position). The
+earliest floor is load-bearing alongside the fresh tip — the two ends of the revocation walk's range
+([`evaluation.md`](evaluation.md)).
 
-This is why **authority-affecting resolution is judged by the anchoring position, not by the
-self-asserted pin.** The pin lives inside the document, where its issuer chose it; the anchoring
-position lives on the append-only chain, where it cannot be backdated. Tying the two together with
-`pin == anchor.previous` makes the document's claimed context and its real, on-chain context the
-same thing. There is no separate machinery to establish "when" — the append-only chain is the
-clock.
+A document that is instead **looked up by a derived address** rather than presented — a
+multi-identity **attestation SEL** (below), or any looked-up attested SAD — is located through the
+serial-1 `Pin` (its `v1`) of its anchoring SEL. That `Pin` names a position but is **checked, not
+trusted**: the verifier enforces `Pin.pin ==` the anchoring `Ixn`'s `previous`, so a served `Pin`
+can't resolve under a stale roster (the custody SEL-anchor mechanism,
+[`../data/sad/custody.md`](../data/sad/custody.md)).
 
 ### Non-circular
 
-The pin is the issuer IEL's tip at issuance. The document's SAID is fixed from its content
-(including the pin), and only **then** does the issuer author the anchoring event with `previous
-== pin` and a `manifest` naming the document's SAID. So the document commits to a position that
-already exists, and the anchoring event commits to a document that is already fixed — no cycle.
+The document's SAID is fixed from its content; only **then** does the issuer author the anchoring
+event whose `manifest` names that SAID. So the anchoring event commits to a document that is already
+fixed, and the document is found and dated through an event that already exists — no cycle, and no
+value the document must carry to point back at the chain.
 
-## Multi-identity authorization — one pin per authorizing identity
+## Multi-identity authorization — independent attestations
 
 A document whose **authorizing** condition spans separate identities cannot collapse to a single
-joint identity (a threshold over devices is not a threshold over identities). It carries **one pin
-per authorizing identity**, and **each authorizing identity independently anchors the document**:
-each authors its own anchoring IEL event naming the document, and the verifier checks **each
-party's `pin == that party's own anchoring event's `previous``**.
+joint identity (a threshold over devices is not a threshold over identities). The document instead
+names a custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each authorizing identity
+issues its own attestation independently**: each authors its own attestation SEL over the document,
+self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by `derive`. The
+authorizing policy (`thr` / `wgt` / `and` over `id()`) is satisfied by the **positive lookup** of
+each named issuer's attestation — there are **no per-party pins**, no scan, and no cross-issuer
+coordination: each issuer anchors on its own chain at its own pace, and the verifier reads each
+one's authorization **as-of its own anchoring position**.
 
-- A co-authorizer that does **not** anchor contributes no checkable position and is **not
-  credited** — so a malicious primary cannot set a co-author's pin to a permissive past on the
-  co-author's behalf. Per-party anchoring closes that the same way single-issuer anchoring does.
-- Because each check is `pin == that party's own anchor's `previous``, a co-author's anchoring
-  event must be its **very next IEL event** after the document's pins are fixed. Any intervening
-  event on that party's IEL moves its tip, so its pin no longer equals its anchor's `previous` and
-  its anchor is rejected (the document must be re-cut against the new pin). For an `N`-party
-  document, the `N` issuers therefore **quiesce their identities between finalizing the document
-  and anchoring it** — a coordination constraint, not a soundness gap.
+- An issuer that has **not** attested contributes no anchored position and is **not credited** — a
+  malicious co-issuer cannot manufacture another's attestation, exactly as a single issuer cannot
+  backdate its own.
+- The threshold reads the count of **distinct** attesting identities (by prefix,
+  [`policy.md`](policy.md)).
 
-Single-issuer documents stay single-`pin`; per-party pins exist only for multi-identity
-authorization.
+## Recursive
 
-## Recursive pinning
-
-A document issued under another document pins, just as a credential pins its issuer. A document
-`D` issued under credential `C` carries its own pin to **its issuer's IEL position** prior to
-issuing `D` — the pin is always an issuer-IEL-event SAID (see **The pin**, above). `C`'s context is
-committed by, and found through, that position, since the issuer holds and anchored `C`; authority
-is judged by `D`'s own anchoring position (verified `== pin`). The same append-only-chain-is-the-clock rule applies at every level.
+A document issued under another document is anchored just as a credential is. A document `D` issued
+under credential `C` is committed by `D`'s **own** anchoring event on its issuer's IEL; `C`'s
+context is committed by, and found through, that position, since the issuer holds and anchored `C`.
+Authority is judged by `D`'s own anchoring position. The same append-only-chain-is-the-clock rule
+applies at every level — with no self-asserted value carried at any level.
 
 ## Delegation in a document
 
@@ -100,35 +109,35 @@ A document may be authorized by a **delegate** of an identity — the `del(X, N)
 each hop's delegating link is recorded on the delegate's own identity, pinning up to `X`, so the
 verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
 never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
-furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and
-that the grant has not been **rescinded** (a positive lookup, [`policy.md`](policy.md)). The
-**grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock: the
-**issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor of
-the issuer's rescission cut-off; each **upstream hop** iff *that hop's committed grant position* is
-an ancestor of *that hop's* cut-off, on the granting delegator's chain. The document is authorized
-iff **every** hop is grandfathered. (A grant authored before trust was withdrawn at its hop stays
-valid; one that post-dates that hop's cut-off does not — and a cut-off can only move **earlier**, so
-a grant that looks grandfathered today can be cut tomorrow.) To give
-several delegators kill-authority over a document, issue it under a threshold spanning their
+furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and that the
+grant has not been **rescinded** (a positive `kills[]` match, fail-secure by default —
+[`policy.md`](policy.md)). The **grandfather** check is **per hop, on that hop's own chain** — there
+is no cross-chain clock: the **issuer's own hop** is grandfathered iff the document's **anchoring
+position** is an ancestor of the issuer's rescission bound; each **upstream hop** iff _that hop's
+committed grant position_ is an ancestor of _that hop's_ bound, on the granting delegator's chain.
+The document is authorized iff **every** hop is grandfathered. (A grant authored before trust was
+withdrawn at its hop stays valid; one that post-dates that hop's bound does not — and the bound is
+**set once** at rescission — the rescission is a terminal `Trm`, so it can't be moved later to
+un-kill, nor tightened earlier; a mis-set bound is recovered operationally, not by adjusting it.) To
+give several delegators kill-authority over a document, issue it under a threshold spanning their
 legs, so every leg lands in the committed chain. The delegation mechanics — the delegate list, the
-rescission lookup, and the cut-off — are the IEL primitive's; see
+rescission lookup, and the bound — are the IEL primitive's; see
 [`../data/event-logs/iel/`](../data/event-logs/iel/).
 
 ## Timestamps are advisory
 
 A document may carry feature-level timestamps (an issued time, an expiry). They are **advisory**:
-they never decide a structural or cryptographic check. An expired document is *expired* — the
-caller inspects that and decides — but all ordering and grandfather questions use the **anchoring
-position** (append-only ancestry, with the pin verified `== anchor.previous`), never a clock. The
-chain primitives themselves carry no timestamps at all; only feature layers do, and only as
-feature semantics.
+they never decide a structural or cryptographic check. An expired document is _expired_ — the caller
+inspects that and decides — but all ordering and grandfather questions use the **anchoring
+position** (append-only ancestry), never a clock. The chain primitives themselves carry no
+timestamps at all; only feature layers do, and only as feature semantics.
 
 ## Public versus private issuance
 
-Whether an outside observer can tell that an identity issued a particular document is a property
-of how the document is located and disclosed, not of the policy layer. A document whose locating
+Whether an outside observer can tell that an identity issued a particular document is a property of
+how the document is located and disclosed, not of the policy layer. A document whose locating
 address is derivable from its public content is **discoverable**; one whose content carries a
 high-entropy nonce derives an unguessable address and stays **private** until its holder discloses
-it. Either way the policy that authorizes the document, and the pin that fixes its context, work
-identically. The addressing and privacy rules live with the SEL primitive and the credentials
+it. Either way the policy that authorizes the document, and the anchoring that fixes its context,
+work identically. The addressing and privacy rules live with the SEL primitive and the credentials
 feature — [`../data/event-logs/sel/`](../data/event-logs/sel/).
