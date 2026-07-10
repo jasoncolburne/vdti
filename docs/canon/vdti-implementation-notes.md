@@ -86,7 +86,7 @@ Doctrine is the leading edge — these follow it.
     anchored at its **own** `MAX(serial)`, so a behind node's value already differs and its own
     since-fetch pulls the fork. **Include the cursor's own siblings in the `since` response**
     (adjacent-to-cursor, Jason): a node then also learns if the seal it is anchoring on is **itself**
-    forked (the `Divergent (sealed)` case) — otherwise it could anchor on a forked seal unaware. Once
+    forked (the `Disputed` sealed-spine-fork case) — otherwise it could anchor on a forked seal unaware. Once
     a divergence is seen at a position the cap bounds it — you need only the one competing event, never a
     rescan.
   - **The deep-mint case is not a digest gap (D1).** A sealed event injected **below a node's

@@ -131,12 +131,13 @@ kels/sad/
 evaluate_anchored
 
 # ============================================================================
-# §Doc-only — seal-cap rejection error name (SiblingLocked, not ParentLocked)
+# §Doc-only — seal-cap rejection error name (Sealed — four-state/merge-outcome pass)
 # ============================================================================
-# The seal-cap rejection is SiblingLocked — the candidate would sibling a
-# locked event. There is no ParentLocked error: a parent AT the seal is
-# extendable (parent_serial == seal_serial passes the cap), so "parent locked"
-# is not a rejection condition.
+# The seal-cap rejection is Sealed (an inert below-seal parent: parent.serial <
+# seal_serial) — renamed from SiblingLocked (and earlier ParentLocked) at the
+# four-state / formalized-merge-outcome pass. A parent AT the seal is extendable
+# (parent_serial == seal_serial passes the cap), so a below-seal parent — not a
+# "locked parent" — is the rejection condition.
 
 # ============================================================================
 # §Doc-only — KEL reshape: data-local detection + the manifest/spine model

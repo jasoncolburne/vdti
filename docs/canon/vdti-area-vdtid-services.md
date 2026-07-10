@@ -159,9 +159,12 @@ from stored data **iff gossiped**, so **eviction-completeness rides the independ
 **Convergence rests on propagation** — eventual barring partition, fail-secure under partition. Witnessed events
 propagate and are never dropped, so all nodes converge to the **same held state → the same value** (a single tip's
 real SAID, or a set-independent synthetic); the un-witnessed adversarial flood is declined by witnesses and
-droppable, so it never perturbs the value. Per-node state stays {Active, Divergent, Terminated}; `disputed` is the
-data-local terminal reading (≥ 2 sealed branches, walk-found), never a fourth per-node state. **This value is the
-universal "has state changed?" comparison** behind token-reuse, deferred-deps drain, anti-entropy, and divergence.
+droppable, so it never perturbs the value. **Per-node state is one of four — {Active, Forked, Disputed,
+Terminated}** — each **DERIVED by a data-local walk** over the held events (never a stored flag; the beacon
+propagates the branches, it does not decide): `Forked` (≤ 1 sealed branch past the fork — recoverable) and
+`Disputed` (≥ 2 sealed — terminal) are first-class states, not a verdict layered on one `Divergent` state. **This
+value is the universal "has state changed?" comparison** behind token-reuse, deferred-deps drain, anti-entropy, and
+divergence.
 
 ### 1f. The transfer engine — the one sanctioned data-mover
 One `transfer_*_events` walk with swappable **source / sink / verifier**: `verify_*` = +verifier, `forward_*` =
@@ -211,7 +214,7 @@ by-prefix flat fetch, never gossiped through the value — §1e.)* **Two channel
   does **not** move the value — reached by a plain by-prefix flat fetch, not `since`, so a fresh sink and an
   evidence-holder converge on the canonical tip without chasing the other's buried branch (the spin closed). The
   `since` **response includes the cursor's own siblings** so you learn if the seal you anchor on is itself forked
-  (the `Divergent (sealed)` case).
+  (the `Disputed` sealed-spine-fork case).
 - **Below your own seal → beacon / eclipse residual (out of the value).** A **sealed** event minted below your own
   seal (the harvested-reserve case) is out of the window, so `since` can't reach it and the value doesn't move for it
   — **not a gap**: whoever holds it reads `disputed` directly; a node without it is in the standing eclipse residual

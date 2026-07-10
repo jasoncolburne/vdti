@@ -17,7 +17,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   plain `Rot`).
 - `docs/design/primitives/data/event-logs/event-shape.md` — **canonical.** KEL field/kind shape reconciled to
   first-seen in the same encode (five KEL kinds, two tiers, no recovery key).
-- The three-state machine + locked-portion bound + seal cap survive the pivot; the seal-cap satisfiers narrow to
+- The state machine (now **four-state** — Active/Forked/Disputed/Terminated) + locked-portion bound + seal cap survive the pivot; the seal-cap satisfiers narrow to
   `{Rot, Wit}` (§2), and the burying event is a plain `Rot` (no `Rec`/`Ror`).
 
 ## 1. Locked-candidate — the current KEL model
@@ -96,18 +96,23 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   multi-rotation** (a reserve-theft takeover-by-extend — no divergence, nothing on-chain to challenge) is the same
   outcome: the honest members recognize a rotation they didn't authorize → evict at the IEL / `Dth` if delegated /
   reincept. [inv 8, 12, 13]
-- **Three-state per-node machine: Active / Divergent / Terminated** (no four-state residue; **no per-node
-  `Cnt` state**). The **`disputed`** signal is *separate* — a **data-local** walk verdict: any verifier walks the
-  **retained branches** and finds ≥ 2 each carrying a **sealed** event past the fork (inv 13/17); the witness beacon
-  propagates the branches, it does not decide. Not a fourth per-node state. The **effective-SAID** is a single
-  confirmed tip → **its real SAID**; **no single tip → a type-tagged `synthetic`** marker recoupled to the verdict
-  (`forked`/`disputed`), qualified by prefix + position — **not** a digest over the competing tips (that set is
-  adversarially extensible → flood-unstable; area-vdtid-services §1e). [F2; `vdti-area-vdtid-services.md` §1e]
+- **Four-state per-node machine: Active / Forked / Disputed / Terminated** (**no per-node `Cnt` state**). A live
+  fork is **two distinct states**, not one: **Forked** (≤ 1 sealed branch past it — recoverable) and **Disputed**
+  (≥ 2 — terminal), **each DERIVED by a data-local walk** over the branches a node holds (the walk finds ≥ 2 each
+  carrying a **sealed** event past the fork → Disputed, else Forked — inv 13/17). The walk is *how the state is
+  computed* — never a stored flag, never a federation-pushed verdict (the witness beacon **propagates** the branches,
+  it does **not** decide). So Forked/Disputed are **first-class per-node states**, not a `forked`/`disputed` verdict
+  layered on one `Divergent` state — a **presentation reframe** (2026-07; the mechanics are unchanged:
+  origination-freeze on Forked, reincept on Disputed, the ≤ 1 vs ≥ 2 sealed discriminator, the data-local walk over
+  the retained branches). The **effective-SAID** is a single confirmed tip → **its real SAID**; **no single tip → a
+  type-tagged `synthetic`** marker recoupled to the verdict (`forked`/`disputed`), qualified by prefix + position —
+  **not** a digest over the competing tips (that set is adversarially extensible → flood-unstable;
+  area-vdtid-services §1e). [F2; `vdti-area-vdtid-services.md` §1e]
 - **Locked-portion bound.** Events at-or-below the last seal-advancing event are immutable; a submission whose
-  `previous` points into the locked portion is rejected at merge (**`SiblingLocked`** — renamed from `ParentLocked`,
-  synced to the landed docs 2026-06-22: a parent *at* the seal is **extendable** (`parent_serial == seal_serial`
-  passes the cap), so the rejection condition is a **sibling** already occupying that position, not a "locked
-  parent"). **Cap-satisfying seal-advancers = `{Rot, Wit}`** (`Trm` also advances the seal — `previousSeal`, on the
+  `previous` points into the locked portion is rejected at merge as **`Sealed`** (the merge-rejection name — an inert
+  below-seal parent, `parent.serial < seal_serial`; renamed from `SiblingLocked`/`ParentLocked` at the four-state /
+  merge-outcome formalization. A parent *at* the seal is **extendable** (`parent_serial == seal_serial` passes the
+  cap), so a below-seal parent — not a "locked parent" — is the rejection condition). **Cap-satisfying seal-advancers = `{Rot, Wit}`** (`Trm` also advances the seal — `previousSeal`, on the
   spine — but is terminal, so not a mid-chain cap-satisfier) — `Rot` is the default cap-satisfier, auto-inserted when
   an `Ixn` would exceed the cap. The bound makes recovery cross-node-validatable.
 - **Federation binding = the prefix/SAID split** [inv 7, 14]: **`federation`** = the federation IEL **prefix**
@@ -144,12 +149,14 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   event; recovery is a plain `Rot` that buries structurally by position + descent, naming no fork root.)*
 
 ## 2. Mined from the VDTI-10 build — structure + patterns (first-seen-current; confirm before lock)
-- **6-doc layout** to land: `log.md` (chain primitive, three-state machine, prefix derivation, locked-portion
+- **6-doc layout** to land: `log.md` (chain primitive, four-state machine, prefix derivation, locked-portion
   bound, page/chunk), `events.md` (taxonomy, **two-tier** model, anchor reqs, seal cap), `recovery.md` (recovery
   **doctrine** — recovery is a **plain `Rot` that buries at the root**, the reserve defends the signing key not the
-  rotation key; *not* the operator workflow), `merge.md` (**sealed**-divergence-terminal, first-seen decline,
-  `SiblingLocked`, merge outcomes, canonical routing), `reconciliation.md` (the first-seen convergence walk —
-  root-bury + deadness-descends; forked vs disputed), `verification.md` (the walk).
+  rotation key; *not* the operator workflow), `merge.md` (**sealed**-divergence-terminal, first-seen decline, the
+  **formalized merge outcomes** `Result<MergeTransition, MergeRejection>` — transitions
+  `Extended`/`Recovered`/`Terminated`/`Forked`/`Disputed`, rejections `Sealed`/`Terminal`/`Invalid`/`Ignored`;
+  canonical routing), `reconciliation.md` (the first-seen convergence walk — root-bury + deadness-descends; the
+  **four-state matrix**, Forked vs Disputed), `verification.md` (the walk).
 - **Seal cap** — the 64-event **content-run** bound (per lineage) is a seal-advancer property (any `Rot`/`Wit`).
   **`MINIMUM_PAGE_SIZE = 129`, cap = `(MINIMUM_PAGE_SIZE − 1)/2` = 64 (per lineage).** The page is `2·64 + 1` so one
   fetch/txn carries a **full recoverable content fork — both lineages (≤ 64 each) plus the burying `Rot`** —
