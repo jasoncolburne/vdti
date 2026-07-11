@@ -168,9 +168,9 @@ not the chain state, carries this distinction — the state stays one of the fou
 
 ### The sealed sub-split
 
-The IEL's sealing kinds are not uniform, and the matrix cells above collapse them
-because the **divergence** treatment is identical (all record-both, all sealed, all never buried).
-The finality differs, and shows up only in Position 1 and on a Terminated chain:
+The IEL's sealing kinds are not uniform, and the matrix cells above collapse them because the
+**divergence** treatment is identical (all record-both, all sealed, all never buried). The finality
+differs, and shows up only in Position 1 and on a Terminated chain:
 
 - **`Evl` / `Ath` / `Rev` / `Dth` / `Wit`** are sealed **non-terminal** — a clean landing is
   `Extended` and the chain stays Active (a `Rev` / `Dth` seals a kill on a _target_, not the host

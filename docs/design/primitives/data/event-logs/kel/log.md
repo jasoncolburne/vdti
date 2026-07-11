@@ -213,9 +213,9 @@ adversarial chains.
 
 The structural rules above produce three lifecycle paths per node.
 
-- **Active extension.** Each new event extends the linear chain via `previous = tip.said`.
-  Sealing kinds (`Rot` / `Wit` / `Trm`) advance `last_seal_advancing_event` to their own
-  serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it was.
+- **Active extension.** Each new event extends the linear chain via `previous = tip.said`. Sealing
+  kinds (`Rot` / `Wit` / `Trm`) advance `last_seal_advancing_event` to their own serial and carry
+  `previousSeal`; the content kind (`Ixn`) leaves the seal where it was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   further origination until a seal-advancer on the winning branch buries the loser below the new
   seal. The burying seal-advancer attaches at its submitter's own last good event, **retaining**

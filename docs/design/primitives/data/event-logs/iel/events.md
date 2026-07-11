@@ -439,9 +439,8 @@ omits `roster` (the seal advance via `previousSeal` is the change, not an empty 
 (no added members → no consent needed; `t_govern` of the unchanged roster), content-addressed like
 any event, so two identical re-seals at one position dedupe (idempotent) while a re-seal `Evl`
 versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal. Validation must accept a
-roster-less re-seal `Evl`. `Trm` advances the seal
-but is terminal, so it is not a mid-chain cap-satisfier. See
-[`log.md` §Seal-advance cap](log.md#seal-advance-cap).
+roster-less re-seal `Evl`. `Trm` advances the seal but is terminal, so it is not a mid-chain
+cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 
 ## Cross-references
 

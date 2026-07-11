@@ -111,12 +111,11 @@ The IEL verifier surfaces one forward-only watermark on its
 | --------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `last_seal_advancing_event` | `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm` | Seal-cap — a new event's parent must sit at-or-after this serial (below is the locked portion; the seal event itself is a legal parent). The **derived seal**: the most recent to land **cleanly** (not a competing sibling); computed from the events held, never arrival order. |
 
-Every tier-2 event seals. Only content (`Ixn`) leaves the seal where it was. `Trm`
-advances the seal to its own serial, where it is terminal — it opens no new window. `Rev` and `Dth`
-advance the seal like any sealing event yet are **non-terminal**: they seal a kill on a _target_ (a
-downstream SEL / declaration), not on the host IEL, so the identity continues — a `{Rev, content}`
-fork is recoverable exactly like `{Evl, content}` (the `Rev` branch survives, the content is
-buried).
+Every tier-2 event seals. Only content (`Ixn`) leaves the seal where it was. `Trm` advances the seal
+to its own serial, where it is terminal — it opens no new window. `Rev` and `Dth` advance the seal
+like any sealing event yet are **non-terminal**: they seal a kill on a _target_ (a downstream SEL /
+declaration), not on the host IEL, so the identity continues — a `{Rev, content}` fork is
+recoverable exactly like `{Evl, content}` (the `Rev` branch survives, the content is buried).
 
 ### The spine
 
