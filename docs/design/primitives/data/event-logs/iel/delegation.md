@@ -33,8 +33,9 @@ The check reads the derived lookup-SEL **first** (O(1) content-addressed, **pres
 on a miss it is **fail-secure by default** — walk the delegator's fresh IEL and forward-match the
 `target` against each `Dth`'s `kills[]` (in some → rescinded; in none on the fully-walked fresh
 chain → not rescinded) — with **fail-open** (trust the miss) as the opt-out. The `bound` (the
-grandfather boundary) rides the `kills[]` entry, so a grandfather check reads it from the walk even
-on an O(1) hit.
+grandfather boundary) rides the `kills[]` entry; on a hit, the lookup `Trm`'s pin (`Trm.pin` = the
+`Dth`'s `previous`) points straight at the killing `Dth`, so the `bound` is read from its `kills[]`
+entry directly — no exhaustive scan.
 
 ```mermaid
 flowchart BT

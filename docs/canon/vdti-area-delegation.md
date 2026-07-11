@@ -35,6 +35,8 @@ negative-checks-are-lookup-SELs, [inv 12] thresholds (`t_authorize`).
     `Trm`). The `Trm` carries **only its pin** → X's tip (uniform — every event pins). The **`bound`** (→ SAID of the
     last valid event on P's delegated chain) lives in the **`Dth`'s `kills[]`** entry (`{ target, bound }`), **not**
     on the `Trm` — so it is **un-withholdable** on X's witnessed IEL and the fail-secure walk reads it directly.
+    *(`Trm.pin` = the `Dth`'s `previous`, so an O(1) lookup-SEL hit traces straight to the killing `Dth` and reads
+    the `bound` from its `kills[]` directly — no exhaustive `kills[]` scan; a freshness walk still runs. 2026-07-11.)*
     *(The `bound` moved off the `Trm` to `kills[]` — B1 fail-secure rework 2026-07-09; it is the surviving rescission
     boundary — the federation roster cut dropped its copy, inv 14. Renamed from "cut-off"/"terminator" 2026-06-26;
     the second event is a `Trm` not a `Pin`, 2026-06-26.)*

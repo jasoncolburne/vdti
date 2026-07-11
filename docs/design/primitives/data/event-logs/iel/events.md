@@ -232,9 +232,9 @@ killed**); on a miss it is **fail-secure by default** — compute the `target` a
 killed, grandfathered to that entry's `bound`; in none on the fully-walked fresh chain → not
 killed). Being in a `kills[]` **is** the definition of killed, and the walk rides the same
 witnessed-IEL freshness gate as divergence, so a hidden kill needs a stale IEL the verifier already
-refuses. **Fail-open** — trusting the miss — is the opt-out, never up; the `bound` rides the
-`kills[]`, so a grandfather check walks even on an O(1) hit. This is the
-negative-check-as-positive-lookup rule
+refuses. **Fail-open** — trusting the miss — is the opt-out, never up. On a hit, `Trm.pin` (= the
+killing `Rev` / `Dth`'s `previous`) points straight at the kill, so the `bound` is read from that
+`kills[]` entry directly — no exhaustive scan. This is the negative-check-as-positive-lookup rule
 ([§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 
 ### `Trm` — the identity kill (tier 2, `t_govern`)
