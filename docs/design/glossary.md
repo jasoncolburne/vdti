@@ -64,6 +64,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 - **seal / seal-advancing event** — a sealed (tier-2) event that advances the chain's trust
   boundary; carries `previousSeal`. ([`system-thesis.md`](system-thesis.md#forks-are-seal-bounded))
+- **sealing event** — the same object in its **act** sense: a tier-2 event that _seals the chain_
+  (advances the seal) as it lands (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`) — a synonym of
+  **seal-advancing event**. "**Sealed**" names the resulting state (a sealed branch, the sealed
+  spine); "**sealing**" names the act (a sealing event advances the seal).
+  ([`event-shape.md`](primitives/data/event-logs/event-shape.md#divergence-is-scoped-to-content))
 - **spine** — the `previousSeal`-linked chain of seal-advancing events; a sealed divergence is a
   single visible spine fork.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#divergence-is-scoped-to-content))
@@ -86,6 +91,13 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
+- **governance** — the **narrow** authority sense, **not** the whole sealed spine: the `t_govern`
+  acts (an `Evl` roster/threshold change, a `Rev`, the federation `Wit`, the terminal `Trm`), as
+  distinct from **authorization** (`t_authorize`: an `Ath` grant, a `Dth`). Every governance act
+  **is** a sealing event; not every sealing event is governance (a kill or terminal is not). So
+  "federation governance", "a governance act", and "governance-shaped payload" mean this narrow
+  sense — never "any sealed event".
+  ([`event-shape.md`](primitives/data/event-logs/event-shape.md#tiers--the-two-tier-capability-model))
 
 ### Federation and witnessing
 

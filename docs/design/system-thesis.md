@@ -200,15 +200,16 @@ data-from-any-source rests on the data, with the federation as the propagation a
 
 ### Operational hardening composes on top
 
-Monitoring for unexpected sealing or rotation events; fast detect-to-recover response via a recovery
-`Rot` (rotate at the first compromised position, burying the thief's run); abandon-and-reincept as
-last resort. Multi-party **sealing** must serialize submissions above the protocol layer (designated
-submitter, leader election, or consensus over the identity's membership); for high-stakes IEL
-identities this is load-bearing, not optional — a race between sealing events is sealed, and a
-`{Evl, Evl}` collision is terminal. **Content** serialization is the same discipline at lower
-stakes: every chain is federation-witnessed, and the witnessing floor prevents a competing content
-sibling going live, so an un-serialized content race costs stalls and re-issuance — a liveness cost,
-not a safety one (the residual safety concern is a witness compromise).
+Monitoring for unexpected rotations or other sealing events; fast detect-to-recover response via a
+recovery `Rot` (rotate at the first compromised position, burying the thief's run);
+abandon-and-reincept as last resort. Multi-party **sealing** must serialize submissions above the
+protocol layer (designated submitter, leader election, or consensus over the identity's membership);
+for high-stakes IEL identities this is load-bearing, not optional — two sealing events that race
+produce a sealed divergence, which is terminal (`{Evl, Evl}` → reincept). **Content** serialization
+is the same discipline at lower stakes: every chain is federation-witnessed, and the witnessing
+floor prevents a competing content sibling going live, so an un-serialized content race costs stalls
+and re-issuance — a liveness cost, not a safety one (the residual safety concern is a witness
+compromise).
 
 → [`operations/sealing-serialization.md`](operations/sealing-serialization.md) _(forthcoming)_.
 

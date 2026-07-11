@@ -76,7 +76,7 @@ one event's `rotationHash` is revealed at the next key change to sign it and the
 epoch's signing key, which then commits the next reserve — so a device holds exactly two live keys,
 the current signing key (last epoch's revealed reserve) and the next reserve (committed,
 unrevealed). The forward-key commitment drives the pre-rotation mechanic — see
-[§Forward-key commitments](#forward-key-commitments). The seal-advancing kinds (`Rot` / `Wit` /
+[§Forward-key commitments](#forward-key-commitments). The sealing kinds (`Rot` / `Wit` /
 `Trm`) additionally carry the top-level `previousSeal` spine back-link
 ([`log.md` §The spine](log.md#the-spine)).
 

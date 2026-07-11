@@ -42,7 +42,7 @@ not affect it.
 
 | Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                        |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Extended**   | Linear extension → **Active**; new tip established; seal advances on seal-advancing kinds.                                        | Events chain cleanly from the current tip (or from inception on an Empty chain).                                                                            |
+| **Extended**   | Linear extension → **Active**; new tip established; content does not advance the seal, all other events do.                                        | Events chain cleanly from the current tip (or from inception on an Empty chain).                                                                            |
 | **Recovered**  | A burying seal-advancer resolved a fork → **Active**: it extends the winning branch and advances the seal past the content loser. | A `Rot` / `Wit` extends a fork's winning-branch tip (or, on a linear chain, buries the run past its attach point) — the content loser drops below the seal. |
 | **Terminated** | A `Trm` admitted → **Terminated**.                                                                                                | A `Trm` lands as a linear extension, or buries a content loser below its own seal.                                                                          |
 | **Forked**     | A **recoverable** fork (≤ 1 sealed branch past it) → the chain is **Forked**, origination frozen.                                 | A content event forks at an earlier serial, or a sealed event forms the fork's first sealed branch, or a content event lands on an already-forked chain.    |
@@ -108,7 +108,7 @@ regardless of chain state. The verifier walks each event and checks:
 - Signature shape (single-sig per kind) per
   [`events.md` §Authorization and signature shapes](events.md#authorization-and-signature-shapes).
 - Chain linkage: `previous` resolves to an event in the verifier's branch state; `previousSeal` (on
-  a seal-advancing kind) resolves to the prior seal.
+  a sealing kind) resolves to the prior seal.
 - **Kind-schema predecessor rule.** No kind admits a `Trm` parent. A submission whose parent's kind
   is `Trm` is rejected with `Terminal`. This is `Trm`-terminality expressed as a kind-schema
   property — the same class of structural rejection as a forbidden field appearing on an event, not

@@ -30,7 +30,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   **`Wit`** is its governance kind (T2 — replaces `Evl` for the federation; cold-4 B1 / 2026-06-28; the federation
   has **no `Evl`**). *(The `Rpr` repair kind is **dropped** in the first-seen pivot — there is no repair event;
   content forks resolve first-seen + burial, sealed forks are `disputed`/terminal, and evicting a
-  divergence-causing member rides a governance **`Evl` with a roster `cut`** — §4.)* The **one `Wit` kind** spans both
+  divergence-causing member rides an **`Evl` with a roster `cut`** — §4.)* The **one `Wit` kind** spans both
   layers: on a **user** IEL it is the federation rebind, on a **federation** IEL it is governance — `Wit` anchors
   `Wit` uniformly (anchor-kind); facet-specific field-match (§ the `Wit` row below):
 

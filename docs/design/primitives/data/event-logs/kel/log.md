@@ -214,7 +214,7 @@ adversarial chains.
 The structural rules above produce three lifecycle paths per node.
 
 - **Active extension.** Each new event extends the linear chain via `previous = tip.said`.
-  Seal-advancing kinds (`Rot` / `Wit` / `Trm`) advance `last_seal_advancing_event` to their own
+  Sealing kinds (`Rot` / `Wit` / `Trm`) advance `last_seal_advancing_event` to their own
   serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   further origination until a seal-advancer on the winning branch buries the loser below the new
@@ -258,7 +258,7 @@ the recovery-side composition with the two-tier compromise model is in
 
 - [`../event-shape.md`](../event-shape.md) — cross-primitive event shape: common fields, the
   `manifest` model, `previousSeal`, per-kind field tables.
-- [`events.md`](events.md) — per-kind reference: two-kind inception, sealed and non-sealed kinds,
+- [`events.md`](events.md) — per-kind reference: two-kind inception, sealing and non-sealing kinds,
   two-tier capability model, anchor requirements, seal-advance cap.
 - [`merge.md`](merge.md) — merge handler routing: routing order, outcomes, locked-portion
   enforcement.

@@ -55,7 +55,7 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
 
 - **Sealed / content** (for post-inception events): **content** is tier 1 — `Ixn` (and the SEL's
   floor `Pin`); **sealed** is every non-content kind — tier 2 ([§Tiers](#tiers)). Every
-  **non-inception** sealed event advances the seal, and only sealed kinds do
+  **non-inception** sealing event advances the seal, and only sealing kinds do
   ([§Forks are Seal-Bounded](#forks-are-seal-bounded)). **Inception is the exception on both
   counts**: an `Icp` / `Fcp` is the spine root (it advances no seal) and may itself be tier 1 (KEL /
   SEL) or tier 2 (IEL) — it never enters fork dispatch, because two distinct inceptions for one
@@ -283,8 +283,8 @@ proof that a divergence occurred survives wherever a fork actually forms (see
 resolved at the event's parent is the chain's currently-tracked state, not a stale one.
 
 **Sealed** means any non-content kind — everything at tier 2 ([§Tiers](#tiers)); **content** (`Ixn`,
-plus the SEL's floor `Pin`) is tier 1. Every **non-inception** sealed kind advances the seal, and
-only sealed kinds do — so **past inception** the two classes coincide, which is why the divergence
+plus the SEL's floor `Pin`) is tier 1. Every **non-inception** sealing kind advances the seal, and
+only sealing kinds do — so **past inception** the two classes coincide, which is why the divergence
 rules below can dispatch on either. (Inception is outside this: an `Icp` / `Fcp` is the spine root —
 it advances no seal — and may be tier 1 or tier 2; it never enters fork dispatch, since one prefix
 admits only one inception.) The **seal-advancing** kinds (those that open a new locked window, plus
@@ -294,7 +294,7 @@ the terminal `Trm` which opens none) per primitive:
   default cap-satisfier; the mid-chain seal-advancers are `{Rot, Wit}` (`Trm` also advances the seal
   but is terminal).
 - **IEL**: every non-inception **sealed** event advances the seal — `Ixn` is the lone content kind,
-  and an IEL `Ixn` does not advance the seal; the sealed kinds (`Evl` / `Ath` / `Rev` / `Dth` /
+  and an IEL `Ixn` does not advance the seal; the sealing kinds (`Evl` / `Ath` / `Rev` / `Dth` /
   `Trm` / `Wit`) are the window-openers.
 - **SEL**: `Gnt` / `Trm` are the seal-advancers; a content `Ixn` and a floor `Pin` are tier-1
   buriable and do not advance the seal. A plain content SEL (no `Gnt`/`Trm`) never self-seals — its

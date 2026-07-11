@@ -139,7 +139,7 @@ not the chain state, carries this distinction — the state stays one of the fou
 
 | new event                             | outcome                                                                             |
 | ------------------------------------- | ----------------------------------------------------------------------------------- |
-| `Ixn`                                 | `Forked` — the sealed seal + one content sibling, a mixed race (one sealed)         |
+| `Ixn`                                 | `Forked` — the seal + one content sibling, a mixed race (one sealed)                |
 | `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Disputed` — a second sealed branch beside the seal (two sealed → quorum subverted) |
 | `Trm`                                 | `Disputed` — a second sealed branch                                                 |
 | `Icp` / `Fcp`                         | `Invalid`                                                                           |
@@ -168,7 +168,7 @@ not the chain state, carries this distinction — the state stays one of the fou
 
 ### The sealed sub-split
 
-The IEL's sealing kinds are not uniform in what they seal, and the matrix cells above collapse them
+The IEL's sealing kinds are not uniform, and the matrix cells above collapse them
 because the **divergence** treatment is identical (all record-both, all sealed, all never buried).
 The finality differs, and shows up only in Position 1 and on a Terminated chain:
 
@@ -302,9 +302,8 @@ position mean either a compromised quorum or a network split during which **both
 The everyday split case — one half seals while the other issues content — is **recoverable**
 (`{Evl, content}` → the `Evl` survives and its seal buries the content); the identity only bricks
 when both halves sealed. The residual is handled **operationally**: one designated sealing submitter
-so two sealing events never race, and holding sealed events while a split is suspected. A
-`{Evl, Evl}` brick recovers by reincept, made detectable on heal by witnessing. The operator
-playbook lands in
+so two sealing events never race, and pausing sealing while a split is suspected. A `{Evl, Evl}`
+brick recovers by reincept, made detectable on heal by witnessing. The operator playbook lands in
 [`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
 (subsequent sub-issue); the doctrine — that sealed is record-both and a second sealed branch is
 terminal — is the chain's.

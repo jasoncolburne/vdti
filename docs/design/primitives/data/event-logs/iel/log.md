@@ -111,7 +111,7 @@ The IEL verifier surfaces one forward-only watermark on its
 | --------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `last_seal_advancing_event` | `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm` | Seal-cap — a new event's parent must sit at-or-after this serial (below is the locked portion; the seal event itself is a legal parent). The **derived seal**: the most recent to land **cleanly** (not a competing sibling); computed from the events held, never arrival order. |
 
-Every sealing kind is **seal-advancing**; only content (`Ixn`) leaves the seal where it was. `Trm`
+Every tier-2 event seals. Only content (`Ixn`) leaves the seal where it was. `Trm`
 advances the seal to its own serial, where it is terminal — it opens no new window. `Rev` and `Dth`
 advance the seal like any sealing event yet are **non-terminal**: they seal a kill on a _target_ (a
 downstream SEL / declaration), not on the host IEL, so the identity continues — a `{Rev, content}`
@@ -126,8 +126,7 @@ view (`Icp → seal → seal → …`) while `previous` renders the full flat ch
 federation `Fcp`) is the spine root and carries no `previousSeal`. A sealing event does **not**
 commit its content run: the retained run since the prior seal is the derivable linear chain
 `[previousSeal..previous]`, and "content was folded here" is the derived predicate
-`previous != previousSeal`. There is **no repair kind** and no losing-branch commitment — a content
-loser is buried **by position + descent**, named by nothing; the sealing kinds carry no fold field.
+`previous != previousSeal`.
 
 The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for
 `previous`, yielding state (the roster and threshold as of a position, the grants and kills sealed)

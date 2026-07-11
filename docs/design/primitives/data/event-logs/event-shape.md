@@ -394,7 +394,7 @@ and [`federation/`](../../../federation/).
 Content rides the IEL `Ixn` rail (tier 1); a kill rides the IEL `Rev` / `Dth` rail (tier 2, sealed);
 a grant rides the IEL `Ath` rail (tier 2, sealed); roster/threshold changes ride the IEL `Evl` rail.
 A SEL's **trust-finality** floors to the owner IEL's seal — a plain content SEL has no seal of its
-own; its seal-advancing kinds (`Gnt` / `Trm`) cap its **local divergence window** and carry
+own; its sealing kinds (`Gnt` / `Trm`) cap its **local divergence window** and carry
 `previousSeal` like any spine, while a content fork on a plain SEL resolves cross-layer (the owner
 IEL's burying seal drops the loser, and the dead line descends across the anchor edge). Credential
 issuance, revocation, and status are a **feature** layered on the SEL primitive —
@@ -538,7 +538,7 @@ backing-and-demand check) and the forward-only floor are per-primitive and proto
 ## Divergence is scoped to content
 
 Only **content** is **buriable** — the content kind `Ixn`, and on the SEL the tier-1 floor `Pin`;
-sealed kinds can diverge too, but only terminally. A sealed event (a rotation, an `Evl`, an `Ath` /
+sealing kinds can diverge too, but only terminally. A sealed event (a rotation, an `Evl`, an `Ath` /
 `Rev` / `Dth`, a terminal) is **never** buried or overturned — reversing it would resurrect retired
 key material or un-do a sealed act. A divergence is resolved by **tier**: recovery is a **burying
 seal-advancer** (a `Rot` / `Wit` / `Trm` on the KEL, a sealing event — an `Evl`, or the `cut` `Evl`

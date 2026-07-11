@@ -68,7 +68,7 @@ not affect it.
 
 | Transition     | Verdict                                                                                                                  | Triggering condition                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Extended**   | Linear extension → **Active**; new tip established; the seal advances on a sealing kind.                                 | Events chain cleanly from the current tip (or from inception on an Empty chain).                                                                                               |
+| **Extended**   | Linear extension → **Active**; new tip established; content does not advance the seal, all other events do.                                 | Events chain cleanly from the current tip (or from inception on an Empty chain).                                                                                               |
 | **Recovered**  | A burying seal resolved a fork → **Active**: it extends the winning branch and advances the seal past the content loser. | An `Evl` (or another sealing kind) extends a fork's winning-branch tip (or, on a linear chain, buries the run past its attach point) — the content loser drops below the seal. |
 | **Terminated** | A `Trm` admitted → **Terminated** (the identity retires, all its SELs freeze).                                           | A `Trm` lands as a linear extension, or buries a content loser below its own seal.                                                                                             |
 | **Forked**     | A **recoverable** fork (≤ 1 sealed branch past it) → the chain is **Forked**, origination frozen.                        | A content event forks at an earlier serial, or a sealing event forms the fork's first sealed branch, or a content event lands on an already-forked chain.                      |
@@ -146,7 +146,7 @@ rule 1 → `Terminal`.
 
 The event's `(parent_said, serial)` is checked against the chain's existing events at that serial:
 
-- **Sealed event whose landing would create or join a divergence** (a sealing kind extending
+- **Sealing event whose landing would create or join a divergence** (a sealing event extending
   `v_{d-1}`, the last common event before the fork) — not admitted as a canonical extension;
   retained as non-canonical evidence. The chain moves to `Forked` (the fork's first sealed branch)
   or `Disputed` (its second).
