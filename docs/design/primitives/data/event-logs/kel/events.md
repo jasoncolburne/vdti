@@ -188,7 +188,7 @@ signed by the new signing key the rotation reserve reveals — never by the old 
 | `Wit` | new signing key revealed by `publicKey` (preimage of prior `rotationHash`)            |
 | `Trm` | new signing key revealed by `publicKey` (preimage of prior `rotationHash`)            |
 
-`Rot` / `Wit` / `Trm` advance the seal — they are the **seal-advancing** kinds, tracked via
+`Rot` / `Wit` / `Trm` advance the seal — they are the **sealing** kinds, tracked via
 `last_seal_advancing_event`; `Trm` belongs to it too (it advances the seal to its own serial and is
 terminal). Once a rotation lands, the reserve preimage it revealed is public — a **spent** reserve
 that can only forge a _late_ competing rotation (declined) — see

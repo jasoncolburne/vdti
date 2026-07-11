@@ -287,8 +287,8 @@ plus the SEL's floor `Pin`) is tier 1. Every **non-inception** sealing kind adva
 only sealing kinds do — so **past inception** the two classes coincide, which is why the divergence
 rules below can dispatch on either. (Inception is outside this: an `Icp` / `Fcp` is the spine root —
 it advances no seal — and may be tier 1 or tier 2; it never enters fork dispatch, since one prefix
-admits only one inception.) The **seal-advancing** kinds (those that open a new locked window, plus
-the terminal `Trm` which opens none) per primitive:
+admits only one inception.) The **sealing** kinds (those that open a new locked window, plus the
+terminal `Trm` which opens none) per primitive:
 
 - **KEL**: `Rot` / `Wit` (and `Trm`) — a content `Ixn` does not advance the seal. `Rot` is the
   default cap-satisfier; the mid-chain seal-advancers are `{Rot, Wit}` (`Trm` also advances the seal
