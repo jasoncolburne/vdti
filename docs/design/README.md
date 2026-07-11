@@ -101,7 +101,7 @@ Then the IEL (Identity Event Log) primitive, in order:
     — the correctness-proof matrix: the content-versus-sealed divergence enumeration and the verdict
     by sealed-branch count.
 20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
-    the delegate / rescind surface (a stub; the full delegation doctrine is forthcoming).
+    the delegate / rescind surface: the single-hop grant-and-rescission primitive.
 
 ## 4 — The document-authorization layer
 
