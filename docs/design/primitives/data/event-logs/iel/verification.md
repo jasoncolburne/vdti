@@ -27,13 +27,13 @@ For every event the verifier walks, it ensures:
 
 - Events match their kind-specific schemas (required and forbidden fields per the
   [event-shape reference](../event-shape.md#iel)), including the `manifest` role allowlist read
-  kind-first and the `previousSeal` presence rule (present on every governance kind, forbidden on
-  `Icp` / `Fcp` / `Ixn`).
+  kind-first and the `previousSeal` presence rule (present on every sealing kind, forbidden on `Icp`
+  / `Fcp` / `Ixn`).
 - Serials start at 0 and increment by 1 with no gaps; the inception event has serial 0 and a valid
   prefix (re-derived from the canonical bytes with `said` / `prefix` set to the placeholder — the
   roster, threshold vector, and `nonce` all participate).
 - All event prefixes match the chain's prefix; all events have valid SAIDs; events chain correctly
-  via `previous`; each governance event's `previousSeal` resolves to the prior seal (the spine).
+  via `previous`; each sealing event's `previousSeal` resolves to the prior seal (the spine).
 - **Every IEL event is anchored by a threshold of members' fresh KEL participations** — the required
   count drawn from the threshold vector by the event's kind, each participation kind-strict to the
   capability the act exercises, and each anchoring KEL signature valid.
@@ -210,7 +210,7 @@ IelVerification:
     roster_at_tip: RosterState             # the accumulated live roster + threshold vector at the canonical tip (a delta accumulation, not a stored snapshot)
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent governance event that landed cleanly on the linear run (not a competing sibling)
+    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event that landed cleanly on the linear run (not a competing sibling)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
     anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and credential issuance commitments found anchored on the canonical branch
     delegates_of: ...                      # per-candidate delegation-walk results (bounded scalar state)
@@ -241,8 +241,8 @@ per [`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** against the **derived
   seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork at-or-above the
-  seal with at most one sealed branch — recoverable, pending a burying governance seal), or
-  **disputed** (two or more branches each carry a sealed event past the fork — terminal, reincept).
+  seal with at most one sealed branch — recoverable, pending a burying seal), or **disputed** (two
+  or more branches each carry a sealed event past the fork — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
@@ -288,8 +288,8 @@ independently, and surfaces `is_divergent()` and `region()`.
 ### Terminal-state determination rule
 
 - A **live** fork — a divergence at or above the **derived seal**?
-  - **At most one sealed branch** → **forked** (recoverable); resolved by a burying governance seal
-    on the winning branch.
+  - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal on the
+    winning branch.
   - **Two or more sealed branches past the fork** → **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
@@ -393,7 +393,7 @@ configurable).
 | Property                        | Verification method                                                                                                                                                            |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | SAID / prefix integrity         | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from roster + thresholds + `nonce`).                                 |
-| Event chaining                  | `previous` resolves to a verified prior event; each governance event's `previousSeal` resolves to the prior seal.                                                              |
+| Event chaining                  | `previous` resolves to a verified prior event; each sealing event's `previousSeal` resolves to the prior seal.                                                                 |
 | Serial monotonicity             | Each event's serial equals the previous serial + 1; inception is serial 0.                                                                                                     |
 | Inception kind + facet dispatch | Branch on `Icp` / `Fcp`; fix `root_facet`; read `Wit` payloads facet-correctly on every path.                                                                                  |
 | Threshold authority             | A threshold of members' fresh KEL participations (kind-strict up) anchor the event; each anchoring KEL signature valid and witnessed.                                          |

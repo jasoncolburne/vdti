@@ -274,7 +274,7 @@ content-addressed lookup SEL** (not content on a shared registry, not a cred-SEL
   (fail-secure refuse):** a loss-of-trust / current-state read requires a **single confirmed tip**, so **both**
   verdicts short of that refuse — a **`forked`** chain (M ≤ 1 sealed, operationally recoverable) as well as a
   **`disputed`** one (M ≥ 2 sealed, terminal → reincept). A forked chain grounds no new trust until its **burying
-  seal-advancer** (a recovery `Rot` / a governance-seal burial — inv 13; **not** a repair event) resolves it back to
+  seal-advancer** (a recovery `Rot` / a sealing-event burial — inv 13; **not** a repair event) resolves it back to
   a single tip and re-establishes a clean seal past the fork; a disputed chain never resolves (its post-seal window
   is whole-*above-seal*-suspect — below-seal still final). A dependent surviving an issuer's *member*-KEL terminal is
   a **composition-redundancy** outcome (`M > N` anchors clear the threshold without the suspect member — inv 12), not

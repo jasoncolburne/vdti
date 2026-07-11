@@ -80,8 +80,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   kind requires (orthogonal to tier).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#tiers--the-two-tier-capability-model))
 - **authorization floor** — the bound `t_govern, t_authorize > |roster|/2` (a strict majority of the
-  roster), so any two authorizing quorums overlap and a governance fork always names a
-  double-dealer. Distinct from the witnessing floor (`> signers/2`, over witness signers).
+  roster), so any two authorizing quorums overlap and a sealed fork always names a double-dealer.
+  Distinct from the witnessing floor (`> signers/2`, over witness signers).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#tiers--the-two-tier-capability-model))
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.
@@ -163,8 +163,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **position gate** — the IEL applying the witnessing floor (`> signers/2`) at its own
   `(prefix, serial)`, so two disjoint member sub-quorums cannot both land content at one IEL serial
   — the extra content-fork guard the KEL does not need (its content is witnessed at the KEL position
-  directly).
-  ([`merge.md`](primitives/data/event-logs/iel/merge.md#the-content-versus-governance-split))
+  directly). ([`merge.md`](primitives/data/event-logs/iel/merge.md#the-content-versus-sealed-split))
 - **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is answered by
   forward-matching X's derived `target` in the `kills[]` on the owner's fresh witnessed IEL
   (fail-secure by default), with a fail-open O(1) lookup-SEL read as the opt-out — never a

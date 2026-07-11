@@ -74,15 +74,15 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   - **Forked** — a **live, recoverable** fork: two **distinct** events at one serial, with **≤ 1
     sealed branch** past it. While the fork is live (at or above the derived seal) the chain
     **freezes further origination** — it originates no new work onto the live fork; the one move
-    that resolves it is a **burying seal-advancer on the winning branch** (a `Rot` on the KEL, a
-    governance seal — an `Evl`, or a `cut` `Evl` when it also evicts — on the IEL), which extends
-    the winning branch and advances the seal past a **content** loser (the loser dies below the new
-    seal and by descent). A content fork is recoverable because all content is buriable. The
-    **reading** is the pure walk over the events held, not a frozen flag: a node that comes to hold
-    a burying seal-advancer re-reads the chain **Active**, order-independently. A lone sealed branch
-    a party did **not** author reads Forked node-agnostically, yet still forces **that** party's
-    reincept — a key-state branch you did not author can never be buried (the reserve-theft
-    takeover, below).
+    that resolves it is a **burying seal-advancer on the winning branch** (a `Rot` / `Wit` / `Trm`
+    on the KEL, a sealing event — an `Evl`, or a `cut` `Evl` when it also evicts — on the IEL),
+    which extends the winning branch and advances the seal past a **content** loser (the loser dies
+    below the new seal and by descent). A content fork is recoverable because all content is
+    buriable. The **reading** is the pure walk over the events held, not a frozen flag: a node that
+    comes to hold a burying seal-advancer re-reads the chain **Active**, order-independently. A lone
+    sealed branch a party did **not** author reads Forked node-agnostically, yet still forces
+    **that** party's reincept — a key-state branch you did not author can never be buried (the
+    reserve-theft takeover, below).
   - **Disputed** — an **irrecoverable** fork: **≥ 2 branches each carry a sealed event** at or
     beyond the divergent serial. No sealed branch can be buried (burying a rotation would resurrect
     a retired key), so no single chain can be chosen and the prefix must **reincept** — terminal for
@@ -242,7 +242,7 @@ single member exercises authority; the singleton below is the degenerate case), 
 ceiling** `<= |roster| − 1` (evict/recover without one member — advisory at `|roster| = 2`, hard at
 `|roster| >= 3`, where a threshold equal to `|roster|` is a gratuitous hostage config and is
 rejected), and an **authorization floor `> |roster|/2`** (a strict majority signs every governance /
-grant, so any two authorizing quorums overlap and a governance fork always names a double-dealer;
+grant, so any two authorizing quorums overlap and a sealed fork always names a double-dealer;
 `t_use` is exempt, content being first-seen / recoverable). And the roster is **never emptied**: the
 post-delta size is **`|roster| + |add| − |cut| >= 1`** (the roster is a set — `add ∉` it, `cut ⊆`
 it, `cut ∩ add = ∅`), making every singleton's roster downward-immutable. A singleton
@@ -311,28 +311,27 @@ two-branch fork anchored at the last seal — both lineages (≤ 64 each) plus t
 constant, not a per-deployment knob). The page carries **both** competing branches plus the burying
 seal because a source → sink transfer delivers the fork to a sink holding neither branch — the
 burying seal's content-only guard needs every branch to walk within one atomic unit; there is no
-separate repair event, the burying event is a single ordinary `Rot` (KEL) or governance seal (IEL).
-On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the stream
-issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances accumulate and
-the seal lags the tip; without the cap the post-seal window grows unbounded and the page-atomic
-content-fork burial breaks. A busy issuer that fills the window **re-seals with a roster-less
-`Evl`** — one that **omits `roster`** (no roster change), the identity-layer analogue of a KEL
-re-sealing via `Rot`. Validation **accepts** a roster-less re-seal `Evl`; it advances the seal with
-no new kind.
+separate repair event, the burying event is a single ordinary `Rot` / `Wit` / `Trm` (KEL) or sealing
+event (IEL). On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the
+stream issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances
+accumulate and the seal lags the tip; without the cap the post-seal window grows unbounded and the
+page-atomic content-fork burial breaks. A busy issuer that fills the window **re-seals with a
+roster-less `Evl`** — one that **omits `roster`** (no roster change), the identity-layer analogue of
+a KEL re-sealing via `Rot`. Validation **accepts** a roster-less re-seal `Evl`; it advances the seal
+with no new kind.
 
 Under a network partition both halves can fill the cap and re-seal independently; the two
 roster-less `Evl`s differ by `previous` and collide as `{Evl, Evl}` → Disputed. So a **high-volume
 issuer serializes its content submissions**. That discipline is separate from, and additional to,
-**serializing governance** — the operational rule that governance and kill events pass through **one
-designated submitter**, so two never race during a partition (else `{Evl, Evl}` / `{kill, kill}` →
-Disputed; operator doctrine, forthcoming). **Governance serialization is safety-critical
-everywhere:** a governance race is sealed, and the witnessing floor never gates sealed events.
-**Content-rail serialization is only a liveness / waste discipline:** every chain is
-federation-witnessed (there is no direct mode), and the witnessing floor prevents a competing
-content sibling going live — a partitioned content rail **stalls** rather than forks — so an
-un-serialized rail costs stalls and re-issuance, not terminality
-([§Federation convergence](#federation-convergence)). The exact constant, the roster-less re-seal,
-and the content-rail serialization are IEL doctrine —
+**serializing sealing** — the operational rule that sealing events pass through **one designated
+submitter**, so two never race during a partition (else `{Evl, Evl}` / `{kill, kill}` → Disputed;
+operator doctrine, forthcoming). **Sealing serialization is safety-critical everywhere:** a race
+between sealing events is sealed, and the witnessing floor never gates sealed events. **Content-rail
+serialization is only a liveness / waste discipline:** every chain is federation-witnessed (there is
+no direct mode), and the witnessing floor prevents a competing content sibling going live — a
+partitioned content rail **stalls** rather than forks — so an un-serialized rail costs stalls and
+re-issuance, not terminality ([§Federation convergence](#federation-convergence)). The exact
+constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -375,13 +374,13 @@ holding the same events read the same state whatever order the events arrived in
 is **origination**: while a node holds a fork **at or above the derived seal**, it **grows the fork
 no further** — it originates no new event that would **extend a contested branch**. The only event
 it authors onto such a chain is the one that **resolves** a content fork: a **burying seal-advancer
-on the winning branch** — a `Rot` on the KEL, a governance seal (an `Evl`, or a `cut` `Evl` when it
-also evicts) on the IEL — that seals past the loser. That resolving move is **not** an exception to
-the freeze: it attaches at the **winning** branch and seals past the loser, it does not extend the
-contested position (you cannot fork the past, so a below-seal content loser is inert). Freezing is
-an **origination posture**, not a stored flag and not the reading: a node that comes to hold a
-burying seal-advancer re-reads the chain **Active**, exactly as a node that sealed before it ever
-saw the loser. One carve-out on the resolving move: a fork whose single sealed branch is a
+on the winning branch** — a `Rot` / `Wit` / `Trm` on the KEL, a sealing event (an `Evl`, or a `cut`
+`Evl` when it also evicts) on the IEL — that seals past the loser. That resolving move is **not** an
+exception to the freeze: it attaches at the **winning** branch and seals past the loser, it does not
+extend the contested position (you cannot fork the past, so a below-seal content loser is inert).
+Freezing is an **origination posture**, not a stored flag and not the reading: a node that comes to
+hold a burying seal-advancer re-reads the chain **Active**, exactly as a node that sealed before it
+ever saw the loser. One carve-out on the resolving move: a fork whose single sealed branch is a
 **terminal `Trm`** (an identity/SEL terminate) resolves by **tier-rank** with no burying event
 (below) — the terminal admits no successor, so it wins outright over the buriable content. A
 `Rev`/`Dth` is **not** terminal (it kills a _target_, not its host chain), so `{Rev|Dth, content}`
@@ -426,14 +425,14 @@ could run:
   auth — a burying seal-advancer reveals the rotation reserve.)
 
 From those two rules, recovery is **one universal rule.** You attach a **burying seal-advancer at
-your last good event** — a `Rot` on the KEL, a governance seal (an `Evl`, or a `cut` `Evl` when it
-also evicts) on the IEL — **retaining** that branch and burying every competing **content** branch
-below the new seal (they die by descent). There is **no repair event and no recovery key**: recovery
-is a plain seal-advancer, single-signed with the rotation reserve, that buries at the root by
-position. On a multi-member IEL the attach point is unambiguous even though several devices operate
-the identity: **an identity is a single entity**, so it is the tip of the branch the governance
-quorum retains as the identity's canonical one — never a co-member's isolated event, and never a
-serial below the tracked seal.
+your last good event** — a `Rot` / `Wit` / `Trm` on the KEL, a sealing event (an `Evl`, or a `cut`
+`Evl` when it also evicts) on the IEL — **retaining** that branch and burying every competing
+**content** branch below the new seal (they die by descent). There is **no repair event and no
+recovery key**: recovery is a plain seal-advancer, single-signed with the rotation reserve, that
+buries at the root by position. On a multi-member IEL the attach point is unambiguous even though
+several devices operate the identity: **an identity is a single entity**, so it is the tip of the
+branch the governance quorum retains as the identity's canonical one — never a co-member's isolated
+event, and never a serial below the tracked seal.
 
 Attaching at the entity's **own** last event satisfies the no-extend-adversary rule automatically,
 and it reconciles with the fork point by construction. A divergence is **two or more** distinct
@@ -486,8 +485,8 @@ the branches; it does not pronounce the verdict. A `{Rot, Rot}` collision is mor
 rotation-reserve compromise** — two valid rotations both reveal the one rotation reserve preimage in
 force at `v_{d-1}`, which an honest, correctly-implemented holder never does; `{Evl, Evl}` is
 terminal for the same branch-level reason but is **not** a reserve-compromise proof — its two
-governance events reveal _different_ preimages and can arise from an honest partition (which is why
-high-volume issuance and governance are serialized). So **reincept** is what a party does when **no
+sealing events reveal _different_ preimages and can arise from an honest partition (which is why
+high-volume issuance and sealing are serialized). So **reincept** is what a party does when **no
 valid recovery exists for it**: either the chain is **Disputed** — **≥ 2 competing sealed branches**
 (`{Rot, Rot}`, `{Evl, Evl}`, any pair), so no retention is clean and _no one_ can recover — or it
 reads **Forked** but the sole sealed branch is one this party did **not** author (the point of no
@@ -512,21 +511,20 @@ so a party can extend at most the one branch whose established key it controls �
 2 sealed branches and neither resolvable, the two seals share one `previousSeal`, so the walk sees a
 single spine fork and reads **Disputed** → reincept.
 
-**Eviction is a governance `Evl` with a roster `cut`.** When the divergence was caused by a member
-that must be removed, the eviction rides a **`cut` `Evl`** — one governance seal that buries the
-fork **and** evicts, atomically — not a following `Evl`. Atomicity is required: were the eviction a
-later event, the still-rostered member could race a fresh `Ixn` at the resolved tip → re-fork →
-indefinitely (a timing attack); the `cut` `Evl` makes it atomic by construction, so the member is
-gone the instant the fork resolves and no post-recovery window exists. The `cut` `Evl` carries a
-**required non-empty `cut` + an optional `threshold` change — never an `add`, never a
-`threshold`-only change**, and is `Rot`-anchored like any `Evl`. There is **no** repair-and-evict
-fold — the eviction is an ordinary governance `Evl`. The cut is priced at the **outgoing**
-`t_govern` (the pre-change gate — an `Evl` cannot lower its own gate before cutting); the post-cut
-roster is re-checked against the threshold-vector bounds (a stranding or hostage cut is rejected,
-forcing a simultaneous `threshold` drop the `Evl` may carry, or reincept). The cut target is
-**operator-chosen** — the fork-causer is the motivating case, not a structural check, since chain
-data cannot tell operator from adversary. This is IEL-only (the KEL buries by rotating, the SEL
-cascades from its owner IEL).
+**Eviction is an `Evl` with a roster `cut`.** When the divergence was caused by a member that must
+be removed, the eviction rides a **`cut` `Evl`** — one sealing event that buries the fork **and**
+evicts, atomically — not a following `Evl`. Atomicity is required: were the eviction a later event,
+the still-rostered member could race a fresh `Ixn` at the resolved tip → re-fork → indefinitely (a
+timing attack); the `cut` `Evl` makes it atomic by construction, so the member is gone the instant
+the fork resolves and no post-recovery window exists. The `cut` `Evl` carries a **required non-empty
+`cut` + an optional `threshold` change — never an `add`, never a `threshold`-only change**, and is
+`Rot`-anchored like any `Evl`. There is **no** repair-and-evict fold — the eviction is an ordinary
+`Evl`. The cut is priced at the **outgoing** `t_govern` (the pre-change gate — an `Evl` cannot lower
+its own gate before cutting); the post-cut roster is re-checked against the threshold-vector bounds
+(a stranding or hostage cut is rejected, forcing a simultaneous `threshold` drop the `Evl` may
+carry, or reincept). The cut target is **operator-chosen** — the fork-causer is the motivating case,
+not a structural check, since chain data cannot tell operator from adversary. This is IEL-only (the
+KEL buries by rotating, the SEL cascades from its owner IEL).
 
 **Burial is by position + descent — growth-proof.** There is no repair event and no `fork` root; a
 content loser is buried **by position**: its **first event** is locked below the burying seal (the
@@ -864,7 +862,7 @@ takeover-by-extend), silent to third parties on a dormant chain, and unrecoverab
   witnessing only delivers the branches. The rotation-tier-compromise-plus-partition case is the
   structurally unavoidable CAP failure mode — VDTI guarantees the divergence is detected
   post-resolution, not prevented.
-- **Operational hardening** — monitoring for unexpected governance/rotation events, fast
+- **Operational hardening** — monitoring for unexpected sealing/rotation events, fast
   detect-to-respond, custody separation, and abandon-and-reincept as the last resort.
 
 **Adversary patience.** A strategic adversary accumulates authority quietly (compromise key 1, wait,
@@ -937,7 +935,7 @@ consensus algorithm and no central state machine. Its roster is **witness KELs d
 set is restricted to `Fcp` / `Wit` / `Trm` (no content, so it never has a **Forked** fork and needs
 no burying event; every federation fork is sealed — a `{Wit, Wit}` / `{Trm, Trm}` race under a
 partition is **Disputed**, terminal, which is why a federation runs a hard recoverability ceiling
-and `|roster| >= 4` with serialized governance; no delegation, since trust is per-federation and
+and `|roster| >= 4` with serialized sealing; no delegation, since trust is per-federation and
 non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose **`add` is a single
 prefix** — one witness added per `Wit`, the `Fcp` inception alone standing up the founding roster
 wholesale (`cut` stays a list: cuts remove synced witnesses, so emergency multi-eviction is

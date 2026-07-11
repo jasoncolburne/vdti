@@ -552,7 +552,7 @@ eviction). So termination is qualitative but strict: each fork a sustained adver
 mints costs it one bounded fork window, and once the neutralizing event — the rotation, or the cut —
 propagates, it can mint no more; a benign gossip-lag terminates as soon as its node catches up.
 Content-rail serialization is an **operator precondition** of the benign bound — absent it, honest
-content can self-cascade (a liveness cost, not a safety one); governance serialization backs the
+content can self-cascade (a liveness cost, not a safety one); sealing serialization backs the
 `{Evl, Evl}` terminal cases at the IEL. On a **witnessed** chain the witnessing floor narrows even
 the self-cascade to stall-and-re-issue — a competing content sibling never goes live — so the
 discipline is a **liveness** concern (every chain is federation-witnessed; the residual safety

@@ -1,12 +1,12 @@
 # IEL Events — Per-Kind Reference
 
 Per-kind structural reference for the IEL event taxonomy: the **eight-kind user IEL** and the
-**restricted federation IEL**, one content kind across a tier-2 governance spine. The
-cross-primitive field shape — common fields, the `manifest` model, `previousSeal`, and the full
-per-kind field grid — is the [event-shape reference](../event-shape.md#iel); this doc states the
-IEL-specific semantics: the threshold vector and its bounds, the two-tier capability model, the
-kind-strict anchor matrix, the `kills[]` fail-secure declaration, the facet-dependent `Wit`,
-threshold anchoring, sort priority, and the seal-advance cap.
+**restricted federation IEL**, one content kind across a tier-2 sealed spine. The cross-primitive
+field shape — common fields, the `manifest` model, `previousSeal`, and the full per-kind field grid
+— is the [event-shape reference](../event-shape.md#iel); this doc states the IEL-specific semantics:
+the threshold vector and its bounds, the two-tier capability model, the kind-strict anchor matrix,
+the `kills[]` fail-secure declaration, the facet-dependent `Wit`, threshold anchoring, sort
+priority, and the seal-advance cap.
 
 For chain lifecycle (states, the seal and spine, locked-portion bound, page model), see
 [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For the verifier walk,
@@ -104,8 +104,8 @@ inception):
   **hard at `|roster| ≥ 3`** (a threshold equal to `|roster|` is a gratuitous hostage config →
   rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
 - **An authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
-  overlap and a governance fork always names a double-dealer (closing the disjoint-quorum
-  attribution loss).
+  overlap and a sealed fork always names a double-dealer (closing the disjoint-quorum attribution
+  loss).
 - **The roster is hard-capped at 32** — a DoS backstop; the verifier rebuilds the roster in memory
   as it walks, and any delta pushing the live set past 32 is rejected (all IELs, including the
   federation).
@@ -158,8 +158,8 @@ current roster is the accumulation of every delta while walking). **Added member
 `federationPin`**, so it cannot mutate the federation binding.
 
 **Eviction is a `cut` `Evl`.** Evicting a compromised or divergence-causing member is an ordinary
-`Evl` carrying a roster `cut` — one governance seal buries the fork **and** evicts, atomically
-(there is no repair-and-evict fold — there is no repair event). The `cut` is priced the **outgoing**
+`Evl` carrying a roster `cut` — one sealing event buries the fork **and** evicts, atomically (there
+is no repair-and-evict fold — there is no repair event). The `cut` is priced the **outgoing**
 `t_govern` (the pre-change gate — so an `Evl` cannot lower its own gate then cut), and the post-cut
 roster is re-checked against the bounds above (a stranding / hostage cut is rejected, forcing a
 simultaneous `threshold` drop or reincept). The timing rationale is in
@@ -427,10 +427,10 @@ semantic meaning.
 
 ## Seal-advance cap
 
-A governance event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
+A sealing event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
 but ends the chain) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` content events per
 lineage. The cap bounds the content run since the last seal to 64 on each branch, so the canonical
-two-branch content fork plus the resolving burying governance seal is sized to fit one page
+two-branch content fork plus the resolving burying seal is sized to fit one page
 (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`). It is **required**: `Ixn` is content and does not advance
 the seal, and issuance rides `Ixn`, so without the cap the content window would grow unbounded.
 
@@ -439,8 +439,8 @@ omits `roster` (the seal advance via `previousSeal` is the change, not an empty 
 (no added members → no consent needed; `t_govern` of the unchanged roster), content-addressed like
 any event, so two identical re-seals at one position dedupe (idempotent) while a re-seal `Evl`
 versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal. Validation must accept a
-roster-less re-seal `Evl`. Seal-cap satisfiers are the seal-advancing governance kinds; `Trm`
-advances the seal but is terminal, so it is not a mid-chain cap-satisfier. See
+roster-less re-seal `Evl`. Seal-cap satisfiers are the seal-advancing kinds; `Trm` advances the seal
+but is terminal, so it is not a mid-chain cap-satisfier. See
 [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 
 ## Cross-references
@@ -449,8 +449,8 @@ advances the seal but is terminal, so it is not a mid-chain cap-satisfier. See
   `manifest` model, `previousSeal`, the canonical per-kind field grid.
 - [`log.md`](log.md) — chain primitive: states, prefix derivation, the seal and spine,
   locked-portion bound, down-pins, page model.
-- [`merge.md`](merge.md) — merge-layer routing: content first-seen, governance record-both,
-  eviction, facet dispatch.
+- [`merge.md`](merge.md) — merge-layer routing: content first-seen, sealed record-both, eviction,
+  facet dispatch.
 - [`verification.md`](verification.md) — verifier walk: threshold anchoring, roster accumulation,
   root facet, the delegation walk, the `kills[]` forward-match.
 - [`reconciliation.md`](reconciliation.md) — the exhaustive cross-node correctness proof.

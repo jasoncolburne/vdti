@@ -86,7 +86,7 @@ Then the IEL (Identity Event Log) primitive, in order:
 
 15. [`primitives/data/event-logs/iel/log.md`](primitives/data/event-logs/iel/log.md) — the chain
     primitive: an identity as a threshold over member KELs; the four-state machine; the seal,
-    locked-portion bound, and seal-cap over the content window versus the governance spine.
+    locked-portion bound, and seal-cap over the content window versus the sealed spine.
 16. [`primitives/data/event-logs/iel/events.md`](primitives/data/event-logs/iel/events.md) — the
     eight-kind taxonomy (plus the restricted federation set), the threshold vector and its bounds,
     the kind-strict anchor matrix, the `kills[]` revocation declaration, and the facet-dependent
@@ -95,11 +95,11 @@ Then the IEL (Identity Event Log) primitive, in order:
     — the verifier walk: threshold anchoring, roster accumulation by delta, root-facet dispatch, and
     the `kills[]` forward-match.
 18. [`primitives/data/event-logs/iel/merge.md`](primitives/data/event-logs/iel/merge.md) — the write
-    path: content first-seen (plus the position gate), governance record-both, and eviction via a
-    roster `cut`.
+    path: content first-seen (plus the position gate), sealed record-both, and eviction via a roster
+    `cut`.
 19. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
-    — the correctness-proof matrix: the content-versus-governance divergence enumeration and the
-    verdict by sealed-branch count.
+    — the correctness-proof matrix: the content-versus-sealed divergence enumeration and the verdict
+    by sealed-branch count.
 20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
     the delegate / rescind surface (a stub; the full delegation doctrine is forthcoming).
 

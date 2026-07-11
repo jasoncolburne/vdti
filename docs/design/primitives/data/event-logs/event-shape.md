@@ -130,7 +130,7 @@ bounds:
   both — the wallet warns) and **hard at `|roster| >= 3`** (a threshold equal to `|roster|` is a
   gratuitous hostage config — rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
 - The authority slots also carry an **authorization floor** — `t_govern`, `t_authorize > |roster|/2`
-  — so any two authorizing quorums overlap and a governance fork always names a double-dealer.
+  — so any two authorizing quorums overlap and a sealed fork always names a double-dealer.
 - The roster is **hard-capped at 32** (a DoS backstop — the verifier rebuilds the roster in memory
   as it walks; any delta pushing the live set past 32 is rejected, all IELs including the
   federation).
@@ -340,7 +340,7 @@ federation doctrine — [`kel/`](kel/), [`federation/`](../../../federation/).
 | ----- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | 2    | all initial members consent                | Inception — pins the initial roster + threshold vector, federation binding, and `witnesses`. A **federation IEL** incepts the `Fcp` marker instead (below).                                                                            |
 | `Ixn` | 1    | `t_use`                                    | Content; anchors content SEL events, each SEL's serial-1 **v1**, **and a credential's issuance commitment** (an immutable SAD, no credential-SEL), batched. **The divergeable content kind** (first-seen, buriable).                   |
-| `Evl` | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster/threshold **delta** (`roster`); a `cut` `Evl` **evicts** (buries a fork and evicts in one governance seal); no kills.ᵃ                                                                                     |
+| `Evl` | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster/threshold **delta** (`roster`); a `cut` `Evl` **evicts** (buries a fork and evicts in one sealing event); no kills.ᵃ                                                                                       |
 | `Ath` | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and/or `anchors` a SEL `Gnt` (act **as itself**). **Forces a `Rot`; sealed on arrival, seal-advancing.**ᵇ                                                                     |
 | `Rev` | 2    | `t_govern`                                 | **Revoke** — kill-anchor for an **owned** artifact (anchors a SEL `Trm` + a `kills[]` declaration). **Forces a `Rot`; sealed on arrival; non-terminal.**ᶜ                                                                              |
 | `Dth` | 2    | `t_authorize`                              | **Deauthorize** — kill-anchor for a **granted authorization** (anchors a SEL `Trm` + a `kills[]` declaration); the polarity-inverse of `Ath`. **Forces a `Rot`; sealed on arrival; non-terminal.**ᵈ                                    |
@@ -351,7 +351,7 @@ federation doctrine — [`kel/`](kel/), [`federation/`](../../../federation/).
 - ᵃ **`Evl`** — the `roster` delta is `add` + `cut`; added members consent at tier 1 via their own
   KEL anchor, the binding authorization tier 2 from the continuing quorum; anchors no kills (those
   ride `Rev` / `Dth`). Evicting a compromised / divergence-causing member is a `cut` `Evl` — one
-  governance seal buries the fork **and** evicts, atomically (there is no separate repair event).
+  sealing event buries the fork **and** evicts, atomically (there is no separate repair event).
 - ᵇ **`Ath`** — `delegates` is a positive inclusion list of delegate prefixes; `anchors` is
   kind-strict (names **only** `Gnt`s). Both roles are permitted at once.
 - ᶜ **`Rev`** — carries no roster delta; the forced `Rot` gives the permanent act a ≥ tier-2 KEL
@@ -541,21 +541,21 @@ Only **content** is **buriable** — the content kind `Ixn`, and on the SEL the 
 sealed kinds can diverge too, but only terminally. A sealed event (a rotation, an `Evl`, an `Ath` /
 `Rev` / `Dth`, a terminal) is **never** buried or overturned — reversing it would resurrect retired
 key material or un-do a sealed act. A divergence is resolved by **tier**: recovery is a **burying
-seal-advancer** (a `Rot` on the KEL, a governance seal — an `Evl`, or the `cut` `Evl` when it also
-evicts — on the IEL) attached at the surviving line; the losing **content** branch is buried **by
-position + descent** — its first event locked below the advanced seal (the seal-cap) and everything
-built on it dead by descent (an event whose parent is dead is dead), so a branch grown after the
-burial dies too, no follow-up event required. There is **no repair event and no recovery key**. The
-**terminal** condition is **branch-level** — two or more branches each carrying a **sealed** event
-past the fork — and any verifier determines it **data-locally** by walking the retained branches: a
-node retains a competing branch as non-canonical evidence (rather than discarding it at the
-seal-cap), bounded by retention — ≥ 2 sealed branches per spine position, ≥ 2 competing content
-events per position, each dead content lineage depth-capped at 64 past the last seal — while the
-uncommitted below-seal content flood is droppable, since a sealed event re-validates from the spine,
-not from below-seal content. The seal-advancing events form a `previousSeal`-linked **spine** on
-which a sealed divergence, held across retained branches, shows up as a single fork. A fork reads
-**forked** (≤ 1 sealed branch past it — recoverable by a burying seal) or **disputed** (≥ 2 sealed
-branches — terminal → reincept).
+seal-advancer** (a `Rot` / `Wit` / `Trm` on the KEL, a sealing event — an `Evl`, or the `cut` `Evl`
+when it also evicts — on the IEL) attached at the surviving line; the losing **content** branch is
+buried **by position + descent** — its first event locked below the advanced seal (the seal-cap) and
+everything built on it dead by descent (an event whose parent is dead is dead), so a branch grown
+after the burial dies too, no follow-up event required. There is **no repair event and no recovery
+key**. The **terminal** condition is **branch-level** — two or more branches each carrying a
+**sealed** event past the fork — and any verifier determines it **data-locally** by walking the
+retained branches: a node retains a competing branch as non-canonical evidence (rather than
+discarding it at the seal-cap), bounded by retention — ≥ 2 sealed branches per spine position, ≥ 2
+competing content events per position, each dead content lineage depth-capped at 64 past the last
+seal — while the uncommitted below-seal content flood is droppable, since a sealed event
+re-validates from the spine, not from below-seal content. The seal-advancing events form a
+`previousSeal`-linked **spine** on which a sealed divergence, held across retained branches, shows
+up as a single fork. A fork reads **forked** (≤ 1 sealed branch past it — recoverable by a burying
+seal) or **disputed** (≥ 2 sealed branches — terminal → reincept).
 
 The two views over one dataset — the **flat** walk following `previous` (every event) and the
 **folded** spine following `previousSeal` (seal-advancers only) — look like:
