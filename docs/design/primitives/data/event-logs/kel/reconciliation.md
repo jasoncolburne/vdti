@@ -13,7 +13,7 @@ For lifecycle prose (states, the seal and spine, locked-portion bound, page mode
 [`log.md`](log.md). For per-kind reference (event kinds, fields, two-tier capability model),
 [`events.md`](events.md). For the merge-layer routing rules being proved sound,
 [`merge.md`](merge.md). For recovery doctrine (recovery attach shapes, the reserve boundary),
-[`recovery.md`](recovery.md). For the verifier walk, [`verification.md`](verification.md).
+[`compromise.md`](compromise.md). For the verifier walk, [`verification.md`](verification.md).
 
 ## Proof structure
 
@@ -52,21 +52,21 @@ protocol's safety claims hold _by construction_, not by observation.
    the fork is bounded on both axes: **depth** — each fork lineage extends at most 64 events past
    the last seal (an adversary holding less than the rotation reserve can only submit `Ixn` events,
    so a deeper lineage needs a seal-advancer — tier-2 capability per
-   [`recovery.md` §Two-tier compromise model](recovery.md#two-tier-compromise-model)); and
+   [`compromise.md` §Two-tier compromise model](compromise.md#two-tier-compromise-model)); and
    **breadth** — nodes retain ≥ 2 competing events per position as fork evidence and drop the rest,
    with the one-content-sibling witnessing rule on top
    ([§Matrix 4](#matrix-4-recovery-completeness)).
 3. **Bounded operations.** `MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`, sized so the **canonical two-branch
-   content fork anchored at the last seal** — both lineages (≤ 64 each) plus the burying `Rot` —
-   fits one page. This is what a **source → sink transfer** of that shape needs: the sink holds
-   neither branch (it is receiving the fork fresh), so the transfer carries both competing branches
-   plus the burying `Rot` in one atomic page. **Two permitted shapes exceed one page and ride later
-   pages**: **(a)** an own-`Rot` in the retained tail spans two seal windows, so the pre-`Rot` run
-   rides earlier plain-linear pages; **(b)** a **≥ 3-branch** residual fork (the retention floor is
-   ≥ 2, not = 2) exceeds `2·64 + 1` — extra branches ride later pages, and a late sealed one makes
-   the chain Disputed (the eclipse-class residual). (A **local** node that already holds the
-   competing branches in storage needs only the retained branch (≤ 64) plus the burying `Rot`,
-   validating the loser from storage.)
+   content fork anchored at the last seal** — both lineages (≤ 64 each) plus the burying
+   seal-advancer — fits one page. This is what a **source → sink transfer** of that shape needs: the
+   sink holds neither branch (it is receiving the fork fresh), so the transfer carries both
+   competing branches plus the burying seal-advancer in one atomic page. **Two permitted shapes
+   exceed one page and ride later pages**: **(a)** an own-`Rot` in the retained tail spans two seal
+   windows, so the pre-`Rot` run rides earlier plain-linear pages; **(b)** a **≥ 3-branch** residual
+   fork (the retention floor is ≥ 2, not = 2) exceeds `2·64 + 1` — extra branches ride later pages,
+   and a late sealed one makes the chain Disputed (the eclipse-class residual). (A **local** node
+   that already holds the competing branches in storage needs only the retained branch (≤ 64) plus
+   the burying seal-advancer, validating the loser from storage.)
 4. **A sealed divergence is terminal; a content divergence is recoverable.** A sealed event (`Rot` /
    `Wit` / `Trm`) that would create or join a divergence does **not** extend the canonical chain —
    it is retained as non-canonical evidence (keep-all-data) rather than discarded. A fork with **at
@@ -208,9 +208,9 @@ No position split is needed — each is one rule:
 
 The merge engine handles batches atomically:
 
-- **`[..content.., Rot]`** — the winning-branch context plus the burying `Rot`. The retained branch
-  (≤ 64) plus the `Rot` fits one page. Processed as a single overlap or forked submission; the `Rot`
-  buries the content loser by position + descent synchronously.
+- **`[..content.., Rot]`** — the winning-branch context plus the burying seal-advancer. The retained
+  branch (≤ 64) plus the `Rot` fits one page. Processed as a single overlap or forked submission;
+  the `Rot` buries the content loser by position + descent synchronously.
 - **`[Rot, Ixn]`** — auto-inserted by the builder when an `Ixn` would exceed the seal-advance cap
   interval.
 - **`[Fcp, Rot]` plus the federation IEL `Fcp` and receipts** — the founder bootstrap atomic batch.
@@ -305,9 +305,9 @@ normal operation, only unrecovered divergent cases reach the partitioning path.
 - **Unrecovered (`Ixn`-`Ixn` fork)** — longer chain first as non-divergent appends; only the fork
   event from the shorter chain is sent. Receiver routes the fork event through the overlap path →
   Forked state.
-- **A retained sealed branch** (a burying `Rot` the content-only guard rejected, counted as the
-  second sealed branch of a **Disputed** fork) is evidence and **must** propagate, like any other
-  retained sealed branch — dropping it would split the reading across nodes.
+- **A retained sealed branch** (a burying seal-advancer the content-only guard rejected, counted as
+  the second sealed branch of a **Disputed** fork) is evidence and **must** propagate, like any
+  other retained sealed branch — dropping it would split the reading across nodes.
 
 ### Effective-SAID convergence
 
@@ -428,7 +428,7 @@ A `{Rot, Rot}` divergence is moreover a **proof of rotation-reserve compromise**
 rotations reveal the one reserve preimage in force at `v_{d-1}`. The forging bar for a sealed event
 is tier-2 (the reserve); once an adversary's rotation has landed on any federation node, no in-band
 protocol recourse exists (the reserve defends the signing key, not the rotation key —
-[`recovery.md`](recovery.md)). Any sealed-vs-sealed race resolves to the same data-local
+[`compromise.md`](compromise.md)). Any sealed-vs-sealed race resolves to the same data-local
 **Disputed** reading. See
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 
@@ -609,7 +609,7 @@ Gossip propagates ixn_a → B, ixn_b → A. Each node's merge engine observes ov
   Both nodes:  v_0 → ... → v_{d-1} ─┬─ ixn_a @ v_d   (Forked — frozen)
                                     └─ ixn_b @ v_d
 
-The owner submits a burying Rot on the branch it keeps (ixn_a) to any single node → the Rot advances the seal past ixn_b, which drops below it (dead by descent) → recovery propagates via gossip → all nodes converge on the post-Rot linear state.
+The owner submits a burying `Rot` on the branch it keeps (ixn_a) to any single node → the Rot advances the seal past ixn_b, which drops below it (dead by descent) → recovery propagates via gossip → all nodes converge on the post-Rot linear state.
 ```
 
 ### 3. Local events buried by a competing recovery
@@ -629,7 +629,7 @@ Pre-state (divergent at v_d; local store holds branch A):
 
   Local:   v_0 → ... → v_{d-1} → branch_A → branch_A'   (local view)
 
-A second reserve holder submits a burying Rot keeping branch_B (branch-tip-extending shape):
+A second reserve holder submits a burying `Rot` keeping branch_B (branch-tip-extending shape):
 
   rot_B extends branch_B and advances the seal; branch_A / branch_A' now sit below the seal, dead by descent; rot_B lands at v_{d+1}.
 
@@ -641,8 +641,9 @@ Local party detects via an existence-check on the server that branch_A / branch_
 ### 4. Post-recovery events synced to a node holding the buried branch
 
 After recovery on node A, new events (e.g., `Ixn`) are appended. When synced to node B (which still
-has the now-buried branch as its canonical chain), the overlap handler applies the burying `Rot`
-(the seal advances past B's branch) and resolves it synchronously in the merge transaction.
+has the now-buried branch as its canonical chain), the overlap handler applies the burying
+seal-advancer (the seal advances past B's branch) and resolves it synchronously in the merge
+transaction.
 
 ```
 Pre-sync state (post-recovery on A; buried branch still canonical on B):
@@ -675,7 +676,7 @@ to a one-branch holder. The seal-cap stays unconditional.
 - [`events.md`](events.md) — per-kind reference: kinds, fields, two-tier capability model,
   seal-advance cap.
 - [`merge.md`](merge.md) — merge engine routing being proved sound.
-- [`recovery.md`](recovery.md) — recovery doctrine: recovery attach shapes, two-tier compromise
+- [`compromise.md`](compromise.md) — recovery doctrine: recovery attach shapes, two-tier compromise
   model, pre-seal verifiability.
 - [`verification.md`](verification.md) — verifier walk.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#federation-convergence) —

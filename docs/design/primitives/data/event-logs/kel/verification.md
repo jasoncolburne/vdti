@@ -11,7 +11,7 @@ This doc states the walk algorithm, the kind dispatch at inception, per-event ch
 handling, the token surface, and the federation-witnessing signals consumers read. For per-kind
 reference (fields, authorization, the manifest roles), see [`events.md`](events.md); for chain
 lifecycle, [`log.md`](log.md); for merge-layer routing, [`merge.md`](merge.md); for recovery
-doctrine, [`recovery.md`](recovery.md); for the cross-node correctness proof,
+doctrine, [`compromise.md`](compromise.md); for the cross-node correctness proof,
 [`reconciliation.md`](reconciliation.md).
 
 ## What verification ensures
@@ -188,7 +188,7 @@ process_establishment(event, branch):
 The forward-key-commitment mechanism is what makes the two-tier capability model cryptographic
 rather than policy-bound. See
 [`events.md` §Forward-key commitments](events.md#forward-key-commitments) and
-[`recovery.md` §Two-tier compromise model](recovery.md#two-tier-compromise-model).
+[`compromise.md` §Two-tier compromise model](compromise.md#two-tier-compromise-model).
 
 ### Signature verification
 
@@ -371,7 +371,7 @@ above the seal carries tier-1-only durable authority and becomes durable only on
 seal-advancing event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a
 consumer composes the anchor's seal position with `region()`: a below-seal anchor is honored even on
 a `disputed` chain; an above-seal anchor on a `disputed` chain grounds no new trust. See
-[`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability) and
+[`compromise.md` §Pre-seal verifiability](compromise.md#pre-seal-verifiability) and
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 
 ## Federation witnessing in verification
@@ -529,7 +529,7 @@ spanning two pages re-fetches at the next page rather than being processed half-
   capability model.
 - [`merge.md`](merge.md) — merge handler routing: how the verifier output composes with the merge
   gate.
-- [`recovery.md`](recovery.md) — recovery doctrine: recovery attach shapes, two-tier compromise
+- [`compromise.md`](compromise.md) — recovery doctrine: recovery attach shapes, two-tier compromise
   model, pre-seal verifiability.
 - [`reconciliation.md`](reconciliation.md) — cross-node correctness proof.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#verification-tokens-as-proof-of-verification)

@@ -123,7 +123,7 @@ change nothing is rejected `Sealed`; one that would **form or join a live fork**
 serial is a `Forked` / `Disputed` transition instead (retained evidence). This is the structural
 rule that enforces current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
-[`recovery.md` §Locked-portion bound](recovery.md#locked-portion-bound).
+[`log.md` §The locked portion](log.md#the-locked-portion).
 
 The seal-cap is **unconditional** on KEL: every event class is subject to it. A recovery `Rot` whose
 `previous.serial < seal_serial` (targeting the locked portion, not the current seal) is rejected —
@@ -339,16 +339,84 @@ The completeness question — every combination of losing-branch tier and delive
 correctly, with all honest nodes converging on one reading — is proven in
 [`reconciliation.md` §Matrix 4](reconciliation.md#matrix-4-recovery-completeness).
 
+## Recovery attach shapes
+
+You attach the burying `Rot` at your **last good event**, retaining your branch and burying every
+competing content branch below the new seal. `Rot.previous` takes one of two shapes.
+
+### Branch-tip-extending shape
+
+`Rot.previous` is your own branch tip at `v_d`. The `Rot` extends that branch at `v_{d+1}`; the
+other branch's first event is below the new seal, dead by descent.
+
+```
+Pre-state (divergent at v_d):
+    ... → v_{d-1} ─┬─ retained-branch tip @ v_d
+                   └─ other-branch root   @ v_d
+
+Recovery: rot.previous = retained-branch tip's said
+          rot.serial   = d + 1
+
+Post-state (linear, recovered):
+    ... → v_{d-1} → retained-branch tip @ v_d → rot @ v_{d+1}
+                  ↑
+                  other branch below the advanced seal → dead by descent
+```
+
+The submitter keeps the branch they authored; the burying `Rot` extends it and advances the seal, so
+the competing branch (its first event now below the seal) and everything grown on it are dead by
+descent — no submitter-supplied commitment, no content-only guard walk. Every competing content
+branch closes the same way; a competing **sealed** branch is never buried (≥ 2 sealed → `disputed`).
+
+### Ancestor-extending shape
+
+`Rot.previous` is `v_{d-1}`, the divergence ancestor. The `Rot` lands at `v_d`; every branch at
+`v_d` is a sibling of the `Rot`, barred by the seal-cap (its parent `v_{d-1}` now sits below the
+advanced seal), its growth dead by descent; the `Rot` is the only canonical event at `v_d` after
+recovery.
+
+```
+Pre-state (divergent at v_d):
+    ... → v_{d-1} ─┬─ branch-1 root @ v_d
+                   └─ branch-2 root @ v_d
+
+Recovery: rot.previous = v_{d-1}.said
+          rot.serial   = d
+
+Post-state (linear, recovered, rot is the only canonical event at v_d):
+    ... → v_{d-1} → rot @ v_d
+                  ↑
+                  both branches below the advanced seal → dead by descent
+```
+
+The ancestor-extending shape is the structural primitive that makes recovery
+**cross-node-validatable**: `v_{d-1}` is the unique shared parent of all events at `v_d`, and it
+lands cleanly on the linear chain before any divergence, so it is structurally identical on every
+node regardless of which divergent contents each node received. A recovery `Rot` extending it
+validates uniformly — it signs against the same `v_{d-1}.rotationHash` on every node, and advances
+the seal past every `v_d` branch, so every competing branch (and everything grown on it) sits below
+the new seal, dead by position + descent — an outcome every node computes identically, with no
+submitter-supplied fork commitment to trust. It is the recourse when the submitter authored nothing
+it wants to preserve at or beyond `d`: attaching at `v_{d-1}` buries everything at or beyond `d`,
+the submitter's own content included. Every branch here is tier-1 content, so nothing sealed is
+overturned.
+
+Both attach shapes route through the merge layer as ordinary sealed extensions — acceptance buries
+the losing content by position + descent rather than producing a divergence. A sealed event sharing
+the ancestor-extending parent shape (`previous = v_{d-1}.said`) on a chain that already holds a
+sealed event at `v_d` is a **second** sealed branch → `disputed`; a burying `Rot` extending the
+winning branch's own tip is the recovery.
+
 ## Branch-scoped verification
 
-When verifying a burying-`Rot` batch, the verifier seeds from `Rot.previous` (the submitter's chosen
-anchor — the branch tip in the branch-tip-extending shape, or `v_{d-1}` in the ancestor-extending
-shape) and walks only that branch plus the batch's new events. The competing branches are buried by
-position + descent; the seal advances only after verification succeeds.
+When verifying a burying-seal-advancer batch, the verifier seeds from the seal-advancer's `previous`
+(the submitter's chosen anchor — the branch tip in the branch-tip-extending shape, or `v_{d-1}` in
+the ancestor-extending shape) and walks only that branch plus the batch's new events. The competing
+branches are buried by position + descent; the seal advances only after verification succeeds.
 
 This honors the no-extend-adversary rule: the walker's running state never carries a competing
 branch across the recovery boundary. After recovery, the chain has a single linear walkback from the
-burying `Rot`; the verifier's resume state is consistent with the post-recovery shape.
+burying seal-advancer; the verifier's resume state is consistent with the post-recovery shape.
 
 ## Cross-node sealed-vs-sealed races
 
@@ -366,8 +434,7 @@ local linear-chain extensions, cross-node convergence runs **data-locally**:
   to a node that lacks them, but the verdict is the node's own.
 
 The merge layer enforces local invariants strictly; convergence is the data-local walk, not a
-federation verdict. See
-[`recovery.md` §Cross-node sealed-vs-sealed races](recovery.md#cross-node-sealed-vs-sealed-races),
+federation verdict. See [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix),
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), and
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence).
 
@@ -423,8 +490,8 @@ for truncation.
   model.
 - [`events.md`](events.md) — per-kind reference: key-state fields, authorization, the manifest
   roles, sort priority, seal-advance cap.
-- [`recovery.md`](recovery.md) — recovery doctrine: recovery attach shapes, locked-portion bound,
-  pre-seal verifiability.
+- [`compromise.md`](compromise.md) — recovery doctrine: recovery attach shapes, locked-portion
+  bound, pre-seal verifiability.
 - [`verification.md`](verification.md) — verifier algorithm: `KelVerifier::new` / `resume` /
   `from_branch_tip`, signature verification, anchor checking.
 - [`reconciliation.md`](reconciliation.md) — cross-node correctness proof; race matrix;

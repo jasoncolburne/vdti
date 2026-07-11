@@ -10,7 +10,7 @@ cap.
 
 For chain lifecycle (states, the seal and spine, locked-portion bound, page model), see
 [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For recovery doctrine,
-[`recovery.md`](recovery.md). For the verifier walk, [`verification.md`](verification.md).
+[`compromise.md`](compromise.md). For the verifier walk, [`verification.md`](verification.md).
 
 ## Event taxonomy
 
@@ -82,7 +82,7 @@ unrevealed). The forward-key commitment drives the pre-rotation mechanic — see
 
 ## The manifest — roles a KEL event carries
 
-A KEL event commits to lower-layer SAIDs and its witnessing policy through a **`manifest`** — the
+A KEL event commits to higher-layer SAIDs and its witnessing policy through a **`manifest`** — the
 SAID of a role-grouped SAD
 ([event-shape §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
 A KEL event's manifest may carry only these roles; one carrying any role outside this vocabulary is
@@ -97,8 +97,8 @@ it (read kind-first):
 A seal-advancing event does **not** commit its content run: the retained run since the prior seal is
 the derivable `[previousSeal..previous]`, and "content was folded" is the predicate
 `previous != previousSeal`. There is no repair kind and no losing-branch commitment — a content
-loser is buried **by position + descent** (the burying `Rot`'s seal-cap locks its first event, and
-everything grown on it is dead by descent), naming no root.
+loser is buried **by position + descent** (the burying seal-advancer's seal-cap locks its first
+event, and everything grown on it is dead by descent), naming no root.
 
 ### Anchors
 
@@ -193,7 +193,7 @@ signed by the new signing key the rotation reserve reveals — never by the old 
 terminal). Once a rotation lands, the reserve preimage it revealed is public — a **spent** reserve
 that can only forge a _late_ competing rotation (declined) — see
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound)
-and [`recovery.md`](recovery.md).
+and [`compromise.md`](compromise.md).
 
 ## Two-tier capability model
 
@@ -223,7 +223,7 @@ makes the cost of forging a governance act, binding establishment, or terminal e
 SEL strictly higher than the cost of forging routine extension events on its contributing KELs.
 **The reserve defends the signing key, never the rotation key** — a reserve-holding adversary can
 just extend the chain with a rotation to their own key, an unrecoverable takeover
-([`recovery.md`](recovery.md)).
+([`compromise.md`](compromise.md)).
 
 ### Anchoring is kind-strict
 
@@ -259,12 +259,12 @@ KEL has one protocol-enforced cap (the seal-advance cap).
 A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal but ends the chain)
 must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The
 cap bounds the **fold** — the content run since the last seal — to 64 events on each branch, so the
-canonical two-branch content fork plus the resolving burying `Rot` is **sized to fit** one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing content
-branches plus the burying `Rot` in one atomic page, since the sink holds neither branch in storage.
-A local node's hot page is smaller still (its retained branch ≤ 64 plus the burying `Rot`; the
-losing branch is buried by position + descent, validated from retained storage). See
-[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+canonical two-branch content fork plus the resolving burying seal-advancer is **sized to fit** one
+page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing
+content branches plus the burying seal-advancer in one atomic page, since the sink holds neither
+branch in storage. A local node's hot page is smaller still (its retained branch ≤ 64 plus the
+burying seal-advancer; the losing branch is buried by position + descent, validated from retained
+storage). See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at 64 events
@@ -351,7 +351,7 @@ back-links to its predecessor. The `Rot` at s64 keeps the chain inside the seal-
 s0..s4   normal chain (seal at the most recent prior seal-advancing event)
 s5a  kind=ixn  manifest={ anchors: [said_a] }          ← content fork
 s5b  kind=ixn  manifest={ anchors: [said_b] }          ← content fork
-     — chain is Forked (frozen); recoverable via a burying Rot —
+     — chain is Forked (frozen); recoverable via a burying seal-advancer —
 s6   kind=rot  previous=s5a.said,                       ← Rot extends the branch its author keeps
                 publicKey=k6, rotationHash=h(k7),         signed by k6 (tier-2, the reserve)
                 previousSeal=<prior seal>.said            ← seals past the loser
@@ -362,7 +362,7 @@ advances the seal past the loser, so the competing `s5b` (and anything grown on 
 the new seal and **dead by descent**. There is no repair kind, no recovery key, and no losing-branch
 commitment — burial is by position + descent. Go for the **root**, not the thief's tip: however long
 a run the thief piled on, it all hangs off the buried point and dies at once. See
-[`recovery.md` §Recovery is a plain Rot](recovery.md#recovery-is-a-plain-rot-that-buries-at-the-root).
+[`compromise.md` §Recovery is a plain Rot](compromise.md#recovery-is-a-plain-rot-that-buries-at-the-root).
 
 ### Clean terminate
 
@@ -378,7 +378,7 @@ subsequent submission: a sibling to the `Trm` (sharing parent `v_{N}`) is reject
 — no kind admits a `Trm` parent). See [`merge.md` §Routing order](merge.md#routing-order). A
 concurrent sealed event racing the `Trm` at the same serial on another node is retained as
 non-canonical evidence and read data-locally — see
-[`recovery.md` §Cross-node sealed-vs-sealed races](recovery.md#cross-node-sealed-vs-sealed-races).
+[`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix).
 
 ## Cross-references
 
@@ -387,8 +387,8 @@ non-canonical evidence and read data-locally — see
 - [`log.md`](log.md) — chain primitive: states, prefix derivation, the seal and spine,
   locked-portion bound, page model.
 - [`merge.md`](merge.md) — merge-layer routing.
-- [`recovery.md`](recovery.md) — recovery doctrine, recovery as a plain `Rot`, two-tier compromise
-  model.
+- [`compromise.md`](compromise.md) — recovery doctrine, recovery as a plain `Rot`, two-tier
+  compromise model.
 - [`verification.md`](verification.md) — verifier algorithm and kind dispatch.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and recovery, forks-are-seal-bounded, inception tiers.

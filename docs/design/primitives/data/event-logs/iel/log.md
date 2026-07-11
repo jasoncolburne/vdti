@@ -15,7 +15,7 @@ doc and its siblings state the IEL-specific doctrine.
 The IEL sits between the KEL and the SEL. It **anchors in** member KEL events — every IEL event is
 authorized by a threshold of members' fresh KEL events (the
 [tier model](../../../../protocol-doctrine.md#tiers) ties the cost of forging a sealed IEL act to
-the cost of forging the corresponding KEL anchors) — and it **anchors down** to the SEL events and
+the cost of forging the corresponding KEL anchors) — and it **anchors up** to the SEL events and
 credentials its members authorize. The layering principle holds throughout: **the chain validates
 structure only** — event chaining, the members' anchoring, per-kind schemas — never topic labels or
 application semantics, and a chain never reads invalid because of the application it serves
@@ -183,7 +183,7 @@ Every IEL event is anchored by a threshold of members, so **every IEL event carr
 federation `Wit`'s `pins` are the participating witnesses' pre-rotation KEL tips; the SEL analog is
 the singular top-level `pin`.)
 
-**The role-qualified manifest.** An IEL event commits to what sits below it through a **`manifest`**
+**The role-qualified manifest.** An IEL event commits to what sits above it through a **`manifest`**
 — the SAID of a role-grouped SAD
 ([event-shape §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
 An IEL event's manifest may carry only these roles; one carrying any role outside its kind's
@@ -193,7 +193,7 @@ permitted to carry it (read kind-first):
 | Role        | Carried by                                       | Commits to                                                                                                                                               |
 | ----------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                      |
-| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | lower-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`)      |
+| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`)     |
 | `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                 |
 | `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration)) |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                                                          |
@@ -293,7 +293,7 @@ prefix unpredictable, and locked-portion immutability under the seal-cap means e
 `last_seal_advancing_event` cannot be rearranged by any future event — so an identity's roster and
 threshold as-of a below-seal position, and every credential and SEL binding resolving to it, stay
 structurally trustworthy indefinitely. Authority never rests on a service, a database, or a peer: an
-IEL event authenticates by resolving **up** to a threshold of member KEL signatures, and every one
+IEL event authenticates by resolving **down** to a threshold of member KEL signatures, and every one
 of those is re-checked from the data. The cross-primitive framing (verify the data, not the source)
 is canonical in
 [`../../../../system-thesis.md` §End-verifiability](../../../../system-thesis.md#end-verifiability).

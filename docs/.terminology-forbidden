@@ -114,7 +114,7 @@ kels/sad/
 #   SEL Est removed (a credential SEL's pin rides in its data; a lookup SEL
 #     carries a Pin event);
 #   IEL Rsc-as-an-event removed (rescission is a derived lookup SEL);
-#   SEL policyPin removed (chain events carry no policy; a SEL floors up via its
+#   SEL policyPin removed (chain events carry no policy; a SEL floors down via its
 #     pin / data);
 #   KEL federationBinding → federation (prefix) + federationPin (SAID);
 #   policy-DSL leaves dev() / grp() dropped (identity composition is thr / wgt /

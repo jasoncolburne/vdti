@@ -176,7 +176,7 @@ ancestry, roster and delegation state — is judged by the **anchoring position*
 committing event, append-only-fixed via the chain `document ← SEL ← IEL Ixn ← KEL Ixn` (each
 `previous`-linked). There is no self-asserted document value to backdate: the as-of is read directly
 from the anchoring position, which lives on the append-only chain and cannot be inserted into the
-past. The structural SEL up-pin that floors each log to its owner still satisfies
+past. The structural SEL down-pin that floors each log to its owner still satisfies
 `pin == anchor.previous` as a chain link, but that is a chain field, not a document's claim
 ([`primitives/policy/documents.md`](primitives/policy/documents.md)).
 
@@ -355,8 +355,8 @@ A chain **diverges** the instant it carries two **distinct** events at one seria
 different-SAID: SAIDs are content-addressable, so two byte-identical events **are** one event (the
 submit path accepts an already-present event idempotently, never as a second branch). So the only
 dedupe is an **idempotent resubmit** of a byte-identical event: two **independently authored**
-events are never byte-identical — each commits its own up-pins and chain position — so wherever two
-land at one serial they are **distinct** and **collide**, resolved by the machinery below, never
+events are never byte-identical — each commits its own down-pins and chain position — so wherever
+two land at one serial they are **distinct** and **collide**, resolved by the machinery below, never
 silently merged. (Signatures live adjacent to the event, outside the SAID'd bytes —
 [event-shape](primitives/data/event-logs/event-shape.md) — so a resubmit of the same bytes dedupes;
 a fresh authoring, even of the same intent, does not.)
@@ -789,7 +789,7 @@ from a mis-set bound is operational (reincept and re-grant / reissue), not a rew
 
 Inception tier follows what the inception establishes:
 
-- **KEL `Icp`** — tier 1. The root is self-authorizing; there is no chain above it.
+- **KEL `Icp`** — tier 1. The root is self-authorizing; there is no chain below it.
 - **IEL `Icp`** — tier 2. It establishes governance (a roster + threshold vector) — a genuine
   state-establishment.
 - **SEL `Icp`** — tier 1. It establishes single-owner data, not governance. It carries **no `pin`**
@@ -1221,8 +1221,8 @@ witnessed anchors that IEL / SEL anchor resolution consults on a KEL. IEL and SE
 authenticate via their KEL anchors, but federation context attaches **per layer**: a **KEL** carries
 it (the most-recent `Icp` / `Wit`); a user **IEL records its own** authoritative binding
 (`federation` / `federationPin` on its `Icp`/`Wit`, field-matched to its members' KEL `Wit`s); a
-**SEL** carries no federation field and inherits its owner IEL's. The KEL is the leaf of trust
-composition — witnessed-anchor resolution resolves each leaf-anchor to its KEL event, while the
+**SEL** carries no federation field and inherits its owner IEL's. The KEL is the base of trust
+composition — witnessed-anchor resolution resolves each anchor down to its KEL event, while the
 federation **binding** is read from the layer that owns it (above). A consumer refuses to bind under
 a divergent position or insufficient attestation, and grounds trust in the **config-pinned
 federation prefix set** (compile-time-baked + runtime override) — for a chain that transferred

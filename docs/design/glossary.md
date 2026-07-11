@@ -29,7 +29,7 @@ canonical** wherever they differ.
   ([`documents.md`](primitives/policy/documents.md))
 - **policy** — the authorization language that lives on a document (leaves + composers), never on a
   log primitive. ([`policy.md`](primitives/policy/policy.md))
-- **manifest** — the SAID of a SAD that groups an event's downward commitments **by named role**.
+- **manifest** — the SAID of a SAD that groups an event's upward commitments **by named role**.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **lookup-SEL** — a SEL whose locus is blind-recomputable from `derive(owner, topic, data)`; it
   backs the fail-open O(1) opt-out of a revocation / rescission check.
@@ -49,7 +49,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker.                                                                                               |
 | `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root).                                                                                                               |
-| `Ixn` | Interaction — content; anchors lower-layer SAIDs. The divergeable content kind — tier-1, buriable (first-seen; on the SEL the floor `Pin` is tier-1 too).                                                    |
+| `Ixn` | Interaction — content; anchors higher-layer SAIDs. The divergeable content kind — tier-1, buriable (first-seen; on the SEL the floor `Pin` is tier-1 too).                                                   |
 | `Rot` | Rotation (KEL) — reveals the next signing key, commits the next reserve; signed with the reserve. Tier 2, seal-advancing.                                                                                    |
 | `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). It **is** the rotation. Tier 2, seal-advancing.                                         |
 | `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta; a `cut` `Evl` also evicts. Tier 2.                                                                                                           |
@@ -67,10 +67,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **spine** — the `previousSeal`-linked chain of seal-advancing events; a sealed divergence is a
   single visible spine fork.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#divergence-is-scoped-to-content))
-- **anchor** — a commitment from an event to the SAID of the layer below (manifest `anchors`);
+- **anchor** — a commitment from an event to the SAID of the layer above (manifest `anchors`);
   kind-strict both directions.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
-- **pin / pins / federationPin** — an event's up-pins to the tips it depends on (a SEL's owner IEL
+- **pin / pins / federationPin** — an event's down-pins to the tips it depends on (a SEL's owner IEL
   event; an IEL's member KEL events; the as-of federation position).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#cross-cutting-fields))
 - **branch / competing branch / retained / losing branch** — the shapes of a divergence: the kept
@@ -154,7 +154,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **burial by position / deadness-descends** — a burying seal-advancer locks the losing branch's
   first event below the seal; its whole subtree is dead by descent, so later growth needs no
   follow-up. ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
-- **kind-strict anchor matrix** — each lower-layer kind is anchored by exactly the upper kind that
+- **kind-strict anchor matrix** — each higher-layer kind is anchored by exactly the lower kind that
   reveals the matching capability; no higher-tier stand-in.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **fork-cost / witnessing floor** — a strict witness majority (`threshold > signers/2`) makes two

@@ -1,8 +1,8 @@
 # VDTI Design Documentation
 
 This directory is the **landed design surface** for VDTI — the canonical specification of the
-protocol. It is built from foundations up: each layer below assumes the ones above it. Read it in
-order for a first full pass, or jump to a layer with the table of contents.
+protocol. It is built from foundations up: each layer builds on the ones below it. Read it in order
+for a first full pass, or jump to a layer with the table of contents.
 
 Two ideas anchor everything here. Every content-bearing object is a **SAD** — Self-Addressed Data, a
 record identified by the hash of its own content. And the system's central claim is
@@ -72,7 +72,7 @@ Then the KEL (Key Event Log) primitive, in order:
     — the verifier walk and the verification token: how a chain is read and validated.
 12. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
     path: divergence resolution, burial by position and descent, and the single-word merge outcomes.
-13. [`primitives/data/event-logs/kel/recovery.md`](primitives/data/event-logs/kel/recovery.md) —
+13. [`primitives/data/event-logs/kel/compromise.md`](primitives/data/event-logs/kel/compromise.md) —
     recovery as a plain burying `Rot`: the reserve defends the signing key, not the rotation key.
 14. [`primitives/data/event-logs/kel/reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md)
     — the exhaustive correctness proof: every divergence case resolved, and the argument that all

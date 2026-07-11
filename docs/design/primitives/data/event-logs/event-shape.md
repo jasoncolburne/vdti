@@ -61,7 +61,7 @@ SEL operation inherits its authentication tier from the event that anchors it. S
 [`../../../protocol-doctrine.md` §Tiers](../../../protocol-doctrine.md#tiers).
 
 ```mermaid
-flowchart TB
+flowchart BT
   sig["adjacent signature"]:::sig -.->|signs| kel["member KEL: Ixn"]:::kel
   kel ==>|manifest.anchors| iel["owner IEL: Ixn"]:::iel
   iel ==>|manifest.anchors| sel["SEL: Ixn"]:::sel
@@ -72,7 +72,7 @@ flowchart TB
 ```
 
 IEL and SEL events carry **no signature** of their own. Thick arrows are `manifest.anchors` (the
-down-commit); a verifier reading the SEL event walks them **upward** — SEL → owner IEL → member KEL
+up-commit); a verifier reading the SEL event walks them **downward** — SEL → owner IEL → member KEL
 — to that KEL event's **adjacent signature**, which authenticates the chain. The act's tier comes
 from the anchoring kind (all `Ixn` here → tier 1).
 
@@ -82,7 +82,7 @@ Each primitive authorizes its own events structurally.
 
 - **KEL — a device's own key.** A KEL event is authorized by the key state the chain itself commits:
   a signing key (tier 1) or a revealed rotation reserve (tier 2). The KEL is the root —
-  self-authorizing, with no chain above it.
+  self-authorizing, with no chain below it.
 - **IEL — an identity's threshold vector over its member devices.** An IEL is a roster of member
   KELs plus a **threshold vector** `{t_use, t_govern, t_authorize}`, indexed by the kind of event
   being authored (below). It composes no multi-party policy internally; "who is this identity" is
@@ -92,7 +92,7 @@ Each primitive authorizes its own events structurally.
   required count is set by the SEL event's kind. A SEL hosts no roster of its own.
 
 ```mermaid
-flowchart TB
+flowchart BT
   kel["KEL — a device's key state"]:::kel
   iel["IEL — an identity (a threshold over member KELs)"]:::iel
   sel["SEL — a single-owner data log"]:::sel
@@ -108,16 +108,17 @@ flowchart TB
   classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
 ```
 
-The composition stack. Each layer **commits down** to the one below via `manifest.anchors` (thick)
-and **pins up** to the one above (dotted); a SEL names its documents by `data` / `content`.
-Authority resolves **up** the anchor chain to a KEL signature; the as-of / freshness floors **up**
-the pins.
+The composition stack. Each layer **commits up** to the one above via `manifest.anchors` (thick) and
+**pins down** to the one below (dotted); a SEL names its documents by `data` / `content`. Authority
+resolves **down** the anchor chain to a KEL signature; the as-of / freshness floors **down** the
+pins.
 
 **The threshold vector and its bounds.** Each IEL kind draws its required count from one slot of the
 vector: content (`Ixn`) from `t_use`; a roster/threshold change (`Evl`) from `t_govern`; an
 authorization (`Ath`) from `t_authorize`; a deauthorization (`Dth`) from `t_authorize`; a revocation
 (`Rev`) from `t_govern`; a federation rebind (`Wit`) and the terminal `Trm` from `t_govern`. Every
-kind draws from exactly one slot, so an IEL chain's validity needs no lower-layer input. The bounds:
+kind draws from exactly one slot, so an IEL chain's validity needs no higher-layer input. The
+bounds:
 
 - `t_use >= 1` (`t_use = 1` is single-device by choice — no content resilience). `t_use` is exempt
   from the authorization floor (content is first-seen / recoverable).
@@ -156,7 +157,7 @@ documents — are the policy layer's ([`../../policy/policy.md`](../../policy/po
 
 ## The manifest — what an event commits to, grouped by role
 
-An event commits to the things below it through a **`manifest`**: the SAID of a SAD that groups
+An event commits to the things above it through a **`manifest`**: the SAID of a SAD that groups
 those commitments **by named role**. The manifest SAD reads
 `{ said, <role>: <said-or-list-or-scalar>, … }`, and each role reads as "the things this event
 {anchors / roster / delegates / kills / …}." The event row holds only the manifest SAID; the grouped
@@ -169,7 +170,7 @@ timestamp value, the lone non-SAID role).
 
 | Role        | Carried by                                                         | Commits to                                                     |
 | ----------- | ------------------------------------------------------------------ | -------------------------------------------------------------- |
-| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Ath` / `Rev` / `Dth` | lower-layer event SAIDs (the down-commit)                      |
+| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Ath` / `Rev` / `Dth` | higher-layer event SAIDs (the up-commit)                       |
 | `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                        | the roster **delta** / threshold SAD SAID                      |
 | `delegates` | IEL `Ath`                                                          | delegate **prefixes** (act for the delegator)                  |
 | `grant`     | SEL `Gnt`                                                          | the grant-doc SAD SAID                                         |
@@ -208,9 +209,9 @@ The roles that carry discrimination or shape rules, in prose:
 **Top-level structural vs. manifest.** An event's _own links_ stay top-level: `said`, `previous`,
 **`previousSeal`** (on every seal-advancing event — the back-link to the prior seal that renders the
 spine; see [§Divergence is scoped to content](#divergence-is-scoped-to-content) and
-protocol-doctrine §Forks are Seal-Bounded), the up-pins (`pin` on a SEL, `pins` on an IEL), the
+protocol-doctrine §Forks are Seal-Bounded), the down-pins (`pin` on a SEL, `pins` on an IEL), the
 federation `prefix`, `federationPin`. The `manifest` (role-labeled) carries everything the event
-_commits to below it_ — lower-layer event SAIDs and documents. Entities are named by **prefix**;
+_commits to above it_ — higher-layer event SAIDs and documents. Entities are named by **prefix**;
 positions and documents by **SAID**. A SAID here is an integrity **commitment**, not a lookup key —
 there is no global SAID→event index, so a SAID harvested off a public manifest does not invert to a
 (possibly private) chain's prefix for any party outside the federation mesh; logs are fetched by
@@ -241,8 +242,8 @@ subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that carry 
 | `previousSeal`  | Digest256 | KEL, IEL, SEL | the **seal-advancing** kinds (KEL `Rot`/`Wit`/`Trm`; IEL `Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit`; SEL `Gnt`/`Trm`)                                         | Back-link to the prior seal-advancing event; renders the **spine** ([§Divergence is scoped to content](#divergence-is-scoped-to-content)). `fbd` on `Icp` / `Fcp` / `Ixn` (and the SEL floor `Pin`). |
 | `federation`    | Digest256 | KEL, IEL      | KEL `Icp` (req on a user KEL) / `Wit`; user IEL `Icp` (req) / `Wit` — present-iff-changed on `Wit` (only on a rebind)                                  | The federation IEL **prefix** a chain / identity binds to (_which_ federation).ᵃ                                                                                                                     |
 | `federationPin` | Digest256 | KEL, IEL      | KEL `Icp` (req on a user KEL); **opt on `Wit` + every KEL body event** (`Ixn`/`Rot`/`Trm`) — present-iff-re-pinned; user IEL `Icp` (req) / `Wit` (opt) | A **SAID** pinning the as-of federation position (_as of when_).ᵇ                                                                                                                                    |
-| `pin`           | Digest256 | SEL           | `Ixn` / `Gnt` / `Pin` / `Trm` (req); **`fbd` on `Icp`**                                                                                                | SAID of the owner IEL event the SEL floors **up** to (its up-pin); `fbd` on `Icp` — the first pin rides the SEL's serial-1 event (SEL taxonomy above).                                               |
-| `pins`          | Digest256 | IEL           | every IEL kind (`Icp`/`Ixn`/`Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit`)                                                                                       | SAID of a SAD listing the participating member **KEL event SAIDs** — the IEL's **up-pins**.ᶜ                                                                                                         |
+| `pin`           | Digest256 | SEL           | `Ixn` / `Gnt` / `Pin` / `Trm` (req); **`fbd` on `Icp`**                                                                                                | SAID of the owner IEL event the SEL floors **down** to (its down-pin); `fbd` on `Icp` — the first pin rides the SEL's serial-1 event (SEL taxonomy above).                                           |
+| `pins`          | Digest256 | IEL           | every IEL kind (`Icp`/`Ixn`/`Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit`)                                                                                       | SAID of a SAD listing the participating member **KEL event SAIDs** — the IEL's **down-pins**.ᶜ                                                                                                       |
 | `nonce`         | Nonce256  | IEL           | `Icp`                                                                                                                                                  | Opaque random bytes chosen by the inceptor; makes the IEL prefix unpredictable. Required at inception, forbidden elsewhere.                                                                          |
 | `owner`         | Digest256 | SEL           | `Icp`                                                                                                                                                  | The **owner IEL prefix** — which IEL owns this SEL; `Icp`-only and **immutable**; participates in the SEL prefix derivation.                                                                         |
 | `topic`         | String    | SEL           | `Icp`                                                                                                                                                  | Application discriminator; participates in the SEL prefix derivation.                                                                                                                                |
@@ -312,7 +313,7 @@ capability — no higher-tier stand-in) are the protocol doctrine's —
 | ----- | ---- | ------ | ------------------------------------------------------------------------------------------------------------------- |
 | `Fcp` | 1    | single | Founder **pre-federation** inception (self-attested; its v=1 `Rot` anchors the federation `Fcp`).                   |
 | `Icp` | 1    | single | Standard inception — **federation-bound** (there is no direct mode).                                                |
-| `Ixn` | 1    | single | Content; anchors lower-layer SAIDs (`anchors`, ≥ 1). **The divergeable content kind** (first-seen, buriable).       |
+| `Ixn` | 1    | single | Content; anchors higher-layer SAIDs (`anchors`, ≥ 1). **The divergeable content kind** (first-seen, buriable).      |
 | `Rot` | 2    | single | Rotation — reveals the next signing key, commits the next reserve; signed with the reserve. **Seal-advancing.**     |
 | `Wit` | 2    | single | Federation (re)bind (user KEL) / federation **governance** (witness KEL); **is** the rotation. **Seal-advancing.**ᵃ |
 | `Trm` | 2    | single | **Terminal.**                                                                                                       |
@@ -458,7 +459,7 @@ KEL + federation doctrine — [`kel/`](kel/), [`../../../federation/`](../../../
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **required** (there is no direct mode) and `witnesses` is **mandatory**; on a `Wit` all three
 are **present-iff-changed** (a field is carried only when it changes). The `nonce` (inception only)
-drives prefix unpredictability (§Prefix derivation). `pins` is the IEL's top-level **up-pins** — a
+drives prefix unpredictability (§Prefix derivation). `pins` is the IEL's top-level **down-pins** — a
 scalar SAID naming a small SAD of the participating member **KEL event SAIDs** (a federation `Wit`'s
 are the witness KELs); every IEL event is anchored by a threshold of members, so every IEL event
 carries it. On a `cut` `Evl`, `roster` carries a **non-empty `cut` + an optional `threshold`**,
@@ -478,15 +479,15 @@ per-kind anchor matrix are IEL doctrine — [`iel/`](iel/).
 
 `owner` (the owner IEL prefix, immutable — `Icp` only), `topic`, and `data` participate in the SEL
 prefix derivation (§Prefix derivation), so the `Icp` carries **no `pin`**: a pin field would make
-the prefix non-recomputable for lookup. The SEL's up-pin to its owner IEL therefore rides a
+the prefix non-recomputable for lookup. The SEL's down-pin to its owner IEL therefore rides a
 **serial-1 event** — a bare **`Pin`** batched with the `Icp` when inception carries no other first
 event (issue-and-sit), otherwise the first event itself (a lookup SEL's v1 is its `Trm`) — and
 re-pins on each `Ixn`. The exact SEL shapes are SEL doctrine — [`sel/`](sel/).
 
-## Anchoring — committing down, flooring up
+## Anchoring — committing up, flooring down
 
 An event commits to the layer that depends on it through its `manifest`, and the dependent floors
-back up to its authority's current tip:
+back down to its authority's current tip:
 
 - A **KEL** event anchors the **IEL** events it authorizes (the IEL event's SAID rides in the KEL
   event's `manifest.anchors`); the IEL event authenticates via that KEL event's signature. A member
@@ -501,7 +502,7 @@ back up to its authority's current tip:
   **issuance commitment** (a flat hash, not a SEL event); a `Rev` / `Dth` for the SEL `Trm`s they
   seal (`Rev` a credential revocation, `Dth` a rescission); an `Ath` for a SEL `Gnt` — each via
   `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL kind,
-  and each IEL kind anchors only its matching SEL kinds). The SEL event floors up to the owner IEL
+  and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the owner IEL
   tip via its `pin`, carried on its serial-1 event — a bare `Pin` when inception batches no other
   first event, otherwise the first event itself (the `Icp` stays pin-free for recomputability). The
   as-of authority is the **anchoring position** — the committing IEL event, append-only — so it
@@ -513,7 +514,7 @@ A device swap makes this concrete: replacing device X with Y is an IEL `Evl` car
 consents via a KEL `Ixn` (counted toward consent-of-added, never toward `t_govern`):
 
 ```mermaid
-flowchart TB
+flowchart BT
   iIcp["identity IEL: Icp — add {W, X, Z}"]:::iel --> iEvl["Evl — cut X, add Y"]:::iel
   wRot["W: Rot"]:::kel
   zRot["Z: Rot"]:::kel
@@ -638,7 +639,7 @@ IEL `Ixn` (tier 1); revocation declares `kills[]` and seals a lookup-SEL `Trm` u
 (tier 2), itself anchored by a member KEL `Rot`:
 
 ```mermaid
-flowchart TB
+flowchart BT
   kIxn["KEL Ixn"]:::kel --> kRot["KEL Rot"]:::kel
   iIxn["IEL Ixn — anchors issuance commitment"]:::iel --> iRev["IEL Rev — kills[] + anchors Trm"]:::iel
   sIcp["lookup SEL Icp"]:::sel --> sTrm["lookup SEL Trm"]:::sel

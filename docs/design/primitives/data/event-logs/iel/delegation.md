@@ -28,7 +28,7 @@ The check is **fail-secure by default**: walk the delegator's fresh IEL and forw
 the derived locus is the opt-out.
 
 ```mermaid
-flowchart TB
+flowchart BT
   dAth["delegator IEL: Ath (t_authorize)"]:::iel --> dDth["Dth (t_authorize)"]:::iel
   rIcp["rescission lookup-SEL: Icp"]:::sel --> rTrm["Trm (pin only)"]:::sel
   P["delegate IEL: Icp"]:::iel --> Q["Ixn"]:::iel

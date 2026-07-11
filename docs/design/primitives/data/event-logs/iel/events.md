@@ -77,8 +77,8 @@ It authenticates via its **KEL anchors**: a member participates by authoring a f
 authentication. The IEL event is authorized when a **threshold** of members' fresh KEL
 participations anchor it — the count drawn from the threshold vector by the IEL event's kind
 (below), the participation kind **kind-strict** to the capability the act exercises (§Threshold
-anchoring). So an IEL chain's validity needs no lower-layer policy — every kind prices itself from
-exactly one threshold slot, and the verifier resolves each anchor up to a KEL signature.
+anchoring). So an IEL chain's validity needs no higher-layer policy — every kind prices itself from
+exactly one threshold slot, and the verifier resolves each anchor down to a KEL signature.
 
 ## The threshold vector and its bounds
 
@@ -284,7 +284,7 @@ IEL (`previousSeal` walks terminate there). See
 
 ## The manifest — roles an IEL event carries
 
-An IEL event commits to lower layers and its witnessing policy through a **`manifest`** — the SAID
+An IEL event commits to higher layers and its witnessing policy through a **`manifest`** — the SAID
 of a role-grouped SAD
 ([event-shape §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
 A manifest carrying any role outside its kind's vocabulary is malformed and rejected, and a role is
@@ -294,7 +294,7 @@ load-bearing).
 | Role        | Carried by                                       | Commits to                                                                                                          |
 | ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | lower-layer event SAIDs (the down-commit)                                                                           |
+| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | higher-layer event SAIDs (the up-commit)                                                                            |
 | `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list                                                                   |
 | `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                     |

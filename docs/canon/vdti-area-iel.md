@@ -3,7 +3,7 @@
 **Status: FIRST CUT (2026-06-20) — also the area-note format exemplar.** Audited against the post-reshape
 core. Load-bearing claims marked for the adversarial pass; nothing here is locked until it survives that.
 **Invariants referenced:** [inv 1] policy-on-documents, [inv 2] single-locus, [inv 3] layers-isolated,
-[inv 4] manifest-down/pin-up, [inv 5] pin-floored, [inv 11] tier, [inv 12] threshold-vector, [inv 13] divergence.
+[inv 4] manifest-up/pin-down, [inv 5] pin-floored, [inv 11] tier, [inv 12] threshold-vector, [inv 13] divergence.
 
 ## Sources audited (disposition)
 - `vdti-log-primitive-reshape-design-pass.md` §1–4, §12 + `vdti-federation-inception-reference.md` — **authoritative / current.**
@@ -76,7 +76,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   — the same present=delta / absent=inherit shape as the membership `add`/`cut` and the federationPin re-pin. [inv 12]
 - **`Evl` carries a roster/threshold *delta* (`add` + `cut`), no separate floor** (append-only chain is the floor;
   current roster = **accumulate every delta while walking**, with the hard live-set cap — [inv 14]; **not** "latest `Evl`"). [I2]
-- **Manifest is role-qualified (inv 4).** An IEL event's `manifest` groups what it commits to below by named role
+- **Manifest is role-qualified (inv 4).** An IEL event's `manifest` groups what it commits to above by named role
   ("the things this event {anchors/roster/delegates/…}"): `Icp`/`Evl` (user) → `roster` (the roster/threshold delta
   SAD — an `Evl` `cut` also carries the eviction); a
   **federation** `Fcp`/`Wit` → `roster` + `clock`, the terminal `Trm` → `clock` (the inline timestamp value — the federation has no `Evl`, `Wit` is its sole governance kind; `Trm` carries the clock but no roster);

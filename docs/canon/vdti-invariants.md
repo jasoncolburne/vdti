@@ -13,13 +13,13 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
 2. **Single locus of control per primitive.** KEL = a device's keys; IEL = one identity (a threshold over member
    KELs); SEL = one owner's data log. No primitive composes a multi-party policy internally. *Src:* §1.
    `[locked-candidate]`
-3. **Layers isolated, one direction.** SEL → IEL → KEL; an event pins/anchors only the layer directly below.
-   Never anchor a SEL event in a KEL. *Why:* bounds blast radius; keeps the verification walk acyclic. *Src:* §1,
+3. **Layers isolated, one direction.** KEL → IEL → SEL; an event pins down to the layer directly beneath it and
+   anchors up to the layer directly above it — only ever the adjacent layer. Never anchor a SEL event in a KEL. *Why:* bounds blast radius; keeps the verification walk acyclic. *Src:* §1,
    §2. `[locked-candidate]`
 
 ## Binding & ordering
-4. **Manifest-down + pin-up.** An event commits to the layer below via a `manifest` (a SAD); the lower event
-   pins up to its owner's current tip. **A manifest *groups what the event commits to, by named role* (2026-06-21):**
+4. **Manifest-up + pin-down.** An event commits to the layer above via a `manifest` (a SAD); the higher event
+   pins down to its owner's current tip. **A manifest *groups what the event commits to, by named role* (2026-06-21):**
    `{ said, <role>: <said-or-list-or-scalar>, … }`. Roles read as **"the things this event {anchors / roster / delegates / …}."**
    **Read kind-first, never label-first (F1, 2026-06-21):** each event kind has a **closed role vocabulary**
    (`allowed(kind)`); a manifest carrying any role outside it is **malformed → rejected**, and a role is consumed
@@ -45,10 +45,10 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      are encoded in `event-shape.md` (landed with the IEL/SEL/federation doctrine). `sealPins`, a
      seal-level analog, was considered and dropped — it only reached the terminal-divergence view, which the flat walk
      subsumes, inv 17.)*
-   - **Manifest (role-labeled) = everything it *commits to below*:** anchored lower-layer **event SAIDs** *and*
+   - **Manifest (role-labeled) = everything it *commits to above*:** anchored higher-layer **event SAIDs** *and*
      **documents** (SADs). Entities are named by **prefix** (inv 7); events/positions and documents by **SAID**.
    **Role vocabulary:**
-   - `anchors` — lower-layer SAD / event SAIDs this event commits to below. **Carried by** KEL `Ixn` (required, ≥ 1) /
+   - `anchors` — higher-layer SAD / event SAIDs this event commits to above. **Carried by** KEL `Ixn` (required, ≥ 1) /
      `Rot` / `Wit` (the KEL `Wit` anchors the IEL `Wit` — uniformly, user binding **and** federation governance; see the KEL→IEL kind-strict rule below) and IEL `Ixn` / `Ath` / `Rev` / `Dth` (optional on the non-`Ixn` kinds — a rotation
      commits the events it realizes; an IEL `Ath` commits the SEL `Gnt`(s) it seals, and an IEL `Rev`/`Dth` the SEL `Trm`(s) it seals). **Subsumes the former
      `issues`/`revokes`/`rescinds` (2026-06-27):** those were **credential / feature vocabulary on a log primitive**
@@ -403,7 +403,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     (Finding 14a, 2026-06-21; generalized to the federation `Wit` — cold-13 F1: the federation has **no `Evl`**, it governs via `Wit`) — not only at `Icp`; an event whose resulting roster/thresholds would violate any
     bound is rejected. **A third, absolute floor — the roster is never emptied: post-delta `|roster| = |roster| + |add| − |cut| ≥ 1`** (beneath the security floor / singleton exception; the roster is a **set**, so `add ∉` the current roster, `cut ⊆` it, `cut ∩ add = ∅` — the size arithmetic holds; the same set discipline the federation states at §1a (cold-9 Q2 / cold-14 F1), general to *every* roster delta). A `cut` that would zero the roster is rejected — **one general rule** that makes *every* singleton IEL's roster **downward-immutable**: a singleton `cut` `Evl` (no `add`) computes `1 + 0 − 1 = 0` (`< 1`) → rejected, so a singleton can't be zeroed — **not only** the federation-member key-SEL owner (federation §1e). It still **allows** singleton evict-and-replace via an `Evl` — `cut 1 + add 1` stays `1`, **authorized at `t_govern`-of-outgoing** (the *old* member signs, so this works only for a planned migration where the sole key is **uncompromised/available**; a lost or compromised singleton can't produce that signature → reincept); only the zeroing is forbidden. **For the federation this re-check also covers the witness-config recoverability cap** — the **full** post-delta `threshold ≤ min(|roster| − 2, signers − 1)` **plus the witnessing floor `threshold > signers/2`**, re-applied on **any `Wit` that changes roster, `threshold`, or `signers`** (not a roster `cut` alone) — so a **bare `cut`** that would strand the federation un-recoverable (`|roster| 5→4` at `threshold 3`), a `t_govern`-hostage (`|roster| 4→3` at `t_govern 3`), **or a `signers`/`threshold` change landing on the *binding* `signers − 1` leg** (`{s 4, t 3}@5 → {s 3, t 3}@5` passes `|roster| ≥ threshold + 2` yet violates `t ≤ min(3,2)`, cold-seam F1) is **rejected**, forcing evict-and-replace or a simultaneous threshold-and-`signers` drop. **This is what actually enforces the `[locked]` "the witness IEL can never be brought to an unrecoverable size" above** (cold-13 F1; the roster-leg-only phrasing corrected to the full `min` — cold-seam F1, 2026-07-02 — since for `signers ≥ 2` the `signers − 1` leg binds and the roster leg is slack).
     **Every IEL kind prices itself (S1 closure, 2026-06-21; count-parametrization retired 2026-07-04).** The
-    required count of an IEL event is fixed by its **own kind**, never derived from the lower-layer payload it
+    required count of an IEL event is fixed by its **own kind**, never derived from the higher-layer payload it
     anchors, and **every kind draws from exactly one slot**: `Ixn` → `t_use`, `Evl` → `t_govern`, `Ath` →
     `t_authorize`, `Dth` → `t_authorize`, `Rev` → `t_govern`, `Trm` → `t_govern`, `Wit` → `t_govern`. **There is
     no count-parametrized kind and no `threshold` slot-name field** — the former `Kil` (a single kill-anchor
@@ -613,7 +613,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
 
 ## Inception & the pin mechanism
 15. **Inception tier follows what it establishes; every SEL's `Icp` is floored by its serial-1 event.**
-    - **KEL `Icp`** = T1 (the root, self-authorizing — no chain above it).
+    - **KEL `Icp`** = T1 (the root, self-authorizing — no chain below it).
     - **IEL `Icp`** = T2 (it establishes *governance* — roster + thresholds; a genuine state-establishment).
     - **SEL `Icp`** = **T1** (it establishes single-owner *data*, not governance; an IEL `Ixn` anchors its v1, never the `Icp` itself — see below). The
       `Icp` carries **no `pin`** (it must stay recomputable for lookup), so it is **floored by its serial-1 event**,
@@ -653,7 +653,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       is universal (above), not lookup-specific — for the `{Icp, Trm}` the `Trm` **is** that floor (no separate
       `Pin`);
       the `Pin` *kind*, when used, does **only** the floor re-pin (`t_use`/T1, **not** sealing). *(There is no SEL
-      re-seal `Fld` — dropped with the repair machinery; a plain content SEL floors up to the owner IEL instead.)*
+      re-seal `Fld` — dropped with the repair machinery; a plain content SEL floors down to the owner IEL instead.)*
     - **SEL `Trm`** = the kill — **always sealed on arrival**, anchored in one of the two dedicated sealed
       kill-anchors (**T2**; the identity-kill `Trm` is also **T2**): an **IEL `Rev`** (revoke / close your own credential
       or app-SEL, **`t_govern`**) or an **IEL `Dth`** (deauthorize a granted delegation / doc-membership,

@@ -2,7 +2,7 @@
 
 The IEL verifier walks a chain from inception to tip, validating structural integrity (SAID, prefix,
 chain linkage, per-kind field rules), **threshold authority** (a threshold of members' fresh KEL
-participations anchor each event, resolved up to KEL signatures), roster and threshold state
+participations anchor each event, resolved down to KEL signatures), roster and threshold state
 (accumulated as a delta while walking), the facet-dependent `Wit` payload (dispatched on the chain's
 root), and anchor presence (the `manifest` roles per kind). It returns a verification token —
 `IelVerification` — that downstream consumers hold as proof-of-verification and use to access
@@ -11,7 +11,7 @@ trusted chain data.
 Unlike a KEL, an IEL event carries **no adjacent signature of its own** — it authenticates entirely
 by its KEL anchors
 ([`../event-shape.md` §Authentication & signatures](../event-shape.md#authentication--signatures)).
-So the IEL verifier's authority check is an **up-walk**: for each IEL event, resolve the member KEL
+So the IEL verifier's authority check is a **down-walk**: for each IEL event, resolve the member KEL
 participations that anchor it, verify each anchoring KEL (its signature and tier), and count them
 against the threshold the IEL event's kind requires.
 
@@ -79,7 +79,7 @@ verify_event(event):
     if event is seal-advancing and event.previousSeal != branch.last_seal:
         return Error("Spine back-link mismatch")
 
-    # 5. Threshold authority (the up-walk)
+    # 5. Threshold authority (the down-walk)
     resolve_anchors(event)             # the member KEL participations that anchor this event
     verify_threshold(event, branch.roster, branch.thresholds)
 
@@ -93,8 +93,8 @@ The verifier checks the **manifest role vocabulary** here — a manifest carryin
 kind's (facet-aware) allowlist is malformed and rejected — and **anchor format** (each `anchors`
 entry a SAID-shaped token). Anchor **kind** and **tier** validation of the SEL events an IEL anchors
 are downstream (the SEL verifier enforces them when resolving against IEL anchors); the IEL
-verifier's own anchor resolution is **upward** — to the member KEL participations that authorize the
-event.
+verifier's own anchor resolution is **downward** — to the member KEL participations that authorize
+the event.
 
 ### Root-facet dispatch
 
@@ -124,7 +124,7 @@ path without exception**
 An IEL event has no key of its own; its authority is a threshold of members' **fresh KEL
 participations**. The verifier resolves and counts them:
 
-- **Resolve the anchors up.** For each IEL event, find the member KEL events whose
+- **Resolve the anchors down.** For each IEL event, find the member KEL events whose
   `manifest.anchors` names it. Each participation must be of **exactly** the kind that reveals the
   capability the act exercises (kind-strict up): content ← KEL `Ixn`; a tier-2 governance / kill /
   terminal act ← KEL `Rot`; the IEL `Wit` ← KEL `Wit`. A higher-tier stand-in does not count, and a

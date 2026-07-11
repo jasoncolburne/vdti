@@ -15,7 +15,7 @@ corresponding KEL anchor.
 This doc states the chain primitive: prefix derivation, the per-node chain states, the seal and the
 spine, the locked-portion bound, and the page / chunking model. Per-kind reference lives in
 [`events.md`](events.md); merge-handler routing in [`merge.md`](merge.md); recovery doctrine in
-[`recovery.md`](recovery.md); the verifier walk in [`verification.md`](verification.md); the
+[`compromise.md`](compromise.md); the verifier walk in [`verification.md`](verification.md); the
 cross-node correctness proof in [`reconciliation.md`](reconciliation.md).
 
 ## Prefix derivation
@@ -56,7 +56,7 @@ them apart (counting the sealed branches past the fork) **is** how the state is 
 
 Recovery keeps the recovering party's own branch and buries the rest by position + descent,
 returning the chain to Active — possible only when no buried branch carries a **sealed** event (see
-[`recovery.md`](recovery.md)). Two byte-identical events at one serial **are one event** — they
+[`compromise.md`](compromise.md)). Two byte-identical events at one serial **are one event** — they
 dedupe by SAID, never a second branch; only distinct events collide. The full freeze-and-recover
 rule is the protocol doctrine's —
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
@@ -99,7 +99,7 @@ The KEL verifier surfaces one forward-only watermark on its
 successor may land. Once a rotation lands, the reserve preimage it revealed is **spent** — public,
 usable only to forge a _late_ competing rotation (declined) — so a genuinely competing rotation
 needs the _next_ reserve, which is a takeover, not a recoverable fork (see
-[`recovery.md`](recovery.md)).
+[`compromise.md`](compromise.md)).
 
 ### The spine
 
@@ -147,7 +147,7 @@ The at-or-below-seal portion is permanently final — for the chain itself (no f
 it) and for consumers verifying anchors, credentials, and SEL bindings against it; the permanence
 claims run against the last **clean** seal (a below-seal **sealed** fork is a spine fork that flips
 the reading to `disputed` without rewriting any sealed event). See
-[`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability) for the structural
+[`compromise.md` §Pre-seal verifiability](compromise.md#pre-seal-verifiability) for the structural
 defense argument and
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) (_Pre-seal
 verifiability_) for the cross-primitive framing.
@@ -167,14 +167,14 @@ A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal
 must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events **per lineage**.
 The cap bounds the **fold** — the content run since the last seal — to 64 events on each branch, so
 the canonical two-branch content fork anchored at the last seal — both lineages (≤ 64 each) plus the
-burying `Rot` — fits in one page.
+burying seal-advancer — fits in one page.
 
 `MINIMUM_PAGE_SIZE = 129 = 2·64 + 1` is a protocol constant — a deployment floor, not a
 per-deployment knob — so a fork-and-recover page produced on any conformant deployment fits on every
-other. The page carries **both** competing content branches plus the burying `Rot` because a source
-→ sink transfer delivers the fork to a sink that holds neither branch in storage. A **local**
-discriminator needs less: its hot page is the retained branch (≤ 64) plus the burying `Rot`; the
-losing branch is buried by position + descent, validated from retained storage, not held in the
+other. The page carries **both** competing content branches plus the burying seal-advancer because a
+source → sink transfer delivers the fork to a sink that holds neither branch in storage. A **local**
+discriminator needs less: its hot page is the retained branch (≤ 64) plus the burying seal-advancer;
+the losing branch is buried by position + descent, validated from retained storage, not held in the
 page. The shapes that exceed one page (an own-`Rot` in the retained tail; a ≥ 3-branch residual
 fork) ride earlier or later pages — [`reconciliation.md` §Invariants](reconciliation.md#invariants)
 (invariant 3) carries the derivation.
@@ -184,7 +184,7 @@ The seal-advance cap composes with the divergence-and-recovery rules to give the
 rotation reserve can only submit `Ixn` events, and the cap limits each of their lineages to at most
 64 events past the last seal before they must produce a seal-advancing event (which requires at
 least tier-2 capability — see
-[`recovery.md` §Two-tier compromise model](recovery.md#two-tier-compromise-model)).
+[`compromise.md` §Two-tier compromise model](compromise.md#two-tier-compromise-model)).
 
 ## Page model
 
@@ -205,7 +205,7 @@ of atomicity for the merge handler.
   only and has no semantic meaning.
 
 The page model lets every operation be bounded-resource. The hot page — the retained branch plus the
-burying `Rot` — fits in one page (per the seal-advance cap derivation above). The verifier's
+burying seal-advancer — fits in one page (per the seal-advance cap derivation above). The verifier's
 `max_pages` cap (default 64 pages ≈ 8K events; configurable via env var) caps resource use even on
 adversarial chains.
 
@@ -218,13 +218,13 @@ The structural rules above produce three lifecycle paths per node.
   serial and carry `previousSeal`; the content kind (`Ixn`) leaves the seal where it was.
 - **Divergence and recovery.** Two distinct events at one serial form a fork; the chain freezes
   further origination until a seal-advancer on the winning branch buries the loser below the new
-  seal. The burying `Rot` attaches at its submitter's own last good event, **retaining** that branch
-  and burying every competing **content** branch below the new seal (its first event locked below
-  the seal, its growth dead by descent). Go for the **root**, not the loser's tip. Each dead lineage
-  is depth-capped by the seal-advance cap; the retained branch plus the burying `Rot` fits in one
-  page. See
-  [`recovery.md` §Recovery is a plain Rot](recovery.md#recovery-is-a-plain-rot-that-buries-at-the-root)
-  for the two ways a burying `Rot` can attach.
+  seal. The burying seal-advancer attaches at its submitter's own last good event, **retaining**
+  that branch and burying every competing **content** branch below the new seal (its first event
+  locked below the seal, its growth dead by descent). Go for the **root**, not the loser's tip. Each
+  dead lineage is depth-capped by the seal-advance cap; the retained branch plus the burying
+  seal-advancer fits in one page. See
+  [`compromise.md` §Recovery is a plain Rot](compromise.md#recovery-is-a-plain-rot-that-buries-at-the-root)
+  for the two ways a burying seal-advancer can attach.
 - **Clean retirement.** `Trm` lands as a linear extension of the current tip; the chain becomes
   Terminated. `Trm` advances the seal to its own serial and sits on the spine, but opens no new
   window — it permits no successor. Subsequent submissions are rejected by two independent
@@ -237,8 +237,7 @@ same serial via independent clean linear extensions — are not a per-node state
 **rejects the gossip-arriving competing event as a canonical extension but retains it as
 non-canonical evidence**, so each node ends up holding both branches and reads the divergence by a
 data-local walk; the witness beacon propagates the branches to a node that lacks them, but does not
-decide the verdict. See
-[`recovery.md` §Cross-node sealed-vs-sealed races](recovery.md#cross-node-sealed-vs-sealed-races),
+decide the verdict. See [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix),
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), and
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence).
 
@@ -253,7 +252,7 @@ structurally trustworthy indefinitely. The cross-primitive framing (verify the d
 is canonical in
 [`../../../../system-thesis.md` §End-verifiability](../../../../system-thesis.md#end-verifiability);
 the recovery-side composition with the two-tier compromise model is in
-[`recovery.md` §Pre-seal verifiability](recovery.md#pre-seal-verifiability).
+[`compromise.md` §Pre-seal verifiability](compromise.md#pre-seal-verifiability).
 
 ## Cross-references
 
@@ -263,8 +262,8 @@ the recovery-side composition with the two-tier compromise model is in
   two-tier capability model, anchor requirements, seal-advance cap.
 - [`merge.md`](merge.md) — merge handler routing: routing order, outcomes, locked-portion
   enforcement.
-- [`recovery.md`](recovery.md) — recovery doctrine: two-tier compromise model, recovery as a plain
-  `Rot`, pre-seal verifiability.
+- [`compromise.md`](compromise.md) — recovery doctrine: two-tier compromise model, recovery as a
+  plain `Rot`, pre-seal verifiability.
 - [`verification.md`](verification.md) — verifier walk algorithm, kind dispatch at inception,
   signature verification, anchor checking.
 - [`reconciliation.md`](reconciliation.md) — exhaustive case-matrix proof of cross-node convergence.

@@ -7,7 +7,7 @@ are (a) **two tiers** (signing key / rotation reserve), (b) **dropped kinds** `R
 witnessing** on single-key chains (the divergeable kind is still `Ixn`; a KEL rotation conflict is first-seen).
 Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `vdti-event-kinds.md` /
 `vdti-adversary-cases.md`) + the canonical `event-shape.md`. Load-bearing claims marked for the adversarial pass.
-**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-down/pin-up,
+**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-up/pin-down,
 [inv 7] prefix-vs-SAID, [inv 11] tier, [inv 13] divergence-scoped-to-T1-content, [inv 14] federation/witnessing,
 [inv 15] inception-tier.
 
@@ -21,7 +21,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   `{Rot, Wit}` (§2), and the burying event is a plain `Rot` (no `Rec`/`Ror`).
 
 ## 1. Locked-candidate — the current KEL model
-- **KEL = one device's key state.** The **root** primitive — self-authorizing, **no chain above it** [inv 2].
+- **KEL = one device's key state.** The **root** primitive — self-authorizing, **no chain below it** [inv 2].
   It is the bottom layer: nothing anchors *into* a KEL; a KEL anchors the IEL above it via its members' KEL
   events [inv 3]. **`Icp` = T1** (the root is self-authorizing — there is no governance to establish) [inv 15].
 - **5 kinds** (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`); a **federation-infrastructure** KEL is the same working set rooted
@@ -129,7 +129,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   (re)bind — it moves *its* identity to a federation and **anchors the identity's IEL `Wit`**, which records the
   federation choice at the IEL (the closed set `{federation, federationPin}` — cold-5 C4 — exact-matched across the
   chains on every walk).
-- **Anchoring (manifest-down), kind-strict [inv 4, 2026-06-28; re-homed under two tiers 2026-07-08]:** a member
+- **Anchoring (manifest-up), kind-strict [inv 4, 2026-06-28; re-homed under two tiers 2026-07-08]:** a member
   anchors an IEL event with **exactly** the kind that reveals the capability it exercises —
   `Ixn → IEL Ixn` (T1 content); `Rot → {IEL Icp, Evl, Ath, Rev, Dth, Trm, federation Fcp}` (T2 establishment,
   governance, kill, terminal, & the federation inception — the IEL `Trm` and the federation `Fcp`/`Trm`, formerly
@@ -153,7 +153,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 
 ## 2. Mined from the VDTI-10 build — structure + patterns (first-seen-current; confirm before lock)
 - **6-doc layout** to land: `log.md` (chain primitive, four-state machine, prefix derivation, locked-portion
-  bound, page/chunk), `events.md` (taxonomy, **two-tier** model, anchor reqs, seal cap), `recovery.md` (recovery
+  bound, page/chunk), `events.md` (taxonomy, **two-tier** model, anchor reqs, seal cap), `compromise.md` (recovery
   **doctrine** — recovery is a **plain `Rot` that buries at the root**, the reserve defends the signing key not the
   rotation key; *not* the operator workflow), `merge.md` (**sealed**-divergence-terminal, first-seen decline, the
   **formalized merge outcomes** `Result<MergeTransition, MergeRejection>` — transitions
@@ -245,7 +245,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 
 ## 5. Drift → land backlog (canonical docs)
 - **`docs/design/primitives/data/event-logs/kel/` reconciled to first-seen (2026-07-08):** five KEL kinds
-  (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`), two tiers, no recovery key. `recovery.md` becomes recovery-as-a-plain-`Rot`
+  (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`), two tiers, no recovery key. `compromise.md` becomes recovery-as-a-plain-`Rot`
   (root-bury + deadness-descends); `merge.md`/`reconciliation.md` drop the repair machinery for first-seen
   (decline-copies, sealed-divergence-terminal, forked vs disputed); the `fork` role is deleted everywhere.
 - **`event-shape.md` KEL fixes (2026-07-08):** drop the `Ror`/`Rec` kinds and the `recoveryKey`/`recoveryHash`
