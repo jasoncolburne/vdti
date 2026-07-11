@@ -40,9 +40,12 @@ Signatures are **not part of event content** — see
 
 ## Authentication & signatures
 
-Signatures are not part of the event content — events are pure SAD content. The `said` is the hash
-of the content; embedding a signature would make the SAID depend on a signature taken over the prior
-SAID, which is circular. Signatures live **adjacent** to the event as separate data.
+Signatures are not part of the event content — events are pure SAD content. **A signature signs the
+event's `said`** (its content digest), **not the full serialized event**; because the `said` is
+derived from the whole content, signing it commits to the entire event. Keeping the signature
+**adjacent** rather than embedded is also what avoids a cycle: the `said` is the hash of the
+content, so folding a signature in would make the `said` depend on a signature taken over that same
+`said`.
 
 - **KEL events** carry a **single** signature, authored when the event is authored. A content event
   (`Ixn`) is signed with the **signing key**; a **key change** (`Rot` / `Wit` / `Trm`) is signed
