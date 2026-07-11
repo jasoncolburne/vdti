@@ -114,42 +114,18 @@ resolves **down** the anchor chain to a KEL signature; the as-of / freshness flo
 pins.
 
 **The threshold vector and its bounds.** Each IEL kind draws its required count from one slot of the
-vector: content (`Ixn`) from `t_use`; a roster/threshold change (`Evl`) from `t_govern`; an
-authorization (`Ath`) from `t_authorize`; a deauthorization (`Dth`) from `t_authorize`; a revocation
-(`Rev`) from `t_govern`; a federation rebind (`Wit`) and the terminal `Trm` from `t_govern`. Every
-kind draws from exactly one slot, so an IEL chain's validity needs no higher-layer input. The
-bounds:
+vector: content (`Ixn`) from `t_use`; a roster/threshold change (`Evl`), a revocation (`Rev`), a
+federation rebind (`Wit`), and the terminal `Trm` from `t_govern`; an authorization (`Ath`) and a
+deauthorization (`Dth`) from `t_authorize`. Every kind draws from exactly one slot, so an IEL
+chain's validity needs no higher-layer input.
 
-- `t_use >= 1` (`t_use = 1` is single-device by choice — no content resilience). `t_use` is exempt
-  from the authorization floor (content is first-seen / recoverable).
-- The authority slots (`t_govern`, `t_authorize`) carry **two bounds**: a **security floor** `>= 2`
-  (hard for every identity of `|roster| >= 2` — no single member exercises authority; the singleton
-  below is the degenerate case) and a **recoverability ceiling** `<= |roster| − 1` (lets the
-  identity evict a compromised member or recover a lost one without it). The recoverability ceiling
-  is **advisory at `|roster| = 2`** (a two-device identity is valid but cannot evict/recover without
-  both — the wallet warns) and **hard at `|roster| >= 3`** (a threshold equal to `|roster|` is a
-  gratuitous hostage config — rejected). A singleton (`|roster| = 1`) sets all thresholds to 1.
-- The authority slots also carry an **authorization floor** — `t_govern`, `t_authorize > |roster|/2`
-  — so any two authorizing quorums overlap and a sealed fork always names a double-dealer.
-- The roster is **hard-capped at 32** (a DoS backstop — the verifier rebuilds the roster in memory
-  as it walks; any delta pushing the live set past 32 is rejected, all IELs including the
-  federation).
-- The roster is **never emptied**: the post-delta size is **`|roster| + |add| − |cut| >= 1`** — an
-  absolute floor beneath the security floor and the singleton exception. A roster is a **set**, so a
-  delta is well-formed only with `add ∉` the current roster, `cut ⊆` it, and `cut ∩ add = ∅` (the
-  size arithmetic then holds). This makes every singleton's roster downward-immutable — a singleton
-  `cut` computes `1 + 0 − 1 = 0 < 1` and is rejected — while still allowing singleton
-  evict-and-replace via an `Evl` (`cut 1 + add 1` stays 1).
-- The bounds are re-checked on the post-delta config at **every** config-changing event — a user
-  `Evl` (including a `cut` `Evl` that evicts), or a federation `Wit` (including a config-only `Wit`
-  that changes `threshold` / `signers` with no roster delta) — not only at inception. For the
-  **federation** the re-check covers the full **witness-config validity** too: the recoverability
-  cap `threshold <= min(|roster| − 2, signers − 1)` and the witnessing floor `threshold > signers/2`
-  must both hold after the change — so a `signers` / `threshold` change is re-checked even with the
-  roster untouched ([§Federation convergence](../../../protocol-doctrine.md#federation-convergence)
-  derives which leg binds). A `cut` `Evl` (and any `threshold` it carries) is authorized at the
-  **outgoing** `t_govern` (the pre-change gate — so an `Evl` cannot lower its own gate before
-  cutting).
+The slots carry bounds — `t_use >= 1`; a **security floor** (`>= 2`) and **recoverability ceiling**
+(`<= |roster| − 1`) on the authority slots; the **authorization floor** (`> |roster|/2`); the roster
+**cap of 32** and the **never-emptied** floor (`|roster| + |add| − |cut| >= 1`); and, for a
+federation, the witness-config recoverability cap — all re-checked on the post-delta config at
+**every** config-changing event, not only inception. The bounds and their derivations are the IEL
+primitive's:
+[`iel/events.md` §The threshold vector and its bounds](iel/events.md#the-threshold-vector-and-its-bounds).
 
 The per-kind threshold/tier mapping and the bound derivations are the IEL primitive's —
 [`iel/`](iel/). The credential acceptance and authorizing conditions that ride **above** this — on
@@ -537,25 +513,18 @@ backing-and-demand check) and the forward-only floor are per-primitive and proto
 
 ## Divergence is scoped to content
 
-Only **content** is **buriable** — the content kind `Ixn`, and on the SEL the tier-1 floor `Pin`;
-sealing kinds can diverge too, but only terminally. A sealed event (a rotation, an `Evl`, an `Ath` /
-`Rev` / `Dth`, a terminal) is **never** buried or overturned — reversing it would resurrect retired
-key material or un-do a sealed act. A divergence is resolved by **tier**: recovery is a **burying
-seal-advancer** (a `Rot` / `Wit` / `Trm` on the KEL, a sealing event — an `Evl`, or the `cut` `Evl`
-when it also evicts — on the IEL) attached at the surviving line; the losing **content** branch is
-buried **by position + descent** — its first event locked below the advanced seal (the seal-cap) and
-everything built on it dead by descent (an event whose parent is dead is dead), so a branch grown
-after the burial dies too, no follow-up event required. There is **no repair event and no recovery
-key**. The **terminal** condition is **branch-level** — two or more branches each carrying a
-**sealed** event past the fork — and any verifier determines it **data-locally** by walking the
-retained branches: a node retains a competing branch as non-canonical evidence (rather than
-discarding it at the seal-cap), bounded by retention — ≥ 2 sealed branches per spine position, ≥ 2
-competing content events per position, each dead content lineage depth-capped at 64 past the last
-seal — while the uncommitted below-seal content flood is droppable, since a sealed event
-re-validates from the spine, not from below-seal content. The seal-advancing events form a
-`previousSeal`-linked **spine** on which a sealed divergence, held across retained branches, shows
-up as a single fork. A fork reads **forked** (≤ 1 sealed branch past it — recoverable by a burying
-seal) or **disputed** (≥ 2 sealed branches — terminal → reincept).
+Only **content** is **buriable** — the content kind `Ixn`, and on the SEL the tier-1 floor `Pin`. A
+**sealed** event (a rotation, an `Evl`, an `Ath` / `Rev` / `Dth`, a terminal) is **never** buried or
+overturned — reversing it would resurrect retired key material or un-do a sealed act. So a
+divergence resolves by **tier**: a content fork is recoverable (a burying seal-advancer buries the
+loser by position + descent), while a fork with **≥ 2 sealed branches** past it is terminal — a
+**branch-level** condition any verifier reads **data-locally** by walking the retained branches. The
+retention bounds, the burial-by-descent mechanics, and the full recovery doctrine are the protocol
+doctrine's — [§Divergence and recovery](../../../protocol-doctrine.md#divergence-and-recovery).
+
+What `event-shape` owns here is the field that makes this legible: the seal-advancing events form a
+`previousSeal`-linked **spine**, on which a sealed divergence — held across retained branches —
+shows up as a single fork, while content stays off the spine.
 
 The two views over one dataset — the **flat** walk following `previous` (every event) and the
 **folded** spine following `previousSeal` (seal-advancers only) — look like:
@@ -581,10 +550,10 @@ doctrine is the protocol doctrine's —
 
 ## Prefix derivation is whole-content
 
-A prefix derives from the entire inception body (with `said` and `prefix` set to the fixed-value
-placeholder — a same-length token, so the byte layout at derivation matches what a verifier
-re-derives with the real values in place) — not a special tuple. Whatever fields the inception
-populates participate.
+A prefix derives from the **entire** inception body — not a special tuple; whatever fields the
+inception populates participate. The fixed-value-placeholder mechanic that keeps this re-derivable
+is [`said.md` §Derivation](../sad/said.md#derivation)'s; each log doc states which fields its own
+inception populates.
 
 - **KEL**: the device's key state. The prefix is the device-key commitment.
 - **IEL**: the roster + threshold vector + the `nonce`. The `nonce` makes the prefix

@@ -55,6 +55,10 @@ indivisible units and cannot carry per-event differential authority across links
 
 ## Attribution requires a SEL anchor
 
+_The **SEL anchor** this section rests on is defined later, under
+[`event-logs/`](../event-logs/event-shape.md) (the SEL and IEL primitives). Here, read it as an
+append-only commitment recorded on the writer's own identity chain._
+
 A standalone SAD is **not a chain event** — it sits on no chain, so it has no append-only position
 of its own. A writer-binding that merely _asserted_ its position (a self-chosen pin) would be freely
 **backdateable**: an adversary who eventually breaks an old, rotated-out key could point the write

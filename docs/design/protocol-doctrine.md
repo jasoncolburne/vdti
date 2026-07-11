@@ -8,6 +8,13 @@ Read [`system-thesis.md`](system-thesis.md) first. The thesis is the framing —
 posture, end-verifiability over data-from-any-source, fail-secure default — and points back here for
 the structural rules that realize those properties.
 
+> **Reading this before the taxonomy?** This doctrine uses the event **kinds** (`Icp` / `Ixn` /
+> `Rot` / `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Gnt` / `Trm` / `Fcp` / `Pin`) and manifest
+> **fields** (`previousSeal`, `manifest`, `pins`, `federationPin`, `kills[]`, the threshold vector)
+> that [`event-shape.md`](primitives/data/event-logs/event-shape.md) defines (read next, in §3).
+> Keep the [glossary](glossary.md)'s kind table open as a one-line crib — this doc is the concept
+> map; `event-shape` makes it concrete.
+
 **[Part 1 — Security Invariants](#part-1-security-invariants):**
 
 - [Terminology](#terminology) — locked portion, per-node chain states, cross-chain anchor
@@ -233,35 +240,29 @@ that root other chains' authority. The per-primitive anchor matrix is in
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
-**Threshold-vector bounds** (re-checked on the post-delta config at every config-changing event — a
-user `Evl` (including the **`cut` `Evl`** that evicts a compromised or divergence-causing member),
-or a federation `Wit`, **including a config-only `Wit`** that changes `threshold` / `signers` with
-no roster delta — not only at inception): `t_use >= 1`; the authority slots (`t_govern` /
-`t_authorize`) carry a **security floor** `>= 2` (hard for every identity of `|roster| >= 2` — no
-single member exercises authority; the singleton below is the degenerate case), a **recoverability
-ceiling** `<= |roster| − 1` (evict/recover without one member — advisory at `|roster| = 2`, hard at
-`|roster| >= 3`, where a threshold equal to `|roster|` is a gratuitous hostage config and is
-rejected), and an **authorization floor `> |roster|/2`** (a strict majority signs every governance /
-grant, so any two authorizing quorums overlap and a sealed fork always names a double-dealer;
-`t_use` is exempt, content being first-seen / recoverable). And the roster is **never emptied**: the
-post-delta size is **`|roster| + |add| − |cut| >= 1`** (the roster is a set — `add ∉` it, `cut ⊆`
-it, `cut ∩ add = ∅`), making every singleton's roster downward-immutable. A singleton
-(`|roster| = 1`) sets all thresholds to 1, and the roster is hard-capped at 32 (a DoS backstop). The
-federation IEL's recoverability ceiling is **hard** (it is critical infrastructure and must always
-be able to evict a compromised witness), so a federation requires `|roster| >= 4` — and its
-**witness-config** carries its own recoverability cap on top:
-**`threshold <= min(|roster| − 2, signers − 1)`**, because an eviction `Wit` must self-attest
-without the evicted member (the self-attest pool is `|roster| − 2`, and at sub-pool selection the
-selected pool loses one too — the `signers − 1` leg is the one that binds for `signers >= 3`, the
-witness-pool floor). The full cap **plus the witnessing floor `threshold > signers/2`**
-([§Federation convergence](#federation-convergence)) are re-applied on **any `Wit` that changes
-roster, `threshold`, or `signers`** (not only a roster `cut`) — so a bare shrink that would strand
-the federation un-recoverable (`|roster| 5→4` at `threshold 3`), or a `signers` drop landing on the
-binding leg (`{signers 4, threshold 3} → {signers 3, threshold 3}` at `|roster| = 5`, which passes
-the roster leg yet violates `threshold <= signers − 1`), is **rejected**, forcing evict-and-replace
-or a simultaneous threshold-and-`signers` drop. This re-check is what actually enforces "the
-federation can never be brought to an unrecoverable size" — for `signers >= 2` the roster leg alone
-is the slack one.
+**Threshold-vector bounds** — the security invariants (re-checked on the post-delta config at
+**every** config-changing event — a user `Evl`, including the `cut` `Evl` that evicts, or a
+federation `Wit`, including a config-only `Wit` that changes `threshold` / `signers` — not only at
+inception). The full statement and derivations are the IEL primitive's
+([`iel/events.md` §The threshold vector and its bounds](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds));
+the invariants:
+
+- `t_use >= 1` — exempt from the authorization floor (content is first-seen / recoverable).
+- The authority slots (`t_govern` / `t_authorize`) carry a **security floor `>= 2`** (no single
+  member exercises authority) and a **recoverability ceiling `<= |roster| − 1`** (evict/recover
+  without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a threshold equal
+  to `|roster|` is a gratuitous hostage config and is rejected).
+- An **authorization floor `> |roster|/2`** — a strict majority signs every governance / grant, so
+  any two authorizing quorums overlap and a sealed fork always names a double-dealer.
+- The roster is **never emptied** (`|roster| + |add| − |cut| >= 1`; a set — `add ∉` it, `cut ⊆` it,
+  `cut ∩ add = ∅`, making a singleton's roster downward-immutable), **hard-capped at 32** (a DoS
+  backstop); a singleton (`|roster| = 1`) sets all thresholds to 1.
+- A **federation** IEL's recoverability ceiling is **hard** (critical infrastructure must always be
+  able to evict a compromised witness), so `|roster| >= 4`, and its **witness-config** carries an
+  added cap `threshold <= min(|roster| − 2, signers − 1)` plus the witnessing floor
+  `threshold > signers/2`, re-applied on any `Wit` that changes roster / `threshold` / `signers`.
+  Which leg binds, and the concrete shrinks it rejects, are
+  [§Federation convergence](#federation-convergence)'s.
 
 Authorization that a third party relies on — who issued a credential, who may present it — is the
 job of the **document policy layer** ([`primitives/policy/policy.md`](primitives/policy/policy.md)),

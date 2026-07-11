@@ -266,17 +266,14 @@ anti-entropy:
 | **Terminated**         | the `Trm`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                        | ✓ where the `Trm` landed uncontested; a competing sealed event racing it → both nodes hold both branches → **Disputed** data-locally         |
 | **Forked / Disputed**  | a **type-tagged synthetic** recoupled to the verdict (`forked` / `disputed`), qualified by prefix + position — **not** a digest over the tips | ✓ **once the branches propagate** — the verdict and the value are both pure functions of the held event set; **fail-secure under partition** |
 
-**Why a synthetic, not a digest over the live tips.** Under a subverted quorum the competing branch
-set is **adversarially extensible** (a compromised quorum can threshold-witness a 3rd / Nth sealed
-sibling), so a digest over that set is **flood-unstable**. A **set-independent synthetic** is
-flood-stable, still triggers anti-entropy (a single-tip SAID ≠ a synthetic, structurally), and is
-verdict-sufficient — the exact set is never needed for the value: **burial by position kills all
-content branches**, **Disputed reincepts** (outcome invariant to the set), and **attribution walks
-the stored events, not the digest**. The verdict rides the synthetic: a data-local walk reads
-`forked` (≤ 1 sealed) or `disputed` (≥ 2 sealed), with the seal derived from the held events, and
-the synthetic carries that reading. Both value and verdict are pure functions of the held event set,
-in lockstep on every node. See
-[§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
+**The effective-SAID value converges — a set-independent synthetic.** For Forked / Disputed the
+value is a **type-tagged synthetic** recoupled to the verdict, **not** a digest over the competing
+tips (that set is adversarially extensible → flood-unstable; the design rationale for choosing a
+set-independent synthetic is
+[§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison)'s). What
+this proof relies on: the verdict rides the synthetic — a data-local walk reads `forked` (≤ 1
+sealed) or `disputed` (≥ 2 sealed), the seal derived from the held events — and both value and
+verdict are **pure functions of the held event set**, in lockstep on every node.
 
 ## Matrix 3: Race matrix
 

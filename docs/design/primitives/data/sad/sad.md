@@ -39,14 +39,12 @@ log, addressed **by prefix** ([`said.md`](said.md): a SAID is an integrity commi
 lookup key). Only standalone SADs are stored in — and served by SAID from — the SAD object store, so
 its write path **classifies a submission by `kind` and rejects event kinds** (`kind` is required on
 SAD data). The principle: **nothing whose SAID must stay opaque is fetchable by SAID from the
-store.** This closes a correlation vector — event SAIDs float free of their prefix by design
-(`said ≠ prefix`, and an IEL's `anchors[]` are opaque commitments), so an attacker who harvests the
-`anchors[]` SAIDs off a **public** issuer IEL (each committing to a revocation / rescission
-lookup-SEL event) could, if the store answered a fetch-by-SAID for an **event** body, recover the
-lookup-SEL and re-derive its prefix, using the store as an inversion oracle for the issuer's
-revocations. Rejecting event kinds makes that physically impossible; a **public** credential's body
-(a content kind) stays fetchable by SAID (intended), while a **private** credential's body is simply
-unpublished. Storage-side enforcement lands in
+store.** This closes a **correlation / inversion-oracle** vector — answering a fetch-by-SAID for an
+event body would let an attacker invert an identity's opaque commitments back to the events they
+hide (the full argument, which uses the IEL / lookup-SEL vocabulary defined later, is
+[`protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
+A **public** credential's body (a content kind) stays fetchable by SAID (intended), while a
+**private** credential's body is simply unpublished. Storage-side enforcement lands in
 [`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md) (forward-ref; lands in a
 subsequent sub-issue).
 

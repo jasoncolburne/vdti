@@ -7,10 +7,10 @@ commitments; authority is asserted by direct signature against keys committed by
 events. The per-kind field shape is the cross-primitive [event-shape reference](../event-shape.md);
 this doc and its siblings state the KEL-specific doctrine.
 
-KEL is the foundation primitive in VDTI's chain-of-trust composition. IEL events and SEL events
-anchor in KEL events — the [tier model](../../../../protocol-doctrine.md#tiers) ties the
-cryptographic difficulty of forging a sealed IEL / SEL act to the difficulty of forging the
-corresponding KEL anchor.
+KEL is the foundation primitive in VDTI's chain-of-trust composition. IEL events and SEL events root
+in KEL events — the [tier model](../../../../protocol-doctrine.md#tiers) ties the cryptographic
+difficulty of forging a sealed IEL / SEL act to the difficulty of forging the corresponding KEL
+anchor.
 
 This doc states the chain primitive: prefix derivation, the per-node chain states, the seal and the
 spine, the locked-portion bound, and the page / chunking model. Per-kind reference lives in
@@ -21,16 +21,13 @@ cross-node correctness proof in [`reconciliation.md`](reconciliation.md).
 ## Prefix derivation
 
 A KEL inception event is a
-[prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): the prefix and
-SAID are derived via two separate Blake3-256 hashes over the canonical bytes. The prefix commits to
-the **whole inception SAD content** with both `said` and `prefix` set to the fixed-value
-placeholder; the SAID then commits to the same SAD with `prefix` populated and only `said` set to
-the placeholder.
-
-Whole-content prefix commitment means an inception event's `publicKey`, `rotationHash`, kind
-discriminator, and — on an `Icp` — its `federation` / `federationPin` binding are all bound into the
-prefix. Two distinct inception events cannot share a prefix without producing a Blake3-256
-collision. Subsequent events inherit the inception's `prefix` and derive only `said`.
+[prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): its prefix is
+the whole-content digest of the inception body —
+[`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic (the two Blake3-256 hashes
+and the fixed-value placeholder). What the **KEL** prefix commits to is the inception's `publicKey`,
+`rotationHash`, kind discriminator, and — on an `Icp` — its `federation` / `federationPin` binding,
+so two distinct inception events cannot share a prefix without a Blake3-256 collision. Subsequent
+events inherit the inception's `prefix` and derive only `said`.
 
 KEL inception is dispatched by **kind** at v=0 — see
 [`events.md` §Two-kind inception](events.md#two-kind-inception). The kind determines whether the
@@ -113,17 +110,13 @@ was folded here" is the derived predicate `previous != previousSeal`. There is n
 losing-branch commitment — a content loser is buried **by position + descent**, named by nothing;
 `Rot` / `Wit` / `Trm` carry no fold field.
 
-The spine is a **convenience** view — the same chain walk with `previousSeal` substituted for
-`previous`, yielding authority state and a terminal-divergence view (a spine fork is two competing
-seals — sealed, hence terminal) but not recoverable content forks or content completeness. The
-detection guarantee, and any decision that turns on a content event, use the **flat** walk; a
-skipped seal is caught by the flat walk (it appears as a seal-advancing event when `previous`
-traverses the run) plus spine-fork detection (the real skipped seal, once held, competes at its
-spine position). The spine alone trusts `previousSeal` — a fail-secure pre-check (a forged
-`previousSeal` that skips a seal surfaces as a competing seal once the real one is held). The
-cross-primitive spine / fold model is the protocol doctrine's —
-[§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded); the event fields
-are the [event-shape reference](../event-shape.md)'s.
+The spine is a **convenience** view — the same walk with `previousSeal` for `previous`, giving
+authority state and a terminal-divergence view (a spine fork is two competing seals) but not
+recoverable content forks; the **flat** walk stays authoritative for content and detection (a
+skipped or forged `previousSeal` surfaces as a competing seal once the real one is held). The
+cross-primitive spine / fold model — the fail-secure reasoning included — is the protocol doctrine's
+— [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded); the event
+fields are the [event-shape reference](../event-shape.md)'s.
 
 ### The locked portion
 

@@ -91,12 +91,14 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
-- **governance** — the **narrow** authority sense, **not** the whole sealed spine: the `t_govern`
-  acts (an `Evl` roster/threshold change, a `Rev`, the federation `Wit`, the terminal `Trm`), as
-  distinct from **authorization** (`t_authorize`: an `Ath` grant, a `Dth`). Every governance act
-  **is** a sealing event; not every sealing event is governance (a kill or terminal is not). So
-  "federation governance", "a governance act", and "governance-shaped payload" mean this narrow
-  sense — never "any sealed event".
+- **governance** — the **narrow** roster/authority sense — **not** the whole sealed spine, and
+  **not** the whole `t_govern` price class. It names the acts that reshape _who and how many_ govern
+  an identity: a **roster / threshold change** (`Evl`) and the **federation** bind/rotation (the
+  `Wit`). The `t_govern`-**priced** kinds are `Evl` / `Rev` / `Wit` / `Trm`, but a **kill** (`Rev` /
+  `Dth`) and the **terminal** (`Trm`) are their **own** categories — the docs enumerate them
+  separately ("establishment / governance / kill / terminal"). Every governance act **is** a sealing
+  event; not every sealing event is governance. So "federation governance", "a governance act", and
+  "governance-shaped payload" mean this narrow sense — never "any sealed event".
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#tiers--the-two-tier-capability-model))
 
 ### Federation and witnessing

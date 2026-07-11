@@ -328,15 +328,13 @@ wire-format identifier, exchanged during anti-entropy. It is:
 | **Terminated**         | the `Trm`'s SAID — the canonical **tip** (dead events at higher serials don't move it)                                                                                   | ✓ where the `Trm` landed uncontested; a competing sealed event racing it → both nodes hold both branches → **Disputed** data-locally ([§Matrix 3](#matrix-3-race-matrix))                   |
 | **Forked / Disputed**  | a **type-tagged synthetic** recoupled to the verdict (`forked` / `disputed`), qualified by prefix + position — set-independent, **not** a digest over the competing tips | ✓ **once the branches propagate** — the verdict and the value are both pure functions of the held event set, so identical held sets yield identical values; **fail-secure under partition** |
 
-**Why a synthetic, not a digest over the live tips.** Under dishonest signers the competing branch
-set is **adversarially extensible** (a compromised quorum can threshold-witness a 3rd / Nth sealed
-sibling), so a digest over that set is **flood-unstable** — it changes as the set grows and
-differently-viewed verifiers disagree / thrash on "which branches." A **set-independent synthetic**
-is **flood-stable**, still **triggers anti-entropy** (a single-tip SAID ≠ a synthetic,
-structurally), and is **verdict-sufficient** — the exact set is never needed for the value: **burial
-by position kills all content branches** (masking is harmless — the value still moves on tip-advance
-and on the verdict transition), **Disputed reincepts** (outcome invariant to the set), and
-**attribution walks the stored events, not the digest**.
+**A set-independent synthetic, not a digest over the tips.** The competing-branch set is
+adversarially extensible (a subverted quorum can threshold-witness an Nth sealed sibling), so a
+digest over it would be **flood-unstable**; a **set-independent synthetic** is flood-stable and
+still triggers anti-entropy (a single-tip SAID ≠ a synthetic). Why set-independence is the right
+trade — verdict-sufficiency, since burial by position kills all content branches, `disputed`
+reincepts, and attribution walks the stored events — is
+[§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison)'s.
 
 **The verdict rides the synthetic (they converge).** A data-local walk reads `forked` (≤ 1 sealed
 branch past the fork) or `disputed` (≥ 2 sealed), with the seal **derived** from the held events.

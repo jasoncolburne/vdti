@@ -12,8 +12,8 @@ adjacent signature but by a threshold of members' fresh KEL participation anchor
 The per-kind field shape is the cross-primitive [event-shape reference](../event-shape.md#iel); this
 doc and its siblings state the IEL-specific doctrine.
 
-The IEL sits between the KEL and the SEL. It **anchors in** member KEL events — every IEL event is
-authorized by a threshold of members' fresh KEL events (the
+The IEL sits between the KEL and the SEL. It **is anchored by** member KEL events — every IEL event
+is authorized by a threshold of members' fresh KEL events (the
 [tier model](../../../../protocol-doctrine.md#tiers) ties the cost of forging a sealed IEL act to
 the cost of forging the corresponding KEL anchors) — and it **anchors up** to the SEL events and
 credentials its members authorize. The layering principle holds throughout: **the chain validates
@@ -38,11 +38,10 @@ surface in [`delegation.md`](delegation.md).
 ## Prefix derivation
 
 An IEL inception event is a
-[prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): the prefix and
-SAID are derived via two separate Blake3-256 hashes over the canonical bytes, with `said` and
-`prefix` set to the fixed-value placeholder for the prefix hash and only `said` set to the
-placeholder for the SAID. The inception's populated fields — the initial **roster**, the **threshold
-vector**, and a high-entropy **`nonce`** — all participate in the prefix.
+[prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): its prefix is
+the whole-content digest of the inception body —
+[`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic. What the **IEL** prefix
+commits to is the initial **roster**, the **threshold vector**, and a high-entropy **`nonce`**.
 
 The `nonce` makes the IEL prefix **unpredictable** from outside — a camping defense. Two distinct
 inception events cannot share a prefix without a Blake3-256 collision, and because the prefix
