@@ -201,7 +201,8 @@ participant-identifying, so `kills[]` carries only the blind `target` and the ve
 ## `IelVerification` token
 
 `IelVerifier::into_verification()` produces an `IelVerification` token — the proof-of-verification
-type:
+type (in the field shapes below, `Vec<T>` is a list, `Option<T>` an optional value, and
+`BTreeSet<T>` a sorted set):
 
 ```
 IelVerification:

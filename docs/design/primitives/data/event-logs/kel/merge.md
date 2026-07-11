@@ -27,8 +27,8 @@ for the duration of verification and write. Time-of-check-to-time-of-use is elim
 the verifier reads under the same lock the merge handler will use to write (see
 [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 
-The merge handler returns a `Result<MergeTransition, MergeRejection>` carrying the outcome and, on a
-transition, the resulting state and new tip SAID.
+The merge handler returns either a **merge transition** (carrying the outcome, plus the resulting
+state and new tip SAID) or a **merge rejection**.
 
 ## Merge outcomes
 

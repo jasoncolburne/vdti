@@ -212,7 +212,8 @@ signing key the reserve reveals, and the pre-rotation commitment
 ## KelVerification token
 
 `KelVerifier::into_verification()` produces a `KelVerification` token — the proof-of-verification
-type:
+type (in the field shapes below, `Vec<T>` is a list, `Option<T>` an optional value, and
+`BTreeSet<T>` a sorted set):
 
 ```
 KelVerification:

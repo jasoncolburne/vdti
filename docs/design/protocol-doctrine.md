@@ -317,26 +317,32 @@ constant, not a per-deployment knob). The page carries **both** competing branch
 seal because a source → sink transfer delivers the fork to a sink holding neither branch — the
 burying seal's content-only guard needs every branch to walk within one atomic unit; there is no
 separate repair event, the burying event is a single ordinary `Rot` / `Wit` / `Trm` (KEL) or sealing
-event (IEL). On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the
-stream issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances
-accumulate and the seal lags the tip; without the cap the post-seal window grows unbounded and the
-page-atomic content-fork burial breaks. A busy issuer that fills the window **re-seals with a
-roster-less `Evl`** — one that **omits `roster`** (no roster change), the identity-layer analogue of
-a KEL re-sealing via `Rot`. Validation **accepts** a roster-less re-seal `Evl`; it advances the seal
-with no new kind.
+event (IEL).
 
-Under a network partition both halves can fill the cap and re-seal independently; the two
-roster-less `Evl`s differ by `previous` and collide as `{Evl, Evl}` → Disputed. So a **high-volume
-issuer serializes its content submissions**. That discipline is separate from, and additional to,
-**serializing sealing** — the operational rule that sealing events pass through **one designated
-submitter**, so two never race during a partition (else `{Evl, Evl}` / `{kill, kill}` → Disputed;
-operator doctrine, forthcoming). **Sealing serialization is safety-critical everywhere:** a race
-between sealing events is sealed, and the witnessing floor never gates sealed events. **Content-rail
-serialization is only a liveness / waste discipline:** every chain is federation-witnessed (there is
-no direct mode), and the witnessing floor prevents a competing content sibling going live — a
-partitioned content rail **stalls** rather than forks — so an un-serialized rail costs stalls and
-re-issuance, not terminality ([§Federation convergence](#federation-convergence)). The exact
-constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
+On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the stream
+issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances accumulate and
+the seal lags the tip; without the cap the post-seal window grows unbounded and the page-atomic
+content-fork burial breaks. A busy issuer that fills the window **re-seals with a roster-less
+`Evl`** — one that **omits `roster`** (no roster change), the identity-layer analogue of a KEL
+re-sealing via `Rot`; validation **accepts** it, and it advances the seal with no new kind.
+
+Two serialization disciplines follow, and they are **not** the same. Under a network partition both
+halves can fill the cap and re-seal independently; the two roster-less `Evl`s differ by `previous`
+and collide as `{Evl, Evl}` → Disputed. So a **high-volume issuer serializes its content
+submissions**, a discipline **separate from, and additional to, serializing sealing** (sealing
+events passing through **one designated submitter**, so two never race during a partition; operator
+doctrine, forthcoming). The two differ in what they protect:
+
+- **Serializing sealing is safety-critical everywhere.** A race between sealing events is sealed,
+  and the witnessing floor never gates sealed events (else `{Evl, Evl}` / `{kill, kill}` →
+  Disputed), so serialization is the only guard.
+- **Serializing the content rail is only a liveness / waste discipline.** Every chain is
+  federation-witnessed (there is no direct mode) and the witnessing floor prevents a competing
+  content sibling going live — a partitioned content rail **stalls** rather than forks — so an
+  un-serialized rail costs stalls and re-issuance, not terminality
+  ([§Federation convergence](#federation-convergence)).
+
+The exact constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -557,27 +563,29 @@ would resurrect a rotation).
 events past the last seal (the seal-advance cap — a deeper event would itself have to be a
 seal-advancer, sealed → Disputed when competing), and burial-by-descent makes one seal growth-proof
 for the whole current fork within that cap. What closes the culprit's ability to mint a **new** fork
-differs by layer. A **KEL `Rot` self-neutralizes the culprit**: it rotates the signing key out and
-re-commits the next rotation reserve (`rotationHash`, so the reserve persists and the next `Rot` is
-always authorable), locking out whoever forked with the old key — one `Rot` terminates, no re-fork
-loop. An **IEL burying seal rotates no identity key** (an IEL is a threshold over member KELs), so
-an **adversarial** re-forker is neutralized by the roster **`cut`** a `cut` `Evl` carries (the
-eviction above) — **provided the operator cuts the culprit**. The cut target is operator-chosen
-(chain data cannot tell operator from adversary), so termination-by-cut assumes the eviction removes
-the fork-causer; cutting the wrong member leaves the culprit able to re-fork. A **SEL** re-forker is
-neutralized one layer up: a SEL is single-owner with no roster of its own, and its recovery cascades
-from the owner IEL, so the owner IEL's cut is what evicts the forking member (the cross-layer
-mechanics are the IEL / SEL doctrine —
-[`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/); the SEL side forthcoming). A
-**benign** gossip-lag `Ixn` (an honest member's content on a lagging node) needs no cut: it is
-buried and re-issued, terminating as honest members catch up to the recovered tip. So termination is
-**bounded**: each fork a sustained adversarial re-forker mints is capped at one bounded fork window
-(≤ `(MINIMUM_PAGE_SIZE − 1)/2` deep), and once the neutralizing move — the rotation, or the cut —
-propagates, no new fork can be minted; a benign lag terminates as soon as its node catches up.
-**Content-rail serialization is an operator liveness discipline**: every chain is
-federation-witnessed and the witnessing floor keeps a content self-cascade to stall-and-re-issue — a
-competing content sibling never goes live ([§Federation convergence](#federation-convergence)) — so
-an un-serialized rail costs stalls and re-issuance, not terminality.
+differs by layer:
+
+- **KEL — the `Rot` self-neutralizes the culprit.** It rotates the signing key out and re-commits
+  the next rotation reserve (`rotationHash`, so the reserve persists and the next `Rot` is always
+  authorable), locking out whoever forked with the old key — one `Rot` terminates, no re-fork loop.
+- **IEL — the roster `cut` neutralizes the culprit.** An IEL burying seal rotates no identity key
+  (an IEL is a threshold over member KELs), so an **adversarial** re-forker is neutralized by the
+  `cut` a `cut` `Evl` carries (the eviction above) — **provided the operator cuts the culprit**. The
+  cut target is operator-chosen (chain data cannot tell operator from adversary), so cutting the
+  wrong member leaves the culprit able to re-fork.
+- **SEL — the owner IEL's cut neutralizes the culprit.** A SEL is single-owner with no roster of its
+  own, and its recovery cascades from the owner IEL, so the owner IEL's cut evicts the forking
+  member (the cross-layer mechanics are IEL / SEL doctrine —
+  [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/); the SEL side forthcoming).
+- **A benign gossip-lag `Ixn`** (an honest member's content on a lagging node) needs no cut: it is
+  buried and re-issued, terminating as honest members catch up to the recovered tip.
+
+So termination is **bounded**: each fork a sustained adversarial re-forker mints is capped at one
+bounded fork window (≤ `(MINIMUM_PAGE_SIZE − 1)/2` deep), and once the neutralizing move — the
+rotation, or the cut — propagates, no new fork can be minted; a benign lag terminates as soon as its
+node catches up. A benign content self-cascade is the **content-rail liveness** case, not a safety
+one — the witnessing floor keeps it to stall-and-re-issue, never a live fork
+([§Federation convergence](#federation-convergence)).
 
 **Finality is question-dependent.** A burying seal is **content-final the instant it seals**:
 burial-by-position plus deadness-descends close every losing content branch, present _or_
@@ -699,36 +707,36 @@ the bound stays unconditional — the chain does not extend onto the competing b
 it as the evidence a data-local detection needs.
 
 **Retention is bounded — keep-all-data is not keep-everything.** **Buried** is a _status_ (a losing
-event is non-canonical, permanently), not a storage guarantee — a node need only **retain** a
-bounded set of the buried events as evidence, the rest **droppable**. A sealed branch is retained to
-**≥ 2 per spine position**: a spent preimage can sign unbounded distinct events at an old position,
-but two competing sealed branches already prove the prefix Disputed, so a node retains the second
-and stops. Content breadth is bounded the same way: nodes keep **≥ 2 competing events per position**
-as fork evidence and drop the rest — a signing-key re-forker can author more siblings, but they sit
-beyond the retained set: droppable, a bounded query surface, never an unbounded fork. On top of
-retention sits the **one-content-sibling witnessing rule**: a selected witness signs the **first**
-structurally-valid **content** sibling at a position and **declines every later one** — while
-**sealed siblings are witnessed up to two per position** (two both-witnessed siblings are the
-Disputed proof — dispute evidence, competing seals form a spine fork,
-[§Forks are seal-bounded](#forks-are-seal-bounded) — and further ones are declined); the **single
-burying seal-advancer** that lands on a content-only divergence is simply the first sealed sibling
-at that position. Deterministic witness co-location fixes the witness _set_, not arrival order: with
-the witnessing floor ([§Federation convergence](#federation-convergence)), at most one content
-sibling per position is ever witnessed, and arrival order decides only which. The retention bound
-rests on retention plus kind-awareness, not on which two events arrive first. _Which_ two are kept
-is immaterial — any two competing events prove the fork; the bound requires keeping at least two,
-not a particular two. The canonical run's bodies are kept and retrievable by prefix (the flat query
-returns them); the losing content closes below the burying seal by position + descent (every dead
-event's ancestry passes through a below-seal first event), so only the truly **uncommitted**
-below-seal content flood — beyond the ≥ 2-per-position evidence set — is droppable, because
-detection is **content-independent**: a sealed event re-validates against the prior seal's key state
-(reached via `previousSeal` on the retained spine) plus its own committed fields, never against this
-chain's below-seal content. So the evidence a data-local detection needs is bounded and always
-retained; dropping the rest is a storage/audit tuning knob, not a detection gap. The chain's
-**reading** — Active / Forked / Disputed — is determined by the walk over the canonical chain plus
-the retained set; the effective SAID is then the tip's real SAID when a single **confirmed** tip is
-held, or a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`) when no single
-tip is — see [§Effective-SAID comparison](#effective-said-comparison).
+event is non-canonical, permanently), not a storage guarantee: a node need only **retain** a bounded
+set of the buried events as evidence, and may drop the rest. The bound is **≥ 2 competing events per
+position**, on both rails:
+
+- **Sealed branches** are retained to ≥ 2 per spine position — a spent preimage can sign unbounded
+  distinct events at an old position, but two competing sealed branches already prove the prefix
+  Disputed, so a node retains the second and stops.
+- **Content siblings** are bounded the same way: keep ≥ 2 competing events per position as fork
+  evidence and drop the rest — a signing-key re-forker can author more, but they sit beyond the
+  retained set (droppable, a bounded query surface, never an unbounded fork).
+
+_Which_ two are kept is immaterial — any two competing events prove the fork; the bound requires
+keeping at least two, not a particular two. Deterministic witness co-location fixes the witness
+_set_, not arrival order, and the witnessing floor lets at most one content sibling per position
+ever go live (the kind-scoped witnessing counts — one content sibling, up to two sealed — are
+[§Federation convergence](#federation-convergence)'s), so arrival order decides only _which_, never
+whether a fork forms.
+
+Dropping the rest is safe because **detection is content-independent**: the canonical run's bodies
+are kept and retrievable by prefix (the flat query returns them); a losing content sibling closes
+below the burying seal by position + descent (every dead event's ancestry passes through a
+below-seal first event); and a sealed event re-validates against the prior seal's key state (reached
+via `previousSeal` on the retained spine) plus its own committed fields, never against this chain's
+below-seal content. So the evidence a data-local detection needs is bounded and always retained;
+dropping the uncommitted below-seal content flood beyond the ≥ 2-per-position set is a storage /
+audit tuning knob, not a detection gap. The chain's **reading** — Active / Forked / Disputed — is
+the walk over the canonical chain plus the retained set; the effective SAID is then the tip's real
+SAID when a single **confirmed** tip is held, or a **type-tagged synthetic recoupled to the
+verdict** (`forked` / `disputed`) when no single tip is — see
+[§Effective-SAID comparison](#effective-said-comparison).
 
 **Pre-seal verifiability.** A seal is **clean** while no competing sealed branch forks at-or-below
 it; the **last clean seal** is the chain's most recent such seal-advancing event — on a chain with

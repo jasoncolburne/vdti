@@ -173,18 +173,23 @@ within a single page so recovery is cross-node-validatable.
 
 ### Defense against current-state compromise is layered
 
-The KEL **rotation reserve** — held apart from the signing key and revealed to single-sign every key
-change (`Rot` / `Wit` / `Trm`) — lets a device heal a suspected signing-key leak by itself: a
-signing-key-only thief (exfiltration, brute force, coerced signing, side channels) can append
-content but never a key change, and one recovery `Rot` buries their run. A single-device deployment
-is first-class. Healing a _fully_ compromised device (both keys) is the identity's job: IEL
-threshold composition (high thresholds — a roster (`M`) larger than the threshold (`N`) it needs —
-redundancy across distinct custodians) handles total device compromise — burn the device, evict it
-via an `Evl` (governance change). Reserve theft itself is a takeover-by-extend (unrecoverable →
-reincept), so the reserve lives in device hardware, never replicated across partitionable nodes. A
-biometric or device PIN gating the keystore is a further on-device layer — it raises the cost of
-using a stolen, locked device, but gates _access_ rather than custody: it can be coerced, and an
-unlocked device remains usable.
+Defense is **layered** — each layer catches what the one below it cannot:
+
+- **The rotation reserve — a device heals itself.** Held apart from the signing key and revealed to
+  single-sign every key change (`Rot` / `Wit` / `Trm`), the KEL reserve lets a device recover from a
+  suspected signing-key leak on its own: a signing-key-only thief (exfiltration, brute force,
+  coerced signing, side channels) can append content but never a key change, and one recovery `Rot`
+  buries their run. A single-device deployment is first-class.
+- **IEL threshold composition — the identity heals a device.** Healing a _fully_ compromised device
+  (both keys) is the identity's job: a threshold vector with redundancy across distinct custodians
+  (a roster `M` larger than the threshold `N` it needs) survives total device compromise — burn the
+  device, evict it via an `Evl`, and the surviving members keep the threshold.
+- **Hardware — the reserve is not exfiltrable.** Reserve theft is a takeover-by-extend
+  (unrecoverable → reincept), so the reserve lives in device hardware, never replicated across
+  partitionable nodes.
+- **A biometric or device PIN — an on-device access gate.** It raises the cost of using a stolen,
+  locked device, but gates _access_ rather than custody: it can be coerced, and an unlocked device
+  remains usable.
 
 →
 [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
