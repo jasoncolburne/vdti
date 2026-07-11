@@ -333,7 +333,7 @@ content sibling going live — a partitioned content rail **stalls** rather than
 un-serialized rail costs stalls and re-issuance, not terminality
 ([§Federation convergence](#federation-convergence)). The exact constant, the roster-less re-seal,
 and the content-rail serialization are IEL doctrine —
-[`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/) (forthcoming).
+[`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
 back-link to the prior seal-advancing event, so following `previousSeal` renders a seal-only view
@@ -564,9 +564,9 @@ the fork-causer; cutting the wrong member leaves the culprit able to re-fork. A 
 neutralized one layer up: a SEL is single-owner with no roster of its own, and its recovery cascades
 from the owner IEL, so the owner IEL's cut is what evicts the forking member (the cross-layer
 mechanics are the IEL / SEL doctrine —
-[`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/), forthcoming). A **benign**
-gossip-lag `Ixn` (an honest member's content on a lagging node) needs no cut: it is buried and
-re-issued, terminating as honest members catch up to the recovered tip. So termination is
+[`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/); the SEL side forthcoming). A
+**benign** gossip-lag `Ixn` (an honest member's content on a lagging node) needs no cut: it is
+buried and re-issued, terminating as honest members catch up to the recovered tip. So termination is
 **bounded**: each fork a sustained adversarial re-forker mints is capped at one bounded fork window
 (≤ `(MINIMUM_PAGE_SIZE − 1)/2` deep), and once the neutralizing move — the rotation, or the cut —
 propagates, no new fork can be minted; a benign lag terminates as soon as its node catches up.
@@ -994,7 +994,7 @@ positions**: a user IEL's content events must reach a majority quorum at their o
 closing the two-disjoint-member-sub-quorums content fork — while the **federation IEL is exempt**
 (it authors no content; its every fork is sealed → Disputed), and a SEL rides the cross-layer
 theorem (a valid SEL fork implies an IEL fork beneath it, so closing IEL content forks closes SEL
-content forks — the SEL / IEL anchor-validation doctrine, forthcoming). Every chain is
+content forks — the SEL / IEL anchor-validation doctrine, the SEL side forthcoming). Every chain is
 federation-witnessed — there is no direct mode. What survives the floor is the **residual**: a
 witness compromise owning the intersection, and — rarely — a roster-delta straddle (two full quorums
 under disjoint contexts), which under the propagation premise below requires the new selectees cut

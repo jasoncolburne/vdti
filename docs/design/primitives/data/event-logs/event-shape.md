@@ -13,8 +13,8 @@ authorized by its own key state, its identity's threshold, or its owner. Policy 
 
 ## Reading order
 
-- [`kel/`](kel/) — KEL primitive specs. _(Per-primitive doctrine; landed separately.)_
-- [`iel/`](iel/) — IEL primitive. _(Per-primitive doctrine; forthcoming.)_
+- [`kel/`](kel/) — KEL primitive specs. _(Per-primitive doctrine.)_
+- [`iel/`](iel/) — IEL primitive. _(Per-primitive doctrine.)_
 - [`sel/`](sel/) — SEL primitive. _(Per-primitive doctrine; forthcoming.)_
 - [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md) — cross-primitive doctrine:
   tiers, divergence and recovery, the seal bound, federation convergence, the verification walk.

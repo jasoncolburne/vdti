@@ -1,8 +1,8 @@
 # VDTI Design Documentation
 
-This directory is the **landed design surface** for VDTI — the canonical specification of the
-protocol. It is built from foundations up: each layer builds on the ones below it. Read it in order
-for a first full pass, or jump to a layer with the table of contents.
+This directory is the **design surface** for VDTI — the canonical specification of the protocol. It
+is built from foundations up: each layer builds on the ones below it. Read it in order for a first
+full pass, or jump to a layer with the table of contents.
 
 Two ideas anchor everything here. Every content-bearing object is a **SAD** — Self-Addressed Data, a
 record identified by the hash of its own content. And the system's central claim is
@@ -18,7 +18,7 @@ authorization layer that sits on top.
 - [2 — Cross-cutting doctrine](#2--cross-cutting-doctrine)
 - [3 — The event-log primitives](#3--the-event-log-primitives)
 - [4 — The document-authorization layer](#4--the-document-authorization-layer)
-- [Not yet landed](#not-yet-landed)
+- [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
 
@@ -82,25 +82,44 @@ Then the KEL (Key Event Log) primitive, in order:
     — the exhaustive correctness proof: every divergence case resolved, and the argument that all
     honest nodes converge. The densest doc; read it last.
 
+Then the IEL (Identity Event Log) primitive, in order:
+
+15. [`primitives/data/event-logs/iel/log.md`](primitives/data/event-logs/iel/log.md) — the chain
+    primitive: an identity as a threshold over member KELs; the four-state machine; the seal,
+    locked-portion bound, and seal-cap over the content window versus the governance spine.
+16. [`primitives/data/event-logs/iel/events.md`](primitives/data/event-logs/iel/events.md) — the
+    eight-kind taxonomy (plus the restricted federation set), the threshold vector and its bounds,
+    the kind-strict anchor matrix, the `kills[]` revocation declaration, and the facet-dependent
+    `Wit`.
+17. [`primitives/data/event-logs/iel/verification.md`](primitives/data/event-logs/iel/verification.md)
+    — the verifier walk: threshold anchoring, roster accumulation by delta, root-facet dispatch, and
+    the `kills[]` forward-match.
+18. [`primitives/data/event-logs/iel/merge.md`](primitives/data/event-logs/iel/merge.md) — the write
+    path: content first-seen (plus the position gate), governance record-both, and eviction via a
+    roster `cut`.
+19. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
+    — the correctness-proof matrix: the content-versus-governance divergence enumeration and the
+    verdict by sealed-branch count.
+20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
+    the delegate / rescind surface (a stub; the full delegation doctrine is forthcoming).
+
 ## 4 — The document-authorization layer
 
 Policy sits above the primitives — it governs documents, never the chain events themselves
 (chain-event authorization is structural). (This group carries its own reading-order note in
 `policy.md`.)
 
-15. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
+21. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
-16. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
+22. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-17. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
+23. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
     evaluated (as-issued and current) and the seam to the primitives.
 
-## Not yet landed
+## Forthcoming
 
-These are referenced above as forward-references and land as the build reaches them:
+These are referenced above as forward-references and are still forthcoming:
 
-- `primitives/data/event-logs/iel/` — the IEL (Identity Event Log) primitive: an identity as a
-  threshold over member device KELs.
 - `primitives/data/event-logs/sel/` — the SEL primitive: single-owner content and credential logs,
   anchored by their owner IEL.
 - `federation/` — federation bootstrap and witnessing.
