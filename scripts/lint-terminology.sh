@@ -86,43 +86,25 @@ for forbid in "${deep_first[@]}"; do
             exit_code=1
         fi
 
-        # Pass 2 (wrap-tolerant): a MULTI-WORD ban can wrap a line boundary and slip
-        # past the line-based grep above (the exact hole the "majority floor" survivors
-        # used). Take the space-containing patterns, widen each space to \s+ (which
-        # matches a newline), and slurp-match each file with perl — whose \s spans
-        # newlines, unlike BSD grep -z. Reports only genuinely-wrapped hits (same-line
-        # ones are already covered by pass 1), grep-style: file:line: term.
-        wrap_file=$(mktemp)
-        grep ' ' "$pattern_file" | sed 's/ /\\s+/g' > "$wrap_file" || true
-        if [ -s "$wrap_file" ]; then
+        # Pass 2 (wrap- AND decoration-tolerant): a MULTI-WORD ban can wrap a line
+        # boundary OR be split by Markdown emphasis/code markers (** _ ` ~) — either
+        # slips the line-based grep above (the "majority floor" line-wrap survivors, and
+        # a bold-hidden "governance **`Evl`**", both used this hole). scripts/grep-terms.pl
+        # widens each space in the pattern to swallow those markers + a newline; --regex
+        # keeps the ERE bans intact; --novel reports only the forms pass 1 misses, so it
+        # never double-reports a same-line hit. Output is grep-style: file:line: match.
+        multiword_file=$(mktemp)
+        grep ' ' "$pattern_file" > "$multiword_file" || true
+        if [ -s "$multiword_file" ]; then
             files_list=$(mktemp)
             printf '%s\n' "${scope[@]}" > "$files_list"
-            if perl -e '
-                my ($pf, $lf) = @ARGV;
-                open(my $h, "<", $pf) or die; my @pats = grep { length } map { chomp; $_ } <$h>; close $h;
-                open(my $l, "<", $lf) or die; my @files = grep { length } map { chomp; $_ } <$l>; close $l;
-                my $hits = 0;
-                for my $file (@files) {
-                    next unless -f $file; next if -B $file;
-                    open(my $f, "<", $file) or next; local $/; my $c = <$f>; close $f;
-                    for my $p (@pats) {
-                        while ($c =~ /$p/g) {
-                            my $off = $-[0]; my $m = $&; next unless $m =~ /\n/;
-                            my $line = (substr($c, 0, $off) =~ tr/\n//) + 1;
-                            (my $show = $m) =~ s/\s+/ /g;
-                            print "$file:$line: forbidden (line-wrapped): \"$show\"\n";
-                            $hits = 1;
-                        }
-                    }
-                }
-                exit($hits ? 0 : 1);
-            ' "$wrap_file" "$files_list"; then
-                echo "ERROR: line-wrapped forbidden terminology found (rules: $forbid)"
+            if scripts/grep-terms.pl --regex --novel -f "$multiword_file" -F "$files_list"; then
+                echo "ERROR: forbidden terminology (line-wrapped or Markdown-decorated) found (rules: $forbid)"
                 exit_code=1
             fi
             rm -f "$files_list"
         fi
-        rm -f "$wrap_file"
+        rm -f "$multiword_file"
     fi
 
     rm -f "$pattern_file"
