@@ -44,11 +44,12 @@ already-revealed secret author a competing sealed sibling?**
   two disjoint member sub-quorums cannot both land a content event at one IEL serial, closing the
   two-disjoint-sub-quorums content fork. A content conflict is **recoverable**: the next sealing
   event buries the loser below the seal, no repair event.
-- **Sealed (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`)** → **record-both**. A threshold chain
-  cannot be forked by one stolen key, so a second sealed decision is proof the quorum was subverted,
-  surfaced loudly. `{Evl, Evl}` (any two sealed branches) → **≥ 2 sealed → Disputed → terminal →
-  reincept**; `{Evl, content}` is **recoverable** (the `Evl` branch survives, the content is
-  buried).
+- **Sealed (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`)** → **record-both** (detected, never
+  buried). A threshold chain cannot be forked by one stolen key (except a singleton / `t_use = 1`),
+  so a second **accepted** sealed decision is proof the quorum was subverted or the witnesses
+  colluded, surfaced loudly (a witness-declined sibling is deferred-pending, forcing nothing).
+  `{Evl, Evl}` (any two sealed branches) → **≥ 2 sealed → Disputed → terminal → reincept**;
+  `{Evl, content}` is **recoverable** (the `Evl` branch survives, the content is buried).
 
 The **federation** IEL is the pure case — every event is sealed → record-both → every federation
 conflict is disputed / terminal. The witnessing mechanics that make content first-seen work (the
@@ -91,11 +92,12 @@ or `Disputed` even though it lands as retained evidence rather than a canonical 
 
 **Rejection and retention are separate; retention is witnessing-gated.** Whether the node also
 **retains** a competing branch as non-canonical evidence is governed by witnessing — a **sealed**
-competing branch is witnessed up to two per position (two are the `Disputed` proof), so it is
-retained; a losing **content** sibling on a witnessed chain is **prevented** (a selected witness
-declines it), so it never reaches threshold and the content fork does not form (outcome `Ignored`).
-Retained evidence — sealed branches, plus the residual content-fork evidence — is what lets any
-verifier read the chain as `Forked` / `Disputed` by a data-local walk
+competing branch is witnessed first-seen (one per position); a node accepts and retains up to two
+**witnessed** sealed branches per position (two are the `Disputed` proof); a losing **content**
+sibling on a witnessed chain is **prevented** (a selected witness declines it), so it never reaches
+threshold and the content fork does not form (outcome `Ignored`). Retained evidence — sealed
+branches, plus the residual content-fork evidence — is what lets any verifier read the chain as
+`Forked` / `Disputed` by a data-local walk
 ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 
 ## Routing order

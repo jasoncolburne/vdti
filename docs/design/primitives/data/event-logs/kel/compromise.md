@@ -204,14 +204,16 @@ closed by the layers composed above KEL:
 - **Custody separation.** KEL-internal custody hygiene (the reserve on a different device,
   HSM-resident, ceremony-gated) raises the practical bar to acquire the reserve. This is operational
   hardening; the protocol is custody-agnostic.
-- **Federation witnessing.** Competing **sealed** events at the same chain position are both
-  witnessed — a selected witness signs up to two distinct sealed siblings per position, and two
-  both-witnessed siblings are the `disputed` proof — so both accumulate receipts from the witness
-  pool, and the beacon enumerates the branches as the evidence a verifier walks. Reserve-tier
-  compromise without a federation partition cannot get a fork past detection — any verifier holding
-  both branches reads the prefix as `disputed` and refuses to bind. (A competing **content**
-  sibling, by contrast, is declined after the first seen at a position — under the witnessing floor
-  a content fork on a witnessed chain is prevented, not merely detected; federation doctrine.)
+- **Federation witnessing.** A selected witness signs the **first** sealed sibling per position and
+  declines later ones (first-seen). Competing **sealed** events on **distinct** branches (a
+  reserve-tier fork) are each first-seen-witnessed at their own position, so both accumulate
+  receipts and the beacon enumerates the branches as the evidence a verifier walks. Two sealed
+  **siblings** at one position are **not** both witnessed by honest witnesses; a second reaches
+  threshold only if witnesses collude (a provable double-sign). Reserve-tier compromise without a
+  federation partition cannot get a fork past detection — any verifier holding both branches reads
+  the prefix as `disputed` and refuses to bind. (A competing **content** sibling, by contrast, is
+  declined after the first seen at a position — under the witnessing floor a content fork on a
+  witnessed chain is prevented, not merely detected; federation doctrine.)
 
 The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**

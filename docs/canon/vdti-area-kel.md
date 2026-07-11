@@ -68,8 +68,13 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   **The rotation reserve defends the *signing* key, never the rotation key:** a thief who steals the **reserve** can
   just *extend* the chain with a rotation to their own key (a takeover-by-extend, case 3) — witnesses sign it
   willingly as an ordinary next event, so it forces nothing and is **silent to third parties on a dormant chain**
-  (caught only by owner vigilance; reserve theft is unrecoverable → reincept). A hostile `Rot` at a *forked*
-  position is likewise the reserve-theft takeover, **not** a recoverable fork.
+  (caught only by owner vigilance; reserve theft is unrecoverable → reincept). **If an attacker rotates at your
+  next position before you do (they hold your un-revealed reserve), you have lost control of the prefix** — a sibling
+  rotation there is first-seen-**declined** (deferred-pending, forces nothing — revised 2026-07-11, cold F1), so there
+  is no structural veto; recourse is **reincept under a new prefix and notify relying parties out of band** (the
+  attacker's chain reads clean — no on-chain signal of the takeover). This is inherent to pre-rotation, **shared with
+  KERI's model**, not a vdti-specific gap. A hostile `Rot` at a *forked* position is likewise the reserve-theft
+  takeover, **not** a recoverable fork.
 - **Forked vs Disputed are distinct, derived states** [inv 13]. A fork is read by counting the **sealed** branches
   past it (a sealed event = a seal-advancing key change; the content count is irrelevant — all content is buriable):
   - **Forked** = **≤ 1 sealed branch** past the fork — **recoverable *if* that surviving sealed tip is the owner's
@@ -79,7 +84,9 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   - **Disputed** = **≥ 2 sealed branches** past the fork → **terminal → reincept** (you can't un-change a key). A
     `{Rot, Rot}` disputed is moreover a **confirmed reserve compromise** — two valid rotations reveal the *one*
     reserve preimage at `v_{d-1}`.
-- **Cross-tier co-sign + the per-serial bound.** A witness's slot at one serial is **`{≤ 1 content, ≤ 2 sealed}`**.
+- **Cross-tier co-sign + the per-serial bound.** A witness's slot at one serial is **`{≤ 1 content, ≤ 1 sealed}`**
+  (sealed dropped from two to one — revised 2026-07-11, cold F1; this makes the slot consistent with the
+  `{sealed, sealed}`-is-the-cheat rule below, which the old `{≤ 2 sealed}` cap contradicted).
   Content and a key change are different **tiers**, so a witness signing one of each is **not** a double-sign — a
   cross-tier `{content, sealed}` pair is a **legit co-sign** (it is what lets a recovery rotation get witnessed and
   bury content the witnesses already signed), never misbehaviour. **Two *same-tier* signatures** (`{content, content}`

@@ -74,8 +74,9 @@ safety claims hold _by construction_, not by observation.
 6. **Threshold anchoring; roster accumulation.** Every IEL event is authorized by a threshold of
    members' fresh KEL participations (kind-strict up), and the current roster is the **accumulation
    of every delta while walking** (a `cut` `Evl` also evicts) with the hard live-set cap of 32 —
-   never "latest `Evl`". A rogue member KEL is **inert alone** (it cannot reach `t_use` /
-   `t_govern`), so distrust is non-participation + an `Evl` eviction, forward-only.
+   never "latest `Evl`". A rogue member KEL is **inert alone** (it cannot reach any threshold above
+   1 — `t_use` / `t_govern`; a singleton / `t_use = 1` roster is the exception, one member acting
+   alone), so distrust is non-participation + an `Evl` eviction, forward-only.
 
 These invariants make synchronous resolution, single-page recovery, and atomic batched submissions
 feasible. The proof matrices below rely on invariants 4–6.
@@ -86,13 +87,13 @@ The per-node enumeration covers every shape the merge rules can produce. A live 
 distinct states**: **Forked** (≤ 1 sealed branch past it — recoverable) and **Disputed** (≥ 2 —
 terminal), each a first-class state a verifier **derives** by a data-local walk.
 
-| State          | Description                                                                                                                                                                      |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**      | No events for this prefix on this node.                                                                                                                                          |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`.                                                                                                                            |
-| **Forked**     | A live fork with **≤ 1 sealed branch** past it — recoverable; origination-frozen; resolved by a burying seal on the winning branch → Active.                                     |
-| **Disputed**   | A live fork with **≥ 2 sealed branches** — a proof of quorum subversion, terminal. Nothing resolves it; the identity must reincept. Witnesses decline any extension → `Ignored`. |
-| **Terminated** | A `Trm` is the permanent end (all the identity's SELs freeze). Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → `Sealed`.   |
+| State          | Description                                                                                                                                                                                                                                          |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**      | No events for this prefix on this node.                                                                                                                                                                                                              |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`.                                                                                                                                                                                                |
+| **Forked**     | A live fork with **≤ 1 sealed branch** past it — recoverable; origination-frozen; resolved by a burying seal on the winning branch → Active.                                                                                                         |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — proof of quorum subversion or witness collusion (an honest partition cannot produce it), terminal. Nothing resolves it; the identity must reincept. Witnesses decline any extension → `Ignored`. |
+| **Terminated** | A `Trm` is the permanent end (all the identity's SELs freeze). Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → `Sealed`.                                                                       |
 
 **Empty** is the pre-inception case, included for completeness; the four **live-chain** states are
 Active / Forked / Disputed / Terminated (the state machine is four-state).
@@ -137,12 +138,12 @@ not the chain state, carries this distinction — the state stays one of the fou
 
 ### Position 2 — adjacent to the last seal (competes with the seal)
 
-| new event                             | outcome                                                                             |
-| ------------------------------------- | ----------------------------------------------------------------------------------- |
-| `Ixn`                                 | `Forked` — the seal + one content sibling, a mixed race (one sealed)                |
-| `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Disputed` — a second sealed branch beside the seal (two sealed → quorum subverted) |
-| `Trm`                                 | `Disputed` — a second sealed branch                                                 |
-| `Icp` / `Fcp`                         | `Invalid`                                                                           |
+| new event                             | outcome                                                                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Ixn`                                 | `Forked` — the seal + one content sibling, a mixed race (one sealed)                                                                             |
+| `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Disputed` — a second _accepted_ sealed branch beside the seal (two sealed → subverted/colluded; a witness-declined sibling is deferred-pending) |
+| `Trm`                                 | `Disputed` — a second sealed branch                                                                                                              |
+| `Icp` / `Fcp`                         | `Invalid`                                                                                                                                        |
 
 ### Position 3 — on the run past the last seal (competes with content)
 
@@ -191,7 +192,8 @@ differs, and shows up only in Position 1 and on a Terminated chain:
 - **`[Evl(cut), ..]`** — the atomic eviction: one sealing event buries the fork and evicts the
   divergence-causing member.
 - **the federation `Fcp` plus the founder `Rot`s and receipts** — the federation genesis atomic
-  batch (see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
+  batch (see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md),
+  forthcoming).
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 
@@ -289,18 +291,21 @@ The race participants — any pairing across the sealing kinds `{Evl, Ath, Rev, 
 produce identical structural outcomes per-node: each node keeps its locally-landed first-receive as
 its canonical tip; the gossip-arriving competing event is retained but not admitted; each node reads
 **Disputed** by the data-local walk. The witness beacon enumerates the competing branch SAIDs so a
-one-branch holder fetches the rest (a selected witness signs up to two distinct sealed siblings per
-position — two both-witnessed siblings are the `Disputed` proof).
+one-branch holder fetches the rest (a selected witness signs the first sealed sibling per position
+and declines later ones — first-seen; a node accepts up to two **witnessed** sealed branches per
+position, two are the `Disputed` proof).
 
 ### The `{Evl, Evl}` reading and its network-split origin
 
-A `{Evl, Evl}` divergence is a **proof of quorum subversion** — two distinct sealed decisions at one
-position mean either a compromised quorum or a network split during which **both halves sealed**.
-The everyday split case — one half seals while the other issues content — is **recoverable**
-(`{Evl, content}` → the `Evl` survives and its seal buries the content); the identity only bricks
-when both halves sealed. The residual is handled **operationally**: one designated sealing submitter
-so two sealing events never race, and pausing sealing while a split is suspected. A `{Evl, Evl}`
-brick recovers by reincept, made detectable on heal by witnessing. The operator playbook lands in
+A `{Evl, Evl}` divergence (two **accepted** sealed decisions at one position) is a **proof of quorum
+subversion or witness collusion** — an honest network split can **not** produce it (the witnessing
+floor plus one-sealing-per-position decline the second sibling), so two accepted sealed decisions
+mean a compromised quorum or colluding witnesses. The everyday split case — one half seals while the
+other issues content — is **recoverable** (`{Evl, content}` → the `Evl` survives and its seal buries
+the content); the identity only bricks when both halves sealed. The residual is handled
+**operationally**: one designated sealing submitter so two sealing events never race, and pausing
+sealing while a split is suspected. A `{Evl, Evl}` brick recovers by reincept, made detectable on
+heal by witnessing. The operator playbook lands in
 [`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
 (forthcoming); the doctrine — that sealed is record-both and a second sealed branch is terminal — is
 the chain's.
@@ -384,9 +389,9 @@ key rotation plays — an IEL burial rotates no identity key, so a culprit is ne
   buries only competing branches, never the branch it keeps.
 - **Bounded fork.** Depth ≤ 64 events past the last seal per lineage; breadth bounded by retention
   (≥ 2 per position) plus the one-content-sibling witnessing rule (a witness signs the first content
-  sibling and declines later ones; sealed siblings up to two per position). A signing-key (tier-1)
-  re-forker can author more content siblings, but they sit beyond the retained ≥ 2 → droppable +
-  declined.
+  sibling and declines later ones; sealed siblings first-seen too — one per position, a node accepts
+  up to two witnessed). A signing-key (tier-1) re-forker can author more content siblings, but they
+  sit beyond the retained ≥ 2 → droppable + declined.
 
 ### Convergence and termination
 
@@ -401,10 +406,12 @@ verdict-recoupled synthetic.
 
 The forked chain is depth-capped at 64 past the last seal per lineage — one burying seal closes the
 whole current content fork, and the `cut` `Evl` then closes the culprit's ability to re-fork (by
-eviction). **Sealing serialization** (one designated submitter) backs the `{Evl, Evl}` terminal
-cases; **content-rail serialization** is a liveness precondition of the benign bound. On a witnessed
-IEL the position gate narrows even the self-cascade to stall-and-re-issue — a competing content
-sibling never goes live — so the discipline is a liveness concern (every chain is
+eviction). **Sealing serialization** (one designated submitter) is now a liveness/waste discipline
+too — an honest double-seal is first-seen-declined (deferred-pending), so two honest sealers
+stall-and-re-issue rather than brick; only witness collusion yields two accepted `{Evl, Evl}`.
+**Content-rail serialization** is likewise a liveness precondition of the benign bound. On a
+witnessed IEL the position gate narrows even the self-cascade to stall-and-re-issue — a competing
+content sibling never goes live — so the discipline is a liveness concern (every chain is
 federation-witnessed; the residual safety concern is only a witness compromise).
 
 ### Cross-layer completeness (forward-referenced)

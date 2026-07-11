@@ -92,8 +92,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   event; an IEL's member KEL events; the as-of federation position).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#cross-cutting-fields))
 - **branch / competing branch / retained / losing branch** — the shapes of a divergence: the kept
-  chain versus the buried ones (buried by position + descent below a burying seal, retained as
-  non-canonical evidence). ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+  chain versus the buried ones. **"Retain" has two senses, disambiguated by context:** an entity
+  **retains** the branch it keeps **canonical** (the recovery rule), while a buried loser is
+  **retained** as non-canonical **evidence** (buried by position + descent below a burying seal).
+  ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **threshold vector** — an IEL's `{t_use, t_govern, t_authorize}` — the **count** an act of each
   kind requires (orthogonal to tier).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#structural-authorization--the-three-mechanisms))

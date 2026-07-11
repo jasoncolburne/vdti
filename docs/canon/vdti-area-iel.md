@@ -120,10 +120,16 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
     option-(b) position gate), which — with the witnessing floor — closes the two-disjoint-sub-quorums content fork.
     A content conflict is **recoverable**: the next sealing event (or the agreed next content) buries the
     loser below the seal (deadness-descends), no repair event.
-  - **Sealed (`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm`)** → **record-both**: a threshold chain can't be forked
-    by one stolen key, so a second sealed decision is proof the quorum was subverted — surfaced loudly. `{Evl, Evl}`
-    (any two sealed branches) → **≥ 2 sealed → disputed → terminal → reincept**; `{Evl, content}` is **recoverable**
-    (the `Evl` branch survives, the content is buried).
+  - **Sealed (`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm`)** → **record-both (detected, never buried) — but witnessed
+    first-seen now, one sibling (revised 2026-07-11, cold F1):** witnesses sign the **first** sealed sibling at a
+    position and decline later ones (like content — federation §1e), yet both branches are still **recorded/retained**
+    so the data-local walk detects `≥ 2` → `disputed`; a sealed branch is **never buriable**, so a *second accepted*
+    sealed branch is terminal. A threshold chain can't be forked by one stolen key (**except a singleton / `t_use = 1` roster,
+    where one member acts alone**), so a second **accepted** sealed decision is proof the quorum was **subverted or
+    the witnesses colluded** — surfaced loudly; a witness-**declined** sealed sibling is deferred-pending (a
+    spent-preimage or partition race, no fault). `{Evl, Evl}` (any two **accepted** sealed branches) → **≥ 2 sealed →
+    disputed → terminal → reincept**; `{Evl, content}` is **recoverable** (the `Evl` branch survives, the content is
+    buried).
   The **federation** IEL is the pure case — every event is sealed → record-both → every federation conflict is a
   schism (disputed/terminal). [inv 4, 12, 13, 17]
 - **Recovery + eviction — no repair event** [inv 13]. Recovery of a content fork is the **burying seal** above it
@@ -220,11 +226,13 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   content** is **recoverable** — the sealing event **survives and its seal buries the content** (you never
   overturn a `Evl`; content is buriable and re-issuable). So `Evl`-vs-content does **not** brick. The identity
   only bricks when **both halves sealed** (`Evl`-vs-`Evl`, or a branch carries two sealed events) —
-  then neither branch can be buried → reincept. An attacker can still force the brick by inducing a split **and**
-  getting both honest sub-quorums to seal, but the everyday case (one side seals, the other just
-  issues) now recovers.
-  **Decision: handle the residual operationally, not in the protocol** — but the bar is now only "don't let both
-  sides seal during a split." (1) One designated sealing submitter (everyone hands that person their
+  then neither branch can be buried → reincept. **Under one-sealing-per-position (revised 2026-07-11, cold F1) the honest double-seal is structurally
+  prevented:** the witnessing floor stops two disjoint sub-quorums from each reaching `threshold`, and on heal
+  first-seen **declines** the second sealed sibling (deferred-pending, never accepted) — an honest split yields **at
+  most one accepted sealed branch** and resolves to it, never a brick. Two *accepted* sealed branches now
+  necessarily mean **witness collusion** (a provable double-sign — the general witness-compromise residual), not a
+  partition race. **The former operational bar ("don't let both sides seal during a split") is thereby subsumed** —
+  kept below only as defense-in-depth, no longer a correctness requirement: (1) One designated sealing submitter (everyone hands that person their
   signature) so two sealing events never race. (2) Under a suspected split, hold off on sealing until the
   network is clearly back. (3) A `{Evl, Evl}` brick recovers by reincept — witnesses make it **detectable** on
   heal. **Rejected: a protocol check that blocks a `Evl` unless its parent is witness-confirmed** — during a split

@@ -12,6 +12,10 @@ in KEL events — the [tier model](../../../../protocol-doctrine.md#tiers) ties 
 difficulty of forging a sealed IEL / SEL act to the difficulty of forging the corresponding KEL
 anchor.
 
+Like the IEL and SEL, the KEL is a **mixed chain**: tier-1 **content** (`Ixn`, first-seen and
+recoverable) rides alongside a tier-2 **sealed** spine (`Rot` / `Wit` / `Trm`, record-both and
+terminal-on-divergence).
+
 This doc states the chain primitive: prefix derivation, the per-node chain states, the seal and the
 spine, the locked-portion bound, and the page / chunking model. Per-kind reference lives in
 [`events.md`](events.md); merge-handler routing in [`merge.md`](merge.md); recovery doctrine in
@@ -94,8 +98,9 @@ The KEL verifier surfaces one forward-only watermark on its
 
 `Trm` advances the seal to its own serial, where it is terminal — it opens no new window, since no
 successor may land. Once a rotation lands, the reserve preimage it revealed is **spent** — public,
-usable only to forge a _late_ competing rotation (declined) — so a genuinely competing rotation
-needs the _next_ reserve, which is a takeover, not a recoverable fork (see
+usable only to forge a _late_ competing rotation at the same position — a **first-seen-declined**
+sibling (deferred-pending, forcing nothing) — so a genuinely competing rotation needs the _next_
+reserve, which is a takeover (reincept + notify out of band), not a recoverable fork (see
 [`compromise.md`](compromise.md)).
 
 ### The spine

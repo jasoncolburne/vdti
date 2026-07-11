@@ -68,7 +68,7 @@ at inception and carries it on the token
   federation prefix still roots trust). It carries the initial witness-KEL roster, the initial
   `witnesses` config, and the initial `clock` (the founders' join time), and is anchored kind-strict
   by each founder's KEL `Rot` (tier-2 → tier-2). The full genesis ceremony is federation doctrine —
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming).
 
 ## Authorization — threshold over member KELs, no adjacent signature
 
@@ -157,7 +157,8 @@ current roster is the accumulation of every delta while walking). **Added member
 1** via their own KEL `Ixn` (they are joining, not rotating — sign and declare key commitments); the
 **`t_govern` of the outgoing roster** approve at tier 2, each revealing a rotation reserve via a KEL
 `Rot` that anchors the `Evl`. `Evl` **anchors no kills** (those ride `Rev` / `Dth`) and carries **no
-`federationPin`**, so it cannot mutate the federation binding.
+`federation`** (the rebind field), so it cannot mutate the federation binding — though it may carry
+`federationPin` for a same-federation re-pin, like any user IEL body event.
 
 **Eviction is a `cut` `Evl`.** Evicting a compromised or divergence-causing member is an ordinary
 `Evl` carrying a roster `cut` — one sealing event buries the fork **and** evicts, atomically (there
@@ -223,7 +224,7 @@ revocation / rescission **declaration** the fail-secure walk consumes:
   party's chain. A **delegate**'s `bound` is not participant-identifying, so it rides **publicly**
   in the `kills[]` entry (un-withholdable on the witnessed IEL). A **doc-member**'s `bound` **is**
   participant-identifying, so `kills[]` carries only the blind `target` and the `bound` rides a
-  **gated rescind-doc** committed by its `Trm` — see [`delegation.md`](delegation.md) and
+  **gated SAD anchored by its `Trm`** (via `anchors[]`) — see [`delegation.md`](delegation.md) and
   [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).
 
 The check reads the derived lookup-SEL **first** (an O(1) content-addressed read, **present →
@@ -264,8 +265,10 @@ malformed → rejected (trust still roots in the config-pin). A user `Wit` **mus
 `Wit` — it rides any body event — and a pure key rotation is a member's KEL `Rot`, so a `Wit` that
 changes neither is a no-op → rejected. Initial binding rides the `Icp` (which always carries the
 federation); a later `Wit` **rebinds**, under a hard cap on `Wit`s per chain (a DoS backstop —
-over-cap rejected). Trust is **per-federation and non-transitive** — each event is witnessed by
-whichever federation was current when it landed.
+over-cap rejected; the exact bound lands with
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md), forthcoming). Trust
+is **per-federation and non-transitive** — each event is witnessed by whichever federation was
+current when it landed.
 
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no

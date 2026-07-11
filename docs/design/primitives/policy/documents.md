@@ -106,8 +106,10 @@ applies at every level — with no self-asserted value carried at any level.
 
 A document may be authorized by a **delegate** of an identity — the `del(X, N)` leaf
 ([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
-each hop's delegating link is recorded on the delegate's own identity, pinning up to `X`, so the
-verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
+each hop's delegating link is the content-addressed
+`derive(delegator, {delegation topic}, delegate)` (delegator = owner, delegate = data — the same
+scheme as a rescission lookup), committed on the delegate's own identity and pinning up to `X`, so
+the verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
 never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
 furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and that the
 grant has not been **rescinded** (a positive `kills[]` match, fail-secure by default —

@@ -51,12 +51,12 @@ not affect it.
 **Rejections** — nothing lands; the chain is unchanged (retention of the rejected event as evidence
 is a separate, witnessing-gated matter — below).
 
-| Rejection    | Verdict                                                               | Triggering condition                                                                                                                                                         |
-| ------------ | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Sealed**   | Parent sits below the seal and the event is **inert** — not admitted. | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content sibling behind an advanced seal); on a Terminated chain, the **sibling-to-`Trm`** race (content). |
-| **Terminal** | The tip is a `Trm`, which admits no successor.                        | Chains _from_ a `Trm` (parent kind `Trm`) — the kind-schema rule ([§Routing order](#routing-order) rule 1).                                                                  |
-| **Invalid**  | Structurally inapplicable to the chain state.                         | Structural-validation failure — the kind does not apply (inception on a non-empty chain, or a non-inception on an Empty one).                                                |
-| **Ignored**  | A well-formed event the witnesses decline.                            | Content-fork prevention (a second content sibling at a position), or a new event on a **Disputed** / **Terminated** chain (barring a partition).                             |
+| Rejection    | Verdict                                                               | Triggering condition                                                                                                                                                                                                                                                                      |
+| ------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Sealed**   | Parent sits below the seal and the event is **inert** — not admitted. | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content sibling behind an advanced seal); on a Terminated chain, the **sibling-to-`Trm`** race (content).                                                                                                              |
+| **Terminal** | The tip is a `Trm`, which admits no successor.                        | Chains _from_ a `Trm` (parent kind `Trm`) — the kind-schema rule ([§Routing order](#routing-order) rule 1).                                                                                                                                                                               |
+| **Invalid**  | Structurally inapplicable to the chain state.                         | Structural-validation failure — the kind does not apply (inception on a non-empty chain, or a non-inception on an Empty one).                                                                                                                                                             |
+| **Ignored**  | A well-formed event the witnesses decline.                            | Content-fork prevention (a second content sibling at a position), or a new event on a **Disputed** / **Terminated** chain the witnesses decline (barring a partition) — the witness-layer decline; a Terminated-chain content sibling a node **does** process is `Sealed`, not `Ignored`. |
 
 `Sealed` is the **inert** case only — a below-seal event that changes nothing. A competing event
 that **forms or joins a live fork** is a transition, not a rejection: it moves the chain to `Forked`
@@ -72,9 +72,10 @@ structural checks (it never replaces them); it is governed by witnessing — the
 non-witnesses (the full rule lands with
 [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
 
-- A **sealed** competing branch (`Rot` / `Wit` / `Trm`) is witnessed up to two per position (two are
-  the `Disputed` proof), so it is accepted and **retained** — the evidence the data-local walk that
-  reads `Disputed` relies on.
+- A **sealed** competing branch (`Rot` / `Wit` / `Trm`) is witnessed **first-seen (one per
+  position)**; a node **accepts and retains up to two witnessed** sealed branches per position (two
+  are the `Disputed` proof) — the evidence the data-local walk that reads `Disputed` relies on. A
+  second, witness-declined sibling is deferred-pending and droppable unless witnesses collude.
 - A losing **content** sibling on a witnessed chain is **prevented**, not turned into retained fork
   evidence: a selected witness declines it (one content sibling per position), so it never reaches
   `threshold` receipts and a non-witness never accepts it as a witnessed branch — the content fork
@@ -269,8 +270,8 @@ events held:
 - Batch contains a sealed event that lands as a **second** sealed branch — a competing sibling
   (`previous = v_{d-1}.said`) on a fork that **already** carries a sealed branch, or a burying
   seal-advancer whose burial was rejected above → not admitted as a canonical extension; the chain
-  moves to `Disputed`. The competing branch is retained as the `Disputed` proof (witnessed up to two
-  per position —
+  moves to `Disputed`. The competing branch is retained as the `Disputed` proof (a node accepts up
+  to two witnessed sealed branches per position —
   [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 - Otherwise (a content event that neither extends cleanly nor buries the fork) → `Forked` (retained
   as evidence; the chain stays Forked). A second content sibling at a position is `Ignored`.

@@ -41,14 +41,43 @@ machinery as false differentiation. So: **take the backbone as-is; differentiate
 - **vdti:** the federation is a restricted IEL — a governed, rotating, evictable threshold over witness KELs —
   with structural safety floors (roster ≥ 4, signers ≥ 3, majority, availability). A user binds to a
   federation and _consumes_ witnessing; they never run witnesses.
-- **Adoption thesis:** KERI's wall is that "be witnessed" and "run witnesses" are the same act, so every user
-  needs infrastructure and the skill to run it — which is why it's stuck at expert / enterprise. vdti splits
-  them: **witnessing becomes a service run by trusted operators.**
+- **Adoption thesis:** one wall for KERI is that "be witnessed" and "run witnesses" tend to be the same act, so a
+  user typically needs infrastructure and the skill to run it — part of why adoption skews expert / enterprise.
+  vdti splits them: **witnessing becomes a service run by trusted operators.**
 - **Safety property (the non-obvious part):** you offload **operation, not trust**. End-verifiability keeps
   trust with your keys (an operator can't forge you — they never hold your keys); `< threshold` byzantine
   members are bounded and attributably evicted; the **floors make a malformed federation unhonored by the
   verifier**, so a non-expert can trust an operator _without auditing it_. That last point is why the
   byzantine/floor work is the adoption foundation, not just correctness hygiene.
+- **The honest cost (the disadvantage vs KERI):** because you don't run the witnesses, **you can't
+  tell them to stop.** In KERI, running your own witnesses gives a unilateral **freeze** — on
+  suspected compromise you halt witnessing and deny an attacker any witnessed event (malicious content
+  _or_, if they also hold your reserve, a takeover rotation) while you recover. vdti has no such
+  switch. Its value is bounded, though: it is a detection-race either way (a fast attacker acts before
+  you would halt), it is a self-DoS lever (a compromised owner-key could freeze your own identity),
+  and in the case it uniquely helps — **both** signing key and reserve compromised — freezing only
+  defers an inevitable reincept. The **reserve-theft takeover is shared with KERI**: if someone
+  rotates your next position before you do (they hold your un-revealed reserve), you have lost
+  control → **reincept + notify out of band**, the chain carrying no structural signal. vdti's
+  one-sealing-per-position rule makes a _late_ competing rotation a first-seen-**declined** sibling
+  (no durable grief — federation §1e), but the _rotate-first_ takeover is inherent to pre-rotation,
+  not a vdti-specific gap. Net: vdti trades the run-your-own-witnesses freeze for **zero-infrastructure
+  adoption** — and the freeze's cost (the infrastructure + expertise to run witnesses) is one of
+  KERI's adoption walls.
+- **The counterweight (a marginal security gain — it splits _one_ vector, the brick):** because you
+  **don't** run the witnesses, coercing **you** does **not** let an attacker unilaterally **brick**
+  the prefix (force `disputed`). A brick needs a witnessed competing **sealed sibling**, and the
+  independent federation **declines** the second one (one-sealing-per-position, federation §1e), so a
+  forced `disputed` additionally needs **federation-majority collusion**, not just the identity
+  holder — and even that isn't enough alone, since witnessing is over a **validly-signed** event, so
+  the attacker still needs **your** keys to author the sibling (you cannot double-witness _nothing_).
+  That is **two independent compromises**, and the colluding witnesses self-incriminate (a provable
+  double-sign → eviction). In KERI, where the operator runs the witnesses, coercion could yield
+  witnessed duplicity in one act. **What it does _not_ stop is a coerced _takeover_:** forcing the
+  operator to extend the tip with a `Rot` to the attacker's key is a clean linear extension,
+  witnessed like any other event — lost control → **reincept + notify out of band**, the KERI-shared
+  case above. So the split is real but **marginal**: it raises the bar on bricking, not on a coerced
+  tip-rotation.
 - **[TO VALIDATE — the most important check, because it's the pitch]:** KERI witnesses **can already be run by
   third parties**, so "offload witnessing to operators" is not obviously novel. vdti's actual contribution
   appears to be the **governance + trust-bounding around the witness pool** (the federation-as-IEL: rotation,

@@ -25,8 +25,8 @@ pass), so the public `kills[]` never leaks the lookup object's address — and `
 honoured event** on the delegate's chain (the grandfather boundary), rides **publicly in the
 `kills[]` entry**, un-withholdable on the witnessed IEL. The lookup `Trm` carries **only its pin**.
 _(A delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
-`bound` **is** participant-identifying and instead rides a gated rescind-doc committed by its `Trm`
-— see
+`bound` **is** participant-identifying and instead rides a gated SAD anchored by its `Trm` (via
+`anchors[]`) — see
 [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).)_
 
 The check reads the derived lookup-SEL **first** (O(1) content-addressed, **present → rescinded**);

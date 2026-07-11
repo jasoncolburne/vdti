@@ -173,12 +173,12 @@ live-chain states. Outcomes are the `Result<MergeTransition, MergeRejection>` vo
 
 ### Position 2 — the new event is adjacent to the last seal (competes with the sealed seal)
 
-| new event     | outcome                                                                     |
-| ------------- | --------------------------------------------------------------------------- |
-| `Ixn`         | `Forked` — the sealed seal + one content sibling, a mixed race (one sealed) |
-| `Rot` / `Wit` | `Disputed` — a second sealed branch beside the seal (two sealed)            |
-| `Trm`         | `Disputed` — a second sealed branch                                         |
-| `Icp` / `Fcp` | `Invalid`                                                                   |
+| new event     | outcome                                                                                                                                         |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn`         | `Forked` — the sealed seal + one content sibling, a mixed race (one sealed)                                                                     |
+| `Rot` / `Wit` | `Disputed` — a second _accepted_ sealed branch beside the seal (two accepted sealed; a witness-declined sibling is deferred-pending, no change) |
+| `Trm`         | `Disputed` — a second _accepted_ sealed branch (else witness-declined, deferred-pending)                                                        |
+| `Icp` / `Fcp` | `Invalid`                                                                                                                                       |
 
 ### Position 3 — the new event is on the run past the last seal (competes with content)
 
@@ -408,12 +408,13 @@ Gossip propagates:
 
 Convergence in this scenario is **data-local**: once keep-all-data retention plus the witness beacon
 deliver both branches to each node, every node reads **Disputed** from the same retained branches. A
-selected witness signs up to **two** distinct structurally-valid **sealed** siblings per chain
-position (two both-witnessed siblings are the **Disputed** proof, then further ones are declined);
-adjacent receipts at the same chain position carrying different `witnessed_said` values are the
-evidence that a divergence exists there — the beacon **propagates** the branches, the data-local
-walk **decides** the verdict. The prefix is disputed at-and-beyond the divergent serial; events
-strictly below the last clean seal stay canonical. See
+selected witness signs the **first** structurally-valid **sealed** sibling per chain position and
+declines later ones (first-seen, like content); a node accepts up to **two witnessed** sealed
+branches per position (two are the **Disputed** proof), and a witness-declined sibling is
+deferred-pending; adjacent receipts at the same chain position carrying different `witnessed_said`
+values are the evidence that a divergence exists there — the beacon **propagates** the branches, the
+data-local walk **decides** the verdict. The prefix is disputed at-and-beyond the divergent serial;
+events strictly below the last clean seal stay canonical. See
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) and
 [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) _(forthcoming)_.
 
@@ -464,11 +465,11 @@ region: each dead **lineage** extends at most **64 events past the last seal** (
 cap; a deeper event needs a seal-advancer, sealed → **Disputed**), and its **breadth** is bounded by
 **retention** (nodes keep **≥ 2 competing events per position** as evidence and drop the rest), with
 the **one-content-sibling witnessing rule** on top (a witness signs the first structurally-valid
-content sibling at a position and declines later ones; sealed siblings are witnessed up to **two**
-per position — two both-witnessed siblings prove **Disputed**, then further ones are declined). Dead
-events are **witnessed and propagated** yet **never canonical**; an adversary can _author_ extra
-siblings, but they are droppable — never making the retained fork unbounded (a query-DoS surface
-only).
+content sibling at a position and declines later ones; a witness signs one sealed sibling per
+position too (first-seen); a node accepts up to **two witnessed** sealed branches per position — two
+prove **Disputed**). Dead events are **witnessed and propagated** yet **never canonical**; an
+adversary can _author_ extra siblings, but they are droppable — never making the retained fork
+unbounded (a query-DoS surface only).
 
 ### The completeness matrix
 
@@ -505,19 +506,19 @@ the `sel/` + `iel/` anchor-validation doctrine, forward-referenced below.)
   rest ("two prove the fork, then stop"), so the _queryable_ set is bounded and there is no query
   DoS. The **one-content-sibling witnessing rule** is the _kind-aware layer_ on top: a witness signs
   the **first** structurally-valid _content_ sibling at a position and **declines every later one**
-  — while **sealed siblings are witnessed up to two per position** (two both-witnessed siblings are
-  the **Disputed** proof — competing seals form a spine fork; further spray is declined and
-  droppable). The **single burying seal-advancer** on a content-only divergence is simply the first
-  sealed sibling at that position (a _second_, competing seal-advancer is `{Rot, Rot}` →
-  **Disputed**; at most one buries a content-only divergence). With the witnessing floor this bounds
-  co-witnessed content breadth to ≤ 1 absent fork-cost byzantine witnesses; arrival order decides
-  only _which_ content sibling is the witnessed one — the bound rests on **retention +
-  kind-awareness**, arrival-independent. A signing-key (tier-1) re-forker can _author_ more content
-  siblings, but they sit beyond the retained ≥ 2 → droppable + declined. Every dead event is
-  non-canonical and never flips a reading, and the depth-cap forces the seal-advancer that turns a
-  sustained fork terminal. A **sealed** event on a dead branch (it needs the reserve — tier 2) →
-  **Disputed** regardless (the no-buried-rotation guard) — the terminal-compromise case, not a new
-  attack.
+  — while a witness signs **one sealed sibling per position** too (first-seen); a node accepts up to
+  **two witnessed** sealed branches per position (two are the **Disputed** proof — competing seals
+  form a spine fork; a witness-declined sibling is deferred-pending and droppable). The **single
+  burying seal-advancer** on a content-only divergence is simply the first sealed sibling at that
+  position (a _second_, competing seal-advancer is `{Rot, Rot}` → **Disputed**; at most one buries a
+  content-only divergence). With the witnessing floor this bounds co-witnessed content breadth to ≤
+  1 absent fork-cost byzantine witnesses; arrival order decides only _which_ content sibling is the
+  witnessed one — the bound rests on **retention + kind-awareness**, arrival-independent. A
+  signing-key (tier-1) re-forker can _author_ more content siblings, but they sit beyond the
+  retained ≥ 2 → droppable + declined. Every dead event is non-canonical and never flips a reading,
+  and the depth-cap forces the seal-advancer that turns a sustained fork terminal. A **sealed**
+  event on a dead branch (it needs the reserve — tier 2) → **Disputed** regardless (the
+  no-buried-rotation guard) — the terminal-compromise case, not a new attack.
 
 ### Convergence
 
@@ -550,11 +551,13 @@ eviction). So termination is qualitative but strict: each fork a sustained adver
 mints costs it one bounded fork window, and once the neutralizing event — the rotation, or the cut —
 propagates, it can mint no more; a benign gossip-lag terminates as soon as its node catches up.
 Content-rail serialization is an **operator precondition** of the benign bound — absent it, honest
-content can self-cascade (a liveness cost, not a safety one); sealing serialization backs the
-`{Evl, Evl}` terminal cases at the IEL. On a **witnessed** chain the witnessing floor narrows even
-the self-cascade to stall-and-re-issue — a competing content sibling never goes live — so the
-discipline is a **liveness** concern (every chain is federation-witnessed; the residual safety
-concern is only a witness compromise).
+content can self-cascade (a liveness cost, not a safety one); sealing serialization is a liveness
+discipline too now — an honest double-seal is first-seen-declined, so two honest sealers
+stall-and-re-issue rather than brick the `{Evl, Evl}` case at the IEL (only collusion yields two
+accepted). On a **witnessed** chain the witnessing floor narrows even the self-cascade to
+stall-and-re-issue — a competing content sibling never goes live — so the discipline is a
+**liveness** concern (every chain is federation-witnessed; the residual safety concern is only a
+witness compromise).
 
 ### Residuals (stated, fail-secure)
 
