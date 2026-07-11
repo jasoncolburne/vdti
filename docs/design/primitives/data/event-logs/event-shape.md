@@ -168,7 +168,7 @@ The roles that carry discrimination or shape rules, in prose:
   **required non-empty `cut`** + optional `threshold`, **never** an `add`.
 - **`delegates`** is a positive inclusion list; the same `Ath` may also carry `anchors` (a `Gnt`) —
   the two roles are independent.
-- **`grant`** names the grant-doc `G`: the `editors` / `commenters` and their `from` validity-period
+- **`grant`** names the grant-doc: the `editors` / `commenters` and their `from` validity-period
   starts that the `Gnt` opens.
 - **`kills`** is the revocation / rescission **declaration** — a flat list `[{ target, bound? }]`
   carried **alongside** `anchors[]` (two separate roles: `anchors` names the sealing `Trm`, `kills`
@@ -210,7 +210,9 @@ the reverse.
 ## Cross-cutting fields
 
 Beyond the common fields, these appear on multiple kinds with consistent meaning. **Logs** names the
-subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that carry it.
+subset of {KEL, IEL, SEL} the field appears on; **Events** the kinds that carry it. A cell's `fbd`
+means **forbidden** (the field must be unset); the full `req` / `fbd` / `opt` legend is in
+[§Per-kind structural validation](#per-kind-structural-validation).
 
 | Field           | Type      | Logs          | Events                                                                                                                                                 | Description                                                                                                                                                                                          |
 | --------------- | --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -245,22 +247,14 @@ see [`kel/`](kel/).
 ## Tiers — the two-tier capability model
 
 **Tier** names the cryptographic capability required to forge an event, set by
-**danger-or-permanence**, and is **orthogonal to count** (the threshold vector). Tier is dispatched
-from the event kind, never stored.
-
-- **Tier 1 — signing key only.** Content. A `t_use`-counted `Ixn` is tier 1 even at a high count.
-- **Tier 2 — the rotation reserve.** Every key change, and every sealed act: establishment-mutation,
-  authority-grant, **any sealed kill** (a kill must be permanent on arrival), federation binding /
-  governance, and the identity-kill terminal. The reserve is held **apart** from the signing key,
-  and the **old signing key is not a prerequisite** (a rotation reveals the new key; you do not sign
-  with the key you are abandoning).
-
-**Key state is a single-stream pre-rotation.** The reserve committed at each epoch (via
-`rotationHash`) is **revealed to sign the next key change and thereby becomes that epoch's signing
-key**, and that same key change commits the next reserve — so a device holds exactly two live keys:
-the **current signing key** (last epoch's revealed reserve, for content) and the **next reserve**
-(committed, unrevealed, for the next key change). The two tiers are the _current_ and _next_ members
-of one key stream, not two independent keys.
+**danger-or-permanence**, and is **orthogonal to count** (the threshold vector). It is dispatched
+from the event kind, never stored: **tier 1** is content, forged with the **signing key** (an `Ixn`,
+even at a high `t_use`); **tier 2** is every key change and every sealed act — establishment,
+authority-grant, any sealed kill, federation binding, the terminal — forged with the **rotation
+reserve**, held apart from the signing key (the **old signing key is not a prerequisite**). Key
+state is a **single-stream pre-rotation**: the reserve committed at one epoch is revealed to sign
+the next key change and becomes that epoch's signing key, so a device holds exactly two live keys —
+the current signing key and the next reserve.
 
 ```mermaid
 flowchart LR
@@ -270,16 +264,9 @@ flowchart LR
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
 ```
 
-The material an adversary must hold to forge each kind. **The signing key gates only Tier 1** — Tier
-2 requires the rotation reserve (held apart from the signing key), **not** the old signing key.
-
-The reserve is required when a forgery would be high-harm or irreversible, **or** when the act must
-be permanent on arrival (sealed). A **kill** (revoke / close / rescind / terminate) is the
-permanence case: low-danger (it only removes trust) but monotone (a third party relies on it), so it
-is sealed on a dedicated kill-anchor and is tier 2. Tier semantics and the **kind-strict** anchor
-rule (each IEL / SEL kind is anchored by **exactly** the KEL / IEL kind that reveals the matching
-capability — no higher-tier stand-in; a joining member's consent-of-added `Ixn` riding on an `Evl`
-is a separate role, not a stand-in) are the protocol doctrine's —
+The full tier model — danger-or-permanence, the kill-as-permanence case, and the **kind-strict**
+anchor rule (each IEL / SEL kind is anchored by exactly the KEL / IEL kind that reveals the matching
+capability, no higher-tier stand-in) — is the protocol doctrine's —
 [`../../../protocol-doctrine.md` §Tiers](../../../protocol-doctrine.md#tiers).
 
 ## Event taxonomy
@@ -350,7 +337,7 @@ and [`federation/`](../../../federation/).
 | `Icp` | `t_use`                                              | 1    | — (never anchored; v1 is)        | Inception — no `pin`, no manifest; **never itself anchored** (its v1 is).ᵃ                                                                                                  |
 | `Ixn` | `t_use`                                              | 1    | `Ixn`                            | Content SAD(s) + re-`pin`; ≤ 1 per SEL per IEL `Ixn`. **Divergeable, buriable** (as is the floor `Pin`).                                                                    |
 | `Pin` | `t_use`                                              | 1    | `Ixn`                            | The **floor re-pin** to the owner IEL's current tip (top-level `pin` only). The **serial-1 issuance floor** (the `Icp` can't hold a pin). Buriable; **not** seal-advancing. |
-| `Gnt` | `t_authorize`                                        | 2    | `Ath`                            | The doc-governance **grant** — opens editor / commenter periods. **Sealed on arrival, seal-advancing, non-buriable.**ᶜ                                                      |
+| `Gnt` | `t_authorize`                                        | 2    | `Ath`                            | The doc-membership **grant** — opens editor / commenter periods. **Sealed on arrival, seal-advancing, non-buriable.**ᶜ                                                      |
 | `Trm` | `t_govern` (revocation) · `t_authorize` (rescission) | 2    | `Rev` (revoke) / `Dth` (rescind) | The SEL **kill**. **Sealed on arrival.**ᵇ                                                                                                                                   |
 
 - ᵃ **`Icp`** — stays recomputable for lookup (§Prefix derivation); the SEL's **serial-1 event (its
@@ -365,7 +352,7 @@ and [`federation/`](../../../federation/).
   current applications (credential revocation; delegation and doc-membership rescission) live in the
   `features/` layer, not this primitive.
 - ᶜ **`Gnt`** — the additive twin of `Trm`; kind-strict (an `Ath` anchors only `Gnt`s); walked back
-  by a rescission (`Dth` → SEL `Trm`) or reincept, never overturned; doc-governance SELs only.
+  by a rescission (`Dth` → SEL `Trm`) or reincept, never overturned; doc-membership SELs only.
 
 Content rides the IEL `Ixn` rail (tier 1); a kill rides the IEL `Rev` / `Dth` rail (tier 2, sealed);
 a grant rides the IEL `Ath` rail (tier 2, sealed); roster/threshold changes ride the IEL `Evl` rail.
@@ -459,7 +446,7 @@ prefix derivation (§Prefix derivation), so the `Icp` carries **no `pin`**: a pi
 the prefix non-recomputable for lookup. The SEL's down-pin to its owner IEL therefore rides a
 **serial-1 event** — a bare **`Pin`** batched with the `Icp` when inception carries no other first
 event (issue-and-sit), otherwise the first event itself (a lookup SEL's v1 is its `Trm`) — and
-re-pins on each `Ixn`. The exact SEL shapes are SEL doctrine — [`sel/`](sel/).
+re-pins on each `Ixn`. The exact SEL shapes are SEL doctrine — [`sel/`](sel/) _(forthcoming)_.
 
 ## Anchoring — committing up, flooring down
 
@@ -508,7 +495,7 @@ member's KEL `Rot` (tier-2 governance); `consent-of-added` is the joiner's KEL `
 
 The per-kind anchor matrix (which KEL kind anchors which IEL kind; the per-kind count
 backing-and-demand check) and the forward-only floor are per-primitive and protocol doctrine —
-[`kel/`](kel/), [`iel/`](iel/), [`sel/`](sel/), and
+[`kel/`](kel/), [`iel/`](iel/), [`sel/`](sel/) _(forthcoming)_, and
 [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md).
 
 ## Divergence is scoped to content
@@ -557,8 +544,8 @@ inception populates.
 
 - **KEL**: the device's key state. The prefix is the device-key commitment.
 - **IEL**: the roster + threshold vector + the `nonce`. The `nonce` makes the prefix
-  **unpredictable** from outside (camping defense) — so an IEL is located only by parties told its
-  prefix.
+  **unpredictable** from outside (a camping / prefix-squatting defense) — so an IEL is located only
+  by parties told its prefix.
 - **SEL**: the populated inception fields — `owner` (the owner IEL prefix), `topic`, and `data`.
   (Writing it `derive(owner, topic, data)` is shorthand for _constructing that inception and taking
   its prefix_, **not** a hash of those three values pulled into a separate tuple — the prefix is the

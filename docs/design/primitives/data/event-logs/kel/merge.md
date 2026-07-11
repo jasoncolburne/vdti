@@ -443,8 +443,8 @@ federation verdict. See [`reconciliation.md` §Matrix 3](reconciliation.md#matri
 ## Gossip send-side partitioning
 
 Propagating a divergent KEL chain to another node requires more than ordering events by canonical
-chain order. The receiver's merge handler routes batches by content predicates (burying-versus-
-rejection versus divergent-rejection); a single batch that contains both pre-divergence events and a
+chain order. The receiver's merge handler routes batches by content predicates (burying, rejection,
+or divergent-rejection); a single batch that contains both pre-divergence events and a
 post-divergence fork event would route through the overlap branch and the second branch's events
 would be rejected on the second pass. To make propagation succeed, the **sender** partitions the
 chain into sub-batches the receiver will accept under its routing rules and sends them in sequence.
@@ -507,4 +507,4 @@ for truncation.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#operation-categories) —
   operation categories (serving, consuming, resolving).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the beacon, cross-node propagation.
+  witnessing (forthcoming): the beacon, cross-node propagation.

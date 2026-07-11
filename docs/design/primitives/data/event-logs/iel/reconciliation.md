@@ -206,10 +206,10 @@ buried branch. The protocol cannot distinguish the two from chain data alone.
 
 | Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated |
 | ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | ---------- |
-| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵉ     | Sealed     |
-| **Recovered** (source burying) | Extended | Extended         | Recovered ᵉ     | Recovered / Disputed ᵉ  | Sealed     |
+| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵈ     | Sealed     |
+| **Recovered** (source burying) | Extended | Extended         | Recovered ᵈ     | Recovered / Disputed ᵈ  | Sealed     |
 | **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed     |
-| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵉ | Extended ᶜ |
+| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵈ | Extended ᶜ |
 
 **Row note (no Disputed source).** A **Disputed** source (≥ 2 sealed branches) needs no separate
 row: it transfers like a **Forked** source — its retained sealed branches propagate, and the sink
@@ -229,7 +229,7 @@ extension is `Ignored`.
   divergence; the `Trm` wins on tier-rank and the content buries dead → the sink reads
   **Terminated**.
 - **ᶜ Terminated → Terminated** — both already hold the `Trm` (dedup); already converged.
-- **ᵉ A burying source → Forked / Active (losing)** — when the source's run carries a **sealing
+- **ᵈ A burying source → Forked / Active (losing)** — when the source's run carries a **sealing
   event on the winning branch** (an Active source that sealed past the fork, or a `Trm`),
   transferring it to a sink holding the losing branch **buries** the sink's competing **content**
   loser: the sink re-reads **Active** (`Extended` / `Recovered`) or **Terminated** (a `Trm`). A
@@ -302,8 +302,8 @@ when both halves sealed. The residual is handled **operationally**: one designat
 so two sealing events never race, and pausing sealing while a split is suspected. A `{Evl, Evl}`
 brick recovers by reincept, made detectable on heal by witnessing. The operator playbook lands in
 [`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
-(subsequent sub-issue); the doctrine — that sealed is record-both and a second sealed branch is
-terminal — is the chain's.
+(forthcoming); the doctrine — that sealed is record-both and a second sealed branch is terminal — is
+the chain's.
 
 ### The federation IEL — the always-sealed schism
 
@@ -413,8 +413,8 @@ The cross-layer rows — a SEL event on a dead owner-IEL anchor is dead (**cross
 deadness-descends** across the IEL → SEL anchor edge), **anchor-monotonicity** (a linear IEL
 totally-orders each SEL it anchors, so a SEL never forks under a linear IEL), and the theorem that a
 valid SEL fork implies an IEL fork beneath it — land with the `sel/` anchor-validation doctrine
-(subsequent sub-issue). The IEL-level matrix above is self-contained without them; the IEL states
-the anchor edge from its side, the SEL-side detail lands with [`../sel/`](../sel/).
+(forthcoming). The IEL-level matrix above is self-contained without them; the IEL states the anchor
+edge from its side, the SEL-side detail lands with [`../sel/`](../sel/).
 
 ## Cross-references
 
@@ -431,7 +431,6 @@ the anchor edge from its side, the SEL-side detail lands with [`../sel/`](../sel
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the witnessing floor, the beacon, the federation-IEL schism
-  mechanics.
+  witnessing (forthcoming): the witnessing floor, the beacon, the federation-IEL schism mechanics.
 - [`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
-  — the sealing-serialization operator playbook (subsequent sub-issue).
+  — the sealing-serialization operator playbook (forthcoming).

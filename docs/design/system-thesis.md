@@ -29,8 +29,9 @@ chain primitive plays a distinct structural role:
 - **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold
   vector** `{t_use, t_govern, t_authorize}` — how many member devices must act for content,
   governance, and authorization respectively (these are **counts**, orthogonal to the two capability
-  **tiers**, T1/T2, introduced below). A rule spanning several identities lives in the document
-  policy layer. Identity is the unit at which credentials are issued.
+  **tiers**, T1/T2 — T1 is content, forged with the signing key; T2 is everything sealed, forged
+  only with the rotation reserve; introduced below). A rule spanning several identities lives in the
+  document policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
   **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are
   authorized structurally by the owner IEL, which anchors them; it floors **down** to the owner
@@ -73,7 +74,8 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   seal-advancer buries the loser); a divergence with **two or more sealed branches** is _terminal_ —
   there is no merge for it. Whether a fork is terminal is a **branch-level fact any verifier walks
   from the retained branches** (a node retains a competing branch as evidence rather than discarding
-  it at the seal-cap), never a verdict delegated to the federation.
+  it at the seal-cap — the merge rule that a new event must attach at-or-after the chain's seal),
+  never a verdict delegated to the federation.
 - **The federation propagates.** Cross-node sealed-vs-sealed races still converge data-locally — the
   witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md) —
   _forthcoming_) **enumerate the competing branches** so a one-branch holder can fetch and walk
@@ -176,12 +178,13 @@ change (`Rot` / `Wit` / `Trm`) — lets a device heal a suspected signing-key le
 signing-key-only thief (exfiltration, brute force, coerced signing, side channels) can append
 content but never a key change, and one recovery `Rot` buries their run. A single-device deployment
 is first-class. Healing a _fully_ compromised device (both keys) is the identity's job: IEL
-threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total
-device compromise — burn the device, evict it via a `Evl` (governance change). Reserve theft itself
-is a takeover-by-extend (unrecoverable → reincept), so the reserve lives in device hardware, never
-replicated across partitionable nodes. A biometric or device PIN gating the keystore is a further
-on-device layer — it raises the cost of using a stolen, locked device, but gates _access_ rather
-than custody: it can be coerced, and an unlocked device remains usable.
+threshold composition (high thresholds — a roster (`M`) larger than the threshold (`N`) it needs —
+redundancy across distinct custodians) handles total device compromise — burn the device, evict it
+via an `Evl` (governance change). Reserve theft itself is a takeover-by-extend (unrecoverable →
+reincept), so the reserve lives in device hardware, never replicated across partitionable nodes. A
+biometric or device PIN gating the keystore is a further on-device layer — it raises the cost of
+using a stolen, locked device, but gates _access_ rather than custody: it can be coerced, and an
+unlocked device remains usable.
 
 →
 [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
@@ -224,7 +227,7 @@ referenced primitive is. The cascade rules:
 - **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
 - **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on
   them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians
-  absorb single-member disputes by evicting the disputed KEL via a `Evl`.
+  absorb single-member disputes by evicting the disputed KEL via an `Evl`.
 
 The expensive case is a dispute on an IEL at the root of a dependency tree — partition identity
 hierarchies so any single dispute has bounded blast radius.

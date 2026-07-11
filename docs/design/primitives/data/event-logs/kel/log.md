@@ -265,13 +265,13 @@ the recovery-side composition with the two-tier compromise model is in
   federation convergence, the effective-SAID comparison.
 - [`../../sad/sad.md`](../../sad/sad.md), [`../../sad/said.md`](../../sad/said.md) — the SAD shape
   KEL events compose on; prefix and SAID derivation algorithms.
-- [`../iel/`](../iel/) — IEL primitive (subsequent sub-issue). KEL events host the anchors that
-  authorize tier-2 IEL acts per the tier model.
-- [`../sel/`](../sel/) — SEL primitive (subsequent sub-issue). KEL events host the anchors that
-  authorize tier-1 and tier-2 SEL acts.
+- [`../iel/`](../iel/) — IEL primitive. KEL events host the anchors that authorize tier-2 IEL acts
+  per the tier model.
+- [`../sel/`](../sel/) — SEL primitive (forthcoming). KEL events host the anchors that authorize
+  tier-1 and tier-2 SEL acts.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing doctrine (subsequent sub-issue): the kind-scoped witnessing ladder, the witnessing
-  floor, the beacon, divergent witness receipts, acceptance gating.
+  witnessing doctrine (forthcoming): the kind-scoped witnessing ladder, the witnessing floor, the
+  beacon, divergent witness receipts, acceptance gating.
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap (subsequent sub-issue): the atomic ceremony that brings `Fcp` / `Rot` and the federation
-  IEL `Fcp` into existence together.
+  bootstrap (forthcoming): the atomic ceremony that brings `Fcp` / `Rot` and the federation IEL
+  `Fcp` into existence together.

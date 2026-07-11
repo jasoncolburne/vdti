@@ -20,8 +20,8 @@ steal — with very different outcomes:
 This is doctrine, not workflow. Operator CLI ceremony and the choreography for a recovery `Rot` /
 `Trm` lives in
 [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md)
-(subsequent sub-issue). Per-kind event-shape rules live in [`events.md`](events.md); merge-layer
-routing — including how a burying seal-advancer resolves a fork and the attach shapes — in
+(forthcoming). Per-kind event-shape rules live in [`events.md`](events.md); merge-layer routing —
+including how a burying seal-advancer resolves a fork and the attach shapes — in
 [`merge.md`](merge.md); the cross-node correctness proof in
 [`reconciliation.md`](reconciliation.md).
 
@@ -104,7 +104,7 @@ commitment, regardless of what other key material they hold. But that boundary d
     buriable — a sealed branch is never buried
     ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). Burying
     "the adversary's" `Rot` would require a rule that could bury **any** `Rot` (including a
-    legitimate operator's), resurrecting retired key material — the backdate surface vdti closes by
+    legitimate operator's), resurrecting retired key material — the backdate surface VDTI closes by
     treating `Rot` as a sealed branch (never buriable).
   - **The seal-cap blocks a recovery at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it
     advances the seal to `v_N`; a recovery `Rot` targeting `v_{N-1}` is then below the seal →
@@ -186,7 +186,7 @@ concurrent sealed-race shapes are enumerated in
 [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix)), no further extension on
 that prefix is consumer-trustable at-and-beyond the divergent serial. Operator recourse is
 **reincept under a new prefix**. The pre-seal verifiability guarantee bounds the damage:
-at-or-below- seal anchors, credentials, and SEL bindings stay verifiable; only forward-extending
+at-or-below-seal anchors, credentials, and SEL bindings stay verifiable; only forward-extending
 operations against above-seal state lose their trust grounding. See
 [§Cascade-reincept honesty](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
 for the cross-primitive cascade rules.
@@ -238,7 +238,7 @@ observable in the data layer. See
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
   — limit of the doctrine; layered defense; adversary patience; cascade-reincept honesty.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the witnessing floor, the
-  beacon, divergent witness receipts.
+  witnessing (forthcoming): the kind-scoped witnessing ladder, the witnessing floor, the beacon,
+  divergent witness receipts.
 - [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md) —
-  operator CLI ceremony (subsequent sub-issue).
+  operator CLI ceremony (forthcoming).

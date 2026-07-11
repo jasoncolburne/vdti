@@ -279,7 +279,7 @@ A member KEL that goes terminal on its own (a reserve-theft takeover, with no on
 challenge) is likewise handled by the quorum: it is inert alone (it cannot reach `t_use` /
 `t_govern`), and the honest members evict it with an `Evl` `cut` (or `Dth` it if it was a delegate,
 or reincept). **IEL distrust is forward-only** — a retroactive per-event distrust declaration is
-forbidden (it would be the backdate kill-switch vdti closes); trust is decided at participation
+forbidden (it would be the backdate kill-switch VDTI closes); trust is decided at participation
 time, an event the quorum co-signed stands, and remediation is forward (revoke what it granted,
 evict the member).
 
@@ -377,5 +377,5 @@ batch composition. See
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the witnessing floor, the beacon, content-fork prevention,
-  cross-node propagation.
+  witnessing (forthcoming): the witnessing floor, the beacon, content-fork prevention, cross-node
+  propagation.

@@ -41,7 +41,9 @@ an act on a _downstream target_, not on the host IEL, so `{Rev, content}` stays 
 `Rev` branch survives, the content buries); a chain goes terminal only when it carries a `Trm`, a
 `{Wit, Wit}`, or ≥ 2 sealed branches. The **tier** column names the KEL capability an adversary must
 forge to author the matching member participation — see
-[§Two-tier capability model](#two-tier-capability-model).
+[§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
+versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's custody
+`topic`.
 
 ## Two-kind inception
 
@@ -178,9 +180,11 @@ The unified authorization anchor, carrying **two manifest roles, both permitted 
 `Ath` carries **no own-state delta** (it grants authority over a downstream party, nothing on the
 host IEL) and is the **additive counterpart of the kill-anchors** — sealed on arrival, non-terminal,
 walked back forward by a `Dth`, never buried or overturned. An `Ath` whose `delegates` lists the
-delegator's own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)`. The
-document-layer grant mechanics live in
-[`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).
+delegator's own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)` (the
+policy layer's delegation leaf — [`policy.md`](../../../policy/policy.md)). The document-layer grant
+mechanics live in
+[`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md)
+_(forthcoming)_.
 
 ### `Rev` / `Dth` — the kill-anchors (tier 2)
 
@@ -397,8 +401,13 @@ where it is advisory at `|roster| = 2`): the federation is critical infrastructu
 be able to evict one compromised witness and recover without it, so `|roster| ≥ 4` is structurally
 required (≥ 5 recommended). Its `witnesses` config carries the tighter recoverability cap
 `threshold ≤ min(|roster| − 2, signers − 1)` and the witnessing floor `threshold > signers/2`,
-re-checked on every governance `Wit` (including a config-only one). The witness-config validity, the
-clock, and witness selection are federation doctrine —
+re-checked on every governance `Wit` (including a config-only one). The witness signer pool
+**excludes at least one roster member** (`signers ≤ |roster| − 1` — a witness never receipts its own
+event); with `signers ≥ 3` this is exactly why `|roster| ≥ 4`, and it keeps the floor and the cap
+**jointly satisfiable** (the `signers − 1` leg binds, the roster leg stays slack) — so at the
+minimum `|roster| = 4` a federation selects at most three signers and thresholds to two, and a naive
+all-four-witnesses-sign config is not selectable. The witness-config validity, the clock, and
+witness selection are federation doctrine —
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and
 [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
 
@@ -465,6 +474,6 @@ cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
   revocation targets are interpreted (the feature layer; the IEL states only the kill-anchor
   structure).
 - [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md) —
-  the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (subsequent sub-issue).
+  the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing and the federation `Wit` governance mechanics (subsequent sub-issue).
+  witnessing and the federation `Wit` governance mechanics (forthcoming).

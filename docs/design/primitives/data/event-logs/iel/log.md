@@ -43,11 +43,11 @@ the whole-content digest of the inception body —
 [`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic. What the **IEL** prefix
 commits to is the initial **roster**, the **threshold vector**, and a high-entropy **`nonce`**.
 
-The `nonce` makes the IEL prefix **unpredictable** from outside — a camping defense. Two distinct
-inception events cannot share a prefix without a Blake3-256 collision, and because the prefix
-commits to a random nonce, an outsider cannot compute an identity's prefix from its roster; an IEL
-is located only by parties told its prefix. Subsequent events inherit the inception's `prefix` and
-derive only `said`.
+The `nonce` makes the IEL prefix **unpredictable** from outside — a camping (prefix-squatting)
+defense. Two distinct inception events cannot share a prefix without a Blake3-256 collision, and
+because the prefix commits to a random nonce, an outsider cannot compute an identity's prefix from
+its roster; an IEL is located only by parties told its prefix. Subsequent events inherit the
+inception's `prefix` and derive only `said`.
 
 IEL inception is dispatched by **kind** at `serial = 0`: a **user** identity incepts `Icp`
 (federation-bound — it carries `{federation, federationPin}` and its `witnesses` config); a
@@ -314,8 +314,7 @@ is canonical in
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and recovery, forks-are-seal-bounded and the spine, federation convergence,
   the layering principle.
-- [`../sel/`](../sel/) — SEL primitive (subsequent sub-issue). IEL events anchor SEL events and
-  credentials.
+- [`../sel/`](../sel/) — SEL primitive (forthcoming). IEL events anchor SEL events and credentials.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the beacon, the witnessing floor, the clock, witness selection,
+  witnessing (forthcoming): the beacon, the witnessing floor, the clock, witness selection,
   acceptance gating.

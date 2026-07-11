@@ -35,18 +35,15 @@ directly. The doctrine that follows uses "SAD" as the general term and specializ
 or "standalone SAD" where the distinction matters.
 
 **Events are never fetchable by SAID from the SAD object store.** Chain events live in the chain
-log, addressed **by prefix** ([`said.md`](said.md): a SAID is an integrity commitment, not a global
-lookup key). Only standalone SADs are stored in — and served by SAID from — the SAD object store, so
-its write path **classifies a submission by `kind` and rejects event kinds** (`kind` is required on
-SAD data). The principle: **nothing whose SAID must stay opaque is fetchable by SAID from the
-store.** This closes a **correlation / inversion-oracle** vector — answering a fetch-by-SAID for an
-event body would let an attacker invert an identity's opaque commitments back to the events they
-hide (the full argument, which uses the IEL / lookup-SEL vocabulary defined later, is
-[`protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
-A **public** credential's body (a content kind) stays fetchable by SAID (intended), while a
-**private** credential's body is simply unpublished. Storage-side enforcement lands in
-[`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md) (forward-ref; lands in a
-subsequent sub-issue).
+log, addressed **by prefix**; only standalone SADs are stored in — and served by SAID from — the SAD
+object store, so its write path **classifies a submission by `kind` and rejects event kinds**. The
+principle: **nothing whose SAID must stay opaque is fetchable by SAID from the store** — a SAID is
+an integrity commitment, not a global lookup key, and serving event bodies by SAID would let an
+attacker invert an identity's opaque commitments. The full argument (which uses vocabulary defined
+later) is
+[`protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups);
+storage-side enforcement is [`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md)
+(forthcoming).
 
 ## Required fields
 
@@ -64,12 +61,10 @@ Every SAD carries:
   canonical bytes the `said` hash sees. See [`said.md` §Derivation](said.md#derivation) for the
   algorithms.
 
-What content the prefix commits to is per-primitive — the KEL prefix commits to the whole inception
-SAD (the device's key state); the IEL prefix likewise commits to its whole inception SAD (the
-`roster` of member devices, the threshold vector, and the `nonce` whose randomness makes the IEL
-prefix unpredictable); the SEL prefix likewise commits to its whole inception SAD (the populated
-`owner` / `topic` / `data` fields). The shared rule is the fixed-value mechanism; the per-primitive
-shapes are documented in the corresponding event-log primitive docs.
+What content the prefix commits to is **per-primitive** — always the whole inception SAD (the KEL's
+key state; the IEL's `roster`, threshold vector, and `nonce`; the SEL's `owner` / `topic` / `data`),
+never a hash of a separate field tuple. The shared fixed-value mechanism and the per-primitive
+shapes are [`said.md` §Derivation](said.md#derivation)'s.
 
 ## Canonical serialization
 

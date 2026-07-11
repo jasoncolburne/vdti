@@ -249,8 +249,9 @@ Token fields are private with no public constructor — the only way to obtain o
 - `region()` → the consumer-facing trust region computed **data-locally** from the events held,
   against the **derived seal** (above): **trusted** (no fork reaching at-or-above the seal — a fork
   buried below it is inert), **forked** (a fork at-or-above the seal with at most one sealed branch
-  — recoverable, pending a burying seal-advancer), or **disputed** (two or more branches each carry
-  a sealed event past the fork — terminal, reincept).
+  — a content fork recovers via a burying seal-advancer; a lone sealed branch you did not author
+  reads forked but forces **your** reincept), or **disputed** (two or more branches each carry a
+  sealed event past the fork — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** — an unresolved fork
   — yields a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified
@@ -377,9 +378,9 @@ a `disputed` chain; an above-seal anchor on a `disputed` chain grounds no new tr
 ## Federation witnessing in verification
 
 The verifier surfaces federation-witnessing signals on the token. Full witnessing mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (subsequent
-sub-issue); this section names what the KEL verifier reads. **The data decides; witnessing
-propagates** — receipts deliver competing branches and freshness, never a verdict.
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
+section names what the KEL verifier reads. **The data decides; witnessing propagates** — receipts
+deliver competing branches and freshness, never a verdict.
 
 **`witnessed`.** True iff the event has accumulated threshold-many receipts under a consistent
 federation state. Witnesses are sort-selected by chain position `(prefix, serial)`; all competing
@@ -437,8 +438,7 @@ override), the federation is trusted for that event. Multi-federation chains (KE
 transferred federations via `Wit` events) require each federation in the chain's history to be
 independently trusted — no transitive trust. See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
-and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent
-sub-issue).
+and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming).
 
 A consumer refuses to bind under a `disputed` region (the federation cannot agree at this position)
 or `witnessed = false` (insufficient attestation), and consults the config-pinned federation prefix
@@ -546,6 +546,6 @@ spanning two pages re-fetches at the next page rather than being processed half-
 - [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; stability
   under extension.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing mechanics (subsequent sub-issue).
+  witnessing mechanics (forthcoming).
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap and the config-pinned federation prefix set (subsequent sub-issue).
+  bootstrap and the config-pinned federation prefix set (forthcoming).

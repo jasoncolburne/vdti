@@ -217,8 +217,8 @@ The merge engine handles batches atomically:
 - **`[Fcp, Rot]` plus the federation IEL `Fcp` and receipts** — the founder bootstrap atomic batch.
   The v=1 `Rot` anchors the federation IEL's `Fcp` marker; the KEL events land alongside that
   federation IEL `Fcp` and the cross-attestation receipts in a single transaction. See
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (subsequent
-  sub-issue) for the bootstrap protocol.
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming) for the
+  bootstrap protocol.
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 
@@ -235,10 +235,10 @@ chain data alone.
 
 | Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated |
 | ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | ---------- |
-| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵉ     | Sealed     |
-| **Recovered** (source burying) | Extended | Extended         | Recovered ᵉ     | Recovered / Disputed ᵉ  | Sealed     |
+| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵈ     | Sealed     |
+| **Recovered** (source burying) | Extended | Extended         | Recovered ᵈ     | Recovered / Disputed ᵈ  | Sealed     |
 | **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed     |
-| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵉ | Extended ᶜ |
+| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵈ | Extended ᶜ |
 
 **Column note (the Active-source row).** "winning" / "losing" are relative to the **source's**
 branch: a sink on the _same_ branch as the source reads "winning" (→ `Extended`, dedup); a sink on a
@@ -266,7 +266,7 @@ column is needed.
   divergence; the `Trm` wins on **tier-rank** and the content is buried dead → the sink reads
   **Terminated**.
 - **ᶜ Terminated → Terminated** — both already hold the `Trm` (dedup); already converged.
-- **ᵉ A burying source → Forked / Active (losing)** — when the source's run carries a
+- **ᵈ A burying source → Forked / Active (losing)** — when the source's run carries a
   **seal-advancer on the winning branch** (an Active source that sealed past the fork, or a `Trm`),
   transferring it to a sink that holds the losing branch **buries** the sink's competing **content**
   loser below the new seal: the sink re-reads **Active** (`Extended` / `Recovered`) or
@@ -572,7 +572,7 @@ blocking, so a withheld or lost body never wedges the SEL), **cross-layer deadne
 event on a dead IEL anchor is dead — the IEL→SEL anchor edge only), the theorem that a valid SEL
 fork implies an IEL fork beneath it, and the **withheld-body transient-split residual**
 (auto-resolved by seal order, fail-secure) — belong to the `sel/` + `iel/` anchor-validation
-doctrine (subsequent sub-issues); the KEL-level matrix above is self-contained without them.
+doctrine (forthcoming); the KEL-level matrix above is self-contained without them.
 
 ## Edge cases
 
@@ -602,14 +602,20 @@ Different events submitted at v_d on each node:
 
   Node A receives ixn_a:  v_0 → ... → v_{d-1} → ixn_a @ v_d
   Node B receives ixn_b:  v_0 → ... → v_{d-1} → ixn_b @ v_d
+```
 
-Gossip propagates ixn_a → B, ixn_b → A. Each node's merge engine observes overlap at v_d and writes the second event as the fork event (one extra canonical branch per overlap; a byte-identical re-submission dedupes, a further distinct event is retained as non-canonical evidence):
+Gossip propagates `ixn_a → B`, `ixn_b → A`. Each node's merge engine observes overlap at `v_d` and
+writes the second event as the fork event (one extra canonical branch per overlap; a byte-identical
+re-submission dedupes, a further distinct event is retained as non-canonical evidence):
 
+```
   Both nodes:  v_0 → ... → v_{d-1} ─┬─ ixn_a @ v_d   (Forked — frozen)
                                     └─ ixn_b @ v_d
-
-The owner submits a burying `Rot` on the branch it keeps (ixn_a) to any single node → the Rot advances the seal past ixn_b, which drops below it (dead by descent) → recovery propagates via gossip → all nodes converge on the post-Rot linear state.
 ```
+
+The owner submits a burying `Rot` on the branch it keeps (`ixn_a`) to any single node → the `Rot`
+advances the seal past `ixn_b`, which drops below it (dead by descent) → recovery propagates via
+gossip → all nodes converge on the post-`Rot` linear state.
 
 ### 3. Local events buried by a competing recovery
 
@@ -627,15 +633,26 @@ Pre-state (divergent at v_d; local store holds branch A):
                                 └─ branch_B @ v_d
 
   Local:   v_0 → ... → v_{d-1} → branch_A → branch_A'   (local view)
-
-A second reserve holder submits a burying `Rot` keeping branch_B (branch-tip-extending shape):
-
-  rot_B extends branch_B and advances the seal; branch_A / branch_A' now sit below the seal, dead by descent; rot_B lands at v_{d+1}.
-
-  Server (post-recovery):  v_0 → ... → v_{d-1} → branch_B → rot_B
-
-Local party detects via an existence-check on the server that branch_A / branch_A' are no longer the canonical chain. The footgun to avoid: do NOT append a sealed event to the stale branch. Submitting a Trm that extends the party's local tip (branch_A' at v_{d+2}, or branch_A) does not cleanly terminate — the Trm lands on a branch below rot_B's seal at v_{d+1}. The seal-cap (invariant 5) refuses it as a canonical extension, but keep-all-data retains it, and a sealed event on a below-seal branch is a second sealed branch past the fork → the chain flips to Disputed and the prefix terminalizes (fail-secure). Correct recourse: re-fetch the server state, confirm the canonical tip (rot_B), then either submit Trm extending that tip cleanly or accept the server-side state without terminating — never append a sealed event to a branch not confirmed canonical.
 ```
+
+A second reserve holder submits a burying `Rot` keeping `branch_B` (branch-tip-extending shape):
+`rot_B` extends `branch_B` and advances the seal; `branch_A` / `branch_A'` now sit below the seal,
+dead by descent; `rot_B` lands at `v_{d+1}`.
+
+```
+  Server (post-recovery):  v_0 → ... → v_{d-1} → branch_B → rot_B
+```
+
+The local party detects via an existence-check on the server that `branch_A` / `branch_A'` are no
+longer the canonical chain. **The footgun to avoid: do NOT append a sealed event to the stale
+branch.** Submitting a `Trm` that extends the party's local tip (`branch_A'` at `v_{d+2}`, or
+`branch_A`) does not cleanly terminate — the `Trm` lands on a branch below `rot_B`'s seal at
+`v_{d+1}`. The seal-cap (invariant 5) refuses it as a canonical extension, but keep-all-data retains
+it, and a sealed event on a below-seal branch is a second sealed branch past the fork → the chain
+flips to Disputed and the prefix terminalizes (fail-secure). Correct recourse: re-fetch the server
+state, confirm the canonical tip (`rot_B`), then either submit `Trm` extending that tip cleanly or
+accept the server-side state without terminating — never append a sealed event to a branch not
+confirmed canonical.
 
 ### 4. Post-recovery events synced to a node holding the buried branch
 
@@ -687,5 +704,5 @@ to a one-branch holder. The seal-cap stays unconditional.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#effective-said-comparison) —
   effective-SAID comparison (cross-primitive).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue): the kind-scoped witnessing ladder, the witnessing floor, the
-  beacon, divergent witness receipts.
+  witnessing (forthcoming): the kind-scoped witnessing ladder, the witnessing floor, the beacon,
+  divergent witness receipts.

@@ -29,7 +29,9 @@ The **class** column names the event's role under the
 — including the **terminal** kind (`Trm`, which also ends the chain); so a branch carrying a `Trm`
 counts as sealed in the divergence walk just as a `Rot` branch does. The **tier** column names which
 key material is required to forge the event — see
-[§Two-tier capability model](#two-tier-capability-model).
+[§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
+versioned schema identifier (`vdti/kel/v1/events/…`), unrelated to a standalone SAD's custody
+`topic`.
 
 ## Two-kind inception
 
@@ -393,10 +395,10 @@ non-canonical evidence and read data-locally — see
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and recovery, forks-are-seal-bounded, inception tiers.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
-- [`../iel/`](../iel/) — IEL primitive (subsequent sub-issue). Delegation is an identity-layer
-  concern and lives there (delegated IEL inception; declare / rescind delegation); the
-  `del(delegator)` policy node operates on IEL prefixes, not KEL prefixes.
+- [`../iel/`](../iel/) — IEL primitive. Delegation is an identity-layer concern and lives there
+  (delegated IEL inception; declare / rescind delegation); the `del(delegator)` policy node operates
+  on IEL prefixes, not KEL prefixes.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue).
+  witnessing (forthcoming).
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap atomic batch (subsequent sub-issue).
+  bootstrap atomic batch (forthcoming).

@@ -241,8 +241,9 @@ per [`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** against the **derived
   seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork at-or-above the
-  seal with at most one sealed branch — recoverable, pending a burying seal), or **disputed** (two
-  or more branches each carry a sealed event past the fork — terminal, reincept).
+  seal with at most one sealed branch — a content fork recovers via a burying seal; a lone sealed
+  branch you did not author reads forked but forces **your** reincept), or **disputed** (two or more
+  branches each carry a sealed event past the fork — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
@@ -326,9 +327,9 @@ a `disputed` chain; an above-seal anchor on a `disputed` chain grounds no new tr
 ## Federation witnessing in verification
 
 The verifier surfaces federation-witnessing signals on the token. Full mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (subsequent
-sub-issue); this section names what the IEL verifier reads. **The data decides; witnessing
-propagates** — receipts deliver competing branches and freshness, never a verdict.
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
+section names what the IEL verifier reads. **The data decides; witnessing propagates** — receipts
+deliver competing branches and freshness, never a verdict.
 
 - **`witnessed`.** An IEL event has **no key of its own**, so its witnessing **is** the witnessing
   of its **member KEL anchors** — the event is trusted when the required threshold of its anchoring
@@ -426,4 +427,4 @@ configurable).
 - [`../../../policy/policy.md`](../../../policy/policy.md) — the `id(X)` / `del(X, N)` policy leaves
   the token's `roster_and_thresholds_at` and `is_delegate` accessors resolve.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing mechanics (subsequent sub-issue).
+  witnessing mechanics (forthcoming).
