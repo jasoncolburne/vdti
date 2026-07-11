@@ -2,9 +2,9 @@
 
 This doc is the **load-bearing correctness proof** for the IEL primitive. It exhaustively enumerates
 every combination of (per-node chain state) × (submitted batch shape) × (cross-node gossip state) on
-the IEL's **mixed chain** — single-key content alongside a threshold sealed spine — and demonstrates
-that each case terminates correctly under the merge-layer routing rules and that all nodes converge
-on the same effective SAID across the federation. Without this matrix the merge engine, the gossip
+the IEL's **mixed chain** — tier-1 content alongside a tier-2 sealed spine — and demonstrates that
+each case terminates correctly under the merge-layer routing rules and that all nodes converge on
+the same effective SAID across the federation. Without this matrix the merge engine, the gossip
 layer, and the federation-witnessing layer are not proven sound — they are designed against this
 enumeration. Cross-node convergence as a doctrinal property is stated upstream at
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence); this doc is the

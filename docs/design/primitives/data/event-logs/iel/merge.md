@@ -2,8 +2,8 @@
 
 The IEL merge layer integrates submitted events into the existing chain. It is the protocol's
 enforcement surface for the locked-portion bound, the divergence-and-recovery rules, and the
-seal-cap — the same surface as the KEL's, routing a **mixed chain**: single-key content (`Ixn`)
-alongside a threshold sealed spine (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`). The verifier
+seal-cap — the same surface as the KEL's, routing a **mixed chain**: tier-1 content (`Ixn`)
+alongside a tier-2 sealed spine (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`). The verifier
 produces a trust signal on a verification token; the merge layer composes that signal with
 chain-state-dependent routing to admit or reject batches.
 

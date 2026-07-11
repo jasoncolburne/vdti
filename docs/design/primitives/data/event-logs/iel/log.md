@@ -21,12 +21,12 @@ structure only** — event chaining, the members' anchoring, per-kind schemas �
 application semantics, and a chain never reads invalid because of the application it serves
 ([`../../../../protocol-doctrine.md` §Structural authorization](../../../../protocol-doctrine.md#structural-authorization)).
 
-The IEL is a **mixed chain**. Single-key **content** (`Ixn`, tier 1, first-seen and recoverable)
-rides alongside a threshold **sealed** spine (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`, tier 2,
-record-both and terminal-on-divergence). It reuses the KEL's four-state per-node machine, the seal /
-locked-portion / seal-cap, and the merge-outcome vocabulary; the mixed-chain nuance is that only
-content is buriable, so the same seal machinery separates a recoverable content fork from a terminal
-schism.
+Like the KEL and SEL, the IEL is a **mixed chain**: tier-1 **content** (`Ixn`, first-seen and
+recoverable) rides alongside a tier-2 **sealed** spine (`Evl` / `Ath` / `Rev` / `Dth` / `Wit` /
+`Trm`, record-both and terminal-on-divergence). It reuses the KEL's four-state per-node machine, the
+seal / locked-portion / seal-cap, and the merge-outcome vocabulary; the mixed-chain nuance is that
+only content is buriable, so the same seal machinery separates a recoverable content fork from a
+terminal schism.
 
 This doc states the chain primitive: prefix derivation, the per-node chain states, the seal and the
 spine over the content window, the locked-portion bound, the down-pins and the role-qualified
