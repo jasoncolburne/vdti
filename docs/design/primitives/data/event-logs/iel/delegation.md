@@ -31,10 +31,10 @@ the derived locus is the opt-out.
 flowchart BT
   dAth["delegator IEL: Ath (t_authorize)"]:::iel --> dDth["Dth (t_authorize)"]:::iel
   rIcp["rescission lookup-SEL: Icp"]:::sel --> rTrm["Trm (pin only)"]:::sel
-  P["delegate IEL: Icp"]:::iel --> Q["Ixn"]:::iel
   dAth -.->|manifest.delegates| P
   dDth ==>|manifest.anchors| rTrm
   dDth -.->|bound| Q
+  P["delegate IEL: Icp"]:::iel --> Q["Ixn"]:::iel
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 ```
