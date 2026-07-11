@@ -29,10 +29,12 @@ _(A delegate `bound` is not participant-identifying, so it is public; a doc-memb
 — see
 [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).)_
 
-The check is **fail-secure by default**: walk the delegator's fresh IEL and forward-match the
-`target` against each `Dth`'s `kills[]` — in some `kills[]` → rescinded (grandfathered to its
-`bound`); in none on the fully-walked fresh chain → not rescinded. A **fail-open** O(1) lookup at
-the derived locus is the opt-out.
+The check reads the derived lookup-SEL **first** (O(1) content-addressed, **present → rescinded**);
+on a miss it is **fail-secure by default** — walk the delegator's fresh IEL and forward-match the
+`target` against each `Dth`'s `kills[]` (in some → rescinded; in none on the fully-walked fresh
+chain → not rescinded) — with **fail-open** (trust the miss) as the opt-out. The `bound` (the
+grandfather boundary) rides the `kills[]` entry, so a grandfather check reads it from the walk even
+on an O(1) hit.
 
 ```mermaid
 flowchart BT

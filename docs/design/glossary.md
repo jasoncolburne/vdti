@@ -32,8 +32,8 @@ canonical** wherever they differ.
 - **manifest** — the SAID of a SAD that groups an event's upward commitments **by named role**.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **lookup-SEL** — a SEL whose **locus** — its derived lookup address (prefix) — is
-  blind-recomputable from `derive(owner, topic, data)`; it backs the fail-open O(1) opt-out of a
-  revocation / rescission check.
+  blind-recomputable from `derive(owner, topic, data)`; a revocation / rescission check reads it
+  first (O(1), present → killed) and may fail-open on it — trusting a miss — instead of walking.
   ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
   `custody` field (`owner` + `topic` writer-binding, anchored in a SEL; `readPolicy` read gate).
@@ -209,10 +209,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   `(prefix, serial)`, so two disjoint member sub-quorums cannot both land content at one IEL serial
   — the extra content-fork guard the KEL does not need (its content is witnessed at the KEL position
   directly). ([`merge.md`](primitives/data/event-logs/iel/merge.md#the-content-versus-sealed-split))
-- **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is answered by
-  forward-matching X's derived `target` in the `kills[]` on the owner's fresh witnessed IEL
-  (fail-secure by default), with a fail-open O(1) lookup-SEL read as the opt-out — never a
-  scan-for-absence.
+- **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is a positive
+  lookup, never a scan-for-absence. A check reads the derived lookup-SEL first (O(1), present →
+  killed); on a **miss** it is **fail-secure by default** — confirm by forward-matching X's derived
+  `target` in the `kills[]` on the owner's fresh witnessed IEL — with **fail-open** (trust the miss)
+  as the opt-out, never up.
   ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **as-of authority / pin-everything-to-current** — authority is judged by the append-only anchoring
   position, never a self-asserted pin; every event pins its dependencies' current tips.

@@ -226,13 +226,15 @@ revocation / rescission **declaration** the fail-secure walk consumes:
   **gated rescind-doc** committed by its `Trm` — see [`delegation.md`](delegation.md) and
   [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).
 
-The check is **fail-secure by default**: compute the `target` and walk the owner's **fresh** IEL,
-forward-matching it against each `Rev` / `Dth`'s `kills[]` — in some `kills[]` → killed
-(grandfathered to its `bound`); in none on the fully-walked fresh chain → not killed. Being in a
-`kills[]` **is** the definition of killed, and it rides the same witnessed-IEL freshness gate as
-divergence, so a hidden kill needs a stale IEL the verifier already refuses. A verifier may opt
-**down** to a **fail-open** content-addressed lookup at the derived locus (present → killed), never
-up. This is the negative-check-as-positive-lookup rule
+The check reads the derived lookup-SEL **first** (an O(1) content-addressed read, **present →
+killed**); on a miss it is **fail-secure by default** — compute the `target` and walk the owner's
+**fresh** IEL, forward-matching it against each `Rev` / `Dth`'s `kills[]` (in some `kills[]` →
+killed, grandfathered to that entry's `bound`; in none on the fully-walked fresh chain → not
+killed). Being in a `kills[]` **is** the definition of killed, and the walk rides the same
+witnessed-IEL freshness gate as divergence, so a hidden kill needs a stale IEL the verifier already
+refuses. **Fail-open** — trusting the miss — is the opt-out, never up; the `bound` rides the
+`kills[]`, so a grandfather check walks even on an O(1) hit. This is the
+negative-check-as-positive-lookup rule
 ([§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 
 ### `Trm` — the identity kill (tier 2, `t_govern`)

@@ -1181,10 +1181,15 @@ post-batch walk reports a structural failure, with no per-kind carve-out.
 "Is X revoked / rescinded / closed?" is answered by whether X's derived **`target`** appears in a
 **`kills[]`** declaration on the owner's chain — a **positive** match, **never** a scan for the
 _absence_ of a kill. Being in a `kills[]` **is** the definition of killed, so "in none on the
-fully-walked fresh chain" is exactly "not killed" — nothing to miss. Two reads, and **fail-secure is
-the default:**
+fully-walked fresh chain" is exactly "not killed" — nothing to miss. The check is an **O(1) fast
+path with a fail-secure fall-through** — the posture is a function parameter, not two separate
+algorithms:
 
-- **Fail-secure walk (default).** Compute `target = hash('{topic}:{owner}:{data}')` (a flat,
+- **O(1) content-addressed read — always first.** Recompute the derived lookup-SEL address
+  `derive(owner, topic, data)` and read it: **present → killed** (O(1), tamper-evident and
+  authoritative — done, no walk).
+- **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
+  authoritative only after the walk: compute `target = hash('{topic}:{owner}:{data}')` (a flat,
   domain-qualified hash; distinct `topic` per kind, `data` = the grant-instance) and walk the
   owner's **fresh** IEL over `[issuance-position .. tip]`, forward-matching `target` against each
   `Rev`/`Dth`'s `kills[]`. In some `kills[]` → killed; in none → not killed. This **rides the
@@ -1193,23 +1198,24 @@ the default:**
   kill is a **stale** IEL, which the verifier already refuses when trusting the owner at all — so
   kill-freshness equals authority-freshness. Bounded (streams the subjects-in-scope, O(range) time,
   no lossy cap).
-- **Fail-open lookup (opt-out).** Recompute the derived lookup-SEL address
-  `derive(owner, topic, data)` and read it — **present → killed** (O(1), tamper-evident), **absent →
-  best-effort not-killed** (a withheld object reads not-found). A verifier opts **down** to
-  fail-open under a latency budget (an app server on a walk-timeout), never **up**.
+- **Fail-open opts out of the fall-through.** Under a latency budget (an app server on a
+  walk-timeout) a verifier may **opt down** to trusting the miss (**best-effort not-killed**), never
+  **up**.
 
 ```mermaid
 flowchart LR
-tgt["compute target = hash of topic:owner:data"]:::sel
-tgt -->|in some kills on the fresh IEL walk| hit["killed  (fail-secure default)"]:::sel
-tgt -->|in none on the fully-walked fresh chain| miss["not killed"]:::none
+o1["content-addressed read of the derived lookup-SEL"]:::sel
+o1 -->|present| killed["killed"]:::sel
+o1 -->|miss| walk["fail-secure walk of the fresh IEL: is target in a kills declaration?"]:::sel
+walk -->|in some kills| killed
+walk -->|in none on the fully-walked chain| notk["not killed — fail-open instead trusts the miss without walking"]:::none
 classDef sel fill:#122a44,stroke:#1971c2,color:#fff
 classDef none fill:#2a2a2a,stroke:#888888,color:#fff
 ```
 
 A **credential is a direct-anchored SAD, not a SEL** — its issuance commitment is anchored by an IEL
 `Ixn` (the validity proof), and its revocation is a `kills[]` declaration on the issuer's witnessed
-IEL `Rev` plus a sealed `{Icp, Trm}` lookup SEL (the fail-open object). Rescission and closure are
+IEL `Rev` plus a sealed `{Icp, Trm}` lookup SEL (the O(1) lookup object). Rescission and closure are
 the same shape on a `Dth`. The revocation check is the **consumer's**, not the store's — `vdtid` is
 a structural store, not a revocation authority (a revoked subject is still structurally-valid data),
 so the fail-secure / fail-open / timeout posture lives at the application layer.
