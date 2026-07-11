@@ -167,7 +167,7 @@ within `N` hops?" is a **bounded per-candidate walk**, never a materialization o
   per-candidate scalar state** (each candidate's `Ath` inclusion sets a boolean true), returning
   scalars. State is O(candidates), never the full set.
 - **Walk up from the presented party, not down from `X`.** The verifier follows the **one
-  authorizing path the document commits** — each hop a self-recorded `delegating` link pinning up
+  authorizing path the document commits** — each hop a self-recorded `delegating` link chaining up
   toward `X` — confirming each hop's grant against that delegator's `Ath` inclusion list (a positive
   lookup). The walk is bounded by `N` **and** by a verifier-wide depth / work cap; exceeding
   **either** denies (fail-secure).

@@ -142,8 +142,8 @@ anything rotated, evicted, or revoked out — has zero structural ability to act
 - **KEL** — a signing or rotation key compromised in the past cannot extend the chain today, even if
   the adversary still holds the key material. A new event requires the **current** key.
 - **IEL** — a member evicted via a `Evl` cannot land further acts after their eviction.
-- **SEL** — a SEL pins **up** to its owner IEL's current tip; a rotated-out party of that IEL has no
-  authority over it.
+- **SEL** — a SEL pins **down** to its owner IEL's current tip; a rotated-out party of that IEL has
+  no authority over it.
 
 This closes the **stale-state kill-switch problem**: without it, everyone who ever held authority
 over a chain would retain a permanent kill switch. The structural mechanisms that enforce it are the
@@ -205,7 +205,7 @@ next key change and thereby becomes that epoch's signing key, while that same ev
 reserve — so a device holds exactly two live keys, the current signing key (last epoch's revealed
 reserve) and the next reserve (committed, unrevealed). On the KEL, `Rot` / `Wit` / `Trm` are all
 **single-signed with the rotation reserve** (no dual signature, no recovery key). IEL and SEL events
-have no intrinsic key state, so they reach a tier by **anchoring in a lower-layer event of the
+have no intrinsic key state, so they reach a tier by **being anchored by a lower-layer event of the
 matching kind** — **kind-strict**. Each **IEL** kind is anchored by **exactly** the **KEL** kind
 that reveals the capability it exercises (content ← KEL `Ixn`; tier-2 establishment / governance /
 kill / terminal ← KEL `Rot`; the IEL `Wit` ← a KEL `Wit`); each **SEL** kind rides its matching
@@ -221,12 +221,15 @@ that root other chains' authority. The per-primitive anchor matrix is in
 
 - **KEL** — the device's own key state (tier 1/2 above).
 - **IEL** — a roster of member KELs plus a **threshold vector** `{t_use, t_govern, t_authorize}`,
-  indexed by the event's kind. Every IEL kind **prices itself**: `Ixn` from `t_use`, `Evl` from
-  `t_govern`, `Ath` from `t_authorize`, `Wit` and the terminal `Trm` from `t_govern`. The two sealed
-  kill-anchors price the same way: `Rev` (revocation) from `t_govern`, `Dth` (rescission) from
-  `t_authorize` — the count is **implied by the kind**, **backed** by its anchoring member-KEL
-  signatures at the IEL walk and **demanded** by the anchored kill's kind at the SEL check. So
-  verifying an IEL chain's validity needs **no SEL input** — each event prices from its own kind.
+  indexed by the event's kind (`t_govern` is mandatory; `t_use` / `t_authorize` are declared at
+  inception or **locked out** for the chain's life —
+  [`iel/events.md`](primitives/data/event-logs/iel/events.md)). Every IEL kind **prices itself**:
+  `Ixn` from `t_use`, `Evl` from `t_govern`, `Ath` from `t_authorize`, `Wit` and the terminal `Trm`
+  from `t_govern`. The two sealed kill-anchors price the same way: `Rev` (revocation) from
+  `t_govern`, `Dth` (rescission) from `t_authorize` — the count is **implied by the kind**,
+  **backed** by its anchoring member-KEL signatures at the IEL walk and **demanded** by the anchored
+  kill's kind at the SEL check. So verifying an IEL chain's validity needs **no SEL input** — each
+  event prices from its own kind.
 - **SEL** — single-owner ownership: the owner IEL anchors the SEL event, and the count is set by the
   SEL event's kind.
 
@@ -313,20 +316,23 @@ On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rai
 issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances accumulate and
 the seal lags the tip; without the cap the post-seal window grows unbounded and the page-atomic
 content-fork burial breaks. A busy issuer that fills the window **re-seals with a roster-less
-`Evl`** (**omits `roster`** — no roster change — the identity-layer analogue of a KEL re-sealing via
-`Rot`; validation **accepts** a roster-less re-seal `Evl`), advancing the seal with no new kind.
-(Under a network partition both halves can fill the cap and re-seal independently; the two
-roster-less `Evl`s differ by `previous` and collide as `{Evl, Evl}` → Disputed, so a **high-volume
-issuer serializes its content submissions** — a discipline separate from, and additional to,
-**serializing governance** (the operational rule that governance and kill events pass through **one
-designated submitter** so two never race during a partition — else `{Evl, Evl}` / `{kill, kill}` →
+`Evl`** — one that **omits `roster`** (no roster change), the identity-layer analogue of a KEL
+re-sealing via `Rot`. Validation **accepts** a roster-less re-seal `Evl`; it advances the seal with
+no new kind.
+
+Under a network partition both halves can fill the cap and re-seal independently; the two
+roster-less `Evl`s differ by `previous` and collide as `{Evl, Evl}` → Disputed. So a **high-volume
+issuer serializes its content submissions**. That discipline is separate from, and additional to,
+**serializing governance** — the operational rule that governance and kill events pass through **one
+designated submitter**, so two never race during a partition (else `{Evl, Evl}` / `{kill, kill}` →
 Disputed; operator doctrine, forthcoming). **Governance serialization is safety-critical
-everywhere** — a governance race is sealed, and the witnessing floor never gates sealed events.
-**Content-rail serialization is a liveness / waste discipline:** every chain is federation-witnessed
-(there is no direct mode), and the witnessing floor prevents a competing content sibling going live
-— a partitioned content rail **stalls** rather than forks — so an un-serialized rail costs stalls
-and re-issuance, not terminality ([§Federation convergence](#federation-convergence)).) The exact
-constant, the roster-less re-seal, and the content-rail serialization are IEL doctrine —
+everywhere:** a governance race is sealed, and the witnessing floor never gates sealed events.
+**Content-rail serialization is only a liveness / waste discipline:** every chain is
+federation-witnessed (there is no direct mode), and the witnessing floor prevents a competing
+content sibling going live — a partitioned content rail **stalls** rather than forks — so an
+un-serialized rail costs stalls and re-issuance, not terminality
+([§Federation convergence](#federation-convergence)). The exact constant, the roster-less re-seal,
+and the content-rail serialization are IEL doctrine —
 [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/) (forthcoming).
 
 **The spine.** The seal-advancing events form a **spine**: each carries a top-level `previousSeal`
@@ -702,12 +708,12 @@ structurally-valid **content** sibling at a position and **declines every later 
 Disputed proof — dispute evidence, competing seals form a spine fork,
 [§Forks are seal-bounded](#forks-are-seal-bounded) — and further ones are declined); the **single
 burying seal-advancer** that lands on a content-only divergence is simply the first sealed sibling
-at that position. Deterministic witness co-location fixes the witness _set_, not arrival order —
-with the witnessing floor ([§Federation convergence](#federation-convergence)) at most one content
-sibling per position is ever witnessed, arrival order deciding only which — and the retention bound
-rests on retention plus kind-awareness, not on which two events arrive first; _which_ two are kept
-is immaterial: any two competing events prove the fork; the bound requires keeping at least two, not
-a particular two. The canonical run's bodies are kept and retrievable by prefix (the flat query
+at that position. Deterministic witness co-location fixes the witness _set_, not arrival order: with
+the witnessing floor ([§Federation convergence](#federation-convergence)), at most one content
+sibling per position is ever witnessed, and arrival order decides only which. The retention bound
+rests on retention plus kind-awareness, not on which two events arrive first. _Which_ two are kept
+is immaterial — any two competing events prove the fork; the bound requires keeping at least two,
+not a particular two. The canonical run's bodies are kept and retrievable by prefix (the flat query
 returns them); the losing content closes below the burying seal by position + descent (every dead
 event's ancestry passes through a below-seal first event), so only the truly **uncommitted**
 below-seal content flood — beyond the ≥ 2-per-position evidence set — is droppable, because

@@ -29,6 +29,10 @@ Start here.
    permanent, divergence resolves by tier, forks are seal-bounded, the verifier is the trust
    boundary). The "why" behind every rule that follows.
 
+Keep [`glossary.md`](glossary.md) open alongside — it gives a one-line definition of every
+load-bearing term (seal, tier, sealed branch, effective-SAID, …) with a pointer to the doc that owns
+it.
+
 ## 1 — The data substrate
 
 Everything content-bearing is a SAD; this layer defines what that means. (This group also carries

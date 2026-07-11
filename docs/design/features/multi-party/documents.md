@@ -23,7 +23,7 @@ names the version SAD, and its serial-1 `Pin` (v1) is anchored by the author's I
 intra-chain, append-only, clock-free membership test.
 
 ```mermaid
-flowchart TB
+flowchart BT
   V0["V0 — constitution SAD"]:::doc
   gGnt["governance SEL: Gnt"]:::sel
   G["grant-doc G (gated)"]:::doc

@@ -32,8 +32,8 @@ chain primitive plays a distinct structural role:
   document policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
   **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are
-  authorized structurally by the owner IEL, which anchors them; it floors **up** to the owner IEL's
-  current tip.
+  authorized structurally by the owner IEL, which anchors them; it floors **down** to the owner
+  IEL's current tip.
 
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized;
 cross-federation interop is by user-initiated transfer rather than implicit trust.
@@ -59,11 +59,13 @@ infrastructure to infer system state.
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
 - **Prevention for witnessed content; detection for the rest.** On a witnessed chain the
-  witness-config's **witnessing floor** (`threshold > signers/2`) plus
-  one-content-sibling-per-position witnessing means two competing content events can never both be
-  witnessed — a content fork is **prevented** from forming, below a priced fork-cost of
-  `2·threshold − signers` compromised witnesses. Every chain is federation-witnessed; sealed races
-  and the byzantine (witness-compromise) residual are **detected**.
+  witness-config's **witnessing floor** (`threshold > signers/2`), plus
+  one-content-sibling-per-position witnessing, means two competing content events can never both be
+  witnessed — so a content fork is **prevented** from forming. Manufacturing one costs owning
+  `2·threshold − signers` witnesses (the **fork-cost**). What the floor does not prevent is
+  **detected**: **sealed** races — a **seal** being a tier-2 event (a rotation, or a governance /
+  kill act) that ratchets the chain's trust boundary forward — and the byzantine
+  (witness-compromise) residual.
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying

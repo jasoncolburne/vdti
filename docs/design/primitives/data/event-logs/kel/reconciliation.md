@@ -196,8 +196,9 @@ No position split is needed — each is one rule:
 - **Empty** — only `Icp` / `Fcp` → `Extended`; every other kind → `Invalid`.
 - **Forked** — origination-frozen; resolved by a **burying seal-advancer** on the winning branch (a
   `Rot` / `Wit` that buries the content loser → `Recovered`, Active) or a `Trm` on the winning tip
-  (→ `Terminated`). A sealed event joining the fork → `Disputed`. A content event → `Forked`
-  (retained; a second content sibling at a position → `Ignored`).
+  (→ `Terminated`). A sealed event that lands as a **second** sealed branch (rather than burying the
+  content loser) → `Disputed`. A content event → `Forked` (retained; a second content sibling at a
+  position → `Ignored`).
 - **Disputed** — terminal. Witnesses **never** witness an extension of a disputed chain, so a new
   submission is `Ignored`; a branch **already** witnessed before the dispute stays retained (it
   arrives via gossip, not as a new submission). The only exit is reincept.
@@ -232,12 +233,12 @@ non-canonical evidence (keep-all-data) — and that retention, when it changes t
 node before the divergence was detected elsewhere). The protocol cannot distinguish the two from
 chain data alone.
 
-| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked              | Terminated |
-| ------------------------------ | -------- | ---------------- | --------------- | ------------------- | ---------- |
-| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵉ | Sealed     |
-| **Recovered** (source burying) | Extended | Extended         | Recovered ᵉ     | Recovered ᵉ         | Sealed     |
-| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ          | Sealed     |
-| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated ᵉ        | Extended ᶜ |
+| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated |
+| ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | ---------- |
+| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵉ     | Sealed     |
+| **Recovered** (source burying) | Extended | Extended         | Recovered ᵉ     | Recovered / Disputed ᵉ  | Sealed     |
+| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed     |
+| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵉ | Extended ᶜ |
 
 **Column note (the Active-source row).** "winning" / "losing" are relative to the **source's**
 branch: a sink on the _same_ branch as the source reads "winning" (→ `Extended`, dedup); a sink on a

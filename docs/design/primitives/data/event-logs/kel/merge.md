@@ -258,17 +258,19 @@ already held).
 chain still resolves, by a burying seal-advancer, and the reading is always the pure walk over the
 events held:
 
-- Batch contains a **burying seal-advancer** (`Rot` / `Wit`) **extending a fork-branch tip** (its
-  `previous` is a branch tip, above `v_{d-1}`) → it extends that branch and advances the seal; if
+- Batch contains a **burying seal-advancer** (`Rot` / `Wit`) on the winning branch — **either attach
+  shape**: `previous` a fork-branch tip (above `v_{d-1}`), **or** the ancestor-extending shape
+  (`previous = v_{d-1}`, when the submitter kept nothing at or beyond `d`). It advances the seal; if
   the losing branches are content, they drop below the new seal, inert, and the chain **re-reads
   Active** → outcome `Recovered`. If a competing branch it would bury carries a **sealed** event,
   the burial is rejected (a sealed branch is never buried) → the fork is ≥ 2 sealed → `Disputed`,
   and the burying event is retained as a competing sealed branch and counted. A terminal `Trm` on
   the winning tip buries the content loser below its own seal and terminates → `Terminated`.
-- Batch contains a sealed event with `previous = v_{d-1}.said` (a competing sibling that would join
-  the fork) → not admitted as a canonical extension; the chain moves to `Disputed` (this is the
-  fork's second sealed branch). The competing branch is retained as the `Disputed` proof (witnessed
-  up to two per position —
+- Batch contains a sealed event that lands as a **second** sealed branch — a competing sibling
+  (`previous = v_{d-1}.said`) on a fork that **already** carries a sealed branch, or a burying
+  seal-advancer whose burial was rejected above → not admitted as a canonical extension; the chain
+  moves to `Disputed`. The competing branch is retained as the `Disputed` proof (witnessed up to two
+  per position —
   [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 - Otherwise (a content event that neither extends cleanly nor buries the fork) → `Forked` (retained
   as evidence; the chain stays Forked). A second content sibling at a position is `Ignored`.

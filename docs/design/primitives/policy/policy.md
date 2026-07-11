@@ -79,7 +79,7 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   opt-out. The verifier walks **up** from the **presented party** rather than down from `X`: `X`'s
   _transitive_ delegate closure (delegates of delegates …) is unbounded, so it is never enumerated;
   instead the verifier follows the **one authorizing path the document commits** (each hop a
-  self-recorded `delegating` link pinning up toward `X` — [`documents.md`](documents.md)),
+  self-recorded `delegating` link chaining up toward `X` — [`documents.md`](documents.md)),
   confirming each hop's grant against that delegator's `Ath` inclusion list (the positive lookup
   above). The walk is bounded by `N` **and** by a verifier-wide depth/work cap, and exceeding
   **either** denies (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates,

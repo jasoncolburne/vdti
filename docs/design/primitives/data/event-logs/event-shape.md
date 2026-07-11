@@ -302,7 +302,8 @@ be permanent on arrival (sealed). A **kill** (revoke / close / rescind / termina
 permanence case: low-danger (it only removes trust) but monotone (a third party relies on it), so it
 is sealed on a dedicated kill-anchor and is tier 2. Tier semantics and the **kind-strict** anchor
 rule (each IEL / SEL kind is anchored by **exactly** the KEL / IEL kind that reveals the matching
-capability — no higher-tier stand-in) are the protocol doctrine's —
+capability — no higher-tier stand-in; a joining member's consent-of-added `Ixn` riding on an `Evl`
+is a separate role, not a stand-in) are the protocol doctrine's —
 [`../../../protocol-doctrine.md` §Tiers](../../../protocol-doctrine.md#tiers).
 
 ## Event taxonomy
