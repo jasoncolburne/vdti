@@ -1146,10 +1146,7 @@ reach enough honest witnesses / converged gossip to see the competing branch. A 
 a malicious subset, or reading during an incomplete heal, sees the detection later — so a binding
 made in that window can transiently trust the wrong branch. This is the standard cost of a detection
 model; the multi-source freshness bar shrinks the window but does not close it, and recovery is
-operational (re-verify before binding; reincept on a surfaced divergence). **Single-node deployments
-forfeit convergence** and the DB-tampering-surfaces-as-divergence property — distinct from a
-single-_device_ identity, which is first-class and still participates in a federation; the caveat is
-a federation-less _node_, not a one-device wallet.
+operational (re-verify before binding; reincept on a surfaced divergence).
 
 Full mechanics — receipt encoding, witness selection, the clock's tolerance band and upper sanity
 bound — are federation doctrine ([`federation/`](federation/) — _forthcoming_).

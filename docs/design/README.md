@@ -57,6 +57,13 @@ its own reading-order note in `sad.md`.)
    concept map, and revisit its divergence and federation sections after the event-log group — they
    land deeper once the event shapes are concrete.
 
+Alongside the doctrine, [`residuals.md`](residuals.md) is the honest-limits catalog — every risk the
+design does not fully eliminate, grouped and ranked by cost of exposure, each with the concrete
+attack, the mitigation, and what is lost. It is where a deployment learns what each trade costs and
+what the whole system leans on. [`monitoring.md`](monitoring.md) covers the owner-side detection
+layer for the silent compromises — comparing a prefix's effective SAID against what its key state
+expects.
+
 ## 3 — The event-log primitives
 
 The KEL / IEL / SEL chains — the heart of the protocol.
