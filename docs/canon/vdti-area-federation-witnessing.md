@@ -203,9 +203,7 @@ adversarial pass.
   share `2·threshold − signers ≥ 1` witnesses and that witness signed only one — so a **content divergence never forms
   on a witnessed chain**; it is **prevented, not detected**. This holds at **KEL positions and user-IEL positions**: a
   user-IEL content event is majority-witnessed **at its own position** — the fork-prevention gate alongside its
-  anchor-based authorization (§witness-config / inv 12; **option (b)**, 2026-07-02) — and **SEL rides the cross-layer
-  theorem** (a valid SEL fork ⇒ an IEL fork, so closing IEL content forks closes SEL content forks — inv 4 /
-  inv 13's cross-layer theorem). The **federation IEL authors no content** (so the content gate is moot); its **sealed** events are gated by exclude-self peer-witnessing (§1e) — a competing sealed sibling is declined first-seen, only witness collusion yields
+  anchor-based authorization (§witness-config / inv 12; **option (b)**, 2026-07-02) — and the **SEL is prevented at its own position too** (witnessed-SEL redesign, 2026-07-12, area-sel §1c — the "SEL rides the cross-layer theorem" claim is RETIRED: a SEL forks under a linear IEL, so it is majority-witnessed first-seen at its own `(SEL-prefix, serial)`, inheriting the owner IEL's federation). The **federation IEL authors no content** (so the content gate is moot); its **sealed** events are gated by exclude-self peer-witnessing (§1e) — a competing sealed sibling is declined first-seen, only witness collusion yields
   `disputed` (revised 2026-07-11). A content fork survives **only** where no majority gates it — a
   **witness compromise** owning the whole intersection (`≥ 2·threshold − signers` witnesses, the fork-cost), or —
   rarely — **across a roster delta** (two full quorums under disjoint contexts, zero double-signers — the F5
@@ -321,14 +319,16 @@ adversarial pass.
   all-witness federation rotation never bricks.)*
 - **ALL inter-node mesh traffic is ENCRYPTED (2026-06-23, generalized from receipt-gossip-only):** ML-KEM-1024 KEM +
   AES-256-GCM AEAD — receipts AND the events they propagate. Confidentiality, not trust (trust is end-verifiable).
-  The mesh = the federation roster, so mesh contents stay within the federation. **A credential's anchor and its
-  revocation/rescission lookup-SELs are never witnessed directly (§1g / §2c Decision 1), so no sensitive
-  `(prefix, said)` enters a receipt** — the cred is anchored as its issuance commitment
-  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque `anchors[]` (cred = anchored SAD, no
-  cred-SEL — 2026-07-09; `cred.said` never raw), and the lookup-SEL `Trm` rides a witnessed `Rev`/`Dth`, closing the
-  `issuer ↔ private-subject` correlation **at the source** (not merely confining it to the membership — inv 16 /
-  §9). The residual receipt prefix is a public
-  **IEL/KEL identity** prefix (§1g Decision 2), route-metadata fine under the trust model. AEAD nonce/key-scope
+  The mesh = the federation roster, so mesh contents stay within the federation. **REVISED (witnessed-SEL redesign, 2026-07-12, area-sel §1c): the SEL IS witnessed, so a lookup-SEL
+  prefix DOES ride a receipt** (as `chain_prefix`) — the `issuer ↔ private-subject` correlation is **not**
+  "closed at the source" but **downgraded** to **confirm-a-known-subject** over the **encrypted** mesh (an
+  unguessable prefix, exposed only to semi-trusted `< threshold` infra; the exfiltration-during-a-compromise
+  -window residual, inv 16). `cred.said` still **never** enters a receipt: the cred is anchored as its
+  issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque
+  `anchors[]` (cred = anchored SAD, no cred-SEL; `cred.said` never raw, never on a witness), so what a SEL
+  receipt carries is the lookup-SEL's own (unguessable) `chain_prefix`. The residual receipt prefix is
+  therefore a public **IEL/KEL identity** prefix **or** an unguessable lookup-SEL prefix (§1g Decision 2),
+  both route-metadata fine under the trust model. AEAD nonce/key-scope
   discipline is owed at the doc layer.
   **Push over pull (Jason):** prefer gossiping events to a separate inter-node *query* — the sub-mesh event-gossip
   already pushes competing events to selected witnesses; extend it so a one-branch holder gets the branches by push,
@@ -478,9 +478,10 @@ adversarial pass.
   *forgery*", §5 / inv 8). The reference is the **last confirmed tip** — deliberately **not** the
   immediately-preceding event, **not** a cross-witness pairwise aggregate over adjacent events (per-witness
   wall-clock skew breaks the pairwise form), and **not** the seal (the earlier "forward-of-the-seal" patch had no
-  margin right after a seal — retired). **Batching reintroduces no skew:** with IEL/KEL-only witnessing (§1g /
-  §2c Decision 1) every witnessed unit is a **single** IEL/KEL event (SEL batches collapse into one IEL `Ixn`'s
-  `anchors[]`), and any structural batch is witnessed **atomically** (the verifier knows it is one unit → no
+  margin right after a seal — retired). **Batching reintroduces no skew:** every witnessed unit is a **single** IEL / KEL / **SEL** event
+  (witnessed-SEL redesign, area-sel §1c — a SEL's inception batch witnesses atomically as its **v1**, the
+  `Icp` riding `v1.previous`; across a SEL chain the client serializes forward-of-confirmed-tip, like
+  IEL/KEL), and any structural batch is witnessed **atomically** (the verifier knows it is one unit → no
   intra-batch ordering claim); **across** batches the client **serializes** — waits until batch N is fully
   witnessed before N+1 (the same key-deletion-recourse discipline, `area-iel §5`) — so the confirmed tip is
   well-defined at **batch granularity**. Plus **per-witness monotonicity** — a witness never backdates *its own*
@@ -557,8 +558,7 @@ adversarial pass.
 
 ### 1g. Witness receipt — shape + scope (§2c, RESOLVED 2026-07-08; ⚠ NOT previously design-reviewed — flag to the encode-review as its first decorrelated pass)
 
-- **Scope: IEL/KEL only (Decision 1).** A witness receipts an **IEL or KEL** event; **a SEL is never witnessed
-  directly** — it rides its IEL anchor (integrity via anchor-monotonicity + the cross-layer theorem; freshness via
+- **Scope (Decision 1) — REVISED: the SEL IS witnessed (witnessed-SEL redesign, 2026-07-12, area-sel §1c).** A witness receipts an **IEL, KEL, or SEL** event; a SEL is **its own witnessed chain** (first-seen at its `(SEL-prefix, serial)`, inheriting the owner IEL's federation), because the FIRST-CUT integrity justification — anchor-monotonicity + the cross-layer theorem — is **false** (a SEL forks under a linear IEL). The correlation reasoning below is **superseded**: a lookup-SEL prefix now rides a receipt, an **unguessable** value exposed only to **semi-trusted federation infra** over the **encrypted** mesh (confirm-a-known-subject only; the exfiltration-during-a-compromise-window residual is the accepted `< threshold` class, inv 16). _Historical rationale for the retired "never witnessed" choice:_ a SEL rode its IEL anchor (integrity via anchor-monotonicity + the cross-layer theorem; freshness via
   the anchoring IEL event's receipts — a revocation/rescission lookup-SEL `Trm` is sealed by a witnessed IEL
   `Rev`/`Dth`, whose `kills[]` declares the target — §7 / `area-sel`). This is the load-bearing **correlation
   protection**: a sensitive **subject prefix / `cred.said`** **never enters a receipt** (a cred is anchored as its
@@ -570,10 +570,12 @@ adversarial pass.
   `Ath`/`Rev`/`Dth`) — nothing needs a standalone SEL receipt.
 - **The prefix rides in the clear (Decision 2).** A receipt is only ever gossiped **witness-only + encrypted** or
   **bundled with the event it witnesses**, so any holder already has the body (+ prefix) or the bundled document
-  (which already carries the `prefix ↔ said` link). With Decision 1 removing the sensitive subject prefix, the
-  residual is a public **IEL/KEL identity** prefix — mesh route-metadata, fine under the trust model (federation
-  infra, `< threshold` byzantine) and un-linkable to credentials (separate unwitnessed SELs under the issuer's
-  opaque anchors). No `basis`, no computed selection-input — plain `prefix`.
+  (which already carries the `prefix ↔ said` link). **REVISED (witnessed-SEL redesign, area-sel §1c):** a SEL
+  receipt's `chain_prefix` is a lookup-SEL prefix (unguessable, confirm-a-known-subject over the encrypted
+  mesh), **plus** the public **IEL/KEL identity** prefix — both mesh route-metadata, fine under the trust
+  model (federation infra, `< threshold` byzantine). `cred.said` stays un-linkable to a receipt (the cred is
+  an anchored SAD under the issuer's opaque `anchors[]`; the lookup-SEL prefix is a hash of `cred.said`, not
+  `cred.said`). No `basis`, no computed selection-input — plain `prefix`.
 - **The receipt is itself a SAD (Decision 3)** (own `said`, own `kind` — §9's kind-required-on-SAD applied to the
   receipt); its **signature rides adjacent, never in the body** (a SAD cannot contain a signature over its own
   `said`; receipts are adjacent attestation data, §1e). Body:
@@ -630,16 +632,16 @@ adversarial pass.
     gate is an **establishment-time** check (can't *start* gathering under a beyond-band-stale pin) — it **never
     voids** receipts established under a then-current pin. **One band, three jobs:** cut-witness receipting,
     just-stale-pin grace, race absorption. Beyond the band → refuse → rebind + resubmit (recoverable).
-- **Batching collapses out (consequence of Decision 1).** Every witnessed unit is a single IEL/KEL event (one
-  committing SAID); SEL batches (inception `Icp`+`Pin`; the cred-v1 fan-out) become `anchors[]` content under one
-  IEL `Ixn` → **no multi-event witnessing batch remains**, so the intra-batch receipt-skew (§5) has nothing to bite.
+- **Batching — REVISED (witnessed-SEL redesign, 2026-07-12, area-sel §1c): SEL events now earn their own receipts,** so the receipt scope expands beyond IEL/KEL and the intra-batch receipt-skew / forward-of-confirmed-tip machinery (§5) applies to SELs too. _(The FIRST-CUT "batching collapses out — no multi-event witnessing batch remains; SEL batches become `anchors[]` content under one IEL `Ixn`" rested on the SEL not being witnessed; superseded.)_
   Client serialization stays, at **IEL granularity**. The one remaining multi-event batch — federation genesis
   (`Fcp` + founder `Rot`s) — is the **bootstrap exception**, not a receipt batch: its trust is the config-pinned
   `FEDERATION_IEL_PREFIX` (`vdti-federation-inception-reference.md`), not a receipt count; serial-0 root → nothing
   to be forward-of → it sidesteps the receipt-monotonicity machinery entirely.
 - **KERI reference.** A KERI `rct` `{v, t, d, i, s}` binds `prefix ↔ said` the same way (no threshold/timestamp);
-  VDTI's receipt is that shape **plus** `threshold` + a payload-`timestamp`, **scoped to IEL/KEL only** — VDTI
-  relies on Decision 1 for cred privacy, not on hiding the prefix (KERI AIDs are public).
+  VDTI's receipt is that shape **plus** `threshold` + a payload-`timestamp`, scoped to IEL / KEL / **SEL** (the
+  SEL is witnessed now, area-sel §1c) — VDTI relies on `cred.said` never entering a receipt for cred privacy
+  (a SEL receipt carries only an unguessable lookup-SEL prefix), not on hiding the prefix (KERI AIDs are
+  public).
 
 ## 2. Mined from kels-216 — patterns that carry (confirm in land)
 - **Receipts indexed by `(prefix, serial)`**, *not* event SAID — structural; this is what lets **competing receipts
@@ -669,15 +671,12 @@ adversarial pass.
 - **Design-pass §2.2 matrix** — the federation-inception cell becomes `Rot → IEL Fcp(federation)` (the `Fcp` marker, anchored by a founder **`Rot`**, kind-strict, T2 ↔ T2 — no founder `Fed`/`Wit`, 2026-06-28).
 
 ## 4. Open / route to the adversarial pass
-- **Which vdti kinds get witnessed? — RESOLVED (§1g / §2c Decision 1).** **IEL and KEL events are witnessed; a
-  SEL is never witnessed directly** — it rides its IEL anchor (integrity via anchor-monotonicity + the cross-layer
-  theorem, freshness via the anchoring IEL event's receipts — §7 / `area-sel`). This is the load-bearing
-  **correlation protection**: a sensitive subject prefix / `said(cred)` never enters a receipt (cred = anchored SAD, no cred-SEL — 2026-07-09). Within KEL/IEL, all
+- **Which vdti kinds get witnessed? — REVISED (witnessed-SEL redesign, 2026-07-12, area-sel §1c).** **IEL, KEL, _and_ SEL events are witnessed** — a SEL is its own witnessed chain (first-seen at its `(SEL-prefix, serial)`, inheriting the owner IEL's federation), because the FIRST-CUT "rides the theorem, never witnessed directly" integrity justification is false (a SEL forks under a linear IEL). Witnesses see SEL structural fields (incl. a lookup-SEL prefix) — **acceptable trust-infra exposure** over the encrypted mesh (semi-trusted `< threshold`; confirm-a-known-subject only; the exfiltration-during-a-compromise-window residual, inv 16). _(Superseded: the "sensitive subject prefix / `said(cred)` never enters a receipt" correlation protection.)_ Within KEL/IEL, all
   chain-advancing / security-relevant events earn receipts, so federation-layer divergence stays uniformly
   detectable.
 - **Receipt encoding — RESOLVED (§1g / §2c).** The receipt-SAD shape (the fields binding the event's
-  `federationPin` context, the signing witness's KEL position, and the payload-`timestamp` `τ`), the IEL/KEL-only
-  witnessing scope, and the currency/rebind machinery are settled in **§1g**. `τ` is **inside** the witness-signed
+  `federationPin` context, the signing witness's KEL position, and the payload-`timestamp` `τ`), the witnessing scope (IEL, KEL, **and SEL** — the SEL is witnessed now, area-sel §1c),
+  and the currency/rebind machinery are settled in **§1g**. `τ` is **inside** the witness-signed
   payload (else a harvested receipt's `τ` is rewritable to "now" and the §1f clock check is moot); a cut witness's
   receipt counts only within its federation-pinned key-window (`τ ≤ T_end`, §1a/§1f); the position-`terminator` is
   dropped.

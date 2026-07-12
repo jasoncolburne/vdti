@@ -1,329 +1,390 @@
 # vdti — area note: SEL (single-owner data log)
 
-**Status: FIRST CUT (2026-06-20).** This note **supersedes design-pass §3** (and the SEL-inception parts of
-§2.1/§2.2) for the SEL primitive — it folds in `inv 15` (inception tier + the fallback serial-1 floor) and the document-layer
-decisions (cred-as-a-SEL, SEL `Trm`, no registry). **Note:** §2.1's `≤1 Ixn per SEL` rule + seal-bounding still
-*hold* — only its inception-pair description changes. Driven *down* from the document/policy area, exactly as the
-document-first sequencing intended.
-**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-up/pin-down,
-[inv 5] pin-floored, [inv 10] lookup-SELs, [inv 13] divergence-scoped-to-T1-content, [inv 15] inception/pin.
+**Status: SECOND CUT (2026-07-12) — the witnessed-SEL redesign.** Supersedes the FIRST CUT's
+**divergence / witnessing** model (an unwitnessed SEL that "rides the IEL's witnessing," resolved
+cross-layer only, under the theorem _a valid SEL fork implies an IEL fork beneath it_). That model was
+**unsound** — an owner can equivocate its own SEL under a **linear** IEL (§1c), so the theorem is false.
+The shape-level decisions carry unchanged and are **re-homed** here: the kind set (now +`Sea`), the two
+tiers, the prefix derivation, cred-as-a-direct-anchored-SAD, the lookup mechanics, the fail-secure /
+fail-open reads, and the three axes (count / tier / anchor-kind). This note is written in the
+**`deadness ascends`** orientation (§1e); the system-wide `descends → ascends` sweep is a **separate
+change** (§5).
+**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-up/pin-down +
+the anchor matrix, [inv 5] pin-floored, [inv 10] lookup-SELs, [inv 12] IEL self-pricing, [inv 13]
+divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] addressing + correlation,
+[inv 17] spine + data-local detection.
 
 ## Sources
-- `vdti-log-primitive-reshape-design-pass.md` §2.1, §3 — the prior SEL model; **partially superseded here**
-  (the "every SEL is `Icp`+`Evl`" + "no SEL `Trm`" claims).
-- `vdti-area-document-policy.md` §A/§F + `inv 15` — the driving decisions.
 
-## 1. Locked-candidate — the current SEL model
+- The FIRST-CUT area note (this file's prior content) — **the delta-comparison guide**; correct on shape,
+  wrong on divergence/witnessing (the retired theorem, unwitnessed SEL, `deadness descends`). Mined, not
+  copied.
+- `.working/sel-witnessing-redesign.md` — the settled redesign this note encodes.
+- `docs/canon/vdti-area-iel.md` (the structural mold — the SEL is now a witnessed chain in the IEL's
+  shape), `docs/canon/vdti-area-federation-witnessing.md` §1e (the witnessing floor / first-seen / disputed
+  detection the SEL now inherits) — **§1g Decision 1 is REVISED by this note** (the SEL _is_ witnessed now).
+- `docs/canon/vdti-area-multi-party-documents.md` (doc / governance / version SELs), `…-delegation.md`,
+  `…-document-policy.md` §F (the kill lookup SELs).
+
+## 1. The current SEL model
+
+### 1a. SEL = a single-owner data log
+
 - **SEL = a single-owner data log.** Owner = exactly one **IEL** (its prefix). No policy, no roster, no
-  multi-party governance internally [inv 2]. Layers isolated: a SEL pins/anchors only its owner IEL [inv 3].
-- **Prefix = the `Icp`'s whole-content digest** over its populated fields — **`owner`** + `topic` + `data`
-  (shorthand `derive(owner, topic, data)`, **not** a side-tuple hash: it's the same whole-content prefix every
-  event has, so **any** field on the `Icp` enters it — adding a `pin` would break recomputation). **`owner`** =
-  the owner IEL prefix, **`Icp`-only and immutable** (a SEL has one owner for life). `topic` = an application
-  discriminator; `data` (**optional**) = nonce (non-discoverable / private) or meaningful bytes (discoverable /
-  recomputable — e.g. a rescission's `data=P`). **`topic` + derivation replace KERI's registry identifier** — no
-  registry object exists.
-- **★ `data` entropy is load-bearing (clear rule, Jason 2026-06-20).** When `data` is used for an **unpredictable**
-  prefix (a *private* SEL — the nonce that makes the prefix unguessable), it **MUST be high-entropy**. Otherwise an
-  attacker brute-forces it, recomputes the prefix, and **confirms / de-anonymizes** the locus (and a predictable
-  prefix weakens collision/uniqueness too). **Digesting `data` does NOT substitute** — a hash of low-entropy input
-  is still brute-forceable; the *input* must carry the entropy. (Parallels the IEL `Icp` `nonce` requirement.)
-  Where `data` is **deliberately discoverable** (a lookup-SEL `data = said(grant-instance)`, e.g. `data=P`), unpredictability is
-  *not* the goal — the protection there is **owner-rooting** (only the owner IEL anchors events at the locus →
-  prediction ≠ forgery), not entropy. *(Propagate to the doctrine prefix-derivation rules.)*
-- **Classification criterion = blind-recomputability, NOT discoverability (F10).** A SEL is a **lookup SEL**
-  *iff* a verifier **blind-recomputes its prefix** `derive(owner, topic, data)` from data it already holds; a
-  **content SEL** is one you are *handed*. **A credential is neither — it is a direct-anchored SAD, not a SEL**
-  (issuance SEL dropped, B1 fail-secure rework 2026-07-09; the cred block below): the issuer anchors an **issuance
-  commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an `Ixn`, and *that* anchor is
-  the validity proof — the holder **presents** the cred, it is **never looked up by address**. **Revocation** is read
-  from a **`kills[]` declaration** on the issuer's **witnessed** IEL `Rev`/`Dth` (fail-secure by default, riding
-  inv 8's freshness gate), with a content-addressed **lookup SEL** giving a fail-open fast path — never by walking a
-  cred-SEL (there is none). *(This **reverses** the create-on-revoke two-SEL model — cold/warm re-review-2 F1 broke
-  its `attribute-all` fail-secure escape hatch, so revocation moved onto the witnessed log where the fresh walk
-  already reaches it; see the cred block.)*
-  - **A credential is an anchored SAD — no issuance SEL (B1 fail-secure rework 2026-07-09).** A cred is an
-    **immutable SAD**, issued once, never appended to, **never looked up by address** — so, unlike revocation, it
-    needs **no lookup object and no cred-SEL**.
-    - **Issue** = the issuer anchors the **issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`**
-      (a flat, `:`-delimited, domain-qualified hash — **no two-pass**, there is no SEL) on its own IEL via an **`Ixn`**
-      (`manifest.anchors` names it). **That anchor is the validity proof** — an issuance commitment with no resolvable
-      anchor on the issuer's **fresh** IEL is **not validly issued**. **As-of = the anchoring position** (append-only,
-      backdate-proof — inv 5). The cred body is a SAD, **presented by the holder** (or stored by SAID for a public
-      cred). Issuance stays **T1 content** (`t_use`; forging one is a single revocable assertion — inv 15 F-I) riding
-      an ordinary IEL `Ixn`. **Custody rule (written down):** **direct-anchor an immutable SAD that is *presented*;
-      SEL-wrap anything *mutable* or *looked-up-by-address*** — the cred is the first direct-anchor case (not an
-      arbitrary exception); the revocation/rescission lookup SELs stay SEL-wrapped (they're looked up). *(Drops the
-      `Icp`/`Pin`/`v1` cred-SEL scaffolding **and the "inert serial ≥ 2" DoS machinery** — no cred-SEL to junk;
-      **keep-condition:** a cred needing mutable per-cred state beyond revocation would need a log — the model is
-      immutable + binary-revocable, so nothing to log.)*
-    - **Revocation = a `kills[]` declaration on the issuer's witnessed IEL + a content-addressed lookup SEL.** To
-      revoke, the issuer signs a **`Rev`** on its own IEL and **declares** the target in a flat **`kills[] =
-      [{ target, bound? }]`** entry (area-iel §1; a cred revocation has **no `bound`** — binary), **alongside** the
-      unchanged `anchors[] = [said(Trm)]`. **`target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`** — a
-      flat, `:`-delimited, domain-qualified hash the walk computes directly (hash a string) and matches. **The lookup
-      SEL** is a separate `{Icp, Trm}` (inv 15 forces two events) built from `Icp{owner, topic, data}` (same fields),
-      its **prefix** and **said** computed the **usual two-pass** (pass-1 digest = the fetch prefix; pass-2 = the
-      said). **`target` (flat hash) ≠ `prefix` (pass-1) ≠ `said` (pass-2)** — all computable by a holder from
-      `{owner, topic, data}`, **none derivable from another** (decorrelated), so the public `kills[]` target does
-      **not** reveal the SEL's address. `kills[]` carries the **flat target**, not `said(Trm)` (which isn't
-      precomputable — the `Trm`'s pin points at the not-yet-authored `Rev`; that non-precomputability is *why* `kills`
-      is a distinct role from `anchors`). The `Trm` (recomputable-`Icp` address, no pin/anchor; the `Trm` is the
-      anchored v1) carries **only its pin** (`Trm.pin = Rev.previous` — one-before, since the `Rev`'s SAID doesn't
-      exist yet when the `Trm` is authored), sealed on arrival via the `Rev`'s `anchors[]`. Legitimacy = the issuer's
-      **witnessed** `Rev` — a non-issuer can't declare it (**no forged revocation**), and a witnessed `Rev` + a
-      sealed monotone `Trm` can't be rolled back (**no silent un-revocation**). A `Trm` whose target is in **no**
-      `kills[]` is a terminated SEL that **isn't a revocation** → reads not-revoked; "not in any `kills[]`" **is** the
-      definition of not-revoked (no coverage rule, no hole).
-    - **Two reads; fail-secure is the DEFAULT.** (Both are the **verifier's** read strategy over structurally-valid
-      data — revocation is **not the store's concern**; R6.) **Found-fast-path (shared, both modes):** try the
-      content-addressed lookup first — **found + validated → fast refuse** (early-exit, skip the manifest scan;
-      *validated* = the `Trm` sits under a real, sealed, owner-authored `Rev`/`Dth` of the right kind — R2 — and a
-      validated kill is monotone, so refusing on it is fail-safe, needing only the roster up to that `Rev`/`Dth`);
-      **not-found → fall back** to the `kills[]` walk (fail-secure default) — or best-effort not-revoked **only** if
-      the verifier has opted fail-open / timed out. **`Trm`-existence is a *conservative proxy* for the authoritative
-      `kills[]`-membership** — `kills[]` (the declaration) and `anchors[said(Trm)]` (the lookup object) are two
-      independent roles on the `Rev`/`Dth`, coinciding **only for a canonical revocation** (both authored together) —
-      so the fast-path is **not walk-equivalent**: a `Trm` with no matching `kills[]` entry → over-refuse (fail-safe);
-      a `kills[]` with no `Trm` → the fast-path misses it, but the authoritative `kills[]` walk catches it (both
-      divergences are issuer-self-inflicted and land safe). Not an IEL/SEL rule, not a `vdtid` obligation.
-      - **Fail-secure walk (default):** walk the issuer's **fresh** IEL over `[issuance-position .. tip]`,
-        forward-matching your computed `target` against each `Rev`/`Dth`'s `kills[]` (reading `bound` from the same
-        entry for a rescission). **In some `kills[]` → revoked/rescinded; in none on the fully-walked fresh chain →
-        not revoked** — being in a `kills[]` **is** the definition of revoked, so "in none" is exactly "not revoked",
-        nothing to miss. **Both range ends are load-bearing (R1):** the floor is the **earliest** issuance-commitment
-        anchor — the **cred feature layer** resolves it as the *first* match on the fresh inception→tip walk and
-        treats a later re-anchor as **inert** (never trusting a supplied/cached later position), else a T1 `Ixn`
-        re-anchor after a T2 `Rev` would move the floor past the kill (a tier inversion the fresh tip can't catch);
-        the ceiling is the **fresh tip**. The IEL still *accepts* the re-anchoring `Ixn` as structurally valid — the
-        floor rule is a **cred-layer** rule (§Layering — the chain stays topic-opaque), cred-only (grant-epoch-scoped
-        kinds get a fresh locus, not a moved floor). **The cred walk also enforces topic↔kind (R2):** a
-        `CRED_REVOCATION_TOPIC` target counts **only** in a `Rev` (`t_govern`) — a match found only in a `Dth` is
-        **rejected** (the IEL/SEL stay topic-opaque; this is a cred-layer check). This **rides inv 8's freshness
-        gate**: the only way to hide a revocation is to show a **stale** IEL, which is exactly what a verifier already
-        refuses when trusting the issuer at all — so kill-freshness == authority-freshness, no better and no worse.
-        Streamed with the subject(s)-in-scope (delegation pattern, §1 imposes / area-iel:153), O(subjects) memory,
-        O(range) time, **no lossy cap**. **Self-contained for cred + delegate** (the `bound` is public on the IEL,
-        un-withholdable — never fetches the lookup SEL); a **doc-member** rescission's `bound` is **gated** (its `Trm`
-        commits the rescind-doc), so *that* walk **fetches** the gated doc for the bound (withheld → conservative
-        don't-honor — R3; multi-party §1).
-      - **Fail-open lookup (opt-out):** build the `Icp{owner, topic, data}` → two-pass → the SEL **prefix** → fetch
-        the lookup SEL (content-addressed, no index). **Found + validated → revoked** — validate the `Trm`'s anchoring
-        event (a real, sealed, owner-authored `Rev`/`Dth` of the **right kind** — a `CRED_REVOCATION_TOPIC` object's
-        `Trm` must sit under a `Rev`, R2); **not-found → best-effort not-revoked** (a withheld / unreachable object
-        reads not-found). For a rescission's `bound`: follow `Trm.pin` (= the `Rev`/`Dth`'s `previous`) → the event
-        that **extends** it → confirm its `anchors[]` names this `Trm` → read its `kills[]` entry. A verifier opts
-        **down** to fail-open (an app server on a walk-timeout — document-policy §F); it never opts up.
-    - **Addressing + privacy — `cred.said` appears NOWHERE raw on the public IEL (F2 / F3, inv 16).** Everything is a
-      hash of it: the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, the kill target
-      `hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, the lookup SEL's prefix/said (two-pass over an `Icp`
-      whose `data = cred.said`), and `said(Trm)` (opaque — needs the `Trm` body). A non-holder recovers none of them
-      without the **preimage** `cred.said`, and a **private** cred's `cred.said` is high-entropy (body `nonce`) → not
-      brute-forceable; the kill target derives from the **preimage**, never from a public hash, so seeing the issuance
-      commitment doesn't yield the kill target. The read is **confirm-a-known-subject, not bulk-enumerate:** you can
-      only *confirm* a subject whose cred you hold; you can't invert. A **private** cred's body is **not published**;
-      a **public** cred's is, and public revocation status is correct. **The private cred's lookup-SEL `Icp` is never
-      published either (R4):** the `Icp` carries `data = cred.said` **raw**, so it must never be stored/served — a
-      holder **recomputes** it locally (it holds the cred → knows `cred.said`) to derive the prefix, then fetches
-      **only the pin-only `Trm`** by address. So no replica ever holds `cred.said` raw, and the "CLOSED" claim rests
-      on **both** halves: a non-holder can't *compute* the address **and** the data-bearing `Icp` is never *published*
-      for a replica to hold. *(Build-constraint — a **submission/serve** discipline distinct from the §1j by-SAID
-      `kind` filter: the `vdtid` write/serve path stores/serves only the pin-only `Trm`, so a **by-prefix** fetch of a
-      revocation/rescission lookup SEL returns the `Trm`, never the data-bearing `Icp`. The §1j filter closes the
-      separate by-SAID event-harvest vector; it does not itself block an `Icp` submission — but only a
-      `cred.said`-holder can produce that `Icp`, so a stray submission self-reveals only.)* *(Neither the cred anchor
-      nor the lookup SEL is witnessed directly — §2c Decision 1; the fail-secure guarantee rides the issuer IEL's own
-      witnessing.)*
-  - **Lookup SEL** (revocation / rescission): built from `Icp{owner, topic, data}` with the **usual two-pass**
-    prefix/said — the `data` is the **grant-instance** (cred: `cred.said` @ `CRED_REVOCATION_TOPIC`; delegate:
-    `said({ grant: said(Ath), delegate: P })` @ `DLG_RSC_TOPIC`; doc-member: `hash(G | said_b)` @ `DOC_RSC_TOPIC`),
-    so a **re-grant** after a kill gets a **fresh** locus (each grant epoch → its own). The `kills[]` **target** is
-    the separate flat hash `hash('{topic}:{owner}:{data}')` (≠ prefix ≠ said — decorrelated; §cred block). The `Icp`
-    can't carry a pin — the **universal** recompute constraint — so the lookup-SEL is `{Icp, Trm}` — the **`Trm` is
-    the kill**, `Trm.pin = (Rev/Dth).previous` (one-before, since the anchor's SAID doesn't exist yet at authoring).
-    **Bound placement is per-feature (R3) — the primitive says only: a `Trm` commits whatever its manifest commits.**
-    **Cred — no bound**, the `Trm` carries **only its pin**. **Delegate — bound public in the `Rev`/`Dth`'s
-    `kills[]`** entry (un-withholdable — the fail-secure walk reads it directly), the `Trm` carries only its pin.
-    **Doc-member — bound in a gated rescind-doc *committed by the `Trm`*** (`kills[]` carries only the **blind
-    target** — a public bound would identify the member), so *that* `Trm` legitimately commits a manifest and its
-    walk **fetches** the gated doc for the bound (withheld → conservative don't-honor). So "the `Trm` carries only its
-    pin" / "self-contained, never fetches" are **cred+delegate** statements, **not** universal. **Count = `t_govern`** (revocation, `Rev`) /
-    **`t_authorize`** (rescission, `Dth`). **Always sealed:** the `Trm` is **IEL-`Rev`/`Dth`-anchored** (the
-    kill-anchor's `manifest.anchors` names the `Trm`), sealed on arrival — a kill is monotone, so there is **no
-    delayed un-kill**. Restoring the subject is a **fresh grant** (a fresh locus), never a retraction. Protected by
-    **owner-rooting**, not entropy. *(Buried events are still retained (keep-all-data) — see vdtid §5 — but never as
-    an un-kill mechanism.)*
+  multi-party governance internally [inv 2]. Layers isolated: a SEL pins/anchors only its owner IEL, and
+  its finality floors down to that IEL [inv 3].
+- **Prefix = the `Icp`'s whole-content two-pass digest** over its populated fields — **`owner`** + `topic`
+  + `data` (+ `lineage` for a reincepted lookup SEL — §1f), shorthand `derive(owner, topic, data)`. It is
+  the same whole-content prefix every event has, so **any** populated `Icp` field enters it (adding a `pin`
+  would break recomputation; the `Icp` therefore carries **no** `pin` and is floored by its serial-1 event
+  — §1h). **`owner`** = the owner IEL prefix, **`Icp`-only and immutable** (one owner for life). `topic` =
+  an application discriminator (opaque bytes to the chain — inv 3). `data` (**optional**) = a nonce
+  (non-discoverable / private) or meaningful bytes (discoverable / recomputable — e.g. a kill locus's
+  grant-instance). **`topic` + derivation replace KERI's registry identifier** — no registry object exists.
+- **★ `data` entropy is load-bearing.** Where `data` gives an **unpredictable** prefix (a private SEL — the
+  nonce that makes the prefix unguessable), it **MUST be high-entropy** — else an attacker brute-forces it,
+  recomputes the prefix, and confirms / de-anonymizes the locus. **Digesting `data` does NOT substitute** —
+  a hash of low-entropy input is still brute-forceable; the _input_ must carry the entropy. Where `data` is
+  **deliberately discoverable** (a lookup-SEL `data = said(grant-instance)`), unpredictability is not the
+  goal — the protection is **owner-rooting** (only the owner IEL anchors events at the locus → prediction ≠
+  forgery), not entropy.
+- **Classification = blind-recomputability, not discoverability.** A SEL is a **lookup SEL** _iff_ a
+  verifier **blind-recomputes its prefix** `derive(owner, topic, data)` from data it already holds; a
+  **content SEL** is one you are _handed_. **A credential is neither — it is a direct-anchored SAD, not a
+  SEL** (issuance SEL dropped, B1 fail-secure rework 2026-07-09): the issuer anchors an **issuance
+  commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an `Ixn`, and _that_
+  anchor is the validity proof — the holder **presents** the cred, it is **never looked up by address**.
+  **Revocation** is a **`kills[]` declaration** on the issuer's **witnessed** IEL `Rev` (fail-secure by
+  default, inv 8/10) + a content-addressed **lookup SEL** giving a fail-open fast path (§document-policy
+  §F). **Custody rule:** direct-anchor an immutable SAD that is _presented_; SEL-wrap anything _mutable_ or
+  _looked-up-by-address_ (inv 16).
 
-### The three axes — never conflate them (count⊥tier kept; delayed-`Trm` reversed 2026-06-21)
-1. **Count** = how many owner-IEL members must authorize (delivered via the **anchoring IEL event's** signatures):
-   `t_use` (content / issue) · `t_govern` (terminate / revoke / close) · `t_authorize` (grant / rescind a delegate or doc-member).
-   *(No `t_recover` — there is no repair.)*
-2. **Tier** = is the **rotation reserve** required? (the reserve held *apart* from the signing key) —
-   **T1** = signing key only (**content only**) · **T2** = + rotation reserve (establishment-mutation /
-   authority-grant / **any kill** — a kill must be *sealed*, and a seal is a governance act). Set by
-   **danger-of-forgery OR need-for-permanence**, **⊥ count** — count is a dial, tier is set by kind (a content `Ixn`
-   is T1 even at a high `t_use`). *(No T3 — the recovery reserve is gone; every key change is T2.)*
-3. **Anchor → finality follows the KIND (2026-06-21)**: a content **`Ixn`** rides an IEL **`Ixn`** → **first-seen /
-   buriable** (the **divergeable content kind**, as is the floor `Pin` §4 — an unsealed window is fine, content is recoverable anyway); a
-   **kill** (`Trm`) rides an IEL **`Rev`/`Dth`** → **sealed on arrival** (it *must* be — a kill is
-   monotone). **There is no delayed kill.** The anchor **kind** matches the event kind (kind-strict, inv 4); tier-elevation is then a trivial floor, not the check. *(The round-3 `content: user |
-   governing` flag is **removed** — its only intended user was the federation clock, which is **not a SEL kind**:
-   it's an **inline timestamp on each federation `Wit`'s manifest** (federation §1f). `Ixn` is plain content. Finding 8/9.)*
+### 1b. Kinds — six (the `Sea` seal-advancer is new)
 
-### Exhaustive taxonomy
+| SEL kind | Count | Tier | Anchored by (IEL) | Seal-advancing? | Finality |
+|---|---|---|---|---|---|
+| `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | no | delayed — `owner` (immutable) + `topic` + `data`? + `lineage`? (lookup only); **no manifest, no `pin`** (stays recomputable). |
+| `Ixn` (content) | `t_use` | T1 | `Ixn` | no | delayed — content SAD(s) + re-`pin`; **≤ 1 per SEL per IEL `Ixn`**; the **divergeable / first-seen content kind** (buriable). |
+| `Pin` (floor re-pin) | `t_use` | T1 | `Ixn` | no | delayed — re-pins the SEL→owner-IEL floor (top-level `pin` only). The **fallback serial-1 floor** (incept-and-sit); buriable like content. |
+| `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **yes** | **sealed on arrival** — the doc-governance grant (opens editor/commenter periods; `manifest.grant` names the gated grant-doc `G`). Non-buriable; walked back by a `Dth` rescission, never overturned. |
+| `Trm` (kill) | `t_govern` (revoke) · `t_authorize` (rescind) | **T2** | **`Rev`** (revoke) / **`Dth`** (rescind) | **yes** | **sealed on arrival** — the SEL kill. `Rev` = a revocation lookup-SEL `Trm` / app-SEL closure; `Dth` = a delegation / doc-membership rescission. Monotone, terminal-on-divergence; can't be overturned or un-done. |
+| **`Sea`** (re-seal / bury) | **`t_govern`** | **T2** | **`Evl`** | **yes** | **sealed on arrival** — the SEL's **neutral** seal-advancer (§1d): a re-seal that buries a content fork below its own seal, authored when no natural `Gnt` / `Trm` advances the seal (a plain content SEL) — the SEL analog of the KEL recovery `Rot` / the IEL roster-less `Evl`. Anchored by an IEL `Evl` (empty for a pure re-seal, or the `Evl` carries a `cut` to evict the colluding owner member(s) atomically). |
 
-  | SEL kind | Count | Tier | Anchored by (IEL) | Finality | |
-  |---|---|---|---|---|---|
-  | `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | delayed | `owner` (the owner IEL prefix, immutable) + `topic` + `data` (opt — the recompute input for a lookup SEL, e.g. `said(grant-instance)` for a kill locus); **no manifest, no `pin`** (stays recomputable for lookup). Establishes the SEL; the pin rides the serial-1 v1 (a `Trm` for a lookup SEL, a `Pin` for an incept-and-sit doc author). |
-  | `Ixn` (content) | `t_use` | T1 | `Ixn` | delayed | content SAD(s) + re-`pin`; **≤1 per SEL per IEL `Ixn`**; the **divergeable/first-seen content kind** (tier-1/buriable — as is the floor `Pin`, §4). |
-  | `Trm` | **`t_govern`** (revoke) · **`t_authorize`** (rescind) | **T2** | **`Rev`** (`t_govern`) / **`Dth`** (`t_authorize`) | **sealed on arrival** | The SEL **kill** (the kill-anchor's `manifest.anchors` names the `Trm`). `Rev` = a **revocation lookup-SEL** `Trm` (a cred's revocation) / app-SEL closure; `Dth` = a delegation **or doc-membership** **rescission** (lookup-SEL `{Icp, Trm}`). The `bound` is **per-feature (R3)**: cred **none**; **delegate** — the `Trm` carries only its pin, `bound` public in the `Dth`'s `kills[]`; **doc-member** — `bound` in a **gated rescind-doc committed by that `Trm`** (`kills[]` carries only the blind target). **Always sealed** — monotone, terminal-on-divergence (can't be overturned **F-B** / un-done **LF1**). The killed thing = which SEL its `Trm` extends, named by `kills[].target`. |
-  | `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **sealed on arrival** | The doc-governance **grant** — the **additive twin of `Trm`** (opens editor/commenter validity periods; the `Gnt`'s `manifest` names the gated grant-doc `G`). Anchored by the owner IEL's **`Ath`** (kind-strict — an `Ath` anchors **only** `Gnt`s). Sealed / seal-advancing, **non-buriable** — walked back by a rescission (a SEL `Trm` via `Dth`, or reincept), never overturned. Doc-governance SELs only (a plain SEL has no membership). |
-  | `Pin` (floor re-pin) | `t_use` | **T1** | `Ixn` | delayed | Re-pins the SEL→owner-IEL floor, carrying only the top-level `pin` (no manifest/seal). The **fallback serial-1 floor** — used only when inception batches no other event (the `Icp` can't hold a pin). **Not** seal-advancing — promotes nothing; buriable like content. |
+**Seal-advancers = `Gnt` / `Trm` / `Sea`** (each carries `previousSeal` — the spine, inv 17). **Any of them
+buries** a content fork by advancing the seal past the loser (loser below the new seal → dead —
+the SEL analog of the IEL's `Evl`/`Ath`/`Rev`/`Dth` and the KEL's `Rot`/`Wit`, where any sealing event
+buries). **`Trm` is the terminal subset** — it advances the seal but admits no successor, so it buries the
+loser by winning on tier-rank as the sole sealed branch; `Gnt` / `Sea` are non-terminal (bury by advancing
+the seal, the chain continues). **`Sea` is the neutral one** — authored when no natural `Gnt` / `Trm`
+advances the seal (a plain content SEL), the KEL recovery-`Rot` / IEL roster-less-`Evl` analog. **Buriable /
+tier-1 = `Ixn` / `Pin`**. **Dropped in the first-seen pivot:** `Fld` (the SEL re-seal — its burying job is
+now `Sea`, its page-atomic-repair job is gone with the repair machinery) and `Rpr` (no repair event).
 
-**Dropped in the first-seen pivot (2026-07-08):** `Fld` (the SEL re-seal — no repair ⇒ no page-atomicity
-requirement ⇒ no `Fld` bounding; finality still floors to the owner IEL via the `pin`) and `Rpr` (no repair event).
-So the SEL is **5 kinds** — `Icp`/`Ixn`/`Pin`/`Gnt`/`Trm` — with `Gnt`/`Trm` the seal-advancers and `Ixn`/`Pin`
-the tier-1 buriable kinds.
+### 1c. Witnessing — the SEL is its own witnessed chain (the core of the redesign) [inv 13, 14, 17]
 
-- **Imposes on the IEL side:** an IEL **`Ixn`** anchors a SEL's **serial-1 (v1) event** (a `Pin` for issue-and-sit,
-  the first content `Ixn` otherwise) via `manifest.anchors` — the **`Icp` is never anchored**, it rides via
-  `v1.previous` — **and, for a credential, anchors the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** (an immutable SAD, no cred-SEL — the
-  anchor *is* the validity proof; issuance SEL dropped 2026-07-09); a SEL **kill** is anchored by an IEL
-  **`Rev`/`Dth`** via `manifest.anchors` — a revocation lookup-SEL `Trm` (a cred's revocation) by a `Rev`
-  (`t_govern`), a rescission lookup-SEL `Trm` by a `Dth` (`t_authorize`), sealed; the `Rev`/`Dth` also carries the
-  **`kills[]`** declaration (`{target, bound?}`) naming the killed locus (area-iel §1). **The kill rides
-  a `Rev`/`Dth` because the back-check demands it** (a SEL `Trm` is valid only anchored by a `Rev`/`Dth` — inv 4), not
-  a role label. So **content rides the IEL `Ixn` rail; kills ride the IEL `Rev`/`Dth` rail** (roster/threshold changes ride
-  `Evl`). **The matrix is kind-strict (C1):** a `Rev`/`Dth` anchors **only** `Trm`s, an `Ath` **only** `Gnt`s, an `Ixn` **only** content/v1
-  — tier-elevation is an *additional* floor, not the check (else a
-  T2 `Rev`/`Dth` could host T1 content onto the durable rail — inv 4). The IEL `Ixn` stays **T1**, the `Rev`/`Dth` is **T2** — count ⊥ tier still holds. *(The federation clock is not
-  an SEL event at all — it's an inline timestamp on each federation `Wit`'s manifest; federation §1f.)*
-- **The SEL's seal-advancers are `Gnt`/`Trm`; trust-finality floors to the owner IEL.** A content `Ixn` sits in the
-  SEL's unsealed window until the SEL's next **`Gnt`/`Trm`** — then permanent (and buriable until then); `Gnt`/`Trm`
-  are the SEL's seal-advancers (`previousSeal`). A **plain** content SEL (no `Gnt`/`Trm`) never self-seals — its
-  **trust-finality floors to the owner IEL's seal via its `pin`** (it holds no trust-seal of its own), and a content
-  fork on it resolves **cross-layer** (the owner IEL buries the fork and the dead line descends across the anchor —
-  below). *(There is no SEL `Fld` re-seal — no repair ⇒ no page-atomicity requirement ⇒ no `Fld`; finality floors down.)*
-  A **kill** is **`Rev`/`Dth`-anchored → sealed on arrival**, owner-proof immediately and terminal-on-divergence.
-  **There is no delayed kill.**
-- **Divergence resolution — first-seen + cross-layer** [inv 13]: **content `Ixn` and the floor `Pin` are
-  buriable** (both T1, first-seen); a `Gnt`/`Trm` (the seal-advancing SEL kinds) is **never overturned**. A content
-  fork resolves cross-layer: the **owner IEL's burying seal** drops the loser and the dead line **descends across the
-  anchor edge** (deadness-descends) — there is no SEL repair event. Node-agnostic, **data-local** condition: **≥ 2
-  branches each carrying an accepted sealed event past the fork → disputed** (any verifier walks it — inv 13/17; the beacon
-  propagates the branches, it does not decide). E.g. `{Trm, Ixn}` → the `Trm` is the single sealed branch and **wins
-  on tier-rank**: the kill stands, the content buried non-canonical. An adversary's `Trm` in a competing branch → a
-  second sealed branch → disputed → reincept.
-- **Cross-layer anchor rules — the IEL is the SEL's clock (2026-07-01, closes cold F1).** A SEL is anchored to its
-  owner IEL (kind-strict — content `Ixn` ↔ IEL `Ixn`, etc.). Two rules govern the cross-layer:
-  - **Anchor-monotonicity** — a SEL event is valid **only if it extends its SEL's latest IEL-anchored tip** (computed
-    over the **canonical/retained IEL walk**). The check runs at SEL-validation over the anchors a node can
-    **attribute** (holds the body for); the anchor SAID is *opaque* (inv 16), so an anchor whose body a node lacks is
-    **skipped, not blocking** (*skip-unattributable* — else a withheld/lost/private body would wedge the SEL). A
-    re-anchor at an already-attributed serial is **malformed → inert** (the carrying IEL event stays valid; an inert
-    anchor never advances the tip). So a node extends each SEL it can attribute correctly.
-  - **Cross-layer deadness-descends** — a SEL event whose anchoring IEL event is dead (condemned / below-seal-inert)
-    is itself dead (the **IEL→SEL** anchor edge only — not KEL→IEL, which is forward-only).
-  **Content-fork prevention rides the theorem transitively (2026-07-02):** a witnessed SEL content fork would force
-  its two same-serial siblings to anchor at IEL content siblings at one IEL position — which the witnessing floor +
-  option (b) prevent on the witnessed owner IEL (federation §1e / inv 4) — so a witnessed SEL content fork carries
-  the **same fork-cost** and needs **no SEL-local witness gate**; the residual (witness-compromise / roster-delta
-  straddle) is the IEL's residual inherited.
-  These give the theorem *a valid SEL fork implies an IEL fork beneath it* (§7): a SEL **never forks under a linear
-  IEL** (no deadlock — skip-unattributable prevents the wedge; cold-r5 F2's transient withheld-body split
-  auto-resolves by seal order), and every genuine SEL fork rides an **IEL fork** — resolved by the owner IEL's burying
-  seal (an `Evl`, or a `cut` `Evl` when it also evicts), the losing IEL branch buried → its SEL events die **by
-  descent across the anchor edge**. A **signing-key (T1) compromise is fully deadenable**: no reserve → no sealed SEL
-  `Trm` (needs a `Rev`/`Dth`) → one recovery rotation buries the whole tail (all content) → every anchored SEL event
-  dead by descent, no reincept. The benign residual (two owner devices racing) is inert by anchor-monotonicity;
-  serialize the content rail (area-iel §5) as the operator answer.
+**The FIRST-CUT theorem is FALSE — an owner can equivocate its own SEL under a _linear_ IEL.** IEL anchors
+are **opaque** (SAID-only — inv 16, the private-lookup case), so **one IEL `Ixn` can name two competing SEL
+events at one `(SEL-prefix, serial)`** in its `anchors[]`, and the IEL cannot dedupe them (it can't tell
+two opaque SAIDs are the same SEL/serial). A node that holds only branch A attributes A as the tip and, by
+**skip-unattributable** (inv 4 — an anchor whose body a node lacks is skipped, not blocking), never sees B;
+a node holding only B reads B. Both read a **linear** IEL and a **single** tip — but **different** tips.
+That is equivocation-by-withholding under a linear IEL, so _a valid SEL fork implies an IEL fork_ is false.
+(Two _separate_ IEL `Ixn`s naming competing SEL events is fine — IEL order disambiguates convergently; only
+the **one-`Ixn`-names-two** case breaks it. A position-token bolted onto the opaque anchor was rejected — it
+would leak the SEL prefix onto the public IEL _and_ only work if SELs were 1:1 with IELs, which they never
+are.) SELs are **one-to-many** with IELs, so SEL divergence is **not** a function of IEL divergence — the
+SEL needs its **own** witnessed state.
 
-## 2. Superseded — do NOT carry (from design-pass §3)
-- **"Every SEL is `Icp`+`Evl`"** → **lookup-SELs** are `Icp` + `Trm` (the revocation/rescission kill); content SELs are `Icp` + a serial-1 event (the first `Ixn`, or a bare `Pin` when incept-and-sit) + `Ixn`s. The serial-1-event floor is universal; the old SEL `Evl` / rescission-`Pin` is gone. *(A credential is **not** a SEL — it is an anchored SAD; issuance SEL dropped 2026-07-09.)*
-- **"No SEL `Trm`; soft-close only"** → SEL **`Trm`** is back — **`t_govern` count, T2, always sealed (via `Rev`/`Dth`)** =
-  revoke/close. The removal was premised on a now-retired anchor problem in the **pre-first-seen recovery-reserve
-  tier** that the **count⊥tier** decoupling — and the two-tier collapse — sidesteps.
-  *(The "T2, sealed-on-arrival via a dedicated kill-anchor" framing was right all along; the F3 **delayed-`Trm`** was the error and
-  is **reversed** 2026-06-21 — a kill is monotone, so it can't be unsealed.)*
-- **Registry SEL / registry identifier** → gone; a cred is a **direct-anchored SAD** (issuance SEL dropped 2026-07-09), its revocation/rescission **lookup SEL** built from `Icp{owner, topic, data}` (usual two-pass), with distinct per-kind topics (`CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`) and a flat `kills[]` target `hash('{topic}:{owner}:{data}')`.
+**The model — the SEL is a witnessed chain in the IEL's mold:**
+
+- **First-seen at its own `(prefix, serial)`**, threshold-acceptance, **inheriting the owner IEL's
+  federation** (same witnesses, no new trust root; selection deterministic on `(SEL-prefix, serial)` +
+  the inherited `roster(F @ context)`, and the SEL inherits the owner IEL's witness-config and
+  `federationPin` — inv 4:`witnesses` / federation §1e).
+- **Content (`Ixn` / `Pin`) → first-seen:** witnesses take the first content event at a position and
+  decline the copies; with the **witnessing floor** `threshold > signers/2` (federation §1e) two content
+  siblings can't both reach threshold, so an honest content fork **cannot form** — it is _prevented_, not
+  detected. The residual (a content fork that forms) is a **witness compromise** owning the intersection
+  (fork-cost `2·threshold − signers`) — it reads `forked` (fail-secure) and resolves by a burying
+  seal-advancer (§1e).
+- **Seals (`Gnt` / `Trm` / `Sea`) → first-seen at the position + retained for detection:** witnesses sign
+  the **first** sealed sibling and decline later ones (the sealed twin of one-content-sibling — federation
+  §1e, revised 2026-07-11), yet both branches are **retained** so the data-local walk detects `≥ 2`. A
+  sealed branch is **never buriable**, so a **second accepted** sealed branch → **`disputed` → reincept**
+  (it requires `≥ 2·threshold − signers` colluding double-signers — provable witness collusion). A
+  witness-**declined** sealed sibling is **deferred-pending / droppable** (a spent-preimage or partition
+  race, no fault).
+- **Anchoring and witnessing are distinct roles now.** Each SEL event is still **IEL-anchored** — the
+  anchor supplies **owner authorization** (the anchoring IEL event's threshold — a SEL has no key of its
+  own) and the **finality floor** (the down-`pin`, inv 5). The SEL's **own witnessing** supplies
+  **fork-prevention / detection** (first-seen at `(SEL-prefix, serial)`). The anchor no longer carries the
+  fork-prevention it could not deliver (skip-unattributable defeated it); witnessing does.
+- **The anchor and the witnessing ride one batch — so witnessing prevents authorship-forgery too, not only
+  equivocation.** A SEL event is committed **only as a batch with its owner-IEL anchor**: it is event-kinded,
+  so it cannot enter the SAD store (the `kind` filter — vdtid-services §1j / inv 16), and on the event path an
+  `Icp` is invalid without its **anchored `v1`** (§1h). The batched anchor is an **owner-signed IEL event**
+  the witness validates (its normal IEL-witnessing job), so **witness-acceptance requires owner-authorization**
+  — a **non-owner produces no valid anchor → nothing lands at any locus**, value-bearing or private-cred alike
+  (there is no "well-formed-but-unanchored event witnessed first-seen"). Witnessing thus closes **both**
+  threats: **equivocation** (first-seen at the SEL `(prefix, serial)` — one owner double-authoring two SEL
+  events at one position, the hole diagnosed above) **and authorship-forgery** (the owner-signed anchor rides
+  the batch). The witness **needn't recompute `derive(owner, topic, data)`** for a lookup SEL whose `Icp` is
+  **never published** (inv 16 R4) — it holds the `v1`'s SAID / kind / linkage and the anchor, never the `Icp`
+  body (and must not — else `cred.said` would reach a witness); that is a **privacy** property, **not** a
+  forgery gap, since the owner-signed anchor closes forgery whether or not the witness can derive the prefix.
+  The consumer's **owner-rooting / `Icp.owner` check (inv 15 S1)** is **end-verifiability** — independently
+  re-deriving the prefix and re-checking the anchor against the data it holds (trust the data, not the witness)
+  — **not** the sole barrier.
+- **Privacy — witnesses see SEL structural fields; acceptable trust-infra exposure.** Witnessing the SEL
+  puts its structural fields — including a lookup-SEL **prefix** — onto the witness mesh (in the receipt's
+  `chain_prefix`, and in the event bodies witnesses sub-gossip). This is **not** a public leak: all mesh
+  traffic is **encrypted** (ML-KEM-1024 + AES-256-GCM — federation §1e), so the exposure is to
+  **federation members only**, who are **semi-trusted infra** (trusted _not to be generally compromised_ —
+  the `< threshold` byzantine assumption — never trusted for end-verifiability). The **credential meaning is
+  never a witness's concern** — a witness gates **structure + first-seen + threshold**; the `Icp.owner`
+  check, revocation status, and policy live at the **application/consumer** layer (`lib/vdti`,
+  document-policy R1), and the data-bearing lookup-SEL `Icp` (carrying `data = cred.said` raw) is **never
+  published** (inv 16 R4), so `cred.said` never reaches a witness. A lookup-SEL prefix in a receipt is an
+  **unguessable** value decorrelated from the issuance commitment and kill target (three hashes of the same
+  preimage), so a witness holding it can only **confirm-a-known-subject** (the residual inv 16 already
+  accepts), never invert or bulk-enumerate. **Residual — exfiltration during the compromise window:** a
+  witness compromised _before_ its compromise is obvious and it is **cut** (federation `Wit`) could
+  exfiltrate the SEL structural data it holds; bounded by (a) compromise being **loud → eviction** and (b)
+  the exfiltrated prefixes being unguessable (confirm-a-known-subject only). Same class as the existing
+  `< threshold`-byzantine detection residual, not a new hole. **This REVISES federation-witnessing §1g
+  Decision 1** ("a SEL is never witnessed directly") — the SEL _is_ witnessed now; the receipt-batching
+  "collapses out" claim and inv 16's "no receipt carries a lookup-SEL prefix" clause are superseded (§2).
+
+### 1d. `Sea` — the SEL's neutral seal-advancer (the locked-below-seal residual) [inv 4, 12, 13]
+
+- **Why `Sea` is genuinely needed.** The IEL is **structurally blind** to SEL forks (layer isolation inv 3
+  + opaque anchors inv 16): it anchors SAIDs it cannot interpret and seals by its own clock, so **nothing
+  at the IEL layer can constrain a seal on account of a SEL fork**. When a witness-compromise content fork
+  forms and the IEL then seals **past** the double-anchoring `Ixn`, that anchor is **live _and_ locked** —
+  on the canonical IEL chain (so not dead → not severable) but below the IEL seal (so not buriable → the
+  locked-portion bound). The live SEL content fork it created is now unreachable by **both** severance
+  (§1e) and IEL-rebury. The exit is a **fresh SEL seal-advancer at the tip** that buries the loser below its own seal — and for a
+  **plain content SEL** (no natural `Gnt` / `Trm`) that seal-advancer is a **`Sea`** (the neutral re-seal),
+  anchored by a **fresh IEL `Evl`** at the IEL tip. (A doc-governance SEL could bury the same fork with a
+  `Gnt`, a lookup SEL with a `Trm`; `Sea` is the option for the SEL that has neither.)
+  Severance is **not** the SEL's recovery: it is an incidental byproduct of IEL divergences that happen for
+  the IEL's own reasons (the common-case cleanup), never something to rely on. The same IEL blindness forces
+  **both** halves symmetrically — the SEL can't lean on the IEL to _see_ its forks (→ witness itself) or to
+  _resolve_ them (→ own recovery `Sea`).
+- **`Sea` is `t_govern`, anchored by an IEL `Evl` (kind-strict `Sea ← Evl`).** It **overrides content**
+  (picks a winner among competing branches), so it must be gated **above** content-authoring by the owner's
+  governance authority — matching the KEL recovery `Rot` (T2) and the IEL burying `Evl` (`t_govern`). The
+  `Evl` is **empty** for a pure re-seal, or carries a **`cut`** to evict the colluding owner member(s)
+  **atomically** with the bury (the same timing-attack closure as an IEL eviction, inv 13 — a still-rostered
+  culprit would else race a fresh fork at the resolved tip). `Sea` is a busy owner's re-seal channel too —
+  the SEL analog of the IEL re-sealing via a roster-less `Evl` (area-iel §1), reusing `Evl`, no new IEL
+  kind.
+- **`Sea ← Evl` gives the IEL `Evl` an `anchors` role — RESOLVED (Jason 2026-07-12: "put `anchors` on
+  `Evl`"; landed in inv 4).** A `Sea` anchor is **back-checked** (kind-strict `Sea ← Evl`, like `Trm ←
+  Rev`/`Dth`), so it is _not_ a directly-consumed role and the kind→role gate (S1) is untouched. And `Sea`
+  is `t_govern` = the `Evl`'s own count, so there is **no count-laundering** (the original S1 concern — a
+  roster change priced at a kill's count). The precedent that an IEL kind carries a role _and_ `anchors` is
+  `Ath` (`delegates` + `anchors → Gnt`). inv 12's "no kind both anchors a payload **and** mutates
+  establishment state" is restated as **count-integrity** (landed): a `+cut` `Evl` anchoring a `Sea` mutates
+  its own roster _and_ anchors a payload, but at **one** count (`t_govern`), so nothing is laundered.
+
+### 1e. Divergence & recovery — `deadness ascends`; deadness-precedence; severance-truncation [inv 13, 17]
+
+- **Directional orientation — `deadness ascends`.** The trust model is foundation-at-bottom (KEL → IEL →
+  SEL, built upward); deadness flows along the anchoring edge from a dead authorizer (below) to what it
+  authorized (above) = **up**. The rule keeps its statement — **an event whose parent is dead is dead** —
+  only the label flips from the FIRST CUT's `deadness descends`. (System-wide relabel = a **separate
+  change**, §5; this note is written in the new orientation from the start.)
+- **A SEL's state has two independent inputs:** (1) its **own witnessed divergence** (a content fork via
+  witness collusion → `Sea`-recover; `≥ 2` sealed → `disputed`), and (2) **inherited IEL deadness** (an
+  anchor on a dead IEL branch **severs** the SEL — below).
+- **Inherited IEL deadness SEVERS the SEL chain.** When an IEL burial kills a SEL event's anchor, it does
+  not merely mark that event dead — it **disconnects the chain**. The SEL's later events were anchored
+  **through** that now-dead IEL lineage, and with **no repair event** to re-root, the portion after the
+  **earliest** dead anchor **cannot be connected to a valid anchor lineage → cannot be verified** (verifying
+  it means trusting the buried IEL branch — a lie). So the SEL is valid up to the earliest dead-anchor point
+  and **severed (dead + un-verifiable) from there**; the pre-sever portion stays live; there is **no
+  continuation on the same chain**. The severed portion is the **dead-branch author's** work — un-rescuable
+  by re-pointing to the surviving IEL branch (a different author). A SEL portion that **pre-exists** the IEL
+  fork rides the shared pre-fork lineage → not severed. If no anchor sits on a dead IEL branch, the SEL is
+  untouched.
+- **`Severed` is a truncation, NOT a fifth state.** It shrinks the SEL to its last live-anchored event;
+  after that the chain reads one of the four live states — **Active / Forked / Disputed / Terminated** —
+  mirroring the IEL's four-state machine.
+- **Deadness takes precedence over `Sea`.** You never bury something already dead. A content fork with one
+  **dead** (severed) branch **auto-resolves** to the live branch — the SEL shrinks to the shared tip and the
+  surviving author extends from there; **no `Sea`**. Both branches dead → severed at the fork. `Sea` (and the
+  sealed → `disputed` escalation) exist **only** for the **all-live** case. **Severance downgrades a
+  Disputed:** one of `≥ 2` sealed branches severed → un-verifiable → **not counted** → the reading drops to
+  the live branch (recoverable); a Disputed under a **linear** IEL (both anchors locked-live, no severance
+  available) stays terminal → **reincept**.
+- **Content-fork resolution keys on where the losing anchor sits:** dead IEL branch → **severance** (free,
+  common case); live and at/above the IEL seal → the owner's choice (an IEL-rebury → severance, _or_ a
+  `Sea`); live and **below the seal** (locked) → a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if
+  natural, else a **`Sea`** — §1d); losing branch **sealed** (`≥ 2`) → **`disputed` → reincept** (no
+  seal-advancer can bury a seal). Crossed cases all resolve: SEL-forked-under-a-linear-IEL → a SEL
+  seal-advancer (`Sea` for a plain content SEL); linear-SEL-under-a-forked-IEL → severance-truncation; both →
+  deadness takes precedence.
+- **The full case matrix lands in `sel/reconciliation.md`** (mirroring `iel/reconciliation.md`'s four-matrix
+  structure — a correctness proof), not in this note.
+- **No true threat at resolution — accommodate the data shape.** The SEL is the owner's own log; a fork is
+  the owner's own mess (racing devices / a confused sub-quorum), not external attack. The one real threat —
+  **equivocation** on a kill-bearing SEL — is neutralized **upstream** by witnessing (a live fork reads
+  Forked/Disputed → the consumer fails secure). So at resolution there's no adversary to race; we just make
+  every resulting shape verifiable (end-verifiability).
+
+### 1f. Reincept of a deterministic-prefix (lookup) SEL — the `lineage` field [inv 10, 16]
+
+- **The problem.** A lookup SEL's prefix `derive(owner, topic, data)` is a pure function of fixed inputs
+  (no nonce to reroll), so a killed / disputed lookup SEL **cannot reincept** by rerolling randomness — the
+  same inputs recompute the same dead address.
+- **The mechanism — a monotonic top-level `lineage` field** on **lookup-SEL `Icp`s only** (legible where it
+  matters; **absent → `0`** under the hood — the derivation for lineage 0 omits the field; a reincept adds
+  `lineage: 1`, `lineage: 2`, … → distinct whole-content → distinct prefixes). **Canonical = the lowest
+  non-dead lineage;** a lineage above a live one is **inert** (owner-rooted → an equivocation attempt fails
+  safe: "anything above a live one is an attack").
+- **The verifier walk is UNIFORM and semantics-blind** (topic-opacity, inv 3): compute the address at
+  lineage 0; **dead (Disputed / severed) → advance to the next lineage; live / validly-`Terminated` /
+  absent → stop.** Contiguous from 0 — a gap ends the walk (also the anti-equivocation property).
+  **`Terminated` is a STOP, not a DEAD** — a kill lookup's `Trm` is its **success**; treating it as dead
+  would walk past a real revocation to an empty lineage → **fail-open** (the load-bearing trap). Cap
+  **`MAXIMUM_SEL_LINEAGE = 64`** (a definite constant, reusing the existing 64 bound; past it → no live
+  instance → fail-secure).
+- **Why load-bearing — the _value-bearing_ lookup, not the monotone kill.** The walk is uniform, but the
+  _need_ differs by semantics **at the feature layer, never in the verifier**. A **monotone kill**
+  (revocation / rescission) is authoritative on the IEL `kills[]` with a **fail-secure fallback** — a dead
+  lookup only degrades the fail-open fast-path, so it never advances (stays `0`) — the fail-open **kill**
+  fast-path is a **single fetch at lineage 0** (any `Trm` present → revoked, a disputed locus included), never
+  the advancing `lineage` walk (that walk is the _value-bearing_ recovery mechanism); every dispute branch means
+  the same thing ("killed"), so there is nothing to resolve, and its equivocation is benign (which is why
+  the kill SELs don't _need_ witnessing for correctness, though they get it uniformly). A **value-bearing
+  lookup** — a **KEM public key** (a _system_ capability: witnesses and users both) — has **no IEL
+  fallback**: the SEL's own live state _is_ the authority, a dispute is genuine ambiguity (a sender can't
+  safely pick a key → fails closed), and a collusion-forced dead locus is a real **DoS on secure receive**.
+  `lineage` is what lets the owner re-establish a live key at a discoverable address.
+
+### 1g. The three axes — never conflate them (count ⊥ tier)
+
+1. **Count** = how many owner-IEL members must authorize (delivered via the **anchoring IEL event's**
+   signatures): `t_use` (content) · `t_govern` (revoke / close / **`Sea` bury**) · `t_authorize` (grant /
+   rescind). _(No `t_recover` — there is no repair.)_
+2. **Tier** = is the **rotation reserve** required? **T1** = signing key only (**content only**: `Ixn` /
+   `Pin`) · **T2** = + rotation reserve (any seal-advancer: `Gnt` / `Trm` / **`Sea`**). Set by
+   danger-of-forgery **OR** need-for-permanence, **⊥ count** (a content `Ixn` is T1 even at a high `t_use`).
+3. **Anchor → finality follows the KIND.** A content **`Ixn`** / **`Pin`** rides an IEL **`Ixn`** →
+   first-seen / buriable; a **`Gnt`** rides an IEL **`Ath`**, a **`Trm`** an IEL **`Rev`/`Dth`**, a **`Sea`**
+   an IEL **`Evl`** → **sealed on arrival**. The anchor **kind** matches the event kind (**kind-strict**,
+   inv 4); tier-elevation is a trivial floor, not the check.
+
+### 1h. Inception — every SEL's `Icp` is floored by its serial-1 event [inv 15]
+
+- **SEL `Icp` = T1** (it establishes single-owner _data_, not governance). It carries **no `pin`** (must stay
+  recomputable) → it is **floored by its serial-1 event** (its **v1**), which carries the pin the `Icp`
+  can't (`pin == anchoring IEL event.previous`). **The IEL anchors the v1, never the `Icp`** — the `Icp`
+  rides via `v1.previous`. So every SEL reads `{Icp, v1, …}`; a fabricated bare `{Icp}` naming a victim owner
+  is **not** evidence of issuance (authentication is the v1's anchor — inv 15 S1).
+- **Which event is v1:** a content SEL's is the first content `Ixn`, or a bare **`Pin`** for an
+  incept-and-sit SEL (a doc author who endorses before editing); a **lookup SEL's is its `Trm`** (`{Icp,
+  Trm}` — born-to-kill, no separate `Pin`). The `Pin` kind, when used, does **only** the floor re-pin
+  (`t_use` / T1, not sealing).
+
+### 1i. Imposes on the IEL side
+
+- **Content rides the IEL `Ixn` rail; grants the `Ath` rail; kills the `Rev`/`Dth` rail; `Sea` the `Evl`
+  rail.** An IEL **`Ixn`** anchors a content SEL's **v1** (a `Pin`, or the first content `Ixn`) and each
+  later content `Ixn` (≤ 1 per SEL per IEL `Ixn`), **and** a credential's **issuance commitment**
+  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` directly (an immutable SAD, no cred-SEL). An IEL
+  **`Ath`** anchors a **`Gnt`**; an IEL **`Rev`/`Dth`** anchors a **`Trm`** (the `Rev`/`Dth` also carrying
+  the **`kills[]`** declaration naming the killed locus); an IEL **`Evl`** anchors a **`Sea`** (§1d — the new
+  pairing). **The matrix is kind-strict both directions** (a `Rev`/`Dth` anchors only `Trm`s, an `Ath` only
+  `Gnt`s, an `Evl` only `Sea`s, an `Ixn` only content/v1) — tier-elevation is an additional floor, not the
+  check (inv 4 C1).
+- **The SEL inherits its owner IEL's witness-config and federation** (single-owner — nothing to declare,
+  like the federation binding it already inherits) for its own witnessing (§1c).
+
+## 2. Superseded — do NOT carry (from the FIRST CUT)
+
+- **"The SEL is unwitnessed / rides the IEL's witnessing."** → The SEL is its **own witnessed chain** (§1c).
+- **The theorem _a valid SEL fork implies an IEL fork beneath it_ / "a SEL never forks under a linear IEL" /
+  anchor-monotonicity as the fork-prevention.** → **RETIRED** (§1c): a SEL forks under a linear IEL via the
+  opaque-anchor hole. Fork-prevention is now the SEL's **own witnessing** (first-seen). The anchor's
+  re-anchor-at-an-already-attributed-serial-is-inert rule may survive as defense-in-depth (§4), but no longer
+  bears fork-prevention. **This ripples to** inv 4 (the anchor-monotonicity paragraph), inv 13 (the
+  cross-layer theorem), area-iel §1 (anchor-monotonicity), federation-witnessing §1e/§1g/§4 (the "SEL rides
+  the theorem" + "never witnessed" claims), and multi-party §3 (version-SEL linearity + "dies by cross-layer
+  deadness-descends") — targeted edits LANDED 2026-07-12 (§5).
+- **"Content fork resolves cross-layer only" / "`{Trm, Ixn}` wins on tier-rank cross-layer" / the
+  cross-layer anchor rules ("Cross-layer deadness-descends", anchor-monotonicity as the total-order).** →
+  Divergence is now the SEL's own witnessed state (`Sea` / `disputed`) **×** inherited IEL-deadness
+  **severance** (§1e).
+- **`deadness descends`** → **`deadness ascends`** (§1e; system-wide sweep is separate, §5).
+- **"So the SEL is 5 kinds."** → **six** — `Icp`/`Ixn`/`Pin`/`Gnt`/`Trm`/**`Sea`**.
+- **federation-witnessing §1g Decision 1 "a SEL is never witnessed directly" + the receipt-batching
+  "collapses out" claim + inv 16's "no receipt carries a lookup-SEL prefix" clause** → the SEL **is**
+  witnessed (§1c); witnesses see SEL structural fields as acceptable trust-infra exposure, with the
+  exfiltration-during-compromise residual stated. Targeted edits to those canon sites LANDED 2026-07-12 (§5).
 
 ## 3. Requirements satisfied / imposed
-- Satisfies **R1** (no policy on the SEL — auth is the owner IEL's structural threshold), **R2** (SEL
-  verification must be tokenizable — position-addressable), **R3** (a `pin` to a SEL position yields the state
+
+- Satisfies **R1** (no policy on the SEL — auth is the owner IEL's structural threshold + the SEL's own
+  witnessing), **R2** (position-addressable, tokenizable verification), **R3** (a `pin` yields the state
   token + committed-anchor proof).
-- **Imposes on the IEL:** the IEL anchors (a) a content SEL's **v1** (a serial-1 `Pin`, or the first content `Ixn`) via an IEL `Ixn` (`t_use`, ≤1/SEL —
-  the `Icp` rides `v1.previous`, never anchored — inv 4) **and a credential's issuance commitment
-  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` directly** (an immutable SAD, no cred-SEL — issuance SEL dropped
-  2026-07-09; `said(cred)` is never raw on the IEL, R5; the anchor is the validity proof), (b) a
-  lookup `Icp` + its `Trm` (rescission kill) via an IEL `Dth` (sealed), (c) a **revocation lookup-SEL** `Trm` (a cred's revocation) via an IEL
-  `Rev` (sealed) — the `Rev`/`Dth` also carrying the **`kills[]`** declaration naming the killed locus, (d) a doc-governance **`Gnt`** (grant) via an IEL **`Ath`** (sealed — the
-  additive twin of the `Dth`-rescission; the `@`-slot notation is retired — the count is implied by the kind). **Kills ride the IEL `Rev`/`Dth` rail; grants the IEL `Ath` rail; content the
-  IEL `Ixn` rail.** *(There is no SEL `Fld`/`Rpr` — no re-seal, no repair; a content fork resolves cross-layer.)*
-- **Count travels with the anchored event's KIND — re-scoped: every IEL kind prices itself (Jason 2026-06-20/21).**
-  The required count for an anchored SEL event is set by **its kind** (`t_use` content · `t_govern` `Trm`-kill ·
-  `t_authorize` `Gnt` grant / lookup-SEL `Trm` rescind) and checked as a **parameter of the anchor-verification call**: when the walk
-  resolves the anchor it already holds both the anchored event (kind ⇒ required count) and the anchoring IEL event
-  (counts its sigs), so it checks in one pass. Content rides an IEL `Ixn` (T1); a kill rides an IEL **`Rev`/`Dth`** (T2,
-  sealed), whose kind (`Rev` = `t_govern`, `Dth` = `t_authorize`) names the count — **backed** by the kill-anchor's own
-  sigs and **demanded** by the anchored kill's kind. **Re-scoped (2026-06-21):** the rule is safe because **every
-  IEL kind does exactly one job** ([inv 12]); the old IEL `Evl`-anchors-a-kill conflation (a roster change riding
-  at a kill's count, **S1**) is gone — `Evl` is roster-only. *(IEL + vdtid-services notes to absorb.)*
+- **Imposes on the IEL:** the `Sea ← Evl` anchor pairing (§1d/§1i — the inv-4/inv-12 refinement, §4); a SEL
+  is witnessed at its own `(prefix, serial)` inheriting the owner IEL's federation (§1c — the
+  federation-witnessing §1g revision).
+- **Imposes on the witnessing layer:** SEL events earn their own receipts (the receipt scope expands beyond
+  IEL/KEL — federation §1g), so the receipt-skew / forward-of-confirmed-tip machinery (federation §5)
+  applies to SELs too.
 
 ## 4. Open / for the adversarial pass
-- **`Fld` (the SEL re-seal) is DROPPED (first-seen, 2026-07-08).** The `Fld` existed to cap the content run for
-  **page-atomic repair**. With no repair event, there is **no page-atomicity requirement**, so `Fld` bounds nothing
-  and is removed — the earlier "the SEL must fold itself; 'just don't fold the SEL' was a rejected carve-out"
-  (area-sel §4's NOT-transitive finding, Jason 2026-06-27) is superseded: rejecting it was correct *when a SEL
-  divergence needed a page-atomic repair*; there is no such repair now, so a plain content SEL simply never self-seals
-  and its **finality floors to the owner IEL via its `pin`**. The `Pin` (floor re-pin, `t_use`/**T1**, not
-  seal-advancing) stays for the incept-and-sit serial-1 floor. SEL seal-advancers = **`Gnt`/`Trm`**; tier-1/buriable =
-  `Ixn`/`Pin`. A **rescission** is a terminal **`Trm`** (`t_authorize`, T2, sealed); bound placement is **per-feature**
-  (R3) — a **delegate** `Trm` carries only its pin (`bound` public in the `Dth`'s `kills[]`); a **doc-member** `Trm`
-  commits a gated rescind-doc carrying the `bound` (2026-07-09/10).
-- **Cred body `pin` — DROPPED (Jason 2026-06-26).** The body `pin` was redundant with the anchoring position (the
-  as-of is the **anchoring position**, inv 5, not a self-asserted value). So the cred body carries **no `pin`**; the
-  doc-layer as-of is read from the **anchoring IEL `Ixn`** that commits the cred's **issuance commitment**
-  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` (the cred is anchored directly — no cred-SEL as of 2026-07-09;
-  `said(cred)` never appears raw on the IEL, R5). Propagated to documents.md / protocol-doctrine / inv 5 / inv 15.
-- **Naming — RESOLVED (Finding 12; refined 2026-06-27; first-seen 2026-07-08):** the SEL **floor re-pin** kind is
-  **`Pin`** (carries only the `pin`); the rescission `bound` rides the `Dth`'s **`kills[]`** (moved off the `Trm` —
-  2026-07-09; the `Trm` carries only its pin — **the delegate case**; a **doc-member** bound is participant-identifying
-  and instead rides a **gated rescind-doc committed by the `Trm`**, R3 / multi-party §1). The old SEL `Evl` is
-  fully retired; its re-seal job (`Fld`) is **dropped** with the repair machinery — a plain content SEL floors down to
-  the owner IEL instead. Cross-layer `Trm` (KEL/SEL/IEL) is **not** renamed (same act at three layers) — the docs
-  just **qualify it by layer** (`KEL-Trm` / `SEL-Trm` / `IEL-Trm`).
-- **Public-cred uniqueness — RESOLVED (G4, refined 2026-06-21; cred = direct-anchored SAD 2026-07-09).**
-  **`cred.said`** is the preimage the issuer commits (issuance = `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`,
-  the validity proof) **and** the `data` for the revocation kill-target
-  (`hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`); the body holds (`nonce` if private). Because the SAID is over the
-  **whole** body, **any two non-identical creds get distinct `said(cred)`** — it differs whenever *any* body field
-  differs (`claims`, `policy`, `issuee`, `expires`, `nonce`). So the public-cred collision is closed **by
-  construction**: two public creds differing in `policy` have different SADs → different `said(cred)` → distinct
-  anchors + distinct kill loci; only **byte-identical** creds share a SAID → **dedup** (content-addressed, idempotent
-  submit). Private creds get unpredictability from the `nonce`-in-body. *(Supersedes the round-4 `data = {pin,
-  body-digest}` fix and the create-on-revoke "`data` = the issuance-SEL derivation" — there is no issuance SEL; the
-  cred is anchored directly.)*
-- **Lookup-SEL rescission = `{Icp, Trm}` — RESOLVED (Jason 2026-06-26).** The rescission's terminal event **is** a
-  `Trm` (a kill — `Trm` is the kill kind; symmetric with cred revocation: both → a SEL `Trm` under a kill-anchor, differing
-  only by kind — a `Rev` for the revocation, a `Dth` for the rescission). Sealed on arrival, monotone — you never un-rescind (restoring a delegate is a **fresh grant**). The
-  `Trm` carries **only its pin**; the **`bound` moved to the `Dth`'s `kills[]`** entry (`{target, bound}`,
-  un-withholdable on the witnessed IEL — B1 fail-secure rework 2026-07-09; area-iel §1), and the `Dth`'s
-  `manifest.anchors` names the `Trm`. **This is the cred+delegate case** — a **doc-member** rescission's `bound` is
-  participant-identifying, so it rides a **gated rescind-doc committed by the `Trm`** and `kills[]` carries only the
-  blind target (R3 / multi-party §1); "the `Trm` carries only its pin / the bound rides `kills[]`" is **not**
-  universal. *(Supersedes the earlier "no `Trm` needed, the pin-carrier is the kill" — the
-  kill is correctly a `Trm`; the `Pin` is the floor re-pin. Also supersedes "the `Trm` carries the `bound`" — the
-  bound is now on `kills[]` so the fail-secure walk reads it without fetching the object.)*
-- **Content `Icp` collision/divergence — RESOLVED (2026-06-20): rests on the high-entropy-`data` rule (§1).**
-  "Collision needs a Blake3 preimage → no" is **insufficient alone** — it silently assumes high-entropy `data`.
-  With low-entropy/predictable `data` the prefix is guessable and collision/camping/de-anon reopen. The actual
-  guarantee is the **`data`-entropy rule** (§1) for unpredictable prefixes **+ owner-rooting** for discoverable ones.
 
-## 5. Drift → land backlog
-- **Reconcile design-pass §3** (+ the §2.2 SEL-inception row) to this note (the `Icp`+`Evl`-always + no-`Trm`
-  claims). §2.1's `≤1 Ixn` rule is unchanged.
-- Write `docs/design/primitives/data/event-logs/sel/` fresh from this note.
+- **The `Sea ← Evl` anchor + the inv-12 restatement — RESOLVED (Jason 2026-07-12: "put `anchors` on `Evl`").**
+  The IEL `Evl` gains an `anchors` role (inv 4) so it can anchor a `Sea`, and inv 12's "no kind both anchors
+  a payload **and** mutates establishment state" is restated as the **count-integrity** invariant it actually
+  protects (no anchor of a payload at a count _below_ its establishment mutation's — no laundering). A `+cut`
+  `Evl` anchoring a `Sea` mutates its roster _and_ anchors a payload, but both at `t_govern`, so nothing is
+  laundered (§1d); the `Sea` anchor is back-checked (`Sea ← Evl` kind-strict), so the kind→role gate is
+  untouched. Landed in inv 4 / inv 12 / area-iel §1.
+- **Anchor-monotonicity's residual role.** With witnessing bearing fork-prevention, does the
+  re-anchor-at-an-already-attributed-serial-is-inert rule survive as a structural defense-in-depth check (a
+  node validating without full witnessing state), or is it fully subsumed by first-seen? Decide at the
+  encode.
+- **The full divergence matrix** (Axis A: the SEL's own witnessed state × Axis B: inherited IEL deadness,
+  composed by deadness-precedence) is worked out (§1e) but its **cells are drawn in `sel/reconciliation.md`**
+  at the design-doc encode, not here.
 
-## 6. Confidence
-- §1 — high (direct consequence of `inv 15` + the document-layer decisions, which Jason drove this session).
-- §4 — the field-placement + content-window items are detail for the adversarial pass; not load-bearing blockers.
+## 5. Drift → land backlog (canonical docs)
+
+- **Write `docs/design/primitives/data/event-logs/sel/` fresh** from this note (greenfield voice, no jargon,
+  human-readable slug refs): `log.md` (four-state machine, prefix + `lineage` derivation, witnessed chain,
+  locked-portion bound), `events.md` (the six kinds incl. `Sea`, two tiers, anchor reqs, seal cap),
+  `merge.md` (first-seen decline, the merge outcomes), `reconciliation.md` (the **exhaustive divergence
+  matrix** — the correctness proof, mirroring `iel/reconciliation.md`), `verification.md` (the walk incl.
+  the uniform semantics-blind `lineage` walk).
+- **Targeted interlocking canon edits — LANDED 2026-07-12 (the theorem-retirement + witnessed-SEL ripple):**
+  inv 4 (anchor-monotonicity reading retired; `Evl` gains the `anchors` role for `Sea`), inv 12 (count-integrity
+  restatement), inv 13 (cross-layer theorem → severance + witnessed-SEL divergence), inv 16 (the "no receipt
+  carries a lookup-SEL prefix" clause superseded), **area-iel §1** (the `Evl` row + anchor-monotonicity),
+  **federation-witnessing §1e/§1g/§4** (the SEL now witnessed; §1g Decision 1 revised; receipt scope expands;
+  the exfiltration residual), **multi-party §3** (version-SEL linearity via witnessing; "dies by severance").
+- **`iel/reconciliation.md`** lines 352-354 + the 433-440 forward-ref block carry the retired SEL theorem —
+  update at the design-doc encode.
+- **Separate change — the `deadness descends → ascends` doctrine-wide sweep** (KEL / IEL / federation /
+  invariants / protocol-doctrine + design docs; grep the `descend` stem, fix the deadness-metaphor + `dead
+  by descent` + the `hangs off` mid-air framing, leave legit usages). **At `inv 13`'s tier-1-deadenable
+  clause** ("every anchored SEL event dead by descent") the sweep also reconsiders the SEL-side _mechanism_,
+  not just the label — inherited IEL deadness now **severs** the SEL (area-sel §1e), so the SEL leg reads
+  "severed," while the KEL/IEL cascade there is the label-only flip (warm round-2 low obs).
+
+## 6. Confidence / what's owed
+
+- §1a–§1b, §1g–§1i (shape) — **high** (carried from the FIRST CUT, which was correct on shape).
+- §1c (witnessing) — **high on the diagnosis** (the equivocation hole is mechanically verified) and the
+  privacy resolution (Jason-confirmed: trust-infra exposure over the encrypted mesh + the exfiltration
+  residual). The receipt-scope expansion is a federation-area detail (§5).
+- §1d (`Sea`) — settled: the **necessity** (the locked-below-seal residual) and the **`Sea ← Evl` anchor +
+  inv-12 count-integrity restatement** (Jason 2026-07-12; landed in inv 4 / inv 12 / area-iel §1).
+- §1e (divergence) — **high** (deadness-precedence / severance-truncation / `deadness ascends` are
+  settled); the cell-by-cell proof is owed at `sel/reconciliation.md`.
+- §1f (`lineage`) — **high** (uniform semantics-blind walk, `Terminated`-is-a-stop, cap 64, value-bearing
+  driving case are settled).

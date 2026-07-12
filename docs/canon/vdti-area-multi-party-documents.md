@@ -233,18 +233,23 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 ## 3. Two "forks" — don't conflate them
 
-- **SEL-chain fork** (two events at one SEL serial) — forbidden/detected by the divergence model; each
-  version SEL and the governance SEL are strictly **linear**.
+- **SEL-chain fork** (two events at one SEL serial) — **prevented by the SEL's own witnessing** (first-seen
+  at its `(prefix, serial)`, inheriting the owner IEL's federation — witnessed-SEL redesign, area-sel §1c;
+  the FIRST-CUT "forbidden by the cross-layer divergence model" rested on the retired theorem). So each
+  version SEL and the governance SEL are **linear on a witnessed chain** — a fork needs witness collusion,
+  reads Forked (fail-secure), and is buried by a SEL `Sea` (area-sel §1d).
 - **Version fork** (two versions naming the same `ancestors` parent) — **allowed/presented**; the DAG
   branches at the document layer over linear SELs. Acyclic by SAID (a cycle = a Blake3 preimage
   cycle).
 - **A editor's IEL divergence is handled by two composed rules, not one (cold F2 / warm F3).** A
   divergent editor's IEL **reads suspect** — _not_ "is compromised" (the data can't diagnose intent; a
-  benign two-device race is inert by anchor-monotonicity, area-iel §5) — and a version anchored above
-  that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
-  - **The anchor edge is genuine inv 13 reuse.** If the IEL resolves with the version's v1 anchored in a
-    **non-canonical** member event, the version SEL dies by **cross-layer deadness-descends** across the
-    **IEL→SEL anchor edge** (inv 13's cross-layer theorem — that edge is exactly what inv 13 provides).
+  benign two-device race is a recoverable content fork, resolved first-seen — area-iel §5) — and a version
+  anchored above that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
+  - **The anchor edge severs the SEL (witnessed-SEL redesign, area-sel §1e).** If the IEL resolves with the
+    version's v1 anchored in a **dead** (non-canonical) member event, the version SEL is **severed** at that
+    anchor — dead + un-verifiable from there (no repair to re-root; the surviving IEL branch is a different
+    author). _(The FIRST-CUT "dies by cross-layer deadness-descends via the cross-layer theorem" is
+    superseded — the theorem is retired; inherited IEL deadness severs the SEL, area-sel §1e.)_
   - **DAG descent is _this feature's own_ rule, derived as a placement consequence — not inv 13/17.**
     `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-descends is defined only over
     `previous`-linkage and the IEL→SEL anchor edge, so claiming the primitives provide descent down the

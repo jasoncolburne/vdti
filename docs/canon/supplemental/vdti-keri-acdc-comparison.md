@@ -306,7 +306,7 @@ answers need the keripy scan. **Questions, not claims** — don't bank the KERI 
       **outcome** (content fork → recoverable/buried; key-change fork → terminal/reincept) plus the
       **observable-breach guarantee** (fork-cost = forced attributable double-signers). Does KERI formalize the
       terminal-vs-recoverable outcome, or stop at "duplicity detected, handle out-of-band"? (Sharpens #4.)
-- [ ] **SEL vs TEL/registry.** vdti's per-artifact SEL rides its owner IEL (the IEL is its clock). Map to
+- [ ] **SEL vs TEL/registry.** vdti's per-artifact SEL is anchored to its owner IEL for authorization + the finality-floor, and is its own witnessed chain for fork-prevention (witnessed-SEL redesign). Map to
       KERI's **TEL** (transaction event log / credential registry) — same "data log anchored to a KEL" shape,
       or different? (Extends #5 from ACDC to the _log_ layer.)
 - [ ] **Witness/governance bounds.** vdti added a **roster cap (32)**, an **authorization floor on governance**
