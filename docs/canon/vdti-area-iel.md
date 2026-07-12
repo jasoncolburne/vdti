@@ -130,7 +130,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
     spent-preimage or partition race, no fault). `{Evl, Evl}` (any two **accepted** sealed branches) → **≥ 2 sealed →
     disputed → terminal → reincept**; `{Evl, content}` is **recoverable** (the `Evl` branch survives, the content is
     buried).
-  The **federation** IEL is the pure case — every event is sealed → record-both → every federation conflict is a
+  The **federation** IEL is the pure case — every event is sealed → record-both; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is a
   schism (disputed/terminal). [inv 4, 12, 13, 17]
 - **Recovery + eviction — no repair event** [inv 13]. Recovery of a content fork is the **burying seal** above it
   (the winning branch's next sealing event seals past the loser; deadness descends). **Evicting** a
@@ -210,10 +210,10 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
 - **★ Divergence scoped to `Ixn` — RESOLVED (Jason 2026-06-20); first-seen, 2026-07-08.** Pre-reshape doctrine made
   *every* IEL event terminal-on-divergence. Only `Ixn` (T1, advances no key state) is the **divergeable/first-seen**
   kind — a content conflict is recoverable (the burying seal drops the loser); **`Evl` and all key-change /
-  establishment events are record-both → terminal-on-divergence** (≥ 2 sealed → disputed). *Rationale (load-bearing):*
+  establishment events are record-both → terminal-on-divergence** (≥ 2 **accepted** sealed **at the last seal** → disputed — revised 2026-07-11). *Rationale (load-bearing):*
   reconciling a content ordering reverses no key state; overturning a competing *rotation* / establishment branch
-  would **resurrect a retired key** (the backdate/resurrection class), so those can never be buried — a second sealed
-  branch is disputed. The "can't go backward" protection is *preserved* for establishment events; only the content
+  would **resurrect a retired key** (the backdate/resurrection class), so those can never be buried — a second **witnessed** sealed
+  branch at the last seal is disputed (a provable witness double-sign), and a **below-seal** sealed straggler is **dropped** (inert — it cannot retreat the clean seal, which _is_ the backdate defense: a total-key-compromise adversary can't mint a fabricated historical fork). The "can't go backward" protection is *preserved* for establishment events; only the content
   layer is recoverable.
 - **★★ A governance change during a network split (F7) — RESOLVED, REFINED 2026-06-21; witness-scoped 2026-07-02.**
   When the network splits, one half can change the roster (a `Evl`) while the other half keeps issuing content. Both
@@ -246,7 +246,7 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   an IEL open.
 - **Initial roster/threshold constraints** on a freshly-incepted (incl. delegated) IEL — is there any structural floor beyond Rule A?
 - **Federation IEL's delegation surface — RESOLVED** (`vdti-area-federation-witnessing.md` §1a): no — a federation
-  is a **restricted IEL** (`Fcp`/`Wit`/`Trm` only — `Fcp` is its inception marker, `Wit` its sole governance kind; no `Ath`, and no `Ixn` → record-both sealed only, every conflict disputed/terminal).
+  is a **restricted IEL** (`Fcp`/`Wit`/`Trm` only — `Fcp` is its inception marker, `Wit` its sole governance kind; no `Ath`, and no `Ixn` → sealed-only; a competing sealed sibling is **first-seen-declined** (exclude-self peer-witnessing, federation §1e), so only a witness-colluded **two accepted** sealed branches → disputed/terminal — revised 2026-07-11).
 - **`{Evl, content}` recovery — RESOLVED (Finding 14a, 2026-06-21; first-seen 2026-07-08).** When a `{Evl, content}`
   divergence is resolved by the **`Evl` branch surviving** (its seal buries the content loser), there is no separate
   repair event — the `Evl` *is* the burying seal. Any members the `Evl` *added* are already T1-consent-anchored (a

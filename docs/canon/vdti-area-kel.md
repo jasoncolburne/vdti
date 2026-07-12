@@ -81,7 +81,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
     recovery `Rot`** (a burying rotation at the root). A *hostile* sealed tip at a forked position is the
     reserve-theft takeover (terminal/silent, owner-vigilance only) — an owner's counter-`Rot` then makes it two
     sealed branches → **disputed** (cold C1).
-  - **Disputed** = **≥ 2 sealed branches** past the fork → **terminal → reincept** (you can't un-change a key). A
+  - **Disputed** = **≥ 2 accepted sealed branches** past the fork → **terminal → reincept** (you can't un-change a key; a below-seal sealed straggler is dropped, backdate-safe). A
     `{Rot, Rot}` disputed is moreover a **confirmed reserve compromise** — two valid rotations reveal the *one*
     reserve preimage at `v_{d-1}`.
 - **Cross-tier co-sign + the per-serial bound.** A witness's slot at one serial is **`{≤ 1 content, ≤ 1 sealed}`**
@@ -224,8 +224,8 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   `threshold` via `{signers, threshold}`; there is no `minForkCost` field (cost 1 is the structural floor, not a
   footgun). **Per-layer (D1, 2026-06-28):** this is the **KEL's own** config (its KEL events; on `Icp`/`Wit`); a
   **user IEL carries its own authoritative** config (on `Icp`/`Wit`) for IEL events — an IEL is witnessed and could
-  otherwise fork without any member KEL forking (disjoint sub-quorums — the content case now closed by the option-(b)
-  position gate, federation §1e; sealed forks remain → `disputed`), so it needs its own, **independent** of member configs (not
+  otherwise fork without any member KEL forking (disjoint sub-quorums — closed by the option-(b)
+  position gate, now **universal** (every event, content _and_ sealed; revised 2026-07-11) — a competing sealed sibling is declined first-seen too, only witness collusion yields `disputed`, federation §1e), so it needs its own, **independent** of member configs (not
   matched — a *user* IEL vs its member KELs, different chains); the **federation IEL carries its own** (on `Fcp`/`Wit`,
   adjusted each governance `Wit` — cold-7 F1), and at the **federation-governance facet that own config *is*
   field-matched** by the approvers' KEL `Wit`s (a consensus vote — area-iel:32 / cold-9 C1; not a contradiction with

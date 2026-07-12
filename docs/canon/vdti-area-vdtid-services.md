@@ -280,7 +280,7 @@ selected — fine) → that witness **computes the selection locally** from `(pr
 routes the body to the ~`signers` selected witnesses → they receipt + sub-gossip the body → **receipts flood** → the
 preferred witness answers "witnessed?" **from receipts alone** (no body, no walk) → the body is **pulled on-demand**
 only when the content is wanted. Not load-bearing that the user reach the selected witnesses. **Keep straight:**
-*witnessed*-detection (is it backed?) is distinct from *disputed*-detection (data-local, ≥ 2 sealed branches); they
+*witnessed*-detection (is it backed?) is distinct from *disputed*-detection (data-local, ≥ 2 accepted sealed branches); they
 compose — the receipt-threshold makes "should I pull" cheap, disputed stays a data-local re-validation.
 
 ## 2. Mined from kels (carries; confirm in build)

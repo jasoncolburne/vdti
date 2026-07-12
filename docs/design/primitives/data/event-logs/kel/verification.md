@@ -251,17 +251,19 @@ Token fields are private with no public constructor — the only way to obtain o
   against the **derived seal** (above): **trusted** (no fork reaching at-or-above the seal — a fork
   buried below it is inert), **forked** (a fork at-or-above the seal with at most one sealed branch
   — a content fork recovers via a burying seal-advancer; a lone sealed branch you did not author
-  reads forked but forces **your** reincept), or **disputed** (two or more branches each carry a
-  sealed event past the fork — terminal, reincept).
+  reads forked but forces **your** reincept), or **disputed** (two or more branches each carry an
+  **accepted** (witnessed-at-threshold) sealed event at the last seal — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** — an unresolved fork
   — yields a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified
   by prefix and position, **structurally distinct from any real SAID** and **not** a digest over the
   competing tips (that set is adversarially extensible → flood-unstable). A **settled content**
   branch (a content sibling buried below the seal) drops out — it is forensic, reached by a
-  by-prefix flat fetch; a **sealed** event never settles (a spine fork → `disputed`), so it keeps
-  the chain in the synthetic. The value is set-independent yet carries the reading: whether a fork
-  is `forked` or `disputed` is the `region()` walk verdict, which the synthetic recouples to. See
+  by-prefix flat fetch; a **below-seal** sealed straggler drops out too (dropped, inert —
+  backdate-safe). Only a **witnessed** sealed fork **at the last seal** keeps the chain in the
+  synthetic (a spine fork → `disputed`). The value is set-independent yet carries the reading:
+  whether a fork is `forked` or `disputed` is the `region()` walk verdict, which the synthetic
+  recouples to. See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `is_said_anchored()`, `anchors_all_saids()` → inline anchor-checking results for SAIDs the caller
   registered before the walk.
@@ -326,7 +328,8 @@ The verifier's terminal-state-determination rule:
 - A **live** fork — a divergence at or above the **derived seal**?
   - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal-advancer on
     the winning branch.
-  - **Two or more sealed branches past the fork** → **disputed**; reincept.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
+    **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
@@ -365,9 +368,10 @@ carve-outs — see [`merge.md` §Kind-specific authorization](merge.md#4-kind-sp
 
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` is **permanently final** — it stays anchored on the
-canonical branch regardless of any later above-seal divergence. (Against a below-seal **sealed**
-fork — a spine fork — the reading flips to `disputed` and permanence runs against the last **clean**
-seal; sealed events are still never rewritten — see
+canonical branch regardless of any later above-seal divergence. (Against a **witnessed** sealed fork
+**at** the last (clean) seal — a spine fork — the reading flips to `disputed`, and permanence runs
+against the last **clean** seal; a below-seal sealed straggler is **dropped**, not disputed, and
+sealed events are still never rewritten — see
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).) An anchor
 above the seal carries tier-1-only durable authority and becomes durable only once a later
 seal-advancing event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a
@@ -389,13 +393,15 @@ candidate events at the same chain position route to the same witness set by con
 verifier independently re-checks each receipt's `witnessed_said` against structural validity —
 receipt counts alone do not satisfy `witnessed`.
 
-**The divergence signal splits by provenance.** When a node **holds and re-validates** two or more
-sealed branches at a position, it reads **`disputed` directly from the data** —
-threshold-independent. When it holds only a **receipt** for a **sealed** event it has not yet
-fetched, it treats the position as **`forked`** and waits for the **witness threshold** before
-acting on it as a real divergence. For **content** the signal is different: a losing content sibling
-never reaches threshold under the floor, so the anomaly signal is a **sub-threshold competing
-receipt set** at a position — the node fetches the event and the data-local walk decides
+**The divergence signal splits by provenance.** When a node holds two or more sealed branches **each
+accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen loss is
+dead by descent and never counts) — at the **last seal**, it reads **`disputed` directly from the
+data** — the walk decides. A sealed sibling it holds only as a **receipt** (not yet fetched), one
+**below threshold** (a witness-declined sibling), or one **below the seal** (a straggler) is **not**
+counted — it stays **`forked`** / deferred-pending, and a below-seal straggler is dropped
+(backdate-safe). For **content** the signal is different: a losing content sibling never reaches
+threshold under the floor, so the anomaly signal is a **sub-threshold competing receipt set** at a
+position — the node fetches the event and the data-local walk decides
 ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) derives why).
 Single-rogue protection: a rogue who signs receipts on a fake `witnessed_said` cannot trigger a
 verdict — the fake event fails structural re-check, and honest witnesses do not sign for fakes; the
@@ -410,14 +416,21 @@ decisions.
 canonical branch. IEL and SEL verifiers consult this set during kind-strict anchor authorization —
 only witnessed anchors count toward threshold.
 
-### Acceptance gating for non-witnesses
+### Acceptance requires threshold — for every node
 
-A federation node that is **not** sort-selected as a witness for event `E` MUST NOT accept `E` into
-the chain's live state until `E` has accumulated threshold receipts. Witness nodes accept `E` upon
-their own signing (direct evidence of structural validity and self-attestation). Non-witnesses hold
-`E` in deferred-pending state until receipts arrive via witness gossip. This is the structural
-property that makes federation witnessing the propagation channel for cross-node convergence on
-sealed events.
+Acceptance into the chain's live state (canonical, verdict-counting) requires **threshold
+receipts**, for witnesses and non-witnesses alike. A node that is **not** sort-selected as a witness
+for event `E` holds `E` **deferred-pending** until `E` reaches threshold via witness gossip. A
+**selected witness** that signs `E` holds it in the **same** deferred-pending state: signing gives
+it two things a non-witness lacks — direct evidence that `E` is structurally valid (it re-checked
+before signing) and a **spent first-seen vote** at that position (it will decline any sibling there)
+— but a lone signature is **not** acceptance. `E` is not canonical to the witness either until it
+reaches threshold. Self-signing **admits `E` as valid and commits first-seen; it does not make `E`
+canonical**.
+
+This is what makes federation witnessing the propagation channel for cross-node convergence on
+sealed events: a witness holds and gossips the event it signed, but **no node — witness or not —
+treats a sub-threshold event as accepted**.
 
 ### Federation context per layer
 

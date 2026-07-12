@@ -109,8 +109,10 @@ commitment, regardless of what other key material they hold. But that boundary d
   - **The seal-cap blocks a recovery at `v_{N-1}`.** `Rot_adversary` is seal-advancing, so it
     advances the seal to `v_N`; a recovery `Rot` targeting `v_{N-1}` is then below the seal →
     `Sealed`. The legitimate party cannot even submit it.
-  - **A competing `Rot` is a second sealed branch.** A `Rot_legitimate` extending `v_{N-1}` lands as
-    a sibling of `Rot_adversary` — two sealed branches → `disputed`, terminal
+  - **A competing `Rot` at `v_N` is first-seen-declined.** A `Rot_legitimate` extending `v_{N-1}`
+    lands as a sibling of the witnessed `Rot_adversary` at `v_N` → **first-seen-declined**
+    (deferred-pending, forcing nothing). It cannot overturn the takeover: the adversary's rotation
+    is a witnessed linear extension, and the owner's sibling is inert
     ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 
   A hostile `Rot` at a _forked_ position is likewise the reserve-theft takeover, not a recoverable
@@ -123,10 +125,11 @@ commitment, regardless of what other key material they hold. But that boundary d
 The locked-portion bound, the seal-cap, and the recovery rotation together produce a durable
 consumer guarantee: events at-or-below `last_seal_advancing_event` remain structurally verifiable
 indefinitely, regardless of subsequent divergence or a terminal `disputed` verdict above the seal.
-One qualifier: the permanence claims run against the last **clean** seal — one with no competing
-sealed branch forking at-or-below it. Sealed events are never rewritten, but a below-seal **sealed**
-fork is a spine fork that flips the prefix's reading to `disputed`; permanence then retreats to the
-last clean seal beneath the fork
+One qualifier: the permanence claims run against the last **clean** seal — the highest seal-advancer
+with no **witnessed** competing sibling at its own position (forward-anchored). Sealed events are
+never rewritten, and a **below-seal** sealed straggler is **dropped** (inert — not witnessable past
+the seal, the backdate defense), so it does **not** retreat the clean seal. Only a **witnessed**
+sealed fork **at the last seal** flips the reading to `disputed`
 ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), _Pre-seal
 verifiability_).
 
@@ -179,10 +182,63 @@ tokens cannot be augmented with claims that originated outside the chain. Consum
 own out-of-band judgment about specific above-seal events; the protocol cannot make those judgments
 for them.
 
+## The live-tip dispute is a killswitch, forced by structure
+
+A `disputed` verdict needs two **accepted** seals at one serial — a witness double-sign
+([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). Two facts
+about that state set the real attack surface and explain why the brick is a structural necessity,
+not a policy choice.
+
+**Forging the second seal at the live tip needs the current signing key, not the reserve.** A seal
+at position `s` reveals this epoch's key — the one drawn from the reserve committed at `s−1` — and
+is **signed by that revealed key**. The instant it is revealed, the reserve is **spent**: its public
+half is on the chain, and its private half is simply the **current signing key**
+([`log.md`](log.md), the spent-preimage). A competing seal at `s` must reveal the same key (the
+prior `rotationHash` forces it) and sign with that key's private half — the current signing key. The
+**next** reserve is not involved; it only authorizes extending **forward** to `s+1`, never a rival
+at the current position. So the two acts split cleanly:
+
+- **Racing the rotation (takeover).** _Before_ the legitimate rotation to `s` lands, that key is
+  still secret — the reserve. Winning the first-seen race with it makes your next-reserve canonical:
+  a **takeover**. This is the tier-2 reserve-theft path.
+- **A late rival at the tip (brick).** _After_ the legitimate seal has won first-seen at `s`, that
+  key is now the live signing key, and any rival signed with it is a **late** sibling —
+  first-seen-declined. It cannot win. Its only reachable effect, **with witness collusion**, is to
+  become a second accepted seal → `disputed` → **brick**. Never a takeover: first-seen is already
+  spent on the legitimate seal.
+
+So a live-tip dispute is a **killswitch**: the current signing key **plus** a colluding witness
+quorum forces a brick (denial, not takeover). It is bounded by rotation frequency — once you rotate
+past `s`, that key's position is below the seal and a rival there is dropped — and its collusion leg
+is defended by the witnessing posture (disjoint operators, hardware-held keys). The mitigation is
+operational: rotate to bound each key's window; keep witnesses independent so the collusion stays
+expensive.
+
+**The brick is forced, not chosen.** A collision — two accepted seals at one serial — is
+**irrecoverable by construction**: both reveal the same key but commit **different next reserves**,
+so each party can extend its own branch and **neither can bury the other** (sibling seals; nothing
+below to bury). No winner is latent in the data to surface. Only three responses exist, and two are
+unsound:
+
+- **Abandon both → reincept.** Deterministic, observer-independent, no takeover. This is the brick.
+- **Pick a winner by a data rule** (lowest SAID, most receipts). The attacker controls the rival's
+  bytes and its colluder count, so the rule is grindable → **takeover**, strictly worse than a
+  brick.
+- **Pick by first-seen.** "First" is a function of receipt arrival order, which differs per observer
+  → the same chain reads differently to different consumers. That breaks the data-alone, same-answer
+  guarantee end-verifiability rests on, and the ambiguity leaks through composition — anything that
+  trusts the identity inherits it.
+
+For a system whose product is a consistent, verifiable answer, only the brick is sound. A
+"first-seen-final, never brick" mode buys availability with silent inconsistency — for a trust
+anchor, worse than a loud, recoverable failure: with a brick everyone agrees the chain is broken and
+the owner reincepts; with silent divergence, consumers quietly disagree and no one knows to act. The
+brick is the price of the guarantee, and the guarantee is the point.
+
 ## Operator response to a disputed prefix
 
-When a data-local walk finds a prefix **disputed** (two or more sealed branches past the fork — the
-concurrent sealed-race shapes are enumerated in
+When a data-local walk finds a prefix **disputed** (two or more accepted sealed branches past the
+fork — the concurrent sealed-race shapes are enumerated in
 [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix)), no further extension on
 that prefix is consumer-trustable at-and-beyond the divergent serial. Operator recourse is
 **reincept under a new prefix**. The pre-seal verifiability guarantee bounds the damage:
@@ -205,15 +261,20 @@ closed by the layers composed above KEL:
   HSM-resident, ceremony-gated) raises the practical bar to acquire the reserve. This is operational
   hardening; the protocol is custody-agnostic.
 - **Federation witnessing.** A selected witness signs the **first** sealed sibling per position and
-  declines later ones (first-seen). Competing **sealed** events on **distinct** branches (a
-  reserve-tier fork) are each first-seen-witnessed at their own position, so both accumulate
-  receipts and the beacon enumerates the branches as the evidence a verifier walks. Two sealed
-  **siblings** at one position are **not** both witnessed by honest witnesses; a second reaches
-  threshold only if witnesses collude (a provable double-sign). Reserve-tier compromise without a
-  federation partition cannot get a fork past detection — any verifier holding both branches reads
-  the prefix as `disputed` and refuses to bind. (A competing **content** sibling, by contrast, is
+  declines later ones (first-seen). A **reserve-tier fork** is a competing rotation seal at **one
+  position** — the reserve reveal, `{Rot, Rot}`. Without witness collusion only **one** rotation
+  reaches threshold; the losing branch, and every seal built on it, is **dead by descent** — you
+  cannot seal a buried chain, and honest witnesses decline the dead branch's descendants. Two
+  rotation seals **both** witnessed at that position are **not** producible by honest witnesses; a
+  second reaches threshold only if `2·threshold − signers` selected witnesses collude — a **provable
+  double-sign at the fork**. So a `disputed` reading requires that same-position collusion;
+  reserve-tier compromise **without** it resolves to a single canonical branch (the first-seen
+  winner) with the other **inert** — a takeover if the adversary won the race, a failed fork if the
+  owner did, and either way the owner detects loss-of-control and reincepts, never a network-visible
+  dispute. (The `{Rot, Rot}` reserve double-reveal is a separate, author-side proof of the theft,
+  visible to any node holding both siblings.) A competing **content** sibling, by contrast, is
   declined after the first seen at a position — under the witnessing floor a content fork on a
-  witnessed chain is prevented, not merely detected; federation doctrine.)
+  witnessed chain is prevented, not merely detected; federation doctrine.
 
 The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**

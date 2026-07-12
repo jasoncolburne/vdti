@@ -60,22 +60,26 @@ infrastructure to infer system state.
 
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
-- **Prevention for witnessed content; detection for the rest.** On a witnessed chain the
-  witness-config's **witnessing floor** (`threshold > signers/2`), plus
-  one-content-sibling-per-position witnessing, means two competing content events can never both be
-  witnessed — so a content fork is **prevented** from forming. Manufacturing one costs owning
-  `2·threshold − signers` witnesses (the **fork-cost**). What the floor does not prevent is
-  **detected**: **sealed** races — a **seal** being a tier-2 event (a rotation, or a governance /
-  kill act) that ratchets the chain's trust boundary forward — and the byzantine
-  (witness-compromise) residual.
+- **Prevention for witnessed events; detection for the byzantine residual.** On a witnessed chain
+  the witness-config's **witnessing floor** (`threshold > signers/2`), plus **one-per-position
+  witnessing (content _and_ sealed — the position gate is universal)**, means two competing
+  **same-kind** events at a position (two content, or two sealed) can never both be witnessed on an
+  honest quorum — so a fork, content **or** sealed, is **prevented** from forming. Manufacturing one
+  costs owning `2·threshold − signers` witnesses (the **fork-cost**), a provable double-sign. What
+  prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
+  being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
+  boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
+  `disputed` (a seal on a buried lineage is **dead by descent** — you can't seal a buried chain — so
+  two accepted branches can only fork at the competing seals themselves; the double-sign is at that
+  one position).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying
-  seal-advancer buries the loser); a divergence with **two or more sealed branches** is _terminal_ —
-  there is no merge for it. Whether a fork is terminal is a **branch-level fact any verifier walks
-  from the retained branches** (a node retains a competing branch as evidence rather than discarding
-  it at the seal-cap — the merge rule that a new event must attach at-or-after the chain's seal),
-  never a verdict delegated to the federation.
+  seal-advancer buries the loser); a divergence with **two or more accepted sealed branches** is
+  _terminal_ — there is no merge for it. Whether a fork is terminal is a **branch-level fact any
+  verifier walks from the retained branches** (a node retains a competing branch as evidence rather
+  than discarding it at the seal-cap — the merge rule that a new event must attach at-or-after the
+  chain's seal), never a verdict delegated to the federation.
 - **The federation propagates.** Cross-node sealed-vs-sealed races still converge data-locally — the
   witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md) —
   _forthcoming_) **enumerate the competing branches** so a one-branch holder can fetch and walk
@@ -154,9 +158,10 @@ resolves by **tier**, never by identity:
   the SEL's floor `Pin`) is buriable, and a **sealed** branch is kept only by whoever holds the
   rotation reserve to extend it — a cryptographic fact, not a who-is-legit judgment. The rotation
   reserve defends the signing key, never the rotation key.
-- **Terminal forks reincept; races converge data-locally.** Two or more sealed branches are terminal
-  (Disputed) — recovered only by reincept. Concurrent sealed races converge with every node holding
-  both branches and walking the verdict itself; the federation propagates, it does not decide.
+- **Terminal forks reincept; races converge data-locally.** Two or more **accepted** sealed branches
+  are terminal (Disputed) — recovered only by reincept. Concurrent sealed races converge with every
+  node holding both branches and walking the verdict itself; the federation propagates, it does not
+  decide.
 
 → [`protocol-doctrine.md` §Divergence and recovery](protocol-doctrine.md#divergence-and-recovery).
 
@@ -211,14 +216,15 @@ data-from-any-source rests on the data, with the federation as the propagation a
 
 Monitoring for unexpected rotations or other sealing events; fast detect-to-recover response via a
 recovery `Rot` (rotate at the first compromised position, burying the thief's run);
-abandon-and-reincept as last resort. Multi-party **sealing** must serialize submissions above the
-protocol layer (designated submitter, leader election, or consensus over the identity's membership);
-for high-stakes IEL identities this is load-bearing, not optional — two sealing events that race
-produce a sealed divergence, which is terminal (`{Evl, Evl}` → reincept). **Content** serialization
-is the same discipline at lower stakes: every chain is federation-witnessed, and the witnessing
-floor prevents a competing content sibling going live, so an un-serialized content race costs stalls
-and re-issuance — a liveness cost, not a safety one (the residual safety concern is a witness
-compromise).
+abandon-and-reincept as last resort. Multi-party **sealing** benefits from serialized submissions
+above the protocol layer (designated submitter, leader election, or consensus over the identity's
+membership); but this is a **liveness** discipline, **not** a safety requirement — the witnessing
+floor plus one-sealing-per-position decline the second sealed sibling, so two sealing events that
+race **stall and re-issue**, never brick. A `{Evl, Evl}` terminal (→ reincept) needs **witness
+collusion** (a provable double-sign), not an honest race. **Content** serialization is the same
+discipline: every chain is federation-witnessed, and the witnessing floor prevents a competing
+content sibling going live, so an un-serialized content race costs stalls and re-issuance — a
+liveness cost, not a safety one (the residual safety concern is a witness compromise).
 
 → [`operations/sealing-serialization.md`](operations/sealing-serialization.md) _(forthcoming)_.
 

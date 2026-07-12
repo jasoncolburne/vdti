@@ -22,7 +22,8 @@ Doctrine is the leading edge — these follow it.
 - **Effective-SAID computation — on-demand, bounded by the seal cap (no side table, no dedicated
   lock).** The effective SAID is derived from the **live tips** the node holds for a
   prefix (the canonical tip + any **unresolved** competing branch tip — a live fork at-or-above the
-  derived seal, or a below-seal **sealed** spine fork): **a single confirmed tip → its real SAID; no
+  derived seal; a **below-seal** sealed straggler is **not** a live tip — it is dropped, backdate-safe
+  (revised 2026-07-11)): **a single confirmed tip → its real SAID; no
   single tip → a type-tagged `synthetic` marker recoupled to the verdict** (`forked:{prefix}` / `disputed:{prefix}`,
   qualified by position), **NOT a hash over the competing tips** (that set is adversarially extensible under
   dishonest signers → flood-unstable; a set-independent synthetic is flood-stable, still distinct from any
@@ -49,18 +50,22 @@ Doctrine is the leading edge — these follow it.
     qualified by position), **not** a hash over the tips (kels emitted its own `divergent:`/`contested:` string
     synthetic, ~:344/:354; vdti keeps a synthetic but recouples it to the verdict); (b) drop the `is_contest`
     branch (no `Cnt` kind); (c) add the window bound below; (d) **filter the enumerated leaves to the live ones — every tip at serial ≥ the last
-    clean seal** (Jason 2026-07-03). The **last clean seal** is the most recent seal-advancer with no
-    competing sealed sibling at-or-below it — the trust boundary: a live fork sits above it; a
-    resolved / buried loser is sealed past it (below it); and a competing **sealed** branch *retreats*
-    the clean-seal line beneath itself (pre-seal verifiability, area-kel), so "≥ the clean seal" pulls the
-    dispute back in — **F5 falls out of the query for free** (a sealed fork is always reported because
-    it drags the clean-seal line down below it). A **buried content** subtree is already off the live
-    table (the burial moved it to non-canonical retained storage), so a grown dead branch never surfaces —
-    only **content** ever leaves the digest; a sealed event never settles. All the query primitives
+    clean seal** (Jason 2026-07-03). The **last clean seal (forward-anchored, revised 2026-07-11)** is the highest
+    seal-advancer with no **witnessed** competing sibling **at its own position** — found forward, **not** by
+    walking its lineage backward. It is the trust boundary: a live fork sits above it; a resolved / buried loser
+    is sealed past it (below it). A **below-seal** sealed straggler is **dropped** — it does **not** retreat the
+    clean-seal line (that retreat was the **backdate** hole: it let a total-key-compromise adversary drag a
+    dispute onto a buried position; killing it closes the backdate — pre-seal verifiability, area-kel). **F5 is a
+    dispute at the _last_ seal:** the query reports a sealed fork iff the last clean seal itself carries two
+    **witnessed** siblings (`disputed`), never a below-seal straggler. A **buried content** subtree is already
+    off the live table (the burial moved it to non-canonical retained storage), so a grown dead branch never
+    surfaces — and a below-seal sealed straggler is filtered the same way: **only a seal-vs-seal collision at the
+    last seal yields `disputed`; a below-seal sealed event settles (is dropped), it does not un-settle the chain.** All the query primitives
     exist in `verifiable-storage-rs` (`not_exists` + `CorrelatedSubquery`, `group_by` +
     `having_count_gt`, `gte`, `order_by`). **The last clean seal is cheap** — query (1)'s duplicate-serial
-    check already finds any competing-sealed serial, so the clean-seal floor is the most recent
-    seal-advancer above the last such fork (usually just `last_seal_advancing_event`).
+    check finds any competing-sealed serial; the clean seal is the highest seal-advancer whose **own position**
+    carries no witnessed competing sibling (forward-anchored — a below-seal competing serial is **dropped**, not
+    retreated into), usually just `last_seal_advancing_event`.
   - **Why it must be bounded — the log is indefinite.** kels' anti-join and its divergence check
     (`GROUP BY prefix, serial HAVING COUNT > 1`, `services/kels/src/repository.rs:212`) scan the **whole
     prefix** — O(chain length). On an indefinite vdti chain that is unacceptable per computation, and

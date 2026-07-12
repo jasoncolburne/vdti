@@ -37,8 +37,8 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 
 **Transitions** — each is named for its action or the state the chain is in after the batch lands
 (`Extended` and `Recovered` both land **Active**). The Forked-versus-Disputed split is by the
-**sealed-branch count** past the fork (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch count does
-not affect it.
+**accepted** sealed-branch count at the last seal (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch
+count does not affect it.
 
 | Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                        |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -46,24 +46,35 @@ not affect it.
 | **Recovered**  | A burying seal-advancer resolved a fork → **Active**: it extends the winning branch and advances the seal past the content loser. | A `Rot` / `Wit` extends a fork's winning-branch tip (or, on a linear chain, buries the run past its attach point) — the content loser drops below the seal. |
 | **Terminated** | A `Trm` admitted → **Terminated**.                                                                                                | A `Trm` lands as a linear extension, or buries a content loser below its own seal.                                                                          |
 | **Forked**     | A **recoverable** fork (≤ 1 sealed branch past it) → the chain is **Forked**, origination frozen.                                 | A content event forks at an earlier serial, or a sealed event forms the fork's first sealed branch, or a content event lands on an already-forked chain.    |
-| **Disputed**   | An **irrecoverable** fork (≥ 2 sealed branches past it) → the chain is **Disputed** (terminal, reincept).                         | A sealed branch joins a fork that already carries one, or a burying seal-advancer would bury a competing sealed branch.                                     |
+| **Disputed**   | An **irrecoverable** fork (≥ 2 accepted sealed branches past it) → the chain is **Disputed** (terminal, reincept).                | A second accepted sealed branch joins a fork that already carries one, or a burying seal-advancer would bury a competing sealed branch.                     |
 
 **Rejections** — nothing lands; the chain is unchanged (retention of the rejected event as evidence
 is a separate, witnessing-gated matter — below).
 
-| Rejection    | Verdict                                                               | Triggering condition                                                                                                                                                                                                                                                                      |
-| ------------ | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Sealed**   | Parent sits below the seal and the event is **inert** — not admitted. | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content sibling behind an advanced seal); on a Terminated chain, the **sibling-to-`Trm`** race (content).                                                                                                              |
-| **Terminal** | The tip is a `Trm`, which admits no successor.                        | Chains _from_ a `Trm` (parent kind `Trm`) — the kind-schema rule ([§Routing order](#routing-order) rule 1).                                                                                                                                                                               |
-| **Invalid**  | Structurally inapplicable to the chain state.                         | Structural-validation failure — the kind does not apply (inception on a non-empty chain, or a non-inception on an Empty one).                                                                                                                                                             |
-| **Ignored**  | A well-formed event the witnesses decline.                            | Content-fork prevention (a second content sibling at a position), or a new event on a **Disputed** / **Terminated** chain the witnesses decline (barring a partition) — the witness-layer decline; a Terminated-chain content sibling a node **does** process is `Sealed`, not `Ignored`. |
+| Rejection    | Verdict                                                               | Triggering condition                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Sealed**   | Parent sits below the seal and the event is **inert** — not admitted. | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content **or sealed** sibling behind an advanced seal — a below-seal sealed straggler is dropped, backdate-safe); on a Terminated chain, the **sibling-to-`Trm`** race (content).                                                                                                                                       |
+| **Terminal** | The tip is a `Trm`, which admits no successor.                        | Chains _from_ a `Trm` (parent kind `Trm`) — the kind-schema rule ([§Routing order](#routing-order) rule 1).                                                                                                                                                                                                                                                                                |
+| **Invalid**  | Structurally inapplicable to the chain state.                         | Structural-validation failure — the kind does not apply (inception on a non-empty chain, or a non-inception on an Empty one).                                                                                                                                                                                                                                                              |
+| **Ignored**  | A well-formed event the witnesses decline.                            | Fork prevention — a second **content** sibling, or a second **sealed** sibling (the position gate is universal: the sealed rung is first-seen too), at a position; or a new event on a **Disputed** / **Terminated** chain the witnesses decline (barring a partition) — the witness-layer decline; a Terminated-chain content sibling a node **does** process is `Sealed`, not `Ignored`. |
 
-`Sealed` is the **inert** case only — a below-seal event that changes nothing. A competing event
-that **forms or joins a live fork** is a transition, not a rejection: it moves the chain to `Forked`
-or `Disputed` even though it lands as retained evidence rather than a canonical tip (a below-seal
-**sealed** event still → `Disputed`, since a spine fork never settles). This is what a single flat
-"below-seal rejection" would conflate — the inert case is `Sealed`, the state-changing case is
-`Forked` / `Disputed`.
+`Sealed` is the **inert** case only — a below-seal event that changes nothing (content _or_ sealed:
+a below-seal **sealed** straggler is dropped, inert — not witnessable past the seal, the backdate
+defense; it does **not** → `Disputed`). A competing event that **forms or joins a live fork
+at-or-above the seal** is a transition, not a rejection: it moves the chain to `Forked` or
+`Disputed` even though it lands as retained evidence rather than a canonical tip. This is what a
+single flat "below-seal rejection" would conflate — the inert case is `Sealed`, the live-fork case
+(at-or-above the seal) is `Forked` / `Disputed`.
+
+**Acceptance precedes the outcome — `deferred-pending`.** Every transition above names what an
+**accepted** batch does: the canonical routing runs on threshold-witnessed input. A
+structurally-valid submission that has **not yet** reached threshold is neither a transition nor a
+rejection — it is held **`deferred-pending`**: retained (keep-all-data) and gossiped for witnessing,
+but not advancing the tip or seal and not counted toward a verdict. It re-enters routing and
+produces its transition **once accepted** (threshold receipts arrive), or becomes `Ignored` if the
+witnesses decline it as a later sibling. A submitter's own node holds its fresh submission in
+exactly this state until threshold — no node advances to a sub-threshold event (see
+[`verification.md`](verification.md), acceptance requires threshold).
 
 **Rejection and retention are separate; retention is witnessing-gated.** A rejection is only the
 canonical-admission verdict — the competing branch does not extend the chain. Whether the node also
@@ -175,12 +186,12 @@ For events admitted past rule 3, kind-specific authorization fires:
   [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 - **No burying a sealed branch.** A burying seal-advancer that extends a fork's winning branch
   buries the competing **content** below its new seal. If a competing branch it would bury carries a
-  **sealed** event, the burial is rejected (a sealed branch is never buried
+  **witnessed (accepted)** sealed event, the burial is rejected (a sealed branch is never buried
   ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), rule 1)) —
-  the fork is ≥ 2 sealed → `Disputed` (reincept), and the burying event is itself retained as a
-  competing sealed branch and counted. This is what keeps a rotation from being buried below a seal:
-  the reserve defends the signing key, not the rotation key. Sealed branches are always retained
-  (keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
+  the fork is ≥ 2 **accepted** sealed → `Disputed` (reincept), and the burying event is itself
+  retained as a competing sealed branch and counted. This is what keeps a rotation from being buried
+  below a seal: the reserve defends the signing key, not the rotation key. Sealed branches are
+  always retained (keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
 - **`Wit` change-requirement (user facet)** — a **user** (`Icp`-rooted) `Wit` is a **rebind**: it
   must change at least one of (`federation`, `witnesses`). A no-op is `Invalid`; a same-federation
   re-pin (only `federationPin`) is **not** a `Wit` — it rides any body event. A
@@ -263,10 +274,12 @@ events held:
   shape**: `previous` a fork-branch tip (above `v_{d-1}`), **or** the ancestor-extending shape
   (`previous = v_{d-1}`, when the submitter kept nothing at or beyond `d`). It advances the seal; if
   the losing branches are content, they drop below the new seal, inert, and the chain **re-reads
-  Active** → outcome `Recovered`. If a competing branch it would bury carries a **sealed** event,
-  the burial is rejected (a sealed branch is never buried) → the fork is ≥ 2 sealed → `Disputed`,
-  and the burying event is retained as a competing sealed branch and counted. A terminal `Trm` on
-  the winning tip buries the content loser below its own seal and terminates → `Terminated`.
+  Active** → outcome `Recovered`. If a competing branch it would bury carries a **witnessed
+  (accepted)** sealed event, the burial is rejected (a sealed branch is never buried) → the fork is
+  ≥ 2 accepted sealed → `Disputed`, and the burying event is retained as a competing sealed branch
+  and counted (a witness-declined or below-seal sealed straggler is **dropped**, not counted — it
+  does not block the burial). A terminal `Trm` on the winning tip buries the content loser below its
+  own seal and terminates → `Terminated`.
 - Batch contains a sealed event that lands as a **second** sealed branch — a competing sibling
   (`previous = v_{d-1}.said`) on a fork that **already** carries a sealed branch, or a burying
   seal-advancer whose burial was rejected above → not admitted as a canonical extension; the chain
@@ -303,12 +316,14 @@ content-only guard walk. The mechanics are pure position + descent:
 3. **Kill by descent.** Mark every below-seal loser dead — non-canonical forever, its growth dead by
    descent (an event whose parent is dead is dead). Move it out of the canonical live chain into
    non-canonical retained storage; then land the winning-branch new events.
-4. **Guard the sealed case.** If a would-be-buried branch carries a **sealed** event, the burial is
-   rejected — the fork is `Disputed` (≥ 2 sealed), and the burying event is itself retained as a
-   competing sealed branch and counted (retain-and-count — dropping it would split the reading
-   permanently across nodes). Sealed branches are always retained (keep-all-data), so an unnamed
-   sealed sibling is caught, never sealed past — the reserve defends the signing key, not the
-   rotation key.
+4. **Guard the sealed case.** If a would-be-buried branch carries a **witnessed (accepted)** sealed
+   event, the burial is rejected — the fork is `Disputed` (≥ 2 accepted sealed), and the burying
+   event is itself retained as a competing sealed branch and counted (retain-and-count — dropping it
+   would split the reading permanently across nodes); a sealed straggler that isn't accepted —
+   witness-declined, below-seal, or **dead by descent** (its fork-sibling is buried by this very
+   seal, so its own later seal lands on the buried chain) — is **dropped**, not counted, and does
+   not block the burial. Sealed branches are always retained (keep-all-data), so an unnamed sealed
+   sibling is caught, never sealed past — the reserve defends the signing key, not the rotation key.
 
 The hot page covers the retained (winning) branch (≤ 64, the fold) plus the burying event; the
 competing content loser is validated from retained storage and need not co-reside in the hot page.
@@ -423,18 +438,21 @@ burying seal-advancer; the verifier's resume state is consistent with the post-r
 
 ## Cross-node sealed-vs-sealed races
 
-When two federation nodes each accept a competing sealed event extending `v_{d-1}` via independent
-local linear-chain extensions, cross-node convergence runs **data-locally**:
+When two federation nodes each receive a competing sealed event extending `v_{d-1}` at the same
+serial, cross-node convergence runs **data-locally** under acceptance gating:
 
-- Each event lands cleanly on its submitting node as a linear-chain extension; the seal advances
-  locally.
-- Gossip delivers each event to the other node; on each peer, the gossip-arriving event's parent
-  sits in the locked portion (behind the now-advanced seal). It is not admitted as a canonical
-  extension but is retained as non-canonical evidence (keep-all-data) — so each node ends up holding
-  both branches and moves to `Disputed`.
-- Each node **reads the divergence by a data-local walk** over the retained branches: two sealed
-  branches past the fork read `Disputed`. The witness beacon propagates the competing branch SAIDs
-  to a node that lacks them, but the verdict is the node's own.
+- Neither event is accepted until it is threshold-witnessed. The two are competing **siblings at one
+  position**, so a selected witness first-seen-signs one and **declines** the other — absent
+  collusion, only one reaches threshold (**accepted**) and the other stays sub-threshold
+  (**deferred-pending**).
+- The accepted sibling advances the seal and becomes the canonical tip on every node as receipts
+  propagate; the declined sibling is retained as non-canonical evidence (keep-all-data), its parent
+  behind the advanced seal, never admitted as a canonical extension. The nodes converge **Active**
+  (or **Terminated**); the declined party **re-issues**.
+- Only under **witness collusion** do both siblings reach threshold: each node then holds two
+  **accepted** sealed branches past the fork and **reads `Disputed` by a data-local walk** — a
+  provable double-sign. The witness beacon propagates the competing branch SAIDs to a node that
+  lacks them, but the verdict is the node's own.
 
 The merge layer enforces local invariants strictly; convergence is the data-local walk, not a
 federation verdict. See [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix),

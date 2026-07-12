@@ -141,9 +141,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **Active / Forked / Disputed / Terminated** — the four per-node chain states, each **derived** by
   a data-local walk over the events a node holds, never a stored flag. **Active**: a linear, live
   chain. **Forked**: a live fork with ≤ 1 sealed branch past it — recoverable by a burying
-  seal-advancer on the winning branch. **Disputed**: a fork with ≥ 2 sealed branches — terminal
-  (reincept). **Terminated**: killed by a `Trm`. Forked and Disputed are **distinct, detectable
-  states** — the walk that tells them apart (≤ 1 vs ≥ 2 sealed past the fork) is how the state is
+  seal-advancer on the winning branch. **Disputed**: a fork with ≥ 2 **accepted** sealed branches at
+  the last seal — terminal (reincept); a below-seal sealed straggler is dropped (backdate-safe).
+  **Terminated**: killed by a `Trm`. Forked and Disputed are **distinct, detectable states** — the
+  walk that tells them apart (≤ 1 vs ≥ 2 accepted sealed at the last seal) is how the state is
   computed, not a "reading" layered on one divergent state.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **`Terminated` vs `Terminal` vs `Trm`** — three near-homographs, one letter apart, with distinct
@@ -173,9 +174,18 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **first-seen** — the merge policy for tier-1 content: the first structurally-valid sibling at a
   position wins and later ones are declined, so a content fork never goes live.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
-- **record-both** — the merge policy for tier-2 sealed events: competing sealed branches are both
-  retained as evidence, so a sealed fork surfaces as Disputed rather than being silently dropped.
+- **record-both** — the merge policy for tier-2 sealed events: competing **witnessed** sealed
+  branches are both retained as evidence, so a sealed fork at the last seal surfaces as Disputed
+  rather than being silently dropped (a below-seal straggler is dropped, backdate-safe).
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+- **deferred-pending** — a structurally-valid event held but **not yet accepted**: it has not
+  reached threshold receipts (a witness-declined sibling, or a fresh submission still gathering
+  receipts). It is retained and gossiped, does **not** advance the tip or seal, and is **never
+  counted** toward a verdict — until it reaches threshold (then it re-enters routing) or is dropped.
+  ([`merge.md`](primitives/data/event-logs/kel/merge.md#merge-outcomes))
+- **Ignored** — the merge outcome for a well-formed event the witnesses **decline**: a second
+  content or sealed sibling at a position, or an extension of a Disputed / Terminated chain. Nothing
+  lands. ([`merge.md`](primitives/data/event-logs/kel/merge.md#merge-outcomes))
 - **sealed event** — a tier-2 event; **seal-advancing** except the tier-2 inception (which roots the
   spine but advances no seal). Never buried or overturned.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
@@ -191,26 +201,35 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **origination-freeze vs pure-walk reading** — a live fork freezes what a node originates, but the
   reading stays a pure function of held events (the seal derived from them).
   ([`system-thesis.md`](system-thesis.md#divergence-is-resolved-by-tier-a-divergent-chain-freezes-further-origination))
-- **effective-SAID** — a single confirmed tip yields its real SAID; a chain with no single tip
+- **effective-SAID** — a single **confirmed** tip yields its real SAID; a chain with no single tip
   yields a type-tagged synthetic recoupled to the verdict (`forked` / `disputed`); the universal
   "has trust-relevant state changed?" key.
   ([`protocol-doctrine.md`](protocol-doctrine.md#effective-said-comparison))
+- **confirmed tip** — a chain tip **witnessed at threshold (accepted)**; the acceptance boundary
+  that Active and the effective-SAID's real-SAID arm read against. An unwitnessed or below-threshold
+  tip is **not** confirmed (a non-witness never even holds a sub-threshold event — query-scoping).
+  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **keep-all-data / data-local detection** — nodes retain competing branches as evidence, so any
   verifier detects a fork or dispute from the data alone.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
-- **burial by position / deadness-descends** — a burying seal-advancer locks the losing branch's
-  first event below the seal; its whole subtree is dead by descent, so later growth needs no
-  follow-up. ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+- **burial by position / deadness-descends** — a losing branch is dead from its first-seen loss (or
+  below a burying seal); its whole subtree is **dead by descent**, so later growth needs no
+  follow-up — and a seal forged on a dead lineage is dead too (**you can't seal a buried chain**),
+  which collapses every dispute to a same-position seal fork.
+  ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **kind-strict anchor matrix** — each higher-layer kind is anchored by exactly the lower kind that
   reveals the matching capability; no higher-tier stand-in.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **fork-cost / witnessing floor** — a strict witness majority (`threshold > signers/2`) makes two
-  conflicting content siblings un-co-witnessable, preventing the fork.
+  conflicting **same-kind** siblings (content or sealed) un-co-witnessable, preventing the fork.
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
-- **position gate** — the IEL applying the witnessing floor (`> signers/2`) at its own
-  `(prefix, serial)`, so two disjoint member sub-quorums cannot both land content at one IEL serial
-  — the extra content-fork guard the KEL does not need (its content is witnessed at the KEL position
-  directly). ([`merge.md`](primitives/data/event-logs/iel/merge.md#the-content-versus-sealed-split))
+- **position gate** — first-seen witnessing at a chain's own `(prefix, serial)` — the **universal**
+  fork-prevention primitive, applied to **every event, content _and_ sealed**. On a keyless IEL it
+  is stated explicitly (the witnessing floor `> signers/2` at its own position), so two disjoint
+  member sub-quorums cannot both land an event at one IEL serial; a KEL gets it for free (its own
+  key is witnessed at the KEL position directly); the federation IEL realizes it via exclude-self
+  peer-witnessing.
+  ([`merge.md`](primitives/data/event-logs/iel/merge.md#the-content-versus-sealed-split))
 - **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is a positive
   lookup, never a scan-for-absence. A check reads the derived lookup-SEL first (O(1), present →
   killed); on a **miss** it is **fail-secure by default** — confirm by forward-matching X's derived

@@ -210,7 +210,7 @@ the tier-1 buriable kinds.
   buriable** (both T1, first-seen); a `Gnt`/`Trm` (the seal-advancing SEL kinds) is **never overturned**. A content
   fork resolves cross-layer: the **owner IEL's burying seal** drops the loser and the dead line **descends across the
   anchor edge** (deadness-descends) — there is no SEL repair event. Node-agnostic, **data-local** condition: **≥ 2
-  branches each carrying a sealed event past the fork → disputed** (any verifier walks it — inv 13/17; the beacon
+  branches each carrying an accepted sealed event past the fork → disputed** (any verifier walks it — inv 13/17; the beacon
   propagates the branches, it does not decide). E.g. `{Trm, Ixn}` → the `Trm` is the single sealed branch and **wins
   on tier-rank**: the kill stands, the content buried non-canonical. An adversary's `Trm` in a competing branch → a
   second sealed branch → disputed → reincept.

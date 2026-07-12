@@ -327,7 +327,8 @@ federation doctrine — [`kel/`](kel/), [`federation/`](../../../federation/).
 
 A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker — `Fcp` / `Wit` / `Trm`
 only (`Wit` is its governance kind — witness rotation and/or a roster delta — replacing the user
-`Evl`; no `Ixn`, so it authors no content and every federation conflict is sealed → terminal; no
+`Evl`; no `Ixn`, so it authors no content; a competing sealed sibling is first-seen-declined
+(exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is terminal; no
 `Ath`, since trust is per-federation and non-transitive). Its roster is witness KELs directly. See
 [`../../../protocol-doctrine.md` §Federation convergence](../../../protocol-doctrine.md#federation-convergence)
 and [`federation/`](../../../federation/).
@@ -506,10 +507,11 @@ Only **content** is **buriable** — the content kind `Ixn`, and on the SEL the 
 **sealed** event (a rotation, an `Evl`, an `Ath` / `Rev` / `Dth`, a terminal) is **never** buried or
 overturned — reversing it would resurrect retired key material or un-do a sealed act. So a
 divergence resolves by **tier**: a content fork is recoverable (a burying seal-advancer buries the
-loser by position + descent), while a fork with **≥ 2 sealed branches** past it is terminal — a
-**branch-level** condition any verifier reads **data-locally** by walking the retained branches. The
-retention bounds, the burial-by-descent mechanics, and the full recovery doctrine are the protocol
-doctrine's — [§Divergence and recovery](../../../protocol-doctrine.md#divergence-and-recovery).
+loser by position + descent), while a fork with **≥ 2 accepted sealed branches** past it (at the
+last seal) is terminal — a **branch-level** condition any verifier reads **data-locally** by walking
+the retained branches (a below-seal sealed straggler is dropped, backdate-safe). The retention
+bounds, the burial-by-descent mechanics, and the full recovery doctrine are the protocol doctrine's
+— [§Divergence and recovery](../../../protocol-doctrine.md#divergence-and-recovery).
 
 What `event-shape` owns here is the field that makes this legible: the seal-advancing events form a
 `previousSeal`-linked **spine**, on which a sealed divergence — held across retained branches —

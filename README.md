@@ -1,4 +1,4 @@
-# VDTI — Verifiable Decentralized Trust Infrastructure
+# VDTI — Verifiable Decentralized Trust Infrastructure ⚠️ Design in progress ⚠️
 
 VDTI lets users control their identity and data without relying on a central authority. Devices are
 decoupled from the identity that operates them; identity and policy are first-class, composable

@@ -95,11 +95,11 @@ Then the IEL (Identity Event Log) primitive, in order:
     — the verifier walk: threshold anchoring, roster accumulation by delta, root-facet dispatch, and
     the `kills[]` forward-match.
 18. [`primitives/data/event-logs/iel/merge.md`](primitives/data/event-logs/iel/merge.md) — the write
-    path: content first-seen (plus the position gate), sealed record-both, and eviction via a roster
-    `cut`.
+    path: events first-seen at their own position (the universal position gate — content _and_
+    sealed), sealed record-both, and eviction via a roster `cut`.
 19. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
     — the correctness-proof matrix: the content-versus-sealed divergence enumeration and the verdict
-    by sealed-branch count.
+    by witnessed-sealed-branch count (at the last seal).
 20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
     the delegate / rescind surface: the single-hop grant-and-rescission primitive.
 
@@ -122,6 +122,11 @@ These are referenced above as forward-references and are still forthcoming:
 
 - `primitives/data/event-logs/sel/` — the SEL primitive: single-owner content and credential logs,
   anchored by their owner IEL.
-- `federation/` — federation bootstrap and witnessing.
-- `features/` — credentials and multi-party documents.
+- `federation/` — federation bootstrap and witnessing;
+  [`federation/bootstrap.md`](federation/bootstrap.md) is a diagram stub carrying its diagrams ahead
+  of the prose.
+- `features/` — credentials and multi-party documents;
+  [`features/multi-party/documents.md`](features/multi-party/documents.md) is a diagram stub
+  carrying its diagrams ahead of the prose.
+- `operations/` — operator workflows (recovery ceremony, sealing serialization).
 - `infrastructure/` — the storage service.

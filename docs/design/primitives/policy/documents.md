@@ -108,12 +108,12 @@ A document may be authorized by a **delegate** of an identity — the `del(X, N)
 ([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
 each hop's delegating link is the content-addressed
 `derive(delegator, {delegation topic}, delegate)` (delegator = owner, delegate = data — the same
-scheme as a rescission lookup), committed on the delegate's own identity and pinning up to `X`, so
-the verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
-never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
-furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and that the
-grant has not been **rescinded** (a positive `kills[]` match, fail-secure by default —
-[`policy.md`](policy.md)).
+scheme as a rescission lookup), **committed on the delegator's (owner's) own identity**
+(owner-rooted — only the owner anchors at a derived locus) and pinning up to `X`, so the verifier
+**derives** the authorizing chain from committed data and walks it (up to `N` hops, and never beyond
+the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter furnishes nothing
+to prune. Per hop the verifier checks that the delegation was granted and that the grant has not
+been **rescinded** (a positive `kills[]` match, fail-secure by default — [`policy.md`](policy.md)).
 
 The **grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock:
 the **issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor

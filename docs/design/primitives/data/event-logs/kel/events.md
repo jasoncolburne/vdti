@@ -192,8 +192,9 @@ signed by the new signing key the rotation reserve reveals — never by the old 
 
 `Rot` / `Wit` / `Trm` advance the seal — they are the **sealing** kinds, tracked via
 `last_seal_advancing_event`; `Trm` belongs to it too (it advances the seal to its own serial and is
-terminal). Once a rotation lands, the reserve preimage it revealed is public — a **spent** reserve
-that can only forge a _late_ competing rotation (declined) — see
+terminal). Once a rotation lands, the reserve preimage it revealed is public — the revealed
+`publicKey`, unable to sign; only a thief of its matching **private** half (now the current signing
+key) can forge a _late_ competing rotation (declined) — see
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound)
 and [`compromise.md`](compromise.md).
 
@@ -217,6 +218,15 @@ the event.
 prerequisite for tier 2. Adding "signing +" conflates "what an adversary needs to compromise to
 produce this event" with "what keys are referenced by this event." The signing key applies _only_ to
 tier 1.
+
+**The boundary case.** Post-rotation the _just-revealed_ reserve **is** the current signing key, so
+the current signing key can forge a competing seal **at its own serial** — a late rival to the
+rotation that revealed it, first-seen-declined under honest witnesses, a brick under witness
+collusion
+([`compromise.md` §The live-tip dispute is a killswitch](compromise.md#the-live-tip-dispute-is-a-killswitch-forced-by-structure)).
+This does not loosen "signing key → tier 1 only": the capability is the **spent reserve's**, exposed
+only after its own rotation revealed it, and authorizes nothing beyond that one already-taken
+position.
 
 The two tiers set the cryptographic cost of forging each act; the cross-layer binding is
 **kind-strict** ([§Tiers](../../../../protocol-doctrine.md#tiers)): each IEL or SEL operation is

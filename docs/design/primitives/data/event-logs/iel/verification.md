@@ -200,7 +200,8 @@ The `target` is **opaque to the IEL** — the verifier computes and matches it b
 it or interprets a `bound` (all revocation / grandfather logic is the feature layer's). A
 **delegate**'s `bound` rides publicly in the `kills[]` entry; a **doc-member**'s `bound` is
 participant-identifying, so `kills[]` carries only the blind `target` and the verifier fetches the
-`bound` from a gated rescind-doc committed by the `Trm` (withheld → conservative, don't honor). See
+`bound` from a **gated SAD anchored by the `Trm` (via `anchors[]`)** (withheld → conservative, don't
+honor). See
 [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 
 ## `IelVerification` token
@@ -249,14 +250,17 @@ per [`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound
   seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork at-or-above the
   seal with at most one sealed branch — a content fork recovers via a burying seal; a lone sealed
   branch you did not author reads forked but forces **your** reincept), or **disputed** (two or more
-  branches each carry a sealed event past the fork — terminal, reincept).
+  branches each carry an **accepted** (witnessed-at-threshold) sealed event at the last seal —
+  terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
   and position, **not** a digest over the competing tips (that set is adversarially extensible →
   flood-unstable). A settled content branch drops out (forensic, reached by a by-prefix flat fetch);
-  a sealed branch never settles (a spine fork → `disputed`), so it keeps the chain in the synthetic.
-  See [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
+  a **below-seal** sealed straggler drops out too (dropped, inert — backdate-safe). Only a
+  **witnessed** sealed fork **at the last seal** keeps the chain in the synthetic (a spine fork →
+  `disputed`). See
+  [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three
 views of the one data-local walk:
@@ -297,7 +301,8 @@ independently, and surfaces `is_divergent()` and `region()`.
 - A **live** fork — a divergence at or above the **derived seal**?
   - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal on the
     winning branch.
-  - **Two or more sealed branches past the fork** → **disputed**; reincept.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
+    **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
@@ -325,10 +330,11 @@ reads `structurally_valid` to gate against it.
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` — a credential issued under a below-seal roster state, a SEL
 bound at a below-seal `Ixn` — is **permanently final**, regardless of any later above-seal
-divergence. (Against a below-seal **sealed** fork the reading flips to `disputed` and permanence
-runs against the last **clean** seal.) So `anchored_saids` reflects the canonical branch, and a
-consumer composes the anchor's seal position with `region()`: a below-seal anchor is honored even on
-a `disputed` chain; an above-seal anchor on a `disputed` chain grounds no new trust.
+divergence. (Against a **witnessed** sealed fork **at** the last (clean) seal the reading flips to
+`disputed`, and permanence runs against the last **clean** seal; a below-seal sealed straggler is
+**dropped**, not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer
+composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
+`disputed` chain; an above-seal anchor on a `disputed` chain grounds no new trust.
 
 ## Federation witnessing in verification
 
@@ -341,16 +347,20 @@ deliver competing branches and freshness, never a verdict.
   of its **member KEL anchors** — the event is trusted when the required threshold of its anchoring
   member KEL participations are witnessed (the IEL's own `witnesses` config sets `threshold` /
   `signers`). A **user** IEL adds a second gate for **fork prevention** — the **position gate**: its
-  content events must also reach a **witness majority at their own `(IEL prefix, serial)`**, so two
-  disjoint member sub-quorums cannot both land a content event at one IEL serial. The **federation**
-  IEL keeps pure anchor-based self-attestation (no position gate — its every fork is sealed →
-  `disputed` anyway), its witnesses witnessing each other **exclude-self**.
-- **The divergence signal splits by provenance.** When a node **holds and re-validates** two or more
-  sealed branches at a position, it reads **`disputed` directly** — threshold-independent. When it
-  holds only a **receipt** for a sealed event it has not yet fetched, it treats the position as
-  **`forked`** and waits for the witness threshold. For content, a losing sibling never reaches
-  threshold under the position gate, so the signal is a sub-threshold competing receipt set — the
-  node fetches the event and the data-local walk decides.
+  events — content _and_ sealed — must also reach a **witness majority at their own
+  `(IEL prefix, serial)`** (the position gate is **universal**), so two disjoint member sub-quorums
+  cannot both land an event at one IEL serial, and a competing sealed sibling is declined
+  first-seen. The **federation** IEL **realizes the position gate through exclude-self
+  peer-witnessing** — its witnesses witness each other **exclude-self**, so a governance event needs
+  a peer majority first-seen at its serial.
+- **The divergence signal splits by provenance.** When a node holds two or more sealed branches
+  **each accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen
+  loss is dead by descent and never counts) — at the **last seal**, it reads **`disputed` directly**
+  — the walk decides. A sealed sibling held only as a **receipt** (not yet fetched), one **below
+  threshold** (witness-declined), or one **below the seal** (dropped, backdate-safe) is not counted
+  — it stays **`forked`** / deferred-pending. For content, a losing sibling never reaches threshold
+  under the position gate, so the signal is a sub-threshold competing receipt set — the node fetches
+  the event and the data-local walk decides.
 - **`witnessed_anchors`.** The subset of the IEL's own anchored SEL SAIDs witnessed on the canonical
   branch; the SEL verifier consults it during kind-strict anchor authorization — only witnessed
   anchors count.

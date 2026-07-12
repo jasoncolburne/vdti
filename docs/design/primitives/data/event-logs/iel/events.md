@@ -39,8 +39,8 @@ The **class** column names the event's role under the
 including the **terminal** `Trm`. `Rev` / `Dth` / `Ath` are sealed but **non-terminal**: they seal
 an act on a _downstream target_, not on the host IEL, so `{Rev, content}` stays recoverable (the
 `Rev` branch survives, the content buries); a chain goes terminal only when it carries a `Trm`, a
-`{Wit, Wit}`, or ≥ 2 sealed branches. The **tier** column names the KEL capability an adversary must
-forge to author the matching member participation — see
+`{Wit, Wit}`, or ≥ 2 **accepted** sealed branches. The **tier** column names the KEL capability an
+adversary must forge to author the matching member participation — see
 [§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
 versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's custody
 `topic`.
@@ -397,9 +397,10 @@ consent out of `t_govern`.
 A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm` only. Its
 roster is **witness KELs directly** (a threshold over them; no per-witness identity wrapper, no
 aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every federation event is a
-key change → record-both → **every federation conflict is a schism** (`{Wit, Wit}` → disputed →
-reincept); and **no `Ath`** (trust is per-federation and non-transitive). Its threshold vector is
-exactly `{t_govern}`.
+key change → record-both; a competing sealed sibling is **first-seen-declined** (exclude-self
+peer-witnessing), so an honest conflict does **not** schism — only a witness-colluded
+**two-witnessed** `{Wit, Wit}` → disputed → reincept; and **no `Ath`** (trust is per-federation and
+non-transitive). Its threshold vector is exactly `{t_govern}`.
 
 The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike a general identity,
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always
