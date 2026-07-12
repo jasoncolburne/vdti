@@ -3,7 +3,7 @@
 **Status: FIRST CUT (2026-06-20) — also the area-note format exemplar.** Audited against the post-reshape
 core. Load-bearing claims marked for the adversarial pass; nothing here is locked until it survives that.
 **Invariants referenced:** [inv 1] policy-on-documents, [inv 2] single-locus, [inv 3] layers-isolated,
-[inv 4] manifest-down/pin-up, [inv 5] pin-floored, [inv 11] tier, [inv 12] threshold-vector, [inv 13] divergence.
+[inv 4] manifest-up/pin-down, [inv 5] pin-floored, [inv 11] tier, [inv 12] threshold-vector, [inv 13] divergence.
 
 ## Sources audited (disposition)
 - `vdti-log-primitive-reshape-design-pass.md` §1–4, §12 + `vdti-federation-inception-reference.md` — **authoritative / current.**
@@ -29,8 +29,8 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   verifier dispatches on — federation-ref §2 — **not** a trust carve-out; the config-pin still roots trust) and
   **`Wit`** is its governance kind (T2 — replaces `Evl` for the federation; cold-4 B1 / 2026-06-28; the federation
   has **no `Evl`**). *(The `Rpr` repair kind is **dropped** in the first-seen pivot — there is no repair event;
-  content forks resolve first-seen + burial, governance forks are `disputed`/terminal, and evicting a
-  divergence-causing member rides a governance **`Evl` with a roster `cut`** — §4.)* The **one `Wit` kind** spans both
+  content forks resolve first-seen + burial, sealed forks are `disputed`/terminal, and evicting a
+  divergence-causing member rides an **`Evl` with a roster `cut`** — §4.)* The **one `Wit` kind** spans both
   layers: on a **user** IEL it is the federation rebind, on a **federation** IEL it is governance — `Wit` anchors
   `Wit` uniformly (anchor-kind); facet-specific field-match (§ the `Wit` row below):
 
@@ -38,7 +38,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   |---|---|---|---|
   | `Icp` | T2 | all initial members (Rule A) | inception; pins initial roster. **User IEL only** — a **federation** IEL incepts **`Fcp`** (the marker), not `Icp`. |
   | `Ixn` | T1 | `t_use` | content / **SEL-binding manifest** (the `anchors` role — inv 4); **the divergeable/first-seen content kind** (→ §4). |
-  | `Evl` | T1 added / T2 outgoing | all added consent (Rule A) ∧ `t_govern` of outgoing | **roster/threshold change** — carries a roster/threshold **delta** (`add` + `cut`, not a full snapshot — [inv 14]); **anchors no kills** (those ride `Rev`/`Dth`). **Eviction of a compromised / divergence-causing member is an `Evl` with a roster `cut`** — one governance seal buries the fork *and* evicts, atomically (there is no repair-and-evict fold — there is no `Rpr`; §4). **Added members consent at T1** (sign + declare key commitments — they're joining, not rotating). **`t_govern` of outgoing approve at T2** — each reveals the rotation reserve via a `Rot` that anchors the `Evl` (this is "forces a `Rot`"). |
+  | `Evl` | T1 added / T2 outgoing | all added consent (Rule A) ∧ `t_govern` of outgoing | **roster/threshold change** — carries a roster/threshold **delta** (`add` + `cut`, not a full snapshot — [inv 14]); **anchors no kills** (those ride `Rev`/`Dth`). **Eviction of a compromised / divergence-causing member is an `Evl` with a roster `cut`** — one sealing event buries the fork *and* evicts, atomically (there is no repair-and-evict fold — there is no `Rpr`; §4). **Added members consent at T1** (sign + declare key commitments — they're joining, not rotating). **`t_govern` of outgoing approve at T2** — each reveals the rotation reserve via a `Rot` that anchors the `Evl` (this is "forces a `Rot`"). |
   | `Ath` | T2 | `t_authorize` | **the unified "authorize a party to act" anchor** (was `Del`, generalized 2026-07-04). Two manifest roles, **both permitted at once** (batchable; same cost): **`delegates`** — a positive inclusion list of delegate prefixes (the party acts **for the delegator**); **`anchors`** — the downstream SEL **`Gnt`**(s) it seals (a doc-membership grant; the party acts **as itself**; kind-strict — names **only** `Gnt`s). The **additive counterpart of the kill-anchors** (no own-state delta; seals a downstream **grant** at T2). **Forces a `Rot`.** Sealed-on-arrival; sealed, non-terminal. |
   | `Rev` | T2 | `t_govern` | **sealed kill-anchor — revoke an owned artifact**: via `anchors`, names the SEL `Trm`(s) it seals (**only** `Trm`s — kind-strict, C1) — a **revocation lookup-SEL** `Trm` (a cred's revocation) / app-SEL closure — **plus a `kills[] = [{target}]`** declaration (the fail-secure revocation, a **separate array alongside `anchors[]`**; `target = hash('{CRED_REVOCATION_TOPIC}:{owner}:{cred.said}')` — a flat domain-qualified hash, the walk's forward-match handle; **opaque to the IEL** — placement kind-strict is the only structural rule, the IEL never dereferences it; B1 fail-secure rework 2026-07-09). Carries **no roster delta** → can't mutate establishment state (closes **S1**). Count implied by kind (`t_govern`), **backed** by sigs at the walk. **Forces a `Rot`** (each `t_govern` member — a T2/permanent act needs a ≥T2 KEL anchor; the `Evl`-vs-kill-anchor distinction is the **roster delta**, not the rotation — corrects R3-2, A). Sealed-on-arrival; **sealed but NOT a terminal tip** — seals a kill on a *target*, not its host IEL, so the IEL continues (`{Rev, content}` is recoverable like `{Evl, content}`, the `Rev` branch surviving and the content buried); terminal only as one of ≥ 2 sealed branches. |
   | `Dth` | T2 | `t_authorize` | **sealed kill-anchor — deauthorize a grant**: via `anchors`, names the SEL `Trm`(s) it seals (**only** `Trm`s) — a lookup-SEL rescission `Trm` (delegation **or** doc-membership) — **plus a `kills[] = [{target, bound?}]`** declaration (the fail-secure rescission, alongside `anchors[]`; `target = hash('{topic}:{owner}:{data}')` — a flat domain-qualified hash, `topic` = `DLG_RSC_TOPIC` (delegate) / `DOC_RSC_TOPIC` (doc-member); `bound` = the grandfather cutoff — **public in `kills[]` for a delegate** (un-withholdable), **gated in the rescind-doc for a doc-member** (`kills[]` carries only the blind target — participant-blindness); **opaque to the IEL**; B1 fail-secure rework 2026-07-09). The **polarity-inverse of `Ath`** (grant → deauthorize, same `t_authorize`). Carries **no roster delta**. **Forces a `Rot`.** Sealed-on-arrival; **sealed, non-terminal** (like `Rev`). |
@@ -49,17 +49,22 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
 - **`roster` = KELs only.** No aggregate-of-IELs recursion; identity composition lives in the policy/document layer. [inv 1]
 - **Threshold vector** `{t_use, t_govern, t_authorize}` (the **count** axis, ⊥ tier — inv 11; `t_recover` is
   **dropped** — no repair, no recovery reserve); Rule A (unanimous-additions); removal of a member is an **`Evl` with
-  a roster `cut`** (one governance event evicts + buries; there is no `Rpr`-cut fold — inv 13). **Bounds (F-K, inv
+  a roster `cut`** (one sealing event evicts + buries; there is no `Rpr`-cut fold — inv 13). **Bounds (F-K, inv
   12):** `t_use ≥ 1`; the authority kinds (`t_govern`/`t_authorize`) have **two bounds of different kinds** — **`≥ 2`**
   (security: no single-member authority — **hard, every identity**) and **`≤ |roster| − 1`** (recoverability:
   evict/recover without one — **advisory only at `|roster| = 2`** (verifier accepts, wallet warns), **hard at
-  `|roster| ≥ 3`** for every identity); singleton → all = 1. **Plus a majority floor: `t_govern`, `t_authorize >
+  `|roster| ≥ 3`** for every identity); singleton → all = 1. **Plus an authorization floor: `t_govern`, `t_authorize >
   |roster|/2`** (2026-07-08 — closes the disjoint-quorum attribution loss; `t_use` is **exempt**, content being
   first-seen / recoverable). A **2-member identity is valid but unrecoverable** (warned — a compromised device can
   *freeze* you, not just self-lockout; add a 3rd key). **At `|roster| ≥ 3` a threshold `= |roster|` is rejected**
   (gratuitous hostage — Finding 3); recoverable governance needs `|roster| ≥ 3`. **The roster is hard-capped at 32**
   (a DoS backstop — the verifier rebuilds the roster in memory as it walks; any delta pushing the live set past 32 is
   rejected). [inv 11, 12; G1]
+- **Two distinct floors — don't conflate (2026-07-10).** The **witnessing floor** (`threshold > signers/2`, over
+  the **witness signers** — federation §1e) and the **authorization floor** (`t_govern`/`t_authorize > |roster|/2`,
+  over the **roster members** — above) are distinct thresholds over distinct sets; the **position gate** is the IEL
+  applying the **witnessing floor at its own `(prefix, serial)`** (option (b), federation §1e). Both are separate
+  again from the **roster-floor `|roster| ≥ 1`** (never-emptied) and the **security floor `≥ 2`**. [inv 12]
 - **Threshold declaration (locked 2026-06-25).** The **`Icp` declares the active threshold set** — exactly the
   authority kinds the IEL will ever use — **a threshold is declared iff its consuming kind is in the IEL's kind set**
   (`Ixn`→`t_use`, `Ath`/`Dth`→`t_authorize`, `Evl`/`Rev`/`Wit`/`Trm`→`t_govern`). A **user** IEL → `t_govern`
@@ -71,7 +76,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   — the same present=delta / absent=inherit shape as the membership `add`/`cut` and the federationPin re-pin. [inv 12]
 - **`Evl` carries a roster/threshold *delta* (`add` + `cut`), no separate floor** (append-only chain is the floor;
   current roster = **accumulate every delta while walking**, with the hard live-set cap — [inv 14]; **not** "latest `Evl`"). [I2]
-- **Manifest is role-qualified (inv 4).** An IEL event's `manifest` groups what it commits to below by named role
+- **Manifest is role-qualified (inv 4).** An IEL event's `manifest` groups what it commits to above by named role
   ("the things this event {anchors/roster/delegates/…}"): `Icp`/`Evl` (user) → `roster` (the roster/threshold delta
   SAD — an `Evl` `cut` also carries the eviction); a
   **federation** `Fcp`/`Wit` → `roster` + `clock`, the terminal `Trm` → `clock` (the inline timestamp value — the federation has no `Evl`, `Wit` is its sole governance kind; `Trm` carries the clock but no roster);
@@ -108,28 +113,34 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   directions (a `Rev`/`Dth` anchors only `Trm`s, an `Ath` only `Gnt`s, an `Ixn` only content/v1 —
   tier-elevation is an additional floor, not the check, inv 4 C1).)
 - **Witnessing is scoped by chain (first-seen pivot, 2026-07-08)** [inv 13]. The IEL is a **mixed** chain — its
-  content (`Ixn`) is single-key-authorable, its governance is not — so the two buckets split by the one test (*could a
+  content (`Ixn`) is single-key-authorable, its sealed spine is not — so the two buckets split by the one test (*could a
   single already-revealed secret author a competing sealed sibling?*):
   - **Content (`Ixn`)** → **first-seen**: witnesses take the first content event at a position and decline the
     copies; a **user** IEL's content additionally must reach a **majority quorum at its own `(prefix, serial)`** (the
-    option-(b) position gate), which — with the majority floor — closes the two-disjoint-sub-quorums content fork.
-    A content conflict is **recoverable**: the next sealed governance event (or the agreed next content) buries the
+    option-(b) position gate), which — with the witnessing floor — closes the two-disjoint-sub-quorums content fork.
+    A content conflict is **recoverable**: the next sealing event (or the agreed next content) buries the
     loser below the seal (deadness-descends), no repair event.
-  - **Governance (`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm` — sealed)** → **record-both**: a threshold chain can't be forked
-    by one stolen key, so a second sealed decision is proof the quorum was subverted — surfaced loudly. `{Evl, Evl}`
-    (any two sealed branches) → **≥ 2 sealed → disputed → terminal → reincept**; `{Evl, content}` is **recoverable**
-    (the `Evl` branch survives, the content is buried).
-  The **federation** IEL is the pure case — every event is governance → record-both → every federation conflict is a
+  - **Sealed (`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm`)** → **record-both (detected, never buried) — but witnessed
+    first-seen now, one sibling (revised 2026-07-11, cold F1):** witnesses sign the **first** sealed sibling at a
+    position and decline later ones (like content — federation §1e), yet both branches are still **recorded/retained**
+    so the data-local walk detects `≥ 2` → `disputed`; a sealed branch is **never buriable**, so a *second accepted*
+    sealed branch is terminal. A threshold chain can't be forked by one stolen key (**except a singleton / `t_use = 1` roster,
+    where one member acts alone**), so a second **accepted** sealed decision is proof the quorum was **subverted or
+    the witnesses colluded** — surfaced loudly; a witness-**declined** sealed sibling is deferred-pending (a
+    spent-preimage or partition race, no fault). `{Evl, Evl}` (any two **accepted** sealed branches) → **≥ 2 sealed →
+    disputed → terminal → reincept**; `{Evl, content}` is **recoverable** (the `Evl` branch survives, the content is
+    buried).
+  The **federation** IEL is the pure case — every event is sealed → record-both; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is a
   schism (disputed/terminal). [inv 4, 12, 13, 17]
 - **Recovery + eviction — no repair event** [inv 13]. Recovery of a content fork is the **burying seal** above it
-  (the winning branch's next sealed governance event seals past the loser; deadness descends). **Evicting** a
-  compromised / divergence-causing member is an **`Evl` with a roster `cut`** — one governance seal buries the fork
+  (the winning branch's next sealing event seals past the loser; deadness descends). **Evicting** a
+  compromised / divergence-causing member is an **`Evl` with a roster `cut`** — one sealing event buries the fork
   **and** evicts, atomically (the eviction *must* be atomic, else the still-rostered member races fresh content at the
   resolved tip → re-fork; the `Evl` makes it atomic by construction — the member is gone the instant the fork
   resolves). The cut is priced the **outgoing** `t_govern` (pre-change — so an `Evl` can't lower its own gate then
   cut), the post-cut roster re-checked against the inv 12 bounds (a stranding / hostage cut is rejected, forcing a
   simultaneous `threshold` drop or reincept); the cut target is operator-chosen. There is **no** `Rpr` repair-and-evict
-  fold — the eviction *is* an ordinary governance `Evl`. A member KEL going terminal (a reserve-theft takeover, no
+  fold — the eviction *is* an ordinary `Evl`. A member KEL going terminal (a reserve-theft takeover, no
   on-chain fork to challenge) is likewise handled by the quorum: it is inert alone, and the honest members evict it
   (an `Evl` `cut`) / `Dth` if delegated / reincept.
 - **Divergence resolution turns on the sealed-branch count, node-agnostic** [inv 13]. The verdict rides **M**, the
@@ -145,7 +156,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   fits one page → cross-node-validatable. This is **not optional:** `Ixn` is content and does **not** advance the
   seal (only `Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit` do — the one `Wit` kind, both facets; cold-5 B2), and **issuance — the frequent op — rides `Ixn`** (`anchors[]`),
   so without the cap the post-seal window grows unbounded and the IEL faces the same recovery-page pressure the
-  KEL/SEL cap answers. (The burying event is a single ordinary governance seal (an `Evl`, or the `cut` `Evl` when it
+  KEL/SEL cap answers. (The burying event is a single ordinary sealing event (an `Evl`, or the `cut` `Evl` when it
   also evicts), so the atomic page carries the two competing content branches + the one burying seal — `2·64 + 1 =
   129`, area-kel; there is no separate repair event.)
   A busy issuer that fills the window **re-seals with a roster-less `Evl`** (a pure re-seal — **omits `roster`** per inv 18; the seal advance via `previousSeal` is the change, *not* an empty `{add:[],cut:[]}`) — the IEL analogue
@@ -199,32 +210,34 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
 - **★ Divergence scoped to `Ixn` — RESOLVED (Jason 2026-06-20); first-seen, 2026-07-08.** Pre-reshape doctrine made
   *every* IEL event terminal-on-divergence. Only `Ixn` (T1, advances no key state) is the **divergeable/first-seen**
   kind — a content conflict is recoverable (the burying seal drops the loser); **`Evl` and all key-change /
-  establishment events are record-both → terminal-on-divergence** (≥ 2 sealed → disputed). *Rationale (load-bearing):*
+  establishment events are record-both → terminal-on-divergence** (≥ 2 **accepted** sealed **at the last seal** → disputed — revised 2026-07-11). *Rationale (load-bearing):*
   reconciling a content ordering reverses no key state; overturning a competing *rotation* / establishment branch
-  would **resurrect a retired key** (the backdate/resurrection class), so those can never be buried — a second sealed
-  branch is disputed. The "can't go backward" protection is *preserved* for establishment events; only the content
+  would **resurrect a retired key** (the backdate/resurrection class), so those can never be buried — a second **witnessed** sealed
+  branch at the last seal is disputed (a provable witness double-sign), and a **below-seal** sealed straggler is **dropped** (inert — it cannot retreat the clean seal, which _is_ the backdate defense: a total-key-compromise adversary can't mint a fabricated historical fork). The "can't go backward" protection is *preserved* for establishment events; only the content
   layer is recoverable.
 - **★★ A governance change during a network split (F7) — RESOLVED, REFINED 2026-06-21; witness-scoped 2026-07-02.**
   When the network splits, one half can change the roster (a `Evl`) while the other half keeps issuing content. Both
-  land at the same chain position; on heal they collide. **Under the majority floor (federation §1e) the collision
+  land at the same chain position; on heal they collide. **Under the witnessing floor (federation §1e) the collision
   mostly doesn't form:** a half holding only a witness *minority* has its content stall sub-majority (fail-secure —
   never witnessed; non-witness nodes defer it), so that side contributes no live branch — the `Evl` (sealed —
   witnessed, federation §1e) wins and the stalled content re-issues, a no-collision. The collision still forms when the
   *content* half holds the witness majority (its content is witnessed; the `Evl` co-witnesses on heal) — and
-  resolves exactly as below. **The refinement (the tier rule, inv 13):** a collision of **governance vs.
-  content** is **recoverable** — the governance change **survives and its seal buries the content** (you never
+  resolves exactly as below. **The refinement (the tier rule, inv 13):** a collision of **sealed vs.
+  content** is **recoverable** — the sealing event **survives and its seal buries the content** (you never
   overturn a `Evl`; content is buriable and re-issuable). So `Evl`-vs-content does **not** brick. The identity
-  only bricks when **both halves did governance** (`Evl`-vs-`Evl`, or a branch carries two sealed events) —
-  then neither branch can be buried → reincept. An attacker can still force the brick by inducing a split **and**
-  getting both honest sub-quorums to perform governance, but the everyday case (one side governs, the other just
-  issues) now recovers.
-  **Decision: handle the residual operationally, not in the protocol** — but the bar is now only "don't let both
-  sides do governance during a split." (1) One designated governance submitter (everyone hands that person their
-  signature) so two governance events never race. (2) Under a suspected split, hold off on governance until the
+  only bricks when **both halves sealed** (`Evl`-vs-`Evl`, or a branch carries two sealed events) —
+  then neither branch can be buried → reincept. **Under one-sealing-per-position (revised 2026-07-11, cold F1) the honest double-seal is structurally
+  prevented:** the witnessing floor stops two disjoint sub-quorums from each reaching `threshold`, and on heal
+  first-seen **declines** the second sealed sibling (deferred-pending, never accepted) — an honest split yields **at
+  most one accepted sealed branch** and resolves to it, never a brick. Two *accepted* sealed branches now
+  necessarily mean **witness collusion** (a provable double-sign — the general witness-compromise residual), not a
+  partition race. **The former operational bar ("don't let both sides seal during a split") is thereby subsumed** —
+  kept below only as defense-in-depth, no longer a correctness requirement: (1) One designated sealing submitter (everyone hands that person their
+  signature) so two sealing events never race. (2) Under a suspected split, hold off on sealing until the
   network is clearly back. (3) A `{Evl, Evl}` brick recovers by reincept — witnesses make it **detectable** on
   heal. **Rejected: a protocol check that blocks a `Evl` unless its parent is witness-confirmed** — during a split
   each half's own witnesses confirm that half's events (they report, they don't pick a winner), so the check passes
-  inside the split; and if a half lacks enough witnesses it freezes all governance (a halt-by-DoS lever).
+  inside the split; and if a half lacks enough witnesses it freezes all sealing (a halt-by-DoS lever).
   Ineffective *and* a new weakness. *(Precedent: kels' Multi-Party Governance Synchronization. NB: kels' old "Raft"
   registry is removed — don't carry that name.)* [→ §5 land: operations note]
 - **Rescission semantics — RESOLVED in the delegation area** (`vdti-area-delegation.md` §4). The stub's
@@ -233,7 +246,7 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   an IEL open.
 - **Initial roster/threshold constraints** on a freshly-incepted (incl. delegated) IEL — is there any structural floor beyond Rule A?
 - **Federation IEL's delegation surface — RESOLVED** (`vdti-area-federation-witnessing.md` §1a): no — a federation
-  is a **restricted IEL** (`Fcp`/`Wit`/`Trm` only — `Fcp` is its inception marker, `Wit` its sole governance kind; no `Ath`, and no `Ixn` → record-both governance only, every conflict disputed/terminal).
+  is a **restricted IEL** (`Fcp`/`Wit`/`Trm` only — `Fcp` is its inception marker, `Wit` its sole governance kind; no `Ath`, and no `Ixn` → sealed-only; a competing sealed sibling is **first-seen-declined** (exclude-self peer-witnessing, federation §1e), so only a witness-colluded **two accepted** sealed branches → disputed/terminal — revised 2026-07-11).
 - **`{Evl, content}` recovery — RESOLVED (Finding 14a, 2026-06-21; first-seen 2026-07-08).** When a `{Evl, content}`
   divergence is resolved by the **`Evl` branch surviving** (its seal buries the content loser), there is no separate
   repair event — the `Evl` *is* the burying seal. Any members the `Evl` *added* are already T1-consent-anchored (a
@@ -251,11 +264,11 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   count implied by kind, the `threshold` slot field retired). New anchoring pair **`Ath ↔ Gnt`** (passthrough,
   beside `` `Rev`/`Dth` ↔ `Trm` ``). Rationale +
   the T2-non-archivable consequence: area-multi-party §7; the SEL `Gnt` row: area-sel.
-- **Eviction is a governance `Evl`-with-`cut` (first-seen, 2026-07-08) → land in the `iel/` doctrine + the
+- **Eviction is an `Evl`-with-`cut` (first-seen, 2026-07-08) → land in the `iel/` doctrine + the
   role-allowlist:** evicting a compromised / divergence-causing member is an **ordinary `Evl` carrying a roster
-  `cut`** (there is **no** `Rpr` repair-and-evict fold — there is no `Rpr`). One governance seal buries the fork
+  `cut`** (there is **no** `Rpr` repair-and-evict fold — there is no `Rpr`). One sealing event buries the fork
   *and* evicts, atomically. The `cut` is priced the **outgoing** `t_govern` (pre-change); the post-cut roster is
-  re-checked against the inv 12 bounds (`≥ 2`, recoverability ceiling, majority floor, roster cap 32); a stranding /
+  re-checked against the inv 12 bounds (`≥ 2`, recoverability ceiling, authorization floor, roster cap 32); a stranding /
   hostage cut is rejected, forcing a simultaneous `threshold` drop or reincept. The timing-attack rationale (the
   eviction must be atomic with the burying, else the still-rostered member re-forks the resolved tip) belongs in the
   merge/reconciliation doc.
@@ -266,21 +279,21 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   roster/threshold-change only (its `cut` also evicts). *(The SEL `Fld` re-seal is dropped — no page-atomic repair
   requirement — §area-sel.)*
 - **Write an operations note** (mirror kels' `operations/multi-party-governance.md`, in plain words): one
-  designated submitter for governance changes; pause everyday issuing during a governance change; hold governance
+  designated submitter for sealing events; pause everyday issuing during a sealing event; hold sealed events
   while a network split is suspected; a split-bricked identity recovers by reincept (detectable on heal). This is
   the F7 resolution — operator guidance, no protocol change. **Add a content-rail line (CORRECTED round-4, cold-S-D — the round-5 "recoverable all-content" was UNSAFE; witness-scoped 2026-07-02):** a
   split during **high-volume issuance** is recoverable **only within one seal-cap window** (≤ `(MINIMUM_PAGE_SIZE − 1)/2`
   = 64 content events): keep one branch, archive + reissue the other (SAIDs lock `previous` — can't interleave).
   **Beyond one window it is NOT recoverable** — both halves fill the cap and are *forced* to re-seal with a
   roster-less `Evl`; the two re-seals differ by `previous` → `{Evl, Evl}` → **terminal → reincept**. **On a witnessed
-  chain the majority floor demotes this discipline from safety-critical to LIVENESS (federation §1e):** the
+  chain the witnessing floor demotes this discipline from safety-critical to LIVENESS (federation §1e):** the
   witness-minority half's content never witnesses (every event reads sub-threshold — a loud fail-secure signal), and
   honest members following acceptance-gating never extend an unwitnessed tip into a re-seal `Evl` — so reaching
   `{Evl, Evl}` by cap-fill requires *ignoring* the signal and governing into a suspected split (negligence, not a
   race); the un-serialized cost is stalls + re-issuance. Since **every chain is federation-witnessed** (there is no
   direct mode), content-serialization is a **liveness** discipline everywhere — the residual safety concern is only a
   **witness compromise** (a byzantine quorum). So a high-volume issuer still **serializes its content submissions**
-  (a fenced single content submitter — a discipline **separate from, and additional to,** governance/kill
+  (a fenced single content submitter — a discipline **separate from, and additional to,** sealing
   serialization, which **stays safety-critical everywhere**: an `Evl` is sealed, never gated by the floor). KEL analogue: an
   HA-replicated **reserve** lets two partition halves both `Rot` → a false `{Rot, Rot}` "reserve-compromise" — don't
   replicate the reserve across partitionable nodes. **Cred revocation is decoupled from cred content (B1 fail-secure rework 2026-07-09):** a credential is an

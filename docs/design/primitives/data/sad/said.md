@@ -200,7 +200,7 @@ Blake3-256 collision against each — two independent collisions, not one. The b
 the SAID-side argument; the parallel prefix-side argument holds by construction.
 
 The SAID is the load-bearing handle every reference in the system uses to commit to a SAD:
-`previous` pointers, `pin` references (a SEL event floors up to its owner IEL via its `pin`), KEL
+`previous` pointers, `pin` references (a SEL event floors down to its owner IEL via its `pin`), KEL
 anchor SAIDs, policy SAIDs, `manifest` SAIDs on chain events, and a SEL's `data` naming the
 standalone SAD it attributes (a write's custody anchor; see [`custody.md`](custody.md)). When the
 doctrine talks about "a SAID anchored in a KEL `Ixn`" or "the `previous` SAID matches the parent,"

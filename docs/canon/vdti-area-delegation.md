@@ -35,6 +35,8 @@ negative-checks-are-lookup-SELs, [inv 12] thresholds (`t_authorize`).
     `Trm`). The `Trm` carries **only its pin** → X's tip (uniform — every event pins). The **`bound`** (→ SAID of the
     last valid event on P's delegated chain) lives in the **`Dth`'s `kills[]`** entry (`{ target, bound }`), **not**
     on the `Trm` — so it is **un-withholdable** on X's witnessed IEL and the fail-secure walk reads it directly.
+    *(`Trm.pin` = the `Dth`'s `previous`, so an O(1) lookup-SEL hit traces straight to the killing `Dth` and reads
+    the `bound` from its `kills[]` directly — no exhaustive `kills[]` scan; a freshness walk still runs. 2026-07-11.)*
     *(The `bound` moved off the `Trm` to `kills[]` — B1 fail-secure rework 2026-07-09; it is the surviving rescission
     boundary — the federation roster cut dropped its copy, inv 14. Renamed from "cut-off"/"terminator" 2026-06-26;
     the second event is a `Trm` not a `Pin`, 2026-06-26.)*
@@ -68,7 +70,7 @@ The per-delegator doc's *mechanism* is superseded, but it proved requirements th
 - **Hidden-revocation / check-set forgery — CLOSED by transitive pins (corrected 2026-06-20).** Concern (from
   the per-delegator doc's "Attack 1"): a presenter routes around a rescinder via a pruned/alternate authorizing
   chain. **Structurally closed in the reshape:** a cred pins the issuer-IEL prior event directly ([inv 15]) → that IEL
-  state commits its roster + the committed `delegating` links pin up the delegation chain to `X`. The
+  state commits its roster + the committed `delegating` links chain up to `X`. The
   **verifier derives** the authorizing chain from committed data and traverses it fully ([inv 8], loss-of-trust
   walks the whole chain); the presenter furnishes nothing to prune. The Attack-1 model (presenter *assembles*
   the chain via non-membership proofs) doesn't exist here. **No leaf-only hole.** Residual is the scope detail in
@@ -113,7 +115,7 @@ reading the oldest doc.)
   creds whose committed authorizing path runs through that delegation** — *not* `P`'s independent-identity acts
   (`P`'s own self-rooted creds, `P`'s own delegations). `X`'s authority is bounded to what `X` delegated, so `X`
   cannot void `P`'s independent chain. A cred commits the *specific* path it was issued under (the `delegating`
-  links pin up to `X`), so the check-set is well-defined; an intermediate has kill-authority only over creds it
+  links chain up to `X`), so the check-set is well-defined; an intermediate has kill-authority only over creds it
   actually authorized, and `X` is always on the chain. **Restate F-H accordingly:** "de-grandfather the delegated
   creds whose committed path runs through this delegation, anchored past the bound" — **not** "void `P`'s whole
   chain suffix." The contiguity argument lives at the level of *delegated-cred anchoring positions within the

@@ -28,12 +28,14 @@ chain primitive plays a distinct structural role:
   custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
 - **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold
   vector** `{t_use, t_govern, t_authorize}` — how many member devices must act for content,
-  governance, and authorization respectively. A rule spanning several identities lives in the
+  governance, and authorization respectively (these are **counts**, orthogonal to the two capability
+  **tiers**, T1/T2 — T1 is content, forged with the signing key; T2 is everything sealed, forged
+  only with the rotation reserve; introduced below). A rule spanning several identities lives in the
   document policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
   **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are
-  authorized structurally by the owner IEL, which anchors them; it floors **up** to the owner IEL's
-  current tip.
+  authorized structurally by the owner IEL, which anchors them; it floors **down** to the owner
+  IEL's current tip.
 
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized;
 cross-federation interop is by user-initiated transfer rather than implicit trust.
@@ -58,19 +60,26 @@ infrastructure to infer system state.
 
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
-- **Prevention for witnessed content; detection for the rest.** On a witnessed chain the
-  witness-config's **majority floor** (`threshold > signers/2`) plus
-  one-content-sibling-per-position witnessing means two competing content events can never both be
-  witnessed — a content fork is **prevented** from forming, below a priced fork-cost of
-  `2·threshold − signers` compromised witnesses. Every chain is federation-witnessed; sealed races
-  and the byzantine (witness-compromise) residual are **detected**.
+- **Prevention for witnessed events; detection for the byzantine residual.** On a witnessed chain
+  the witness-config's **witnessing floor** (`threshold > signers/2`), plus **one-per-position
+  witnessing (content _and_ sealed — the position gate is universal)**, means two competing
+  **same-kind** events at a position (two content, or two sealed) can never both be witnessed on an
+  honest quorum — so a fork, content **or** sealed, is **prevented** from forming. Manufacturing one
+  costs owning `2·threshold − signers` witnesses (the **fork-cost**), a provable double-sign. What
+  prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
+  being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
+  boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
+  `disputed` (a seal on a buried lineage is **dead by descent** — you can't seal a buried chain — so
+  two accepted branches can only fork at the competing seals themselves; the double-sign is at that
+  one position).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying
-  seal-advancer buries the loser); a divergence with **two or more sealed branches** is _terminal_ —
-  there is no merge for it. Whether a fork is terminal is a **branch-level fact any verifier walks
-  from the retained branches** (a node retains a competing branch as evidence rather than discarding
-  it at the seal-cap), never a verdict delegated to the federation.
+  seal-advancer buries the loser); a divergence with **two or more accepted sealed branches** is
+  _terminal_ — there is no merge for it. Whether a fork is terminal is a **branch-level fact any
+  verifier walks from the retained branches** (a node retains a competing branch as evidence rather
+  than discarding it at the seal-cap — the merge rule that a new event must attach at-or-after the
+  chain's seal), never a verdict delegated to the federation.
 - **The federation propagates.** Cross-node sealed-vs-sealed races still converge data-locally — the
   witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md) —
   _forthcoming_) **enumerate the competing branches** so a one-branch holder can fetch and walk
@@ -141,17 +150,18 @@ A **live** fork — two distinct events at one serial, at or above the seal — 
 resolves by **tier**, never by identity:
 
 - **Freeze is origination, not the reading.** No new work lands on a live fork until it resolves —
-  for a content fork, a **burying seal-advancer** on the winning branch (a `Rot`, or a governance
-  seal on the IEL) that buries the loser below the new seal. The chain's reading stays a pure
-  function of the events held; "frozen" is a write posture, not the verdict.
+  for a content fork, a **burying seal-advancer** on the winning branch (a `Rot` / `Wit` / `Trm` on
+  the KEL, or a sealing event on the IEL) that buries the loser below the new seal. The chain's
+  reading stays a pure function of the events held; "frozen" is a write posture, not the verdict.
 - **Resolution is by tier, not identity.** The chain cannot tell the operator from an attacker —
   both branches were authorized when they landed — so it decides by tier: only content (`Ixn`, plus
   the SEL's floor `Pin`) is buriable, and a **sealed** branch is kept only by whoever holds the
   rotation reserve to extend it — a cryptographic fact, not a who-is-legit judgment. The rotation
   reserve defends the signing key, never the rotation key.
-- **Terminal forks reincept; races converge data-locally.** Two or more sealed branches are terminal
-  (Disputed) — recovered only by reincept. Concurrent sealed races converge with every node holding
-  both branches and walking the verdict itself; the federation propagates, it does not decide.
+- **Terminal forks reincept; races converge data-locally.** Two or more **accepted** sealed branches
+  are terminal (Disputed) — recovered only by reincept. Concurrent sealed races converge with every
+  node holding both branches and walking the verdict itself; the federation propagates, it does not
+  decide.
 
 → [`protocol-doctrine.md` §Divergence and recovery](protocol-doctrine.md#divergence-and-recovery).
 
@@ -168,17 +178,23 @@ within a single page so recovery is cross-node-validatable.
 
 ### Defense against current-state compromise is layered
 
-The KEL **rotation reserve** — held apart from the signing key and revealed to single-sign every key
-change (`Rot` / `Wit` / `Trm`) — lets a device heal a suspected signing-key leak by itself: a
-signing-key-only thief (exfiltration, brute force, coerced signing, side channels) can append
-content but never a key change, and one recovery `Rot` buries their run. A single-device deployment
-is first-class. Healing a _fully_ compromised device (both keys) is the identity's job: IEL
-threshold composition (high thresholds, `M > N` redundancy across distinct custodians) handles total
-device compromise — burn the device, evict it via a `Evl` (governance change). Reserve theft itself
-is a takeover-by-extend (unrecoverable → reincept), so the reserve lives in device hardware, never
-replicated across partitionable nodes. A biometric or device PIN gating the keystore is a further
-on-device layer — it raises the cost of using a stolen, locked device, but gates _access_ rather
-than custody: it can be coerced, and an unlocked device remains usable.
+Defense is **layered** — each layer catches what the one below it cannot:
+
+- **The rotation reserve — a device heals itself.** Held apart from the signing key and revealed to
+  single-sign every key change (`Rot` / `Wit` / `Trm`), the KEL reserve lets a device recover from a
+  suspected signing-key leak on its own: a signing-key-only thief (exfiltration, brute force,
+  coerced signing, side channels) can append content but never a key change, and one recovery `Rot`
+  buries their run. A single-device deployment is first-class.
+- **IEL threshold composition — the identity heals a device.** Healing a _fully_ compromised device
+  (both keys) is the identity's job: a threshold vector with redundancy across distinct custodians
+  (a roster `M` larger than the threshold `N` it needs) survives total device compromise — burn the
+  device, evict it via an `Evl`, and the surviving members keep the threshold.
+- **Hardware — the reserve is not exfiltrable.** Reserve theft is a takeover-by-extend
+  (unrecoverable → reincept), so the reserve lives in device hardware, never replicated across
+  partitionable nodes.
+- **A biometric or device PIN — an on-device access gate.** It raises the cost of using a stolen,
+  locked device, but gates _access_ rather than custody: it can be coerced, and an unlocked device
+  remains usable.
 
 →
 [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
@@ -198,18 +214,19 @@ data-from-any-source rests on the data, with the federation as the propagation a
 
 ### Operational hardening composes on top
 
-Monitoring for unexpected governance or rotation events; fast detect-to-recover response via a
+Monitoring for unexpected rotations or other sealing events; fast detect-to-recover response via a
 recovery `Rot` (rotate at the first compromised position, burying the thief's run);
-abandon-and-reincept as last resort. Multi-party **governance** must serialize submissions above the
-protocol layer (designated submitter, leader election, or consensus over the identity's membership);
-for high-stakes IEL identities this is load-bearing, not optional — a governance race is sealed, and
-a `{Evl, Evl}` collision is terminal. **Content** serialization is the same discipline at lower
-stakes: every chain is federation-witnessed, and the majority floor prevents a competing content
-sibling going live, so an un-serialized content race costs stalls and re-issuance — a liveness cost,
-not a safety one (the residual safety concern is a witness compromise).
+abandon-and-reincept as last resort. Multi-party **sealing** benefits from serialized submissions
+above the protocol layer (designated submitter, leader election, or consensus over the identity's
+membership); but this is a **liveness** discipline, **not** a safety requirement — the witnessing
+floor plus one-sealing-per-position decline the second sealed sibling, so two sealing events that
+race **stall and re-issue**, never brick. A `{Evl, Evl}` terminal (→ reincept) needs **witness
+collusion** (a provable double-sign), not an honest race. **Content** serialization is the same
+discipline: every chain is federation-witnessed, and the witnessing floor prevents a competing
+content sibling going live, so an un-serialized content race costs stalls and re-issuance — a
+liveness cost, not a safety one (the residual safety concern is a witness compromise).
 
-→ [`../operations/multi-party-governance.md`](../operations/multi-party-governance.md)
-_(forthcoming)_.
+→ [`operations/sealing-serialization.md`](operations/sealing-serialization.md) _(forthcoming)_.
 
 ### Cascade-reincept honesty
 
@@ -221,7 +238,7 @@ referenced primitive is. The cascade rules:
 - **A disputed SEL** → the SEL is dead in place; nothing downstream cascades.
 - **A disputed KEL** → dependents only reincept when the disputed KEL actually anchored events on
   them AND the resolving threshold lacks redundancy. Rosters with `M > N` across distinct custodians
-  absorb single-member disputes by evicting the disputed KEL via a `Evl`.
+  absorb single-member disputes by evicting the disputed KEL via an `Evl`.
 
 The expensive case is a dispute on an IEL at the root of a dependency tree — partition identity
 hierarchies so any single dispute has bounded blast radius.

@@ -15,7 +15,7 @@ rotate — rides a federation `Wit`, anchored by the participating witnesses' KE
 carrying the federation `clock`.
 
 ```mermaid
-flowchart TB
+flowchart BT
   wFcp["witness KEL: Fcp"]:::kel --> wRot["Rot"]:::kel
   wWit["witness KEL: Wit"]:::kel
   fFcp["federation IEL: Fcp"]:::iel --> fWit["Wit"]:::iel
@@ -36,7 +36,7 @@ members' KEL `Wit`s (kind-strict, tier-2). Trust is **per-federation and non-tra
 event is witnessed by whichever federation was current when it landed.
 
 ```mermaid
-flowchart TB
+flowchart BT
   uIcp["user IEL: Icp"]:::iel --> uWit["Wit — rebind"]:::iel
   kWit["member KEL: Wit"]:::kel
   F1["federation F1"]:::iel

@@ -73,13 +73,14 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   **at most `N` hops** (`del(X)` abbreviates `del(X, 1)` — a direct delegate). Whether each hop's
   delegation is still live is answered by a **positive match** — is the hop's derived `target` in a
   `kills[]` declaration on the delegator's chain (present → rescinded; absent → live) — **never** by
-  scanning a chain for the absence of a rescission. The read is **fail-secure by default**
-  (forward-match the `target` on the delegator's **fresh** IEL, so a stale view cannot hide a
-  rescission — [`evaluation.md`](evaluation.md)), with a content-addressed lookup as the fail-open
+  scanning a chain for the absence of a rescission. The read hits the derived lookup-SEL **first**
+  (O(1) content-addressed, present → rescinded); on a miss it is **fail-secure by default** —
+  forward-match the `target` on the delegator's **fresh** IEL, so a stale view cannot hide a
+  rescission ([`evaluation.md`](evaluation.md)) — with **fail-open** (trust the miss) as the
   opt-out. The verifier walks **up** from the **presented party** rather than down from `X`: `X`'s
   _transitive_ delegate closure (delegates of delegates …) is unbounded, so it is never enumerated;
   instead the verifier follows the **one authorizing path the document commits** (each hop a
-  self-recorded `delegating` link pinning up toward `X` — [`documents.md`](documents.md)),
+  self-recorded `delegating` link chaining up toward `X` — [`documents.md`](documents.md)),
   confirming each hop's grant against that delegator's `Ath` inclusion list (the positive lookup
   above). The walk is bounded by `N` **and** by a verifier-wide depth/work cap, and exceeding
   **either** denies (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates,
@@ -163,6 +164,6 @@ overlap_.
   composer with two leaf resolvers, and the verification-token interface this layer declares.
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — the IEL primitive: the identity an `id`
   leaf resolves (members + threshold vector) and the delegate list a `del` leaf reads.
-  _(Per-primitive doctrine; forthcoming.)_
+  _(Per-primitive doctrine.)_
 - [`../data/event-logs/sel/`](../data/event-logs/sel/) — the SEL primitive: the single-owner data
   log a delegation's rescission lookup is read from. _(Per-primitive doctrine; forthcoming.)_

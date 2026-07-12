@@ -116,9 +116,8 @@ layer only declares the three questions above and consumes the answers.
 The tokens this layer names are produced by the per-primitive verifiers:
 
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — resolves an identity's members + threshold
-  at a position, and reads the delegate list a `del` leaf needs. _(Per-primitive doctrine;
-  forthcoming.)_
+  at a position, and reads the delegate list a `del` leaf needs. _(Per-primitive doctrine.)_
 - [`../data/event-logs/kel/`](../data/event-logs/kel/) — resolves a member device's key state, the
-  base case `id` recursion bottoms out in. _(Per-primitive doctrine; landed separately.)_
+  base case `id` recursion bottoms out in. _(Per-primitive doctrine.)_
 - [`../data/event-logs/sel/`](../data/event-logs/sel/) — the single-owner data log a delegation's
   rescission lookup is read from. _(Per-primitive doctrine; forthcoming.)_

@@ -10,7 +10,7 @@ cap.
 
 For chain lifecycle (states, the seal and spine, locked-portion bound, page model), see
 [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For recovery doctrine,
-[`recovery.md`](recovery.md). For the verifier walk, [`verification.md`](verification.md).
+[`compromise.md`](compromise.md). For the verifier walk, [`verification.md`](verification.md).
 
 ## Event taxonomy
 
@@ -29,7 +29,9 @@ The **class** column names the event's role under the
 — including the **terminal** kind (`Trm`, which also ends the chain); so a branch carrying a `Trm`
 counts as sealed in the divergence walk just as a `Rot` branch does. The **tier** column names which
 key material is required to forge the event — see
-[§Two-tier capability model](#two-tier-capability-model).
+[§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
+versioned schema identifier (`vdti/kel/v1/events/…`), unrelated to a standalone SAD's custody
+`topic`.
 
 ## Two-kind inception
 
@@ -50,7 +52,7 @@ The verifier dispatches at v=0 on kind:
   tier-2) in the same atomic bootstrap batch. The founder is bound to the federation by being named
   in the roster it founds — never self-bound. That federation IEL `Fcp` (the `Fcp`-rooted inception
   marker) is brought into existence in that same batch (see
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md), forthcoming).
 - `Icp` → federation-bound from inception. `federation` (the federation IEL prefix) and
   `federationPin` (the as-of federation position) declare the binding, and the `witnesses` manifest
   role declares the chain's witnessing policy — **all required**. Every identity is
@@ -76,13 +78,13 @@ one event's `rotationHash` is revealed at the next key change to sign it and the
 epoch's signing key, which then commits the next reserve — so a device holds exactly two live keys,
 the current signing key (last epoch's revealed reserve) and the next reserve (committed,
 unrevealed). The forward-key commitment drives the pre-rotation mechanic — see
-[§Forward-key commitments](#forward-key-commitments). The seal-advancing kinds (`Rot` / `Wit` /
-`Trm`) additionally carry the top-level `previousSeal` spine back-link
+[§Forward-key commitments](#forward-key-commitments). The sealing kinds (`Rot` / `Wit` / `Trm`)
+additionally carry the top-level `previousSeal` spine back-link
 ([`log.md` §The spine](log.md#the-spine)).
 
 ## The manifest — roles a KEL event carries
 
-A KEL event commits to lower-layer SAIDs and its witnessing policy through a **`manifest`** — the
+A KEL event commits to higher-layer SAIDs and its witnessing policy through a **`manifest`** — the
 SAID of a role-grouped SAD
 ([event-shape §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
 A KEL event's manifest may carry only these roles; one carrying any role outside this vocabulary is
@@ -97,8 +99,8 @@ it (read kind-first):
 A seal-advancing event does **not** commit its content run: the retained run since the prior seal is
 the derivable `[previousSeal..previous]`, and "content was folded" is the predicate
 `previous != previousSeal`. There is no repair kind and no losing-branch commitment — a content
-loser is buried **by position + descent** (the burying `Rot`'s seal-cap locks its first event, and
-everything grown on it is dead by descent), naming no root.
+loser is buried **by position + descent** (the burying seal-advancer's seal-cap locks its first
+event, and everything grown on it is dead by descent), naming no root.
 
 ### Anchors
 
@@ -151,11 +153,11 @@ A `Wit` event **rebinds** federation context (the must-change rule and the two f
 same-federation **re-pin** (advancing `federationPin` within the same federation) is **not** a `Wit`
 — since `federationPin` is optional on every event, a re-pin rides whatever the chain authors next,
 which is how an active chain answers the witness currency gate after a federation cut. See
-[`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap
-ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation re-binding mechanics.
-A `Wit` **is** the rotation — it refreshes the signing key and the rotation reserve — so it is
-structurally **tier-2**, single-signed with the reserve; this is a property of `Wit`'s own signature
-shape.
+[`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming) for the
+bootstrap ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation re-binding
+mechanics. A `Wit` **is** the rotation — it refreshes the signing key and the rotation reserve — so
+it is structurally **tier-2**, single-signed with the reserve; this is a property of `Wit`'s own
+signature shape.
 
 **The `Wit` kind has two facets, dispatched by the inception root — and a `Wit` is never a no-op.**
 The **`Icp`-rooted (user) KEL** facet is the identity's federation rebind, carrying `federation` /
@@ -188,12 +190,13 @@ signed by the new signing key the rotation reserve reveals — never by the old 
 | `Wit` | new signing key revealed by `publicKey` (preimage of prior `rotationHash`)            |
 | `Trm` | new signing key revealed by `publicKey` (preimage of prior `rotationHash`)            |
 
-`Rot` / `Wit` / `Trm` advance the seal — they are the **seal-advancing** kinds, tracked via
+`Rot` / `Wit` / `Trm` advance the seal — they are the **sealing** kinds, tracked via
 `last_seal_advancing_event`; `Trm` belongs to it too (it advances the seal to its own serial and is
-terminal). Once a rotation lands, the reserve preimage it revealed is public — a **spent** reserve
-that can only forge a _late_ competing rotation (declined) — see
+terminal). Once a rotation lands, the reserve preimage it revealed is public — the revealed
+`publicKey`, unable to sign; only a thief of its matching **private** half (now the current signing
+key) can forge a _late_ competing rotation (declined) — see
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound)
-and [`recovery.md`](recovery.md).
+and [`compromise.md`](compromise.md).
 
 ## Two-tier capability model
 
@@ -216,6 +219,15 @@ prerequisite for tier 2. Adding "signing +" conflates "what an adversary needs t
 produce this event" with "what keys are referenced by this event." The signing key applies _only_ to
 tier 1.
 
+**The boundary case.** Post-rotation the _just-revealed_ reserve **is** the current signing key, so
+the current signing key can forge a competing seal **at its own serial** — a late rival to the
+rotation that revealed it, first-seen-declined under honest witnesses, a brick under witness
+collusion
+([`compromise.md` §The live-tip dispute is a killswitch](compromise.md#the-live-tip-dispute-is-a-killswitch-forced-by-structure)).
+This does not loosen "signing key → tier 1 only": the capability is the **spent reserve's**, exposed
+only after its own rotation revealed it, and authorizes nothing beyond that one already-taken
+position.
+
 The two tiers set the cryptographic cost of forging each act; the cross-layer binding is
 **kind-strict** ([§Tiers](../../../../protocol-doctrine.md#tiers)): each IEL or SEL operation is
 anchored by **exactly** the KEL kind that reveals the capability it exercises. The tier hierarchy
@@ -223,7 +235,7 @@ makes the cost of forging a governance act, binding establishment, or terminal e
 SEL strictly higher than the cost of forging routine extension events on its contributing KELs.
 **The reserve defends the signing key, never the rotation key** — a reserve-holding adversary can
 just extend the chain with a rotation to their own key, an unrecoverable takeover
-([`recovery.md`](recovery.md)).
+([`compromise.md`](compromise.md)).
 
 ### Anchoring is kind-strict
 
@@ -259,12 +271,12 @@ KEL has one protocol-enforced cap (the seal-advance cap).
 A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal but ends the chain)
 must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The
 cap bounds the **fold** — the content run since the last seal — to 64 events on each branch, so the
-canonical two-branch content fork plus the resolving burying `Rot` is **sized to fit** one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing content
-branches plus the burying `Rot` in one atomic page, since the sink holds neither branch in storage.
-A local node's hot page is smaller still (its retained branch ≤ 64 plus the burying `Rot`; the
-losing branch is buried by position + descent, validated from retained storage). See
-[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+canonical two-branch content fork plus the resolving burying seal-advancer is **sized to fit** one
+page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing
+content branches plus the burying seal-advancer in one atomic page, since the sink holds neither
+branch in storage. A local node's hot page is smaller still (its retained branch ≤ 64 plus the
+burying seal-advancer; the losing branch is buried by position + descent, validated from retained
+storage). See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at 64 events
@@ -351,7 +363,7 @@ back-links to its predecessor. The `Rot` at s64 keeps the chain inside the seal-
 s0..s4   normal chain (seal at the most recent prior seal-advancing event)
 s5a  kind=ixn  manifest={ anchors: [said_a] }          ← content fork
 s5b  kind=ixn  manifest={ anchors: [said_b] }          ← content fork
-     — chain is Forked (frozen); recoverable via a burying Rot —
+     — chain is Forked (frozen); recoverable via a burying seal-advancer —
 s6   kind=rot  previous=s5a.said,                       ← Rot extends the branch its author keeps
                 publicKey=k6, rotationHash=h(k7),         signed by k6 (tier-2, the reserve)
                 previousSeal=<prior seal>.said            ← seals past the loser
@@ -362,7 +374,7 @@ advances the seal past the loser, so the competing `s5b` (and anything grown on 
 the new seal and **dead by descent**. There is no repair kind, no recovery key, and no losing-branch
 commitment — burial is by position + descent. Go for the **root**, not the thief's tip: however long
 a run the thief piled on, it all hangs off the buried point and dies at once. See
-[`recovery.md` §Recovery is a plain Rot](recovery.md#recovery-is-a-plain-rot-that-buries-at-the-root).
+[`compromise.md` §Recovery is a plain Rot](compromise.md#recovery-is-a-plain-rot-that-buries-at-the-root).
 
 ### Clean terminate
 
@@ -378,7 +390,7 @@ subsequent submission: a sibling to the `Trm` (sharing parent `v_{N}`) is reject
 — no kind admits a `Trm` parent). See [`merge.md` §Routing order](merge.md#routing-order). A
 concurrent sealed event racing the `Trm` at the same serial on another node is retained as
 non-canonical evidence and read data-locally — see
-[`recovery.md` §Cross-node sealed-vs-sealed races](recovery.md#cross-node-sealed-vs-sealed-races).
+[`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix).
 
 ## Cross-references
 
@@ -387,16 +399,16 @@ non-canonical evidence and read data-locally — see
 - [`log.md`](log.md) — chain primitive: states, prefix derivation, the seal and spine,
   locked-portion bound, page model.
 - [`merge.md`](merge.md) — merge-layer routing.
-- [`recovery.md`](recovery.md) — recovery doctrine, recovery as a plain `Rot`, two-tier compromise
-  model.
+- [`compromise.md`](compromise.md) — recovery doctrine, recovery as a plain `Rot`, two-tier
+  compromise model.
 - [`verification.md`](verification.md) — verifier algorithm and kind dispatch.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and recovery, forks-are-seal-bounded, inception tiers.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
-- [`../iel/`](../iel/) — IEL primitive (subsequent sub-issue). Delegation is an identity-layer
-  concern and lives there (delegated IEL inception; declare / rescind delegation); the
-  `del(delegator)` policy node operates on IEL prefixes, not KEL prefixes.
+- [`../iel/`](../iel/) — IEL primitive. Delegation is an identity-layer concern and lives there
+  (delegated IEL inception; declare / rescind delegation); the `del(delegator)` policy node operates
+  on IEL prefixes, not KEL prefixes.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (subsequent sub-issue).
+  witnessing (forthcoming).
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap atomic batch (subsequent sub-issue).
+  bootstrap atomic batch (forthcoming).

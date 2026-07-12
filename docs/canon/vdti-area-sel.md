@@ -5,7 +5,7 @@
 decisions (cred-as-a-SEL, SEL `Trm`, no registry). **Note:** §2.1's `≤1 Ixn per SEL` rule + seal-bounding still
 *hold* — only its inception-pair description changes. Driven *down* from the document/policy area, exactly as the
 document-first sequencing intended.
-**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-down/pin-up,
+**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-up/pin-down,
 [inv 5] pin-floored, [inv 10] lookup-SELs, [inv 13] divergence-scoped-to-T1-content, [inv 15] inception/pin.
 
 ## Sources
@@ -203,14 +203,14 @@ the tier-1 buriable kinds.
   are the SEL's seal-advancers (`previousSeal`). A **plain** content SEL (no `Gnt`/`Trm`) never self-seals — its
   **trust-finality floors to the owner IEL's seal via its `pin`** (it holds no trust-seal of its own), and a content
   fork on it resolves **cross-layer** (the owner IEL buries the fork and the dead line descends across the anchor —
-  below). *(There is no SEL `Fld` re-seal — no repair ⇒ no page-atomicity requirement ⇒ no `Fld`; finality floors up.)*
+  below). *(There is no SEL `Fld` re-seal — no repair ⇒ no page-atomicity requirement ⇒ no `Fld`; finality floors down.)*
   A **kill** is **`Rev`/`Dth`-anchored → sealed on arrival**, owner-proof immediately and terminal-on-divergence.
   **There is no delayed kill.**
 - **Divergence resolution — first-seen + cross-layer** [inv 13]: **content `Ixn` and the floor `Pin` are
   buriable** (both T1, first-seen); a `Gnt`/`Trm` (the seal-advancing SEL kinds) is **never overturned**. A content
   fork resolves cross-layer: the **owner IEL's burying seal** drops the loser and the dead line **descends across the
   anchor edge** (deadness-descends) — there is no SEL repair event. Node-agnostic, **data-local** condition: **≥ 2
-  branches each carrying a sealed event past the fork → disputed** (any verifier walks it — inv 13/17; the beacon
+  branches each carrying an accepted sealed event past the fork → disputed** (any verifier walks it — inv 13/17; the beacon
   propagates the branches, it does not decide). E.g. `{Trm, Ixn}` → the `Trm` is the single sealed branch and **wins
   on tier-rank**: the kill stands, the content buried non-canonical. An adversary's `Trm` in a competing branch → a
   second sealed branch → disputed → reincept.
@@ -225,7 +225,7 @@ the tier-1 buriable kinds.
   - **Cross-layer deadness-descends** — a SEL event whose anchoring IEL event is dead (condemned / below-seal-inert)
     is itself dead (the **IEL→SEL** anchor edge only — not KEL→IEL, which is forward-only).
   **Content-fork prevention rides the theorem transitively (2026-07-02):** a witnessed SEL content fork would force
-  its two same-serial siblings to anchor at IEL content siblings at one IEL position — which the majority floor +
+  its two same-serial siblings to anchor at IEL content siblings at one IEL position — which the witnessing floor +
   option (b) prevent on the witnessed owner IEL (federation §1e / inv 4) — so a witnessed SEL content fork carries
   the **same fork-cost** and needs **no SEL-local witness gate**; the residual (witness-compromise / roster-delta
   straddle) is the IEL's residual inherited.
@@ -289,7 +289,7 @@ the tier-1 buriable kinds.
   **`Pin`** (carries only the `pin`); the rescission `bound` rides the `Dth`'s **`kills[]`** (moved off the `Trm` —
   2026-07-09; the `Trm` carries only its pin — **the delegate case**; a **doc-member** bound is participant-identifying
   and instead rides a **gated rescind-doc committed by the `Trm`**, R3 / multi-party §1). The old SEL `Evl` is
-  fully retired; its re-seal job (`Fld`) is **dropped** with the repair machinery — a plain content SEL floors up to
+  fully retired; its re-seal job (`Fld`) is **dropped** with the repair machinery — a plain content SEL floors down to
   the owner IEL instead. Cross-layer `Trm` (KEL/SEL/IEL) is **not** renamed (same act at three layers) — the docs
   just **qualify it by layer** (`KEL-Trm` / `SEL-Trm` / `IEL-Trm`).
 - **Public-cred uniqueness — RESOLVED (G4, refined 2026-06-21; cred = direct-anchored SAD 2026-07-09).**

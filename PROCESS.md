@@ -45,26 +45,34 @@ The rules for design are simple, now that I understand a bit more about how LLMs
      refer to them in prompts.
 4. Use Claude's vernacular. You can use your own, but I find the models work best when you explain
    in terms they already use - it's like an established protocol, and allows you to catch the model
-   reasoning in the wrong frame. - 'Locked' - decision made. - 'Drift' - usually related to
-   documentation not being updated as required. - 'Fallout' - the changes to surrounding code
-   required by the core change. - 'Invariant' - a system rule that cannot be broken - 'Gap' - a
-   delta between design/correctness and implementation. - 'Surface' / 'canonical surface' - the
-   single place the truth lives; everything else points at it. - 'Land' - to commit/merge a change
-   onto the canonical surface. - 'Backport' - when a fix touches a pattern the symmetric side also
-   has, apply it there in the same change. - 'Thin pointer' - a minimal reference to a durable doc,
-   instead of duplicating its content. - 'Load-bearing' - a piece the design critically depends on;
-   can't be simplified or removed without collapse. - 'Structural' (vs. 'incidental' /
-   'current-state') - inherent to the design, not just how things happen to be right now. -
-   'Smell' - a signal something is probably wrong before you can prove it. - 'Greenfield' - a fresh
-   build with no migration path or legacy audience to accommodate. - 'Altitude' - the level of
-   abstraction you're working at; "wrong altitude" = too in-the-weeds or too vague. - 'Telegraph' -
-   make a doc or structure signal its purpose up front. - 'Punt' / 'Defer' - postpone deliberately
-   (and log it, so it isn't lost). - 'Hygiene' - upkeep done proactively, before something forces
-   it. - 'Triage' - sort findings/issues by what actually matters. - 'Fold' - incorporate changes
-   into a written document - 'Fold these changes and we'll review'
+   reasoning in the wrong frame.
+   - 'Locked' - decision made. - 'Drift' - usually related to documentation not being updated as
+     required.
+   - 'Fallout' - the changes to surrounding code required by the core change.
+   - 'Invariant' - a system rule that cannot be broken
+   - 'Gap' - a delta between design/correctness and implementation.
+   - 'Surface' / 'canonical surface' - the single place the truth lives; everything else points at
+     it.
+   - 'Land' - to commit/merge a change onto the canonical surface.
+   - 'Backport' - when a fix touches a pattern the symmetric side also has, apply it there in the
+     same change.
+   - 'Thin pointer' - a minimal reference to a durable doc, instead of duplicating its content.
+   - 'Load-bearing' - a piece the design critically depends on; can't be simplified or removed
+     without collapse.
+   - 'Structural' (vs. 'incidental' / 'current-state') - inherent to the design, not just how things
+     happen to be right now.
+   - 'Smell' - a signal something is probably wrong before you can prove it.
+   - 'Greenfield' - a fresh build with no migration path or legacy audience to accommodate.
+   - 'Altitude' - the level of abstraction you're working at; "wrong altitude" = too in-the-weeds or
+     too vague.
+   - 'Telegraph' - make a doc or structure signal its purpose up front.
+   - 'Punt' / 'Defer' - postpone deliberately (and log it, so it isn't lost).
+   - 'Hygiene' - upkeep done proactively, before something forces it.
+   - 'Triage' - sort findings/issues by what actually matters.
+   - 'Fold' - incorporate changes into a written document - 'Fold these changes and we'll review'
 5. Other useful terms:
    - Turn - A single message from you or the LLM
-   - Round - The collection of turns between compactions
+   - Round - A review cycle
    - Session - A collection of rounds (multiple rounds across compactions)
 6. Instruct the LLM to _attack_ the design, not affirm it. It should look for concrete examples
    where the design breaks down, to raise for resolution.

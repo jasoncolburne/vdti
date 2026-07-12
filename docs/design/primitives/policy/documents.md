@@ -106,20 +106,25 @@ applies at every level — with no self-asserted value carried at any level.
 
 A document may be authorized by a **delegate** of an identity — the `del(X, N)` leaf
 ([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
-each hop's delegating link is recorded on the delegate's own identity, pinning up to `X`, so the
-verifier **derives** the authorizing chain from committed data and walks it (up to `N` hops, and
-never beyond the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter
-furnishes nothing to prune. Per hop the verifier checks that the delegation was granted and that the
-grant has not been **rescinded** (a positive `kills[]` match, fail-secure by default —
-[`policy.md`](policy.md)). The **grandfather** check is **per hop, on that hop's own chain** — there
-is no cross-chain clock: the **issuer's own hop** is grandfathered iff the document's **anchoring
-position** is an ancestor of the issuer's rescission bound; each **upstream hop** iff _that hop's
-committed grant position_ is an ancestor of _that hop's_ bound, on the granting delegator's chain.
-The document is authorized iff **every** hop is grandfathered. (A grant authored before trust was
-withdrawn at its hop stays valid; one that post-dates that hop's bound does not — and the bound is
-**set once** at rescission — the rescission is a terminal `Trm`, so it can't be moved later to
-un-kill, nor tightened earlier; a mis-set bound is recovered operationally, not by adjusting it.) To
-give several delegators kill-authority over a document, issue it under a threshold spanning their
+each hop's delegating link is the content-addressed
+`derive(delegator, {delegation topic}, delegate)` (delegator = owner, delegate = data — the same
+scheme as a rescission lookup), **committed on the delegator's (owner's) own identity**
+(owner-rooted — only the owner anchors at a derived locus) and pinning up to `X`, so the verifier
+**derives** the authorizing chain from committed data and walks it (up to `N` hops, and never beyond
+the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter furnishes nothing
+to prune. Per hop the verifier checks that the delegation was granted and that the grant has not
+been **rescinded** (a positive `kills[]` match, fail-secure by default — [`policy.md`](policy.md)).
+
+The **grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock:
+the **issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor
+of the issuer's rescission bound; each **upstream hop** iff _that hop's committed grant position_ is
+an ancestor of _that hop's_ bound, on the granting delegator's chain. The document is authorized iff
+**every** hop is grandfathered. (A grant authored before trust was withdrawn at its hop stays valid;
+one that post-dates that hop's bound does not — and the bound is **set once** at rescission — the
+rescission is a terminal `Trm`, so it can't be moved later to un-kill, nor tightened earlier; a
+mis-set bound is recovered operationally, not by adjusting it.)
+
+To give several delegators kill-authority over a document, issue it under a threshold spanning their
 legs, so every leg lands in the committed chain. The delegation mechanics — the delegate list, the
 rescission lookup, and the bound — are the IEL primitive's; see
 [`../data/event-logs/iel/`](../data/event-logs/iel/).

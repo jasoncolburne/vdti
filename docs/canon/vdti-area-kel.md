@@ -7,7 +7,7 @@ are (a) **two tiers** (signing key / rotation reserve), (b) **dropped kinds** `R
 witnessing** on single-key chains (the divergeable kind is still `Ixn`; a KEL rotation conflict is first-seen).
 Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `vdti-event-kinds.md` /
 `vdti-adversary-cases.md`) + the canonical `event-shape.md`. Load-bearing claims marked for the adversarial pass.
-**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-down/pin-up,
+**Invariants referenced:** [inv 2] single-locus, [inv 3] layers-isolated, [inv 4] manifest-up/pin-down,
 [inv 7] prefix-vs-SAID, [inv 11] tier, [inv 13] divergence-scoped-to-T1-content, [inv 14] federation/witnessing,
 [inv 15] inception-tier.
 
@@ -21,7 +21,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   `{Rot, Wit}` (§2), and the burying event is a plain `Rot` (no `Rec`/`Ror`).
 
 ## 1. Locked-candidate — the current KEL model
-- **KEL = one device's key state.** The **root** primitive — self-authorizing, **no chain above it** [inv 2].
+- **KEL = one device's key state.** The **root** primitive — self-authorizing, **no chain below it** [inv 2].
   It is the bottom layer: nothing anchors *into* a KEL; a KEL anchors the IEL above it via its members' KEL
   events [inv 3]. **`Icp` = T1** (the root is self-authorizing — there is no governance to establish) [inv 15].
 - **5 kinds** (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`); a **federation-infrastructure** KEL is the same working set rooted
@@ -68,18 +68,25 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   **The rotation reserve defends the *signing* key, never the rotation key:** a thief who steals the **reserve** can
   just *extend* the chain with a rotation to their own key (a takeover-by-extend, case 3) — witnesses sign it
   willingly as an ordinary next event, so it forces nothing and is **silent to third parties on a dormant chain**
-  (caught only by owner vigilance; reserve theft is unrecoverable → reincept). A hostile `Rot` at a *forked*
-  position is likewise the reserve-theft takeover, **not** a recoverable fork.
+  (caught only by owner vigilance; reserve theft is unrecoverable → reincept). **If an attacker rotates at your
+  next position before you do (they hold your un-revealed reserve), you have lost control of the prefix** — a sibling
+  rotation there is first-seen-**declined** (deferred-pending, forces nothing — revised 2026-07-11, cold F1), so there
+  is no structural veto; recourse is **reincept under a new prefix and notify relying parties out of band** (the
+  attacker's chain reads clean — no on-chain signal of the takeover). This is inherent to pre-rotation, **shared with
+  KERI's model**, not a vdti-specific gap. A hostile `Rot` at a *forked* position is likewise the reserve-theft
+  takeover, **not** a recoverable fork.
 - **Forked vs Disputed are distinct, derived states** [inv 13]. A fork is read by counting the **sealed** branches
   past it (a sealed event = a seal-advancing key change; the content count is irrelevant — all content is buriable):
   - **Forked** = **≤ 1 sealed branch** past the fork — **recoverable *if* that surviving sealed tip is the owner's
     recovery `Rot`** (a burying rotation at the root). A *hostile* sealed tip at a forked position is the
     reserve-theft takeover (terminal/silent, owner-vigilance only) — an owner's counter-`Rot` then makes it two
     sealed branches → **disputed** (cold C1).
-  - **Disputed** = **≥ 2 sealed branches** past the fork → **terminal → reincept** (you can't un-change a key). A
+  - **Disputed** = **≥ 2 accepted sealed branches** past the fork → **terminal → reincept** (you can't un-change a key; a below-seal sealed straggler is dropped, backdate-safe). A
     `{Rot, Rot}` disputed is moreover a **confirmed reserve compromise** — two valid rotations reveal the *one*
     reserve preimage at `v_{d-1}`.
-- **Cross-tier co-sign + the per-serial bound.** A witness's slot at one serial is **`{≤ 1 content, ≤ 2 sealed}`**.
+- **Cross-tier co-sign + the per-serial bound.** A witness's slot at one serial is **`{≤ 1 content, ≤ 1 sealed}`**
+  (sealed dropped from two to one — revised 2026-07-11, cold F1; this makes the slot consistent with the
+  `{sealed, sealed}`-is-the-cheat rule below, which the old `{≤ 2 sealed}` cap contradicted).
   Content and a key change are different **tiers**, so a witness signing one of each is **not** a double-sign — a
   cross-tier `{content, sealed}` pair is a **legit co-sign** (it is what lets a recovery rotation get witnessed and
   bury content the witnesses already signed), never misbehaviour. **Two *same-tier* signatures** (`{content, content}`
@@ -129,7 +136,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   (re)bind — it moves *its* identity to a federation and **anchors the identity's IEL `Wit`**, which records the
   federation choice at the IEL (the closed set `{federation, federationPin}` — cold-5 C4 — exact-matched across the
   chains on every walk).
-- **Anchoring (manifest-down), kind-strict [inv 4, 2026-06-28; re-homed under two tiers 2026-07-08]:** a member
+- **Anchoring (manifest-up), kind-strict [inv 4, 2026-06-28; re-homed under two tiers 2026-07-08]:** a member
   anchors an IEL event with **exactly** the kind that reveals the capability it exercises —
   `Ixn → IEL Ixn` (T1 content); `Rot → {IEL Icp, Evl, Ath, Rev, Dth, Trm, federation Fcp}` (T2 establishment,
   governance, kill, terminal, & the federation inception — the IEL `Trm` and the federation `Fcp`/`Trm`, formerly
@@ -153,7 +160,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 
 ## 2. Mined from the VDTI-10 build — structure + patterns (first-seen-current; confirm before lock)
 - **6-doc layout** to land: `log.md` (chain primitive, four-state machine, prefix derivation, locked-portion
-  bound, page/chunk), `events.md` (taxonomy, **two-tier** model, anchor reqs, seal cap), `recovery.md` (recovery
+  bound, page/chunk), `events.md` (taxonomy, **two-tier** model, anchor reqs, seal cap), `compromise.md` (recovery
   **doctrine** — recovery is a **plain `Rot` that buries at the root**, the reserve defends the signing key not the
   rotation key; *not* the operator workflow), `merge.md` (**sealed**-divergence-terminal, first-seen decline, the
   **formalized merge outcomes** `Result<MergeTransition, MergeRejection>` — transitions
@@ -217,12 +224,12 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   `threshold` via `{signers, threshold}`; there is no `minForkCost` field (cost 1 is the structural floor, not a
   footgun). **Per-layer (D1, 2026-06-28):** this is the **KEL's own** config (its KEL events; on `Icp`/`Wit`); a
   **user IEL carries its own authoritative** config (on `Icp`/`Wit`) for IEL events — an IEL is witnessed and could
-  otherwise fork without any member KEL forking (disjoint sub-quorums — the content case now closed by the option-(b)
-  position gate, federation §1e; sealed forks remain → `disputed`), so it needs its own, **independent** of member configs (not
+  otherwise fork without any member KEL forking (disjoint sub-quorums — closed by the option-(b)
+  position gate, now **universal** (every event, content _and_ sealed; revised 2026-07-11) — a competing sealed sibling is declined first-seen too, only witness collusion yields `disputed`, federation §1e), so it needs its own, **independent** of member configs (not
   matched — a *user* IEL vs its member KELs, different chains); the **federation IEL carries its own** (on `Fcp`/`Wit`,
   adjusted each governance `Wit` — cold-7 F1), and at the **federation-governance facet that own config *is*
   field-matched** by the approvers' KEL `Wit`s (a consensus vote — area-iel:32 / cold-9 C1; not a contradiction with
-  "independent," which is about member KELs' own configs); a **SEL inherits** its owner IEL's (single-owner). See inv 4:61 / federation §1e. **Resolved (federation area, 2026-07-02):** the majority floor `threshold > signers/2`
+  "independent," which is about member KELs' own configs); a **SEL inherits** its owner IEL's (single-owner). See inv 4:61 / federation §1e. **Resolved (federation area, 2026-07-02):** the witnessing floor `threshold > signers/2`
   **is structurally required** — with one-content-sibling-per-serial witnessing it *prevents* content forks on
   witnessed chains (below fork-cost `2·threshold − signers`); sub-majority configs are rejected; sealed forks and
   the witness-compromise (byzantine) residual stay detection — federation §1e.
@@ -245,7 +252,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 
 ## 5. Drift → land backlog (canonical docs)
 - **`docs/design/primitives/data/event-logs/kel/` reconciled to first-seen (2026-07-08):** five KEL kinds
-  (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`), two tiers, no recovery key. `recovery.md` becomes recovery-as-a-plain-`Rot`
+  (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`), two tiers, no recovery key. `compromise.md` becomes recovery-as-a-plain-`Rot`
   (root-bury + deadness-descends); `merge.md`/`reconciliation.md` drop the repair machinery for first-seen
   (decline-copies, sealed-divergence-terminal, forked vs disputed); the `fork` role is deleted everywhere.
 - **`event-shape.md` KEL fixes (2026-07-08):** drop the `Ror`/`Rec` kinds and the `recoveryKey`/`recoveryHash`

@@ -23,29 +23,42 @@ names the version SAD, and its serial-1 `Pin` (v1) is anchored by the author's I
 intra-chain, append-only, clock-free membership test.
 
 ```mermaid
-flowchart TB
+flowchart BT
+  vM["vM — merge"]:::doc
   V0["V0 — constitution SAD"]:::doc
+  vA1["vA1"]:::doc
+  vB1["vB1"]:::doc
+  vA["version SEL A: Icp"]:::sel
+  vB["version SEL B: Icp"]:::sel
   gGnt["governance SEL: Gnt"]:::sel
   G["grant-doc G (gated)"]:::doc
   Resc["rescission SEL: {Icp, Trm}"]:::sel
-  vA["version SEL A: Icp"]:::sel
-  vB["version SEL B: Icp"]:::sel
-  vA1["vA1"]:::doc
-  vB1["vB1"]:::doc
-  vM["vM — merge"]:::doc
   gGnt -.->|manifest.grant| G
   gGnt -. rescind .-> Resc
   vA -.->|data| vA1
   vB -.->|data| vB1
-  vA1 -->|ancestors| V0
-  vB1 -->|ancestors| V0
-  vM -->|ancestors| vA1
-  vM -->|ancestors| vB1
+  V0 -->|ancestor of| vA1
+  V0 -->|ancestor of| vB1
+  vA1 -->|ancestor of| vM
+  vB1 -->|ancestor of| vM
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
   classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
 ```
 
 Nodes are colour-coded (SEL blue, referenced SADs / grant-doc orange). Dotted arrows are manifest
 references (`grant`, `data`) and the governance→rescission relation; solid arrows are the
-`ancestors[]` version DAG. Each version SEL is `{Icp, Pin}` — its `Icp`'s `data` names the version
-SAD, the serial-1 `Pin` floors it to the author's IEL tip.
+`ancestors[]` version DAG, drawn **ancestor → descendant** (see the note). Each version SEL is
+`{Icp, Pin}` — its `Icp`'s `data` names the version SAD, the serial-1 `Pin` floors it to the
+author's IEL tip.
+
+> **Note — the lineage arrows run against the usual convention.** Everywhere else in these docs an
+> arrow points **along the reference**: the field that holds a SAID points at what it commits. The
+> `ancestors[]` link is the same shape — it lives on a version and points **back** to its ancestor
+> (`vA1 → V0`, `vM → vA1`). This diagram draws those arrows **reversed** (`ancestor of`, ancestor →
+> descendant) for one reason: mermaid derives a flowchart's layout **from** its arrow directions, so
+> the linkage-faithful arrows would either stand the version DAG on its head (V0 at the top) or lift
+> each version SEL above the document it anchors. The build-up layout (constitution at the base,
+> merge on top; each doc above its SEL) and the linkage-faithful arrow direction cannot both be
+> expressed in mermaid — that would need a renderer decoupling arrows from layout (e.g. Graphviz
+> `constraint=false`), which would clash with every other diagram here. So the solid arrows in this
+> one diagram read as **lineage**, not as `ancestors[]` pointers.

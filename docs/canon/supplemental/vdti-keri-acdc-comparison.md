@@ -8,6 +8,34 @@ design-level knowledge (KEL, witnesses, receipts, first-seen duplicity, ACDC, de
 weighted multi-sig, rotation/recovery) not re-checked against keripy or the whitepapers — validate before
 banking a comparative claim.
 
+## The most important bit
+
+Both systems recover ordinary key compromises the same way and both lean on rotation hygiene. 
+They only diverge when a compromise reaches equivocation — two validly-signed competing histories.
+KERI keeps the identifier alive and leaves consumers to decide which history is real; that decision
+isn't fixed by the data, so two honest verifiers can disagree and never converge. vdti refuses to
+make that decision in-protocol: two competing seals means the identifier is provably dead, every
+verifier agrees from the data alone, and the owner rebuilds out of band. You pay a heavier recovery
+to guarantee nobody ever disagrees about a trust anchor.
+
+To put it plainly, if your current signing key is compromised and witness quorum coerced, you can be
+bricked. You probably will be. But this is the tradeoff we make for determinism at the verifier
+boundary. It's a pretty high bar.
+
+**And "you" here is a device, not an identity — that's the point.** The brick above is a **KEL**
+(device) event. An identity is an **IEL — a threshold over device KELs** (§1), so a bricked device is
+an **eviction** (`Evl`-cut the dead KEL), not an identity loss: the identity continues on the
+remaining threshold. Your device getting bricked is what devices are _for_. Three caveats keep this
+honest: it needs **roster redundancy** (`roster > threshold` — a singleton identity has no device to
+absorb the loss, it _is_ its one KEL); the **identity itself** can still brick, but only at the far
+higher bar of **threshold-many member devices double-participating + witness collusion**; and it
+assumes **distinct custody** (a correlated compromise of threshold-many devices meets the threshold
+and takes the identity, exactly as a correlated witness compromise does one layer down). KERI can
+build threshold identifiers too (group / multi-sig AIDs), but it puts the multi-sig **inside the
+identifier's own key log**; vdti keeps identity governance in a **separate** log from any device, so
+device churn never touches it (§1 — the KEL/IEL split; **[TO VALIDATE]** the overlap with KERI group
+AIDs).
+
 ## The honest starting point: the backbone is KERI
 
 After subtracting complexity — the repair-completeness proof, root-condemnation, the T3 reserve, explicit
@@ -32,6 +60,9 @@ machinery as false differentiation. So: **take the backbone as-is; differentiate
 - **Claim:** separating the device axis (KEL) from the governance axis (IEL) is cleaner — a device rotating
   doesn't entangle identity governance, and the threshold is first-class and separate. The strongest form:
   **one reusable "threshold over KELs" primitive, used for BOTH identities and the federation** (below).
+  It is also what **absorbs the device-level killswitch** ("the most important bit," above): a bricked or
+  stolen device is an **eviction**, not an identity loss, because the identity never rode on it (given
+  roster redundancy + distinct custody).
 - **[TO VALIDATE]:** KERI has **weighted multi-sig, delegated AIDs, and group AIDs** that overlap the IEL's
   ground. Confirm the IEL is a structural improvement, not a rename of KERI delegation/group identifiers — and
   that KERI doesn't already unify identity + witness-pool the way the IEL does.
@@ -41,14 +72,57 @@ machinery as false differentiation. So: **take the backbone as-is; differentiate
 - **vdti:** the federation is a restricted IEL — a governed, rotating, evictable threshold over witness KELs —
   with structural safety floors (roster ≥ 4, signers ≥ 3, majority, availability). A user binds to a
   federation and _consumes_ witnessing; they never run witnesses.
-- **Adoption thesis:** KERI's wall is that "be witnessed" and "run witnesses" are the same act, so every user
-  needs infrastructure and the skill to run it — which is why it's stuck at expert / enterprise. vdti splits
-  them: **witnessing becomes a service run by trusted operators.**
+- **Adoption thesis:** one wall for KERI is that "be witnessed" and "run witnesses" tend to be the same act, so a
+  user typically needs infrastructure and the skill to run it — part of why adoption skews expert / enterprise.
+  vdti splits them: **witnessing becomes a service run by trusted operators.**
 - **Safety property (the non-obvious part):** you offload **operation, not trust**. End-verifiability keeps
   trust with your keys (an operator can't forge you — they never hold your keys); `< threshold` byzantine
   members are bounded and attributably evicted; the **floors make a malformed federation unhonored by the
   verifier**, so a non-expert can trust an operator _without auditing it_. That last point is why the
   byzantine/floor work is the adoption foundation, not just correctness hygiene.
+- **The honest cost (the disadvantage vs KERI):** because you don't run the witnesses, **you can't
+  tell them to stop.** In KERI, running your own witnesses gives a unilateral **freeze** — on
+  suspected compromise you halt witnessing and deny an attacker any witnessed event (malicious content
+  _or_, if they also hold your reserve, a takeover rotation) while you recover. vdti has no such
+  switch. Its value is bounded, though: it is a detection-race either way (a fast attacker acts before
+  you would halt), it is a self-DoS lever (a compromised owner-key could freeze your own identity),
+  and in the case it uniquely helps — **both** signing key and reserve compromised — freezing only
+  defers an inevitable reincept. The **reserve-theft takeover is shared with KERI**: if someone
+  rotates your next position before you do (they hold your un-revealed reserve), you have lost
+  control → **reincept + notify out of band**, the chain carrying no structural signal. vdti's
+  one-sealing-per-position rule makes a _late_ competing rotation a first-seen-**declined** sibling
+  (no durable grief — federation §1e), but the _rotate-first_ takeover is inherent to pre-rotation,
+  not a vdti-specific gap. Net: vdti trades the run-your-own-witnesses freeze for **zero-infrastructure
+  adoption** — and the freeze's cost (the infrastructure + expertise to run witnesses) is one of
+  KERI's adoption walls.
+- **The counterweight (a marginal security gain — it splits _one_ vector, the brick):** because you
+  **don't** run the witnesses, coercing **you** does **not** let an attacker unilaterally **brick**
+  the prefix (force `disputed`). A brick needs a witnessed competing **sealed sibling**, and the
+  independent federation **declines** the second one (one-sealing-per-position, federation §1e), so a
+  forced `disputed` additionally needs **federation-majority collusion**, not just the identity
+  holder — and even that isn't enough alone, since witnessing is over a **validly-signed** event, so
+  the attacker still needs **your** keys to author the sibling (you cannot double-witness _nothing_).
+  That is **two independent compromises**, and the colluding witnesses self-incriminate (a provable
+  double-sign → eviction). In KERI, where the operator runs the witnesses, coercion could yield
+  witnessed duplicity in one act. **What it does _not_ stop is a coerced _takeover_:** forcing the
+  operator to extend the tip with a `Rot` to the attacker's key is a clean linear extension,
+  witnessed like any other event — lost control → **reincept + notify out of band**, the KERI-shared
+  case above. So the split is real but **marginal**: it raises the bar on bricking, not on a coerced
+  tip-rotation.
+- **The witnessing posture is itself a security _and_ reliability strength (2026-07-11):** the live-quorum
+  compromise (path (b) in *Direct mode is a bad idea* — the _only_ remaining way to backdate or brick) is a
+  **high bar by construction**, and the liveness anchor stays **available** rather than best-effort. The vdti
+  deployment model **mandates** it on three axes: witnessing is run by **disjoint operators** (hard to bring
+  down; a forced `disputed` needs a self-incriminating cross-operator double-sign — federation §1e), the
+  witness keys are **HSM-backed** (operators who can afford the hardware hold them in hardware → resist
+  extraction, raising the path-(b) bar), and operators run at **high availability** (the liveness anchor is
+  reliable — **not** a spotty best-effort gossip mesh, whose unreliable propagation would weaken the
+  first-seen / liveness guarantee the whole model rests on). A typical **self-run** witness (commodity infra,
+  no HSM, few or correlated hosts, best-effort uptime) lowers every one of those bars. **[TO VALIDATE —
+  comparative posture, not a protocol claim]:** this describes the vdti _deployment model_ (mandatory,
+  disjoint, HSM-backed, HA operator witnessing) vs. typical self-run KERI witnessing — KERI witnesses _can_ be
+  professionally operated too, so confirm the comparison is against typical adoption posture, not KERI's
+  ceiling.
 - **[TO VALIDATE — the most important check, because it's the pitch]:** KERI witnesses **can already be run by
   third parties**, so "offload witnessing to operators" is not obviously novel. vdti's actual contribution
   appears to be the **governance + trust-bounding around the witness pool** (the federation-as-IEL: rotation,
@@ -72,6 +146,19 @@ machinery as false differentiation. So: **take the backbone as-is; differentiate
 - **Honest read:** KERI already has **duplicity detection**; this is a cleaner _formalization_ of the same
   concept, not a new capability. Modest differentiator. **[TO VALIDATE]** whether the queryable/synthetic-SAID
   framing offers anything KERI's duplicity handling doesn't (sharpened by the deep-dive checklist below).
+- **The genuine differentiator (2026-07-11) — deterministic, observer-independent _resolution_, not detection.**
+  Both systems _detect_ equivocation; the difference is what _resolving_ it costs. vdti has **no superseding
+  recovery** (burial is forward-only by position), so two **accepted** seals at one serial has **exactly one
+  meaning** — witness collusion — and the verdict is **forced, deterministic, and identical on every node**
+  (`disputed` → reincept), because a collision is irrecoverable by construction (both reveal the same key but
+  commit different next reserves → neither can bury the other; kel/compromise §The live-tip dispute). KERI's
+  **superseding recovery** buys **in-band recoverability** (a recovery rotation can override earlier events), but
+  then a conflicting event at a sequence number is **ambiguous** — legitimate recovery vs malicious duplicity —
+  needing precedence rules to adjudicate. So the trade is real and **not** a strict win: vdti spends
+  recoverability to buy an **unambiguous, globally-consistent** resolution — the right trade for a trust anchor
+  whose product is a data-alone, same-answer verdict; KERI spends that determinism to buy recover-without-reincept.
+  **[TO VALIDATE against KERI specs]:** KERI's superseding-recovery + duplicity precedence rules — we are **not**
+  the KERI authority; confirm the contrast against keripy before asserting it.
 
 ### 5. Policy on documents + the SEL shape
 
@@ -82,15 +169,26 @@ machinery as false differentiation. So: **take the backbone as-is; differentiate
   genuine gap or a different expression of what ACDC already does — and against **TEL** (the transaction event
   log / credential registry) for the SEL shape.
 
-## Direct mode is a bad idea — two independent reasons
+## Direct mode is a bad idea — three independent reasons
 
+- **Structural — the deepest (2026-07-11):** a static signed log has **no intrinsic "now."** Verifying a
+  chain purely by replaying its events — a direct, un-witnessed mode — gives no way, **from the data alone**,
+  to tell the real chain from a fabricated alternate history minted by a **total historical key compromise**
+  (the target positions' signing + witness keys). Timestamps don't anchor it — they're forgeable. So an
+  un-witnessed log has **no answer to "what is current,"** and the **backdate is unavoidable** there.
+  **Witnessing is the liveness anchor:** a live quorum's fresh receipts are the data-level proxy for "this
+  happened now, and honest infra saw it first." A backdated event **cannot obtain fresh receipts** — the
+  honest quorum first-seen-declines it, or it lands below the seal (the witness mirrors the seal-cap) — so the
+  only paths left are (a) **forge the receipts** = break the witness signatures (outside the crypto threat
+  model) or (b) **compromise the live quorum now** = a live attack, never a cheap historical one. This is the
+  _fundamental_ security reason for mandatory witnessing; the two below are its consequences. **We demand it.**
 - **Technical (established):** an un-federated `Icp` forces the merge engine to handle multi-branch /
   retroactive-recovery cases it can't cleanly bound. Subtract the case, keep the guarantees.
 - **Product:** direct mode = "run your own witnessing / no federation" = _exactly_ the KERI adoption problem.
   It reintroduces the burden the federation model exists to remove, so it contradicts the entire value
   proposition.
 
-Both point the same way: forbid un-federated inception; every chain federated + witnessed from birth (the
+All three point the same way: forbid un-federated inception; every chain federated + witnessed from birth (the
 `Fcp`-rooted infra is the substrate exception). **DECIDED (2026-07-07): direct mode is removed** — every
 identity is federation-witnessed.
 
@@ -211,8 +309,8 @@ answers need the keripy scan. **Questions, not claims** — don't bank the KERI 
 - [ ] **SEL vs TEL/registry.** vdti's per-artifact SEL rides its owner IEL (the IEL is its clock). Map to
       KERI's **TEL** (transaction event log / credential registry) — same "data log anchored to a KEL" shape,
       or different? (Extends #5 from ACDC to the _log_ layer.)
-- [ ] **Witness/governance bounds.** vdti added a **roster cap (32)**, a **majority floor on governance**
-      (`t_govern` / `t_authorize > |roster|/2`), and the **witness majority floor** (`threshold > signers/2`,
+- [ ] **Witness/governance bounds.** vdti added a **roster cap (32)**, an **authorization floor on governance**
+      (`t_govern` / `t_authorize > |roster|/2`), and the **witnessing floor** (`threshold > signers/2`,
       fork-cost = `2·threshold − signers`). Does KERI constrain its witness threshold (`toad`) with a
       majority/attribution requirement, or leave it unconstrained? (Feeds #2 — the federation pitch rests on
       these being a real governance layer KERI lacks.)
