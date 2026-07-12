@@ -2,11 +2,11 @@
 
 **Status: comparison note.** Merged 2026-07-10 from two sources — a broad positioning discussion
 (2026-07-06) and a keripy-grounded deep-dive on ex-member issuance / backdating. Ground truth for the
-deep-dive is keripy (`/Users/jason/github.com/WebOfTrust/keripy`), read directly (the sandboxed research
-agent couldn't reach it). The broad differentiators below carry **[TO VALIDATE]** where the KERI side is
-design-level knowledge (KEL, witnesses, receipts, first-seen duplicity, ACDC, delegated + group AIDs,
-weighted multi-sig, rotation/recovery) not re-checked against keripy or the whitepapers — validate before
-banking a comparative claim.
+deep-dive is keripy, read directly (the sandboxed research agent couldn't reach it). The broad
+differentiators below carry **[TO VALIDATE]** where the KERI side is design-level knowledge (KEL,
+witnesses, receipts, first-seen duplicity, ACDC, delegated + group AIDs, weighted multi-sig,
+rotation/recovery) not re-checked against keripy or the whitepapers — validate before banking a
+comparative claim.
 
 ## The most important bit
 
@@ -48,7 +48,7 @@ archival, all deleted in favor of **burying + the spine** — vdti's core has co
 
 This is a **good** outcome, not a failure. That core is the minimal correct design for decentralized key
 management; you land on it by subtracting, not by accident. The failure mode would have been keeping the NIH
-machinery as false differentiation. So: **take the backbone as-is; differentiate above it.**
+machinery as false differentiation.
 
 ## Where vdti genuinely differs (and how sure we are)
 
