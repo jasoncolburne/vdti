@@ -119,7 +119,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
     copies; a **user** IEL's content additionally must reach a **majority quorum at its own `(prefix, serial)`** (the
     option-(b) position gate), which — with the witnessing floor — closes the two-disjoint-sub-quorums content fork.
     A content conflict is **recoverable**: the next sealing event (or the agreed next content) buries the
-    loser below the seal (deadness-descends), no repair event.
+    loser below the seal (deadness-ascends), no repair event.
   - **Sealed (`Evl`/`Ath`/`Rev`/`Dth`/`Wit`/`Trm`)** → **record-both (detected, never buried) — but witnessed
     first-seen now, one sibling (revised 2026-07-11, cold F1):** witnesses sign the **first** sealed sibling at a
     position and decline later ones (like content — federation §1e), yet both branches are still **recorded/retained**
@@ -133,7 +133,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   The **federation** IEL is the pure case — every event is sealed → record-both; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is a
   schism (disputed/terminal). [inv 4, 12, 13, 17]
 - **Recovery + eviction — no repair event** [inv 13]. Recovery of a content fork is the **burying seal** above it
-  (the winning branch's next sealing event seals past the loser; deadness descends). **Evicting** a
+  (the winning branch's next sealing event seals past the loser; deadness ascends). **Evicting** a
   compromised / divergence-causing member is an **`Evl` with a roster `cut`** — one sealing event buries the fork
   **and** evicts, atomically (the eviction *must* be atomic, else the still-rostered member races fresh content at the
   resolved tip → re-fork; the `Evl` makes it atomic by construction — the member is gone the instant the fork

@@ -144,10 +144,13 @@ Anchors content SEL events, each SEL's serial-1 **v1** (the SEL `Icp` rides `v1.
 itself anchored), **and a credential's issuance commitment**
 `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
-may batch many anchors. **Anchor-monotonicity:** each anchored SEL event must extend that SEL's
-latest IEL-anchored tip — a re-anchor is malformed / inert — so a linear IEL totally-orders each SEL
-it anchors, and a SEL never forks under a linear IEL. `Ixn` is the **divergeable / first-seen**
-content kind; it does not advance the seal.
+may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
+malformed / inert — a lightweight structural guard. Fork-prevention for a SEL is the SEL's **own**
+witnessing at its own position, **not** the IEL's order: an owner can equivocate its SEL under a
+linear IEL (an IEL anchor is an opaque SAID the IEL cannot dedupe), so the anchor cannot prevent a
+SEL fork — the SEL witnesses itself
+([`../sel/log.md` §The SEL is its own witnessed chain](../sel/log.md#the-sel-is-its-own-witnessed-chain)).
+`Ixn` is the **divergeable / first-seen** content kind; it does not advance the seal.
 
 ### `Evl` — evolve state (tier 2, `t_govern`)
 

@@ -84,27 +84,27 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     that resolves it is a **burying seal-advancer on the winning branch** (a `Rot` / `Wit` / `Trm`
     on the KEL; a sealing event on the IEL — any seal-advancer on the winning branch, typically the
     `Evl` or the `cut` `Evl`; a `Trm` buries then terminates), which extends the winning branch and
-    advances the seal past a **content** loser (the loser dies below the new seal and by descent). A
-    content fork is recoverable because all content is buriable. The **reading** is the pure walk
+    advances the seal past a **content** loser (the loser dies below the new seal, dead on ascent).
+    A content fork is recoverable because all content is buriable. The **reading** is the pure walk
     over the events held, not a frozen flag: a node that comes to hold a burying seal-advancer
     re-reads the chain **Active**, order-independently. A lone sealed branch a party did **not**
     author reads Forked node-agnostically, yet still forces **that** party's reincept — an
     **accepted** key-state branch you did not author can never be buried (the reserve-theft
-    takeover, below; a seal forged on a _dead_ lineage is a different thing — dead by descent,
+    takeover, below; a seal forged on a _dead_ lineage is a different thing — dead on ascent,
     dropped).
   - **Disputed** — an **irrecoverable** fork: **two accepted seals racing to the same serial**. An
     **accepted sealed branch** is one whose seal is **witnessed at threshold** _and_ whose **lineage
-    is accepted** — a branch descending from a first-seen loss is **dead by descent** (you can't
-    seal a buried chain) and never counts. Working the cases (a fork on one chain forks _prior_ to
-    its seals): a fork with a **single** seal is **recoverable** — the seal buries the content
+    is accepted** — a branch built on a first-seen loss is **dead on ascent** (you can't seal a
+    buried chain) and never counts. Working the cases (a fork on one chain forks _prior_ to its
+    seals): a fork with a **single** seal is **recoverable** — the seal buries the content
     competitor (`{seal, content}`); a content fork whose branches seal at **different** serials is
     **also recoverable** — the **earlier** seal buries the other branch **from the fork** (its
-    losing fork-sibling locks below the seal, the rest **dead by descent** — otherwise the fork
-    would persist below the seal), so that branch's later seal lands on a buried chain and is
-    dropped. The **only** irrecoverable case is **two seals at the same serial**: siblings at one
-    position, neither can bury the other, so both stand — which takes a **witness double-sign** at
-    that seal position (honest first-seen accepts only one). No sealed branch can be buried (burying
-    a rotation would resurrect a retired key), so no single chain can be chosen and the prefix must
+    losing fork-sibling locks below the seal, the rest **dead on ascent** — otherwise the fork would
+    persist below the seal), so that branch's later seal lands on a buried chain and is dropped. The
+    **only** irrecoverable case is **two seals at the same serial**: siblings at one position,
+    neither can bury the other, so both stand — which takes a **witness double-sign** at that seal
+    position (honest first-seen accepts only one). No sealed branch can be buried (burying a
+    rotation would resurrect a retired key), so no single chain can be chosen and the prefix must
     **reincept** — terminal for _everyone_. This is a **branch-level** determination — acceptance is
     a **per-lineage** fact, computed by **any verifier as a data-local walk over the retained
     branches**, not read off a single serial's event count in isolation: a node retains a competing
@@ -367,7 +367,7 @@ back-link to the prior seal-advancing event, so following `previousSeal` renders
 its content run — the retained run since the prior seal is the derivable linear chain
 `[previousSeal..previous]` (nodes keep the full bodies; the flat query returns them), and "content
 was folded here" is the derived predicate `previous != previousSeal`. No seal carries a fork role: a
-content loser is buried **by position + descent**, committed by nothing (see
+content loser is buried **by position + ascent**, committed by nothing (see
 [§Divergence and recovery](#divergence-and-recovery)). The spine is a **convenience** view, verified
 by the same chain walk with `previousSeal` substituted for `previous`, yielding authority state and
 a terminal-divergence view (a spine fork is two competing seals — sealed, hence Disputed) but not
@@ -414,7 +414,7 @@ terminate) resolves by **tier-rank** with no burying event (below) — the termi
 successor, so it wins outright over the buriable content. A `Rev`/`Dth` is **not** terminal (it
 kills a _target_, not its host chain), so `{Rev|Dth, content}` recovers like `{Evl, content}`. (A
 below-seal **content** straggler that arrives after the chain already sealed past its serial is dead
-by descent — kept as evidence or dropped per the retention bound below — never a freeze: the
+on ascent — kept as evidence or dropped per the retention bound below — never a freeze: the
 canonical branch is already sealed past it. A below-seal **sealed** straggler is **dropped** (inert)
 — the witness mirrors the seal-cap, so it cannot be witnessed past the seal and it does not retreat
 the clean seal (the backdate defense); a sealed dispute forms only at the **last seal**, from two
@@ -460,12 +460,11 @@ From those two rules, recovery is **one universal rule.** You attach a **burying
 your last good event** — a `Rot` / `Wit` / `Trm` on the KEL, a sealing event on the IEL (any
 non-terminal seal-advancer, typically the `Evl`, or the `cut` `Evl` when it also evicts) —
 **retaining** that branch and burying every competing **content** branch below the new seal (they
-die by descent). There is **no repair event and no recovery key**: recovery is a plain
-seal-advancer, single-signed with the rotation reserve, that buries at the root by position. On a
-multi-member IEL the attach point is unambiguous even though several devices operate the identity:
-**an identity is a single entity**, so it is the tip of the branch the governance quorum retains as
-the identity's canonical one — never a co-member's isolated event, and never a serial below the
-tracked seal.
+die on ascent). There is **no repair event and no recovery key**: recovery is a plain seal-advancer,
+single-signed with the rotation reserve, that buries at the root by position. On a multi-member IEL
+the attach point is unambiguous even though several devices operate the identity: **an identity is a
+single entity**, so it is the tip of the branch the governance quorum retains as the identity's
+canonical one — never a co-member's isolated event, and never a serial below the tracked seal.
 
 Attaching at the entity's **own** last event satisfies the no-extend-adversary rule automatically,
 and it reconciles with the fork point by construction. A divergence is **two or more** distinct
@@ -562,31 +561,31 @@ carry, or reincept). The cut target is **operator-chosen** — the fork-causer i
 not a structural check, since chain data cannot tell operator from adversary. This is IEL-only (the
 KEL buries by rotating, the SEL cascades from its owner IEL).
 
-**Burial is by position + descent — growth-proof.** There is no repair event and no `fork` root; a
+**Burial is by position + ascent — growth-proof.** There is no repair event and no `fork` root; a
 content loser is buried **by position**: its **first event** is locked below the burying seal (the
-seal-cap) and **everything built on it is dead by descent** — **deadness descends: an event whose
+seal-cap) and **everything built on it is dead on ascent** — **deadness ascends: an event whose
 parent is dead is dead**. The per-event seal-cap locks only a branch's _first_ event by its attach
-point; the descent rule kills the growth. So a burying seal resolves more than the branches as they
+point; the ascent rule kills the growth. So a burying seal resolves more than the branches as they
 stood when it was authored: a losing branch that a gossip-lagging node **grows after the burial** is
-dead **by descent**, with no follow-up event needed. A content branch a lagging node accepted while
+dead **on ascent**, with no follow-up event needed. A content branch a lagging node accepted while
 reading the chain Active (a fresh `Ixn` the incoming burying seal then siblings) does not freeze the
 chain either: the burying seal is **accepted**, that unnamed branch's **first event** now sits below
 the new seal — the seal-cap bars **that first event** from being a canonical extension — and
-everything built on it is dead by descent. Either way the losing content rides the **Forked chain**
-— the bounded dead region (the retention bound below) — **propagated and retained**, never
-canonical, and **never orphan-dropped**: the events stay kept per the retention bound, and an honest
-author **re-issues its own benign content** forward on the recovered chain once it catches up
-(adversarial dead content is simply non-canonical — nobody re-issues it). At most **one** burying
-seal-advancer resolves a content-only divergence; a _second_, competing seal-advancer is a
-`{Rot, Rot}` / `{Evl, Evl}` divergence — two **accepted** sealed branches → Disputed. An un-buried
-**sealed** (non-content) branch is the other tier entirely: it is never buriable, so ≥ 2
-**accepted** sealed branches **at the last seal** → **Disputed** (you can't overturn a witnessed
-rotation). A **below-seal** sealed straggler, by contrast, is **dropped** (inert — not witnessable
-past the seal; it does not retreat the clean seal, the backdate defense).
+everything built on it is dead on ascent. Either way the losing content rides the **Forked chain** —
+the bounded dead region (the retention bound below) — **propagated and retained**, never canonical,
+and **never orphan-dropped**: the events stay kept per the retention bound, and an honest author
+**re-issues its own benign content** forward on the recovered chain once it catches up (adversarial
+dead content is simply non-canonical — nobody re-issues it). At most **one** burying seal-advancer
+resolves a content-only divergence; a _second_, competing seal-advancer is a `{Rot, Rot}` /
+`{Evl, Evl}` divergence — two **accepted** sealed branches → Disputed. An un-buried **sealed**
+(non-content) branch is the other tier entirely: it is never buriable, so ≥ 2 **accepted** sealed
+branches **at the last seal** → **Disputed** (you can't overturn a witnessed rotation). A
+**below-seal** sealed straggler, by contrast, is **dropped** (inert — not witnessable past the seal;
+it does not retreat the clean seal, the backdate defense).
 
 **Termination.** Each dead lineage is **depth-capped**: at most `(MINIMUM_PAGE_SIZE − 1)/2 = 64`
 events past the last seal (the seal-advance cap — a deeper event would itself have to be a
-seal-advancer, which on this dead branch is itself dead by descent, dropped), and burial-by-descent
+seal-advancer, which on this dead branch is itself dead on ascent, dropped), and burial-on-ascent
 makes one seal growth-proof for the whole current fork within that cap. What closes the culprit's
 ability to mint a **new** fork differs by layer:
 
@@ -613,7 +612,7 @@ one — the witnessing floor keeps it to stall-and-re-issue, never a live fork
 ([§Federation convergence](#federation-convergence)).
 
 **Finality is question-dependent.** A burying seal is **content-final the instant it seals**:
-burial-by-position plus deadness-descends close every losing content branch, present _or_
+burial-by-position plus deadness-ascends close every losing content branch, present _or_
 later-grown. On the sealed side, two **distinct** properties are easy to conflate under one name —
 keep them apart:
 
@@ -653,9 +652,9 @@ keep them apart:
   instead is validated against that retained tail (both are cross-node-checkable, but only the
   `v_{d-1}` attach needs no fetch).
 
-**The burying seal commits no fork record — the loser is buried by position + descent.** There is no
+**The burying seal commits no fork record — the loser is buried by position + ascent.** There is no
 `fork` role and no root-condemnation; the losing content closes below the seal (its first event
-seal-capped) with its growth dead by descent, committed by nothing. The verifier **independently**
+seal-capped) with its growth dead on ascent, committed by nothing. The verifier **independently**
 computes the competing set from the branches it holds (the beacon enumerates the rest) — validated,
 not trusted — so no branch escapes by being unnamed. Two shape guards run at admission:
 
@@ -762,9 +761,9 @@ only _which_, never whether a fork forms.
 
 Dropping the rest is safe because **detection is content-independent**: the canonical run's bodies
 are kept and retrievable by prefix (the flat query returns them); a losing content sibling closes
-below the burying seal by position + descent (every dead event's ancestry passes through a
-below-seal first event); and a sealed event re-validates against the prior seal's key state (reached
-via `previousSeal` on the retained spine) plus its own committed fields, never against this chain's
+below the burying seal by position + ascent (every dead event's ancestry passes through a below-seal
+first event); and a sealed event re-validates against the prior seal's key state (reached via
+`previousSeal` on the retained spine) plus its own committed fields, never against this chain's
 below-seal content. So the evidence a data-local detection needs is bounded and always retained;
 dropping the uncommitted below-seal content flood beyond the ≥ 2-per-position set is a storage /
 audit tuning knob, not a detection gap. The chain's **reading** — Active / Forked / Disputed — is
@@ -788,7 +787,7 @@ the last clean seal stay anchored; documents issued under that state stay verifi
 on that portion return truthful answers. Sealed events are never _rewritten_ (immutability is
 unconditional), and the only thing that flips the reading to Disputed is a **witnessed** sealed fork
 **at the last seal** — two seals there, needing a provable witness double-sign — never a below-seal
-straggler, and never a fork **below** the seal: a content fork's loser is **dead by descent** (you
+straggler, and never a fork **below** the seal: a content fork's loser is **dead on ascent** (you
 cannot seal a buried chain — honest witnesses, having accepted the winner at the fork, decline a
 dead lineage's descendants), so two branches both accepted at a seal can only fork at their
 competing seals themselves. Every dispute collapses to two witnessed seal-siblings at **one
@@ -1046,14 +1045,14 @@ positions**: a user IEL's content events must reach a majority quorum at their o
 closing the two-disjoint-member-sub-quorums content fork — while the **federation IEL** authors no
 content (so the content gate is moot) but gates its sealed events via exclude-self peer-witnessing
 (a competing sealed sibling is first-seen-declined, only witness collusion yields Disputed), and a
-SEL rides the cross-layer theorem (a valid SEL fork implies an IEL fork beneath it, so closing IEL
-content forks closes SEL content forks — the SEL / IEL anchor-validation doctrine, the SEL side
-forthcoming). Every KEL and IEL is federation-witnessed — there is no direct mode; a SEL, as just
-noted, inherits fork-prevention rather than being witnessed itself. What survives the floor is the
-**residual**: a witness compromise owning the intersection, and — rarely — a roster-delta straddle
-(two full quorums under disjoint contexts), which under the propagation premise below requires the
-new selectees cut off from the already-propagated old quorum — an entrance to the partition/eclipse
-family, not a freestanding race. In the residual, the machinery of
+SEL is its **own** witnessed chain, prevented at its own `(SEL-prefix, serial)` — an owner can
+equivocate its SEL even under a linear IEL, because an IEL anchor is an opaque SAID the IEL cannot
+dedupe, so the SEL witnesses itself, inheriting the owner IEL's federation (the SEL primitive states
+this). Every KEL, IEL, and SEL is federation-witnessed — there is no direct mode. What survives the
+floor is the **residual**: a witness compromise owning the intersection, and — rarely — a
+roster-delta straddle (two full quorums under disjoint contexts), which under the propagation
+premise below requires the new selectees cut off from the already-propagated old quorum — an
+entrance to the partition/eclipse family, not a freestanding race. In the residual, the machinery of
 [§Divergence and recovery](#divergence-and-recovery) runs unchanged.
 
 **Witnessing is kind-scoped — the ladder (one rung per kind: one content sibling, one sealed, per
@@ -1076,7 +1075,7 @@ event among themselves, so the **first-seen** sealed sibling at a position — t
 witnesses sign — reaches threshold once it reaches any one honest selected witness. A **later**
 sealed sibling is witness-**declined**: it stays permanently sub-threshold (deferred-pending,
 droppable) — exactly like a losing **content** sibling under the floor. And a seal on a **dead
-lineage** — one that lost first-seen at any earlier position — is itself **dead by descent** (you
+lineage** — one that lost first-seen at any earlier position — is itself **dead on ascent** (you
 can't seal a buried chain), so a dispute cannot form across positions; it collapses to two witnessed
 seal-siblings at the fork. How a node acts on the signal splits by **provenance**: when it **holds
 two or more sealed branches that each reached threshold** (accepted) **at the last seal**, it reads

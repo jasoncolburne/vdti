@@ -355,7 +355,7 @@ deliver competing branches and freshness, never a verdict.
   a peer majority first-seen at its serial.
 - **The divergence signal splits by provenance.** When a node holds two or more sealed branches
   **each accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen
-  loss is dead by descent and never counts) — at the **last seal**, it reads **`disputed` directly**
+  loss is dead on ascent and never counts) — at the **last seal**, it reads **`disputed` directly**
   — the walk decides. A sealed sibling held only as a **receipt** (not yet fetched), one **below
   threshold** (witness-declined), or one **below the seal** (dropped, backdate-safe) is not counted
   — it stays **`forked`** / deferred-pending. For content, a losing sibling never reaches threshold

@@ -55,8 +55,8 @@ state is computed — not a "reading" layered on a single divergent state.
 | **Disputed**   | A live fork with **≥ 2 accepted sealed branches** past it — terminal. No sealed branch can be buried (that would resurrect retired keys), so nothing resolves it and the prefix must **reincept**.                                                                                                                                                                                                                                                                                                | None (barring a partition) — witnesses decline any extension of a disputed chain. The only exit is reincept.                                                                                                                        |
 | **Terminated** | A terminal `Trm` landed cleanly. The `Trm` advances the seal to its own serial; the chain is sealed there.                                                                                                                                                                                                                                                                                                                                                                                        | None. A content sibling to the `Trm` is inert below its seal (`Sealed`); a sealed sibling is a second accepted sealed branch → **Disputed**; a submission chaining from the `Trm` is rejected by the kind-schema rule (`Terminal`). |
 
-Recovery keeps the recovering party's own branch and buries the rest by position + descent,
-returning the chain to Active — possible only when no buried branch carries a **sealed** event (see
+Recovery keeps the recovering party's own branch and buries the rest by position + ascent, returning
+the chain to Active — possible only when no buried branch carries a **sealed** event (see
 [`compromise.md`](compromise.md)). Two byte-identical events at one serial **are one event** — they
 dedupe by SAID, never a second branch; only distinct events collide. The full freeze-and-recover
 rule is the protocol doctrine's —
@@ -69,8 +69,9 @@ branches past the fork (the content count is irrelevant — all content is buria
 
 - **Forked** — at most one branch carries a sealed event past the fork. A content fork is buried by
   a seal-advancer (a `Rot`) on the recovering party's branch; every competing content branch closes
-  below the new seal and by descent. While the fork stands the state is `Forked`; the effective SAID
-  is a type-tagged synthetic recoupled to the verdict, qualified by prefix and position (below).
+  below the new seal, dead on ascent. While the fork stands the state is `Forked`; the effective
+  SAID is a type-tagged synthetic recoupled to the verdict, qualified by prefix and position
+  (below).
 - **Disputed** — **two or more branches each carry an accepted sealed event** past the fork. No
   sealed branch can be buried (a sealed event is never overturned — that would resurrect retired
   keys), so no single chain can be chosen and the prefix must **reincept**. The state is `Disputed`
@@ -113,7 +114,7 @@ founder `Fcp`) is the spine root and carries no `previousSeal`. A seal-advancing
 commit its content run: the retained run since the prior seal is the derivable linear chain
 `[previousSeal..previous]` (nodes keep the full bodies; the flat query returns them), and "content
 was folded here" is the derived predicate `previous != previousSeal`. There is no repair kind and no
-losing-branch commitment — a content loser is buried **by position + descent**, named by nothing;
+losing-branch commitment — a content loser is buried **by position + ascent**, named by nothing;
 `Rot` / `Wit` / `Trm` carry no fold field.
 
 The spine is a **convenience** view — the same walk with `previousSeal` for `previous`, giving
@@ -174,7 +175,7 @@ per-deployment knob — so a fork-and-recover page produced on any conformant de
 other. The page carries **both** competing content branches plus the burying seal-advancer because a
 source → sink transfer delivers the fork to a sink that holds neither branch in storage. A **local**
 discriminator needs less: its hot page is the retained branch (≤ 64) plus the burying seal-advancer;
-the losing branch is buried by position + descent, validated from retained storage, not held in the
+the losing branch is buried by position + ascent, validated from retained storage, not held in the
 page. The shapes that exceed one page (an own-`Rot` in the retained tail; a ≥ 3-branch residual
 fork) ride earlier or later pages — [`reconciliation.md` §Invariants](reconciliation.md#invariants)
 (invariant 3) carries the derivation.
@@ -220,7 +221,7 @@ The structural rules above produce three lifecycle paths per node.
   further origination until a seal-advancer on the winning branch buries the loser below the new
   seal. The burying seal-advancer attaches at its submitter's own last good event, **retaining**
   that branch and burying every competing **content** branch below the new seal (its first event
-  locked below the seal, its growth dead by descent). Go for the **root**, not the loser's tip. Each
+  locked below the seal, its growth dead on ascent). Go for the **root**, not the loser's tip. Each
   dead lineage is depth-capped by the seal-advance cap; the retained branch plus the burying
   seal-advancer fits in one page. See
   [`compromise.md` §Recovery is a plain Rot](compromise.md#recovery-is-a-plain-rot-that-buries-at-the-root)

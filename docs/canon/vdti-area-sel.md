@@ -377,12 +377,13 @@ SEL needs its **own** witnessed state.
   the exfiltration residual), **shared-documents §3** (version-SEL linearity via witnessing; "dies by severance").
 - **`iel/reconciliation.md`** lines 352-354 + the 433-440 forward-ref block carry the retired SEL theorem —
   update at the design-doc encode.
-- **Separate change — the `deadness descends → ascends` doctrine-wide sweep** (KEL / IEL / federation /
-  invariants / protocol-doctrine + design docs; grep the `descend` stem, fix the deadness-metaphor + `dead
-  by descent` + the `hangs off` mid-air framing, leave legit usages). **At `inv 13`'s tier-1-deadenable
-  clause** ("every anchored SEL event dead by descent") the sweep also reconsiders the SEL-side _mechanism_,
-  not just the label — inherited IEL deadness now **severs** the SEL (area-sel §1e), so the SEL leg reads
-  "severed," while the KEL/IEL cascade there is the label-only flip (warm round-2 low obs).
+- **`deadness descends → ascends` doctrine-wide sweep — LANDED 2026-07-12** (KEL / IEL / federation /
+  invariants / protocol-doctrine + design docs). The whole doctrine now reads `deadness ascends` / `dead on
+  ascent` / `by position + ascent` (foundation-at-bottom: KEL → IEL → SEL, built upward); structural nouns
+  (`descendant`, the feature-DAG `ancestor → descendant` / "DAG descent") are unchanged. **Still open — the
+  `inv 13` tier-1-deadenable SEL leg (mechanism, not label):** that clause reads "every anchored SEL event
+  dead on ascent," but area-sel §1e makes inherited IEL deadness **sever** the SEL, so the SEL leg should
+  read "severed" (the KEL/IEL cascade there is the label-only flip; warm round-2 low obs).
 
 ## 6. Confidence / what's owed
 

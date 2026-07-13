@@ -12,7 +12,7 @@ cut_ — **this cut's fresh dual-pass is folded (2026-07-04).** Lands at
 **Invariants:** [inv 4] manifest roles / the `Rev`/`Dth` manifest total rule / anchor-monotonicity,
 [inv 5] as-of = the anchoring position, [inv 8] the multi-source freshness bar (loss-of-trust reads),
 [inv 10] negative-check-as-lookup, [inv 12] IEL self-pricing (grant tier), [inv 13] rescission `bound`
-/ grandfather boundary / deadness-descends, [inv 15] inception + attribution, [inv 16] addressing by
+/ grandfather boundary / deadness-ascends, [inv 15] inception + attribution, [inv 16] addressing by
 prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer precedent:
 `document-policy §F` (the to-tip freshness step is mandatory for any trust-granting acceptance).
 
@@ -251,7 +251,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     author). _(The FIRST-CUT "dies by cross-layer deadness-descends via the cross-layer theorem" is
     superseded — the theorem is retired; inherited IEL deadness severs the SEL, area-sel §1e.)_
   - **DAG descent is _this feature's own_ rule, derived as a placement consequence — not inv 13/17.**
-    `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-descends is defined only over
+    `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-ascends is defined only over
     `previous`-linkage and the IEL→SEL anchor edge, so claiming the primitives provide descent down the
     DAG over-reaches. The semantics still hold, by **placement**: a version places only against **live
     parents in the built version set** (§2), so a dead parent is not in that set → its descendants are

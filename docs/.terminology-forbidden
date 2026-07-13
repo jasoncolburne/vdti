@@ -46,14 +46,14 @@ kels/sad/
 # §Doc-only — superseded event kinds
 # ============================================================================
 # These kels-era / pre-reshape tokens must not regress into docs. Whole-token
-# word boundaries only — Upd / Sea are substring-dangerous (recovery, SeaweedFS,
-# …). NOTE: Rec is NOW forbidden too — the first-seen pivot dropped the KEL
-# repair kind (there is no repair event; recovery is a plain Rot). Rec / Ror /
-# Rpr / Fld and the two-tier tokens live in the first-seen block at end-of-file.
+# word boundaries only — Upd / Dip are substring-dangerous. NOTE: Rec is NOW
+# forbidden too — the first-seen pivot dropped the KEL repair kind (there is no
+# repair event; recovery is a plain Rot). Rec / Ror / Rpr / Fld and the two-tier
+# tokens live in the first-seen block at end-of-file.
 
-# === kels-era event kinds (Dip folded into Icp + delegating; Upd/Sea retired) ===
+# === kels-era event kinds (Dip folded into Icp + delegating; Upd retired) ===
+# (Sea is NOT banned — revived as the SEL neutral re-seal kind, area-sel.)
 \bUpd\b
-\bSea\b
 \bDip\b
 
 # === Renamed policy fields ===
@@ -209,7 +209,7 @@ folded\.canonical
 # model and its apparatus (a re-freeze on an under-covering repair; a follow-up
 # repair required to catch post-repair growth) are retired: an unnamed-content
 # repair is ACCEPTED (unnamed content inerts below the seal, growth dead
-# by descent). Bare "tip" stays live everywhere (chain tip, branch tip, the
+# on ascent). Bare "tip" stays live everywhere (chain tip, branch tip, the
 # SEL's IEL-anchored tip); only the fork-role collocations and the retired
 # apparatus regress.
 archived[- ]branch tips?
@@ -222,8 +222,8 @@ re-frozen
 # §Doc-only — the fork role is a single scalar root (forks list → fork)
 # ============================================================================
 # A repair's manifest role is the scalar `fork` — ONE losing branch's root;
-# every other competing branch closes below the repair-advanced seal and by
-# descent (identical outcome), so a LIST of roots was a redundant commitment
+# every other competing branch closes below the repair-advanced seal and on
+# ascent (identical outcome), so a LIST of roots was a redundant commitment
 # and the list role `forks` is retired. The plain verb ("forks", "a fork",
 # "the chain forks", "the seal never forks") and the section title "Forks are
 # seal-bounded" stay live — only the list-role name and its accessor /

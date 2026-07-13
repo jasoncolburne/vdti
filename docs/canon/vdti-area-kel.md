@@ -32,7 +32,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   | `Fcp` | T1 | single | **federation-infrastructure** inception (a federation witness KEL) — **self-attested, no `witnesses`** at genesis (can't commit to a federation IEL that doesn't exist yet), **single-federation** (§inv 14 / federation §1d — serves **one** federation; to serve another, spin up a new KEL). **Bound by founding:** its v=1 is a **`Rot` that anchors the federation IEL `Fcp`** (the federation inception marker — kind-strict, T2 ↔ T2) in the same atomic genesis batch — `Fcp`(v=0) → `Rot`(v=1). The witness is bound by being **named in the roster it founds / joins**, governed *into* the roster — **never self-bound** (it carries no user-style `{federation, federationPin}`). On an `Fcp`-rooted KEL a **`Wit` is federation governance** (it anchors the federation IEL `Wit`; the witness's own rotation), **never a user rebind** — `Fcp`-rooted = infrastructure, the `Icp`-rooted/user `Wit` is the rebind. Trust roots in the config-pinned `FEDERATION_IEL_PREFIX`. *(The `Fcp` genesis is unwitnessed — a config-pinned trust root — but this is **not** direct mode; it is the federation bootstrap, kept.)* |
   | `Icp` | T1 | single | inception — the **alternative root** (vs `Fcp`); an **ordinary user KEL**. **Federation-bound, always** (`federation`/`federationPin` required): every identity is federation-witnessed — **there is no direct mode** (§inv 14 / federation §1d). **Never preceded by `Fcp`** (a chain has `Fcp → Rot` *or* `Icp`, never `Fcp → Icp`). |
   | `Ixn` | T1 | single | content; anchors SADs via `manifest` (≥1); **the divergeable kind** — a content conflict is first-seen (recoverable) [inv 13]. |
-  | `Rot` | T2 | single | rotation — reveals the next signing key, commits the next rotation reserve (the reserve persists — `rotationHash` re-committed); signed with **the rotation reserve** alone (the old signing key is not required). **Seal-advancing.** **Recovery is a `Rot`** (rotate at the first compromised position → the thief's run below dies by descent — §1 divergence). A rotation conflict on this single-key chain is **first-seen** (the Rot'@v_M fix — a stolen signing key can only forge the *late* competing rotation, already declined; a genuinely competing rotation needs the reserve, which is takeover). |
+  | `Rot` | T2 | single | rotation — reveals the next signing key, commits the next rotation reserve (the reserve persists — `rotationHash` re-committed); signed with **the rotation reserve** alone (the old signing key is not required). **Seal-advancing.** **Recovery is a `Rot`** (rotate at the first compromised position → the thief's run below dies on ascent — §1 divergence). A rotation conflict on this single-key chain is **first-seen** (the Rot'@v_M fix — a stolen signing key can only forge the *late* competing rotation, already declined; a genuinely competing rotation needs the reserve, which is takeover). |
   | `Wit` | T2 | single | **the one witness/federation kind — `Wit` anchors `Wit` (anchor-kind uniform; field-match facet-specific — Q3); IS the rotation** (refreshes the signing key + rotation reserve; `pins = Wit.previous`); signed with the rotation reserve. On an **`Icp`-rooted user KEL:** the federation bind/**rebind** — carries `federation`/`federationPin`/`witnesses` **each present-iff-changed** (inv 18; **must change `federation` or `witnesses`** — a rebind carries `federation`+`federationPin`, a config change carries `witnesses`; a same-federation `federationPin`-only re-pin rides a body event, not a `Wit`; a pure key rotation is a `Rot`, not a `Wit`; a no-op `Wit` is rejected); **anchors the IEL `Wit`** (kind-strict, T2 ↔ T2; field-match = `{federation, federationPin}`, C4). On an **`Fcp`-rooted federation witness KEL:** the governance rotation — **anchors the federation IEL `Wit`** (kind-strict, T2 ↔ T2; field-match = the **witness-config only**, *not* C4 — roster rides the manifest `Evl`-style). |
   | `Trm` | T2 | single | terminal (terminate); signed with the rotation reserve. |
 
@@ -63,7 +63,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 - **Recovery is a plain `Rot` that buries at the root** — no repair *kind*, no recovery key, nothing to prove. When
   your signing key is stolen, you rotate to a fresh key at the **first** event that isn't yours; that single rotation
   locks the thief out (they lack the new key) **and** buries their run — everything below the rotation that isn't on
-  the surviving line is dead, and anything grown from a dead point is dead too (deadness descends). You go for the
+  the surviving line is dead, and anything grown from a dead point is dead too (deadness ascends). You go for the
   **root**, not their tip, so however long a run the thief piled on, it all hangs off that one point and dies at once.
   **The rotation reserve defends the *signing* key, never the rotation key:** a thief who steals the **reserve** can
   just *extend* the chain with a rotation to their own key (a takeover-by-extend, case 3) — witnesses sign it
@@ -156,7 +156,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   IEL-event / SAD SAIDs) — **required on `Ixn`** (≥1), optional on `Rot`/`Wit`; **`witnesses`** (the witness-config
   SAD) on `Icp`/`Wit` (§4 — mandatory iff federated at `Icp`; **present-iff-changed on `Wit`**). The `federation`
   prefix + `federationPin` stay **top-level structural** (not roles). *(The `fork` role is gone — there is no repair
-  event; recovery is a plain `Rot` that buries structurally by position + descent, naming no fork root.)*
+  event; recovery is a plain `Rot` that buries structurally by position + ascent, naming no fork root.)*
 
 ## 2. Mined from the VDTI-10 build — structure + patterns (first-seen-current; confirm before lock)
 - **6-doc layout** to land: `log.md` (chain primitive, four-state machine, prefix derivation, locked-portion
@@ -165,7 +165,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   rotation key; *not* the operator workflow), `merge.md` (**sealed**-divergence-terminal, first-seen decline, the
   **formalized merge outcomes** `Result<MergeTransition, MergeRejection>` — transitions
   `Extended`/`Recovered`/`Terminated`/`Forked`/`Disputed`, rejections `Sealed`/`Terminal`/`Invalid`/`Ignored`;
-  canonical routing), `reconciliation.md` (the first-seen convergence walk — root-bury + deadness-descends; the
+  canonical routing), `reconciliation.md` (the first-seen convergence walk — root-bury + deadness-ascends; the
   **four-state matrix**, Forked vs Disputed), `verification.md` (the walk).
 - **Seal cap** — the 64-event **content-run** bound (per lineage) is a seal-advancer property (any `Rot`/`Wit`).
   **`MINIMUM_PAGE_SIZE = 129`, cap = `(MINIMUM_PAGE_SIZE − 1)/2` = 64 (per lineage).** The page is `2·64 + 1` so one
@@ -180,7 +180,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 - **No KEL archiving/repair kind at all (first-seen collapse, 2026-07-08).** The KEL is **five kinds**
   (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`). The pre-first-seen `Ror` (proactive rotate-recovery), `Rec` (the KEL repair —
   reveals the recovery key), and the whole three-tier / recovery-key apparatus are **dropped**: there is no
-  recovery key, no repair *event*, and **recovery is just a `Rot`** (rotate at the root, bury by descent). Anything
+  recovery key, no repair *event*, and **recovery is just a `Rot`** (rotate at the root, bury on ascent). Anything
   naming a KEL `Ror`/`Rec`, a `t_recover`, or "T3" describes the dead model.
 - **`federationBinding` (single SAID) → `federation` (prefix) + `federationPin` (SAID).** `event-shape.md`'s
   one `federationBinding` field on `Icp`/`Wit` becomes the two-field prefix/SAID split [inv 7].
@@ -253,7 +253,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 ## 5. Drift → land backlog (canonical docs)
 - **`docs/design/primitives/data/event-logs/kel/` reconciled to first-seen (2026-07-08):** five KEL kinds
   (`Icp`/`Ixn`/`Rot`/`Wit`/`Trm`), two tiers, no recovery key. `compromise.md` becomes recovery-as-a-plain-`Rot`
-  (root-bury + deadness-descends); `merge.md`/`reconciliation.md` drop the repair machinery for first-seen
+  (root-bury + deadness-ascends); `merge.md`/`reconciliation.md` drop the repair machinery for first-seen
   (decline-copies, sealed-divergence-terminal, forked vs disputed); the `fork` role is deleted everywhere.
 - **`event-shape.md` KEL fixes (2026-07-08):** drop the `Ror`/`Rec` kinds and the `recoveryKey`/`recoveryHash`
   key-state; all key changes single-sig; the `fork` role removed; seal-cap satisfiers `{Rot, Wit}`.

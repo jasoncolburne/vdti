@@ -85,7 +85,7 @@ by theme, not by these three groups; a handful of placements are noted in the en
 | Forced-dead receive key               | High         | Availability           | Your signing key **and** a colluding quorum of `threshold` witnesses, shrinking toward `2·threshold − signers` as a partition splits the redundancy onto the rival | **Yes** — provable double-sign | Senders can't reach you until you republish        | Republish at a fresh lineage                                  |
 | Lookup prefix seen by witnesses       | Medium       | Privacy                | Federation-infra access + a known candidate subject                                                                                                                | No — passive                   | Infra confirms a subject you both know             | Inherent to a witnessed lookup; a cut stops only exfiltration |
 | Just-cut key still reads fresh        | Medium       | Freshness              | Harvest a just-cut key within the staleness window (seconds)                                                                                                       | **Yes** — stale on close       | A just-revoked key still forges, briefly           | Window closes/tighten thresholds                              |
-| Signing-key content forgery           | Low          | Trust                  | Your signing key (content stays buriable)                                                                                                                          | **Yes** — fork + monitoring    | Forged content appears until you bury it           | Bury (rotate) — the anchors die by descent                    |
+| Signing-key content forgery           | Low          | Trust                  | Your signing key (content stays buriable)                                                                                                                          | **Yes** — fork + monitoring    | Forged content appears until you bury it           | Bury (rotate) — the anchors die on ascent                     |
 | Mesh-encryption discipline            | Low          | Assurance              | An AES-GCM nonce / key-scope error in the mesh layer                                                                                                               | —                              | Mesh confidentiality could break                   | Follow the nonce / key-scope discipline                       |
 | Unreviewed store hardening            | Low          | Assurance              | A classifier gap, until reviewed                                                                                                                                   | —                              | A possible hardening gap                           | Finish the review                                             |
 
@@ -131,7 +131,7 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 | Dangling-parent flood          | Availability   | A junk flood denies only the flooder's own placement, never others                                                                                                                                                                         |
 | No retroactive distrust        | Recoverability | A co-signed bad event stands; you remediate forward (revoke, evict) rather than rewrite history                                                                                                                                            |
 | Late sealed straggler dropped  | Recoverability | A rare legitimately-late sealed event is dropped — the price of the backdate defense                                                                                                                                                       |
-| Data log severed by a recovery | Recoverability | Recovering a content-tier compromise forces burying the whole tail; by descent every data-log event anchored in that window is severed — the price of full deadenability with no repair machinery, bounded and re-anchorable               |
+| Data log severed by a recovery | Recoverability | Recovering a content-tier compromise forces burying the whole tail; every data-log event anchored in that window is severed — the price of full deadenability with no repair machinery, bounded and re-anchorable                          |
 | Confirm-a-known-subject        | Privacy        | A party already holding a subject's grant instance can check that subject's status — the minimum disclosure that makes revocation checkable                                                                                                |
 | Issuance volume / timing       | Privacy        | An observer of the public chain sees issuance volume and timing, never which credential or to whom                                                                                                                                         |
 | Addressable sub-records        | Privacy        | A composed record's shape and its ungated leaves are addressable — the price of partial disclosure                                                                                                                                         |
@@ -169,7 +169,7 @@ framework's acknowledged points of no return, shared in kind with any pre-rotati
   permanent. Authoring at the owner's position is a **fork** the owner sees at once, and sooner with
   [monitoring](monitoring.md); the owner **buries** it by sealing their own branch with a rotation,
   which the attacker, lacking the reserve, cannot counter. Burying the branch kills the forged
-  content **and any issuances anchored on it, by deadness-descent** — no separate revocation is
+  content **and any issuances anchored on it, by deadness-ascent** — no separate revocation is
   needed. Requiring at least two signers for content means a single compromised device can't author
   alone.
 - **Lost** — A transient window before burial in which a relying party may act on the forged content
@@ -542,9 +542,9 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
   data-log event anchored on the dead portion is severed at the earliest dead anchor; with no repair
   event, the portion after it is un-verifiable and lost.
 - **Mitigation** — This is the price of full deadenability with no repair machinery: a content-tier
-  compromise is fully recoverable by one rotation burying the whole tail, and by descent every
-  anchored event on it dies. The severed portion is a truncation, not a new state; the pre-sever
-  portion stays live; a data log that pre-exists the fork is untouched.
+  compromise is fully recoverable by one rotation burying the whole tail, and every anchored event
+  on it dies on ascent. The severed portion is a truncation, not a new state; the pre-sever portion
+  stays live; a data log that pre-exists the fork is untouched.
 - **Lost** — A bounded, un-verifiable tail: legitimate data-log work anchored during a since-buried
   window, which must be re-anchored on the recovered branch.
 

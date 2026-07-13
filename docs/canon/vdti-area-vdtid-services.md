@@ -316,7 +316,7 @@ compose — the receipt-threshold makes "should I pull" cheap, disputed stays a 
 - **Fix `project_vdti_compacted_only_submission`** (`eventsd`/`sadd` → `vdtid` + `witnessd`).
 - **Buried-content-aware fetch (keep-all-data).** `vdtid`'s fetch endpoint must expose **buried** events (kels'
   `get_archived_events` shape), so a walk that returns the full graph/history also surfaces events **buried by a
-  burying seal** (a content loser dropped below the seal by position + descent, retained by keep-all-data — inv 13/17,
+  burying seal** (a content loser dropped below the seal by position + ascent, retained by keep-all-data — inv 13/17,
   never dropped). *(Not for detecting a delayed un-rescind — kills are always sealed, there is no un-rescind, see
   `vdti-area-sel.md` §1.)*
 

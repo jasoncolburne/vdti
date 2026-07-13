@@ -82,7 +82,7 @@ Then the KEL (Key Event Log) primitive, in order:
 11. [`primitives/data/event-logs/kel/verification.md`](primitives/data/event-logs/kel/verification.md)
     — the verifier walk and the verification token: how a chain is read and validated.
 12. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
-    path: divergence resolution, burial by position and descent, and the single-word merge outcomes.
+    path: divergence resolution, burial by position and ascent, and the single-word merge outcomes.
 13. [`primitives/data/event-logs/kel/compromise.md`](primitives/data/event-logs/kel/compromise.md) —
     recovery as a plain burying `Rot`: the reserve defends the signing key, not the rotation key.
 14. [`primitives/data/event-logs/kel/reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md)
@@ -110,25 +110,39 @@ Then the IEL (Identity Event Log) primitive, in order:
 20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
     the delegate / rescind surface: the single-hop grant-and-rescission primitive.
 
+Then the SEL (SAD Event Log) primitive, in order:
+
+21. [`primitives/data/event-logs/sel/log.md`](primitives/data/event-logs/sel/log.md) — the chain
+    primitive: a single-owner data log that is its own witnessed chain; the four-state machine, the
+    seal and its advancers, and the severance a dead owner-IEL anchor causes.
+22. [`primitives/data/event-logs/sel/events.md`](primitives/data/event-logs/sel/events.md) — the
+    six-kind taxonomy, the three axes, the kind-strict cross-layer anchor matrix, the typed-value
+    `Gnt`, the neutral `Sea` re-seal, and the lineage field.
+23. [`primitives/data/event-logs/sel/verification.md`](primitives/data/event-logs/sel/verification.md)
+    — the verifier walk: owner-rooting, the witnessed divergence read, the severance read, and the
+    uniform lineage walk.
+24. [`primitives/data/event-logs/sel/merge.md`](primitives/data/event-logs/sel/merge.md) — the write
+    path: witnessed first-seen, seal-advancer burial, and inherited severance.
+25. [`primitives/data/event-logs/sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)
+    — the correctness proof: the SEL's own divergence crossed with inherited owner-IEL deadness.
+
 ## 4 — The document-authorization layer
 
 Policy sits above the primitives — it governs documents, never the chain events themselves
 (chain-event authorization is structural). (This group carries its own reading-order note in
 `policy.md`.)
 
-21. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
+26. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
-22. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
+27. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-23. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
+28. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
     evaluated (as-issued and current) and the seam to the primitives.
 
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `primitives/data/event-logs/sel/` — the SEL primitive: single-owner content and credential logs,
-  anchored by their owner IEL.
 - `federation/` — federation bootstrap and witnessing;
   [`federation/bootstrap.md`](federation/bootstrap.md) is a diagram stub carrying its diagrams ahead
   of the prose.

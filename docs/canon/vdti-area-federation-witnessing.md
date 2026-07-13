@@ -228,7 +228,7 @@ adversarial pass.
   collusion. So **divergence detection is now sealed-only** (content is prevented upstream). **Residual** content-fork
   evidence (the witness-compromise residual) is still retention-bounded at **≥ 2 per position** (the content analog of
   inv 17's sealed **≥ 2-per-spine-position** — "two prove the fork, then stop"), depth ≤ 64 per lineage (the
-  seal-cap); a witness holding the burying seal-advancer declines to re-witness dead content (efficiency only — deadness descends
+  seal-cap); a witness holding the burying seal-advancer declines to re-witness dead content (efficiency only — deadness ascends
   regardless).
 - **The split/tie stall + its exit (warm F3):** one-content-sibling-per-serial partitions the receipts at a forked
   position (`a + b ≤ signers`); if neither content sibling reaches majority (an even-`signers` tie, or
@@ -238,7 +238,7 @@ adversarial pass.
   selected witness under the one-sealing rule above — the cross-tier co-sign (a content signer may also sign this one sealing event) — and reaches
   majority. Attached at the author's own stalled sibling it **retains** that branch (the witnessed seal commits it
   as `previous` — local progress below) and the competing sibling closes below the seal; attached at the shared
-  ancestor (the author authored neither) it buries both — the losing roots close below the new seal + by descent,
+  ancestor (the author authored neither) it buries both — the losing roots close below the new seal, dead on ascent,
   no `fork` role (inv 4 / inv 17). Content-only → permitted; stalled honest content re-issues forward. **Odd
   `signers` avoids the pure tie** (operator guidance): with every selected witness voting, an odd set always yields a
   strict majority for one sibling — the stall then needs abstentions, not just a race.
@@ -265,9 +265,9 @@ adversarial pass.
   the per-context marker scoping above, not more witness machinery.
 - **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the burying seal-advancer** (a `Rot`/`Evl`)
   that condemned a fork **declines to witness** dead **content** events on a **dead** branch — one whose ancestry passes
-  below the burying seal or through a below-seal fork. **A below-seal sealed event is declined too** — the witness **mirrors the seal-cap** (a parent below the tracked seal is inert, content _or_ sealed; revised 2026-07-11): it never reaches threshold, so it is neither dispute evidence nor able to retreat the clean seal. **The sealed leg is load-bearing — the backdate defense:** a below-seal sealed straggler must **not** be witnessed, or a total-key-compromise adversary could mint a fabricated historical fork years after the fact; the only reachable dispute is a **seal-vs-seal collision at the last (live) seal** (two accepted seals there, a provable witness double-sign). **The gate generalizes — you can't seal a buried chain (dead-by-descent, Jason 2026-07-11):** a lineage is dead from its **first-seen loss** at any position, not only below a burying seal. A selected witness that first-seen-accepted the winner at a fork **declines every descendant of the loser — content _or_ a `Rot`/`Evl` seal forged on it** — so a buried branch never gathers the majority a seal needs; a seal does not revive it. This is what **collapses a dispute to the fork** (inv 13): two branches both **accepted** at a seal share their lineage to a fork where **both** siblings are accepted — a same-position double-sign — so no **cross-position** dispute forms. **The content leg is an efficiency gate, not load-bearing:** deadness descends
+  below the burying seal or through a below-seal fork. **A below-seal sealed event is declined too** — the witness **mirrors the seal-cap** (a parent below the tracked seal is inert, content _or_ sealed; revised 2026-07-11): it never reaches threshold, so it is neither dispute evidence nor able to retreat the clean seal. **The sealed leg is load-bearing — the backdate defense:** a below-seal sealed straggler must **not** be witnessed, or a total-key-compromise adversary could mint a fabricated historical fork years after the fact; the only reachable dispute is a **seal-vs-seal collision at the last (live) seal** (two accepted seals there, a provable witness double-sign). **The gate generalizes — you can't seal a buried chain (dead-on-ascent, Jason 2026-07-11):** a lineage is dead from its **first-seen loss** at any position, not only below a burying seal. A selected witness that first-seen-accepted the winner at a fork **declines every descendant of the loser — content _or_ a `Rot`/`Evl` seal forged on it** — so a buried branch never gathers the majority a seal needs; a seal does not revive it. This is what **collapses a dispute to the fork** (inv 13): two branches both **accepted** at a seal share their lineage to a fork where **both** siblings are accepted — a same-position double-sign — so no **cross-position** dispute forms. **The content leg is an efficiency gate, not load-bearing:** deadness ascends
   (inv 13 — an event whose parent is dead is dead), so a dead event that a lagging witness signs before it holds the
-  burying seal is still **retained (keep-all-data) and dead-by-descent**, never canonical. It just keeps witnesses from
+  burying seal is still **retained (keep-all-data) and dead-on-ascent**, never canonical. It just keeps witnesses from
   amplifying a signing-key adversary's dead content — the one-content-sibling rule + retention above are the primary bounds (breadth ≥ 2-per-position, depth ≤ 64 per lineage; inv 4 / inv 13); this is their post-burial complement for a lagging witness.
 - **Deterministic selection by `(prefix, serial)` + sub-mesh event-gossip (2026-06-23):** competing events at a
   position route to the **same** selected witness set (so the quorum-intersection is over **one** set), and the

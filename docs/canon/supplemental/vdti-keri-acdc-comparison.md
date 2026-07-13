@@ -300,8 +300,8 @@ answers need the keripy scan. **Questions, not claims** — don't bank the KERI 
       pre-rotation, or is pre-rotation its only reserve? (No recovery key ⇒ convergence; a recovery key ⇒ vdti
       diverged deliberately.)
 - [ ] **Recovery = root-bury vs KERI superseding rotation.** vdti recovers by rotating at the _first_
-      compromised position (the whole run below dies by descent). Is KERI's superseding-recovery the same
-      "attach at the root, deadness-descends" mechanic, or does it attach/supersede differently?
+      compromised position (the whole run below dies on ascent). Is KERI's superseding-recovery the same
+      "attach at the root, deadness-ascends" mechanic, or does it attach/supersede differently?
 - [ ] **Disputed/forked outcome, not just detection.** KERI _detects_ duplicity; vdti formalizes the
       **outcome** (content fork → recoverable/buried; key-change fork → terminal/reincept) plus the
       **observable-breach guarantee** (fork-cost = forced attributable double-signers). Does KERI formalize the

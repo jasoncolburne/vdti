@@ -395,7 +395,7 @@ receipt counts alone do not satisfy `witnessed`.
 
 **The divergence signal splits by provenance.** When a node holds two or more sealed branches **each
 accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen loss is
-dead by descent and never counts) — at the **last seal**, it reads **`disputed` directly from the
+dead on ascent and never counts) — at the **last seal**, it reads **`disputed` directly from the
 data** — the walk decides. A sealed sibling it holds only as a **receipt** (not yet fetched), one
 **below threshold** (a witness-declined sibling), or one **below the seal** (a straggler) is **not**
 counted — it stays **`forked`** / deferred-pending, and a below-seal straggler is dropped

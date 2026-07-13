@@ -86,7 +86,7 @@ branches past the fork. The IEL is a mixed chain, so the count discriminates con
 directly:
 
 - **Content (`Ixn`) is buriable.** A content conflict is **recoverable**: the next sealing event on
-  the surviving branch buries the loser below the new seal and by descent. Two competing content
+  the surviving branch buries the loser below the new seal, dead on ascent. Two competing content
   branches carry no sealed branch at all — the content count is irrelevant.
 - **Sealed is record-both (detected, never buried).** A threshold chain cannot be forked by one
   stolen key (**except a singleton / `t_use = 1` roster, where one member acts alone**), so a

@@ -31,8 +31,8 @@ The proof composes four matrices:
 4. **Recovery-completeness matrix** — the recovery-side dual of matrices 1–3. Detection answers _"is
    this position Forked or Disputed?"_; this matrix answers _"is a landed recovery **final** (chain
    → Active), or does it prove the fork **terminal** (Disputed → reincept)?"_ — for every
-   combination of losing-branch tier and delivery timing. Demonstrates that burial by position +
-   descent terminates every case correctly and all honest nodes converge on one reading.
+   combination of losing-branch tier and delivery timing. Demonstrates that burial by position + on
+   ascent terminates every case correctly and all honest nodes converge on one reading.
 
 All four matrices depend on the same protocol-enforced invariants, stated next.
 
@@ -72,7 +72,7 @@ protocol's safety claims hold _by construction_, not by observation.
    `Wit` / `Trm`) that would create or join a divergence does **not** extend the canonical chain —
    it is retained as non-canonical evidence (keep-all-data) rather than discarded. A fork with **at
    most one** sealed branch is **Forked** (recoverable): a burying seal-advancer on the winning
-   branch buries the content loser by position + descent. A fork with **two or more witnessed**
+   branch buries the content loser by position + ascent. A fork with **two or more witnessed**
    sealed branches past it is **Disputed** (reincept). Any verifier reads which by a data-local walk
    over the retained branches. A sealed branch is never buried — that would resurrect retired key
    material. See
@@ -184,12 +184,12 @@ live-chain states. Outcomes are the `Result<MergeTransition, MergeRejection>` vo
 
 ### Position 3 — the new event is on the run past the last seal (competes with content)
 
-| new event     | outcome                                                                                                                                                                            |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Ixn`         | `Ignored` — a content sibling of a content event is declined by witnessing; the chain stays `Active`                                                                               |
-| `Rot` / `Wit` | `Recovered` — the seal-advancer buries the run past its attach point below its new seal; the content there is dead by descent → **Active**. Never `Disputed` — the run is content. |
-| `Trm`         | `Terminated` — the content events adjacent to and beyond the `Trm` are **dead**; the `Trm` becomes the **permanent** end of the canonical chain                                    |
-| `Icp` / `Fcp` | `Invalid`                                                                                                                                                                          |
+| new event     | outcome                                                                                                                                                                           |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn`         | `Ignored` — a content sibling of a content event is declined by witnessing; the chain stays `Active`                                                                              |
+| `Rot` / `Wit` | `Recovered` — the seal-advancer buries the run past its attach point below its new seal; the content there is dead on ascent → **Active**. Never `Disputed` — the run is content. |
+| `Trm`         | `Terminated` — the content events adjacent to and beyond the `Trm` are **dead**; the `Trm` becomes the **permanent** end of the canonical chain                                   |
+| `Icp` / `Fcp` | `Invalid`                                                                                                                                                                         |
 
 ### The other states
 
@@ -213,7 +213,7 @@ The merge engine handles batches atomically:
 
 - **`[..content.., Rot]`** — the winning-branch context plus the burying seal-advancer. The retained
   branch (≤ 64) plus the `Rot` fits one page. Processed as a single overlap or forked submission;
-  the `Rot` buries the content loser by position + descent synchronously.
+  the `Rot` buries the content loser by position + ascent synchronously.
 - **`[Rot, Ixn]`** — auto-inserted by the builder when an `Ixn` would exceed the seal-advance cap
   interval.
 - **`[Fcp, Rot]` plus the federation IEL `Fcp` and receipts** — the founder bootstrap atomic batch.
@@ -462,7 +462,7 @@ merge-layer rules being proved sound are
 and
 [`merge.md` §A burying seal-advancer is validated on arrival](merge.md#a-burying-seal-advancer-is-validated-on-arrival-not-auto-applied).
 
-### Burial by position + descent
+### Burial by position + ascent
 
 On a **witnessed** chain, content forks are **prevented** below fork-cost — the witnessing floor
 plus one-content-sibling-per-position witnessing makes two content siblings un-co-witnessable
@@ -476,11 +476,11 @@ A divergence at a fork point `v_{d-1}`: distinct events extend it at `v_d`; one 
 the rest lose; the chain freezes. Recovery is a **burying seal-advancer** (a `Rot` / `Wit`) on the
 winning branch — there is no repair event and no losing-branch commitment. It advances the seal, so
 every losing **content** branch has its **first event locked below the seal** (the seal-cap) and
-**everything built on it dead by descent** — **deadness descends: an event whose parent is dead is
-dead**. So a losing branch a lagging node **grows after the burial** is dead by descent — no
+**everything built on it dead on ascent** — **deadness ascends: an event whose parent is dead is
+dead**. So a losing branch a lagging node **grows after the burial** is dead on ascent — no
 follow-up event, growth-proof. Either way the loser rides the **forked chain** — a **bounded**
 region: each dead **lineage** extends at most **64 events past the last seal** (the seal-advance
-cap; a deeper event needs a seal-advancer, which on this dead branch is itself **dead by descent** —
+cap; a deeper event needs a seal-advancer, which on this dead branch is itself **dead on ascent** —
 dropped), and its **breadth** is bounded by **retention** (nodes keep **≥ 2 competing events per
 position** as evidence and drop the rest), with the **one-content-sibling witnessing rule** on top
 (a witness signs the first structurally-valid content sibling at a position and declines later ones;
@@ -497,8 +497,8 @@ the `sel/` + `iel/` anchor-validation doctrine, forward-referenced below.)
 
 | losing branch                                                                                   | reading                                                                                                      | closes with                                                                                                                                                                                                                                                |
 | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **content**, buried below the seal                                                              | first event below the seal, subtree dead by descent → **Active** on the winning chain                        | seal-cap (first event) + deadness-descends (growth); the seal-cap bounds each dead lineage's depth (≤ 64 past the seal)                                                                                                                                    |
-| **content**, branch **grows** after the burial (lagging node)                                   | grown events dead **by descent** — no follow-up event → **Active**                                           | condemnation is over the subtree, not a tip; growth past depth-64 needs a seal-advancer, itself dead by descent → dropped                                                                                                                                  |
+| **content**, buried below the seal                                                              | first event below the seal, subtree dead on ascent → **Active** on the winning chain                         | seal-cap (first event) + deadness-ascends (growth); the seal-cap bounds each dead lineage's depth (≤ 64 past the seal)                                                                                                                                     |
+| **content**, branch **grows** after the burial (lagging node)                                   | grown events dead **on ascent** — no follow-up event → **Active**                                            | condemnation is over the subtree, not a tip; growth past depth-64 needs a seal-advancer, itself dead on ascent → dropped                                                                                                                                   |
 | **content**, held when the burying seal-advancer arrives                                        | burial **accepted**, the branch drops below the advanced seal → inert → **Active**                           | an under-covering burial is accepted; the branch inerts rather than freezing the chain                                                                                                                                                                     |
 | **sealed** (non-content) — a burial attempted against it, or a 2nd one present at the last seal | ≥ 2 **witnessed** sealed at the last seal → **Disputed** → reincept                                          | a sealed branch at the last seal is never buried; two **witnessed** sealed branches read **Disputed** (needs a provable witness double-sign); a **below-seal** sealed straggler is **dropped** (inert, backdate-safe — it does not retreat the clean seal) |
 | **sealed** (non-content) — a **lone unretained** branch, no burial                              | one sealed branch → **Forked**-frozen (recoverable only by its author; reincept is the operational exit)     | invariant 4 (≥ 2 sealed is the **Disputed** threshold; one is **Forked**) — _not_ **Disputed**                                                                                                                                                             |
@@ -514,8 +514,8 @@ the `sel/` + `iel/` anchor-validation doctrine, forward-referenced below.)
   **witnessed** competing seal at the last seal is a **spine fork** → **Disputed** (a below-seal or
   witness-declined straggler is dropped / deferred, not counted).
 - **No stale-authority revival.** Burial reaches no _live_ state — it **marks a subtree dead** (by
-  position + descent), never extends or revives an event. There is **no below-seal write
-  operation**, so the seal-cap stays unconditional.
+  position + ascent), never extends or revives an event. There is **no below-seal write operation**,
+  so the seal-cap stays unconditional.
 - **No self-burial.** A burying seal-advancer that siblings its own retained chain (its `previous`
   is known from the walkback) is rejected — a node buries only competing branches, never the branch
   it keeps.
@@ -536,7 +536,7 @@ the `sel/` + `iel/` anchor-validation doctrine, forward-referenced below.)
   witnessed one — the bound rests on **retention + kind-awareness**, arrival-independent. A
   signing-key (tier-1) re-forker can _author_ more content siblings, but they sit beyond the
   retained ≥ 2 → droppable + declined. Every dead event is non-canonical and never flips a reading.
-  A **sealed** event forged on a **dead** branch is itself **dead by descent** — you can't seal a
+  A **sealed** event forged on a **dead** branch is itself **dead on ascent** — you can't seal a
   buried chain: honest witnesses, having accepted the winner at the fork, decline it, so it never
   reaches threshold and is **dropped** (inert), never `Disputed`. The depth-cap still bounds the
   dead lineage (its would-be seal is dropped, so it cannot grow past the cap into the retained set).
@@ -550,7 +550,7 @@ Under eventual beacon delivery and `< threshold` byzantine, every honest node's 
 to the true competing set. Then:
 
 - **All-content** → every node reads the winning chain as canonical; the losing branches inert by
-  the seal-cap (their growth dead by descent); the effective SAID is the real winning tip on every
+  the seal-cap (their growth dead on ascent); the effective SAID is the real winning tip on every
   node. **Converges to Active.** No follow-up burial, no reincept.
 - **One sealed branch, kept by its author** → Active once the culprit's minting capability is
   neutralized (the recovery `Rot` rotates it out — vacuous for a benign fork) and beacon-confirmed
@@ -572,7 +572,7 @@ to the true competing set. Then:
 
 The forked chain is **depth-capped at 64 past the last seal, per lineage** — that is the bound, not
 a count of recoveries. One burying seal-advancer closes the whole current content fork (every losing
-branch below the seal, growth dead by descent — growth-proof within the depth-cap); the recovery
+branch below the seal, growth dead on ascent — growth-proof within the depth-cap); the recovery
 `Rot`'s key rotation then closes the culprit's ability to mint a **new** fork (on an IEL, an `Evl`
 `cut` plays this role — an IEL burial rotates no identity key, so a culprit is neutralized by
 eviction). So termination is qualitative but strict: each fork a sustained adversarial re-forker
@@ -601,7 +601,7 @@ witness compromise).
 
 The cross-layer completeness rows — **anchor-monotonicity** (an owner IEL totally-orders each SEL it
 anchors, with **skip-unattributable** for an anchor whose body a node does not hold: skipped, not
-blocking, so a withheld or lost body never wedges the SEL), **cross-layer deadness-descends** (a SEL
+blocking, so a withheld or lost body never wedges the SEL), **cross-layer deadness-ascends** (a SEL
 event on a dead IEL anchor is dead — the IEL→SEL anchor edge only), the theorem that a valid SEL
 fork implies an IEL fork beneath it, and the **withheld-body transient-split residual**
 (auto-resolved by seal order, fail-secure) — belong to the `sel/` + `iel/` anchor-validation
@@ -647,7 +647,7 @@ re-submission dedupes, a further distinct event is retained as non-canonical evi
 ```
 
 The owner submits a burying `Rot` on the branch it keeps (`ixn_a`) to any single node → the `Rot`
-advances the seal past `ixn_b`, which drops below it (dead by descent) → recovery propagates via
+advances the seal past `ixn_b`, which drops below it (dead on ascent) → recovery propagates via
 gossip → all nodes converge on the post-`Rot` linear state.
 
 ### 3. Local events buried by a competing recovery
@@ -670,7 +670,7 @@ Pre-state (divergent at v_d; local store holds branch A):
 
 A second reserve holder submits a burying `Rot` keeping `branch_B` (branch-tip-extending shape):
 `rot_B` extends `branch_B` and advances the seal; `branch_A` / `branch_A'` now sit below the seal,
-dead by descent; `rot_B` lands at `v_{d+1}`.
+dead on ascent; `rot_B` lands at `v_{d+1}`.
 
 ```
   Server (post-recovery):  v_0 → ... → v_{d-1} → branch_B → rot_B
@@ -703,7 +703,7 @@ Pre-sync state (post-recovery on A; buried branch still canonical on B):
   Node B:  v_0 → ... → v_{d-1} → branch_B @ v_d
            (still has the alternate branch as canonical; rot hasn't propagated)
 
-Gossip propagates Node A's chain (including rot) to Node B. Node B's merge engine observes overlap at v_d (its branch_B vs incoming branch_A), sees the burying rot in the batch, advances the seal past branch_B, and buries it synchronously (dead by descent).
+Gossip propagates Node A's chain (including rot) to Node B. Node B's merge engine observes overlap at v_d (its branch_B vs incoming branch_A), sees the burying rot in the batch, advances the seal past branch_B, and buries it synchronously (dead on ascent).
 
   Node B (post-sync):  v_0 → ... → v_{d-1} → branch_A → rot → ixn_new
                        (matches Node A; branch_B in retained storage below the seal)

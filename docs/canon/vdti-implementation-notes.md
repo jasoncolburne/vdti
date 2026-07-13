@@ -144,9 +144,9 @@ Doctrine is the leading edge — these follow it.
   names the *mechanism* (advisory lock); the Postgres specifics live here.
 - **No `fork`-root membership test (first-seen, 2026-07-08).** The `fork` manifest role — a repair naming a
   losing branch's root — is **deleted** (no repair event, no root-condemnation; inv 4 / inv 13). Recovery is
-  **burial by position + deadness-descends**: a recovery `Rot` (KEL) / a burying seal-advancer (IEL)
+  **burial by position + deadness-ascends**: a recovery `Rot` (KEL) / a burying seal-advancer (IEL)
   attaches at the surviving line, the per-event **seal-cap** locks the first losing sibling below the advanced
-  seal, and **everything built on it dies by descent** — so the verifier applies the seal-cap + deadness-descent
+  seal, and **everything built on it dies on ascent** — so the verifier applies the seal-cap + deadness-ascent
   **directly**, with **no candidate-root to select or validate** and no full-span walkback membership test.
   *(Supersedes the 2026-07-02 formal `fork`-root candidate-selection `root.parent = v_{d-1} ∧ root ∉ walkback` —
   gone with the `fork` role.)*

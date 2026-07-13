@@ -69,7 +69,7 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
   being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
   boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
-  `disputed` (a seal on a buried lineage is **dead by descent** — you can't seal a buried chain — so
+  `disputed` (a seal on a buried lineage is **dead on ascent** — you can't seal a buried chain — so
   two accepted branches can only fork at the competing seals themselves; the double-sign is at that
   one position).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution

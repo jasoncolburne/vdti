@@ -305,7 +305,7 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
 
 When the routing path admits a `Rot` / `Wit` extending a fork's **winning branch tip**, the merge
 layer advances the seal past the loser — no discriminator, no losing-branch commitment, no
-content-only guard walk. The mechanics are pure position + descent:
+content-only guard walk. The mechanics are pure position + ascent:
 
 1. **Verify the burying event.** It is an ordinary sealed extension of its `previous` (the winning
    branch tip). Re-check SAID, prefix, chain linkage, single signature against the parent's
@@ -313,14 +313,14 @@ content-only guard walk. The mechanics are pure position + descent:
    DB rows).
 2. **Advance the seal.** The event advances `last_seal_advancing_event` to its own serial. Every
    competing branch whose first event now sits below the advanced seal is inert.
-3. **Kill by descent.** Mark every below-seal loser dead — non-canonical forever, its growth dead by
-   descent (an event whose parent is dead is dead). Move it out of the canonical live chain into
+3. **Kill on ascent.** Mark every below-seal loser dead — non-canonical forever, its growth dead by
+   ascent (an event whose parent is dead is dead). Move it out of the canonical live chain into
    non-canonical retained storage; then land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries a **witnessed (accepted)** sealed
    event, the burial is rejected — the fork is `Disputed` (≥ 2 accepted sealed), and the burying
    event is itself retained as a competing sealed branch and counted (retain-and-count — dropping it
    would split the reading permanently across nodes); a sealed straggler that isn't accepted —
-   witness-declined, below-seal, or **dead by descent** (its fork-sibling is buried by this very
+   witness-declined, below-seal, or **dead on ascent** (its fork-sibling is buried by this very
    seal, so its own later seal lands on the buried chain) — is **dropped**, not counted, and does
    not block the burial. Sealed branches are always retained (keep-all-data), so an unnamed sealed
    sibling is caught, never sealed past — the reserve defends the signing key, not the rotation key.
@@ -332,7 +332,7 @@ competing content loser is validated from retained storage and need not co-resid
 
 A recovery `Rot` is **not** trusted as a resolution the instant it lands. The merge layer validates
 it as an **ordinary event at its attach-position** — the same sibling / seal-cap / divergence checks
-any event faces — and only then advances the seal and buries by descent. The on-arrival outcome
+any event faces — and only then advances the seal and buries on ascent. The on-arrival outcome
 splits on the **tier** of anything the burial does not cover
 ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)), never on a
 blanket freeze:
@@ -342,7 +342,7 @@ blanket freeze:
   seal-advancer then lands as that `Ixn`'s sibling), or a content descendant of a losing branch that
   arrived after the seal-advancer was authored. Neither blocks the burial, and no follow-up event is
   needed. Every losing content branch has its **first event locked below the advanced seal** and
-  everything built on it dead by descent (**deadness descends** — an event whose parent is dead is
+  everything built on it dead on ascent (**deadness ascends** — an event whose parent is dead is
   dead). The uncovered content **inerts** on the bounded forked chain — witnessed, retained, never
   canonical — and is **never orphan-dropped**: the node keeps it, and its author re-issues its own
   benign content forward on the recovered chain (adversarial dead content is simply non-canonical —
@@ -365,7 +365,7 @@ competing content branch below the new seal. `Rot.previous` takes one of two sha
 ### Branch-tip-extending shape
 
 `Rot.previous` is your own branch tip at `v_d`. The `Rot` extends that branch at `v_{d+1}`; the
-other branch's first event is below the new seal, dead by descent.
+other branch's first event is below the new seal, dead on ascent.
 
 ```
 Pre-state (divergent at v_d):
@@ -378,19 +378,19 @@ Recovery: rot.previous = retained-branch tip's said
 Post-state (linear, recovered):
     ... → v_{d-1} → retained-branch tip @ v_d → rot @ v_{d+1}
                   ↑
-                  other branch below the advanced seal → dead by descent
+                  other branch below the advanced seal → dead on ascent
 ```
 
 The submitter keeps the branch they authored; the burying `Rot` extends it and advances the seal, so
 the competing branch (its first event now below the seal) and everything grown on it are dead by
-descent — no submitter-supplied commitment, no content-only guard walk. Every competing content
+ascent — no submitter-supplied commitment, no content-only guard walk. Every competing content
 branch closes the same way; a competing **sealed** branch is never buried (≥ 2 sealed → `disputed`).
 
 ### Ancestor-extending shape
 
 `Rot.previous` is `v_{d-1}`, the divergence ancestor. The `Rot` lands at `v_d`; every branch at
 `v_d` is a sibling of the `Rot`, barred by the seal-cap (its parent `v_{d-1}` now sits below the
-advanced seal), its growth dead by descent; the `Rot` is the only canonical event at `v_d` after
+advanced seal), its growth dead on ascent; the `Rot` is the only canonical event at `v_d` after
 recovery.
 
 ```
@@ -404,7 +404,7 @@ Recovery: rot.previous = v_{d-1}.said
 Post-state (linear, recovered, rot is the only canonical event at v_d):
     ... → v_{d-1} → rot @ v_d
                   ↑
-                  both branches below the advanced seal → dead by descent
+                  both branches below the advanced seal → dead on ascent
 ```
 
 The ancestor-extending shape is the structural primitive that makes recovery
@@ -413,14 +413,14 @@ lands cleanly on the linear chain before any divergence, so it is structurally i
 node regardless of which divergent contents each node received. A recovery `Rot` extending it
 validates uniformly — it signs against the same `v_{d-1}.rotationHash` on every node, and advances
 the seal past every `v_d` branch, so every competing branch (and everything grown on it) sits below
-the new seal, dead by position + descent — an outcome every node computes identically, with no
+the new seal, dead by position + ascent — an outcome every node computes identically, with no
 submitter-supplied fork commitment to trust. It is the recourse when the submitter authored nothing
 it wants to preserve at or beyond `d`: attaching at `v_{d-1}` buries everything at or beyond `d`,
 the submitter's own content included. Every branch here is tier-1 content, so nothing sealed is
 overturned.
 
 Both attach shapes route through the merge layer as ordinary sealed extensions — acceptance buries
-the losing content by position + descent rather than producing a divergence. A sealed event sharing
+the losing content by position + ascent rather than producing a divergence. A sealed event sharing
 the ancestor-extending parent shape (`previous = v_{d-1}.said`) on a chain that already holds a
 sealed event at `v_d` is a **second** sealed branch → `disputed`; a burying `Rot` extending the
 winning branch's own tip is the recovery.
@@ -430,7 +430,7 @@ winning branch's own tip is the recovery.
 When verifying a burying-seal-advancer batch, the verifier seeds from the seal-advancer's `previous`
 (the submitter's chosen anchor — the branch tip in the branch-tip-extending shape, or `v_{d-1}` in
 the ancestor-extending shape) and walks only that branch plus the batch's new events. The competing
-branches are buried by position + descent; the seal advances only after verification succeeds.
+branches are buried by position + ascent; the seal advances only after verification succeeds.
 
 This honors the no-extend-adversary rule: the walker's running state never carries a competing
 branch across the recovery boundary. After recovery, the chain has a single linear walkback from the
@@ -503,7 +503,7 @@ for truncation.
    sibling is `Disputed`.
 5. **Branch-scoped verifier input on recovery.** Recovery verification is branch-scoped, not
    chain-scoped; the seal advances only after verification succeeds, and the content loser buries by
-   position + descent (every competing branch below the new seal, its growth dead by descent).
+   position + ascent (every competing branch below the new seal, its growth dead on ascent).
 
 ## Cross-references
 
