@@ -29,8 +29,10 @@ A SEL's reading composes two inputs that arise for entirely different reasons:
 
 They compose by **deadness-precedence**: you never bury something already dead, so Axis B is
 resolved first. A severed branch drops out of every Axis-A verdict — it auto-resolves a content fork
-to the live branch, and it downgrades a Disputed to the live branch. Axis A's machinery (a burying
-seal-advancer, the sealed-to-Disputed escalation) runs **only** on the all-live remainder.
+to the live branch, it downgrades a Disputed to the live branch, and on a `{Trm, content}` shape it
+drops the severed branch and leaves the survivor (the content → Active, or the `Trm` → Terminated).
+Axis A's machinery (a burying seal-advancer, the sealed-to-Disputed escalation) runs **only** on the
+all-live remainder.
 
 ## Invariants
 
@@ -123,6 +125,9 @@ first.
 | content fork        | losing anchor **live, at/above** the owner-IEL seal       | the owner's choice — an owner-IEL re-bury (→ severance) **or** a `Sea` on the SEL → **Active**                          |
 | content fork        | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**             |
 | `{Trm, content}`    | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                           |
+| `{Trm, content}`    | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | the `Trm` severs and drops → the content is the lone live branch → **Active** (deadness precedes tier-rank)             |
+| `{Trm, content}`    | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                  |
+| `{Trm, content}`    | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                       |
 | ≥ 2 sealed branches | both anchors **live** (linear owner IEL)                  | **Disputed** → re-incept (no severance available to downgrade it)                                                       |
 | ≥ 2 sealed branches | one branch's anchor on a **dead** owner-IEL branch        | severance **downgrades** it — the severed branch is un-verifiable, not counted → drops to the live branch → recoverable |
 
