@@ -180,7 +180,7 @@ no losing-branch commitment:
    aborts.
 2. **Advance the seal.** The event advances the last seal-advancer to its own serial. Every
    competing branch whose first event now sits below the advanced seal is inert.
-3. **Kill on ascent.** Mark every below-seal loser dead — non-canonical forever, its growth dead by
+3. **Kill on ascent.** Mark every below-seal loser dead — non-canonical forever, its growth dead on
    ascent (an event whose parent is dead is dead). Move it into non-canonical retained storage, then
    land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries an **accepted** sealed event, the

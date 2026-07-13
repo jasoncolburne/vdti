@@ -599,13 +599,15 @@ witness compromise).
   seal at the current last seal needs the live signing key **plus** a colluding witness quorum
   (detectable, recoverable — reincept + out of band), never a backdated historical mint.
 
-The cross-layer completeness rows — **anchor-monotonicity** (an owner IEL totally-orders each SEL it
-anchors, with **skip-unattributable** for an anchor whose body a node does not hold: skipped, not
-blocking, so a withheld or lost body never wedges the SEL), **cross-layer deadness-ascends** (a SEL
-event on a dead IEL anchor is dead — the IEL→SEL anchor edge only), the theorem that a valid SEL
-fork implies an IEL fork beneath it, and the **withheld-body transient-split residual**
-(auto-resolved by seal order, fail-secure) — belong to the `sel/` + `iel/` anchor-validation
-doctrine (forthcoming); the KEL-level matrix above is self-contained without them.
+The cross-layer (SEL ↔ owner IEL) behavior is the SEL primitive's own. A SEL is its **own witnessed
+chain** — fork-prevention is the SEL's first-seen at its own position, so an owner-IEL anchor cannot
+prevent a SEL fork (an earlier reading, that a valid SEL fork implies an IEL fork beneath it, is
+retired). The owner IEL's cross-layer contribution is **severance**: a buried owner-IEL branch
+severs an anchored SEL — dead **and** un-verifiable from the earliest dead anchor, a truncation with
+no repair. The anchor's re-anchor-at-an-already-attributed-serial-is-inert rule survives only as a
+defense-in-depth check, not as fork-prevention or a total-order. These are worked out in
+[`../sel/reconciliation.md`](../sel/reconciliation.md); the KEL-level matrix above is self-contained
+without them.
 
 ## Edge cases
 

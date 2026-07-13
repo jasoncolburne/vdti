@@ -275,8 +275,8 @@ the recovery-side composition with the two-tier compromise model is in
   KEL events compose on; prefix and SAID derivation algorithms.
 - [`../iel/`](../iel/) — IEL primitive. KEL events host the anchors that authorize tier-2 IEL acts
   per the tier model.
-- [`../sel/`](../sel/) — SEL primitive (forthcoming). KEL events host the anchors that authorize
-  tier-1 and tier-2 SEL acts.
+- [`../sel/`](../sel/) — SEL primitive. KEL events host the anchors that authorize tier-1 and tier-2
+  SEL acts.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing doctrine (forthcoming): the kind-scoped witnessing ladder, the witnessing floor, the
   beacon, divergent witness receipts, acceptance gating.

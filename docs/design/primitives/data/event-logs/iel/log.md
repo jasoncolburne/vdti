@@ -317,7 +317,7 @@ is canonical in
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and recovery, forks-are-seal-bounded and the spine, federation convergence,
   the layering principle.
-- [`../sel/`](../sel/) — SEL primitive (forthcoming). IEL events anchor SEL events and credentials.
+- [`../sel/`](../sel/) — SEL primitive. IEL events anchor SEL events and credentials.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing (forthcoming): the beacon, the witnessing floor, the clock, witness selection,
   acceptance gating.

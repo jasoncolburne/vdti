@@ -155,11 +155,11 @@ opacity):
 
 ```
 resolve_lookup(owner, topic, data):
-    for n in 0 .. MAXIMUM_SEL_LINEAGE:        # 64
+    for n in 0 ..= MAXIMUM_SEL_LINEAGE:       # inclusive: lineages 0 through 64
         sel = fetch(derive(owner, topic, data, lineage = n))   # lineage 0 omits the field
         if sel is absent:            return (not established, at lineage n)   # a gap ends the walk
         if sel reads dead (Disputed / severed):  continue      # advance to the next lineage
-        if sel reads live or validly Terminated: return sel    # STOP here
+        return sel                             # STOP — any non-dead reading (Active / Forked / validly Terminated)
     return (no live instance, fail-secure)     # past the cap
 ```
 
@@ -169,6 +169,10 @@ resolve_lookup(owner, topic, data):
   killed. Treating a `Terminated` locus as dead and advancing past it would walk past a real
   revocation to an empty lineage and read not-revoked — a **fail-open** hole. So `Terminated` stops
   the walk.
+- **Any non-dead reading stops — `Forked` included.** Only `Disputed` and severed advance the walk;
+  `Active`, `Forked`, and validly-`Terminated` all stop. A live `Forked` locus is **not** walked
+  past — it stops and returns `Forked` (which reads fail-secure), the same _lowest non-dead_ rule
+  that forecloses equivocation.
 - **The cap `MAXIMUM_SEL_LINEAGE = 64`** bounds the walk; past it there is no live instance, which
   reads fail-secure.
 

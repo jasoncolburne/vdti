@@ -140,13 +140,13 @@ both-diverged resolves by deadness-precedence.
 The severance-side dual of Matrix 1. It proves that inherited owner-IEL deadness always yields a
 verifiable shape.
 
-| the SEL relative to the dead owner-IEL anchor                   | reading                                                                                                            |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| no anchor on a dead owner-IEL branch                            | untouched — the SEL is unaffected                                                                                  |
-| a portion **pre-exists** the owner-IEL fork (shared lineage)    | not severed — it rides the pre-fork lineage; only the through-the-dead-branch portion severs                       |
-| an anchor on a dead owner-IEL branch, later events through it   | **severed** at the earliest dead anchor — the pre-sever chain is live, the rest dead and un-verifiable, no repair  |
-| both branches of a SEL fork anchored on dead owner-IEL branches | **severed at the fork** — nothing past the fork is verifiable                                                      |
-| a `Sea` authored to bury, but the loser was already severed     | the `Sea` is unnecessary — deadness-precedence already resolved it; a redundant `Sea` is inert (self-burial guard) |
+| the SEL relative to the dead owner-IEL anchor                   | reading                                                                                                                                                                                                                                         |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| no anchor on a dead owner-IEL branch                            | untouched — the SEL is unaffected                                                                                                                                                                                                               |
+| a portion **pre-exists** the owner-IEL fork (shared lineage)    | not severed — it rides the pre-fork lineage; only the through-the-dead-branch portion severs                                                                                                                                                    |
+| an anchor on a dead owner-IEL branch, later events through it   | **severed** at the earliest dead anchor — the pre-sever chain is live, the rest dead and un-verifiable, no repair                                                                                                                               |
+| both branches of a SEL fork anchored on dead owner-IEL branches | **severed at the fork** — nothing past the fork is verifiable                                                                                                                                                                                   |
+| a `Sea` authored to bury, but the loser was already severed     | deadness-precedence already resolved it, so the `Sea`'s burial effect is vacuous (nothing live to bury): a `Sea` extending the live tip is a valid no-op re-seal, while one attaching below the resolved tip is caught by the self-burial guard |
 
 Severance is a **truncation**: it shrinks the SEL and the remaining chain reads one of the four live
 states. There is no continuation on the same chain — the severed portion was the dead-branch

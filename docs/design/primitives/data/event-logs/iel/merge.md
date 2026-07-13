@@ -258,7 +258,7 @@ commitment, no content-only guard walk. The mechanics are pure position + ascent
    tampered DB rows).
 2. **Advance the seal.** The event advances `last_seal_advancing_event` to its own serial. Every
    competing branch whose first event now sits below the advanced seal is inert.
-3. **Kill on ascent.** Mark every below-seal loser dead — non-canonical forever, its growth dead by
+3. **Kill on ascent.** Mark every below-seal loser dead — non-canonical forever, its growth dead on
    ascent (an event whose parent is dead is dead). Move it into non-canonical retained storage; then
    land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries a **witnessed (accepted)** sealed

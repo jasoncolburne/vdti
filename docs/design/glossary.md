@@ -60,7 +60,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 | `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; carries a `kills[]` declaration and seals a SEL `Trm` that revokes a credential. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                |
 | `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; carries a `kills[]` declaration and seals a SEL `Trm` that rescinds a delegation or doc-membership grant. Tier 2, `t_authorize`, seal-advancing.                                                                                                                                         |
 | `Pin` | Pin (SEL) — the floor re-pin to the owner IEL's current tip; carries a SEL's serial-1 issuance floor. Tier 1.                                                                                                                                                                                                                                                        |
-| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, `t_govern`, seal-advancing (terminal).                                                                                                                                                                                                                           |
+| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, seal-advancing (terminal); `t_govern` (identity-kill / SEL revoke) or `t_authorize` (SEL rescind).                                                                                                                                                               |
 
 ### Chain structure
 
@@ -111,9 +111,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`protocol-doctrine.md`](protocol-doctrine.md#pin-everything-to-current-floored-per-chain))
 - **lineage** — a lookup-SEL's re-inception counter (`Icp` only; absent → 0). A deterministic-prefix
   SEL can't reroll a nonce to re-incept, so a fresh incarnation increments `lineage`; a reader walks
-  incarnations low → high and stops at the first live or `Terminated` one (cap
-  `MAXIMUM_SEL_LINEAGE = 64`). Load-bearing for value-bearing lookups (a KEM key with no fallback);
-  inert for monotone kills.
+  incarnations low → high and stops at the first **non-dead** one (`Active` / `Forked` / validly
+  `Terminated`; only `Disputed` / severed advance; cap `MAXIMUM_SEL_LINEAGE = 64`). Load-bearing for
+  value-bearing lookups (a KEM key with no fallback); inert for monotone kills.
   ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-lineage-field))
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.

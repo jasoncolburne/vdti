@@ -196,7 +196,10 @@ in the verifier ([`verification.md` §The lineage walk](verification.md#the-line
 Inception is a two-event floor: the `Icp` (recomputable, no pin) plus a **serial-1 event** (the v1)
 that carries the pin the `Icp` cannot. The v1 is what the owner IEL anchors — the `Icp` rides via
 `v1.previous`, **never itself anchored** — so every SEL reads `{Icp, v1, …}`. Which kind is the v1
-depends on why the SEL was born:
+depends on why the SEL was born — the v1's only requirement is that it **anchors to the owner IEL
+and carries the pin**, so any first event can floor, with a bare `Pin` the fallback when inception
+carries no other. `Sea` is the one non-`Icp` kind excluded — it buries a content fork, which cannot
+exist at inception. The four shapes are its instances:
 
 | SEL born as                     | v1 (serial-1)   | Anchored by (owner IEL) |
 | ------------------------------- | --------------- | ----------------------- |
@@ -207,8 +210,10 @@ depends on why the SEL was born:
 
 **Authentication is the v1's anchor, never the `Icp`** — a SEL is validly established only if its v1
 resolves to a real owner-IEL event whose prefix equals the SEL's `owner`, with the v1 named in that
-IEL event's `anchors` and `v1.previous == said(Icp)` ([`log.md` §Inception](log.md#inception)). A
-SEL `Icp` is tier 1 because it establishes single-owner **data**, not governance — the
+IEL event's `anchors` and `v1.previous == said(Icp)` ([`log.md` §Inception](log.md#inception)). When
+the v1 is a seal-advancer — a value lookup's `{Icp, Gnt}` or a kill lookup's `{Icp, Trm}` — it also
+carries `previousSeal`, back-linking at serial 1 to the `Icp` as the spine root. A SEL `Icp` is tier
+1 because it establishes single-owner **data**, not governance — the
 inception-tier-follows-what-it-establishes rule
 ([`../../../../protocol-doctrine.md` §Tiers](../../../../protocol-doctrine.md#tiers)).
 

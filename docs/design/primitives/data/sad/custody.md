@@ -74,7 +74,7 @@ a cred carries **no `custody { owner, topic }`** (its writer is a body `issuer` 
 that anchor). The `custody` writer-binding covers the **other** case: a standalone SAD a holder must
 **self-locate by a derived address** (the revocation / rescission lookup SELs; any looked-up
 attested document). Such an `owner`-bearing SAD **must be anchored by a SEL** (the
-[SEL primitive](../event-logs/sel/) — _forthcoming_):
+[SEL primitive](../event-logs/sel/)):
 
 - The anchoring SEL's prefix is **`derive(owner, topic, data)`**, where the `data` argument **is the
   SAD's SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's **serial-1 event (its v1 — a

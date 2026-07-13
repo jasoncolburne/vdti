@@ -233,9 +233,7 @@ advancer).
 
 The SEL's second state input is inherited from the owner IEL. **Deadness flows upward along the
 anchoring edge** — an event whose parent is dead is dead — so a SEL event anchored on an owner-IEL
-branch the IEL later buries becomes dead. (This orientation, deadness rising from a dead authorizer
-to what it authorized, is the one the SEL states; the rest of the doctrine is being brought to the
-same label as a separate change — recorded in the applied notes for this encode.)
+branch the IEL later buries becomes dead.
 
 A dead anchor does more than mark one event dead — it **severs the chain**. The SEL's later events
 were anchored **through** that now-dead IEL lineage, and with **no repair event** to re-root them,
@@ -292,6 +290,11 @@ pin, so it is floored by its **serial-1 event** (its v1), which carries the pin 
 the `Icp` rides via `v1.previous`. So every SEL reads `{Icp, v1, …}`, and a fabricated bare `{Icp}`
 naming a victim owner is **not** evidence of anything — authentication is the v1's anchor
 ([`verification.md` §Owner-rooting](verification.md#owner-rooting--the-authentication-check)).
+
+The v1 is **any first event whose only job is to anchor to the owner IEL and carry the pin** — a
+bare `Pin` is the fallback, used only when inception carries no other first event; a natural first
+event floors instead. `Sea` is the sole non-`Icp` kind that never floors a v1 — it buries a content
+fork, which cannot exist at inception.
 
 Which event is the v1 depends on why the SEL was born: a content SEL's is the first content `Ixn`,
 or a bare **`Pin`** for a SEL that incepts and sits (a document author who endorses before editing);

@@ -9,11 +9,11 @@ posture, end-verifiability over data-from-any-source, fail-secure default — an
 the structural rules that realize those properties.
 
 > **Reading this before the taxonomy?** This doctrine uses the event **kinds** (`Icp` / `Ixn` /
-> `Rot` / `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Gnt` / `Trm` / `Fcp` / `Pin`) and manifest
-> **fields** (`previousSeal`, `manifest`, `pins`, `federationPin`, `kills[]`, the threshold vector)
-> that [`event-shape.md`](primitives/data/event-logs/event-shape.md) defines (read next — group 3 in
-> the design-docs reading order). Keep the [glossary](glossary.md)'s kind table open as a one-line
-> crib — this doc is the concept map; `event-shape` makes it concrete.
+> `Rot` / `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Gnt` / `Trm` / `Sea` / `Fcp` / `Pin`) and
+> manifest **fields** (`previousSeal`, `manifest`, `pins`, `federationPin`, `kills[]`, the threshold
+> vector) that [`event-shape.md`](primitives/data/event-logs/event-shape.md) defines (read next —
+> group 3 in the design-docs reading order). Keep the [glossary](glossary.md)'s kind table open as a
+> one-line crib — this doc is the concept map; `event-shape` makes it concrete.
 
 **[Part 1 — Security Invariants](#part-1-security-invariants):**
 
@@ -229,10 +229,10 @@ have no intrinsic key state, so they reach a tier by **being anchored by a lower
 matching kind** — **kind-strict**. Each **IEL** kind is anchored by **exactly** the **KEL** kind
 that reveals the capability it exercises (content ← KEL `Ixn`; tier-2 establishment / governance /
 kill / terminal ← KEL `Rot`; the IEL `Wit` ← a KEL `Wit`); each **SEL** kind rides its matching
-**IEL** kind in turn (SEL content ← IEL `Ixn`, `Gnt` ← `Ath`, the kill `Trm` ← `Rev`/`Dth`). A KEL
-`Wit` anchors **only** the IEL `Wit`. Kind-strict binding keeps content on a buriable host and
-closes the signing-key-only path to forging governance acts, grants, and terminals on the chains
-that root other chains' authority. The per-primitive anchor matrix is in
+**IEL** kind in turn (SEL content ← IEL `Ixn`, `Gnt` ← `Ath`, `Sea` ← `Evl`, the kill `Trm` ←
+`Rev`/`Dth`). A KEL `Wit` anchors **only** the IEL `Wit`. Kind-strict binding keeps content on a
+buriable host and closes the signing-key-only path to forging governance acts, grants, and terminals
+on the chains that root other chains' authority. The per-primitive anchor matrix is in
 [`primitives/data/event-logs/`](primitives/data/event-logs/).
 
 #### Structural authorization
@@ -314,9 +314,12 @@ terminal `Trm` which opens none) per primitive:
 - **IEL**: every non-inception **sealed** event advances the seal — `Ixn` is the lone content kind,
   and an IEL `Ixn` does not advance the seal; the sealing kinds (`Evl` / `Ath` / `Rev` / `Dth` /
   `Trm` / `Wit`) are the window-openers.
-- **SEL**: `Gnt` / `Trm` are the seal-advancers; a content `Ixn` and a floor `Pin` are tier-1
-  buriable and do not advance the seal. A plain content SEL (no `Gnt`/`Trm`) never self-seals — its
-  finality floors to the owner IEL via its `pin`.
+- **SEL**: `Gnt` / `Trm` / `Sea` are the seal-advancers; a content `Ixn` and a floor `Pin` are
+  tier-1 buriable and do not advance the seal. A plain content SEL's finality normally floors to the
+  owner IEL via its `pin`; it re-seals itself only with a **`Sea`** — the neutral seal-advancer (the
+  SEL analogue of the KEL recovery `Rot` / the IEL roster-less `Evl`) — to bury a content fork it
+  must resolve at its own tip (a witness-compromise fork that landed live and locked below the
+  owner-IEL seal, beyond both severance and an owner-IEL re-bury).
 
 The terminal `Trm` advances the seal to its own serial and permits no successor. The seal-cap
 rejects any submission whose parent sits before the `Trm`; a direct `Trm`-child passes the cap and
@@ -600,7 +603,8 @@ ability to mint a **new** fork differs by layer:
 - **SEL — the owner IEL's cut neutralizes the culprit.** A SEL is single-owner with no roster of its
   own, and its recovery cascades from the owner IEL, so the owner IEL's cut evicts the forking
   member (the cross-layer mechanics are IEL / SEL doctrine —
-  [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/); the SEL side forthcoming).
+  [`primitives/data/event-logs/iel/`](primitives/data/event-logs/iel/),
+  [`sel/`](primitives/data/event-logs/sel/)).
 - **A benign gossip-lag `Ixn`** (an honest member's content on a lagging node) needs no cut: it is
   buried and re-issued, terminating as honest members catch up to the recovered tip.
 
