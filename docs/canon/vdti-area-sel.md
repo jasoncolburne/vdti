@@ -23,7 +23,7 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
 - `docs/canon/vdti-area-iel.md` (the structural mold — the SEL is now a witnessed chain in the IEL's
   shape), `docs/canon/vdti-area-federation-witnessing.md` §1e (the witnessing floor / first-seen / disputed
   detection the SEL now inherits) — **§1g Decision 1 is REVISED by this note** (the SEL _is_ witnessed now).
-- `docs/canon/vdti-area-multi-party-documents.md` (doc / governance / version SELs), `…-delegation.md`,
+- `docs/canon/vdti-area-shared-documents.md` (doc / governance / version SELs), `…-delegation.md`,
   `…-document-policy.md` §F (the kill lookup SELs).
 
 ## 1. The current SEL model
@@ -66,7 +66,7 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
 | `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | no | delayed — `owner` (immutable) + `topic` + `data`? + `lineage`? (lookup only); **no manifest, no `pin`** (stays recomputable). |
 | `Ixn` (content) | `t_use` | T1 | `Ixn` | no | delayed — content SAD(s) + re-`pin`; **≤ 1 per SEL per IEL `Ixn`**; the **divergeable / first-seen content kind** (buriable). |
 | `Pin` (floor re-pin) | `t_use` | T1 | `Ixn` | no | delayed — re-pins the SEL→owner-IEL floor (top-level `pin` only). The **fallback serial-1 floor** (incept-and-sit); buriable like content. |
-| `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **yes** | **sealed on arrival** — the doc-governance grant (opens editor/commenter periods; `manifest.grant` names the gated grant-doc `G`). Non-buriable; walked back by a `Dth` rescission, never overturned. |
+| `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **yes** | **sealed on arrival** — **seals a typed value**: `manifest.grant` names a grant-value SAD kinded under **`vdti/sel/v1/grants/*`** (feature-first naming, any kind ≤ **64 chars**). Instances: the doc-governance grant-doc `G` (`grants/shared-document-governance` — opens editor/commenter periods, shared-documents §1); an **exchange receive-key** (`grants/exchange-ml-kem-1024` — the value-bearing lookup §1f, vdti-area-exchange). Non-buriable; walked back by a `Dth` rescission, never overturned. |
 | `Trm` (kill) | `t_govern` (revoke) · `t_authorize` (rescind) | **T2** | **`Rev`** (revoke) / **`Dth`** (rescind) | **yes** | **sealed on arrival** — the SEL kill. `Rev` = a revocation lookup-SEL `Trm` / app-SEL closure; `Dth` = a delegation / doc-membership rescission. Monotone, terminal-on-divergence; can't be overturned or un-done. |
 | **`Sea`** (re-seal / bury) | **`t_govern`** | **T2** | **`Evl`** | **yes** | **sealed on arrival** — the SEL's **neutral** seal-advancer (§1d): a re-seal that buries a content fork below its own seal, authored when no natural `Gnt` / `Trm` advances the seal (a plain content SEL) — the SEL analog of the KEL recovery `Rot` / the IEL roster-less `Evl`. Anchored by an IEL `Evl` (empty for a pure re-seal, or the `Evl` carries a `cut` to evict the colluding owner member(s) atomically). |
 
@@ -262,6 +262,14 @@ SEL needs its **own** witnessed state.
   fallback**: the SEL's own live state _is_ the authority, a dispute is genuine ambiguity (a sender can't
   safely pick a key → fails closed), and a collusion-forced dead locus is a real **DoS on secure receive**.
   `lineage` is what lets the owner re-establish a live key at a discoverable address.
+- **The value is a T2 sealed `Gnt` — established `{Icp, Gnt}` (the generalization, 2026-07-12).** The
+  published key rides a **`Gnt`** (`manifest.grant` → a `grants/*` grant-value — §1b), **not** T1 content:
+  a value a sender encrypts to must not be swappable by a bare signing key, so establishing or changing it
+  needs `t_authorize`@T2 (a signing-key theft cannot redirect secure receive). **Rotation = stack `Gnt`s**
+  (the walk serves the **live** sealed tip; a retired key is never served). **Rescission = `Trm`** (terminal
+  → dead → senders fail closed → republish at a fresh `lineage`; loss-of-control only, never routine
+  rotation). The two attacks — a `Gnt`-swap (confidentiality) vs a `Trm`-rescind (availability), **both
+  T2** — and the send/receive (ESSR) live in **vdti-area-exchange**.
 
 ### 1g. The three axes — never conflate them (count ⊥ tier)
 
@@ -311,7 +319,7 @@ SEL needs its **own** witnessed state.
   re-anchor-at-an-already-attributed-serial-is-inert rule may survive as defense-in-depth (§4), but no longer
   bears fork-prevention. **This ripples to** inv 4 (the anchor-monotonicity paragraph), inv 13 (the
   cross-layer theorem), area-iel §1 (anchor-monotonicity), federation-witnessing §1e/§1g/§4 (the "SEL rides
-  the theorem" + "never witnessed" claims), and multi-party §3 (version-SEL linearity + "dies by cross-layer
+  the theorem" + "never witnessed" claims), and shared-documents §3 (version-SEL linearity + "dies by cross-layer
   deadness-descends") — targeted edits LANDED 2026-07-12 (§5).
 - **"Content fork resolves cross-layer only" / "`{Trm, Ixn}` wins on tier-rank cross-layer" / the
   cross-layer anchor rules ("Cross-layer deadness-descends", anchor-monotonicity as the total-order).** →
@@ -366,7 +374,7 @@ SEL needs its **own** witnessed state.
   restatement), inv 13 (cross-layer theorem → severance + witnessed-SEL divergence), inv 16 (the "no receipt
   carries a lookup-SEL prefix" clause superseded), **area-iel §1** (the `Evl` row + anchor-monotonicity),
   **federation-witnessing §1e/§1g/§4** (the SEL now witnessed; §1g Decision 1 revised; receipt scope expands;
-  the exfiltration residual), **multi-party §3** (version-SEL linearity via witnessing; "dies by severance").
+  the exfiltration residual), **shared-documents §3** (version-SEL linearity via witnessing; "dies by severance").
 - **`iel/reconciliation.md`** lines 352-354 + the 433-440 forward-ref block carry the retired SEL theorem —
   update at the design-doc encode.
 - **Separate change — the `deadness descends → ascends` doctrine-wide sweep** (KEL / IEL / federation /

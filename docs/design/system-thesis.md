@@ -271,6 +271,17 @@ Every chain-validity invariant lives in the verifier walk or completion. Trust o
 services, not databases, not peers. Submit-handler-only rules are a code smell — if an invariant
 matters, the verifier enforces it.
 
+### Uniform data — a program can operate it natively
+
+Every artifact is a **kinded SAD**: one self-describing shape
+(`kind = vdti/<concept>/v1/<category>/<thing>`, a discoverable taxonomy), addressed and verified by
+pure functions — `derive(owner, topic, data)`, SAID = content hash, validity = a deterministic walk
+— over data from any source, with no service to trust. A consumer learns **one** model and can
+generate, address, and verify the entire surface locally, without an SDK or a stream codec, and
+check its own work. This falls out of the uniform, deterministic, data-local design rather than
+being added for it — so a program acting on a user's behalf is a first-class operator, not an
+integration afterthought.
+
 ### Greenfield — no migration path
 
 VDTI ships once. There is no rollback for a wrong design decision; protocol semantics propagate to

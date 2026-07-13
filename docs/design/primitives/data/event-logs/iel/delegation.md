@@ -27,7 +27,7 @@ honoured event** on the delegate's chain (the grandfather boundary), rides **pub
 _(A delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
 `bound` **is** participant-identifying and instead rides a gated SAD anchored by its `Trm` (via
 `anchors[]`) — see
-[`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).)_
+[`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md).)_
 
 The check reads the derived lookup-SEL **first** (O(1) content-addressed, **present → rescinded**);
 on a miss it is **fail-secure by default** — walk the delegator's fresh IEL and forward-match the

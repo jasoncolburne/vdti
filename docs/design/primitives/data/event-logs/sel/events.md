@@ -113,8 +113,8 @@ committing the gated grant-doc SAD (the `grant` role). It is anchored by an IEL 
 (kind-strict — an `Ath` anchors **only** `Gnt`s) and is the **additive twin of `Trm`**: sealed on
 arrival, seal-advancing, **non-buriable**, walked back only by a rescission (a `Trm` under an IEL
 `Dth`) or by reincept, never overturned. What a membership grant _means_ — the version DAG, validity
-periods, the read policy — is the multi-party-documents feature
-([`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md),
+periods, the read policy — is the shared-documents feature
+([`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
 forthcoming); this primitive states only the grant-and-rescind **structure**.
 
 ### `Trm` — the SEL kill (tier 2)
@@ -273,7 +273,7 @@ meaning.
   [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — where a credential's revocation /
   a rescission is interpreted (the feature layer; the SEL states only the kill structure).
-- [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md) —
-  the doc-membership grant a `Gnt` opens and the gated rescission `bound` (forthcoming).
+- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
+  — the doc-membership grant a `Gnt` opens and the gated rescission `bound` (forthcoming).
 - [`../../../../features/credentials/`](../../../../features/credentials/) — the credential feature
   (forthcoming): a credential is a direct-anchored SAD, not a SEL.

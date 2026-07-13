@@ -28,6 +28,12 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    event; the allowlist closes *author*-mislabel of the **directly-consumed** roles, which would otherwise let an
    `Ixn` carry `roster`/`delegates` and govern/grant at `t_use`, reopening **S1**. Killing at `t_use` is closed
    separately by the **back-check** (a SEL `Trm` demands an IEL `Rev` or `Dth`), not the allowlist.)
+
+   **The `kind` string (Jason 2026-07-12):** a `/`-delimited namespaced discriminator
+   `vdti/<concept>/v1/<category>/<thing>`, **capped ≤ 64 chars** (a DoS bound — the verifier rejects a
+   longer `kind`). **Grant-values** — what a `Gnt`'s `manifest.grant` names — are kinded under
+   **`vdti/sel/v1/grants/*`**, feature-first so grants sort by feature (`exchange-ml-kem-1024`,
+   `shared-document-governance`; area-sel §1b). `[locked]`
    **The principle (Jason, 2026-06-21):**
    - **Top-level structural = the event's *own* links:** `said`, `previous`, **`previousSeal`** (seal-advancing
      events only — the back-link to the prior seal that renders the spine; inv 17), **`pin`** (a SEL's down-pin to
@@ -135,7 +141,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      **Kill-semantics → kill-anchor kind (the total rule, S5/D):** a `Trm` is anchored by **`Dth`** (`t_authorize`)
      **iff** it is an **authorization-rescission** — a lookup-SEL that closes a granted authorization: a
      **delegation**-rescission or a **doc-membership** rescission — and by **`Rev`** (`t_govern`) **otherwise**. So a
-     **cred revocation** and a multi-party-doc-leg (a version-SEL closure) `Trm` are `Rev`-sealed; the rescission
+     **cred revocation** and a shared-doc-leg (a version-SEL closure) `Trm` are `Rev`-sealed; the rescission
      lookup-SELs are `Dth`-sealed; and an **arbitrary app-topic** SEL's `Trm` defaults to `Rev` (never the cheaper
      `Dth` when `t_authorize < t_govern`). *(The revocation/rescission lookup-SELs use **distinct topics per kind** —
      `CRED_REVOCATION_TOPIC` (Rev) / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC` (Dth), **never a shared `KILL_TOPIC`** —
@@ -630,7 +636,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       which carries the pin the `Icp` can't (`pin == anchoring IEL Ixn.previous`). Now that **every event pins**, that
       floor is **any event** — a content `Ixn`, a `Trm`, etc. — so a bare **`Pin` is the fallback floor, used only
       when inception carries no other first event** (an *incept-and-sit* SEL — e.g. a cred issued with no immediate
-      content or kill must still floor at issuance, its as-of can't be deferred). A multi-party-doc author is also
+      content or kill must still floor at issuance, its as-of can't be deferred). A shared-doc author is also
       incept-and-sit (`{Icp, Pin}` — endorse before editing). Where the inception **does** carry a first event, that
       event floors instead — `{Icp, Trm}` (a rescission, born-to-kill) needs **no** separate `Pin` (generalized
       2026-06-27 from the former 'serial-1 `Pin`, uniformly'). **The IEL anchors this serial-1 event** (the *v1*) —
@@ -674,7 +680,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       **rescission** is the same kill shape on a lookup-SEL — a lookup-SEL **`Trm`** anchored by a `Dth`
       (whose `kills[]` carries the `bound` — **delegate**, public; a **doc-member** rescission's participant-identifying
       `bound` instead rides a **gated rescind-doc committed by the `Trm`**, `kills[]` carrying only the blind target —
-      R3, multi-party §1; the **cred/delegate** `Trm` carries only its pin — 2026-07-09). The kill-anchors are **distinct from `Evl`** (roster/threshold-change only, always
+      R3, shared-documents §1; the **cred/delegate** `Trm` carries only its pin — 2026-07-09). The kill-anchors are **distinct from `Evl`** (roster/threshold-change only, always
       `t_govern`): they carry no roster delta, so a roster change can never ride at a kill's count (**S1**
       closed), and a `Rev`/`Dth` **forces a `Rot`** (each authorizing member — a T2/permanent act needs a ≥T2 KEL anchor;
     **R3-2's "signatures only" is corrected, A** — the `Evl`-vs-kill-anchor distinction is the roster delta, not the
@@ -742,7 +748,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     `readPolicy`, current-mode, independent of write attribution. **Encode:** `custody.md` (§The sub-fields, the new
     §SEL-anchor doctrine, §Two evaluation modes, §Four combinations, §Adversarial framing), the wrapper shape in
     `sad.md` / `availability.md`, landed `pin`/`ownerPin` refs (incl. `said.md`, `glossary.md`), and the `custody`
-    refs in `vdti-area-multi-party-documents.md`. *Src:* Jason 2026-07-03. `[locked]`
+    refs in `vdti-area-shared-documents.md`. *Src:* Jason 2026-07-03. `[locked]`
     *Consequence (the private-cred boundary, F2 — B1 fail-secure rework 2026-07-09, CLOSED):* a credential is a
     **direct-anchored SAD** (no cred-SEL). **`cred.said` appears NOWHERE raw on the public IEL** — every public value
     is a hash of it: the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, the kill target

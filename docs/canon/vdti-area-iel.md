@@ -263,7 +263,7 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   `t_delegate → t_authorize` count rename + the kill-anchor split (`Rev` = `t_govern`, `Dth` = `t_authorize`;
   count implied by kind, the `threshold` slot field retired). New anchoring pair **`Ath ↔ Gnt`** (passthrough,
   beside `` `Rev`/`Dth` ↔ `Trm` ``). Rationale +
-  the T2-non-archivable consequence: area-multi-party §7; the SEL `Gnt` row: area-sel.
+  the T2-non-archivable consequence: area-shared-documents §7; the SEL `Gnt` row: area-sel.
 - **Eviction is an `Evl`-with-`cut` (first-seen, 2026-07-08) → land in the `iel/` doctrine + the
   role-allowlist:** evicting a compromised / divergence-causing member is an **ordinary `Evl` carrying a roster
   `cut`** (there is **no** `Rpr` repair-and-evict fold — there is no `Rpr`). One sealing event buries the fork

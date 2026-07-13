@@ -264,7 +264,7 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
 - [`../../../../features/credentials/`](../../../../features/credentials/) — the credential feature
   (forthcoming): a credential is a direct-anchored SAD, not a SEL; it consumes the lookup-SEL
   structure for revocation.
-- [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md) —
-  the doc-membership grant a `Gnt` opens (forthcoming).
+- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
+  — the doc-membership grant a `Gnt` opens (forthcoming).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing (forthcoming): the witnessing floor the content-fork-prevention theorem cites.

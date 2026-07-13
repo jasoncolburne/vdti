@@ -226,7 +226,7 @@ content-addressed lookup SEL** (not content on a shared registry, not a cred-SEL
     the definition of revoked — nothing to miss). This **rides inv 8's freshness gate**: hiding a revocation needs a
     **stale** IEL, which the verifier already refuses when trusting the issuer at all — so revocation is fail-secure,
     not best-effort. Bounded (streams the subject-in-scope, O(range) time, no lossy cap); self-contained (a cred has
-    **no bound** to fetch — a doc-member rescission's gated bound is fetched instead, R3 / multi-party §1).
+    **no bound** to fetch — a doc-member rescission's gated bound is fetched instead, R3 / shared-documents §1).
   - **Fail-open lookup (opt-out):** recompute the `target`, fetch its `{Icp, Trm}` lookup SEL (content-addressed,
     O(1)) — **found → revoked; not-found → best-effort not-revoked** (a withheld object reads not-found;
     `Trm`-existence is a conservative proxy for the authoritative `kills[]`-membership — equal only for a canonical

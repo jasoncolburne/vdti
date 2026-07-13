@@ -184,7 +184,7 @@ walked back forward by a `Dth`, never buried or overturned. An `Ath` whose `dele
 delegator's own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)` (the
 policy layer's delegation leaf — [`policy.md`](../../../policy/policy.md)). The document-layer grant
 mechanics live in
-[`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md)
+[`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
 _(forthcoming)_.
 
 ### `Rev` / `Dth` — the kill-anchors (tier 2)
@@ -225,7 +225,7 @@ revocation / rescission **declaration** the fail-secure walk consumes:
   in the `kills[]` entry (un-withholdable on the witnessed IEL). A **doc-member**'s `bound` **is**
   participant-identifying, so `kills[]` carries only the blind `target` and the `bound` rides a
   **gated SAD anchored by its `Trm`** (via `anchors[]`) — see [`delegation.md`](delegation.md) and
-  [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).
+  [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md).
 
 The check reads the derived lookup-SEL **first** (an O(1) content-addressed read, **present →
 killed**); on a miss it is **fail-secure by default** — compute the `target` and walk the owner's
@@ -479,7 +479,7 @@ cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — where a credential's issuance /
   revocation targets are interpreted (the feature layer; the IEL states only the kill-anchor
   structure).
-- [`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md) —
-  the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
+- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
+  — the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing and the federation `Wit` governance mechanics (forthcoming).

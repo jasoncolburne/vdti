@@ -364,8 +364,8 @@ own; its sealing kinds (`Gnt` / `Trm`) cap its **local divergence window** and c
 like any spine, while a content fork on a plain SEL resolves cross-layer (the owner IEL's burying
 seal drops the loser, and the dead line descends across the anchor edge). Credential issuance,
 revocation, and status are a **feature** layered on the SEL primitive —
-[`features/credentials/`](../../../features/credentials/); multi-party co-authored documents are
-another — [`features/multi-party/documents.md`](../../../features/multi-party/documents.md) _(both
+[`features/credentials/`](../../../features/credentials/); shared documents are another —
+[`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md) _(both
 forthcoming)_.
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two

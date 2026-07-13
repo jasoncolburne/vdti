@@ -132,8 +132,8 @@ These are referenced above as forward-references and are still forthcoming:
 - `federation/` — federation bootstrap and witnessing;
   [`federation/bootstrap.md`](federation/bootstrap.md) is a diagram stub carrying its diagrams ahead
   of the prose.
-- `features/` — credentials and multi-party documents;
-  [`features/multi-party/documents.md`](features/multi-party/documents.md) is a diagram stub
-  carrying its diagrams ahead of the prose.
+- `features/` — credentials and shared documents;
+  [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
+  stub carrying its diagrams ahead of the prose.
 - `operations/` — operator workflows (recovery ceremony, sealing serialization).
 - `infrastructure/` — the storage service.
