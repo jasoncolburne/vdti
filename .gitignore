@@ -28,6 +28,7 @@ Thumbs.db
 # Claude / agent
 .claude/scheduled_tasks.lock
 .working/
+working.tar.xz
 
 # Scripts
 __pycache__/

@@ -250,7 +250,7 @@ self-binding. Both are rejected `Invalid`.
 
 When the routing path admits a sealing event (typically an `Evl`) extending a fork's **winning
 branch tip**, the merge layer advances the seal past the loser — no discriminator, no losing-branch
-commitment, no content-only guard walk. The mechanics are pure position + descent:
+commitment, no content-only guard walk. The mechanics are pure position + ascent:
 
 1. **Verify the burying event.** It is an ordinary sealed extension of its `previous` (the winning
    branch tip). Re-check SAID, prefix, chain linkage, the threshold of anchoring KEL participations
@@ -258,13 +258,13 @@ commitment, no content-only guard walk. The mechanics are pure position + descen
    tampered DB rows).
 2. **Advance the seal.** The event advances `last_seal_advancing_event` to its own serial. Every
    competing branch whose first event now sits below the advanced seal is inert.
-3. **Kill by descent.** Mark every below-seal loser dead — non-canonical forever, its growth dead by
-   descent (an event whose parent is dead is dead). Move it into non-canonical retained storage;
-   then land the winning-branch new events.
+3. **Kill on ascent.** Mark every below-seal loser dead — non-canonical forever, its growth dead on
+   ascent (an event whose parent is dead is dead). Move it into non-canonical retained storage; then
+   land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries a **witnessed (accepted)** sealed
    event, the burial is rejected — the fork is `Disputed` (≥ 2 accepted sealed), and the burying
    event is itself retained as a competing sealed branch and counted; a sealed straggler that isn't
-   accepted — witness-declined, below-seal, or **dead by descent** (its fork-sibling is buried by
+   accepted — witness-declined, below-seal, or **dead on ascent** (its fork-sibling is buried by
    this very seal, so its own later seal lands on the buried chain) — is **dropped**, not counted,
    and does not block the burial. Sealed branches are always retained, so an unnamed sealed sibling
    is caught, never sealed past.
@@ -335,7 +335,7 @@ lock.
 
 When verifying a burying-`Evl` batch, the verifier seeds from the burying event's `previous` (the
 winning branch tip, or `v_{d-1}` in the ancestor-extending shape) and walks only that branch plus
-the batch's new events. The competing branches are buried by position + descent; the seal advances
+the batch's new events. The competing branches are buried by position + ascent; the seal advances
 only after verification succeeds. This honors the no-extend-adversary rule: the walker's running
 state never carries a competing branch across the recovery boundary — after recovery the chain has a
 single linear walkback and the verifier's resume state is consistent with the post-recovery shape.

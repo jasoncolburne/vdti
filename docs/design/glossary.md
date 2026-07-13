@@ -20,8 +20,8 @@ canonical** wherever they differ.
 - **IEL** — Identity Event Log: one identity as a threshold over its member KELs; carries the roster
   and threshold vector.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
-- **SEL** — SAD Event Log: one owner's single-owner data log, rooted in an owning IEL.
-  ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
+- **SEL** — SAD Event Log: one owner's single-owner data log — its **own witnessed chain**, rooted
+  in (and anchored to) an owning IEL. ([`sel/log.md`](primitives/data/event-logs/sel/log.md))
 - **credential (cred)** — a bounded, revocable claim one identity issues to another; a
   **direct-anchored SAD** (the issuer anchors its issuance commitment on its own IEL), revoked by a
   `kills[]` declaration. ([`documents.md`](primitives/policy/documents.md))
@@ -46,20 +46,21 @@ canonical** wherever they differ.
 The full set across KEL / IEL / SEL. A kind's precise role varies per log — the taxonomy tables are
 authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
 
-| Kind  | Meaning                                                                                                                                                                                                                      |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker. Roots the spine; advances no seal.                                                                            |
-| `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root). Roots the spine; advances no seal.                                                                                            |
-| `Ixn` | Interaction — content; anchors higher-layer SAIDs. The divergeable content kind — Tier 1, buriable (first-seen; on the SEL the floor `Pin` is tier-1 too).                                                                   |
-| `Rot` | Rotation (KEL) — reveals the next signing key, commits the next reserve; signed with the reserve. Tier 2, seal-advancing.                                                                                                    |
-| `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). It **is** the rotation. Tier 2, seal-advancing.                                                         |
-| `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta; a `cut` `Evl` also evicts. Tier 2, `t_govern`, seal-advancing.                                                                                               |
-| `Ath` | Authorize (IEL) — the "authorize a party to act" anchor. Carries `delegates` (a positive inclusion list of delegate prefixes) and/or `anchors` (the SEL `Gnt` grant it seals). Tier 2, `t_authorize`, seal-advancing.        |
-| `Gnt` | Grant (SEL) — a doc-membership grant; opens editor / commenter validity periods. The additive twin of the SEL `Trm` rescission; anchored by an IEL `Ath`. Tier 2, seal-advancing.                                            |
-| `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; carries a `kills[]` declaration and seals a SEL `Trm` that revokes a credential. Tier 2, `t_govern`, seal-advancing.                                        |
-| `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; carries a `kills[]` declaration and seals a SEL `Trm` that rescinds a delegation or doc-membership grant. Tier 2, `t_authorize`, seal-advancing. |
-| `Pin` | Pin (SEL) — the floor re-pin to the owner IEL's current tip; carries a SEL's serial-1 issuance floor. Tier 1.                                                                                                                |
-| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, `t_govern`, seal-advancing (terminal).                                                                                   |
+| Kind  | Meaning                                                                                                                                                                                                                                                                                                                                                              |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker. Roots the spine; advances no seal.                                                                                                                                                                                                                    |
+| `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root). Roots the spine; advances no seal.                                                                                                                                                                                                                                    |
+| `Ixn` | Interaction — content; anchors higher-layer SAIDs. The divergeable content kind — Tier 1, buriable (first-seen; on the SEL the `Pin` re-pin is tier-1 too). A SEL `Ixn` **always** carries payload (required) — a pure re-pin is a `Pin`.                                                                                                                            |
+| `Rot` | Rotation (KEL) — reveals the next signing key, commits the next reserve; signed with the reserve. Tier 2, seal-advancing.                                                                                                                                                                                                                                            |
+| `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). It **is** the rotation. Tier 2, seal-advancing.                                                                                                                                                                                                 |
+| `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta; a `cut` `Evl` also evicts. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                                       |
+| `Ath` | Authorize (IEL) — the "authorize a party to act" anchor. Carries `delegates` (a positive inclusion list of delegate prefixes) and/or `anchors` (the SEL `Gnt` grant it seals). Tier 2, `t_authorize`, seal-advancing.                                                                                                                                                |
+| `Gnt` | Grant (SEL) — seals a **typed value**: `manifest.grant` names a grant-value SAD kinded under `vdti/sel/v1/grants/*`. A value-bearing lookup is established `{Icp, Gnt}` at T2 (the doc-membership grant and the exchange receive-key are instances). The additive twin of the SEL `Trm` rescission; anchored by an IEL `Ath`. Tier 2, `t_authorize`, seal-advancing. |
+| `Sea` | Re-seal (SEL) — the **neutral** burying seal-advancer: advances the seal past a content fork without granting or terminating; anchored by an IEL `Evl` (`Sea ← Evl`). Tier 2, `t_govern`, seal-advancing.                                                                                                                                                            |
+| `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; carries a `kills[]` declaration and seals a SEL `Trm` that revokes a credential. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                |
+| `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; carries a `kills[]` declaration and seals a SEL `Trm` that rescinds a delegation or doc-membership grant. Tier 2, `t_authorize`, seal-advancing.                                                                                                                                         |
+| `Pin` | Pin (SEL) — the **pin-only re-pin** to the owner IEL's current tip at **any serial** (carries no manifest); its serial-1 instance is the issuance floor. A pure re-pin is always a `Pin`, never a payload-less `Ixn`. Tier 1.                                                                                                                                        |
+| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, seal-advancing (terminal); `t_govern` (identity-kill / SEL revoke) or `t_authorize` (SEL rescind).                                                                                                                                                               |
 
 ### Chain structure
 
@@ -70,9 +71,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   forward. ([`protocol-doctrine.md`](protocol-doctrine.md#forks-are-seal-bounded))
 - **sealing event** — the same object in its **act** sense: a tier-2 event that _seals the chain_
   (advances the seal) as it lands — on the KEL `Rot` / `Wit` / `Trm`, on the IEL `Evl` / `Ath` /
-  `Rev` / `Dth` / `Wit` / `Trm`, on the SEL `Gnt` / `Trm` — a synonym of **seal-advancing event**.
-  "**Sealed**" names the resulting state (a sealed branch, the sealed spine); "**sealing**" names
-  the act (a sealing event advances the seal).
+  `Rev` / `Dth` / `Wit` / `Trm`, on the SEL `Gnt` / `Trm` / `Sea` — a synonym of **seal-advancing
+  event**. "**Sealed**" names the resulting state (a sealed branch, the sealed spine); "**sealing**"
+  names the act (a sealing event advances the seal).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#divergence-is-scoped-to-content))
 - **spine** — the `previousSeal`-linked chain of seal-advancing events; a sealed divergence is a
   single visible spine fork.
@@ -94,7 +95,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **branch / competing branch / retained / losing branch** — the shapes of a divergence: the kept
   chain versus the buried ones. **"Retain" has two senses, disambiguated by context:** an entity
   **retains** the branch it keeps **canonical** (the recovery rule), while a buried loser is
-  **retained** as non-canonical **evidence** (buried by position + descent below a burying seal).
+  **retained** as non-canonical **evidence** (buried by position + ascent below a burying seal).
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **threshold vector** — an IEL's `{t_use, t_govern, t_authorize}` — the **count** an act of each
   kind requires (orthogonal to tier).
@@ -108,6 +109,25 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   serial-1 issuance floor). A **floor** in this sense is a position bound — distinct from the
   authorization / witnessing floors, which are threshold counts.
   ([`protocol-doctrine.md`](protocol-doctrine.md#pin-everything-to-current-floored-per-chain))
+- **content (the SEL discriminator)** — `content: true` on a **content** SEL's `Icp` (its v1 an
+  `Ixn` / `Pin`), **omitted** on a lookup (never present-and-false — a lookup omits the field
+  entirely). Verifier-enforced against the v1's tier (the biconditional `content: true` ⟺ v1-T1),
+  and it rides the whole-content prefix — so content and lookups derive to **distinct addresses**
+  and a content squat at a lookup address is impossible by construction.
+  ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
+- **lineage** — a value lookup-SEL's **re-establishment counter** (`Icp` only), carried **only** by
+  a **re-establishable value** lookup (base `lineage: 0`, then `1, 2, …`, each a distinct prefix). A
+  deterministic-prefix SEL can't reroll a nonce to re-incept, so a rescinded value re-incepts at the
+  next `lineage`. It is found by the **positive walk** — walk `lineage: 0, 1, …`, advance past a
+  dead lineage — a `Trm` on that lineage's chain, `Disputed`, severed, **or** its **lineaged**
+  `kills[]` target — and stop at the lowest live one (a `Trm` advances: it kills one lineage, not
+  the address); cap `MAXIMUM_SEL_LINEAGE = 64`. A value rescission is a monotone `Trm` whose `Dth`
+  declares the lineaged target `hash('…:{lineage}')`, so the positive walk **consumes** the
+  per-lineage negative check. A **monotone** lookup (a cred revocation, a delegate / doc-member
+  rescission, or a non-re-establishable value) carries no `lineage` field and a **non-lineaged**
+  target, and **content** never carries `lineage` either (content uses `content: true`).
+  Load-bearing for value-bearing lookups (a KEM key whose positive resolution has no owner-IEL
+  fallback). ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
@@ -190,7 +210,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   spine but advances no seal). Never buried or overturned.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **divergence and recovery** — divergence is permanent and visible; recovery is a burying
-  seal-advancer that buries the losing branch by position + descent, scoped to tier-1 content.
+  seal-advancer that buries the losing branch by position + ascent, scoped to tier-1 content.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **the seal is the trust boundary** — everything at-or-below the last seal is final; a divergence
   above it grounds new trust only once cleanly sealed past.
@@ -212,11 +232,16 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **keep-all-data / data-local detection** — nodes retain competing branches as evidence, so any
   verifier detects a fork or dispute from the data alone.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
-- **burial by position / deadness-descends** — a losing branch is dead from its first-seen loss (or
-  below a burying seal); its whole subtree is **dead by descent**, so later growth needs no
-  follow-up — and a seal forged on a dead lineage is dead too (**you can't seal a buried chain**),
-  which collapses every dispute to a same-position seal fork.
+- **burial by position / deadness-ascends** — a losing branch is dead from its first-seen loss (or
+  below a burying seal); its whole subtree is **dead on ascent**, so later growth needs no follow-up
+  — and a seal forged on a dead lineage is dead too (**you can't seal a buried chain**), which
+  collapses every dispute to a same-position seal fork.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+- **severance / truncation** — when an owner IEL buries a branch a SEL is anchored to, the SEL is
+  **severed** at the earliest dead anchor: the post-sever portion can't be tied to a live anchor
+  lineage, so it is un-verifiable — a **truncation** (the SEL shrinks to its last live-anchored
+  event), not a fifth chain state, and there is no repair.
+  ([`sel/log.md`](primitives/data/event-logs/sel/log.md#severance--a-dead-owner-iel-anchor-truncates-the-sel))
 - **kind-strict anchor matrix** — each higher-layer kind is anchored by exactly the lower kind that
   reveals the matching capability; no higher-tier stand-in.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
@@ -233,8 +258,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is a positive
   lookup, never a scan-for-absence. A check reads the derived lookup-SEL first (O(1), present →
   killed); on a **miss** it is **fail-secure by default** — confirm by forward-matching X's derived
-  `target` in the `kills[]` on the owner's fresh witnessed IEL — with **fail-open** (trust the miss)
-  as the opt-out, never up.
+  `target` (which **mirrors the killed address** — non-lineaged for a monotone kill, lineaged
+  `…:{lineage}` for a value rescission, `:content` for a content app-SEL closure) in the `kills[]`
+  on the owner's fresh witnessed IEL — with **fail-open** (trust the miss) as the opt-out, never up.
   ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **as-of authority / pin-everything-to-current** — authority is judged by the append-only anchoring
   position, never a self-asserted pin; every event pins its dependencies' current tips.

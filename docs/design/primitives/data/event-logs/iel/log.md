@@ -86,7 +86,7 @@ branches past the fork. The IEL is a mixed chain, so the count discriminates con
 directly:
 
 - **Content (`Ixn`) is buriable.** A content conflict is **recoverable**: the next sealing event on
-  the surviving branch buries the loser below the new seal and by descent. Two competing content
+  the surviving branch buries the loser below the new seal, dead on ascent. Two competing content
   branches carry no sealed branch at all — the content count is irrelevant.
 - **Sealed is record-both (detected, never buried).** A threshold chain cannot be forked by one
   stolen key (**except a singleton / `t_use = 1` roster, where one member acts alone**), so a
@@ -317,7 +317,7 @@ is canonical in
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — tiers and kind-strict
   anchoring, divergence and recovery, forks-are-seal-bounded and the spine, federation convergence,
   the layering principle.
-- [`../sel/`](../sel/) — SEL primitive (forthcoming). IEL events anchor SEL events and credentials.
+- [`../sel/`](../sel/) — SEL primitive. IEL events anchor SEL events and credentials.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing (forthcoming): the beacon, the witnessing floor, the clock, witness selection,
   acceptance gating.

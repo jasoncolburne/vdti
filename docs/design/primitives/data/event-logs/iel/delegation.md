@@ -5,10 +5,13 @@ Delegation is an IEL-layer concern, resting on the IEL `Ath` / `Dth` kinds
 negative-check-as-lookup rule
 ([`../../../../protocol-doctrine.md` §Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 This doc states the **single-hop** grant-and-rescission primitive. A multi-hop `del(X, N)` is this
-primitive applied per hop: the verifier's bounded delegation walk and the `kills[]` forward-match
-are [`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk),
-and the document-authorization use — the per-hop grandfather, the committed authorizing path, and
-the bound-choice usage doctrine — is
+primitive applied per hop, forming a **delegation hierarchy** (a delegator delegates to
+sub-delegators on down) — how authority scales and key management distributes without `X`
+authorizing every actor directly: the verifier's bounded delegation walk and the `kills[]`
+forward-match are
+[`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk), and
+the document-authorization use — the per-hop grandfather, the committed authorizing path, and the
+bound-choice usage doctrine — is
 [`../../../policy/documents.md` §Delegation in a document](../../../policy/documents.md#delegation-in-a-document).
 
 ## Delegate, then rescind
@@ -23,11 +26,12 @@ grant-instance `said({ grant: said(Ath), delegate })`, so a re-grant gets a fres
 verifier forward-matches, and **distinct from the lookup SEL's derived prefix** (a separate `derive`
 pass), so the public `kills[]` never leaks the lookup object's address — and `bound`, the **last
 honoured event** on the delegate's chain (the grandfather boundary), rides **publicly in the
-`kills[]` entry**, un-withholdable on the witnessed IEL. The lookup `Trm` carries **only its pin**.
-_(A delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
-`bound` **is** participant-identifying and instead rides a gated SAD anchored by its `Trm` (via
-`anchors[]`) — see
-[`../../../../features/multi-party/documents.md`](../../../../features/multi-party/documents.md).)_
+`kills[].bound` field**, un-withholdable on the witnessed IEL. The lookup `Trm` carries **only its
+pin**. (Answering multi-hop liveness — the **bounded per-candidate walk** — is
+[`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk).) _(A
+delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
+`bound` **is** participant-identifying and instead rides the SEL `Trm`'s gated `bound` role — see
+[`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md).)_
 
 The check reads the derived lookup-SEL **first** (O(1) content-addressed, **present → rescinded**);
 on a miss it is **fail-secure by default** — walk the delegator's fresh IEL and forward-match the

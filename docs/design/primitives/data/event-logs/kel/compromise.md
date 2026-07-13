@@ -4,7 +4,7 @@ This doc states the KEL's compromise doctrine: what tiered key-compromise scenar
 defends against, why the rotation reserve is a real cryptographic boundary (and what it does **not**
 defend), the durable guarantee that survives any divergence, and how the layers above KEL close what
 the KEL alone cannot. Recovery is not a special action — it is a plain rotation that buries — so its
-mechanics (burial by position + descent, the two attach shapes) live with the merge layer, and
+mechanics (burial by position + ascent, the two attach shapes) live with the merge layer, and
 cross-node races with the correctness proof; this doc is the **why**, not the how.
 
 **In short.** A KEL holds one identity's signing keys, and there are two things an attacker can
@@ -56,13 +56,13 @@ single rotation does two things at once:
 - **It locks the thief out.** The rotation reveals the next reserve as the new signing key; the
   thief lacks it, so they can mint no new content on the recovered chain.
 - **It buries their run.** Everything below the rotation that isn't on the surviving line is dead,
-  and anything grown from a dead point is dead too (**deadness descends** — an event whose parent is
+  and anything grown from a dead point is dead too (**deadness ascends** — an event whose parent is
   dead is dead). You go for the **root**, not their tip, so however long a run the thief piled on,
   it all hangs off that one point and dies at once.
 
 **Burial is any seal-advancer's doing, not a `Rot`'s alone.** Any seal-advancer — a `Rot`, a `Wit`,
 or a `Trm` (which buries then terminates) — advances the seal, and everything the new seal passes
-drops by position + descent. So a fork can resolve **incidentally**: a standard `Wit` (a federation
+drops by position + ascent. So a fork can resolve **incidentally**: a standard `Wit` (a federation
 rebind) you were committing anyway lands past a content loser and buries it — you never set out to
 recover, the seal-advance just did it. What is `Rot`-specific is the **deliberate** act: when you
 set out to _resolve_ a fork, you author a **`Rot`**, for two reasons — a `Rot` is **always
@@ -94,7 +94,7 @@ commitment, regardless of what other key material they hold. But that boundary d
 
 - **A tier-1 (signing-key) compromise is fully recoverable.** The adversary can land `Ixn` content;
   a recovery `Rot` at the root buries the whole tail (all content) → every event anchored to that
-  tail dead by descent, no reincept.
+  tail dead on ascent, no reincept.
 - **A tier-2 (reserve) theft is the point of no return.** When an adversary holds the reserve and
   lands `Rot_adversary` at `v_N`, the chain is **the attacker's** — there is **no in-band
   recourse**; the legitimate party **reincepts** (for a delegated KEL, the delegator `Dth`s it
@@ -263,18 +263,21 @@ closed by the layers composed above KEL:
 - **Federation witnessing.** A selected witness signs the **first** sealed sibling per position and
   declines later ones (first-seen). A **reserve-tier fork** is a competing rotation seal at **one
   position** — the reserve reveal, `{Rot, Rot}`. Without witness collusion only **one** rotation
-  reaches threshold; the losing branch, and every seal built on it, is **dead by descent** — you
+  reaches threshold; the losing branch, and every seal built on it, is **dead on ascent** — you
   cannot seal a buried chain, and honest witnesses decline the dead branch's descendants. Two
   rotation seals **both** witnessed at that position are **not** producible by honest witnesses; a
-  second reaches threshold only if `2·threshold − signers` selected witnesses collude — a **provable
-  double-sign at the fork**. So a `disputed` reading requires that same-position collusion;
-  reserve-tier compromise **without** it resolves to a single canonical branch (the first-seen
-  winner) with the other **inert** — a takeover if the adversary won the race, a failed fork if the
-  owner did, and either way the owner detects loss-of-control and reincepts, never a network-visible
-  dispute. (The `{Rot, Rot}` reserve double-reveal is a separate, author-side proof of the theft,
-  visible to any node holding both siblings.) A competing **content** sibling, by contrast, is
-  declined after the first seen at a position — under the witnessing floor a content fork on a
-  witnessed chain is prevented, not merely detected; federation doctrine.
+  second reaches threshold only if enough selected witnesses collude: a full **`threshold`** with no
+  partition (the rival's receipts are then all colluders), sliding to **`2·threshold − signers`** as
+  an attacker partitions the `signers − threshold` redundancy onto the rival (feeds it first-seen) —
+  **`threshold − k`** for `k` partitioned witnesses. Either way it is a **provable double-sign at
+  the fork**. So a `disputed` reading requires that same-position collusion; reserve-tier compromise
+  **without** it resolves to a single canonical branch (the first-seen winner) with the other
+  **inert** — a takeover if the adversary won the race, a failed fork if the owner did, and either
+  way the owner detects loss-of-control and reincepts, never a network-visible dispute. (The
+  `{Rot, Rot}` reserve double-reveal is a separate, author-side proof of the theft, visible to any
+  node holding both siblings.) A competing **content** sibling, by contrast, is declined after the
+  first seen at a position — under the witnessing floor a content fork on a witnessed chain is
+  prevented, not merely detected; federation doctrine.
 
 The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**

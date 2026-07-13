@@ -1,4 +1,4 @@
-# vdti — area note: Multi-party documents (collaborative, evolving, membership-governed)
+# vdti — area note: Shared documents (collaborative, evolving, membership-governed)
 
 **Status: SECOND CUT — crystallized with Jason 2026-07-03; dual-pass returned 2026-07-04 (warm HOLD-4 /
 cold HOLD-with-findings — no BLOCKERs, the model verifies) and the findings are FOLDED here.** A **feature** over the SAD + SEL primitives: a
@@ -8,11 +8,11 @@ first cut** (immutable `authors[]` + a per-author V0-content leg + folds + ancho
 all retired); the review-hardened insights (claimed-vs-consent crediting, the size caps, the
 residuals, the T1/T2 posture) **carry, re-homed**. The three prior review rounds reviewed the _first
 cut_ — **this cut's fresh dual-pass is folded (2026-07-04).** Lands at
-`docs/design/features/multi-party/documents.md`.
+`docs/design/features/shared-documents/documents.md`.
 **Invariants:** [inv 4] manifest roles / the `Rev`/`Dth` manifest total rule / anchor-monotonicity,
 [inv 5] as-of = the anchoring position, [inv 8] the multi-source freshness bar (loss-of-trust reads),
 [inv 10] negative-check-as-lookup, [inv 12] IEL self-pricing (grant tier), [inv 13] rescission `bound`
-/ grandfather boundary / deadness-descends, [inv 15] inception + attribution, [inv 16] addressing by
+/ grandfather boundary / deadness-ascends, [inv 15] inception + attribution, [inv 16] addressing by
 prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer precedent:
 `document-policy §F` (the to-tip freshness step is mandatory for any trust-granting acceptance).
 
@@ -29,7 +29,7 @@ prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer
 
 ## The model in one paragraph
 
-A multi-party document is **a DAG of _attributed_ SADs (versions), authored by **editors** whose
+A shared document is **a DAG of _attributed_ SADs (versions), authored by **editors** whose
 membership is a _creator-governed, per-period access list_.** The creator governs three document roles —
 **view** (the document `readPolicy`), **comment** (`commenters[]`), **edit** (`editors[]`, who author
 versions) — the Google-Docs triad; commenting is reserved, its mechanism deferred (§7). Each version is
@@ -129,8 +129,9 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     new `said_b` → a new period key.
   _(Per-period keying is the deliberate divergence from the **delegation**-rescission's permanent-prefix
   cap (inv 15 R3-3) — it is what lets a removed participant be **re-added**. Two encoding notes vs
-  delegation: (1) the `bound` rides **gated content**, not delegation's public `manifest.bound` role —
-  because a bound SAID is **participant-identifying by matching** (a witness holding the editor's IEL matches
+  delegation: (1) the `bound` rides the **gated `bound` role** on the SEL `Trm` (behind the read gate), not
+  delegation's **inline-public `kills[].bound` field** — one concept, two custody modes, the shared name
+  intentional — because a bound SAID is **participant-identifying by matching** (a witness holding the editor's IEL matches
   the SAID against its events, no inversion), so it can't sit on public structure (warm F8). (2) the `Trm`
   seals at **`Dth`** — with `delegate → authorize`, the slot is the general "authorize a party
   to act" lifecycle, and doc-membership rides it both ways: **add** via `Ath` (a `Gnt`),
@@ -177,7 +178,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     cold/warm re-review-2 F1.)* **The bound `B_x` is GATED, not public** (unlike a delegate's public bound): a bound
     is **participant-identifying by matching** (a witness holding member `b`'s IEL would de-anonymize `b`), so
     `kills[]` carries **only the blind `target`** and the `B_x` lives in a **gated rescind-doc *committed by the
-    rescission `Trm`*** (its manifest — so this `Trm` legitimately commits a manifest, R3; the "`Trm` carries only its
+    rescission `Trm`'s `bound` role*** (so this `Trm` legitimately commits a manifest, R3; the "`Trm` carries only its
     pin / self-contained walk" phrasing is cred+delegate, not doc-member). The walk detects the rescission from the
     (un-gated) `target`, then **fetches** the gated rescind-doc for `B_x` (an authorized reader already holds it) →
     **withheld → conservative (don't honor)** — the narrow price of participant-blindness (flag #4). **Walk lower
@@ -233,20 +234,25 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 ## 3. Two "forks" — don't conflate them
 
-- **SEL-chain fork** (two events at one SEL serial) — forbidden/detected by the divergence model; each
-  version SEL and the governance SEL are strictly **linear**.
+- **SEL-chain fork** (two events at one SEL serial) — **prevented by the SEL's own witnessing** (first-seen
+  at its `(prefix, serial)`, inheriting the owner IEL's federation — witnessed-SEL redesign, area-sel §1c;
+  the FIRST-CUT "forbidden by the cross-layer divergence model" rested on the retired theorem). So each
+  version SEL and the governance SEL are **linear on a witnessed chain** — a fork needs witness collusion,
+  reads Forked (fail-secure), and is buried by a SEL `Sea` (area-sel §1d).
 - **Version fork** (two versions naming the same `ancestors` parent) — **allowed/presented**; the DAG
   branches at the document layer over linear SELs. Acyclic by SAID (a cycle = a Blake3 preimage
   cycle).
 - **A editor's IEL divergence is handled by two composed rules, not one (cold F2 / warm F3).** A
   divergent editor's IEL **reads suspect** — _not_ "is compromised" (the data can't diagnose intent; a
-  benign two-device race is inert by anchor-monotonicity, area-iel §5) — and a version anchored above
-  that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
-  - **The anchor edge is genuine inv 13 reuse.** If the IEL resolves with the version's v1 anchored in a
-    **non-canonical** member event, the version SEL dies by **cross-layer deadness-descends** across the
-    **IEL→SEL anchor edge** (inv 13's cross-layer theorem — that edge is exactly what inv 13 provides).
+  benign two-device race is a recoverable content fork, resolved first-seen — area-iel §5) — and a version
+  anchored above that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
+  - **The anchor edge severs the SEL (witnessed-SEL redesign, area-sel §1e).** If the IEL resolves with the
+    version's v1 anchored in a **dead** (non-canonical) member event, the version SEL is **severed** at that
+    anchor — dead + un-verifiable from there (no repair to re-root; the surviving IEL branch is a different
+    author). _(The FIRST-CUT "dies by cross-layer deadness-descends via the cross-layer theorem" is
+    superseded — the theorem is retired; inherited IEL deadness severs the SEL, area-sel §1e.)_
   - **DAG descent is _this feature's own_ rule, derived as a placement consequence — not inv 13/17.**
-    `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-descends is defined only over
+    `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-ascends is defined only over
     `previous`-linkage and the IEL→SEL anchor edge, so claiming the primitives provide descent down the
     DAG over-reaches. The semantics still hold, by **placement**: a version places only against **live
     parents in the built version set** (§2), so a dead parent is not in that set → its descendants are
@@ -321,7 +327,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 - **The stated residual, completed (cold F9 / warm F9).** For a mesh witness the residual is
   `creator ↔ doc` **plus**: (a) **per-participant `DOC_TOPIC` volume-timing** — the `(member, version_said)`
   pairs above, and the **topic** itself (a version SEL `Icp` is recomputable content carrying
-  `(owner, topic, data)`, so a witness learns _"member X authors multi-party-doc versions"_, unlinkable
+  `(owner, topic, data)`, so a witness learns _"member X authors shared-doc versions"_, unlinkable
   to a doc absent an oracle); (b) **cross-participant timing correlation** of version-SEL activity (co-editing
   clusters — the same inv-16 volume-timing class); (c) grant/rescission volume-timing. It is **never
   _who_ the members are** — the same inv-16 residual class accepted everywhere else, not the graph.
@@ -353,16 +359,16 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   `MissingSadObject` park/drain, vdtid-services §1h, predates off-node mode and would park-forever
   otherwise).
 
-## 6. Credentials vs multi-party documents — two types, one substrate
+## 6. Credentials vs shared documents — two types, one substrate
 
-|            | Credential (policy layer)                        | Multi-party document (this feature)                       |
+|            | Credential (policy layer)                        | Shared document (this feature)                            |
 | ---------- | ------------------------------------------------ | --------------------------------------------------------- |
 | parties    | `issuer`(s) + an `issuee` — **asymmetric**       | a **creator** + **members** — governed, symmetric members |
 | membership | fixed at issuance                                | **creator-governed, evolving** (grant / bound / re-add)   |
 | policy     | authorizing + acceptance conditions              | none except `readPolicy` (the read/sharing gate)          |
 | content    | frozen (single version)                          | evolves (the version DAG)                                 |
 | kill       | revocation `Trm` (`Rev`)                | per-participant period-bound; **freeze** = bound-all + `Trm`-gov |
-| home       | `primitives/policy/documents.md`                 | `features/multi-party/documents.md`                       |
+| home       | `primitives/policy/documents.md`                 | `features/shared-documents/documents.md`                  |
 
 Shared substrate: documents are **attributed SADs** (`owner`+`topic`+SEL-anchor), located by
 `derive`, in a DAG; membership reuses the §5 grandfather-`bound` mechanism. They specialize
@@ -440,7 +446,10 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     so it can't be compacted away, the SAD's authority travels with it):
     - `inception` (V0): `{ said, kind, prefix, creator, custody{ readPolicy }, nonce? }`
     - `version`: `{ said, kind, custody{ owner, topic, readPolicy }, prefix, grant, ancestors[], content, nonce?, edited? }`
-    - `grant`: `{ said, kind, custody{ readPolicy }, editors, commenters }` — two role lists + the grant's own gate
+    - `grant` — the **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
+      (the `grants/*` convention shared with exchange, ≤ 64 chars; the generalized seal-a-typed-value `Gnt`,
+      area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readPolicy }, editors, commenters }`, two
+      role lists + the grant's own gate
     - `editors` / `commenters`: `{ said, kind, add:[ entry-SAID, … ] }` (the role lists)
     - `editor` / `commenter`: `{ said, kind, <role>, from, nonce, custody{ readPolicy } }` — `<role>` (= `editor`
       or `commenter`) is that participant's IEL prefix; `said` = `said_b` (the rescission handle); `from` = `F`
@@ -485,7 +494,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
 
 ## 8. Drift → land
 
-- Write `docs/design/features/multi-party/documents.md` fresh from this note (greenfield voice;
+- Write `docs/design/features/shared-documents/documents.md` fresh from this note (greenfield voice;
   credentials as the _contrast_). Forward-ref from `primitives/policy/documents.md` + the SEL
   primitive.
 - Depends on the landed custody `owner`+`topic`+SEL-anchor model (inv 16 note) and the §5
@@ -497,25 +506,13 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   spans are corrected to "the v1 (`Pin`) is anchored, the `Icp` rides `v1.previous`" (inv 15) — same
   change, landed-docs-current rule. And the `compaction.md`/`said.md` SAID-invariance fix (§7).
 
-## 9. Ideas / forward (exchange-layer — not settled, captured so the thread isn't lost)
+## 9. Content confidentiality → the exchange feature
 
-- **Content confidentiality via a KEM-wrapped group key.** Off-node / private content is encrypted
-  under a per-doc symmetric key (AES-256-GCM); the key is distributed to each member by
-  **KEM-wrapping it to that editor's per-device KEM key**. **Correction (warm F15):** canon publishes
-  KEM keys for **witnesses only** (a per-witness key SEL owned by a degenerate per-device IEL derived
-  from the _witness_ KEL — impl-notes:100-110); **user member devices publish no KEM key today**, so
-  extending that key-SEL pattern to user devices is **new (reasonable) machinery, not reuse**. This is
-  the "encrypt for confidentiality" layer (`readPolicy` is access-integrity; the encryption hides bytes).
-- **Re-key on removal (forward secrecy).** A removed member keeps the old key, so rotate: a new key
-  wrapped to the **remaining** members, future content under it. Forward secrecy for new versions; the
-  past can't be un-shared (consistent with "a co-author keeps what they already read").
-- **Key epochs align with membership periods.** A newly-added member gets the **current** epoch key →
-  reads from join forward, mirroring its `[from, bound]` window; a removed participant is cut at the next
-  re-key, mirroring its `bound`. The crypto epochs and the honored windows are the same shape — one
-  notion of "since when," not two.
-- **Tiered post-quantum crypto (kels precedent).** Infrastructure (witnesses) is bound to
-  **ML-DSA-87 / ML-KEM-1024**; users may drop to **ML-DSA-65 / ML-KEM-768**. The algorithms are
-  integration-identical (same call shape), so the tier is a parameter choice, not a code path — as
-  done in `../kels`.
-- **Home:** all exchange/mail feature territory (forward — inv 16 flags multi-party exchange as needing
-  an extension); a feature layer over the primitives, not primitive work.
+The off-node / private-content confidentiality thread — a per-doc symmetric key (AES-256-GCM) wrapped to
+each member's published KEM receive key, re-key on removal for forward secrecy, key epochs aligned to the
+honored `[from, bound]` membership periods (one notion of "since when," not two), tiered PQ crypto — is
+**re-homed to `vdti-area-exchange`**: shared documents is a **consumer** of exchange. A doc's private
+content is delivered member-to-member as **ESSR** payloads sealed to each member's receive key; re-key =
+seal a fresh key to the **remaining** members (the past can't be un-shared — a co-author keeps what they
+already read). Open items — group-key-on-a-SEL, re-key cadence, epoch commitment — live in the exchange
+note (§7 there).

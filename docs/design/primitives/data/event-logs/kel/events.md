@@ -99,16 +99,20 @@ it (read kind-first):
 A seal-advancing event does **not** commit its content run: the retained run since the prior seal is
 the derivable `[previousSeal..previous]`, and "content was folded" is the predicate
 `previous != previousSeal`. There is no repair kind and no losing-branch commitment — a content
-loser is buried **by position + descent** (the burying seal-advancer's seal-cap locks its first
-event, and everything grown on it is dead by descent), naming no root.
+loser is buried **by position + ascent** (the burying seal-advancer's seal-cap locks its first
+event, and everything grown on it is dead on ascent), naming no root.
 
 ### Anchors
 
 The `anchors` role is a flat, ordered list of **IEL event SAIDs** — a KEL **always** anchors IEL
 events, **never** a SEL event or a raw SAD (an SEL event is anchored only by its owner IEL; a
-document reaches the chain only through its SEL). Which KEL kind anchors which IEL kind is the
-kind-strict cross-primitive anchor matrix ([§Tiers](../../../../protocol-doctrine.md#tiers)). Two
-properties motivate the bare-SAID list shape:
+document reaches the chain only through its SEL). Like every inline manifest list it is capped at
+`MAXIMUM_MANIFEST_LIST = 128` entries, the verifier rejecting an over-length list in structural
+validation
+([`../event-shape.md` §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
+Which KEL kind anchors which IEL kind is the kind-strict cross-primitive anchor matrix
+([§Tiers](../../../../protocol-doctrine.md#tiers)). Two properties motivate the bare-SAID list
+shape:
 
 - **Privacy.** The list carries bare SAIDs, never per-entry role tags. SAIDs are opaque —
   type-qualified base64 hashes that reveal nothing without fetching the target — so anchor structure
@@ -275,7 +279,7 @@ canonical two-branch content fork plus the resolving burying seal-advancer is **
 page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing
 content branches plus the burying seal-advancer in one atomic page, since the sink holds neither
 branch in storage. A local node's hot page is smaller still (its retained branch ≤ 64 plus the
-burying seal-advancer; the losing branch is buried by position + descent, validated from retained
+burying seal-advancer; the losing branch is buried by position + ascent, validated from retained
 storage). See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
@@ -371,8 +375,8 @@ s6   kind=rot  previous=s5a.said,                       ← Rot extends the bran
 
 Recovery is a plain `Rot` that **buries at the root**: it extends the branch its submitter keeps and
 advances the seal past the loser, so the competing `s5b` (and anything grown on it) is locked below
-the new seal and **dead by descent**. There is no repair kind, no recovery key, and no losing-branch
-commitment — burial is by position + descent. Go for the **root**, not the thief's tip: however long
+the new seal and **dead on ascent**. There is no repair kind, no recovery key, and no losing-branch
+commitment — burial is by position + ascent. Go for the **root**, not the thief's tip: however long
 a run the thief piled on, it all hangs off the buried point and dies at once. See
 [`compromise.md` §Recovery is a plain Rot](compromise.md#recovery-is-a-plain-rot-that-buries-at-the-root).
 

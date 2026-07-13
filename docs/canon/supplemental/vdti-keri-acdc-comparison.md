@@ -2,11 +2,11 @@
 
 **Status: comparison note.** Merged 2026-07-10 from two sources — a broad positioning discussion
 (2026-07-06) and a keripy-grounded deep-dive on ex-member issuance / backdating. Ground truth for the
-deep-dive is keripy (`/Users/jason/github.com/WebOfTrust/keripy`), read directly (the sandboxed research
-agent couldn't reach it). The broad differentiators below carry **[TO VALIDATE]** where the KERI side is
-design-level knowledge (KEL, witnesses, receipts, first-seen duplicity, ACDC, delegated + group AIDs,
-weighted multi-sig, rotation/recovery) not re-checked against keripy or the whitepapers — validate before
-banking a comparative claim.
+deep-dive is keripy, read directly (the sandboxed research agent couldn't reach it). The broad
+differentiators below carry **[TO VALIDATE]** where the KERI side is design-level knowledge (KEL,
+witnesses, receipts, first-seen duplicity, ACDC, delegated + group AIDs, weighted multi-sig,
+rotation/recovery) not re-checked against keripy or the whitepapers — validate before banking a
+comparative claim.
 
 ## The most important bit
 
@@ -48,7 +48,7 @@ archival, all deleted in favor of **burying + the spine** — vdti's core has co
 
 This is a **good** outcome, not a failure. That core is the minimal correct design for decentralized key
 management; you land on it by subtracting, not by accident. The failure mode would have been keeping the NIH
-machinery as false differentiation. So: **take the backbone as-is; differentiate above it.**
+machinery as false differentiation.
 
 ## Where vdti genuinely differs (and how sure we are)
 
@@ -300,13 +300,13 @@ answers need the keripy scan. **Questions, not claims** — don't bank the KERI 
       pre-rotation, or is pre-rotation its only reserve? (No recovery key ⇒ convergence; a recovery key ⇒ vdti
       diverged deliberately.)
 - [ ] **Recovery = root-bury vs KERI superseding rotation.** vdti recovers by rotating at the _first_
-      compromised position (the whole run below dies by descent). Is KERI's superseding-recovery the same
-      "attach at the root, deadness-descends" mechanic, or does it attach/supersede differently?
+      compromised position (the whole run below dies on ascent). Is KERI's superseding-recovery the same
+      "attach at the root, deadness-ascends" mechanic, or does it attach/supersede differently?
 - [ ] **Disputed/forked outcome, not just detection.** KERI _detects_ duplicity; vdti formalizes the
       **outcome** (content fork → recoverable/buried; key-change fork → terminal/reincept) plus the
       **observable-breach guarantee** (fork-cost = forced attributable double-signers). Does KERI formalize the
       terminal-vs-recoverable outcome, or stop at "duplicity detected, handle out-of-band"? (Sharpens #4.)
-- [ ] **SEL vs TEL/registry.** vdti's per-artifact SEL rides its owner IEL (the IEL is its clock). Map to
+- [ ] **SEL vs TEL/registry.** vdti's per-artifact SEL is anchored to its owner IEL for authorization + the finality-floor, and is its own witnessed chain for fork-prevention (witnessed-SEL redesign). Map to
       KERI's **TEL** (transaction event log / credential registry) — same "data log anchored to a KEL" shape,
       or different? (Extends #5 from ACDC to the _log_ layer.)
 - [ ] **Witness/governance bounds.** vdti added a **roster cap (32)**, an **authorization floor on governance**

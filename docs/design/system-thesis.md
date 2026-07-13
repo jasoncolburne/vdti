@@ -69,7 +69,7 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
   being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
   boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
-  `disputed` (a seal on a buried lineage is **dead by descent** — you can't seal a buried chain — so
+  `disputed` (a seal on a buried lineage is **dead on ascent** — you can't seal a buried chain — so
   two accepted branches can only fork at the competing seals themselves; the double-sign is at that
   one position).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
@@ -270,6 +270,17 @@ moment a primitive operates on inferred state.
 Every chain-validity invariant lives in the verifier walk or completion. Trust only the data; not
 services, not databases, not peers. Submit-handler-only rules are a code smell — if an invariant
 matters, the verifier enforces it.
+
+### Uniform data — a program can operate it natively
+
+Every artifact is a **kinded SAD**: one self-describing shape
+(`kind = vdti/<concept>/v1/<category>/<thing>`, a discoverable taxonomy), addressed and verified by
+pure functions — `derive(owner, topic, data)`, SAID = content hash, validity = a deterministic walk
+— over data from any source, with no service to trust. A consumer learns **one** model and can
+generate, address, and verify the entire surface locally, without an SDK or a stream codec, and
+check its own work. This falls out of the uniform, deterministic, data-local design rather than
+being added for it — so a program acting on a user's behalf is a first-class operator, not an
+integration afterthought.
 
 ### Greenfield — no migration path
 

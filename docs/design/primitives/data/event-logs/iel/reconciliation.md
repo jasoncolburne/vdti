@@ -62,7 +62,7 @@ safety claims hold _by construction_, not by observation.
    / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`) that would create or join a divergence does **not**
    extend the canonical chain — it is retained as non-canonical evidence rather than discarded. A
    fork with **at most one** sealed branch is **Forked** (recoverable): a burying seal on the
-   winning branch buries the content loser by position + descent. A fork with **two or more
+   winning branch buries the content loser by position + ascent. A fork with **two or more
    witnessed** sealed branches past it is **Disputed** (reincept). Any verifier reads which by a
    data-local walk. A sealed branch is never buried — that would resurrect a retired sealing
    decision. See
@@ -150,12 +150,12 @@ not the chain state, carries this distinction — the state stays one of the fou
 
 ### Position 3 — on the run past the last seal (competes with content)
 
-| new event                             | outcome                                                                                                                                               |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Ixn`                                 | `Ignored` — a content sibling of a content event is declined by witnessing; the chain stays `Active`                                                  |
-| `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Recovered` — the seal buries the content run past its attach point; the content dies by descent → **Active**. Never `Disputed` — the run is content. |
-| `Trm`                                 | `Terminated` — the content adjacent to and beyond the `Trm` is dead; the `Trm` is the permanent end                                                   |
-| `Icp` / `Fcp`                         | `Invalid`                                                                                                                                             |
+| new event                             | outcome                                                                                                                                              |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn`                                 | `Ignored` — a content sibling of a content event is declined by witnessing; the chain stays `Active`                                                 |
+| `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Recovered` — the seal buries the content run past its attach point; the content dies on ascent → **Active**. Never `Disputed` — the run is content. |
+| `Trm`                                 | `Terminated` — the content adjacent to and beyond the `Trm` is dead; the `Trm` is the permanent end                                                  |
+| `Icp` / `Fcp`                         | `Invalid`                                                                                                                                            |
 
 ### The other states
 
@@ -189,7 +189,7 @@ differs, and shows up only in Position 1 and on a Terminated chain:
 ### Batch submissions
 
 - **`[..content.., Evl]`** — the winning-branch content plus the burying `Evl`. The retained branch
-  (≤ 64) plus the `Evl` fits one page; the `Evl` buries the content loser by position + descent
+  (≤ 64) plus the `Evl` fits one page; the `Evl` buries the content loser by position + ascent
   synchronously.
 - **`[Evl(re-seal), Ixn]`** — auto-inserted by the builder when an `Ixn` would exceed the
   seal-advance cap (the roster-less re-seal).
@@ -347,22 +347,22 @@ Forked / Disputed verdict. This matrix proves **recovery completeness**: a lande
 **final** (chain → Active) or proves the fork **terminal** (Disputed → reincept), for every
 combination of {tier of the losing branch} × {delivered before or after the seal}.
 
-### Burial by position + descent
+### Burial by position + ascent
 
 On a **witnessed** IEL, content forks are **prevented** below fork-cost (the position gate plus
-one-content-sibling-per-position witnessing, at both the user IEL's own position and, cross-layer,
-its SELs), so the population this matrix recovers is the **residual**: witness compromise at
-fork-cost, roster-delta straddles, split-stalls (the burying seal is the exit), and mixed
-`{sealed, content}` races. The machinery is uniform.
+one-content-sibling-per-position witnessing at the user IEL's own position; each SEL the IEL anchors
+is its own witnessed chain, prevented at its own position too), so the population this matrix
+recovers is the **residual**: witness compromise at fork-cost, roster-delta straddles, split-stalls
+(the burying seal is the exit), and mixed `{sealed, content}` races. The machinery is uniform.
 
 Recovery is a **burying seal** on the winning branch — any non-terminal seal-advancer, typically an
 `Evl` or the `cut` `Evl` when it also evicts — with no repair event and no losing-branch commitment.
 It advances the seal, so every losing **content** branch has its first event locked below the seal
-and everything built on it dead by descent (**deadness descends: an event whose parent is dead is
-dead**) — so a losing branch a lagging node grows after the burial is dead by descent, growth-proof.
+and everything built on it dead on ascent (**deadness ascends: an event whose parent is dead is
+dead**) — so a losing branch a lagging node grows after the burial is dead on ascent, growth-proof.
 The loser rides the **forked chain**, a bounded region: each dead lineage extends at most 64 events
 past the last seal (a deeper event needs a sealing event, which on this dead branch is itself dead
-by descent — dropped), and its breadth is bounded by retention (≥ 2 competing events per position)
+on ascent — dropped), and its breadth is bounded by retention (≥ 2 competing events per position)
 with the one-content-sibling witnessing rule on top.
 
 ### The completeness matrix
@@ -371,8 +371,8 @@ Rows = {tier of the losing branch} × {delivery timing}. Cell = reading + closin
 
 | losing branch                                                                 | reading                                                                                                                 | closes with                                                                                                                                                                                                       |
 | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **content**, buried below the seal                                            | first event below the seal, subtree dead by descent → **Active** on the winning chain                                   | seal-cap (first event) + deadness-descends (growth); the seal-cap bounds each dead lineage's depth (≤ 64 past the seal)                                                                                           |
-| **content**, branch **grows** after the burial (lagging node)                 | grown events dead **by descent** — no follow-up event → **Active**                                                      | condemnation is over the subtree, not a tip; growth past depth-64 needs a sealing event, itself dead by descent → dropped                                                                                         |
+| **content**, buried below the seal                                            | first event below the seal, subtree dead on ascent → **Active** on the winning chain                                    | seal-cap (first event) + deadness-ascends (growth); the seal-cap bounds each dead lineage's depth (≤ 64 past the seal)                                                                                            |
+| **content**, branch **grows** after the burial (lagging node)                 | grown events dead **on ascent** — no follow-up event → **Active**                                                       | condemnation is over the subtree, not a tip; growth past depth-64 needs a sealing event, itself dead on ascent → dropped                                                                                          |
 | **content**, held when the burying seal arrives                               | burial **accepted**, the branch drops below the advanced seal → inert → **Active**                                      | an under-covering burial is accepted; the branch inerts rather than freezing the chain                                                                                                                            |
 | **sealed** — a burial attempted against it, or a 2nd present at the last seal | ≥ 2 **witnessed** sealed at the last seal → **Disputed** → reincept                                                     | a sealed branch at the last seal is never buried; two **witnessed** sealed branches read Disputed (needs a provable witness double-sign); a **below-seal** sealed straggler is **dropped** (inert, backdate-safe) |
 | **sealed** — a **lone unretained** branch, no burial                          | one sealed branch → **Forked**-frozen (recoverable only by its author's burying seal; reincept is the operational exit) | invariant 4 (≥ 2 sealed is the Disputed threshold; one is Forked) — _not_ Disputed                                                                                                                                |
@@ -398,7 +398,7 @@ key rotation plays — an IEL burial rotates no identity key, so a culprit is ne
   closer, detectable by either walk: every sealed IEL event is a seal-advancer, so a **witnessed**
   competing seal at the last seal is a spine fork → **Disputed** (a below-seal or witness-declined
   straggler is dropped / deferred, not counted).
-- **No stale-authority revival.** Burial marks a subtree dead (by position + descent), never extends
+- **No stale-authority revival.** Burial marks a subtree dead (by position + ascent), never extends
   or revives an event; there is no below-seal write operation, so the seal-cap stays unconditional.
 - **No self-burial.** A burying seal that siblings its own retained chain is rejected — a node
   buries only competing branches, never the branch it keeps.
@@ -430,14 +430,17 @@ witnessed IEL the position gate narrows even the self-cascade to stall-and-re-is
 content sibling never goes live — so the discipline is a liveness concern (every chain is
 federation-witnessed; the residual safety concern is only a witness compromise).
 
-### Cross-layer completeness (forward-referenced)
+### Inherited SEL severance (forward-referenced)
 
-The cross-layer rows — a SEL event on a dead owner-IEL anchor is dead (**cross-layer
-deadness-descends** across the IEL → SEL anchor edge), **anchor-monotonicity** (a linear IEL
-totally-orders each SEL it anchors, so a SEL never forks under a linear IEL), and the theorem that a
-valid SEL fork implies an IEL fork beneath it — land with the `sel/` anchor-validation doctrine
-(forthcoming). The IEL-level matrix above is self-contained without them; the IEL states the anchor
-edge from its side, the SEL-side detail lands with [`../sel/`](../sel/).
+Each SEL the IEL anchors is its **own witnessed chain** — fork-prevention is the SEL's own
+first-seen witnessing at its `(SEL-prefix, serial)`, not the IEL's order (an owner can equivocate
+its SEL even under a linear IEL, because an IEL anchor is an opaque SAID the IEL cannot dedupe, so
+the anchor alone cannot prevent a SEL fork). What the IEL contributes cross-layer is the other
+direction: when the IEL buries a branch that a SEL event anchored, that SEL is **severed** at the
+earliest such anchor — dead and un-verifiable from there, with no repair event to re-root it. The
+IEL-level matrix above is self-contained; the SEL-side detail — the SEL's own witnessed divergence
+crossed with inherited severance — lands with
+[`../sel/reconciliation.md`](../sel/reconciliation.md).
 
 ## Cross-references
 
