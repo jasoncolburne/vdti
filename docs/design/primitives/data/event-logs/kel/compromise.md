@@ -266,15 +266,18 @@ closed by the layers composed above KEL:
   reaches threshold; the losing branch, and every seal built on it, is **dead by descent** — you
   cannot seal a buried chain, and honest witnesses decline the dead branch's descendants. Two
   rotation seals **both** witnessed at that position are **not** producible by honest witnesses; a
-  second reaches threshold only if `2·threshold − signers` selected witnesses collude — a **provable
-  double-sign at the fork**. So a `disputed` reading requires that same-position collusion;
-  reserve-tier compromise **without** it resolves to a single canonical branch (the first-seen
-  winner) with the other **inert** — a takeover if the adversary won the race, a failed fork if the
-  owner did, and either way the owner detects loss-of-control and reincepts, never a network-visible
-  dispute. (The `{Rot, Rot}` reserve double-reveal is a separate, author-side proof of the theft,
-  visible to any node holding both siblings.) A competing **content** sibling, by contrast, is
-  declined after the first seen at a position — under the witnessing floor a content fork on a
-  witnessed chain is prevented, not merely detected; federation doctrine.
+  second reaches threshold only if enough selected witnesses collude: a full **`threshold`** with no
+  partition (the rival's receipts are then all colluders), sliding to **`2·threshold − signers`** as
+  an attacker partitions the `signers − threshold` redundancy onto the rival (feeds it first-seen) —
+  **`threshold − k`** for `k` partitioned witnesses. Either way it is a **provable double-sign at
+  the fork**. So a `disputed` reading requires that same-position collusion; reserve-tier compromise
+  **without** it resolves to a single canonical branch (the first-seen winner) with the other
+  **inert** — a takeover if the adversary won the race, a failed fork if the owner did, and either
+  way the owner detects loss-of-control and reincepts, never a network-visible dispute. (The
+  `{Rot, Rot}` reserve double-reveal is a separate, author-side proof of the theft, visible to any
+  node holding both siblings.) A competing **content** sibling, by contrast, is declined after the
+  first seen at a position — under the witnessing floor a content fork on a witnessed chain is
+  prevented, not merely detected; federation doctrine.
 
 The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**

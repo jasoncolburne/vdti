@@ -248,7 +248,7 @@ what happens at and past that boundary.
   short changes nothing. The framework **warns** on a fork-cost-1 config but does not force higher
   (the operator owns the trade); a double-sign stays attributable and evictable at any size.
 - **Lost** — Fork/brick exclusivity is priced between `threshold` and `2·threshold − signers`
-  colluders, sliding with the attacker's partition reach. At the minimal-majority floor one targeted
+  colluders, sliding with the attacker's partition reach. At a fork-cost-1 config one targeted
   witness (under a full partition) forks a position; at a large well-secured config the residual is
   negligible — the exposure is the operator's config choice.
 
