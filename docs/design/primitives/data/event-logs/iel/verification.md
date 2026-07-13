@@ -169,8 +169,16 @@ within `N` hops?" is a **bounded per-candidate walk**, never a materialization o
 - **Walk up from the presented party, not down from `X`.** The verifier follows the **one
   authorizing path the document commits** — each hop a self-recorded `delegating` link chaining up
   toward `X` — confirming each hop's grant against that delegator's `Ath` inclusion list (a positive
-  lookup). The walk is bounded by `N` **and** by a verifier-wide depth / work cap; exceeding
-  **either** denies (fail-secure).
+  lookup). **Depth is the only quantity the walk adds.** Walking _up_ one committed path never
+  enumerates the delegate tree beneath `X` — that tree **fans out** by design: a delegation
+  hierarchy is how authority scales and how key management distributes across layers, so `X` need
+  not authorize every actor directly. Each hop is a single `Ath`-inclusion lookup (itself bounded by
+  `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary per-IEL cost — no
+  delegation-specific fan-out. The walk is bounded by the per-policy depth `N` **and** by a fixed
+  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 4`** backstop; exceeding **either** denies
+  (fail-secure). Four leaves room for a real hierarchy several layers deep (e.g. root → company →
+  organization → team) while keeping chains shallow; a per-policy `N` sits tighter underneath. A
+  fixed protocol constant, not a per-deployment knob.
 - **Each hop's liveness is a `kills[]` forward-match** (below), never a scan for the absence of a
   rescission.
 
@@ -191,19 +199,21 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
   `:content` for a **content (app-SEL) closure** — area-sel §1f) and walk the owner's **fresh** IEL
   (from the relevant grant / issuance position to the tip), forward-matching the `target` against
   each `Rev` / `Dth`'s `kills[]`. In some `kills[]` → killed (grandfathered to that entry's
-  `bound`); in none on the fully-walked fresh chain → not killed. Being in a `kills[]` **is** the
-  definition of killed, and it rides the same witnessed-IEL freshness gate as divergence, so a
-  hidden kill needs a stale IEL the verifier already refuses when it trusts the owner at all. On a
-  read it cannot freshness-confirm (any eclipse / single-source), it **refuses**.
+  `bound`); in none **on a walk that reached the fresh witnessed tip** → not killed. Being in a
+  `kills[]` **is** the definition of killed, and it rides the same witnessed-IEL freshness gate as
+  divergence, so a hidden kill needs a stale IEL the verifier already refuses when it trusts the
+  owner at all. When it cannot freshness-confirm — any eclipse / single-source, **or a walk
+  truncated at `max_pages` before the fresh witnessed tip** — it **refuses**, never reports
+  not-killed.
 - **Fail-open opts out of the walk** — under a latency budget a verifier may **opt down** to
   trusting the miss (best-effort not-killed), **never up**.
 
 The `target` is **opaque to the IEL** — the verifier computes and matches it but never dereferences
 it or interprets a `bound` (all revocation / grandfather logic is the feature layer's). A
-**delegate**'s `bound` rides publicly in the `kills[]` entry; a **doc-member**'s `bound` is
+**delegate**'s `bound` rides publicly in the `kills[].bound` field; a **doc-member**'s `bound` is
 participant-identifying, so `kills[]` carries only the blind `target` and the verifier fetches the
-`bound` from a **gated SAD anchored by the `Trm` (via `anchors[]`)** (withheld → conservative, don't
-honor). See
+`bound` from the **SEL `Trm`'s gated `bound` role** (a rescind-doc behind the read gate; withheld →
+conservative, don't honor). See
 [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 
 ## `IelVerification` token

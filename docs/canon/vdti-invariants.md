@@ -88,13 +88,16 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      (the SEL is a separate two-pass over `Icp{owner, topic, data}`), so the public `kills[]` target does **not**
      reveal the object's address (inv 10 / inv 16). **`bound`** (rescission only) = the SAID of the **last valid
      (honoured) event** on the subject's chain — the inclusive grandfather boundary (honoured iff its anchoring
-     position is an ancestor of the `bound`; the dial runs tip → inception), kept **in `kills[]`, not on the `Trm`**
-     (delegate: **public**, un-withholdable; doc-member: **gated** in the rescind-doc, `kills[]` carrying only the
-     blind target). **`kills` is OPAQUE to the IEL** — placement (kind-strict to the T2 `Rev`/`Dth`; a `kills` on a
-     T1 `Ixn` is malformed) is the **only** structural rule; the IEL never dereferences a target or interprets a
-     bound (all revocation/version-honored logic is the credential/doc feature layer). *(`kills` added, `bound`
-     folded into it — B1 fail-secure rework 2026-07-09; `bound` was formerly a standalone role on the rescission
-     `Trm`, renamed from "cut-off"/"terminator" 2026-06-26.)*
+     position is an ancestor of the `bound`; the dial runs tip → inception). **One concept, two custody modes:** a
+     **delegate** rescission's bound is not participant-identifying → the **inline-public `kills[].bound` field** (on
+     the IEL `Rev`/`Dth`, un-withholdable); a **doc-member** rescission's bound *is* participant-identifying → the
+     **gated `bound` manifest role on the SEL `Trm`** (the rescind-doc behind the read gate; `kills[]` carries only
+     the blind target). **`kills` is OPAQUE to the IEL** — placement (kind-strict to the T2 `Rev`/`Dth`; a `kills` on
+     a T1 `Ixn` is malformed) is the **only** structural rule; the IEL never dereferences a target or interprets a
+     bound (all revocation/version-honored logic is the credential/doc feature layer). *(`kills` added 2026-07-09
+     — B1 fail-secure rework; the gated-custody `bound` reads as a dedicated manifest role on the SEL `Trm` — WF1,
+     2026-07-13 — the twin of the additive `grant` role, distinct from the inline `kills[].bound` field; renamed
+     from "cut-off"/"terminator" 2026-06-26.)*
    - `grant` — the gated grant-doc SAD `G` a **SEL `Gnt`** commits (the editors/commenters + their `from`
      validity-period starts). The additive twin of the rescission `Trm`'s `bound`; back-checked (a `Gnt` is valid
      only anchored by an `Ath` — kind-strict), so unlike `payload` it is *not* a directly-consumed role.
@@ -103,7 +106,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      **Required** on an `Ixn` — a SEL `Ixn` must commit ≥ 1 payload SAD (the role is never empty; a manifest-less
      `Ixn` is malformed, and a pure re-pin is a `Pin`, not a payload-less `Ixn`). A
      lookup-SEL `Icp` uses `data` (the derive input), **not** a manifest; only the `Ixn` carries this role.
-     *(The first SEL-borne manifest role — later joined by `grant` and the `kills` `bound`; added 2026-06-22 — inv 4
+     *(The first SEL-borne manifest role — later joined by `grant` and the `bound` role; added 2026-06-22 — inv 4
      had no SEL role, but a SEL `Ixn` must commit its payload SADs, and the principle puts documents in the
      manifest. The role was named `content` before 2026-07-13; renamed `payload` to free the `Icp` `content`
      type-flag — area-sel §1f.)*
@@ -903,7 +906,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     re-pin, absent ⇒ inherit), the `witnesses` config ([inv 4] `witnesses` — present-iff-changed on `Wit`, mandatory
     only at inception where there is no prior to inherit).
     **Corollary — no empty events.** Every event must encode **≥ 1 change**, across **either layer** of the event: a
-    **manifest role** (`anchors`/`roster`/`witnesses`/`clock`/`delegates`/`payload`/`grant`/`bound`) **or** a **top-level
+    **manifest role** (`anchors`/`roster`/`witnesses`/`clock`/`delegates`/`payload`/`grant`/`kills`/`bound`) **or** a **top-level
     structural field** (`pins`/`pin`, the rotation key-state + next-key commitment, `previousSeal`). An event that
     changes nothing is **malformed → rejected**. *(So a `Wit` is never a no-op even with an empty manifest — it **is**
     a rotation, so its structural side always moves: `pins` on an IEL `Wit`, the key-state on a KEL `Wit`. That is why

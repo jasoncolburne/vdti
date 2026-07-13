@@ -179,7 +179,8 @@ The unified authorization anchor, carrying **two manifest roles, both permitted 
 (batchable, same cost):
 
 - **`delegates`** — a positive inclusion list of **delegate IEL prefixes** (the party acts **for**
-  the delegator). This is the delegation grant — see [`delegation.md`](delegation.md).
+  the delegator), capped like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` entries
+  (event-shape). This is the delegation grant — see [`delegation.md`](delegation.md).
 - **`anchors`** — the downstream SEL **`Gnt`**(s) it seals (a doc-membership grant; the party acts
   **as itself**). Kind-strict: `Ath.anchors` names **only** `Gnt`s.
 
@@ -214,8 +215,10 @@ SAID).
 ### `kills[]` — the fail-secure revocation declaration
 
 `kills` is a flat list `[{ target, bound? }]` carried **kind-strict to `Rev` / `Dth`** — a `kills`
-on a tier-1 `Ixn` is **malformed → rejected** (closing declare-a-revoke-at-`t_use`). It is the
-revocation / rescission **declaration** the fail-secure walk consumes:
+on a tier-1 `Ixn` is **malformed → rejected** (closing declare-a-revoke-at-`t_use`) — and, like
+every inline manifest list, capped at `MAXIMUM_MANIFEST_LIST = 128` entries (event-shape; an
+over-length list is rejected in structural validation, bounding the per-event forward-match work).
+It is the revocation / rescission **declaration** the fail-secure walk consumes:
 
 - **`target = hash('{topic}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier
   computes directly and **forward-matches** on the owner's fresh IEL. The target **mirrors the
@@ -232,17 +235,19 @@ revocation / rescission **declaration** the fail-secure walk consumes:
   lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.
 - **`bound`** (rescission only) — the grandfather cutoff, the last honored event on the rescinded
-  party's chain. A **delegate**'s `bound` is not participant-identifying, so it rides **publicly**
-  in the `kills[]` entry (un-withholdable on the witnessed IEL). A **doc-member**'s `bound` **is**
-  participant-identifying, so `kills[]` carries only the blind `target` and the `bound` rides a
-  **gated SAD anchored by its `Trm`** (via `anchors[]`) — see [`delegation.md`](delegation.md) and
+  party's chain. One concept, two custody modes. A **delegate**'s `bound` is not
+  participant-identifying, so it rides **publicly** in the `kills[].bound` field (un-withholdable on
+  the witnessed IEL). A **doc-member**'s `bound` **is** participant-identifying, so `kills[]`
+  carries only the blind `target` and the `bound` rides the **SEL `Trm`'s gated `bound` role** (a
+  rescind-doc behind the read gate) — see [`delegation.md`](delegation.md) and
   [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md).
 
 The check reads the derived lookup-SEL **first** (an O(1) content-addressed read, **present →
 killed**); on a miss it is **fail-secure by default** — compute the `target` and walk the owner's
 **fresh** IEL, forward-matching it against each `Rev` / `Dth`'s `kills[]` (in some `kills[]` →
-killed, grandfathered to that entry's `bound`; in none on the fully-walked fresh chain → not
-killed). Being in a `kills[]` **is** the definition of killed, and the walk rides the same
+killed, grandfathered to that entry's `bound`; in none **on a walk that reached the fresh witnessed
+tip** → not killed — a walk truncated at `max_pages` before the tip **refuses**, never reports
+not-killed). Being in a `kills[]` **is** the definition of killed, and the walk rides the same
 witnessed-IEL freshness gate as divergence, so a hidden kill needs a stale IEL the verifier already
 refuses. **Fail-open** — trusting the miss — is the opt-out, never up. On a hit, `Trm.pin` (= the
 killing `Rev` / `Dth`'s `previous`) points straight at the kill, so the `bound` is read from that

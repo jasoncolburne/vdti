@@ -129,8 +129,9 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     new `said_b` → a new period key.
   _(Per-period keying is the deliberate divergence from the **delegation**-rescission's permanent-prefix
   cap (inv 15 R3-3) — it is what lets a removed participant be **re-added**. Two encoding notes vs
-  delegation: (1) the `bound` rides **gated content**, not delegation's public `manifest.bound` role —
-  because a bound SAID is **participant-identifying by matching** (a witness holding the editor's IEL matches
+  delegation: (1) the `bound` rides the **gated `bound` role** on the SEL `Trm` (behind the read gate), not
+  delegation's **inline-public `kills[].bound` field** — one concept, two custody modes, the shared name
+  intentional — because a bound SAID is **participant-identifying by matching** (a witness holding the editor's IEL matches
   the SAID against its events, no inversion), so it can't sit on public structure (warm F8). (2) the `Trm`
   seals at **`Dth`** — with `delegate → authorize`, the slot is the general "authorize a party
   to act" lifecycle, and doc-membership rides it both ways: **add** via `Ath` (a `Gnt`),
@@ -177,7 +178,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     cold/warm re-review-2 F1.)* **The bound `B_x` is GATED, not public** (unlike a delegate's public bound): a bound
     is **participant-identifying by matching** (a witness holding member `b`'s IEL would de-anonymize `b`), so
     `kills[]` carries **only the blind `target`** and the `B_x` lives in a **gated rescind-doc *committed by the
-    rescission `Trm`*** (its manifest — so this `Trm` legitimately commits a manifest, R3; the "`Trm` carries only its
+    rescission `Trm`'s `bound` role*** (so this `Trm` legitimately commits a manifest, R3; the "`Trm` carries only its
     pin / self-contained walk" phrasing is cred+delegate, not doc-member). The walk detects the rescission from the
     (un-gated) `target`, then **fetches** the gated rescind-doc for `B_x` (an authorized reader already holds it) →
     **withheld → conservative (don't honor)** — the narrow price of participant-blindness (flag #4). **Walk lower

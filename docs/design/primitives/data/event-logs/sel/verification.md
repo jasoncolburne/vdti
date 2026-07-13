@@ -27,9 +27,10 @@ For every event the verifier walks, it ensures:
 
 - Events match their kind-specific schemas (required and forbidden fields per the
   [event-shape reference](../event-shape.md#sel)), including the `manifest` role allowlist read
-  kind-first (a `payload` role only on `Ixn`, a `grant` role only on `Gnt`; no manifest on `Icp` /
-  `Pin` / `Sea`) and the `previousSeal` presence rule (present on `Gnt` / `Trm` / `Sea`, forbidden
-  on `Icp` / `Ixn` / `Pin`).
+  kind-first (a `payload` role only on `Ixn`, a `grant` role only on `Gnt`, an optional `bound` role
+  only on `Trm` — the gated rescind-doc; no manifest on `Icp` / `Pin` / `Sea`) and the
+  `previousSeal` presence rule (present on `Gnt` / `Trm` / `Sea`, forbidden on `Icp` / `Ixn` /
+  `Pin`).
 - Serials start at 0 and increment by 1 with no gaps; the inception `Icp` has serial 0 and a valid
   prefix (re-derived from the canonical bytes — the populated `owner` / `topic` / `data`, plus
   `content: true` on a content SEL and `lineage` on a re-establishable value lookup — with `said` /
@@ -202,6 +203,19 @@ fail-secure `kills[]` walk behind it; it has no lineage chain to advance across,
 present → **killed** (a Disputed locus included). A non-re-establishable value is a single monotone
 read at its own address.
 
+**The lineaged target is a feature-layer obligation the primitive does not backstop.** The
+un-withholdable leg — `lineage: n`'s **lineaged** `kills[]` target on the owner IEL — protects the
+walk only when the value-lookup rescission actually **declares that matching lineaged target**.
+Because `kills[]` is opaque to the IEL (it never dereferences a target), no primitive check can
+assert that a value rescission's anchoring `Dth` carries the lineaged target for **this**
+`(owner, topic, data, lineage)`; a rescission declaring only an on-chain `Trm`, or a non-lineaged /
+wrong-lineage target, would leave the kill on the **withholdable** leg (a node missing lineage `n`'s
+`Trm` reads it live and serves a stale value). So it is a **stated, load-bearing feature-layer
+invariant**: every value-lookup rescission carries the matching lineaged `kills[]` target on the
+witnessed IEL, constructed against the rule through the primitive-composition helpers (the helper
+lands with the value-lookup feature). The primitive **consumes** the lineaged target when present;
+it does not manufacture or require it.
+
 **Content is neither walked nor negative-checked.** A content SEL is **handed**, and `content: true`
 gives it its own address namespace — so it can never occupy a lookup address (the acceptance
 biconditional, [§What verification ensures](#what-verification-ensures)). The
@@ -326,19 +340,19 @@ configurable).
 
 ## Per-event check summary
 
-| Property                | Verification method                                                                                                                                                                                                                                                                                                |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SAID / prefix integrity | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from `owner` / `topic` / `data` / `lineage`).                                                                                                                                                            |
-| Event chaining          | `previous` resolves to a verified prior event; each seal-advancer's `previousSeal` resolves to the prior seal.                                                                                                                                                                                                     |
-| Serial monotonicity     | Each event's serial equals the previous + 1; inception is serial 0.                                                                                                                                                                                                                                                |
-| Owner-rooting           | The serial-1 v1 resolves to a real owner-IEL event whose prefix equals `owner`; each event authorized by the anchor's threshold.                                                                                                                                                                                   |
-| Kind-strict anchoring   | The anchoring owner-IEL event is the matching kind (`Ixn` / `Ath` / `Rev` / `Dth` / `Evl`); tier-elevation is an added floor, not the check.                                                                                                                                                                       |
-| Severance               | A SEL event on a dead owner-IEL branch severs the chain at the earliest dead anchor.                                                                                                                                                                                                                               |
-| Down-pin floor          | A serial-1 v1's `pin` equals its anchoring IEL event's `previous`; each `Ixn` re-pins forward.                                                                                                                                                                                                                     |
-| Manifest roles          | The `manifest` carries only roles in the kind's allowlist (`payload` on `Ixn`, `grant` on `Gnt`; none on `Icp` / `Pin` / `Sea`; a `Trm`'s manifest is opt — a feature-layer gated doc). An `Ixn`'s manifest is **required** (≥ 1 `payload` SAD) — a manifest-less `Ixn` is malformed (a pure re-pin is a `Pin`).   |
-| Witnessed divergence    | The SEL's own first-seen at `(prefix, serial)`; two accepted sealed branches → disputed.                                                                                                                                                                                                                           |
-| Lineage walk            | A re-establishable value's positive walk over its own lineage chain: walk `lineage: 0, 1, …`; a dead lineage (a `Trm` on its chain / Disputed / severed, or its **lineaged** `kills[]` target) → advance, a live one → stop; a gap ends it; cap 64. A monotone kill uses a non-lineaged target; content is handed. |
-| `content: true` ⟺ v1-T1 | The verifier confirms the `Icp`'s `content` flag matches the v1's tier — a v1-T1 without `content: true`, or a `content: true` with a v1-T2 v1, is invalid. The flag rides the prefix, so content and lookups occupy distinct namespaces and the content squat is impossible by construction.                      |
+| Property                | Verification method                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SAID / prefix integrity | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from `owner` / `topic` / `data` / `lineage`).                                                                                                                                                                                    |
+| Event chaining          | `previous` resolves to a verified prior event; each seal-advancer's `previousSeal` resolves to the prior seal.                                                                                                                                                                                                                             |
+| Serial monotonicity     | Each event's serial equals the previous + 1; inception is serial 0.                                                                                                                                                                                                                                                                        |
+| Owner-rooting           | The serial-1 v1 resolves to a real owner-IEL event whose prefix equals `owner`; each event authorized by the anchor's threshold.                                                                                                                                                                                                           |
+| Kind-strict anchoring   | The anchoring owner-IEL event is the matching kind (`Ixn` / `Ath` / `Rev` / `Dth` / `Evl`); tier-elevation is an added floor, not the check.                                                                                                                                                                                               |
+| Severance               | A SEL event on a dead owner-IEL branch severs the chain at the earliest dead anchor.                                                                                                                                                                                                                                                       |
+| Down-pin floor          | A serial-1 v1's `pin` equals its anchoring IEL event's `previous`; each `Ixn` re-pins forward.                                                                                                                                                                                                                                             |
+| Manifest roles          | The `manifest` carries only roles in the kind's allowlist (`payload` on `Ixn`, `grant` on `Gnt`; none on `Icp` / `Pin` / `Sea`; a `Trm`'s manifest is opt — the `bound` role, a feature-layer gated rescind-doc). An `Ixn`'s manifest is **required** (≥ 1 `payload` SAD) — a manifest-less `Ixn` is malformed (a pure re-pin is a `Pin`). |
+| Witnessed divergence    | The SEL's own first-seen at `(prefix, serial)`; two accepted sealed branches → disputed.                                                                                                                                                                                                                                                   |
+| Lineage walk            | A re-establishable value's positive walk over its own lineage chain: walk `lineage: 0, 1, …`; a dead lineage (a `Trm` on its chain / Disputed / severed, or its **lineaged** `kills[]` target) → advance, a live one → stop; a gap ends it; cap `MAXIMUM_SEL_LINEAGE = 64`. A monotone kill uses a non-lineaged target; content is handed. |
+| `content: true` ⟺ v1-T1 | The verifier confirms the `Icp`'s `content` flag matches the v1's tier — a v1-T1 without `content: true`, or a `content: true` with a v1-T2 v1, is invalid. The flag rides the prefix, so content and lookups occupy distinct namespaces and the content squat is impossible by construction.                                              |
 
 ## Cross-references
 

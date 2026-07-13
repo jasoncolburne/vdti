@@ -93,11 +93,12 @@ It is **never itself anchored**; it rides via `v1.previous`.
 
 ### `Ixn` — content (tier 1, `t_use`)
 
-Records the payload SAD(s) it commits (the `payload` role — **required**, always ≥ 1) and re-pins
-the SEL to the owner IEL's current tip (the top-level `pin`). Anchored by an owner-IEL `Ixn`, **at
-most one `Ixn` per SEL per owner-IEL `Ixn`** (counting content — a pure re-pin is a `Pin`, not a
-phantom `Ixn`). `Ixn` is the divergeable content kind; it does not advance the seal and is buriable
-until the SEL's next seal-advancer. An `Ixn` **always** carries content — a manifest-less `Ixn` is
+Records the payload SAD(s) it commits (the `payload` role — **required**, always ≥ 1, and capped
+like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` — event-shape) and re-pins the SEL
+to the owner IEL's current tip (the top-level `pin`). Anchored by an owner-IEL `Ixn`, **at most one
+`Ixn` per SEL per owner-IEL `Ixn`** (counting content — a pure re-pin is a `Pin`, not a phantom
+`Ixn`). `Ixn` is the divergeable content kind; it does not advance the seal and is buriable until
+the SEL's next seal-advancer. An `Ixn` **always** carries content — a manifest-less `Ixn` is
 malformed; a re-pin with no content is a `Pin`.
 
 ### `Pin` — the pin-only re-pin (tier 1, `t_use`)
@@ -145,11 +146,11 @@ IEL's **`kills[]` declaration** naming the killed locus (the IEL side —
 
 **`bound` placement is per-feature — the primitive says only that a kill commits whatever its anchor
 commits:** a credential revocation carries no `bound` (revocation is binary); a delegate rescission
-carries the grandfather `bound` publicly in the owner IEL `Dth`'s `kills[]` entry; a document-member
+carries the grandfather `bound` publicly in the owner IEL `Dth`'s `kills[]` field; a document-member
 rescission's `bound` is participant-identifying, so it rides a gated rescind-doc committed by that
-`Trm` and the `kills[]` entry carries only a blind target. The read strategy that consumes this
-structure — the fail-secure `kills[]` walk and its fail-open lookup — is the feature layer's
-([`../../../policy/documents.md`](../../../policy/documents.md)).
+`Trm`'s **`bound` role** and the `kills[]` entry carries only a blind target. The read strategy that
+consumes this structure — the fail-secure `kills[]` walk and its fail-open lookup — is the feature
+layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
 
 ### `Sea` — the neutral re-seal (tier 2, `t_govern`)
 
@@ -248,19 +249,23 @@ A SEL event commits to what sits above it through a **`manifest`** — the SAID 
 A manifest carrying any role outside its kind's vocabulary is malformed and rejected (read
 kind-first):
 
-| Role      | Carried by | Commits to                                                            |
-| --------- | ---------- | --------------------------------------------------------------------- |
-| `payload` | `Ixn`      | the payload SAD SAID(s) the `Ixn` records (**required** — always ≥ 1) |
-| `grant`   | `Gnt`      | the grant-value SAD the `Gnt` seals (a `vdti/sel/v1/grants/*` kind)   |
+| Role      | Carried by | Commits to                                                                       |
+| --------- | ---------- | -------------------------------------------------------------------------------- |
+| `payload` | `Ixn`      | the payload SAD SAID(s) the `Ixn` records (**required** — always ≥ 1)            |
+| `grant`   | `Gnt`      | the grant-value SAD the `Gnt` seals (a `vdti/sel/v1/grants/*` kind)              |
+| `bound`   | `Trm`      | opt — the gated rescind-doc (a doc-member rescission's blind grandfather cutoff) |
 
 The `payload` role is **directly consumed** with no downstream type-check, so the kind → role
 allowlist is its only protection — an `Icp` / `Pin` / `Sea` carrying a manifest at all is malformed,
 and an `Ixn` **without** one is malformed too (the role is never absent — a pure re-pin is a `Pin`).
 The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath`), so
 unlike `payload` it is not directly trusted. A `Trm`'s termination validity is carried by its
-anchoring `Rev` / `Dth`, not a SEL role — though a feature layer may optionally commit a gated
-document in a `Trm`'s manifest (a rescission's participant-blind bound). The derivation inputs
-(`owner` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level structural**.
+anchoring `Rev` / `Dth`; its manifest is **opt**, and when present carries the **`bound`** role — a
+feature-layer gated rescind-doc holding a doc-member rescission's participant-blind grandfather
+cutoff. This is the **gated custody mode** of the grandfather `bound` (a delegate rescission's rides
+the inline-public `kills[].bound` field on the owner IEL); like `grant`, it is a feature-layer SAD,
+not a directly-consumed role. The derivation inputs (`owner` / `topic` / `data` / `lineage`) and
+every event's down-`pin` are **top-level structural**.
 
 ## The kind-strict cross-layer anchor matrix
 

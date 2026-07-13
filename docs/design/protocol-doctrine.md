@@ -1258,13 +1258,20 @@ algorithms:
   authoritative only after the walk: compute `target = hash('{topic}:{owner}:{data}')` — the target
   **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
   for a **value rescission** (scoped to one instance), a literal `:content` for a **content
-  (app-SEL) closure** (area-sel §1f) — and walk the owner's **fresh** IEL over
-  `[issuance-position .. tip]`, forward-matching `target` against each `Rev`/`Dth`'s `kills[]`. In
-  some `kills[]` → killed; in none → not killed. This **rides the multi-source freshness gate**
+  (app-SEL) closure** (area-sel §1f). This is **not** a separate "walk to tip" pass: the verifier
+  **pre-computes the set of `target`s** it is checking (itself bounded — the candidate subjects are
+  capped input, at most `MAXIMUM_MANIFEST_LIST` per matching `kills[]` and otherwise bounded by the
+  caller / policy layer), and the **ordinary bounded verification walk** it already runs over the
+  owner's **fresh** IEL detects and reports any match **inline** as it passes each `Rev`/`Dth` —
+  forward-matching each `kills[]` against the target set, no accumulation. In some `kills[]` →
+  killed; in none, **on a walk that reached the fresh witnessed tip** → not killed. This **rides the
+  multi-source freshness gate**
   ([§Verification tokens](#verification-tokens-as-proof-of-verification)): the only way to hide a
   kill is a **stale** IEL, which the verifier already refuses when trusting the owner at all — so
-  kill-freshness equals authority-freshness. Bounded (streams the subjects-in-scope, O(range) time,
-  no lossy cap).
+  kill-freshness equals authority-freshness. "**No lossy cap**" means the walk **drops nothing
+  within its bound** — but a walk that **cannot reach the fresh witnessed tip within `max_pages`**
+  is a can't-freshness-confirm condition, so it **refuses (fail-secure)**, **never** reports
+  not-killed.
 - **Fail-open opts out of the fall-through.** Under a latency budget (an app server on a
   walk-timeout) a verifier may **opt down** to trusting the miss (**best-effort not-killed**), never
   **up**.
