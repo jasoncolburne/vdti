@@ -186,13 +186,15 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
   kill event, so a grandfather check reads the `bound` from its `kills[]` entry directly, with no
   exhaustive `kills[]` scan of the chain.
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
-  `target = hash('{topic}:{owner}:{data}')` and walk the owner's **fresh** IEL (from the relevant
-  grant / issuance position to the tip), forward-matching the `target` against each `Rev` / `Dth`'s
-  `kills[]`. In some `kills[]` → killed (grandfathered to that entry's `bound`); in none on the
-  fully-walked fresh chain → not killed. Being in a `kills[]` **is** the definition of killed, and
-  it rides the same witnessed-IEL freshness gate as divergence, so a hidden kill needs a stale IEL
-  the verifier already refuses when it trusts the owner at all. On a read it cannot
-  freshness-confirm (any eclipse / single-source), it **refuses**.
+  `target = hash('{topic}:{owner}:{data}')` (the target **mirrors the killed address**:
+  **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
+  `:content` for a **content (app-SEL) closure** — area-sel §1f) and walk the owner's **fresh** IEL
+  (from the relevant grant / issuance position to the tip), forward-matching the `target` against
+  each `Rev` / `Dth`'s `kills[]`. In some `kills[]` → killed (grandfathered to that entry's
+  `bound`); in none on the fully-walked fresh chain → not killed. Being in a `kills[]` **is** the
+  definition of killed, and it rides the same witnessed-IEL freshness gate as divergence, so a
+  hidden kill needs a stale IEL the verifier already refuses when it trusts the owner at all. On a
+  read it cannot freshness-confirm (any eclipse / single-source), it **refuses**.
 - **Fail-open opts out of the walk** — under a latency budget a verifier may **opt down** to
   trusting the miss (best-effort not-killed), **never up**.
 

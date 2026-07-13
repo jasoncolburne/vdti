@@ -601,13 +601,12 @@ witness compromise).
 
 The cross-layer (SEL ↔ owner IEL) behavior is the SEL primitive's own. A SEL is its **own witnessed
 chain** — fork-prevention is the SEL's first-seen at its own position, so an owner-IEL anchor cannot
-prevent a SEL fork (an earlier reading, that a valid SEL fork implies an IEL fork beneath it, is
-retired). The owner IEL's cross-layer contribution is **severance**: a buried owner-IEL branch
-severs an anchored SEL — dead **and** un-verifiable from the earliest dead anchor, a truncation with
-no repair. The anchor's re-anchor-at-an-already-attributed-serial-is-inert rule survives only as a
-defense-in-depth check, not as fork-prevention or a total-order. These are worked out in
-[`../sel/reconciliation.md`](../sel/reconciliation.md); the KEL-level matrix above is self-contained
-without them.
+prevent a SEL fork. The owner IEL's cross-layer contribution is **severance**: a buried owner-IEL
+branch severs an anchored SEL — dead **and** un-verifiable from the earliest dead anchor, a
+truncation with no repair. The anchor's re-anchor-at-an-already-attributed-serial-is-inert rule
+survives only as a defense-in-depth check, not as fork-prevention or a total-order. These are worked
+out in [`../sel/reconciliation.md`](../sel/reconciliation.md); the KEL-level matrix above is
+self-contained without them.
 
 ## Edge cases
 

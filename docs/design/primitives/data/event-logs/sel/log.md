@@ -32,11 +32,11 @@ first-seen and buriable) rides alongside tier-2 **sealed** events (`Gnt` / `Trm`
 arrival and never overturned). It reuses the KEL and IEL's four-state per-node machine, the seal /
 spine / locked-portion, and the merge-outcome vocabulary.
 
-This doc states the chain primitive: prefix and lineage derivation, the lookup-versus-content
-distinction, the per-node chain states, the SEL's own witnessing, the seal and its advancers, the
-severance a dead owner-IEL anchor causes, the down-pin, and inception. Per-kind reference lives in
-[`events.md`](events.md); merge-handler routing in [`merge.md`](merge.md); the verifier walk in
-[`verification.md`](verification.md); the cross-node correctness proof in
+This doc states the chain primitive: prefix derivation with the content and lineage fields, the
+lookup-versus-content distinction, the per-node chain states, the SEL's own witnessing, the seal and
+its advancers, the severance a dead owner-IEL anchor causes, the down-pin, and inception. Per-kind
+reference lives in [`events.md`](events.md); merge-handler routing in [`merge.md`](merge.md); the
+verifier walk in [`verification.md`](verification.md); the cross-node correctness proof in
 [`reconciliation.md`](reconciliation.md).
 
 ## Prefix derivation
@@ -56,8 +56,12 @@ shorthand `derive(owner, topic, data)`:
   separate registry object to consult.
 - **`data`** — optional. The recompute input a discoverable SEL roots on: a private nonce, or
   meaningful bytes such as a kill locus's grant-instance reference.
-- **`lineage`** — present only on a re-incepted lookup SEL (§The lineage field). Absent means
-  lineage zero.
+- **`content`** — `content: true` on a **content** SEL's `Icp`, absent on a lookup. It gives content
+  its own address namespace, verifier-enforced against the v1's tier — §The content and lineage
+  fields.
+- **`lineage`** — a re-establishment counter carried **only** by a **re-establishable value** lookup
+  (`lineage: 0`, `1`, `2`, …). A monotone lookup (a kill, or a non-re-establishable value) omits it,
+  and content omits it too — §The content and lineage fields.
 
 The prefix is the **whole-content digest of the inception body**, so any populated `Icp` field
 enters it. Because of that the `Icp` carries **no `pin` and no manifest**: either would change the
@@ -78,16 +82,32 @@ Whether `data` must be high-entropy depends on why the prefix must be hard to pr
   unpredictability is not the goal. Its protection is **owner-rooting**: only the owner IEL anchors
   events at that locus, so predicting the address is not forging one.
 
-### The lineage field
+### The content and lineage fields
 
-A discoverable lookup SEL has a prefix that is a pure function of fixed inputs, so it **cannot
-re-incept by rerolling randomness** — the same inputs recompute the same address. `lineage` is a
-monotonic counter that gives it a fresh address: lineage zero omits the field; a re-incept adds
-`lineage: 1`, `lineage: 2`, and so on, each a distinct whole-content and so a distinct prefix. The
-**canonical instance is the lowest non-dead lineage**; anything above a live one is inert (an
-equivocation attempt fails safe, since only the owner anchors at the locus). The verifier's uniform,
-meaning-blind walk over the lineages — and why it is load-bearing for a published value but inert
-for a kill — is [`verification.md` §The lineage walk](verification.md#the-lineage-walk).
+Two orthogonal `Icp` fields carry the address model, each doing exactly one job.
+
+**`content: true` — the content discriminator.** A content SEL's `Icp` carries `content: true`; a
+lookup SEL's does not. Because the flag rides the whole-content prefix, content and lookups derive
+to **different addresses** — a content SEL can never occupy a lookup address. The verifier enforces
+the biconditional (`content: true` matches a tier-1 v1, its absence a tier-2 v1), so a content
+**squat** at a value's lookup address is impossible by construction — its prefix differs, and a
+tier-1 v1 at a lookup address is invalid ([§Inception](#inception)).
+
+**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup has a prefix
+that is a pure function of fixed inputs, so it **cannot re-incept by rerolling randomness** — the
+same inputs recompute the same address. `lineage` gives it a fresh one: the base is `lineage: 0`, a
+re-incept adds `lineage: 1`, `lineage: 2`, and so on, each a distinct whole-content and so a
+distinct prefix. It is carried **only** by a **re-establishable value** lookup; a **monotone**
+lookup (a kill, or a non-re-establishable value) omits it, and content omits it too (content is
+discriminated by `content: true`). A re-establishable value's **canonical instance is the lowest
+non-dead lineage**, found by a positive walk; anything above a live one is inert (an equivocation
+attempt fails safe, since only the owner anchors at the locus). Rescinding one lineage is a monotone
+`Trm` whose `Dth` declares a **lineaged** `kills[]` target, so the walk reads that lineage dead
+while the re-established next lineage survives — the positive walk consumes that per-lineage check.
+A **monotone kill** (a cred revocation, a delegate / doc-member rescission) carries a
+**non-lineaged** target and is a single negative-checked read, never walked. Why the positive walk
+is load-bearing for a published value but a monotone kill is a single read is
+[`verification.md` §The lineage walk](verification.md#the-lineage-walk).
 
 ## Lookup SEL versus content SEL
 
@@ -271,7 +291,7 @@ malformed and rejected (read kind-first):
 
 | Role      | Carried by | Commits to                                                           |
 | --------- | ---------- | -------------------------------------------------------------------- |
-| `content` | `Ixn`      | the content-SAD SAID(s) this `Ixn` records (single-owner data)       |
+| `payload` | `Ixn`      | the payload SAD SAID(s) this `Ixn` records (single-owner data)       |
 | `grant`   | `Gnt`      | the grant-value SAD this `Gnt` seals (a `vdti/sel/v1/grants/*` kind) |
 
 The `Icp` (recomputable), the floor `Pin` (a pure re-pin), and the neutral `Sea` carry **no
@@ -299,7 +319,9 @@ fork, which cannot exist at inception.
 Which event is the v1 depends on why the SEL was born: a content SEL's is the first content `Ixn`,
 or a bare **`Pin`** for a SEL that incepts and sits (a document author who endorses before editing);
 a kill lookup's is its **`Trm`** (`{Icp, Trm}`, born to kill); a value lookup's is its **`Gnt`**
-(`{Icp, Gnt}`). The `Pin` kind, when used, does **only** the floor re-pin.
+(`{Icp, Gnt}`). The `Pin` kind, when used, does **only** the pin re-pin — it is the **pin-only
+re-pin at any serial** (its serial-1 instance is the issuance floor above; a later content-less
+re-pin is also a `Pin`, never a payload-less `Ixn`, so `Ixn` and `Pin` are disjoint).
 
 ## End-verifiability
 
@@ -318,12 +340,12 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
 - [`../event-shape.md`](../event-shape.md#sel) — cross-primitive event shape: common fields, the
   `manifest` model, `previousSeal`, the per-kind SEL field grid.
 - [`events.md`](events.md) — per-kind reference: the six kinds, the three axes, the threshold
-  vector, kind-strict cross-layer anchoring, the `Gnt` typed value, the `Sea` re-seal, the lineage
-  field.
+  vector, kind-strict cross-layer anchoring, the `Gnt` typed value, the `Sea` re-seal, the content
+  and lineage fields.
 - [`merge.md`](merge.md) — merge-handler routing: witnessed first-seen, seal-advancer burial,
   inherited severance, the merge outcomes.
 - [`verification.md`](verification.md) — the verifier walk: owner-rooting, the witnessed divergence
-  read, the severance read, the uniform lineage walk.
+  read, the severance read, the lineage walk.
 - [`reconciliation.md`](reconciliation.md) — the exhaustive correctness proof: the SEL's own
   divergence crossed with inherited owner-IEL deadness.
 - [`../iel/log.md`](../iel/log.md) — the owner IEL: the chain that anchors this SEL and the

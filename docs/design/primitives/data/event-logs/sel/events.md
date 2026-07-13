@@ -7,7 +7,7 @@ anchored cross-layer by the owner IEL. The cross-primitive field shape — commo
 [event-shape reference](../event-shape.md#sel); this doc states the SEL-specific semantics: the
 three orthogonal axes, the two-tier capability model, the kind-strict cross-layer anchor matrix, the
 recomputable `Icp` and the serial-1 floor, the `Gnt` typed value, the `Trm` kill, the `Sea` re-seal,
-the lineage field, the manifest roles, sort priority, and the seal-advance cap.
+the content and lineage fields, the manifest roles, sort priority, and the seal-advance cap.
 
 For chain lifecycle (states, the witnessed chain, the seal and its advancers, severance, the
 down-pin), see [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For the verifier
@@ -17,14 +17,14 @@ walk, [`verification.md`](verification.md).
 
 A SEL uses exactly six kinds; any other kind code is malformed.
 
-| Kind  | Topic                    | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                             |
-| ----- | ------------------------ | --------- | ---- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Icp` | `vdti/sel/v1/events/icp` | inception | 1    | `t_use`                                       | Inception — commits `owner` + `topic` + optional `data` (+ `lineage` for a re-incepted lookup SEL); **no `pin`, no manifest** (stays recomputable). Its serial-1 **v1** is anchored, not the `Icp`. |
-| `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records content SAD(s) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`.** The divergeable content kind (first-seen, buriable).                                            |
-| `Pin` | `vdti/sel/v1/events/pin` | content   | 1    | `t_use`                                       | The **floor re-pin** — carries only the down-`pin`. The serial-1 floor for a SEL that incepts and sits. Buriable; **not** a seal-advancer.                                                          |
-| `Gnt` | `vdti/sel/v1/events/gnt` | sealed    | 2    | `t_authorize`                                 | The **grant** — seals a typed value (`manifest.grant` names a `vdti/sel/v1/grants/*` SAD). Sealed on arrival, seal-advancing, non-buriable; walked back only by a rescission.                       |
-| `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, monotone, terminal-on-divergence.                                                                                                                 |
-| `Sea` | `vdti/sel/v1/events/sea` | sealed    | 2    | `t_govern`                                    | The **neutral re-seal** — buries a content fork on a SEL that has no natural `Gnt` or `Trm` to advance the seal. Sealed on arrival, seal-advancing, non-terminal.                                   |
+| Kind  | Topic                    | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                       |
+| ----- | ------------------------ | --------- | ---- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Icp` | `vdti/sel/v1/events/icp` | inception | 1    | `t_use`                                       | Inception — commits `owner` + `topic` + optional `data` (+ `content: true` for a content SEL, `lineage` for a re-establishable value lookup); **no `pin`, no manifest** (stays recomputable). Its serial-1 **v1** is anchored, not the `Icp`. |
+| `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records payload SAD(s) (the `payload` role, **required** — always ≥ 1) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`** (counting content). The divergeable content kind (first-seen, buriable).                   |
+| `Pin` | `vdti/sel/v1/events/pin` | content   | 1    | `t_use`                                       | The **pin-only re-pin** at any serial — carries only the down-`pin` (no manifest). A pure re-pin is always a `Pin`; its serial-1 instance is the issuance floor (incept-and-sit). Buriable; **not** a seal-advancer.                          |
+| `Gnt` | `vdti/sel/v1/events/gnt` | sealed    | 2    | `t_authorize`                                 | The **grant** — seals a typed value (`manifest.grant` names a `vdti/sel/v1/grants/*` SAD). Sealed on arrival, seal-advancing, non-buriable; walked back only by a rescission.                                                                 |
+| `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, monotone, terminal-on-divergence.                                                                                                                                                           |
+| `Sea` | `vdti/sel/v1/events/sea` | sealed    | 2    | `t_govern`                                    | The **neutral re-seal** — buries a content fork on a SEL that has no natural `Gnt` or `Trm` to advance the seal. Sealed on arrival, seal-advancing, non-terminal.                                                                             |
 
 The **class** column names the event's role under the
 [divergence-and-recovery rules](../../../../protocol-doctrine.md#divergence-and-recovery): only
@@ -83,8 +83,9 @@ content but no sealed advancer, so its whole reach is buriable content
 ### `Icp` — inception (tier 1, `t_use`)
 
 Commits `owner` (the owner IEL prefix, immutable), `topic` (the application discriminator), an
-optional `data` (the lookup recompute input), and — on a re-incepted lookup SEL — a `lineage`
-counter (§The lineage field). It carries **no `pin` and no manifest** — either would change the
+optional `data` (the lookup recompute input), a `content: true` flag on a content SEL (the
+discriminator, absent on a lookup), and — on a re-establishable value lookup — a `lineage` counter
+(§The content and lineage fields). It carries **no `pin` and no manifest** — either would change the
 whole-content prefix and break the recomputation a lookup SEL depends on
 ([`log.md` §Prefix derivation](log.md#prefix-derivation)). The `Icp` is unsigned, recomputable
 content; it establishes the SEL but proves nothing alone — authentication rides the serial-1 event.
@@ -92,18 +93,22 @@ It is **never itself anchored**; it rides via `v1.previous`.
 
 ### `Ixn` — content (tier 1, `t_use`)
 
-Records the content SAD(s) it commits (the `content` role) and re-pins the SEL to the owner IEL's
-current tip (the top-level `pin`). Anchored by an owner-IEL `Ixn`, **at most one `Ixn` per SEL per
-owner-IEL `Ixn`**. `Ixn` is the divergeable content kind; it does not advance the seal and is
-buriable until the SEL's next seal-advancer.
+Records the payload SAD(s) it commits (the `payload` role — **required**, always ≥ 1) and re-pins
+the SEL to the owner IEL's current tip (the top-level `pin`). Anchored by an owner-IEL `Ixn`, **at
+most one `Ixn` per SEL per owner-IEL `Ixn`** (counting content — a pure re-pin is a `Pin`, not a
+phantom `Ixn`). `Ixn` is the divergeable content kind; it does not advance the seal and is buriable
+until the SEL's next seal-advancer. An `Ixn` **always** carries content — a manifest-less `Ixn` is
+malformed; a re-pin with no content is a `Pin`.
 
-### `Pin` — the floor re-pin (tier 1, `t_use`)
+### `Pin` — the pin-only re-pin (tier 1, `t_use`)
 
-Carries **only** the down-`pin` — no manifest, no seal. It is the serial-1 floor for a SEL that
-incepts and sits (a document author who endorses before editing): the `Icp` cannot hold a pin, so a
-bare `Pin` is the v1 that floors the SEL at inception. It is **not** a seal-advancer and is buriable
-like content. Where inception carries a first event that already floors (a first content `Ixn`, a
-lookup SEL's `Trm` or `Gnt`), no separate `Pin` is needed.
+Carries **only** the down-`pin` — no manifest, no seal — and is the **pin-only re-pin at any
+serial**. A pure re-pin (no content) is always a `Pin`, never a payload-less `Ixn`, so the two
+content kinds are disjoint. Its **serial-1 instance is the issuance floor**: for a SEL that incepts
+and sits (a document author who endorses before editing), the `Icp` cannot hold a pin, so a bare
+`Pin` is the v1 that floors the SEL at inception. It is **not** a seal-advancer and is buriable like
+content. Where inception carries a first event that already floors (a first content `Ixn`, a lookup
+SEL's `Trm` or `Gnt`), no separate serial-1 `Pin` is needed.
 
 ### `Gnt` — the grant (tier 2, `t_authorize`)
 
@@ -173,22 +178,41 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
   stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value re-incepts
   at the next lineage).
 
-## The lineage field
+## The content and lineage fields
 
-A discoverable lookup SEL's prefix `derive(owner, topic, data)` is a pure function of fixed inputs,
-so a killed or disputed lookup SEL **cannot re-incept by rerolling randomness** — the same inputs
-recompute the same dead address. The remedy is a monotonic top-level **`lineage`** field, carried
-only on a **lookup SEL's `Icp`**: absent means lineage zero; a re-incept sets `lineage: 1`,
-`lineage: 2`, and so on — distinct whole-content, so distinct prefixes. The **canonical instance is
-the lowest non-dead lineage**; a lineage above a live one is inert, so an equivocation attempt fails
-safe (only the owner anchors at the locus).
+Two orthogonal `Icp` fields carry the address model — each doing exactly one job, so neither
+overloads the other.
 
-Lineage is **load-bearing for a value lookup** (a published value whose own live state is the sole
-authority — a dispute is genuine ambiguity, and a collusion-forced dead locus is a real denial of
-the value) and **inert for a monotone kill** (which has an authoritative fail-secure fallback on the
-owner IEL, so a dead kill locus never advances — it stays at lineage zero). The verifier walks the
-lineages **uniformly and meaning-blind** — the semantic difference lives at the feature layer, never
-in the verifier ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)), capped at
+**`content: true` — the content discriminator.** A content SEL's `Icp` carries `content: true`; a
+lookup SEL's does not. The verifier enforces the biconditional (`content: true` matches a tier-1 v1,
+its absence a tier-2 v1). Because the flag rides the whole-content prefix, content and lookups
+derive to **different addresses**, so a content SEL can never occupy a lookup address — a content
+**squat** at a value's lookup address is impossible by construction. Content and lookups may share
+`(owner, topic, data)`; they are simply different addresses.
+
+**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix
+`derive(owner, topic, data)` is a pure function of fixed inputs, so a killed or disputed value
+lookup **cannot re-incept by rerolling randomness** — the same inputs recompute the same dead
+address. `lineage` gives it a fresh one: the base is `lineage: 0`, a re-incept sets `lineage: 1`,
+`lineage: 2`, and so on, each a distinct whole-content and so a distinct prefix. It is carried
+**only** by a **re-establishable value** lookup; a **monotone** lookup (a kill, or a
+non-re-establishable value) omits it, and content omits it too (content uses `content: true`). A
+re-establishable value's **canonical instance is the lowest non-dead lineage**, found by a
+**positive walk**; a lineage above a live one is inert, so an equivocation attempt fails safe (only
+the owner anchors at the locus).
+
+A **value lookup** is **positive-walked** — its own live state is the sole authority for "what is
+the live value" (no owner-IEL fallback for that resolution), so a dispute is genuine ambiguity and a
+collusion-forced dead lineage is a real denial; the walk re-establishes it. But the walk
+**consumes** a per-lineage negative check, not a separate mechanism: `lineage: N` reads dead when a
+`Trm` sits on its own chain **or** its **lineaged** `kills[]` target
+`hash('{topic}:{owner}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` —
+scoped to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm`
+whose `Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
+doc-member rescission) uses a **non-lineaged** target and is a single negative-checked read, never
+walked. The split is **structural** — the verifier reads the `content` flag and the `lineage`
+field's presence, never the topic's meaning, with **no tier-check** on the read path
+([`verification.md` §The lineage walk](verification.md#the-lineage-walk)); the walk is capped at
 `MAXIMUM_SEL_LINEAGE = 64`.
 
 ## Inception and the serial-1 floor
@@ -224,15 +248,16 @@ A SEL event commits to what sits above it through a **`manifest`** — the SAID 
 A manifest carrying any role outside its kind's vocabulary is malformed and rejected (read
 kind-first):
 
-| Role      | Carried by | Commits to                                                          |
-| --------- | ---------- | ------------------------------------------------------------------- |
-| `content` | `Ixn`      | the content-SAD SAID(s) the `Ixn` records                           |
-| `grant`   | `Gnt`      | the grant-value SAD the `Gnt` seals (a `vdti/sel/v1/grants/*` kind) |
+| Role      | Carried by | Commits to                                                            |
+| --------- | ---------- | --------------------------------------------------------------------- |
+| `payload` | `Ixn`      | the payload SAD SAID(s) the `Ixn` records (**required** — always ≥ 1) |
+| `grant`   | `Gnt`      | the grant-value SAD the `Gnt` seals (a `vdti/sel/v1/grants/*` kind)   |
 
-The `content` role is **directly consumed** with no downstream type-check, so the kind → role
-allowlist is its only protection — an `Icp` / `Pin` / `Sea` carrying a manifest at all is malformed.
+The `payload` role is **directly consumed** with no downstream type-check, so the kind → role
+allowlist is its only protection — an `Icp` / `Pin` / `Sea` carrying a manifest at all is malformed,
+and an `Ixn` **without** one is malformed too (the role is never absent — a pure re-pin is a `Pin`).
 The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath`), so
-unlike `content` it is not directly trusted. A `Trm`'s termination validity is carried by its
+unlike `payload` it is not directly trusted. A `Trm`'s termination validity is carried by its
 anchoring `Rev` / `Dth`, not a SEL role — though a feature layer may optionally commit a gated
 document in a `Trm`'s manifest (a rescission's participant-blind bound). The derivation inputs
 (`owner` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level structural**.
@@ -312,7 +337,7 @@ branches → Disputed, exactly as any two sealed events would be.
 - [`merge.md`](merge.md) — merge-layer routing: witnessed first-seen, seal-advancer burial,
   severance.
 - [`verification.md`](verification.md) — verifier walk: owner-rooting, the witnessed divergence
-  read, the uniform lineage walk.
+  read, the lineage walk.
 - [`reconciliation.md`](reconciliation.md) — the exhaustive correctness proof.
 - [`../iel/events.md`](../iel/events.md) — the owner-IEL kinds that anchor SEL acts (`Ixn` / `Ath` /
   `Rev` / `Dth` / `Evl`), the `kills[]` declaration, the anchor matrix from the IEL side.

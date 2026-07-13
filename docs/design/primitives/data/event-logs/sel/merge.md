@@ -73,13 +73,13 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 
 **Rejections** — nothing lands; the chain is unchanged.
 
-| Rejection    | Verdict                                                             | Triggering condition                                                                                                                                                                                       |
-| ------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Severed**  | The anchoring owner-IEL event is dead → the event is un-verifiable. | Inherited owner-IEL deadness (§Severance): the SEL event was anchored on an owner-IEL branch the IEL has since buried; it and everything after it are dead and un-verifiable, not admitted.                |
-| **Sealed**   | Parent sits below the seal and the event is inert — not admitted.   | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content sibling behind an advanced seal).                                                                                               |
-| **Terminal** | The tip is a `Trm`, which admits no successor.                      | A submission chaining _from_ a `Trm` (parent kind `Trm`).                                                                                                                                                  |
-| **Invalid**  | Structurally inapplicable to the chain state.                       | Structural-validation failure — inception on a non-empty chain, a non-inception on an Empty one, a role outside the kind's allowlist, a manifest on an `Icp` / `Pin` / `Trm` / `Sea`, a wrong-kind anchor. |
-| **Ignored**  | A well-formed event the witnesses decline.                          | Fork prevention — a second content sibling, or a second sealed sibling, at a position; or a new event on a Disputed / Terminated chain (barring a partition).                                              |
+| Rejection    | Verdict                                                             | Triggering condition                                                                                                                                                                               |
+| ------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Severed**  | The anchoring owner-IEL event is dead → the event is un-verifiable. | Inherited owner-IEL deadness (§Severance): the SEL event was anchored on an owner-IEL branch the IEL has since buried; it and everything after it are dead and un-verifiable, not admitted.        |
+| **Sealed**   | Parent sits below the seal and the event is inert — not admitted.   | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content sibling behind an advanced seal).                                                                                       |
+| **Terminal** | The tip is a `Trm`, which admits no successor.                      | A submission chaining _from_ a `Trm` (parent kind `Trm`).                                                                                                                                          |
+| **Invalid**  | Structurally inapplicable to the chain state.                       | Structural-validation failure — inception on a non-empty chain, a non-inception on an Empty one, a role outside the kind's allowlist, a manifest on an `Icp` / `Pin` / `Sea`, a wrong-kind anchor. |
+| **Ignored**  | A well-formed event the witnesses decline.                          | Fork prevention — a second content sibling, or a second sealed sibling, at a position; or a new event on a Disputed / Terminated chain (barring a partition).                                      |
 
 A structurally-valid submission not yet at threshold is held **pending** — retained and gossiped for
 witnessing, not advancing the tip or seal, not counted toward a verdict — and re-enters routing once
@@ -99,12 +99,13 @@ Any failure here is a structural error; the submission is `Invalid` regardless o
 particular:
 
 - SAID recomputation matches the declared SAID; at inception, the prefix recomputes from the
-  canonical bytes (the populated `owner` / `topic` / `data` / `lineage`) with `said` / `prefix` set
-  to the placeholder.
+  canonical bytes (the populated `owner` / `topic` / `data`, plus `content: true` on a content SEL
+  and `lineage` on a re-establishable value lookup) with `said` / `prefix` set to the placeholder.
 - Per-kind required / forbidden field presence — the `Icp` carries no `pin` / `manifest`, the `Pin`
-  carries only the down-`pin`, `previousSeal` is present on `Gnt` / `Trm` / `Sea` and forbidden on
-  `Icp` / `Ixn` / `Pin`, and the manifest role vocabulary is enforced (a `content` role only on
-  `Ixn`, a `grant` role only on `Gnt`).
+  carries only the down-`pin` (no manifest, at any serial), an **`Ixn`'s manifest is required** (≥ 1
+  `payload` SAD — a manifest-less `Ixn` is malformed; a pure re-pin is a `Pin`), `previousSeal` is
+  present on `Gnt` / `Trm` / `Sea` and forbidden on `Icp` / `Ixn` / `Pin`, and the manifest role
+  vocabulary is enforced (a `payload` role only on `Ixn`, a `grant` role only on `Gnt`).
 - **Kind-schema predecessor rule.** No kind admits a `Trm` parent. A submission whose parent's kind
   is `Trm` is rejected with `Terminal`.
 - **Re-anchor defense-in-depth.** An owner-IEL anchor naming a SEL event at an
@@ -211,6 +212,8 @@ pre-sever portion stays live.
   is un-verifiable and not counted, so the reading drops to the live branch and recovers. A Disputed
   under a **linear** owner IEL — both anchors locked-live, no severance available — stays terminal →
   re-incept.
+- A **`{Trm, content}` fork** with a severed branch keeps the survivor — a severed content leaves
+  the `Trm` standing (**Terminated**).
 
 The `Sea` (and the sealed-to-Disputed escalation) exist **only** for the all-live case. Severance is
 not the SEL's recovery — it is an incidental byproduct of owner-IEL divergences that happen for the
@@ -257,8 +260,7 @@ IEL's [§Cross-node races](../iel/merge.md#cross-node-races-and-gossip-send-side
 - [`events.md`](events.md) — per-kind reference: the three axes, the manifest roles, the cross-layer
   anchor matrix, the lookup-SEL shapes, sort priority, the seal-advance cap.
 - [`verification.md`](verification.md) — verifier algorithm: owner-rooting, the witnessed divergence
-  read, the severance read, the uniform lineage walk — how the verifier output composes with the
-  merge gate.
+  read, the severance read, the lineage walk — how the verifier output composes with the merge gate.
 - [`reconciliation.md`](reconciliation.md) — cross-node correctness proof; the divergence matrix.
 - [`../iel/merge.md`](../iel/merge.md) — the owner-IEL merge routing whose burial dead-anchors a SEL
   (severance), and the KEL/IEL send-side partitioning this reuses.

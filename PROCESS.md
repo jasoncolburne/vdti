@@ -112,3 +112,71 @@ They don't share blind spots — warm is primed (checks fidelity, trusts the fra
 6. Finally we go through another round of dual-pass reviews to nail down the design docs.
 
 The product is a solid design, ready for implementation.
+
+## Details
+
+I made most positive additions by teasing apart conflated axes. An example - the {content, lineage}
+fields on a SEL Icp. During design, solving routine data modelling problems with these primitives, I
+realized I needed lineage if we wanted to be able to re-issue data under the same topic. I landed on
+the rule that lineage should be omitted to make the chain monotone, but didn't realize that in my
+reasoning I was conflating content with lineage, and trying to make up strange rules based on kind
+and tier that composed for the correct result, when the solution was really separating the two
+fields and making them optional on the SEL Icp. The `content` field, when present, is `true` and
+indicates that a T1 v1 should follow. If omitted, a T2 v1 must follow. This was a massive
+simplificiation and allowed the completion of the SEL primitive.
+
+The most obvious example of pulling apart conflated axes is _device_ and _identity_. By separating
+the two, at the cost of a bit more complexity in the data, we are able to more effectively manage
+application and user security concerns.
+
+I made most positive subtractions (and there were many) by first conceiving of and designing a
+feature that I believed to be sound, and having myself and Claude discuss it with the specific
+framing that it should attempt to _break_, not _affirm_ my claims. If it was unable, we'd continue
+or dig deeper (guided mostly by my instinct).
+
+## The design capabilities of Claude code
+
+I tried Fable for a brief period, and was flagged about 50% of the time. It did make a couple good
+finds, but I was using it to review in both a cold and warm context, so I'm not sure how it performs
+outside that use case. It wasn't that different to be honest. It babbles less while 'thinking', I
+did notice that. Not sure if that's to conserve context, prevent previous bias, or what.
+
+Claude is more than capable of verifying design work, but it takes several iterations of review to
+get there. It's not good at seeing beyond the next chess move, but it's very good at understanding
+the present limitations and benefits of a design. Without full context, as always, mis-reasoning is
+a risk.
+
+What it's _not_ capable of doing (at least Opus 4.8), is having security and design insights that
+rival my own. It's an impressive tool, but it's very much a tool at present. I use it as a sounding
+board for the most part, though it sometimes makes good simplifications and does add occasional
+value to the process. On the whole however, against a human designer/colleague, we'd get from A to B
+much faster as humans. That said, those humans would cost far more than an Anthropic subscription.
+
+On the whole - for a critical, design-heavy project, Claude is an amazing resource for a small team
+that simply needs extra high-quality review capacity.
+
+## The implementation capabilities of Claude code
+
+I think we are all aware by now that with a good specification, Claude's implementation skills are
+quite impressive. The reason I have created the process above, is that without solid foundational
+design, Claude will make decisions unless explicitly told not to.
+
+The decisions that Claude makes can be great, don't get me wrong; but often it isn't framing the
+problem the same way I am. It's missing valuable context that drives a decision in one direction or
+another.
+
+Another problem you can run into with LLMs is hygeine. I am very strict to ensure that we re-use and
+reference where possible, use consistent naming and convention, and generally keep things tidy. If
+you don't make standing memories or rules for the LLM to reason with, it may implement naively -
+duplicating concepts or code, making things generally hard to work with (for you or even _it_ in the
+future).
+
+# Conclusion
+
+Claude is an asset to the lone wolf security designer. I use it to:
+
+- challenge and validate the soundness of my designs
+- capture design ideas
+- encode canonical design reference (machine readable)
+- encode design documentation (human readable)
+- implement design

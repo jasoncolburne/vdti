@@ -117,10 +117,10 @@ Then the SEL (SAD Event Log) primitive, in order:
     seal and its advancers, and the severance a dead owner-IEL anchor causes.
 22. [`primitives/data/event-logs/sel/events.md`](primitives/data/event-logs/sel/events.md) — the
     six-kind taxonomy, the three axes, the kind-strict cross-layer anchor matrix, the typed-value
-    `Gnt`, the neutral `Sea` re-seal, and the lineage field.
+    `Gnt`, the neutral `Sea` re-seal, and the content and lineage fields.
 23. [`primitives/data/event-logs/sel/verification.md`](primitives/data/event-logs/sel/verification.md)
-    — the verifier walk: owner-rooting, the witnessed divergence read, the severance read, and the
-    uniform lineage walk.
+    — the verifier walk: owner-rooting, the witnessed divergence read, the severance read, the
+    `content: true` acceptance biconditional, and the value lineage walk.
 24. [`primitives/data/event-logs/sel/merge.md`](primitives/data/event-logs/sel/merge.md) — the write
     path: witnessed first-seen, seal-advancer burial, and inherited severance.
 25. [`primitives/data/event-logs/sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)

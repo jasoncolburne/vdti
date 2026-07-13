@@ -382,7 +382,7 @@ Post-state (linear, recovered):
 ```
 
 The submitter keeps the branch they authored; the burying `Rot` extends it and advances the seal, so
-the competing branch (its first event now below the seal) and everything grown on it are dead by
+the competing branch (its first event now below the seal) and everything grown on it are dead on
 ascent — no submitter-supplied commitment, no content-only guard walk. Every competing content
 branch closes the same way; a competing **sealed** branch is never buried (≥ 2 sealed → `disputed`).
 

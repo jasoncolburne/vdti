@@ -1250,13 +1250,17 @@ algorithms:
 - **O(1) content-addressed read — always first.** Recompute the derived lookup-SEL address
   `derive(owner, topic, data)` and read it: **present → killed** (O(1), tamper-evident and
   authoritative — done, no walk: a kill is **monotone**, never retracted, so present-means-killed
-  needs no freshness check).
+  needs no freshness check). A monotone kill's address carries no lineage; a **value's** per-lineage
+  check derives the lineaged address `derive(owner, topic, data, lineage: N)` for the specific `N`
+  the positive walk landed on — the value's live state is read from its own SEL chain, its
+  per-lineage kill from the lineaged target (area-sel §1f).
 - **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
-  authoritative only after the walk: compute `target = hash('{topic}:{owner}:{data}')` (a flat,
-  domain-qualified hash; distinct `topic` per kind, `data` = the grant-instance) and walk the
-  owner's **fresh** IEL over `[issuance-position .. tip]`, forward-matching `target` against each
-  `Rev`/`Dth`'s `kills[]`. In some `kills[]` → killed; in none → not killed. This **rides the
-  multi-source freshness gate**
+  authoritative only after the walk: compute `target = hash('{topic}:{owner}:{data}')` — the target
+  **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
+  for a **value rescission** (scoped to one instance), a literal `:content` for a **content
+  (app-SEL) closure** (area-sel §1f) — and walk the owner's **fresh** IEL over
+  `[issuance-position .. tip]`, forward-matching `target` against each `Rev`/`Dth`'s `kills[]`. In
+  some `kills[]` → killed; in none → not killed. This **rides the multi-source freshness gate**
   ([§Verification tokens](#verification-tokens-as-proof-of-verification)): the only way to hide a
   kill is a **stale** IEL, which the verifier already refuses when trusting the owner at all — so
   kill-freshness equals authority-freshness. Bounded (streams the subjects-in-scope, O(range) time,

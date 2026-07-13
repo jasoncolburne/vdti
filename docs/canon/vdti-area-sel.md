@@ -34,7 +34,8 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
   multi-party governance internally [inv 2]. Layers isolated: a SEL pins/anchors only its owner IEL, and
   its finality floors down to that IEL [inv 3].
 - **Prefix = the `Icp`'s whole-content two-pass digest** over its populated fields — **`owner`** + `topic`
-  + `data` (+ `lineage` for a reincepted lookup SEL — §1f), shorthand `derive(owner, topic, data)`. It is
+  + `data` (+ `content: true` for a content SEL, + `lineage` for a re-establishable value lookup — §1f),
+  shorthand `derive(owner, topic, data)`. It is
   the same whole-content prefix every event has, so **any** populated `Icp` field enters it (adding a `pin`
   would break recomputation; the `Icp` therefore carries **no** `pin` and is floored by its serial-1 event
   — §1h). **`owner`** = the owner IEL prefix, **`Icp`-only and immutable** (one owner for life). `topic` =
@@ -48,9 +49,11 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
   **deliberately discoverable** (a lookup-SEL `data = said(grant-instance)`), unpredictability is not the
   goal — the protection is **owner-rooting** (only the owner IEL anchors events at the locus → prediction ≠
   forgery), not entropy.
-- **Classification = blind-recomputability, not discoverability.** A SEL is a **lookup SEL** _iff_ a
-  verifier **blind-recomputes its prefix** `derive(owner, topic, data)` from data it already holds; a
-  **content SEL** is one you are _handed_. **A credential is neither — it is a direct-anchored SAD, not a
+- **Classification = blind-recomputability, not discoverability — and it is carried structurally.** A SEL is
+  a **lookup SEL** _iff_ a verifier **blind-recomputes its prefix** `derive(owner, topic, data)` from data it
+  already holds; a **content SEL** is one you are _handed_. The distinction now rides a structural field: a
+  content SEL's `Icp` carries **`content: true`** (a lookup's does not), verifier-enforced against the v1's tier
+  (the biconditional, §1f). **A credential is neither — it is a direct-anchored SAD, not a
   SEL** (issuance SEL dropped, B1 fail-secure rework 2026-07-09): the issuer anchors an **issuance
   commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an `Ixn`, and _that_
   anchor is the validity proof — the holder **presents** the cred, it is **never looked up by address**.
@@ -63,9 +66,9 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
 
 | SEL kind | Count | Tier | Anchored by (IEL) | Seal-advancing? | Finality |
 |---|---|---|---|---|---|
-| `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | no | delayed — `owner` (immutable) + `topic` + `data`? + `lineage`? (lookup only); **no manifest, no `pin`** (stays recomputable). |
-| `Ixn` (content) | `t_use` | T1 | `Ixn` | no | delayed — content SAD(s) + re-`pin`; **≤ 1 per SEL per IEL `Ixn`**; the **divergeable / first-seen content kind** (buriable). |
-| `Pin` (floor re-pin) | `t_use` | T1 | `Ixn` | no | delayed — re-pins the SEL→owner-IEL floor (top-level `pin` only). The **fallback serial-1 floor** (incept-and-sit); buriable like content. |
+| `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | no | delayed — `owner` (immutable) + `topic` + `data`? + `content: true`? (content only) + `lineage`? (re-establishable value lookup only); **no manifest, no `pin`** (stays recomputable). |
+| `Ixn` (content) | `t_use` | T1 | `Ixn` | no | delayed — payload SAD(s) (the `payload` role, **required** — always ≥ 1) + re-`pin`; **≤ 1 per SEL per IEL `Ixn`** (counting content); the **divergeable / first-seen content kind** (buriable). A payload-less `Ixn` is malformed. |
+| `Pin` (pin-only re-pin) | `t_use` | T1 | `Ixn` | no | delayed — re-pins the SEL→owner-IEL floor (top-level `pin` only, **no manifest**); the **pin-only re-pin at any serial**. Its serial-1 instance is the **issuance floor** (incept-and-sit); a pure re-pin is always a `Pin`, never a payload-less `Ixn` (disjoint). Buriable like content. |
 | `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **yes** | **sealed on arrival** — **seals a typed value**: `manifest.grant` names a grant-value SAD kinded under **`vdti/sel/v1/grants/*`** (feature-first naming, any kind ≤ **64 chars**). Instances: the doc-governance grant-doc `G` (`grants/shared-document-governance` — opens editor/commenter periods, shared-documents §1); an **exchange receive-key** (`grants/exchange-ml-kem-1024` — the value-bearing lookup §1f, vdti-area-exchange). Non-buriable; walked back by a `Dth` rescission, never overturned. |
 | `Trm` (kill) | `t_govern` (revoke) · `t_authorize` (rescind) | **T2** | **`Rev`** (revoke) / **`Dth`** (rescind) | **yes** | **sealed on arrival** — the SEL kill. `Rev` = a revocation lookup-SEL `Trm` / app-SEL closure; `Dth` = a delegation / doc-membership rescission. Monotone, terminal-on-divergence; can't be overturned or un-done. |
 | **`Sea`** (re-seal / bury) | **`t_govern`** | **T2** | **`Evl`** | **yes** | **sealed on arrival** — the SEL's **neutral** seal-advancer (§1d): a re-seal that buries a content fork below its own seal, authored when no natural `Gnt` / `Trm` advances the seal (a plain content SEL) — the SEL analog of the KEL recovery `Rot` / the IEL roster-less `Evl`. Anchored by an IEL `Evl` (empty for a pure re-seal, or the `Evl` carries a `cut` to evict the colluding owner member(s) atomically). |
@@ -233,43 +236,80 @@ SEL needs its **own** witnessed state.
   Forked/Disputed → the consumer fails secure). So at resolution there's no adversary to race; we just make
   every resulting shape verifiable (end-verifiability).
 
-### 1f. Reincept of a deterministic-prefix (lookup) SEL — the `lineage` field [inv 10, 16]
+### 1f. The two axes of a lookup — `content: true` + `lineage` [inv 10, 16]
 
 - **The problem.** A lookup SEL's prefix `derive(owner, topic, data)` is a pure function of fixed inputs
-  (no nonce to reroll), so a killed / disputed lookup SEL **cannot reincept** by rerolling randomness — the
-  same inputs recompute the same dead address.
-- **The mechanism — a monotonic top-level `lineage` field** on **lookup-SEL `Icp`s only** (legible where it
-  matters; **absent → `0`** under the hood — the derivation for lineage 0 omits the field; a reincept adds
-  `lineage: 1`, `lineage: 2`, … → distinct whole-content → distinct prefixes). **Canonical = the lowest
-  non-dead lineage;** a lineage above a live one is **inert** (owner-rooted → an equivocation attempt fails
-  safe: "anything above a live one is an attack").
-- **The verifier walk is UNIFORM and semantics-blind** (topic-opacity, inv 3): compute the address at
-  lineage 0; **dead (Disputed / severed) → advance to the next lineage; live / validly-`Terminated` /
-  absent → stop.** Contiguous from 0 — a gap ends the walk (also the anti-equivocation property).
-  **`Terminated` is a STOP, not a DEAD** — a kill lookup's `Trm` is its **success**; treating it as dead
-  would walk past a real revocation to an empty lineage → **fail-open** (the load-bearing trap). Cap
-  **`MAXIMUM_SEL_LINEAGE = 64`** (a definite constant, reusing the existing 64 bound; past it → no live
-  instance → fail-secure).
-- **Why load-bearing — the _value-bearing_ lookup, not the monotone kill.** The walk is uniform, but the
-  _need_ differs by semantics **at the feature layer, never in the verifier**. A **monotone kill**
-  (revocation / rescission) is authoritative on the IEL `kills[]` with a **fail-secure fallback** — a dead
-  lookup only degrades the fail-open fast-path, so it never advances (stays `0`) — the fail-open **kill**
-  fast-path is a **single fetch at lineage 0** (any `Trm` present → revoked, a disputed locus included), never
-  the advancing `lineage` walk (that walk is the _value-bearing_ recovery mechanism); every dispute branch means
-  the same thing ("killed"), so there is nothing to resolve, and its equivocation is benign (which is why
-  the kill SELs don't _need_ witnessing for correctness, though they get it uniformly). A **value-bearing
-  lookup** — a **KEM public key** (a _system_ capability: witnesses and users both) — has **no IEL
-  fallback**: the SEL's own live state _is_ the authority, a dispute is genuine ambiguity (a sender can't
-  safely pick a key → fails closed), and a collusion-forced dead locus is a real **DoS on secure receive**.
-  `lineage` is what lets the owner re-establish a live key at a discoverable address.
-- **The value is a T2 sealed `Gnt` — established `{Icp, Gnt}` (the generalization, 2026-07-12).** The
-  published key rides a **`Gnt`** (`manifest.grant` → a `grants/*` grant-value — §1b), **not** T1 content:
-  a value a sender encrypts to must not be swappable by a bare signing key, so establishing or changing it
-  needs `t_authorize`@T2 (a signing-key theft cannot redirect secure receive). **Rotation = stack `Gnt`s**
-  (the walk serves the **live** sealed tip; a retired key is never served). **Rescission = `Trm`** (terminal
-  → dead → senders fail closed → republish at a fresh `lineage`; loss-of-control only, never routine
-  rotation). The two attacks — a `Gnt`-swap (confidentiality) vs a `Trm`-rescind (availability), **both
-  T2** — and the send/receive (ESSR) live in **vdti-area-exchange**.
+  (no nonce to reroll), so a killed / disputed value lookup **cannot reincept** by rerolling randomness — the
+  same inputs recompute the same dead address; and a value's base sits at a **discoverable** address a squatter
+  could try to occupy. Two **orthogonal** fields close both, each doing exactly **one** job. (An earlier draft
+  collapsed both onto `lineage`, which is what created the content-squat hole — kept apart, they don't.)
+- **Axis 1 — `content: true` (the content discriminator).** `content: true` on the `Icp` **⟺ the SEL is
+  content** (handed; its v1 is a T1 `Ixn` / `Pin`). **Absent ⟺ the SEL is a lookup** (blind-recomputed; its v1
+  is a T2 seal-advancer — a `Gnt` value or a `Trm` kill). The verifier **enforces the biconditional** — it
+  confirms the `Icp`'s `content` flag matches the v1's tier: a v1-T1 SEL without `content: true` is **invalid**,
+  and a `content: true` SEL with a v1-T2 v1 is **invalid**. The flag **moves the address in both derivation
+  families:** the **prefix** is the `Icp`'s whole-content two-pass digest, so `content: true` **rides in
+  automatically** (content lands at a distinct prefix); a **flat domain-qualified hash** (the kill `target`,
+  §1i) never sees `Icp` fields, so a **content (app-SEL) target appends a literal `:content`** segment there.
+  Thread the discriminator **per derivation family** — the field for the whole-content digests (prefix / said),
+  the `:content` suffix for the flat hash — and check each site (the prefix change does **not** carry to the
+  flat target). **The squat is impossible by construction:** a `content: true` event can't derive **to** a
+  lookup address (its prefix differs), and a v1-T1 at a lookup address (flag absent) is invalid — so a lookup
+  address only ever holds a **v1-T2** form, and the read path needs **no tier-check**. Content and lookups may
+  share `(owner, topic, data)` — they are simply **different addresses** (an app uses one or the other anyway).
+- **Axis 2 — `lineage` (lookups only, a pure re-establishment counter).** **Present** (`lineage: 0`, reincept
+  `lineage: 1`, `lineage: 2`, …) → a **re-establishable value** (a T2 `Gnt` — a KEM receive-key), found by the
+  **positive walk** (below). **Absent** → a **monotone** lookup: a **kill (`Trm`) is always monotone**, but not
+  every monotone form is a kill (the slot also admits a non-re-establishable value). **Absent is absent** — a
+  no-lineage `Icp` and a `lineage: 0` `Icp` are different whole-content → **different addresses**; nothing
+  bridges them. `lineage` now means exactly **one** thing, a re-establishment counter — **content never carries
+  it** (content uses `content: true`). For a value chain the **canonical instance is the lowest non-dead
+  lineage**; a lineage above a live one is **inert** (owner-rooted → an equivocation attempt fails safe).
+- **The kill target mirrors the killed address** [inv 10]. A `Trm`'s anchoring `Rev`/`Dth` declares a `kills[]`
+  **target** whose shape follows the thing it kills: a **monotone kill** (cred revocation, delegate / doc-member
+  rescission) → **non-lineaged** `hash('{topic}:{owner}:{data}')` (the killed thing has no lineage); a **value
+  rescission** → **lineaged** `hash('{topic}:{owner}:{data}:{lineage}')` (scoped to the **one** instance it
+  kills, so the re-established `lineage: N+1` survives — a non-lineaged target would match every lineage and
+  condemn `N+1` too, the original lock-out); a **content (app-SEL) closure** → append **`:content`** (the content
+  namespace). The check asks "is `lineage: N` killed?" for a **specific known `N`** (the one the positive walk
+  landed on) — one target, one match, no set to enumerate.
+- **The positive walk and the per-lineage negative check are one act, not two mechanisms.** Reading a value
+  (`resolve_lookup`) walks its **own lineage chain** from `lineage: 0`, stopping at the lowest **live** one and
+  advancing past a **dead** one. `lineage: N` reads dead **because** a `Trm` sits on `N`'s own SEL chain
+  (Disputed or severed count too) **and/or** `N`'s lineaged target is present in the owner's **fresh** `Rev`/`Dth`
+  `kills[]` (the fail-secure, un-withholdable authority). `Trm` **advances** (it kills one lineage, not the
+  address). Contiguous from `0` — a gap ends the walk. Cap **`MAXIMUM_SEL_LINEAGE = 64`** (reusing the existing
+  64 bound; past it → no live instance → fail-secure). So the two claims below are **both true**, not a
+  contradiction: a value's **positive** resolution ("what is the live value?") has **no IEL fallback** — the
+  SEL's own live state is the authority; but its **negative** per-lineage check ("is `lineage: N` killed?")
+  **does** consult the owner IEL's lineaged `kills[]`.
+- **Why load-bearing — the _value-bearing_ lookup, not the monotone kill.** A **monotone kill** (revocation /
+  rescission) is authoritative on the IEL `kills[]` with a fail-secure fallback; its lookup is a **single
+  monotone read** (a present `Trm` → killed, a disputed locus included), so there is nothing to resolve and no
+  chain to walk (which is why the kill SELs don't _need_ witnessing for correctness, though they get it
+  uniformly). A **value-bearing lookup** — a **KEM public key** (a _system_ capability: witnesses and users
+  both) — has **no IEL fallback for its positive resolution**: the SEL's own live state _is_ the authority for
+  "what is the live value", a dispute is genuine ambiguity (a sender can't safely pick a key → fails closed),
+  and a collusion-forced dead lineage is a real **DoS on secure receive**. It carries the `lineage` field, and
+  the **positive walk** re-establishes a live key at a discoverable address. (Its **negative** per-lineage check
+  — "is `lineage: N` killed" — still consults the owner IEL's lineaged `kills[]`, above.)
+- **The value is a T2 sealed `Gnt` — established `{Icp, Gnt}`.** The published key rides a **`Gnt`**
+  (`manifest.grant` → a `grants/*` grant-value — §1b), **not** T1 content: a value a sender encrypts to must
+  not be swappable by a bare signing key, so establishing or changing it needs `t_authorize`@T2 (a signing-key
+  theft cannot redirect secure receive). **Rotation = stack `Gnt`s** at the same lineage (the walk serves the
+  **live** sealed tip; a retired key is never served). **Rescission = a monotone `Trm`** on that lineage's chain (the
+  positive walk sees it), anchored by a **`Dth`** whose **`kills[]` declares the lineaged target**
+  `hash('{topic}:{owner}:{data}:{lineage}')` — so `lineage: N` reads dead by either path, and the re-established
+  `lineage: N+1` is untouched. That lineage is then dead; senders fail closed; the owner republishes by
+  re-incepting at the **next** lineage (loss-of-control only, never routine rotation — rotation stacks `Gnt`s at
+  the same lineage). The two attacks — a `Gnt`-swap (confidentiality) vs a `Trm`-rescind (availability), **both
+  T2** — and only the ML-KEM / ESSR send-receive payload live in **vdti-area-exchange**.
+- **Soundness.** Establishing a value **or** a kill at a lookup address requires a **T2** act (a `Gnt` rides an
+  `Ath`, a `Trm` a `Rev`/`Dth`). The one T1-reachable move — a content squat — is **impossible by
+  construction** (content derives to its own namespace; a v1-T1 at a lookup address is invalid). So blocking a
+  value again costs **T2** (takeover), the already-stated worst case; an uncompromised owner always outruns a
+  kill by standing up a higher lineage. Bounded residual: `MAXIMUM_SEL_LINEAGE = 64` caps the kill/re-establish
+  race (lineage increments only on a death; rotation stacks `Gnt`s at one lineage) — recorded in `residuals.md`.
 
 ### 1g. The three axes — never conflate them (count ⊥ tier)
 
@@ -292,9 +332,16 @@ SEL needs its **own** witnessed state.
   rides via `v1.previous`. So every SEL reads `{Icp, v1, …}`; a fabricated bare `{Icp}` naming a victim owner
   is **not** evidence of issuance (authentication is the v1's anchor — inv 15 S1).
 - **Which event is v1:** a content SEL's is the first content `Ixn`, or a bare **`Pin`** for an
-  incept-and-sit SEL (a doc author who endorses before editing); a **lookup SEL's is its `Trm`** (`{Icp,
-  Trm}` — born-to-kill, no separate `Pin`). The `Pin` kind, when used, does **only** the floor re-pin
-  (`t_use` / T1, not sealing).
+  incept-and-sit SEL (a doc author who endorses before editing); a **kill lookup's is its `Trm`** (`{Icp,
+  Trm}` — born-to-kill, no separate `Pin`); a **value lookup's is its `Gnt`** (`{Icp, Gnt}`). The `Pin` kind
+  does **only** the pin re-pin (`t_use` / T1, not sealing) and is the **pin-only re-pin at any serial** — its
+  serial-1 instance is the issuance floor here; a later content-less re-pin is also a `Pin`. **`Ixn` and `Pin`
+  are disjoint:** an `Ixn` always carries payload (required), a `Pin` never does, so no event is expressible
+  two ways.
+- **The `content: true` flag is the v1-tier discriminator (§1f biconditional).** A content SEL (v1-T1 —
+  `Ixn` / `Pin`) carries **`content: true`** on its `Icp`; a lookup SEL (v1-T2 — `Gnt` / `Trm`) carries **no**
+  `content` flag. The verifier rejects a mismatch (a v1-T1 without the flag, or a `content: true` with a v1-T2
+  v1), so content and lookups occupy structurally distinct address namespaces.
 
 ### 1i. Imposes on the IEL side
 
@@ -368,7 +415,7 @@ SEL needs its **own** witnessed state.
   locked-portion bound), `events.md` (the six kinds incl. `Sea`, two tiers, anchor reqs, seal cap),
   `merge.md` (first-seen decline, the merge outcomes), `reconciliation.md` (the **exhaustive divergence
   matrix** — the correctness proof, mirroring `iel/reconciliation.md`), `verification.md` (the walk incl.
-  the uniform semantics-blind `lineage` walk).
+  the meaning-blind `lineage` positive walk).
 - **Targeted interlocking canon edits — LANDED 2026-07-12 (the theorem-retirement + witnessed-SEL ripple):**
   inv 4 (anchor-monotonicity reading retired; `Evl` gains the `anchors` role for `Sea`), inv 12 (count-integrity
   restatement), inv 13 (cross-layer theorem → severance + witnessed-SEL divergence), inv 16 (the "no receipt
@@ -395,5 +442,8 @@ SEL needs its **own** witnessed state.
   inv-12 count-integrity restatement** (Jason 2026-07-12; landed in inv 4 / inv 12 / area-iel §1).
 - §1e (divergence) — **high** (deadness-precedence / severance-truncation / `deadness ascends` are
   settled); the cell-by-cell proof is owed at `sel/reconciliation.md`.
-- §1f (`lineage`) — **high** (uniform semantics-blind walk, `Terminated`-is-a-stop, cap 64, value-bearing
-  driving case are settled).
+- §1f (the two axes) — **high** (the `content: true` biconditional making the squat impossible by
+  construction; `lineage` a pure re-establishment counter with a positive walk, `Trm`-advances; the kill target
+  mirrors the killed address — non-lineaged monotone, **lineaged for a value rescission**, `:content` for
+  content; the positive walk consumes the per-lineage `kills[]`; cap 64; value-bearing driving case — all
+  settled).

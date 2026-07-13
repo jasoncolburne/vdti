@@ -117,19 +117,20 @@ The SEL's characteristic matrix: for each combination of (the SEL's own divergen
 owner-IEL state beneath the losing anchor), what the SEL reads. Deadness-precedence resolves Axis B
 first.
 
-| SEL own state       | owner IEL beneath the losing / relevant anchor            | SEL reads                                                                                                               |
-| ------------------- | --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| linear              | linear                                                    | **Active**                                                                                                              |
-| linear              | a live-anchored event on a **dead** owner-IEL branch      | **Severed** at the earliest dead anchor → the pre-sever chain reads Active                                              |
-| content fork        | losing anchor on a **dead** owner-IEL branch              | **auto-resolves** — the severed loser drops, the SEL shrinks to the shared tip → **Active** (no `Sea` needed)           |
-| content fork        | losing anchor **live, at/above** the owner-IEL seal       | the owner's choice — an owner-IEL re-bury (→ severance) **or** a `Sea` on the SEL → **Active**                          |
-| content fork        | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**             |
-| `{Trm, content}`    | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                           |
-| `{Trm, content}`    | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | the `Trm` severs and drops → the content is the lone live branch → **Active** (deadness precedes tier-rank)             |
-| `{Trm, content}`    | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                  |
-| `{Trm, content}`    | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                       |
-| ≥ 2 sealed branches | both anchors **live** (linear owner IEL)                  | **Disputed** → re-incept (no severance available to downgrade it)                                                       |
-| ≥ 2 sealed branches | one branch's anchor on a **dead** owner-IEL branch        | severance **downgrades** it — the severed branch is un-verifiable, not counted → drops to the live branch → recoverable |
+| SEL own state           | owner IEL beneath the losing / relevant anchor            | SEL reads                                                                                                                                                                                                                                          |
+| ----------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| linear                  | linear                                                    | **Active**                                                                                                                                                                                                                                         |
+| linear                  | a live-anchored event on a **dead** owner-IEL branch      | **Severed** at the earliest dead anchor → the pre-sever chain reads Active                                                                                                                                                                         |
+| content fork            | losing anchor on a **dead** owner-IEL branch              | **auto-resolves** — the severed loser drops, the SEL shrinks to the shared tip → **Active** (no `Sea` needed)                                                                                                                                      |
+| content fork            | losing anchor **live, at/above** the owner-IEL seal       | a **`Sea`** on the SEL is the normal path → **Active**; the owner IEL can instead deliberately fork and re-bury the losing anchor's branch (severance as a heavy side effect), not a symmetric free choice                                         |
+| content fork            | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**                                                                                                                                        |
+| `{Trm, content}`        | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                                                                                                                                                      |
+| `{Trm, content}`        | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | **unreachable by construction** — a `Trm`'s sealed `Rev`/`Dth` anchor is never buried alone (only content is buriable; a Disputed owner IEL kills both → the both-dead row). For completeness, were it severed the content would survive → Active. |
+| `{Trm, content}`        | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                                                                                                                                             |
+| `{Trm, content}`        | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                                                                                                                                                  |
+| `{Gnt \| Sea, content}` | live                                                      | the non-terminal seal-advancer buries the content → **Recovered → Active**; crossed with owner-IEL deadness it resolves like `{Trm, content}` but a surviving seal-advancer leaves the chain **Active** (not Terminated)                           |
+| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → re-incept (no severance available to downgrade it)                                                                                                                                                                                  |
+| ≥ 2 sealed branches     | one branch's anchor on a **dead** owner-IEL branch        | severance **downgrades** it — the severed branch is un-verifiable, not counted → drops to the live branch → recoverable                                                                                                                            |
 
 The load-bearing observation: **a content fork always resolves**, and _how_ keys on where the losing
 anchor sits — a dead branch gives severance for free (the common case, since owner-IEL divergences
@@ -177,15 +178,25 @@ point of no return.
 ## Re-incepting a lookup SEL
 
 A content or random-prefix SEL re-incepts by rerolling its nonce → a fresh unguessable prefix. A
-**discoverable lookup SEL cannot** — its prefix is a pure function of fixed inputs, so the same
-inputs recompute the same dead address. The remedy is the **`lineage`** counter: a re-incept at
-`lineage: n+1` is a distinct whole-content and so a distinct prefix, and the canonical instance is
-the lowest non-dead lineage. This matters for a **value lookup** (a published value whose own live
-state is the sole authority — a Disputed or severed locus is a real denial, and `lineage`
-re-establishes it at a discoverable address). It is inert for a **monotone kill**, which has an
-authoritative fail-secure fallback on the owner IEL, so a dead kill locus never advances — it stays
-at lineage zero. The verifier walks the lineages uniformly and meaning-blind, capped at
-`MAXIMUM_SEL_LINEAGE = 64`
+**discoverable value lookup cannot** — its prefix is a pure function of fixed inputs, so the same
+inputs recompute the same dead address. The remedy is the **`lineage`** counter, carried on a
+**re-establishable value** lookup: the base is `lineage: 0`, and a re-incept at `lineage: n+1` is a
+distinct whole-content and so a distinct prefix; the canonical instance is the lowest non-dead
+lineage, found by a **positive walk** (walk from `lineage: 0`, advance past a dead lineage, stop at
+the lowest live one — a `Trm` on one lineage advances the walk, it does not condemn the address).
+This matters because a value lookup's own live state is the sole authority for its **positive**
+resolution (no owner-IEL fallback there), so a Disputed or severed lineage is a real denial, and the
+walk re-establishes the value at a discoverable address. Rescinding one lineage is a monotone `Trm`
+whose anchoring `Dth` declares the **lineaged** target `hash('{topic}:{owner}:{data}:{lineage}')`,
+so the walk's per-lineage check reads `lineage: n` dead (from its own chain **or** that target in
+the owner IEL's fresh `kills[]`) while the re-established `n+1` survives — the positive walk
+consumes that per-lineage check, not a separate mechanism. A **monotone kill** (a cred revocation, a
+delegate / doc-member rescission) carries **no** `lineage` field and a **non-lineaged** target: it
+is answered by a single **negative check** (a verified `Trm` → killed), never walked. Content
+re-incepts by nonce-reroll and never carries `lineage` — its `content: true` flag keeps it in a
+separate address namespace, so a content squat at a value's lookup address is impossible by
+construction. The verifier reads the `content` flag and the `lineage` field's presence — no
+tier-check on the read path — capped at `MAXIMUM_SEL_LINEAGE = 64`
 ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)).
 
 ## Effective-SAID convergence
@@ -228,7 +239,7 @@ handler would reject — the same reason the owner IEL partitions send-side
 - [`log.md`](log.md) — chain primitive: states, the witnessed chain, the seal and its advancers,
   severance.
 - [`events.md`](events.md) — per-kind reference: the three axes, the cross-layer anchor matrix, the
-  lookup-SEL shapes, the lineage field.
+  lookup-SEL shapes, the content and lineage fields.
 - [`merge.md`](merge.md) — merge engine routing being proved sound; witnessed first-seen; severance.
 - [`verification.md`](verification.md) — the verifier walk that reads both axes.
 - [`../iel/reconciliation.md`](../iel/reconciliation.md) — the owner-IEL correctness proof whose

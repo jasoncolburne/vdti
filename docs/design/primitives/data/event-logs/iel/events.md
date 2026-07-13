@@ -18,17 +18,17 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 An identity's IEL is one of two facets, fixed by its inception root (§Two-kind inception). A **user
 IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`.
 
-| Kind  | Topic                    | Class     | Tier | Count                                      | Purpose                                                                                                                                                                   |
-| ----- | ------------------------ | --------- | ---- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                           |
-| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors SEL events, each SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                |
-| `Evl` | `vdti/iel/v1/events/evl` | sealed    | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster / threshold **delta** (`add` + `cut`); a `cut` `Evl` **evicts**. Anchors no kills. **Seal-advancing.**                                        |
-| `Ath` | `vdti/iel/v1/events/ath` | sealed    | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and / or `anchors` a SEL `Gnt` (act **as itself**). Sealed on arrival, non-terminal. **Seal-advancing.**         |
-| `Rev` | `vdti/iel/v1/events/rev` | sealed    | 2    | `t_govern`                                 | **Revoke** an owned artifact — a `kills[]` declaration + anchors the revocation-SEL `Trm`. Sealed on arrival, non-terminal. **Seal-advancing.**                           |
-| `Dth` | `vdti/iel/v1/events/dth` | sealed    | 2    | `t_authorize`                              | **Deauthorize** a grant — a `kills[]` declaration + anchors the rescission-SEL `Trm`; the polarity-inverse of `Ath`. Sealed on arrival, non-terminal. **Seal-advancing.** |
-| `Trm` | `vdti/iel/v1/events/trm` | terminal  | 2    | `t_govern`                                 | **Terminal** — retires the identity and freezes all its SELs. **Seal-advancing.**                                                                                         |
-| `Wit` | `vdti/iel/v1/events/wit` | sealed    | 2    | `t_govern`                                 | Federation **rebind** (user IEL) / federation **governance** (federation IEL); anchored by member KEL `Wit`s. `{Wit, Wit}` terminal. **Seal-advancing.**ᵃ                 |
-| `Fcp` | `vdti/iel/v1/events/fcp` | inception | 2    | all founders consent                       | **Federation inception marker** _(federation IEL only)_ — the federation IEL's inception; anchored kind-strict by each founder's KEL `Rot`.                               |
+| Kind  | Topic                    | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
+| ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                                                          |
+| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors SEL events, each SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                                               |
+| `Evl` | `vdti/iel/v1/events/evl` | sealed    | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster / threshold **delta** (`add` + `cut`); a `cut` `Evl` **evicts**. Anchors no kills, but **anchors a SEL `Sea`** (the burying-seal recovery, `Sea ← Evl`). **Seal-advancing.** |
+| `Ath` | `vdti/iel/v1/events/ath` | sealed    | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and / or `anchors` a SEL `Gnt` (act **as itself**). Sealed on arrival, non-terminal. **Seal-advancing.**                                        |
+| `Rev` | `vdti/iel/v1/events/rev` | sealed    | 2    | `t_govern`                                 | **Revoke** an owned artifact — a `kills[]` declaration + anchors the revocation-SEL `Trm`. Sealed on arrival, non-terminal. **Seal-advancing.**                                                          |
+| `Dth` | `vdti/iel/v1/events/dth` | sealed    | 2    | `t_authorize`                              | **Deauthorize** a grant — a `kills[]` declaration + anchors the rescission-SEL `Trm`; the polarity-inverse of `Ath`. Sealed on arrival, non-terminal. **Seal-advancing.**                                |
+| `Trm` | `vdti/iel/v1/events/trm` | terminal  | 2    | `t_govern`                                 | **Terminal** — retires the identity and freezes all its SELs. **Seal-advancing.**                                                                                                                        |
+| `Wit` | `vdti/iel/v1/events/wit` | sealed    | 2    | `t_govern`                                 | Federation **rebind** (user IEL) / federation **governance** (federation IEL); anchored by member KEL `Wit`s. `{Wit, Wit}` terminal. **Seal-advancing.**ᵃ                                                |
+| `Fcp` | `vdti/iel/v1/events/fcp` | inception | 2    | all founders consent                       | **Federation inception marker** _(federation IEL only)_ — the federation IEL's inception; anchored kind-strict by each founder's KEL `Rot`.                                                              |
 
 - ᵃ **`Wit`** is the **one** witness / federation kind — its facet is dispatched on the chain's root
   (§The facet-dependent `Wit`).
@@ -159,9 +159,11 @@ removed) + any changed thresholds — never a full snapshot (the append-only cha
 current roster is the accumulation of every delta while walking). **Added members consent at tier
 1** via their own KEL `Ixn` (they are joining, not rotating — sign and declare key commitments); the
 **`t_govern` of the outgoing roster** approve at tier 2, each revealing a rotation reserve via a KEL
-`Rot` that anchors the `Evl`. `Evl` **anchors no kills** (those ride `Rev` / `Dth`) and carries **no
-`federation`** (the rebind field), so it cannot mutate the federation binding — though it may carry
-`federationPin` for a same-federation re-pin, like any user IEL body event.
+`Rot` that anchors the `Evl`. `Evl` **anchors no kills** (those ride `Rev` / `Dth`) — but it
+**anchors a SEL `Sea`** (kind-strict, `Sea ← Evl`: the burying-seal recovery that re-seals a plain
+content SEL fork). It carries **no `federation`** (the rebind field), so it cannot mutate the
+federation binding — though it may carry `federationPin` for a same-federation re-pin, like any user
+IEL body event.
 
 **Eviction is a `cut` `Evl`.** Evicting a compromised or divergence-causing member is an ordinary
 `Evl` carrying a roster `cut` — one sealing event buries the fork **and** evicts, atomically (there
@@ -216,7 +218,13 @@ on a tier-1 `Ixn` is **malformed → rejected** (closing declare-a-revoke-at-`t_
 revocation / rescission **declaration** the fail-secure walk consumes:
 
 - **`target = hash('{topic}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier
-  computes directly and **forward-matches** on the owner's fresh IEL. The per-kind `topic`
+  computes directly and **forward-matches** on the owner's fresh IEL. The target **mirrors the
+  killed address** (area-sel §1f): **non-lineaged** `hash('{topic}:{owner}:{data}')` for a
+  **monotone kill** (cred revocation, delegate / doc-member rescission), **lineaged**
+  (`…:{lineage}`) for a **value rescission** (scoped to the one instance it kills, so the
+  re-established `lineage: N+1` survives), and a literal `:content` for a **content (app-SEL)
+  closure** (the content namespace). A value's positive resolution reads its own SEL chain; its
+  per-lineage negative check consults this lineaged target. The per-kind `topic`
   (`CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`) is **opaque to the IEL** — the IEL
   never dereferences a target or interprets a bound. Placement (kind-strict) is the only structural
   rule; all revocation and grandfather logic is the feature layer's
@@ -306,7 +314,7 @@ load-bearing).
 | Role        | Carried by                                       | Commits to                                                                                                          |
 | ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | higher-layer event SAIDs (the up-commit)                                                                            |
+| `anchors`   | `Ixn` / `Evl` / `Ath` / `Rev` / `Dth`            | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
 | `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list                                                                   |
 | `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                     |
@@ -327,6 +335,7 @@ by its matching IEL kind:
 | IEL kind | Anchors (SEL)                                                           | Tier-elevation floor |
 | -------- | ----------------------------------------------------------------------- | -------------------- |
 | `Ixn`    | content SEL events, each SEL's v1, and a credential issuance commitment | tier 1               |
+| `Evl`    | a SEL `Sea` (the neutral burying-seal recovery)                         | tier 2               |
 | `Ath`    | a SEL `Gnt` (doc-membership grant)                                      | tier 2               |
 | `Rev`    | a revocation-SEL `Trm`                                                  | tier 2               |
 | `Dth`    | a rescission-SEL `Trm`                                                  | tier 2               |
@@ -334,6 +343,7 @@ by its matching IEL kind:
 ```mermaid
 flowchart LR
   Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
+  Evl["IEL Evl"]:::iel ==>|manifest.anchors| Sea["SEL Sea"]:::sel
   Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
   Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
   Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm

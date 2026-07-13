@@ -97,13 +97,16 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      `Trm`, renamed from "cut-off"/"terminator" 2026-06-26.)*
    - `grant` — the gated grant-doc SAD `G` a **SEL `Gnt`** commits (the editors/commenters + their `from`
      validity-period starts). The additive twin of the rescission `Trm`'s `bound`; back-checked (a `Gnt` is valid
-     only anchored by an `Ath` — kind-strict), so unlike `content` it is *not* a directly-consumed role.
-   - `content` — the content SAD(s) a **SEL `Ixn`** records (single-owner data — e.g. an app/doc SEL amendment; a
-     credential is **not** a SEL and has no content `Ixn` — it is an immutable anchored SAD, 2026-07-09). A
-     lookup-SEL `Icp` uses `data` (the derive input), **not** a manifest; only the content `Ixn` carries this role.
+     only anchored by an `Ath` — kind-strict), so unlike `payload` it is *not* a directly-consumed role.
+   - `payload` — the payload SAD(s) a **SEL `Ixn`** records (single-owner data — e.g. an app/doc SEL amendment; a
+     credential is **not** a SEL and has no payload `Ixn` — it is an immutable anchored SAD, 2026-07-09).
+     **Required** on an `Ixn` — a SEL `Ixn` must commit ≥ 1 payload SAD (the role is never empty; a manifest-less
+     `Ixn` is malformed, and a pure re-pin is a `Pin`, not a payload-less `Ixn`). A
+     lookup-SEL `Icp` uses `data` (the derive input), **not** a manifest; only the `Ixn` carries this role.
      *(The first SEL-borne manifest role — later joined by `grant` and the `kills` `bound`; added 2026-06-22 — inv 4
-     had no SEL role, but a SEL `Ixn` must commit its content SADs, and the principle puts documents in the
-     manifest.)*
+     had no SEL role, but a SEL `Ixn` must commit its payload SADs, and the principle puts documents in the
+     manifest. The role was named `content` before 2026-07-13; renamed `payload` to free the `Icp` `content`
+     type-flag — area-sel §1f.)*
    - *(The **`fork` role is DELETED (first-seen, 2026-07-08)** — there is no repair event, so nothing commits a
      losing-branch root. A content loser is buried **by position + ascent** (the burying seal-advancer's seal-cap
      locks its first event; **deadness ascends** to its growth — an event whose parent is dead is dead; each dead
@@ -325,7 +328,11 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       ends are load-bearing:** the floor is the **earliest** issuance anchor (a cred's re-anchor is inert — R1, else a
       T1 re-anchor after a T2 `Rev` moves the floor past the kill, a tier inversion), the ceiling the **fresh tip**
       (inv 8). Forward-match your computed `target = hash('{topic}:{owner}:{data}')` (a flat domain-qualified hash;
-      distinct `topic` per kind, `data` = the grant-instance) against each `Rev`/`Dth`'s `kills[]` (reading `bound`
+      distinct `topic` per kind, `data` = the grant-instance; the target **mirrors the killed address** —
+      **non-lineaged** for a monotone kill (cred revocation, delegate/doc-member rescission), **lineaged**
+      (`…:{lineage}`) for a **value rescission** (scoped to the one instance it kills, so `lineage: N+1`
+      survives), a literal **`:content`** for a **content (app-SEL) closure** — area-sel §1f; both this
+      forward-match and the fail-open O(1) derive use the same form) against each `Rev`/`Dth`'s `kills[]` (reading `bound`
       from the same entry — delegate `bound` public, doc-member `bound` gated). **In some `kills[]` → revoked/rescinded;
       in none on the fully-walked fresh chain → not-revoked** — being in a `kills[]` **is** the definition of revoked, so
       "in none" is exactly "not revoked", nothing to miss. This **rides inv 8's freshness gate**: the only way to hide
@@ -658,7 +665,9 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       A *private* cred stays private because **`cred.said` appears nowhere raw** on the public IEL — issuance
       commitment, kill target, SEL prefix/said are all hashes of it, and the `nonce`-in-body keeps `cred.said`
       unguessable (fully closed — inv 16).
-    - **Lookup-SELs** (built from `Icp{owner, topic, data}`, usual two-pass prefix/said; the `kills[]` `target` is a
+    - **Lookup-SELs** (built from `Icp{owner, topic, data}`, usual two-pass prefix/said; a lookup `Icp` carries
+      **no `content` flag** — that marks content (area-sel §1f), and a **re-establishable value** lookup adds a
+      **`lineage`** counter; the `kills[]` `target` is a
       separate flat `hash('{topic}:{owner}:{data}')` ≠ prefix): a **revocation / rescission** lookup-SEL is
       `{Icp, Trm}` — the terminal `Trm` is the kill (sealed via an IEL `Rev`/`Dth`). **The primitive says only: a
       `Trm` commits whatever its manifest commits (R3).** **Bound placement is per-feature:** cred — no bound, the
@@ -668,7 +677,11 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       **cred+delegate**, not universal (B1 fail-secure rework 2026-07-09; area-iel §1). The serial-1 **event** floor
       is universal (above), not lookup-specific — for the `{Icp, Trm}` the `Trm` **is** that floor (no separate
       `Pin`);
-      the `Pin` *kind*, when used, does **only** the floor re-pin (`t_use`/T1, **not** sealing). *(There is no SEL
+      the `Pin` *kind* does **only** the pin re-pin (`t_use`/T1, **not** sealing) and is the **pin-only re-pin at
+      any serial** (its serial-1 instance is the issuance floor; a later content-less re-pin is also a `Pin`).
+      **`Ixn` and `Pin` are disjoint:** an **`Ixn`'s manifest is required** (≥ 1 `payload` SAD — a manifest-less
+      `Ixn` is malformed), so a pure re-pin is a `Pin`, never a payload-less `Ixn`; no event is expressible two
+      ways. *(There is no SEL
       re-seal `Fld` — dropped with the repair machinery; a plain content SEL floors down to the owner IEL instead.)*
     - **SEL `Trm`** = the kill — **always sealed on arrival**, anchored in one of the two dedicated sealed
       kill-anchors (**T2**; the identity-kill `Trm` is also **T2**): an **IEL `Rev`** (revoke / close your own credential
@@ -738,7 +751,15 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     current-key-compromise-at-current-time, the accepted limit, inv 13); the **self-asserted `pin` is dropped** —
     `custody { owner, topic, readPolicy }`; and the anchor is **self-locating** — a holder re-derives the SEL prefix
     from the held doc's `owner` / `topic` / `said` and walks it **by prefix** (inv-16-clean, no SAID inversion —
-    exactly the cred-holder mechanism, inv 15). **Structural at two levels:** the write path **pre-auths** (the
+    exactly the cred-holder mechanism, inv 15). **Two orthogonal `Icp` fields carry the address model
+    (area-sel §1f):** **`content: true`** discriminates content (v1-T1, handed) from a lookup (v1-T2,
+    blind-recomputed) — verifier-enforced biconditional, and it **rides the prefix** (so content and lookups
+    occupy distinct namespaces, and a content squat at a lookup address is impossible by construction — its
+    prefix differs, and a v1-T1 at a lookup address is invalid). **`lineage`** (lookups only) is a pure
+    re-establishment counter: a **re-establishable value** carries `lineage: 0, 1, …` (distinct prefixes) and is
+    read by the **positive walk** (walk from `lineage: 0`, advance past a dead lineage, stop at the lowest live
+    one); a **monotone** lookup omits it (absent-is-absent; `content` never carries it). **Structural at
+    two levels:** the write path **pre-auths** (the
     sadstore refuses an `owner`-bearing SAD without its corroborating SEL — `SEL.owner == owner ∧ SEL.data == said`),
     **and** a consumer **verifies independently** (self-location above; the store is untrusted — end-verifiability).
     **Field rule: `owner` present ⟺ `topic` present ⟺ the anchoring SEL exists** (an anonymous write carries none of
@@ -882,7 +903,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     re-pin, absent ⇒ inherit), the `witnesses` config ([inv 4] `witnesses` — present-iff-changed on `Wit`, mandatory
     only at inception where there is no prior to inherit).
     **Corollary — no empty events.** Every event must encode **≥ 1 change**, across **either layer** of the event: a
-    **manifest role** (`anchors`/`roster`/`witnesses`/`clock`/`delegates`/`content`/`grant`/`bound`) **or** a **top-level
+    **manifest role** (`anchors`/`roster`/`witnesses`/`clock`/`delegates`/`payload`/`grant`/`bound`) **or** a **top-level
     structural field** (`pins`/`pin`, the rotation key-state + next-key commitment, `previousSeal`). An event that
     changes nothing is **malformed → rejected**. *(So a `Wit` is never a no-op even with an empty manifest — it **is**
     a rotation, so its structural side always moves: `pins` on an IEL `Wit`, the key-state on a KEL `Wit`. That is why

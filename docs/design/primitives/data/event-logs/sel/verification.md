@@ -3,8 +3,8 @@
 The SEL verifier walks a chain from inception to tip, validating structural integrity (SAID, prefix,
 chain linkage, per-kind field rules), **owner-rooting** (the SEL authenticates by resolving down to
 its owner-IEL anchor), the SEL's **own witnessed divergence**, the **severance** a dead owner-IEL
-anchor causes, and — for a lookup SEL — the uniform **lineage walk**. It returns a verification
-token, `SelVerification`, that downstream consumers hold as proof-of-verification.
+anchor causes, and — for a re-establishable value lookup — the **lineage walk**. It returns a
+verification token, `SelVerification`, that downstream consumers hold as proof-of-verification.
 
 Like an IEL event, a SEL event carries **no adjacent signature of its own** — it authenticates by
 its owner-IEL anchor
@@ -27,13 +27,21 @@ For every event the verifier walks, it ensures:
 
 - Events match their kind-specific schemas (required and forbidden fields per the
   [event-shape reference](../event-shape.md#sel)), including the `manifest` role allowlist read
-  kind-first (a `content` role only on `Ixn`, a `grant` role only on `Gnt`; no manifest on `Icp` /
-  `Pin` / `Trm` / `Sea`) and the `previousSeal` presence rule (present on `Gnt` / `Trm` / `Sea`,
-  forbidden on `Icp` / `Ixn` / `Pin`).
+  kind-first (a `payload` role only on `Ixn`, a `grant` role only on `Gnt`; no manifest on `Icp` /
+  `Pin` / `Sea`) and the `previousSeal` presence rule (present on `Gnt` / `Trm` / `Sea`, forbidden
+  on `Icp` / `Ixn` / `Pin`).
 - Serials start at 0 and increment by 1 with no gaps; the inception `Icp` has serial 0 and a valid
-  prefix (re-derived from the canonical bytes — the populated `owner` / `topic` / `data` / `lineage`
-  — with `said` / `prefix` set to the placeholder), carries no `pin` and no manifest, and is **never
-  itself anchored** (its serial-1 v1 is).
+  prefix (re-derived from the canonical bytes — the populated `owner` / `topic` / `data`, plus
+  `content: true` on a content SEL and `lineage` on a re-establishable value lookup — with `said` /
+  `prefix` set to the placeholder), carries no `pin` and no manifest, and is **never itself
+  anchored** (its serial-1 v1 is).
+- **The `content: true` flag matches the v1's tier — the biconditional.** A content SEL, whose v1 is
+  `Ixn` / `Pin` (tier 1), carries **`content: true`** on its `Icp`; a lookup SEL, whose v1 is a
+  `Gnt` or `Trm` (tier 2), carries **no** `content` flag. A SEL whose flag and v1 tier disagree — a
+  v1-T1 without `content: true`, or a `content: true` with a v1-T2 v1 — is **invalid** and rejected.
+  Because the flag rides the whole-content prefix, content and lookups derive to **different
+  addresses**, so a content squat at a value's lookup address is impossible by construction
+  ([§The lineage walk](#the-lineage-walk)).
 - All event prefixes match the chain's prefix; all events have valid SAIDs; events chain via
   `previous`; each seal-advancer's `previousSeal` resolves to the prior seal (the spine).
 - **Owner-rooting** — the serial-1 v1 resolves to a real event on the claimed owner's IEL, and each
@@ -70,6 +78,7 @@ verify_event(event):
     # 3. Structure validation
     validate_structure(event)          # Required / forbidden fields per kind (event-shape)
     assert event.manifest carries only roles in allowed(event.kind)   # read kind-first
+    if event.kind == Ixn:  assert event.manifest has payload (>= 1 SAD)   # Ixn payload is required
 
     # 4. Serial + chain continuity
     if event.serial != expected_serial: return Error("Serial gap or regression")
@@ -85,7 +94,7 @@ verify_event(event):
 
     # 6. Floor + role consumption
     if event.kind != Icp:  assert event.pin floors to the owner IEL (v1: == anchor.previous)
-    if event.kind == Ixn:  record content SADs
+    if event.kind == Ixn:  record payload SADs
     if event.kind == Gnt:  record the grant-value
     if event.kind == Trm:  record the kill (its anchor, its committed target)
 ```
@@ -144,45 +153,60 @@ shortened chain's state.
 **Deadness comes first.** A content fork with one severed branch auto-resolves to the live branch
 (no burying seal-advancer needed); a Disputed with one severed branch downgrades to the live branch
 (the severed branch is not counted). A Disputed under a **linear** owner IEL — no severance
-available — stays terminal. The full enumeration is
+available — stays terminal. A `{Trm, content}` fork with a severed branch likewise keeps the
+survivor (a severed content leaves the `Trm` → Terminated). The full enumeration is
 [`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix).
 
 ## The lineage walk
 
-A lookup SEL is located by recomputing its prefix, and a re-incepted one is located by walking its
-lineages. The walk is **uniform and meaning-blind** — it never inspects what the SEL is _for_ (topic
-opacity):
+A **re-establishable value lookup** — a published value re-establishable at a fresh address after a
+rescission (a KEM receive-key) — carries a `lineage` counter and is resolved by a **positive walk**
+over its own lineage chain. The walk is **meaning-blind** (topic opacity) — it reads chain state,
+never what the value is _for_:
 
 ```
-resolve_lookup(owner, topic, data):
-    for n in 0 ..= MAXIMUM_SEL_LINEAGE:       # inclusive: lineages 0 through 64
-        sel = fetch(derive(owner, topic, data, lineage = n))   # lineage 0 omits the field
+resolve_lookup(owner, topic, data):                       # a re-establishable value
+    for n in 0 ..= MAXIMUM_SEL_LINEAGE:                   # lineage: 0, 1, 2, …
+        sel = fetch(derive(owner, topic, data, lineage = n))
         if sel is absent:            return (not established, at lineage n)   # a gap ends the walk
-        if sel reads dead (Disputed / severed):  continue      # advance to the next lineage
-        return sel                             # STOP — any non-dead reading (Active / Forked / validly Terminated)
-    return (no live instance, fail-secure)     # past the cap
+        if lineage_n_dead(sel, n):   continue          # advance — a Trm on n's chain / Disputed / severed,
+                                                        #   OR n's lineaged target in the owner's fresh kills[]
+        return sel                                        # STOP — the lowest live lineage (Active / Forked)
+    return (no live instance, fail-secure)                # past the cap
 ```
 
-- **Contiguous from zero** — a gap ends the walk (also the anti-equivocation property: anything
-  above a live one is inert, so an equivocation attempt fails safe).
-- **`Terminated` is a STOP, not a DEAD.** A kill lookup's `Trm` is its **success** — the locus was
-  killed. Treating a `Terminated` locus as dead and advancing past it would walk past a real
-  revocation to an empty lineage and read not-revoked — a **fail-open** hole. So `Terminated` stops
-  the walk.
-- **Any non-dead reading stops — `Forked` included.** Only `Disputed` and severed advance the walk;
-  `Active`, `Forked`, and validly-`Terminated` all stop. A live `Forked` locus is **not** walked
-  past — it stops and returns `Forked` (which reads fail-secure), the same _lowest non-dead_ rule
-  that forecloses equivocation.
+- **`Trm` advances.** A `Trm` on `lineage: n` kills **that lineage**, not the address, so the walk
+  advances to `lineage: n+1`. A rescinded value is re-established by re-incepting at the next
+  lineage, so a live key stays reachable at a discoverable address.
+- **Any non-dead reading stops — `Forked` included.** Only `Trm` / Disputed / severed advance the
+  walk; `Active` and `Forked` stop and return their reading (a `Forked` locus reads fail-secure).
+  This is the anti-equivocation property too: anything above a live lineage is inert, so an
+  equivocation attempt fails safe.
+- **Contiguous from `lineage: 0`.** A gap — an absent lineage — ends the walk; a value is never
+  established above an absent one.
 - **The cap `MAXIMUM_SEL_LINEAGE = 64`** bounds the walk; past it there is no live instance, which
   reads fail-secure.
 
-The walk is uniform, but the _need_ differs by semantics at the feature layer, never in the
-verifier. A **monotone kill** has an authoritative fail-secure fallback on the owner IEL, so its
-fail-open fast path is a single fetch at lineage zero (any `Trm` present → killed, a disputed locus
-included), and it never advances — a dead kill locus stays at lineage zero. A **value lookup** — a
-published value whose own live state is the sole authority — has no fallback, so a disputed or
-severed locus is a real denial and the `lineage` walk is what re-establishes the value at a
-discoverable address.
+**The positive walk consumes the per-lineage negative check — one act, not two mechanisms.**
+`lineage: n` reads dead when a `Trm` sits on its own SEL chain (Disputed or severed count too)
+**or** its **lineaged** target `hash('{topic}:{owner}:{data}:{lineage}')` is present in the owner
+IEL's **fresh** `Rev` / `Dth` `kills[]` — the fail-secure, un-withholdable authority
+([`../iel/verification.md` §The kills forward-match](../iel/verification.md#the-kills-forward-match)).
+So a value's **positive** resolution — "what is the live value?" — has no owner-IEL fallback (the
+SEL's own live state is the authority, and a disputed or severed lineage is a real denial), yet its
+**negative** per-lineage check — "is `lineage: n` killed?" — **does** consult that lineaged
+`kills[]`. Both hold; they are not a contradiction. A **monotone kill** (a cred revocation, a
+delegate / doc-member rescission) carries a **non-lineaged** target instead — the killed thing has
+no lineage — and is read the same way, the O(1) `{Icp, Trm}` read (present → killed) with the
+fail-secure `kills[]` walk behind it; it has no lineage chain to advance across, so a verified `Trm`
+present → **killed** (a Disputed locus included). A non-re-establishable value is a single monotone
+read at its own address.
+
+**Content is neither walked nor negative-checked.** A content SEL is **handed**, and `content: true`
+gives it its own address namespace — so it can never occupy a lookup address (the acceptance
+biconditional, [§What verification ensures](#what-verification-ensures)). The
+value-vs-kill-vs-content split is **structural** (the `content` flag and the `lineage` field's
+presence), read without any tier-check on the read path.
 
 ## `SelVerification` token
 
@@ -195,14 +219,15 @@ SelVerification:
     prefix: String
     owner: String                          # the owner IEL prefix (Icp-only, immutable)
     topic: String                          # the application discriminator
-    lineage: u32                            # this instance's lineage (0 when the field is absent)
+    content: bool                          # the content discriminator (true iff the Icp carries content: true — a v1-T1 content SEL); a lookup's Icp omits the flag
+    lineage: Option<u32>                    # Some(n) only on a re-establishable value lookup; None on content or a monotone lookup
     kind_class: SelClass                    # content SEL vs kill-lookup vs value-lookup
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = the SEL's own divergence)
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
     severed_at: Option<SAID>                # the last live-anchored event when a dead owner-IEL anchor truncates the chain
     last_seal_advancing_event: Option<SAID>  # the derived seal: the most recent Gnt / Trm / Sea that landed cleanly
     owner_anchor_per_event: ...            # per-event owner-IEL anchor (kind + liveness)
-    content_saids: BTreeSet<SAID>          # content-SAD SAIDs recorded on the canonical branch
+    payload_saids: BTreeSet<SAID>          # payload SAD SAIDs recorded on the canonical branch
     grant_value: Option<SAID>               # a value lookup's live grant-value (the live sealed tip)
     kill: Option<KillStructure>             # a kill lookup's Trm: its anchor kind (Rev / Dth) + committed target
     structurally_valid: bool               # the structural-validity result (owner-rooting, linkage, anchor kinds)
@@ -225,7 +250,7 @@ and its own witnessing.
 - `kind_class()` → content SEL, kill lookup, or value lookup.
 - `grant_value()` → a value lookup's live sealed value (the served tip; a retired value never
   surfaces).
-- `is_killed(locus)` → the kill-lookup read (the fail-open fast path at lineage zero; the
+- `is_killed(locus)` → the kill-lookup read (the fail-open fast path at the monotone address; the
   authoritative fail-secure `kills[]` walk is the feature layer's —
   [`../iel/verification.md` §The kills forward-match](../iel/verification.md#the-kills-forward-match)).
 - `is_terminated()` → `true` when the tip is a `Trm`.
@@ -301,18 +326,19 @@ configurable).
 
 ## Per-event check summary
 
-| Property                | Verification method                                                                                                                                     |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| SAID / prefix integrity | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from `owner` / `topic` / `data` / `lineage`). |
-| Event chaining          | `previous` resolves to a verified prior event; each seal-advancer's `previousSeal` resolves to the prior seal.                                          |
-| Serial monotonicity     | Each event's serial equals the previous + 1; inception is serial 0.                                                                                     |
-| Owner-rooting           | The serial-1 v1 resolves to a real owner-IEL event whose prefix equals `owner`; each event authorized by the anchor's threshold.                        |
-| Kind-strict anchoring   | The anchoring owner-IEL event is the matching kind (`Ixn` / `Ath` / `Rev` / `Dth` / `Evl`); tier-elevation is an added floor, not the check.            |
-| Severance               | A SEL event on a dead owner-IEL branch severs the chain at the earliest dead anchor.                                                                    |
-| Down-pin floor          | A serial-1 v1's `pin` equals its anchoring IEL event's `previous`; each `Ixn` re-pins forward.                                                          |
-| Manifest roles          | The `manifest` carries only roles in the kind's allowlist (`content` on `Ixn`, `grant` on `Gnt`; none on `Icp` / `Pin` / `Trm` / `Sea`).                |
-| Witnessed divergence    | The SEL's own first-seen at `(prefix, serial)`; two accepted sealed branches → disputed.                                                                |
-| Lineage walk            | Uniform, meaning-blind; dead → advance, live / validly-Terminated / absent → stop; cap 64.                                                              |
+| Property                | Verification method                                                                                                                                                                                                                                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| SAID / prefix integrity | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from `owner` / `topic` / `data` / `lineage`).                                                                                                                                                            |
+| Event chaining          | `previous` resolves to a verified prior event; each seal-advancer's `previousSeal` resolves to the prior seal.                                                                                                                                                                                                     |
+| Serial monotonicity     | Each event's serial equals the previous + 1; inception is serial 0.                                                                                                                                                                                                                                                |
+| Owner-rooting           | The serial-1 v1 resolves to a real owner-IEL event whose prefix equals `owner`; each event authorized by the anchor's threshold.                                                                                                                                                                                   |
+| Kind-strict anchoring   | The anchoring owner-IEL event is the matching kind (`Ixn` / `Ath` / `Rev` / `Dth` / `Evl`); tier-elevation is an added floor, not the check.                                                                                                                                                                       |
+| Severance               | A SEL event on a dead owner-IEL branch severs the chain at the earliest dead anchor.                                                                                                                                                                                                                               |
+| Down-pin floor          | A serial-1 v1's `pin` equals its anchoring IEL event's `previous`; each `Ixn` re-pins forward.                                                                                                                                                                                                                     |
+| Manifest roles          | The `manifest` carries only roles in the kind's allowlist (`payload` on `Ixn`, `grant` on `Gnt`; none on `Icp` / `Pin` / `Sea`; a `Trm`'s manifest is opt — a feature-layer gated doc). An `Ixn`'s manifest is **required** (≥ 1 `payload` SAD) — a manifest-less `Ixn` is malformed (a pure re-pin is a `Pin`).   |
+| Witnessed divergence    | The SEL's own first-seen at `(prefix, serial)`; two accepted sealed branches → disputed.                                                                                                                                                                                                                           |
+| Lineage walk            | A re-establishable value's positive walk over its own lineage chain: walk `lineage: 0, 1, …`; a dead lineage (a `Trm` on its chain / Disputed / severed, or its **lineaged** `kills[]` target) → advance, a live one → stop; a gap ends it; cap 64. A monotone kill uses a non-lineaged target; content is handed. |
+| `content: true` ⟺ v1-T1 | The verifier confirms the `Icp`'s `content` flag matches the v1's tier — a v1-T1 without `content: true`, or a `content: true` with a v1-T2 v1, is invalid. The flag rides the prefix, so content and lookups occupy distinct namespaces and the content squat is impossible by construction.                      |
 
 ## Cross-references
 
@@ -321,7 +347,7 @@ configurable).
 - [`log.md`](log.md) — chain primitive: states, the witnessed chain, the seal and its advancers,
   severance, the down-pin.
 - [`events.md`](events.md) — per-kind reference: the three axes, the manifest roles, the anchor
-  matrix, the lookup-SEL shapes, the lineage field.
+  matrix, the lookup-SEL shapes, the content and lineage fields.
 - [`merge.md`](merge.md) — merge handler routing: how the verifier output composes with the merge
   gate.
 - [`reconciliation.md`](reconciliation.md) — the correctness proof.
