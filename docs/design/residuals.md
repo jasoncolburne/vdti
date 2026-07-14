@@ -25,14 +25,14 @@ Each residual is written as three fields:
 
 **Cost of exposure** ranks how bad realization is, independent of how hard it is to reach:
 
-- **Catastrophic** — irreversible loss of an identity (a prefix can never be recovered, only
+- **Catastrophic** (30) — irreversible loss of an identity (a prefix can never be recovered, only
   reincepted under a new one) or a trust break spanning a whole federation.
-- **High** — a serious break that is bounded or recoverable, or one gated behind a strong
+- **High** (10) — a serious break that is bounded or recoverable, or one gated behind a strong
   precondition (a key theft, a quorum compromise, a skipped mandatory step).
-- **Medium** — a bounded, recoverable exposure needing notable adversary capability or an operator
-  error; usually a liveness, availability, or bounded-correlation cost, not a trust break.
-- **Low** — minor, self-limiting, or a deliberate capability ceiling; no adversary advantage beyond
-  the stated bound.
+- **Medium** (3) — a bounded, recoverable exposure needing notable adversary capability or an
+  operator error; usually a liveness, availability, or bounded-correlation cost, not a trust break.
+- **Low** (1) — minor, self-limiting, or a deliberate capability ceiling; no adversary advantage
+  beyond the stated bound.
 
 **Exploitability** is how attainable the attack is. The design assumes all keys live in **device
 hardware**, key changes are **pre-rotation** (the reserve is committed, never exposed), and
@@ -61,9 +61,9 @@ each band a multiple of the next, not a step.
 - **Reserve + Witnesses** (1) — a reserve quorum **and** a witness quorum; the hardest.
 
 **Risk = Cost × Exploitability** is what the ranked tables sort by, so a certain-but-passive leak or
-a likely operator slip sorts **above** an astronomically-rare-but-catastrophic key compromise.
-Score: Cost (Catastrophic 30 / High 10 / Medium 3 / Low 1) × Exploitability (the weights above),
-bucketed **Critical ≥ 1000 / High 200–999 / Medium 50–199 / Low ≤ 49**.
+a likely operator slip sorts **above** an astronomically-rare-but-catastrophic key compromise. Both
+factors carry the weights above; the product is bucketed **Critical ≥ 1000 / High 200–999 / Medium
+50–199 / Low ≤ 49**.
 
 Ranking is a judgment call about blast radius, reversibility, and what is protected. The ordering
 below is a first pass meant to be argued with, not a settled verdict.
