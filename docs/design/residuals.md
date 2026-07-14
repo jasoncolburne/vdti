@@ -148,7 +148,7 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 | Config-pinned federation root  | Trust          | Trust roots arrive over an out-of-band channel — the universal bootstrap axiom (cf. CA roots). A mismatch simply fails; there is nothing to trust wrongly unless that channel itself is compromised                                        |
 | Forgeable document root        | Trust          | A document root is anonymous-write, so a competing root is always mintable; legitimacy is social and a holder self-authenticates against the derived prefix — the same out-of-band bootstrap axiom as the config-pinned root, one layer up |
 | Referenced content gone        | Availability   | A referenced record can read "not present" — retention is an author window, not a lifetime guarantee for the reference                                                                                                                     |
-| Roster / rebind / seal caps    | Availability   | Very large rosters or rebinds are refused — a deliberate ceiling that bounds verifier work                                                                                                                                                 |
+| Roster / seal caps             | Availability   | Very large rosters and long content runs between seals are refused — deliberate ceilings that bound verifier work; an over-long rebind chain is refused by the general work bound, not a per-chain cap                                     |
 | Dead-branch flood              | Availability   | A signing-key adversary can waste bounded storage / traffic; it is never canonical and self-resolves                                                                                                                                       |
 | Dangling-parent flood          | Availability   | A junk flood denies only the flooder's own placement, never others                                                                                                                                                                         |
 | No retroactive distrust        | Recoverability | A co-signed bad event stands; you remediate forward (revoke, evict) rather than rewrite history                                                                                                                                            |
@@ -168,12 +168,14 @@ framework's acknowledged points of no return, shared in kind with any pre-rotati
 
 ### Rotation-reserve theft → takeover — Catastrophic
 
-- **Attack** — Each identity holds a rotation **reserve** apart from its everyday signing key; the
-  reserve defends the signing key, not the reverse. An adversary who steals the reserve authors a
-  valid rotation to their own key. On a dormant chain this is silent — witnesses sign it as an
-  ordinary next event, and there is no on-chain divergence to challenge; if the adversary rotates at
-  the owner's next position first, the owner's later attempt is a late, declined sibling. There is
-  no structural veto.
+- **Attack** — An identity is governed by a **`t_govern` threshold of member KELs**, each holding a
+  rotation **reserve** in its own hardware apart from its everyday signing key; the reserve defends
+  the signing key, not the reverse. An adversary who steals a **`t_govern` quorum** of those
+  reserves authors a valid identity-governing rotation to keys they control (a single stolen reserve
+  takes over only one member KEL — inert at the identity level). On a dormant chain this is silent —
+  witnesses sign it as an ordinary next event, and there is no on-chain divergence to challenge; if
+  the adversary rotates at the identity's next position first, the owner's later attempt is a late,
+  declined sibling. There is no structural veto.
 - **Mitigation** — The reserve is held separately (in device hardware), so a signing-key compromise
   alone cannot reach it. The takeover is not prevented, but it need not be silent: an owner who
   [monitors their own chain](monitoring.md) — comparing the network's effective SAID for their
@@ -668,9 +670,10 @@ are not exploitable breaks — they are the bounds themselves.
 ### Lower-cost availability bounds — Low
 
 - **Caps** — The roster is capped (a memory-exhaustion backstop for the verifier's on-walk rebuild),
-  federation rebinds per chain are capped, and content between seals is capped (forcing a periodic
-  re-seal so a fork plus its burying seal fit one validation page). Each trades an unbounded
-  capability for a bounded surface; each bites only unusually large or churny use.
+  and content between seals is capped (forcing a periodic re-seal so a fork plus its burying seal
+  fit one validation page). Each trades an unbounded capability for a bounded surface; each bites
+  only unusually large use. (Federation **rebinds** are **not** capped per chain — an over-long
+  rebind chain is refused by the general verification work bound, not a dedicated cap.)
 - **Bounded dead-branch flood** — A content-tier adversary extending a dead branch spews events that
   are never canonical but are still propagated and retained — bounded on both axes (a depth cap per
   lineage forcing resolution, and retain-at-least-two-per-position). A bounded waste, not a trust

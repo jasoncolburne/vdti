@@ -130,9 +130,10 @@ The digest is keyed on the position and the witness prefix — never the event's
 the **currency-gated current membership** read from the verified federation context. The digest
 input follows the shared byte convention of the `hash('{tag}:…')` derivations
 ([`../primitives/data/event-logs/tags-and-topics.md`](../primitives/data/event-logs/tags-and-topics.md)):
-each field in its canonical form
-([`../primitives/data/sad/said.md`](../primitives/data/sad/said.md)) — the prefixes as their
-qualified representation, `serial` in decimal — concatenated `':'`-joined, so independent
+each field in its canonical form — the prefixes as their qualified representation
+([`../primitives/data/sad/said.md`](../primitives/data/sad/said.md)), `serial` as its **minimal
+base-10 ASCII** form (no leading zeros) — concatenated `':'`-joined as raw bytes (the join is its
+own byte convention, not the JSON/JCS canonicalization `said.md` governs), so independent
 implementations compute the identical selected set.
 
 For a **federation member's own KEL events**, selection runs the same algorithm with **that
@@ -144,16 +145,20 @@ pool `|roster| − 1`.
 Receipts are **adjacent attestation data** — unanchored, like a KEL's signatures — and they are
 evaluated **as-of the event's own federation context**, never at the federation's current tip.
 
-**Durability.** A receipt counts iff its signer is in
-`select(prefix, serial, roster(F @ federationPin), signers)`, where `federationPin` is the
-position's inherited at-or-before federation binding — shared by every sibling at that serial, never
-any one event's own optional pin. The federation IEL and the witness KELs are append-only, so
-`roster(F @ federationPin)` and each witness's key at that context are both fixed: **an event stays
-witnessed forever — there is no re-witnessing of historical data**, and a since-removed witness's
-_established_ receipts keep counting. Federation context attaches per layer: a KEL carries it, a
-user IEL records its own authoritative `{federation, federationPin}` (field-matched to its members'
-KEL `Wit`s), and a SEL inherits its owner IEL's. A SEL event selects witnesses under the
-`federationPin` of the owner-IEL event it pins to — fully derivable, no new mechanism.
+**Durability.** A witnessed event's pin is **current** — the currency gate refuses a stale-pin
+event, so witnessing selects over the current set (§Deterministic selection). What makes witnessing
+_durable_ is that this then-current selection is fixed forever. A receipt counts iff its signer is
+in `select(prefix, serial, roster(F @ federationPin), signers)`, where `federationPin` is the
+event's own recorded binding at that position — **inherited** by an ordinary event, **declared** by
+a rebind `Wit` — which was current when the event was witnessed; the `select` here is a **counting
+re-derivation** of that past selection, never a fresh selection under an old pin. The federation IEL
+and the witness KELs are append-only, so `roster(F @ federationPin)` and each witness's key at that
+context are both fixed: **an event stays witnessed forever — there is no re-witnessing of historical
+data**, and a since-removed witness's _established_ receipts keep counting. Federation context
+attaches per layer: a KEL carries it, a user IEL records its own authoritative
+`{federation, federationPin}` (field-matched to its members' KEL `Wit`s), and a SEL inherits its
+owner IEL's. A SEL event selects witnesses under the `federationPin` of the owner-IEL event it pins
+to — fully derivable, no new mechanism.
 
 **The acceptance-time currency gate.** To keep an active chain from pinning an ever-staler context,
 witnesses **refuse to witness an event whose `federationPin`'s roster membership is not current**.
@@ -359,10 +364,14 @@ must itself reach witness threshold — so flooding is neither free nor unbounde
 An identity's initial federation binding rides its `Icp` (`federation` prefix + `federationPin`
 SAID). A later `Wit` **rebinds** it to a new federation — anchored by the members' KEL `Wit`s
 (kind-strict, tier 2 → tier 2), its `{federation, federationPin}` field-matched to every anchoring
-KEL `Wit`, so the identity's binding records only what its members signed. Trust is **per-federation
-and non-transitive**: a verifier independently trusts _each_ federation prefix the chain bound to,
-and each event is witnessed by whichever federation was current when it landed. Witnessing is
-therefore **range-based** — a contiguous run of events between rebinds shares one context — and the
+KEL `Wit`, so the identity's binding records only what its members signed. Rebinding is how a prefix
+**survives its federation**: if the federation dies or is compromised, the identity rebinds to a
+**new** federation and keeps its prefix alive. This is why a rebind `Wit`'s **declared** current
+binding **must** be accepted for selection (it selects over the new roster) — forcing it back onto
+the dead federation would strand the prefix. Trust is **per-federation and non-transitive**: a
+verifier independently trusts _each_ federation prefix the chain bound to, and each event is
+witnessed by whichever federation was current when it landed. Witnessing is therefore
+**range-based** — a contiguous run of events between rebinds shares one context — and the
 verification token reports the ranges (`[from, to) → F`), per range, not per event. A consumer
 **must not** assume "has a `Wit` ⇒ all events witnessed": an event in a run bound to a since-changed
 federation is witnessed by that run's federation, not today's.

@@ -1129,22 +1129,24 @@ the competing sibling closes below the seal; if it attaches at the shared ancest
 guidance: with every selected witness voting, an odd set always yields a strict majority for one
 sibling).
 
-Receipts are evaluated **as-of the event's federation context** — a receipt counts iff its signer is
-among the witnesses **selected** for the position,
-`select(prefix, serial, roster(F @ federationPin), signers)`, where `federationPin` is the
-position's **inherited** at-or-before federation binding — shared by every sibling at that serial,
-never any one event's own optional pin, so competing siblings always select the **same** witness
-set. The selection is derived over that as-of roster — never mere roster membership (the fork-cost
-intersection is over the selection, so the counting predicate must be selection-scoped too), and
-never at the federation's current tip — so an event stays witnessed forever (no re-witnessing of
-history), and a since-removed witness's established receipts keep counting. A witness's receipting
-key-window is bounded by the **federation clock** (above): a cut or rotated-out witness earns no new
-pinned window, and a witness **wipes superseded private keys on rotation and removal** (forward
-secrecy; durability is unaffected because old receipts verify with public keys). Together — wipe
-plus the clock — these close the harvested-old-key forgery on a dormant chain (it reads stale →
-detectable). Witness rotation is legal **only** as a synchronized federation `Wit` (the witness's
-KEL `Wit` is the rotation and anchors the federation IEL `Wit`); an off-ceremony rotation produces
-receipts the federation does not honor.
+Witnessing is **current** — the currency gate refuses a stale-pin event, so selection happens over
+the current set — and receipts are then **counted as-of the event's federation context** by
+re-deriving that same then-current selection. A receipt counts iff its signer is among the witnesses
+**selected** for the position, `select(prefix, serial, roster(F @ federationPin), signers)`, where
+`federationPin` is the event's own recorded binding at that position — **inherited** by an ordinary
+event (so competing **content** siblings at a serial share it and select the **same** set, the
+quorum-intersection the floor needs), **declared** by a rebind `Wit` — current when the event was
+witnessed. The selection is derived over that as-of roster — never mere roster membership (the
+fork-cost intersection is over the selection, so the counting predicate must be selection-scoped
+too), and never re-derived at the federation's current tip — so an event stays witnessed forever (no
+re-witnessing of history), and a since-removed witness's established receipts keep counting. A
+witness's receipting key-window is bounded by the **federation clock** (above): a cut or rotated-out
+witness earns no new pinned window, and a witness **wipes superseded private keys on rotation and
+removal** (forward secrecy; durability is unaffected because old receipts verify with public keys).
+Together — wipe plus the clock — these close the harvested-old-key forgery on a dormant chain (it
+reads stale → detectable). Witness rotation is legal **only** as a synchronized federation `Wit`
+(the witness's KEL `Wit` is the rotation and anchors the federation IEL `Wit`); an off-ceremony
+rotation produces receipts the federation does not honor.
 
 **Detection is eventual, not at-decision-time.** Every detection guarantee assumes the consumer can
 reach enough honest witnesses / converged gossip to see the competing branch. A consumer eclipsed to
@@ -1241,12 +1243,16 @@ rather than re-verifying from inception. What to cache depends on what the next 
   is unchanged.
 
 Fetching is **incremental against a source**: a consumer queries with the token's effective-SAID as
-a **`since` cursor**, and the source returns only the events **after** that position. The mesh is
-beacon-plus-fetch, not a stream — every page is a network round-trip, so continuation avoids
-re-fetching settled history (the sink/source transfer surface is a services-layer mechanism,
-forthcoming). A `resume` still re-runs the to-tip negative checks (revocation / rescission /
-divergence) against the new tip whenever a transitively-pinned chain moved, so extending a walk
-never advances a token past a revocation without surfacing it.
+a **`since` cursor**, and the source returns only the events **after** that stored position. When
+the cursor is **not a stored event** — a `forked` / `disputed` **synthetic**, or any SAID the source
+does not hold — the lookup simply misses and the source returns the **whole chain from the start**
+(the first page), which the consumer re-walks; a synthetic effective-SAID needs no special handling,
+and a fork or dispute just costs a full re-walk. The mesh is beacon-plus-fetch, not a stream — every
+page is a network round-trip, so continuation avoids re-fetching settled history (the sink/source
+transfer surface is a services-layer mechanism, forthcoming). A `resume` still re-runs the to-tip
+negative checks (revocation / rescission / divergence) against the new tip whenever a
+transitively-pinned chain moved, so extending a walk never advances a token past a revocation
+without surfacing it.
 
 Caching is a **consumer choice**: a client may retain tokens and chains up to whatever its disk and
 memory allow; a service keeps no such per-consumer cache and re-walks under its work bound.

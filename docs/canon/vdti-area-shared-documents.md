@@ -75,7 +75,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   (delegation §1/§2): the total is **unbounded**, resolved **per-participant by direct lookup** — a
   version's honored-check reads its pinned grant `G_x` (governance SEL) + one rescission
   (`hash(G | said_b)`, O(1)), **never** a materialized live set. The **one amplification bound** is
-  **`MAX_GRANT_ADDS = 64`** (generous, because the total is unbounded): a grant's `editors` +
+  **`MAXIMUM_GRANT_ADDS = 64`** (generous, because the total is unbounded): a grant's `editors` +
   `commenters` add-lists total **≤ 64 per grant event**, enforced **as the verifier walks** (accumulate
   the event's adds; the instant it breaches 64, **bail**). Nothing else needs bounding — the
   governance-SEL length and the per-participant period count are the creator's own cost, cost-symmetric

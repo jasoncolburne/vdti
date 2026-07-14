@@ -147,8 +147,10 @@ kind set and exclude-self peer-witnessing. Reading a marker is not vouching for 
 can stand up a perfectly well-formed `Fcp`-rooted federation of its own; a consumer honors a binding
 to it **only** if that prefix is in the consumer's configured set. So a stood-up federation the
 consumer has not configured earns no trust. **Well-formedness is the `Fcp` marker; trust is
-set-membership.** Once the mesh forms, the genesis is cross-witnessed exclude-self like every other
-federation event — the marker never carried the trust in the first place.
+set-membership.** Once the mesh forms, every **subsequent** federation event is cross-witnessed
+exclude-self; the genesis `Fcp` itself roots in the config-pinned prefix, not a receipt count
+(§Verifying the genesis bundle), and is not re-witnessed after the fact — the marker never carried
+the trust in the first place.
 
 ## Verifying the genesis bundle
 
@@ -160,9 +162,10 @@ A verifier validates a received genesis against the configured prefix as follows
 - **The `Fcp` is well-formed as a federation inception** — the restricted kind set is in force, the
   threshold vector is exactly `{t_govern}`, `|roster| ≥ 4`, and the witness-config clears its floors
   ([`witnessing.md`](witnessing.md)).
-- **Each founder's `Rot` anchors the federation `Fcp`, kind-strict (tier 2 → tier 2)**, and the
-  founders named in the roster are exactly the anchoring authors — the inception threshold is met by
-  the roster itself.
+- **A `t_govern` threshold of the founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2
+  → tier 2)** — the anchoring authors are roster founders (no outsiders), so the ordinary inception
+  threshold is met by the roster itself; a genesis below `t_govern` is sub-threshold and reads
+  fail-secure, no special rule.
 - **The `Fcp` carries a `manifest.clock`** seeding the timeline's lower bound.
 
 A genesis that clears these is trusted as the federation's serial-0 root. Nothing about it rests on
