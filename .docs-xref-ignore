@@ -3,20 +3,24 @@
 # Each line is a glob (fnmatch) matched against the RESOLVED repo-relative path
 # of a link target that does not exist yet. Listing a path here suppresses the
 # "target not found" error for links that point at docs slated for a later
-# sub-issue. `#` starts a comment; blank lines are ignored.
+# sub-issue. `#` starts a comment (inline too); blank lines are ignored.
 #
 # These are EXPECTED-MISSING only. Once a target file lands, the ignore stops
 # applying automatically (the checker validates the real file and its anchors);
 # remove the corresponding line when that happens. Run with --strict to surface
 # every still-missing forward-ref.
+#
+# Keep each entry as NARROW as possible — prefer the exact forthcoming file. A
+# subtree glob (.../*) over a directory that already holds real docs silently
+# masks a broken link into it, which is the failure mode this list is meant to
+# avoid.
 
-# --- Top-level docs subtrees (README scaffolding; populated across phases) ---
+# --- Top-level docs/ subtrees (README scaffolding; populated across later phases) ---
 docs/reference
 docs/analysis
 docs/operations
 docs/operations/*
 
-docs/design/features/*
-docs/design/features/exchange/*
-docs/design/substrate/federation/*
-docs/design/substrate/infrastructure/*
+# --- Forthcoming design docs (one exact path each; add a line when a new ref lands) ---
+docs/design/features/exchange/exchange.md      # exchange feature — canon: vdti-area-exchange.md
+docs/design/substrate/infrastructure/vdtid.md  # vdtid services/architecture — canon: vdti-area-vdtid-services.md
