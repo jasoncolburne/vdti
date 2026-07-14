@@ -230,7 +230,7 @@ discipline, §1e, exists to prevent), a node escalates to a **by-prefix flat fet
   the pre-fork run, then each competing content branch, so every event's `previous` is present before it lands
   (`send_divergent_events`). *(There is no `fork`-root sequencing and no trailing repair event — a burying
   seal-advancer, when present, lands **last** like any seal-advancer.)* The **atomic unit** — the competing content
-  branches (≤ 64 each) + the burying seal — fits **one `MINIMUM_PAGE_SIZE = 129` page** (area-kel); a ≥ 3-branch
+  branches (≤ `MAXIMUM_UNSEALED_RUN` each) + the burying seal — fits **one `MINIMUM_PAGE_SIZE = 129` page** (area-kel); a ≥ 3-branch
   residual fork's extra branches ride later pages (reconciliation invariant 3).
 
 ### 1j. SAD-store write path — the `kind` filter (first-seen hardening, 2026-07-08; ⚠ NOT previously design-reviewed — the encode-review is its first decorrelated pass)

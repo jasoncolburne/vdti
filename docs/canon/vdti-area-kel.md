@@ -167,9 +167,9 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   `Extended`/`Recovered`/`Terminated`/`Forked`/`Disputed`, rejections `Sealed`/`Terminal`/`Invalid`/`Ignored`;
   canonical routing), `reconciliation.md` (the first-seen convergence walk — root-bury + deadness-ascends; the
   **four-state matrix**, Forked vs Disputed), `verification.md` (the walk).
-- **Seal cap** — the 64-event **content-run** bound (per lineage) is a seal-advancer property (any `Rot`/`Wit`).
-  **`MINIMUM_PAGE_SIZE = 129`, cap = `(MINIMUM_PAGE_SIZE − 1)/2` = 64 (per lineage).** The page is `2·64 + 1` so one
-  fetch/txn carries a **full recoverable content fork — both lineages (≤ 64 each) plus the burying `Rot`** —
+- **Seal cap** — the `MAXIMUM_UNSEALED_RUN` **content-run** bound (per lineage) is a seal-advancer property (any `Rot`/`Wit`).
+  **`MINIMUM_PAGE_SIZE = 129`, `MAXIMUM_UNSEALED_RUN = (MINIMUM_PAGE_SIZE − 1)/2 = 64` (per lineage).** The page is `2·MAXIMUM_UNSEALED_RUN + 1` so one
+  fetch/txn carries a **full recoverable content fork — both lineages (≤ `MAXIMUM_UNSEALED_RUN` each) plus the burying `Rot`** —
   atomically: a source→sink transfer must carry **both** competing content branches (the sink holds neither in
   storage; it is receiving the fork fresh), so the burying `Rot`'s content-only guard has every branch to walk under
   one advisory lock (Jason 2026-07-03). *(There is no repair batch — the burying event is a single ordinary `Rot`.)*

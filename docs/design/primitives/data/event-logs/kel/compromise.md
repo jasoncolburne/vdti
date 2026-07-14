@@ -71,9 +71,9 @@ bare `Wit` purely to recover), and its rotation is what **closes new forks** by 
 compromised signing key out: **recovery closes the fork window; the rotation closes new forks.** One
 recovery `Rot` buries the whole current fork, and its key rotation then denies the culprit the new
 signing key, so after it propagates they can mint no more. A sustained signing-key adversary merely
-spews **dead** content into a **bounded** fork (depth-capped at 64 per lineage, breadth bounded by
-retention + the one-content-sibling witnessing rule) — then the depth-cap forces a seal-advancer.
-(The burial mechanics and the two attach shapes are the merge layer's —
+spews **dead** content into a **bounded** fork (depth-capped at `MAXIMUM_UNSEALED_RUN` per lineage,
+breadth bounded by retention + the one-content-sibling witnessing rule) — then the depth-cap forces
+a seal-advancer. (The burial mechanics and the two attach shapes are the merge layer's —
 [`merge.md` §How a burying seal-advancer resolves a content fork](merge.md#how-a-burying-seal-advancer-resolves-a-content-fork).)
 
 There is **no repair kind, no recovery key, and nothing to prove** — no losing-branch commitment, no

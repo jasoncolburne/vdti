@@ -269,14 +269,14 @@ commitment, no content-only guard walk. The mechanics are pure position + ascent
    and does not block the burial. Sealed branches are always retained, so an unnamed sealed sibling
    is caught, never sealed past.
 
-The hot page covers the retained (winning) branch (≤ 64, the fold) plus the burying event; the
-competing content loser is validated from retained storage and need not co-reside in the hot page. A
-burying seal is **validated on arrival, not auto-applied** — the merge layer validates it as an
-ordinary event at its attach-position (the same sibling / seal-cap / divergence checks any event
-faces) and only then advances the seal. An **under-covering** burial (a node behind on gossip holds
-content the burial never covered) is **accepted** (`Recovered`); the uncovered content inerts on the
-bounded forked chain and is re-issued forward by its author. An **un-covered sealed** branch makes
-the fork terminal (`Disputed`).
+The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
+burying event; the competing content loser is validated from retained storage and need not co-reside
+in the hot page. A burying seal is **validated on arrival, not auto-applied** — the merge layer
+validates it as an ordinary event at its attach-position (the same sibling / seal-cap / divergence
+checks any event faces) and only then advances the seal. An **under-covering** burial (a node behind
+on gossip holds content the burial never covered) is **accepted** (`Recovered`); the uncovered
+content inerts on the bounded forked chain and is re-issued forward by its author. An **un-covered
+sealed** branch makes the fork terminal (`Disputed`).
 
 ## Eviction — a `cut` `Evl` buries and evicts atomically
 
@@ -303,7 +303,7 @@ evict the member).
 ## The seal-cap and the roster-less re-seal `Evl`
 
 The seal-advance cap is enforced here: between successive sealing events the content run must not
-exceed `(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage
+exceed `MAXIMUM_UNSEALED_RUN` per lineage
 ([`events.md` §Seal-advance cap](events.md#seal-advance-cap)). A busy issuer that fills the window
 re-seals with a **roster-less `Evl`** (omitting `roster`). Validation must **accept** it: no added
 members means no consent needed, and it is `t_govern`-authorized on the unchanged roster. Two

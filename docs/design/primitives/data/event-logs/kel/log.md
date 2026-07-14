@@ -165,26 +165,27 @@ undo their past contributions; only the going-forward spent-reserve effect appli
 ## Seal-advance cap
 
 A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal but ends the chain)
-must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events **per lineage**.
-The cap bounds the **fold** — the content run since the last seal — to 64 events on each branch, so
-the canonical two-branch content fork anchored at the last seal — both lineages (≤ 64 each) plus the
-burying seal-advancer — fits in one page.
+must land at least every `MAXIMUM_UNSEALED_RUN` non-seal-advancing events **per lineage**. The cap
+bounds the **fold** — the content run since the last seal — to `MAXIMUM_UNSEALED_RUN` events on each
+branch, so the canonical two-branch content fork anchored at the last seal — both lineages (≤
+`MAXIMUM_UNSEALED_RUN` each) plus the burying seal-advancer — fits in one page.
 
-`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1` is a protocol constant — a deployment floor, not a
-per-deployment knob — so a fork-and-recover page produced on any conformant deployment fits on every
-other. The page carries **both** competing content branches plus the burying seal-advancer because a
-source → sink transfer delivers the fork to a sink that holds neither branch in storage. A **local**
-discriminator needs less: its hot page is the retained branch (≤ 64) plus the burying seal-advancer;
-the losing branch is buried by position + ascent, validated from retained storage, not held in the
-page. The shapes that exceed one page (an own-`Rot` in the retained tail; a ≥ 3-branch residual
-fork) ride earlier or later pages — [`reconciliation.md` §Invariants](reconciliation.md#invariants)
-(invariant 3) carries the derivation.
+`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1` is a protocol constant — a deployment floor,
+not a per-deployment knob — so a fork-and-recover page produced on any conformant deployment fits on
+every other. The page carries **both** competing content branches plus the burying seal-advancer
+because a source → sink transfer delivers the fork to a sink that holds neither branch in storage. A
+**local** discriminator needs less: its hot page is the retained branch (≤ `MAXIMUM_UNSEALED_RUN`)
+plus the burying seal-advancer; the losing branch is buried by position + ascent, validated from
+retained storage, not held in the page. The shapes that exceed one page (an own-`Rot` in the
+retained tail; a ≥ 3-branch residual fork) ride earlier or later pages —
+[`reconciliation.md` §Invariants](reconciliation.md#invariants) (invariant 3) carries the
+derivation.
 
 The seal-advance cap composes with the divergence-and-recovery rules to give the
 [bounded-divergence invariant](reconciliation.md#invariants): an adversary holding less than the
 rotation reserve can only submit `Ixn` events, and the cap limits each of their lineages to at most
-64 events past the last seal before they must produce a seal-advancing event (which requires at
-least tier-2 capability — see
+`MAXIMUM_UNSEALED_RUN` events past the last seal before they must produce a seal-advancing event
+(which requires at least tier-2 capability — see
 [`compromise.md` §Two-tier compromise model](compromise.md#two-tier-compromise-model)).
 
 ## Page model
@@ -194,8 +195,9 @@ unit of memory budget for the verifier walk, the unit of round-trip for storage 
 of atomicity for the merge handler.
 
 - **`MINIMUM_PAGE_SIZE` = 129** — protocol constant; the floor every conformant deployment must
-  support. The seal-advance cap (`(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage) is derived from this
-  constant so a two-branch fork-and-recover page produced anywhere validates anywhere.
+  support. The seal-advance cap — **`MAXIMUM_UNSEALED_RUN` = `(MINIMUM_PAGE_SIZE − 1)/2` = 64** per
+  lineage — is derived from this constant so a two-branch fork-and-recover page produced anywhere
+  validates anywhere.
 - **Page boundaries align with generations.** A generation is the set of events at the same serial.
   The verifier processes events in generation order (`serial ASC, kind sort_priority ASC, said ASC`)
   and re-fetches an incomplete generation at the next page boundary; a divergent generation that

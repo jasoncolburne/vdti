@@ -268,8 +268,8 @@ the invariants:
 - An **authorization floor `> |roster|/2`** — a strict majority signs every governance / grant, so
   any two authorizing quorums overlap and a sealed fork always names a double-dealer.
 - The roster is **never emptied** (`|roster| + |add| − |cut| >= 1`; a set — `add ∉` it, `cut ⊆` it,
-  `cut ∩ add = ∅`, making a singleton's roster downward-immutable), **hard-capped at 32** (a DoS
-  backstop); a singleton (`|roster| = 1`) sets all thresholds to 1.
+  `cut ∩ add = ∅`, making a singleton's roster downward-immutable), **hard-capped at
+  `MAXIMUM_ROSTER_SIZE`** (a DoS backstop); a singleton (`|roster| = 1`) sets all thresholds to 1.
 - A **federation** IEL's recoverability ceiling is **hard** (critical infrastructure must always be
   able to evict a compromised witness), so `|roster| >= 4`, and its **witness-config** carries an
   added cap `threshold <= min(|roster| − 2, signers − 1)` plus the witnessing floor
@@ -326,14 +326,14 @@ rejects any submission whose parent sits before the `Trm`; a direct `Trm`-child 
 is rejected by the terminal-state gate.
 
 **Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
-`(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events **per lineage**, so the canonical
-two-branch fork anchored at the last seal — both lineages (≤ 64 each) plus the burying seal-advancer
-— fits one page on any conformant deployment (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`, a protocol
-constant, not a per-deployment knob). The page carries **both** competing branches plus the burying
-seal because a source → sink transfer delivers the fork to a sink holding neither branch — the
-burying seal's content-only guard needs every branch to walk within one atomic unit; there is no
-separate repair event, the burying event is a single ordinary `Rot` / `Wit` / `Trm` (KEL) or sealing
-event (IEL).
+`MAXIMUM_UNSEALED_RUN` non-seal-advancing events **per lineage**, so the canonical two-branch fork
+anchored at the last seal — both lineages (≤ `MAXIMUM_UNSEALED_RUN` each) plus the burying
+seal-advancer — fits one page on any conformant deployment
+(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, a protocol constant, not a per-deployment
+knob). The page carries **both** competing branches plus the burying seal because a source → sink
+transfer delivers the fork to a sink holding neither branch — the burying seal's content-only guard
+needs every branch to walk within one atomic unit; there is no separate repair event, the burying
+event is a single ordinary `Rot` / `Wit` / `Trm` (KEL) or sealing event (IEL).
 
 On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the stream
 issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances accumulate and
@@ -587,11 +587,11 @@ branches **at the last seal** → **Disputed** (you can't overturn a witnessed r
 **below-seal** sealed straggler, by contrast, is **dropped** (inert — not witnessable past the seal;
 it does not retreat the clean seal, the backdate defense).
 
-**Termination.** Each dead lineage is **depth-capped**: at most `(MINIMUM_PAGE_SIZE − 1)/2 = 64`
-events past the last seal (the seal-advance cap — a deeper event would itself have to be a
-seal-advancer, which on this dead branch is itself dead on ascent, dropped), and burial-on-ascent
-makes one seal growth-proof for the whole current fork within that cap. What closes the culprit's
-ability to mint a **new** fork differs by layer:
+**Termination.** Each dead lineage is **depth-capped**: at most `MAXIMUM_UNSEALED_RUN` events past
+the last seal (the seal-advance cap — a deeper event would itself have to be a seal-advancer, which
+on this dead branch is itself dead on ascent, dropped), and burial-on-ascent makes one seal
+growth-proof for the whole current fork within that cap. What closes the culprit's ability to mint a
+**new** fork differs by layer:
 
 - **KEL — the `Rot` self-neutralizes the culprit.** It rotates the signing key out and re-commits
   the next rotation reserve (`rotationHash`, so the reserve persists and the next `Rot` is always
@@ -610,10 +610,10 @@ ability to mint a **new** fork differs by layer:
   buried and re-issued, terminating as honest members catch up to the recovered tip.
 
 So termination is **bounded**: each fork a sustained adversarial re-forker mints is capped at one
-bounded fork window (≤ `(MINIMUM_PAGE_SIZE − 1)/2` deep), and once the neutralizing move — the
-rotation, or the cut — propagates, no new fork can be minted; a benign lag terminates as soon as its
-node catches up. A benign content self-cascade is the **content-rail liveness** case, not a safety
-one — the witnessing floor keeps it to stall-and-re-issue, never a live fork
+bounded fork window (≤ `MAXIMUM_UNSEALED_RUN` deep), and once the neutralizing move — the rotation,
+or the cut — propagates, no new fork can be minted; a benign lag terminates as soon as its node
+catches up. A benign content self-cascade is the **content-rail liveness** case, not a safety one —
+the witnessing floor keeps it to stall-and-re-issue, never a live fork
 ([§Federation convergence](#federation-convergence)).
 
 **Finality is question-dependent.** A burying seal is **content-final the instant it seals**:

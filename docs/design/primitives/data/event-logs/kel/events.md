@@ -273,21 +273,23 @@ establishment event. Future revelations are checked against the tracked digest: 
 KEL has one protocol-enforced cap (the seal-advance cap).
 
 A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal but ends the chain)
-must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The
-cap bounds the **fold** — the content run since the last seal — to 64 events on each branch, so the
-canonical two-branch content fork plus the resolving burying seal-advancer is **sized to fit** one
-page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing
-content branches plus the burying seal-advancer in one atomic page, since the sink holds neither
-branch in storage. A local node's hot page is smaller still (its retained branch ≤ 64 plus the
-burying seal-advancer; the losing branch is buried by position + ascent, validated from retained
-storage). See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+must land at least every `MAXIMUM_UNSEALED_RUN` non-seal-advancing events per lineage. The cap
+bounds the **fold** — the content run since the last seal — to `MAXIMUM_UNSEALED_RUN` events on each
+branch, so the canonical two-branch content fork plus the resolving burying seal-advancer is **sized
+to fit** one page (`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`): a source → sink transfer
+can carry both competing content branches plus the burying seal-advancer in one atomic page, since
+the sink holds neither branch in storage. A local node's hot page is smaller still (its retained
+branch ≤ `MAXIMUM_UNSEALED_RUN` plus the burying seal-advancer; the losing branch is buried by
+position + ascent, validated from retained storage). See
+[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
-**Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at 64 events
-past the last seal before they must produce a seal-advancing event — which requires at least tier-2
-capability (the rotation reserve). A tier-1 adversary lacking the reserve cannot extend a lineage
-beyond the cap. Builders auto-insert `Rot` when an `Ixn` would exceed the cap. Seal-cap satisfiers
-are `{Rot, Wit}` — `Trm` advances the seal but is terminal, so it is not a mid-chain cap-satisfier.
+**Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at
+`MAXIMUM_UNSEALED_RUN` events past the last seal before they must produce a seal-advancing event —
+which requires at least tier-2 capability (the rotation reserve). A tier-1 adversary lacking the
+reserve cannot extend a lineage beyond the cap. Builders auto-insert `Rot` when an `Ixn` would
+exceed the cap. Seal-cap satisfiers are `{Rot, Wit}` — `Trm` advances the seal but is terminal, so
+it is not a mid-chain cap-satisfier.
 
 ## Per-kind sort priority
 

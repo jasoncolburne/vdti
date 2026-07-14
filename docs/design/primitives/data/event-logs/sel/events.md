@@ -325,14 +325,14 @@ meaning.
 
 ## Seal-advance cap
 
-A seal-advancer (`Gnt` / `Trm` / `Sea`) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64`
-content events per lineage, so the content run since the last seal is bounded to 64 on each branch
-and the canonical two-branch content fork plus the resolving burying seal fits one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`, the same bound as the KEL and IEL). A busy SEL with no
-natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral advancer, the SEL
-analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at one position
-dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two sealed
-branches → Disputed, exactly as any two sealed events would be.
+A seal-advancer (`Gnt` / `Trm` / `Sea`) must land at least every `MAXIMUM_UNSEALED_RUN` content
+events per lineage, so the content run since the last seal is bounded to `MAXIMUM_UNSEALED_RUN` on
+each branch and the canonical two-branch content fork plus the resolving burying seal fits one page
+(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, the same bound as the KEL and IEL). A busy
+SEL with no natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral
+advancer, the SEL analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at
+one position dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two
+sealed branches → Disputed, exactly as any two sealed events would be.
 
 ## Cross-references
 

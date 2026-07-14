@@ -70,12 +70,12 @@ Doctrine is the leading edge — these follow it.
     (`GROUP BY prefix, serial HAVING COUNT > 1`, `services/kels/src/repository.rs:212`) scan the **whole
     prefix** — O(chain length). On an indefinite vdti chain that is unacceptable per computation, and
     the effective SAID is computed constantly (token-reuse gate, anti-entropy compare, post-merge). The
-    **seal cap makes it boundable**: a live fork sits ≤ 64/lineage above a seal, an origination-frozen fork
+    **seal cap makes it boundable**: a live fork sits ≤ `MAXIMUM_UNSEALED_RUN`/lineage above a seal, an origination-frozen fork
     sits at the very top (nothing originates new work onto a live fork), and resolved-fork losers are archived
     out of the live table (below the last clean seal the live table is linear → no leaves there). So **every
     live tip lands within one page below `MAX(serial)`**. Bound both queries to
-    `serial > MAX(serial) − MINIMUM_PAGE_SIZE` (129, generous — all leaves are within ≤ 64 of the seal
-    and the seal is within ≤ 64 of `MAX`) and they stay O(page).
+    `serial > MAX(serial) − MINIMUM_PAGE_SIZE` (129, generous — all leaves are within ≤ `MAXIMUM_UNSEALED_RUN` of the seal
+    and the seal is within ≤ `MAXIMUM_UNSEALED_RUN` of `MAX`) and they stay O(page).
   - **Two queries** (matches kels' two-step and the expected shape): **(1)** `MAX(serial)` + a
     duplicate-serial check over the window (`GROUP BY serial HAVING COUNT > 1`, `serial > floor`) — cheap;
     a linear result (no duplicate) fast-paths to the max-serial tip's SAID. **(2)** only when divergent,

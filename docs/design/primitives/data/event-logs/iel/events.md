@@ -460,11 +460,12 @@ semantic meaning.
 ## Seal-advance cap
 
 A sealing event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
-but ends the chain) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` content events per
-lineage. The cap bounds the content run since the last seal to 64 on each branch, so the canonical
-two-branch content fork plus the resolving burying seal is sized to fit one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`). It is **required**: `Ixn` is content and does not advance
-the seal, and issuance rides `Ixn`, so without the cap the content window would grow unbounded.
+but ends the chain) must land at least every `MAXIMUM_UNSEALED_RUN` content events per lineage. The
+cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` on each branch, so the
+canonical two-branch content fork plus the resolving burying seal is sized to fit one page
+(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`). It is **required**: `Ixn` is content and
+does not advance the seal, and issuance rides `Ixn`, so without the cap the content window would
+grow unbounded.
 
 A busy issuer that fills the window **re-seals with a roster-less `Evl`** — a pure re-seal that
 omits `roster` (the seal advance via `previousSeal` is the change, not an empty delta). It is valid

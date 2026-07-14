@@ -151,13 +151,13 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   data-local walk decides. [inv 13]
 - **IEL distrust is forward-only (locked 2026-06-22)** [inv 12, 13]. An IEL event is trusted iff a **threshold** of members anchored it (fresh participation, inv 5), so a **rogue member KEL is inert alone** — it can't reach `t_use`/`t_govern`, so the quorum's "don't trust this" *is* **non-participation** (stop co-anchoring) **+ a `Evl` eviction**; you don't *also* anchor the rogue's attempts, and satisfaction is never met. A **retroactive** per-event distrust declaration is **forbidden** — a quorum that could retroactively un-trust its own history would hold the **backdate kill-switch** vdti closes. Trust is decided at participation time; an event the quorum co-signed (even alongside a since-compromised member) **stands**, and remediation is **forward** (revoke what it granted, evict the member). A member KEL un-resolvable at the KEL layer (clean adversarial multi-rotation — no divergence to challenge) **does not propagate** to the identity: the IEL evicts it and leans on the quorum. **No cut-member cap** (the member's own seal bounds its past; the SAID-pin bound survives only for delegate-rescission — inv 14 / delegation §5).
 - **Seal-cap on the content window — REQUIRED, like KEL/SEL (2026-06-22)** [inv 13]. The IEL bounds the run of
-  non-seal-advancing events between seal-advancing (sealed) events at `(MINIMUM_PAGE_SIZE − 1)/2` = 64 (per lineage) — the **same**
+  non-seal-advancing events between seal-advancing (sealed) events at `MAXIMUM_UNSEALED_RUN` (per lineage) — the **same**
   bound as the KEL and SEL — so a recoverable content fork + its burying seal
   fits one page → cross-node-validatable. This is **not optional:** `Ixn` is content and does **not** advance the
   seal (only `Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit` do — the one `Wit` kind, both facets; cold-5 B2), and **issuance — the frequent op — rides `Ixn`** (`anchors[]`),
   so without the cap the post-seal window grows unbounded and the IEL faces the same recovery-page pressure the
   KEL/SEL cap answers. (The burying event is a single ordinary sealing event (an `Evl`, or the `cut` `Evl` when it
-  also evicts), so the atomic page carries the two competing content branches + the one burying seal — `2·64 + 1 =
+  also evicts), so the atomic page carries the two competing content branches + the one burying seal — `2·MAXIMUM_UNSEALED_RUN + 1 =
   129`, area-kel; there is no separate repair event.)
   A busy issuer that fills the window **re-seals with a roster-less `Evl`** (a pure re-seal — **omits `roster`** per inv 18; the seal advance via `previousSeal` is the change, *not* an empty `{add:[],cut:[]}`) — the IEL analogue
   of the KEL re-sealing via `Rot`, **reusing `Evl`, no new kind, no marker.** The re-seal `Evl` is **valid**
@@ -282,8 +282,8 @@ These predate the reshape but appear to survive it (`Ath` is still a positive in
   designated submitter for sealing events; pause everyday issuing during a sealing event; hold sealed events
   while a network split is suspected; a split-bricked identity recovers by reincept (detectable on heal). This is
   the F7 resolution — operator guidance, no protocol change. **Add a content-rail line (CORRECTED round-4, cold-S-D — the round-5 "recoverable all-content" was UNSAFE; witness-scoped 2026-07-02):** a
-  split during **high-volume issuance** is recoverable **only within one seal-cap window** (≤ `(MINIMUM_PAGE_SIZE − 1)/2`
-  = 64 content events): keep one branch, archive + reissue the other (SAIDs lock `previous` — can't interleave).
+  split during **high-volume issuance** is recoverable **only within one seal-cap window** (≤ `MAXIMUM_UNSEALED_RUN`
+  content events): keep one branch, archive + reissue the other (SAIDs lock `previous` — can't interleave).
   **Beyond one window it is NOT recoverable** — both halves fill the cap and are *forced* to re-seal with a
   roster-less `Evl`; the two re-seals differ by `previous` → `{Evl, Evl}` → **terminal → reincept**. **On a witnessed
   chain the witnessing floor demotes this discipline from safety-critical to LIVENESS (federation §1e):** the

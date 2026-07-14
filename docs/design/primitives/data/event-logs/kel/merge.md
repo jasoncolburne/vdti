@@ -182,7 +182,7 @@ For events admitted past rule 3, kind-specific authorization fires:
 - **Forward-key commitment checks** for establishment events (see
   [`events.md` §Forward-key commitments](events.md#forward-key-commitments)).
 - **Seal-advance cap enforcement** — between successive seal-advancing events the count of
-  non-seal-advancing events must not exceed `(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage. See
+  non-seal-advancing events must not exceed `MAXIMUM_UNSEALED_RUN` per lineage. See
   [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 - **No burying a sealed branch.** A burying seal-advancer that extends a fork's winning branch
   buries the competing **content** below its new seal. If a competing branch it would bury carries a
@@ -325,8 +325,9 @@ content-only guard walk. The mechanics are pure position + ascent:
    not block the burial. Sealed branches are always retained (keep-all-data), so an unnamed sealed
    sibling is caught, never sealed past — the reserve defends the signing key, not the rotation key.
 
-The hot page covers the retained (winning) branch (≤ 64, the fold) plus the burying event; the
-competing content loser is validated from retained storage and need not co-reside in the hot page.
+The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
+burying event; the competing content loser is validated from retained storage and need not co-reside
+in the hot page.
 
 ## A burying seal-advancer is validated on arrival, not auto-applied
 

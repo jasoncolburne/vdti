@@ -220,12 +220,12 @@ it. This is what the seal-cap sizes and what a burying seal resolves.
 ## Seal-advance cap
 
 A sealing event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
-but ends the chain) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` content events **per
-lineage**. The cap bounds the content run since the last seal to 64 events on each branch, so the
-canonical two-branch content fork anchored at the last seal — both lineages (≤ 64 each) plus the
-burying seal — fits one page. `MINIMUM_PAGE_SIZE = 129 = 2·64 + 1` is a protocol constant, the same
-bound as the KEL and SEL, so a fork-and-recover page produced on any conformant deployment fits on
-every other.
+but ends the chain) must land at least every `MAXIMUM_UNSEALED_RUN` content events **per lineage**.
+The cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` events on each branch,
+so the canonical two-branch content fork anchored at the last seal — both lineages (≤
+`MAXIMUM_UNSEALED_RUN` each) plus the burying seal — fits one page.
+`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1` is a protocol constant, the same bound as the
+KEL and SEL, so a fork-and-recover page produced on any conformant deployment fits on every other.
 
 The cap is **not optional** on the IEL. `Ixn` is content and does not advance the seal, and
 **issuance — the frequent operation — rides `Ixn`**, so without the cap the post-seal content window
@@ -245,8 +245,9 @@ unit of memory budget for the verifier walk, the unit of round-trip for storage 
 of atomicity for the merge handler.
 
 - **`MINIMUM_PAGE_SIZE` = 129** — protocol constant; the floor every conformant deployment must
-  support. The seal-advance cap (`(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage) is derived from it so
-  a two-branch fork-and-recover page produced anywhere validates anywhere.
+  support. The seal-advance cap — **`MAXIMUM_UNSEALED_RUN` = `(MINIMUM_PAGE_SIZE − 1)/2` = 64** per
+  lineage — is derived from it so a two-branch fork-and-recover page produced anywhere validates
+  anywhere.
 - **Page boundaries align with generations.** A generation is the set of events at the same serial.
   The verifier processes events in generation order (`serial ASC, kind sort_priority ASC, said ASC`)
   and re-fetches an incomplete generation at the next page boundary, so a divergent generation
