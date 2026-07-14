@@ -19,8 +19,10 @@
 docs/reference
 docs/analysis
 docs/operations
-docs/operations/*
 
 # --- Forthcoming design docs (one exact path each; add a line when a new ref lands) ---
+docs/design/features/credentials
 docs/design/features/exchange/exchange.md      # exchange feature — canon: vdti-area-exchange.md
+docs/operations/sealing-serialization.md
+docs/operations/recovery-workflow.md
 docs/design/substrate/infrastructure/vdtid.md  # vdtid services/architecture — canon: vdti-area-vdtid-services.md
