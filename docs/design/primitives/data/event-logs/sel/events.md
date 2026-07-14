@@ -32,7 +32,7 @@ The **class** column names the event's role under the
 buried or overturned — and are the SEL's **seal-advancers** (each carries `previousSeal`; any of the
 three buries a content fork by advancing the seal past the loser). The **tier** column names the KEL
 capability an adversary must forge to author the owner-IEL participation that anchors the act
-(§Two-tier capability model). The **Topic** column is the kind's versioned schema identifier
+(§Two-tier capability model). The **Kind string** column is the kind's versioned schema identifier
 (`vdti/sel/v1/events/…`), unrelated to a SEL's derivation `topic` (§Inception and the serial-1
 floor).
 
@@ -182,15 +182,14 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
 
 ## The content and lineage fields
 
-Two orthogonal `Icp` fields carry the address model — each doing exactly one job, so neither
-overloads the other.
+The `content` / `lineage` field model is defined once at
+[`log.md` §The content and lineage fields](log.md#the-content-and-lineage-fields); this section
+states how the SEL **kinds** consume it.
 
-**`content: true` — the content discriminator.** A content SEL's `Icp` carries `content: true`; a
-lookup SEL's does not. The verifier enforces the biconditional (`content: true` matches a tier-1 v1,
-its absence a tier-2 v1). Because the flag rides the whole-content prefix, content and lookups
-derive to **different addresses**, so a content SEL can never occupy a lookup address — a content
-**squat** at a value's lookup address is impossible by construction. Content and lookups may share
-`(owner, topic, data)`; they are simply different addresses.
+**`content: true`** discriminates a content SEL (tier-1 v1) from a lookup (tier-2 v1),
+verifier-enforced as a biconditional; because it rides the whole-content prefix, content and lookups
+derive to **different addresses** even when they share `(owner, topic, data)` — a content **squat**
+at a lookup address is impossible by construction.
 
 **`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix —
 the two-hash digest over its inception body (`owner`, `topic`, and optional `data` / `content`) — is

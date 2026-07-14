@@ -126,7 +126,8 @@ discoverable:
 
 A **credential is neither** — it is not a SEL at all, but a direct-anchored immutable SAD (its
 issuance is a commitment anchored on the issuer's IEL by an `Ixn`, and that anchor is the validity
-proof). The credential feature and the kill read strategy live at the feature layer
+proof). The credential feature and the kill read strategy live **above** this primitive — the read
+strategy at the **policy / document-authorization layer**
 ([`../../../policy/documents.md`](../../../policy/documents.md)); this primitive states only the
 lookup-SEL **structure**.
 

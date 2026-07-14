@@ -177,31 +177,29 @@ point of no return.
 
 ## Re-incepting a lookup SEL
 
-A content or random-prefix SEL re-incepts by rerolling its nonce → a fresh unguessable prefix. A
-**discoverable value lookup cannot** — its prefix is a pure function of fixed inputs, so the same
-inputs recompute the same dead address. The remedy is the **`lineage`** counter, carried on a
-**re-establishable value** lookup: the base is `lineage: 0`, and a re-incept at `lineage: n+1` is a
-distinct whole-content and so a distinct prefix; the canonical instance is the lowest non-dead
-lineage, found by a **positive walk** (walk from `lineage: 0`, advance past a dead lineage, stop at
-the lowest live one — a `Trm` on one lineage advances the walk, it does not condemn the address).
-This matters because a value lookup's own live state is the sole authority for its **positive**
-resolution (no owner-IEL fallback there), so a Disputed or severed lineage is a real denial, and the
-walk re-establishes the value at a discoverable address. Rescinding one lineage is a monotone `Trm`
-whose anchoring `Dth` declares the **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')`, so
-the walk's per-lineage check reads `lineage: n` dead (from its own chain **or** that target in the
-owner IEL's fresh `kills[]`) while the re-established `n+1` survives — the positive walk consumes
-that per-lineage check, not a separate mechanism. Declaring that **matching lineaged target** is a
-**feature-layer obligation the primitive does not backstop** (the IEL never dereferences a target):
-the value-lookup feature constructs the rescission against the rule via the primitive-composition
-helpers — a rescission that named only an on-chain `Trm`, or a wrong-lineage target, would leave the
-kill on the withholdable leg
-([`verification.md` §The lineage walk](verification.md#the-lineage-walk)). A **monotone kill** (a
-cred revocation, a delegate / doc-member rescission) carries **no** `lineage` field and a
-**non-lineaged** target: it is answered by a single **negative check** (a verified `Trm` → killed),
-never walked. Content re-incepts by nonce-reroll and never carries `lineage` — its `content: true`
-flag keeps it in a separate address namespace, so a content squat at a value's lookup address is
-impossible by construction. The verifier reads the `content` flag and the `lineage` field's presence
-— no tier-check on the read path — capped at `MAXIMUM_SEL_LINEAGE = 64`
+The **`lineage`** counter and its positive walk are the field model in
+[`log.md` §The content and lineage fields](log.md#the-content-and-lineage-fields); this section
+states what **re-inception** adds. A content or random-prefix SEL re-incepts by rerolling its nonce
+→ a fresh unguessable prefix. A **discoverable value lookup cannot** — its prefix is a pure function
+of fixed inputs, so the same inputs recompute the same dead address; `lineage` is the remedy (a
+re-incept at `lineage: n+1` is a distinct prefix, and the positive walk stops at the lowest live
+lineage). This matters because a value lookup's own live state is the sole authority for its
+**positive** resolution (no owner-IEL fallback there), so a Disputed or severed lineage is a real
+denial that re-inception heals. Rescinding one lineage is a monotone `Trm` whose anchoring `Dth`
+declares the **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')`, so the walk's per-lineage
+check reads `lineage: n` dead (from its own chain **or** that target in the owner IEL's fresh
+`kills[]`) while the re-established `n+1` survives — the positive walk consumes that per-lineage
+check, not a separate mechanism. Declaring that **matching lineaged target** is a **feature-layer
+obligation the primitive does not backstop** (the IEL never dereferences a target): the value-lookup
+feature constructs the rescission against the rule via the primitive-composition helpers — a
+rescission that named only an on-chain `Trm`, or a wrong-lineage target, would leave the kill on the
+withholdable leg ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)). A
+**monotone kill** (a cred revocation, a delegate / doc-member rescission) carries **no** `lineage`
+field and a **non-lineaged** target: it is answered by a single **negative check** (a verified `Trm`
+→ killed), never walked. Content re-incepts by nonce-reroll and never carries `lineage` — its
+`content: true` flag keeps it in a separate address namespace, so a content squat at a value's
+lookup address is impossible by construction. The verifier reads the `content` flag and the
+`lineage` field's presence — no tier-check on the read path — capped at `MAXIMUM_SEL_LINEAGE = 64`
 ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)).
 
 ## Effective-SAID convergence

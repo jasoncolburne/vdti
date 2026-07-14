@@ -374,7 +374,7 @@ configurable).
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#verification-tokens-as-proof-of-verification)
   — verification tokens; [§Walk semantics](../../../../protocol-doctrine.md#walk-semantics);
   [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
-- [`../../../policy/documents.md`](../../../policy/documents.md) — the feature layer that interprets
-  a matched kill and a grant value.
+- [`../../../policy/documents.md`](../../../policy/documents.md) — the **policy /
+  document-authorization layer** that interprets a matched kill and a grant value.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
   witnessing: the witnessing floor and first-seen the SEL inherits at its own position.
