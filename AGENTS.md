@@ -52,7 +52,8 @@ and Phase 0–9 sequencing. Quick orientation:
 - `infrastructure/{objects,database,kvstore,mock-hsm}/` — deploy configs + HSM service. `mock-hsm/`
   builds a consumer lib that services import; production swaps the HSM behind the lib without
   service changes.
-- `examples/messaging/` — iOS / Android demo (ports the kels iOS surface + adds messaging).
+- `examples/{chat,edit,mail,vote}/` — worked example apps: `chat` ports the kels iOS surface +
+  messaging; `edit` on shared-documents; `mail` on exchange; `vote` on credentials.
 - `docs/{design,reference,operations,analysis}/` — design completion (Phase 0).
 - `tests/` — e2e scenario suite (port of `kels/clients/test/`); benchmarks under `tests/bench/`.
 
