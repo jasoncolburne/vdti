@@ -139,7 +139,8 @@ or dig deeper (guided mostly by my instinct).
 I tried Fable for a brief period, and was flagged about 50% of the time. It did make a couple good
 finds, but I was using it to review in both a cold and warm context, so I'm not sure how it performs
 outside that use case. It wasn't that different to be honest. It babbles less while 'thinking', I
-did notice that. Not sure if that's to conserve context, prevent previous bias, or what.
+did notice that. Not sure if that's to conserve context, prevent previous bias, or what. I kind of
+prefer Opus.
 
 Claude is more than capable of verifying design work, but it takes several iterations of review to
 get there. It's not good at seeing beyond the next chess move, but it's very good at understanding

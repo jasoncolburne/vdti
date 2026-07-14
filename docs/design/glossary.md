@@ -32,9 +32,9 @@ canonical** wherever they differ.
 - **manifest** — the SAID of a SAD that groups an event's upward commitments **by named role**.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **lookup-SEL** — a SEL whose **locus** — its derived lookup address (prefix) — is
-  blind-recomputable from `derive(owner, topic, data)`; a revocation / rescission check reads it
-  first (O(1), present → killed) and may fail-open on it — trusting a miss — instead of walking.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
+  blind-recomputable from its inception content `(owner, topic, data)`; a revocation / rescission
+  check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss — instead
+  of walking. ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
   `custody` field (`owner` + `topic` writer-binding, anchored in a SEL; `readPolicy` read gate).
   ([`custody.md`](primitives/data/sad/custody.md))
@@ -145,16 +145,23 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 - **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`) whose roster is witness KELs; it
   propagates and time-stamps, it never decides.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  ([`federation/bootstrap.md`](federation/bootstrap.md))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
   the multi-source freshness evidence for a chain.
-  ([`system-thesis.md`](system-thesis.md#federation-convergence))
+  ([`federation/witnessing.md`](federation/witnessing.md))
+- **witnessing floor** — `threshold > signers/2`, a strict majority of the selected witnesses; it
+  makes any two threshold-quorums at a position overlap, so a content fork cannot form.
+  ([`federation/witnessing.md`](federation/witnessing.md))
+- **fork-cost** — `2·threshold − signers`, the number of selected witnesses an attacker must own and
+  expose to manufacture a fork on a witnessed chain.
+  ([`federation/witnessing.md`](federation/witnessing.md))
 - **beacon** — the receipt broadcast that enumerates a position's competing branches so a one-branch
-  holder can fetch and walk them.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  holder can fetch and walk them. ([`federation/witnessing.md`](federation/witnessing.md))
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
-  witness key-windows for freshness.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  witness key-windows for freshness. ([`federation/witnessing.md`](federation/witnessing.md))
+- **gossip** — the witness-mesh transport: roster-wide push-gossip for witnessed events, and
+  sub-gossip among a position's selected witnesses for one still gathering receipts; encrypted and
+  roster-scoped. ([`federation/topics.md`](federation/topics.md))
 
 ### Chain states
 

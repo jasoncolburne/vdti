@@ -974,7 +974,8 @@ validity window so a closed-window key can only stamp old receipts, which makes 
 dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats** backdating rather
 than inviting it, and intra-chain ordering stays pin-based, so it honors this rule's intent; the
 bytes live in a SAD, so the primitives stay timestamp-free. See
-[§Federation convergence](#federation-convergence) and [`federation/`](federation/) _(forthcoming)_.
+[§Federation convergence](#federation-convergence) and
+[`federation/witnessing.md`](federation/witnessing.md).
 
 ### Federation Convergence
 
@@ -1108,7 +1109,7 @@ opt-in, non-default **`all-data` audit query** is the one exception: it returns 
 receipt a node holds, sub-threshold ones included — but the walk **ignores** anything not accepted,
 so surfacing them cannot skew a verdict. Its value is **forensic** (detecting injection or collusion
 attempts) and it carries an audit obligation. The mechanics are federation doctrine —
-[`federation/witnessing.md`](federation/witnessing.md) (forthcoming).
+[`federation/witnessing.md`](federation/witnessing.md).
 
 **The propagation premise and the split stall.** Prevention's success rate — never its safety —
 rests on prompt roster-wide propagation once an event is witnessed in full (the push-gossip mesh): a
@@ -1152,7 +1153,7 @@ model; the multi-source freshness bar shrinks the window but does not close it, 
 operational (re-verify before binding; reincept on a surfaced divergence).
 
 Full mechanics — receipt encoding, witness selection, the clock's tolerance band and upper sanity
-bound — are federation doctrine ([`federation/`](federation/) — _forthcoming_).
+bound — are the federation doctrine ([`federation/witnessing.md`](federation/witnessing.md)).
 
 ### Extension Discipline
 
@@ -1247,13 +1248,14 @@ fully-walked fresh chain" is exactly "not killed" — nothing to miss. The check
 path with a fail-secure fall-through** — the posture is a function parameter, not two separate
 algorithms:
 
-- **O(1) content-addressed read — always first.** Recompute the derived lookup-SEL address
-  `derive(owner, topic, data)` and read it: **present → killed** (O(1), tamper-evident and
-  authoritative — done, no walk: a kill is **monotone**, never retracted, so present-means-killed
-  needs no freshness check). A monotone kill's address carries no lineage; a **value's** per-lineage
-  check derives the lineaged address `derive(owner, topic, data, lineage: N)` for the specific `N`
-  the positive walk landed on — the value's live state is read from its own SEL chain, its
-  per-lineage kill from the lineaged target (area-sel §1f).
+- **O(1) content-addressed read — always first.** Recompute the derived lookup-SEL address from its
+  inception content `(owner, topic, data)` and read it: **present → killed** (O(1), tamper-evident
+  and authoritative — done, no walk: a kill is **monotone**, never retracted, so
+  present-means-killed needs no freshness check). A monotone kill's address carries no lineage; a
+  **value's** per-lineage check recomputes the lineaged address from
+  `(owner, topic, data, lineage: N)` for the specific `N` the positive walk landed on — the value's
+  live state is read from its own SEL chain, its per-lineage kill from the lineaged target (area-sel
+  §1f).
 - **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
   authoritative only after the walk: compute `target = hash('{tag}:{owner}:{data}')` — the target
   **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
@@ -1325,8 +1327,8 @@ federation **binding** is read from the layer that owns it (above). A consumer r
 a divergent position or insufficient attestation, and grounds trust in the **config-pinned
 federation prefix set** (compile-time-baked + runtime override) — for a chain that transferred
 federations via `Wit`, each federation in its history must be independently in the trusted set (no
-transitive trust). The full witnessing rules are federation doctrine ([`federation/`](federation/) —
-_forthcoming_).
+transitive trust). The full witnessing rules are the federation doctrine
+([`federation/witnessing.md`](federation/witnessing.md)).
 
 ### Effective-SAID comparison
 

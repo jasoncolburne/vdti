@@ -188,8 +188,8 @@ Rescission (a delegate deauthorized, an owned artifact revoked) is answered by a
 on the owner's fresh IEL, never by scanning for absence. Given a killed locus, the verifier reads
 **O(1) first, with a fail-secure fall-through**:
 
-- **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is
-  `derive(owner, topic, data)`; fetch its `{Icp, Trm}`): **present → killed**. Tamper-evident and
+- **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is recomputed
+  from `(owner, topic, data)`; fetch its `{Icp, Trm}`): **present → killed**. Tamper-evident and
   authoritative — and `Trm.pin` (= the killing `Rev` / `Dth`'s `previous`) points straight at that
   kill event, so a grandfather check reads the `bound` from its `kills[]` entry directly, with no
   exhaustive `kills[]` scan of the chain.

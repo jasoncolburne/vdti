@@ -598,16 +598,16 @@ inception populates.
   by parties told its prefix.
 - **SEL**: the populated inception fields — `owner` (the owner IEL prefix), `topic`, `data`, a
   `content: true` flag on a content SEL (omitted on a lookup), and — on a re-establishable value
-  lookup — `lineage`. (Writing it `derive(owner, topic, data)` is shorthand for _constructing that
-  inception and taking its prefix_, **not** a hash of those values pulled into a separate tuple —
-  the prefix is the whole-content digest like every other event, so any field on the `Icp` enters
-  it, which is exactly why `content: true` and `lineage` move content and re-established lookups to
-  distinct addresses.) A lookup SEL's `data` is its recompute input (a revocation / rescission
-  grant-instance), so a re-grant after a kill gets a fresh locus; a private lookup SEL's `data` is
-  high-entropy, keeping the prefix unguessable, while a discoverable one rests on **owner-rooting**
-  (only the owner IEL anchors at the locus), not on prefix secrecy. Because lookup **recomputes**
-  this prefix, the `Icp` must hold only fields the looker-up already has — so it carries **no
-  `pin`** (the pin rides a batched serial-1 event instead).
+  lookup — `lineage`. (The address is recomputed by re-constructing that inception and taking its
+  prefix, **not** a hash of those values pulled into a separate tuple — the prefix is the
+  whole-content digest like every other event, so any field on the `Icp` enters it, which is exactly
+  why `content: true` and `lineage` move content and re-established lookups to distinct addresses.)
+  A lookup SEL's `data` is its recompute input (a revocation / rescission grant-instance), so a
+  re-grant after a kill gets a fresh locus; a private lookup SEL's `data` is high-entropy, keeping
+  the prefix unguessable, while a discoverable one rests on **owner-rooting** (only the owner IEL
+  anchors at the locus), not on prefix secrecy. Because lookup **recomputes** this prefix, the `Icp`
+  must hold only fields the looker-up already has — so it carries **no `pin`** (the pin rides a
+  batched serial-1 event instead).
 
 A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anchors** by its
 **issuance commitment** `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` on an IEL

@@ -17,7 +17,8 @@ authorization layer that sits on top.
 - [1 — The data substrate](#1--the-data-substrate)
 - [2 — Cross-cutting doctrine](#2--cross-cutting-doctrine)
 - [3 — The event-log primitives](#3--the-event-log-primitives)
-- [4 — The document-authorization layer](#4--the-document-authorization-layer)
+- [4 — Federation and witnessing](#4--federation-and-witnessing)
+- [5 — The document-authorization layer](#5--the-document-authorization-layer)
 - [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
@@ -126,26 +127,39 @@ Then the SEL (SAD Event Log) primitive, in order:
 25. [`primitives/data/event-logs/sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)
     — the correctness proof: the SEL's own divergence crossed with inherited owner-IEL deadness.
 
-## 4 — The document-authorization layer
+## 4 — Federation and witnessing
+
+The witnessing layer every KEL, IEL, and SEL rests on for its soundness. A federation is a
+restricted IEL whose roster is witness KELs directly; witnessing is what prevents a content fork
+from forming on an honest chain and makes a sealed fork detectable everywhere.
+
+26. [`federation/bootstrap.md`](federation/bootstrap.md) — genesis and the configured trust root:
+    the restricted-IEL shape, the dependency-ordered ceremony, and why there is no self-witnessing
+    carve-out.
+27. [`federation/witnessing.md`](federation/witnessing.md) — the mechanism: the witnessing floor,
+    first-seen (content prevention / sealed detection), fork-cost, deterministic selection,
+    as-of-context receipts and the currency gate, the clock, the receipt SAD, rebinding, and the
+    recoverability cap.
+28. [`federation/topics.md`](federation/topics.md) — the gossip topics (the witness-mesh channels)
+    and the two-scope encrypted transport.
+
+## 5 — The document-authorization layer
 
 Policy sits above the primitives — it governs documents, never the chain events themselves
 (chain-event authorization is structural). (This group carries its own reading-order note in
 `policy.md`.)
 
-26. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
+29. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
-27. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
+30. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-28. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
+31. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
     evaluated (as-issued and current) and the seam to the primitives.
 
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `federation/` — federation bootstrap and witnessing;
-  [`federation/bootstrap.md`](federation/bootstrap.md) is a diagram stub carrying its diagrams ahead
-  of the prose.
 - `features/` — credentials and shared documents;
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
