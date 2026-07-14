@@ -29,7 +29,7 @@ Gossip runs at two scopes:
 ## The topics
 
 Pub-sub channels on the `vdti/gossip/v1/*` convention
-([the shared naming convention](../primitives/data/sad/kinds.md#the-naming-convention)). A topic
+([the shared naming convention](../../primitives/data/sad/kinds.md#the-naming-convention)). A topic
 names _what_ rides the mesh, never _how_:
 
 | Topic                            | Carries           |
@@ -41,8 +41,8 @@ names _what_ rides the mesh, never _how_:
 
 The list grows as the system adds propagated payloads. A gossip topic is **not** a SAD and **not** a
 derivation input — it is a routing label, distinct from a SAD's `kind`
-([`kinds.md`](../primitives/data/sad/kinds.md)) and from a derivation tag or SEL topic
-([`tags-and-topics.md`](../primitives/data/event-logs/tags-and-topics.md)).
+([`kinds.md`](../../primitives/data/sad/kinds.md)) and from a derivation tag or SEL topic
+([`tags-and-topics.md`](../../primitives/data/event-logs/tags-and-topics.md)).
 
 ## Cross-references
 
@@ -50,8 +50,8 @@ derivation input — it is a routing label, distinct from a SAD's `kind`
   query-scoping, the propagation premise.
 - [`bootstrap.md`](bootstrap.md) — genesis: the mesh forms once nodes set their federation prefix;
   before that, arrangement is point-to-point.
-- [`../protocol-doctrine.md`](../protocol-doctrine.md) — how the primitives consume propagation
-  (federation convergence).
-- [`../primitives/data/sad/kinds.md`](../primitives/data/sad/kinds.md) — SAD kinds.
-- [`../primitives/data/event-logs/tags-and-topics.md`](../primitives/data/event-logs/tags-and-topics.md)
+- [`../../protocol-doctrine.md`](../../protocol-doctrine.md) — how the primitives consume
+  propagation (federation convergence).
+- [`../../primitives/data/sad/kinds.md`](../../primitives/data/sad/kinds.md) — SAD kinds.
+- [`../../primitives/data/event-logs/tags-and-topics.md`](../../primitives/data/event-logs/tags-and-topics.md)
   — derivation tags and SEL topics.

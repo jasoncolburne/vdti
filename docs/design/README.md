@@ -55,8 +55,8 @@ Alongside these, three **identifier catalogues** define the naming conventions u
 `tag`, or `topic` first puzzles you: [`primitives/data/sad/kinds.md`](primitives/data/sad/kinds.md)
 (every SAD `kind`),
 [`primitives/data/event-logs/tags-and-topics.md`](primitives/data/event-logs/tags-and-topics.md)
-(the derivation `tag`s and SEL `topic`s), and [`federation/topics.md`](federation/topics.md) (the
-gossip topics, also at #28).
+(the derivation `tag`s and SEL `topic`s), and
+[`substrate/federation/topics.md`](substrate/federation/topics.md) (the gossip topics, also at #28).
 
 ## 2 — Cross-cutting doctrine
 
@@ -141,15 +141,15 @@ The witnessing layer every KEL, IEL, and SEL rests on for its soundness. A feder
 restricted IEL whose roster is witness KELs directly; witnessing is what prevents a content fork
 from forming on an honest chain and makes a sealed fork detectable everywhere.
 
-26. [`federation/bootstrap.md`](federation/bootstrap.md) — genesis and the configured trust root:
-    the restricted-IEL shape, the dependency-ordered ceremony, and why there is no self-witnessing
-    carve-out.
-27. [`federation/witnessing.md`](federation/witnessing.md) — the mechanism: the witnessing floor,
-    first-seen (content prevention / sealed detection), fork-cost, deterministic selection,
-    as-of-context receipts and the currency gate, the clock, the receipt SAD, rebinding, and the
-    recoverability cap.
-28. [`federation/topics.md`](federation/topics.md) — the gossip topics (the witness-mesh channels)
-    and the two-scope encrypted transport.
+26. [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — genesis and the
+    configured trust root: the restricted-IEL shape, the dependency-ordered ceremony, and why there
+    is no self-witnessing carve-out.
+27. [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md) — the mechanism: the
+    witnessing floor, first-seen (content prevention / sealed detection), fork-cost, deterministic
+    selection, as-of-context receipts and the currency gate, the clock, the receipt SAD, rebinding,
+    and the recoverability cap.
+28. [`substrate/federation/topics.md`](substrate/federation/topics.md) — the gossip topics (the
+    witness-mesh channels) and the two-scope encrypted transport.
 
 ## 5 — The document-authorization layer
 

@@ -10,7 +10,7 @@ witnesses into a convergence guarantee.
 A federation is a **restricted IEL** and reuses the IEL's chain machinery wholesale; its genesis and
 its configured trust root are [`bootstrap.md`](bootstrap.md). The cross-primitive framing — how the
 primitives consume these guarantees — is
-[`../protocol-doctrine.md` §Federation convergence](../protocol-doctrine.md#federation-convergence);
+[`../../protocol-doctrine.md` §Federation convergence](../../protocol-doctrine.md#federation-convergence);
 this doc is the mechanism that section refers to.
 
 The one-line shape of the model: **witnesses are reporters, not deciders.** A receipt attests that a
@@ -129,11 +129,11 @@ select(chain_prefix, serial, membership, signers):
 The digest is keyed on the position and the witness prefix — never the event's bytes or pin — over
 the **currency-gated current membership** read from the verified federation context. The digest
 input follows the shared byte convention of the `hash('{tag}:…')` derivations
-([`../primitives/data/event-logs/tags-and-topics.md`](../primitives/data/event-logs/tags-and-topics.md)):
+([`../../primitives/data/event-logs/tags-and-topics.md`](../../primitives/data/event-logs/tags-and-topics.md)):
 each field in its canonical form — the prefixes as their qualified representation
-([`../primitives/data/sad/said.md`](../primitives/data/sad/said.md)), `serial` as its **minimal
-base-10 ASCII** form (no leading zeros) — concatenated `':'`-joined as raw bytes (the join is its
-own byte convention, not the JSON/JCS canonicalization `said.md` governs), so independent
+([`../../primitives/data/sad/said.md`](../../primitives/data/sad/said.md)), `serial` as its
+**minimal base-10 ASCII** form (no leading zeros) — concatenated `':'`-joined as raw bytes (the join
+is its own byte convention, not the JSON/JCS canonicalization `said.md` governs), so independent
 implementations compute the identical selected set.
 
 For a **federation member's own KEL events**, selection runs the same algorithm with **that
@@ -487,17 +487,18 @@ stale keys.
 ## Cross-references
 
 - [`bootstrap.md`](bootstrap.md) — federation genesis and the configured trust root.
-- [`../protocol-doctrine.md` §Federation convergence](../protocol-doctrine.md#federation-convergence)
+- [`../../protocol-doctrine.md` §Federation convergence](../../protocol-doctrine.md#federation-convergence)
   — the cross-primitive convergence framing this mechanism serves.
-- [`../protocol-doctrine.md` §Divergence and recovery](../protocol-doctrine.md#divergence-and-recovery)
+- [`../../protocol-doctrine.md` §Divergence and recovery](../../protocol-doctrine.md#divergence-and-recovery)
   — the data-local walk that decides a verdict from the branches receipts enumerate.
-- [`../primitives/data/event-logs/iel/log.md`](../primitives/data/event-logs/iel/log.md) — the IEL
-  the federation is a restricted instance of; the witnessing floor gates its content and sealed
+- [`../../primitives/data/event-logs/iel/log.md`](../../primitives/data/event-logs/iel/log.md) — the
+  IEL the federation is a restricted instance of; the witnessing floor gates its content and sealed
   events.
-- [`../primitives/data/event-logs/event-shape.md`](../primitives/data/event-logs/event-shape.md) —
-  the `witnesses` and `clock` manifest roles, the `Wit` facets, and `federation` / `federationPin`.
-- [`../primitives/data/sad/kinds.md`](../primitives/data/sad/kinds.md) — the witness receipt kinds
-  `vdti/witness/v1/receipts/*`.
+- [`../../primitives/data/event-logs/event-shape.md`](../../primitives/data/event-logs/event-shape.md)
+  — the `witnesses` and `clock` manifest roles, the `Wit` facets, and `federation` /
+  `federationPin`.
+- [`../../primitives/data/sad/kinds.md`](../../primitives/data/sad/kinds.md) — the witness receipt
+  kinds `vdti/witness/v1/receipts/*`.
 - [`topics.md`](topics.md) — the gossip channels the mesh carries and the two-scope transport.
 - The encoding library — the byte-exact `select` scheme, the receipt canonicalization, and the AEAD
   nonce / key-scope discipline for the encrypted mesh (its own doc under `infrastructure/`,

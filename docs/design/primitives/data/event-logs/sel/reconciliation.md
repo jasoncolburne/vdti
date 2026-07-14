@@ -252,6 +252,6 @@ handler would reject — the same reason the owner IEL partitions send-side
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#divergence-and-recovery) —
   divergence and recovery (cross-primitive);
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing: the witnessing floor, first-seen, the federation-IEL schism mechanics the SEL
-  inherits.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, first-seen, the federation-IEL schism mechanics the
+  SEL inherits.

@@ -203,7 +203,7 @@ differs, and shows up only in Position 1 and on a Terminated chain:
   divergence-causing member.
 - **the federation `Fcp` plus the founder `Rot`s and receipts** — the federation genesis bundle,
   dependency-ordered (see
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
+  [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md)).
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 
@@ -324,7 +324,7 @@ collusion / quorum subversion**, which a designated submitter does **not** touch
 and a `{Evl, Evl}` brick recovers by **reincept**, made detectable on heal by witnessing. (Sealing
 serialization stays a **liveness** aid — it keeps honest sealers from stalling, not a safety
 mechanism.) The operator playbook lands in
-[`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
+[`../../../../../operations/sealing-serialization.md`](../../../../../operations/sealing-serialization.md)
 (forthcoming); the doctrine — that a second _witnessed_ sealed branch at the last seal is terminal —
 is the chain's.
 
@@ -339,7 +339,8 @@ case of this matrix. A `{Wit, Wit}` federation race reads `disputed` data-locall
 `{Evl, Evl}` does on a user chain — and needs the same collusion. The federation's own witnesses
 witness each other exclude-self, and the beacon propagates the competing branches. The
 federation-witnessing mechanics (self-attestation, the clock, the recoverability cap) are federation
-doctrine — [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+doctrine —
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 The seal-cap stays **unconditional**: relaxing it to admit a competing event as a canonical
 extension at a sealed serial would re-open the stale-authority killswitch surface the locked-portion
@@ -462,7 +463,7 @@ crossed with inherited severance — lands with
   [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery);
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing: the witnessing floor, the beacon, the federation-IEL schism mechanics.
-- [`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
+- [`../../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, the beacon, the federation-IEL schism mechanics.
+- [`../../../../../operations/sealing-serialization.md`](../../../../../operations/sealing-serialization.md)
   — the sealing-serialization operator playbook (forthcoming).

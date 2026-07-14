@@ -12,36 +12,11 @@
 
 # --- Top-level docs subtrees (README scaffolding; populated across phases) ---
 docs/reference
-docs/reference/*
 docs/analysis
-docs/analysis/*
 docs/operations
 docs/operations/*
 
-# --- Federation doctrine (subsequent sub-issue) ---
-docs/design/federation
-docs/design/federation/*
-
-# --- Operations playbooks (subsequent sub-issues) ---
-docs/design/operations/recovery-workflow.md
-docs/design/operations/sealing-serialization.md
-
-# --- Infrastructure service docs (subsequent sub-issue) ---
-docs/design/infrastructure/vdtid.md
-
-# --- Features (subsequent sub-issue) ---
-docs/design/features
 docs/design/features/*
-docs/design/features/credentials
-docs/design/features/credentials/*
-
-# --- IEL primitive (subsequent sub-issue) ---
-docs/design/primitives/data/event-logs/iel
-docs/design/primitives/data/event-logs/iel/*
-
-# --- SEL primitive (subsequent sub-issue) ---
-docs/design/primitives/data/event-logs/sel
-docs/design/primitives/data/event-logs/sel/*
-
-# --- Identity rooting (IEL primitive sub-issue) ---
-docs/design/primitives/data/event-logs/identity-rooting.md
+docs/design/features/exchange/*
+docs/design/substrate/federation/*
+docs/design/substrate/infrastructure/*

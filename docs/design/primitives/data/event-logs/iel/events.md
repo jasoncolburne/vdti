@@ -68,7 +68,7 @@ at inception and carries it on the token
   federation prefix still roots trust). It carries the initial witness-KEL roster, the initial
   `witnesses` config, and the initial `clock` (the founders' join time), and is anchored kind-strict
   by each founder's KEL `Rot` (tier-2 → tier-2). The full genesis ceremony is federation doctrine —
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
+  [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md).
 
 ## Authorization — threshold over member KELs, no adjacent signature
 
@@ -297,7 +297,7 @@ is one authoritative IEL-side value, neither matched. A federation `Wit` is **al
 its participants and **advances the clock**, so the rotation + clock advance **is** the change — it
 has no must-change predicate. The federation-governance mechanics (self-attestation, the
 recoverability cap, the clock, roster-add consent) are federation doctrine —
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ### `Fcp` — the federation inception marker (federation IEL only)
 
@@ -433,7 +433,7 @@ minimum `|roster| = 4` a federation selects at most three signers and thresholds
 all-four-witnesses-sign config is not selectable. The witness-config validity, the clock, and
 witness selection are federation doctrine —
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ## Per-kind sort priority
 
@@ -500,5 +500,5 @@ cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
   structure).
 - [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
   — the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing and the federation `Wit` governance mechanics.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing and the federation `Wit` governance mechanics.

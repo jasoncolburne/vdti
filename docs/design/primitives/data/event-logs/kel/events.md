@@ -50,7 +50,7 @@ The verifier dispatches at v=0 on kind:
   tier-2) in the same dependency-ordered bootstrap bundle. The founder is bound to the federation by
   being named in the roster it founds — never self-bound. That federation IEL `Fcp` (the
   `Fcp`-rooted inception marker) is brought into existence in that same bundle (see
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
+  [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md)).
 - `Icp` → federation-bound from inception. `federation` (the federation IEL prefix) and
   `federationPin` (the as-of federation position) declare the binding, and the `witnesses` manifest
   role declares the chain's witnessing policy — **all required**. Every identity is
@@ -155,11 +155,11 @@ A `Wit` event **rebinds** federation context (the must-change rule and the two f
 same-federation **re-pin** (advancing `federationPin` within the same federation) is **not** a `Wit`
 — since `federationPin` is optional on every event, a re-pin rides whatever the chain authors next,
 which is how an active chain answers the witness currency gate after a federation cut. See
-[`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap
-ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation re-binding mechanics.
-A `Wit` **is** the rotation — it refreshes the signing key and the rotation reserve — so it is
-structurally **tier-2**, single-signed with the reserve; this is a property of `Wit`'s own signature
-shape.
+[`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) for
+the bootstrap ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation
+re-binding mechanics. A `Wit` **is** the rotation — it refreshes the signing key and the rotation
+reserve — so it is structurally **tier-2**, single-signed with the reserve; this is a property of
+`Wit`'s own signature shape.
 
 **The `Wit` kind has two facets, dispatched by the inception root — and a `Wit` is never a no-op.**
 The **`Icp`-rooted (user) KEL** facet is the identity's federation rebind, carrying `federation` /
@@ -173,7 +173,7 @@ rotation** of its participants and advances the monotonic federation `clock` (a 
 optional on top), so the rotation + clock advance **is** the change — it has **no** must-change
 predicate. The deep federation-governance mechanics — self-attestation, the recoverability cap, the
 federation clock — are federation doctrine
-([`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)).
+([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)).
 
 ## Authorization and signature shapes
 
@@ -331,7 +331,7 @@ seal, so it carries `previousSeal = fcp.said` (the spine root). The founder is b
 federation by being named in the roster it founds — never self-bound — so it carries no `federation`
 / `federationPin`. That federation IEL `Fcp` is brought into existence in the same
 dependency-ordered bootstrap bundle — see
-[`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
+[`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md).
 
 ### Standard inception
 
@@ -413,7 +413,7 @@ non-canonical evidence and read data-locally — see
 - [`../iel/`](../iel/) — IEL primitive. Delegation is an identity-layer concern and lives there
   (delegated IEL inception; declare / rescind delegation); the `del(delegator)` policy node operates
   on IEL prefixes, not KEL prefixes.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing.
-- [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap (the dependency-ordered genesis bundle).
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing.
+- [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) —
+  federation bootstrap (the dependency-ordered genesis bundle).

@@ -57,8 +57,8 @@ The **federation** IEL is the pure case — every event is sealed; a competing s
 first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded **two-witnessed**
 race is disputed / terminal. The witnessing mechanics that make content first-seen work (the
 position gate, one-content-sibling-per-position witnessing, the beacon) are federation doctrine —
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md); this doc states the
-chain-scoped routing that composes with them.
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md);
+this doc states the chain-scoped routing that composes with them.
 
 ## Merge outcomes
 
@@ -397,5 +397,6 @@ batch composition. See
   divergence and recovery (cross-primitive): freeze, tier-resolution, keep-all-data retention;
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing: the witnessing floor, the beacon, content-fork prevention, cross-node propagation.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, the beacon, content-fork prevention, cross-node
+  propagation.

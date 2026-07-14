@@ -81,7 +81,7 @@ canonical-admission verdict — the competing branch does not extend the chain. 
 **retains** that branch as non-canonical evidence is a _separate_ decision, layered on top of the
 structural checks (it never replaces them); it is governed by witnessing — the additive gate for
 non-witnesses (the full rule lands with
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)):
 
 - A **sealed** competing branch (`Rot` / `Wit` / `Trm`) is witnessed **first-seen (one per
   position)**; a node **accepts and retains up to two witnessed** sealed branches per position (two
@@ -526,5 +526,5 @@ for truncation.
   — merge verification and advisory locking.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#operation-categories) —
   operation categories (serving, consuming, resolving).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing: the beacon, cross-node propagation.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the beacon, cross-node propagation.

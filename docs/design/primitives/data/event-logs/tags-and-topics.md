@@ -63,5 +63,5 @@ them, keeping features out of the primitive layer.
 - [`sel/log.md`](sel/log.md) — where a SEL inception's derivation is defined and its `topic` field
   consumed.
 - [`event-shape.md`](event-shape.md) — the event taxonomy these derivations instantiate.
-- [`../../../federation/topics.md`](../../../federation/topics.md) — gossip topics (the mesh
-  channels), the third non-SAD identifier family on the same convention.
+- [`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md) — gossip
+  topics (the mesh channels), the third non-SAD identifier family on the same convention.

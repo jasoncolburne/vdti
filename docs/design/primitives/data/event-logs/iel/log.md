@@ -283,7 +283,7 @@ any `Wit` payload** on every `Wit`-reading path — no path is exempt (see
 [`verification.md` §Root facet](verification.md#root-facet-dispatch)). The federation IEL is a
 restricted IEL detailed here only where the primitive differs; the federation-witnessing mechanics
 (the beacon, the witnessing floor, the clock, witness selection) are federation doctrine —
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ## End-verifiability
 
@@ -319,5 +319,6 @@ is canonical in
   anchoring, divergence and recovery, forks-are-seal-bounded and the spine, federation convergence,
   the layering principle.
 - [`../sel/`](../sel/) — SEL primitive. IEL events anchor SEL events and credentials.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing: the beacon, the witnessing floor, the clock, witness selection, acceptance gating.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the beacon, the witnessing floor, the clock, witness selection,
+  acceptance gating.

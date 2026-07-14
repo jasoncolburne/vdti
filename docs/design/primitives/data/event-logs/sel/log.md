@@ -172,7 +172,7 @@ The SEL is a witnessed chain in the IEL's mold, **inheriting the owner IEL's fed
 witnesses, no new trust root; witness selection is deterministic on `(SEL-prefix, serial)` and the
 inherited roster, and the SEL inherits the owner IEL's witness-config and federation binding. The
 mechanics are the federation's, applied at the SEL's own position
-([`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
+([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)):
 
 - **Content (`Ixn` / `Pin`) is first-seen** — a selected witness signs the first content event at a
   position and declines the copies. With the **witnessing floor** (a strict majority of the selected
@@ -361,8 +361,9 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
   SEL events compose on; two-hash prefix and SAID derivation.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — structural authorization,
   tiers and kind-strict anchoring, divergence and recovery, the layering principle.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing: the witnessing floor, first-seen, and disputed detection the SEL inherits.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, first-seen, and disputed detection the SEL
+  inherits.
 - [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
   [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the
   value-bearing `Gnt` consumers (both forthcoming).

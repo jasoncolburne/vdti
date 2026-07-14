@@ -353,9 +353,9 @@ composes the anchor's seal position with `region()`: a below-seal anchor is hono
 ## Federation witnessing in verification
 
 The verifier surfaces federation-witnessing signals on the token. Full mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md); this section names
-what the IEL verifier reads. **The data decides; witnessing propagates** — receipts deliver
-competing branches and freshness, never a verdict.
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md);
+this section names what the IEL verifier reads. **The data decides; witnessing propagates** —
+receipts deliver competing branches and freshness, never a verdict.
 
 - **`witnessed`.** An IEL event has **no key of its own**, so its witnessing **is** the witnessing
   of its **member KEL anchors** — the event is trusted when the required threshold of its anchoring
@@ -456,5 +456,5 @@ configurable).
   [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 - [`../../../policy/policy.md`](../../../policy/policy.md) — the `id(X)` / `del(X, N)` policy leaves
   the token's `roster_and_thresholds_at` and `is_delegate` accessors resolve.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing mechanics.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing mechanics.

@@ -5,7 +5,7 @@ validation, tier dispatch, and the role vocabulary it may carry. This doc is the
 enumeration of every SAD kind. Two sibling identifier families share the same naming scheme and live
 in their own catalogues: **derivation tags and SEL topics**
 ([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) and **gossip topics**
-([`../../../federation/topics.md`](../../../federation/topics.md)).
+([`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md)).
 
 ## The naming convention
 
@@ -62,7 +62,7 @@ own.
 - [`said.md`](said.md) — the two-pass digest that turns a SAD's canonical content into a SAID.
 - [`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md) — the derivation tags and
   SEL topics that share this convention.
-- [`../../../federation/topics.md`](../../../federation/topics.md) — the gossip topics (mesh
-  channels) that share this convention.
+- [`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md) — the gossip
+  topics (mesh channels) that share this convention.
 - [`../event-logs/event-shape.md`](../event-logs/event-shape.md) — the event taxonomy and the
   manifest role model these kinds instantiate.

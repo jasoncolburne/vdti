@@ -1,6 +1,6 @@
 # Federation bootstrap — genesis and the trust root
 
-A federation is a **restricted identity log** ([IEL](../primitives/data/event-logs/iel/log.md))
+A federation is a **restricted identity log** ([IEL](../../primitives/data/event-logs/iel/log.md))
 whose roster is witness KELs directly. Every other chain in the system — every KEL, IEL, and SEL —
 grounds its trust in a federation's witnessing. This doc states how a federation comes into being:
 the genesis ceremony that stands up the founding roster, and the **self-certifying trust root** that
@@ -24,8 +24,8 @@ ways, all fixed at inception by the `Fcp` root kind:
 
 - **The roster is witness KELs directly** — a threshold over the witness devices, with no policy and
   no per-witness identity wrapper (policy lives on documents, never on primitives —
-  [`../primitives/policy/policy.md`](../primitives/policy/policy.md)). A witness is a device (a
-  KEL), HSM-backed and horizontally replicated; the model sees one logical KEL per witness key.
+  [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md)). A witness is a device
+  (a KEL), HSM-backed and horizontally replicated; the model sees one logical KEL per witness key.
 - **The kind set is exactly `Fcp` / `Wit` / `Trm`.** `Fcp` is the inception marker; `Wit` is the
   single governance kind — it stands in for the user IEL's `Evl`, carrying every roster change and
   every witness rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation
@@ -33,8 +33,8 @@ ways, all fixed at inception by the `Fcp` root kind:
   nothing to delegate).
 - **The threshold vector is exactly `{t_govern}`.** With no `Ixn` and no `Ath` there is no `t_use`
   or `t_authorize` to declare — a threshold exists only when its consuming kind is in the kind set
-  ([`../primitives/data/event-logs/iel/events.md`](../primitives/data/event-logs/iel/events.md)), so
-  a federation `Fcp` that declares either is malformed and rejected.
+  ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)),
+  so a federation `Fcp` that declares either is malformed and rejected.
 
 A witness KEL is **single-federation**: it is `Fcp`-rooted infrastructure, governed _into_ one
 roster and never self-bound. To serve a second federation, an operator stands up a **new** witness
@@ -176,9 +176,9 @@ receipt and freshness machinery entirely. Its trust is the configured prefix, fu
 
 - [`witnessing.md`](witnessing.md) — the witnessing mechanism the federation runs post-genesis:
   selection, receipts, the clock, first-seen, and rebinding.
-- [`../primitives/data/event-logs/iel/log.md`](../primitives/data/event-logs/iel/log.md) — the IEL
-  chain primitive the federation is a restricted instance of.
-- [`../primitives/data/event-logs/event-shape.md`](../primitives/data/event-logs/event-shape.md) —
-  the `Fcp` marker, the `Wit` facets, and the `federation` / `federationPin` fields.
-- [`../protocol-doctrine.md` §Federation convergence](../protocol-doctrine.md#federation-convergence)
+- [`../../primitives/data/event-logs/iel/log.md`](../../primitives/data/event-logs/iel/log.md) — the
+  IEL chain primitive the federation is a restricted instance of.
+- [`../../primitives/data/event-logs/event-shape.md`](../../primitives/data/event-logs/event-shape.md)
+  — the `Fcp` marker, the `Wit` facets, and the `federation` / `federationPin` fields.
+- [`../../protocol-doctrine.md` §Federation convergence](../../protocol-doctrine.md#federation-convergence)
   — the cross-primitive framing of federation-as-restricted-IEL and the convergence model.

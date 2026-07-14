@@ -323,7 +323,7 @@ bootstrap non-circular), and **cannot stand alone**: its v=1 is a **`Rot`** that
 federation IEL's **`Fcp`** marker (kind-strict, tier-2 → tier-2) as a **dependency-ordered pair**
 (`Fcp` v=0 → `Rot` v=1). **Recovery is a plain `Rot`** — rotate at the first compromised position;
 the thief's run below dies on ascent (§Divergence is scoped to content). The full ceremony is KEL +
-federation doctrine — [`kel/`](kel/), [`federation/`](../../../federation/).
+federation doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../substrate/federation/).
 
 ### IEL — 8 kinds (+ the federation `Fcp` marker)
 
@@ -357,7 +357,7 @@ only (`Wit` is its governance kind — witness rotation and/or a roster delta �
 (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is terminal; no
 `Ath`, since trust is per-federation and non-transitive). Its roster is witness KELs directly. See
 [`../../../protocol-doctrine.md` §Federation convergence](../../../protocol-doctrine.md#federation-convergence)
-and [`federation/`](../../../federation/).
+and [`substrate/federation/`](../../../substrate/federation/).
 
 ### SEL — 6 kinds
 
@@ -443,7 +443,8 @@ founder **`Fcp`** is self-attested and carries none of them. **\*The `Wit` row i
 (`opt`)** (present on an actual rebind / re-pin; a witness-config-only `Wit` carries neither); on an
 **`Fcp`-rooted federation-witness `Wit`** (federation governance) both are **fbd** — the witness is
 never self-bound. Exact key-state semantics, the witness-config SAD, and the facet doctrine are
-KEL + federation doctrine — [`kel/`](kel/), [`../../../federation/`](../../../federation/).
+KEL + federation doctrine — [`kel/`](kel/),
+[`../../../substrate/federation/`](../../../substrate/federation/).
 
 ### IEL
 
@@ -642,7 +643,7 @@ Some kinds land only as part of a multi-event atomic batch, enforced at the merg
 - **Federation genesis** — the founder KEL `[Fcp, Rot]` pairs, the federation IEL `Fcp`, and the
   cross-attestation receipts land together, but as a **dependency-ordered bundle**, not a
   merge-layer all-or-nothing batch: a partial genesis is simply sub-threshold and reads fail-secure.
-  See [`../../../federation/bootstrap.md`](../../../federation/bootstrap.md).
+  See [`../../../substrate/federation/bootstrap.md`](../../../substrate/federation/bootstrap.md).
 
 The full enforcement rules are per-primitive and federation doctrine.
 

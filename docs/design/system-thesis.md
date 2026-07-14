@@ -81,9 +81,10 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   than discarding it at the seal-cap — the merge rule that a new event must attach at-or-after the
   chain's seal), never a verdict delegated to the federation.
 - **The federation propagates.** Cross-node sealed-vs-sealed races still converge data-locally — the
-  witness beacon's divergent receipts (see [`federation/witnessing.md`](federation/witnessing.md))
-  **enumerate the competing branches** so a one-branch holder can fetch and walk them, but the
-  verdict is the verifier's own. The federation delivers evidence; it does not decide.
+  witness beacon's divergent receipts (see
+  [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md)) **enumerate the
+  competing branches** so a one-branch holder can fetch and walk them, but the verdict is the
+  verifier's own. The federation delivers evidence; it does not decide.
 
 A single node can still _detect_ a divergence it holds — local end-verifiability needs no federation
 — but it forfeits the beacon's **propagation** (learning of divergences it does not yet hold) and
@@ -210,7 +211,7 @@ divergent witness receipts **propagate** the competing branches to a node that l
 witnessing supplies freshness); they do not decide the verdict. End-verifiability over
 data-from-any-source rests on the data, with the federation as the propagation aid.
 
-→ [`federation/witnessing.md`](federation/witnessing.md).
+→ [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 
 ### Operational hardening composes on top
 
@@ -226,7 +227,8 @@ discipline: every chain is federation-witnessed, and the witnessing floor preven
 content sibling going live, so an un-serialized content race costs stalls and re-issuance — a
 liveness cost, not a safety one (the residual safety concern is a witness compromise).
 
-→ [`operations/sealing-serialization.md`](operations/sealing-serialization.md) _(forthcoming)_.
+→ [`../operations/sealing-serialization.md`](../operations/sealing-serialization.md)
+_(forthcoming)_.
 
 ### Cascade-reincept honesty
 

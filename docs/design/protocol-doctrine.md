@@ -976,7 +976,7 @@ dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats**
 than inviting it, and intra-chain ordering stays pin-based, so it honors this rule's intent; the
 bytes live in a SAD, so the primitives stay timestamp-free. See
 [§Federation convergence](#federation-convergence) and
-[`federation/witnessing.md`](federation/witnessing.md).
+[`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 
 ### Federation Convergence
 
@@ -1110,7 +1110,7 @@ opt-in, non-default **`all-data` audit query** is the one exception: it returns 
 receipt a node holds, sub-threshold ones included — but the walk **ignores** anything not accepted,
 so surfacing them cannot skew a verdict. Its value is **forensic** (detecting injection or collusion
 attempts) and it carries an audit obligation. The mechanics are federation doctrine —
-[`federation/witnessing.md`](federation/witnessing.md).
+[`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 
 **The propagation premise and the split stall.** Prevention's success rate — never its safety —
 rests on prompt roster-wide propagation once an event is witnessed in full (the push-gossip mesh): a
@@ -1156,7 +1156,8 @@ model; the multi-source freshness bar shrinks the window but does not close it, 
 operational (re-verify before binding; reincept on a surfaced divergence).
 
 Full mechanics — receipt encoding, witness selection, the clock's `CLOCK_TOLERANCE_BAND` and upper
-sanity bound — are the federation doctrine ([`federation/witnessing.md`](federation/witnessing.md)).
+sanity bound — are the federation doctrine
+([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md)).
 
 ### Extension Discipline
 
@@ -1365,7 +1366,7 @@ a divergent position or insufficient attestation, and grounds trust in the **con
 federation prefix set** (compile-time-baked + runtime override) — for a chain that transferred
 federations via `Wit`, each federation in its history must be independently in the trusted set (no
 transitive trust). The full witnessing rules are the federation doctrine
-([`federation/witnessing.md`](federation/witnessing.md)).
+([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md)).
 
 ### Effective-SAID comparison
 

@@ -687,7 +687,7 @@ adversarial pass.
   flag for the infra pass, not the primitive docs.
 
 ## 5. Drift → land backlog
-- **Write `docs/design/federation/{bootstrap,witnessing}.md`** fresh from this note (genesis ceremony +
+- **Write `docs/design/substrate/federation/{bootstrap,witnessing}.md`** fresh from this note (genesis ceremony +
   the witnessing model). (`protocol-doctrine.md` §Federation and `event-shape.md` are already reconciled — the
   old `federationBinding` and self-signing carve-out are gone; only the `federation/` docs remain to write.)
 - **Apply the design-pass §2.2 matrix fix** (federation inception = `Rot → IEL Fcp` (the marker); founder `Rot` anchor — kind-strict, T2 ↔ T2; no founder `Fed`/`Wit`, 2026-06-28).

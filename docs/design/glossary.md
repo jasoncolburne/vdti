@@ -145,23 +145,25 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 - **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`) whose roster is witness KELs; it
   propagates and time-stamps, it never decides.
-  ([`federation/bootstrap.md`](federation/bootstrap.md))
+  ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
   the multi-source freshness evidence for a chain.
-  ([`federation/witnessing.md`](federation/witnessing.md))
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **witnessing floor** — `threshold > signers/2`, a strict majority of the selected witnesses; it
   makes any two threshold-quorums at a position overlap, so a content fork cannot form.
-  ([`federation/witnessing.md`](federation/witnessing.md))
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **fork-cost** — `2·threshold − signers`, the number of selected witnesses an attacker must own and
   expose to manufacture a fork on a witnessed chain.
-  ([`federation/witnessing.md`](federation/witnessing.md))
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **beacon** — the receipt broadcast that enumerates a position's competing branches so a one-branch
-  holder can fetch and walk them. ([`federation/witnessing.md`](federation/witnessing.md))
+  holder can fetch and walk them.
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
-  witness key-windows for freshness. ([`federation/witnessing.md`](federation/witnessing.md))
+  witness key-windows for freshness.
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **gossip** — the witness-mesh transport: roster-wide push-gossip for witnessed events, and
   sub-gossip among a position's selected witnesses for one still gathering receipts; encrypted and
-  roster-scoped. ([`federation/topics.md`](federation/topics.md))
+  roster-scoped. ([`substrate/federation/topics.md`](substrate/federation/topics.md))
 
 ### Chain states
 
