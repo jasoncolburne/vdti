@@ -23,9 +23,9 @@ A federation is **one IEL**, its prefix written `F`. It differs from a user iden
 ways, all fixed at inception by the `Fcp` root kind:
 
 - **The roster is witness KELs directly** — a threshold over the witness devices, with no policy and
-  no per-witness identity wrapper ([invariant 1](../../canon/vdti-invariants.md): policy lives on
-  documents, never on primitives). A witness is a device (a KEL), HSM-backed and horizontally
-  replicated; the model sees one logical KEL per witness key.
+  no per-witness identity wrapper (policy lives on documents, never on primitives —
+  [`../primitives/policy/policy.md`](../primitives/policy/policy.md)). A witness is a device (a
+  KEL), HSM-backed and horizontally replicated; the model sees one logical KEL per witness key.
 - **The kind set is exactly `Fcp` / `Wit` / `Trm`.** `Fcp` is the inception marker; `Wit` is the
   single governance kind — it stands in for the user IEL's `Evl`, carrying every roster change and
   every witness rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation
@@ -33,8 +33,8 @@ ways, all fixed at inception by the `Fcp` root kind:
   nothing to delegate).
 - **The threshold vector is exactly `{t_govern}`.** With no `Ixn` and no `Ath` there is no `t_use`
   or `t_authorize` to declare — a threshold exists only when its consuming kind is in the kind set
-  ([invariant 12](../../canon/vdti-invariants.md)), so a federation `Fcp` that declares either is
-  malformed and rejected.
+  ([`../primitives/data/event-logs/iel/events.md`](../primitives/data/event-logs/iel/events.md)), so
+  a federation `Fcp` that declares either is malformed and rejected.
 
 A witness KEL is **single-federation**: it is `Fcp`-rooted infrastructure, governed _into_ one
 roster and never self-bound. To serve a second federation, an operator stands up a **new** witness

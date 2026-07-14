@@ -62,7 +62,7 @@ adversarial pass.
 - Witness **key rotation** is **a federation `Wit`** that pins the
   **pre-rotation KEL state** — recording the retired key's boundary into the
   federation timeline (this is what gives the clock each key's `T_end`, closing Finding 1). **The `Wit` IS the
-  rotation: `Wit` anchors `Wit` (kind-strict, T2 ↔ T2, inv 4 — the governance-facet match is the **witness-config only**, Q3; the roster rides the manifest `Evl`-style, the `clock` is a single IEL-side value, monotonic + `≤ now+band`) — each participating witness
+  rotation: `Wit` anchors `Wit` (kind-strict, T2 ↔ T2, inv 4 — the governance-facet match is the **witness-config only**, Q3; the roster rides the manifest `Evl`-style, the `clock` is a single IEL-side value, monotonic + `≤ now+CLOCK_TOLERANCE_BAND`) — each participating witness
   authors a *single* KEL `Wit` that refreshes the signing key + rotation reserve **and** anchors the federation IEL `Wit`; no
   phantom key, and `pins = Wit.previous` so the retiring receipt key's `T_end` lands correctly
   (cold-4 B1).** **Add/remove a witness
@@ -82,7 +82,7 @@ adversarial pass.
   position-`terminator` (**dropped 2026-06-21** — see below). *(The cut-a-chain primitive survives only as the
   **delegate rescission** `bound` — delegations have no clock — inv 13 / delegation §5; federation removal no
   longer shares it.)*
-  - **Hard cap on the live set = 32** (first-seen, 2026-07-08 — the same cap as every user IEL, inv 12): while
+  - **Hard cap on the live set = `MAXIMUM_ROSTER_SIZE`** (first-seen, 2026-07-08 — the same cap as every user IEL, inv 12): while
     accumulating, if the live roster would exceed **32**, **reject the event as invalid** (a likely DoS /
     resource-exhaustion attempt). Bounds signature/threshold work + memory. *(Operator doctrine is ≥ 5 witnesses, so
     32 leaves ~6× headroom; the max federation shrank 4–8× from the old ≈128/256, intended — §L8.)*
@@ -135,8 +135,8 @@ adversarial pass.
 ### 1c. Genesis + trust root
 - Founder `Fcp` (v0) → `Rot` (v1) anchoring the federation IEL **`Fcp`** (the inception marker — kind-strict, T2 ↔ T2;
   the federation's own witnesses are governed *into* the roster, never self-bound — 2026-06-28). The
-  federation `Fcp` (roster = founder witness KELs) + the founder `Rot`s land in **one atomic batch**, point-to-point
-  (a *coordinator* is an operational convention — no election/leader). The **clock is incepted in this same batch**
+  federation `Fcp` (roster = founder witness KELs) + the founder `Rot`s land as a **dependency-ordered bundle** (not all-or-nothing — a partial genesis is sub-threshold, fail-secure; revised 2026-07-14), point-to-point
+  (a *coordinator* is an operational convention — no election/leader). The **clock is incepted in this same bundle**
   (the federation `Fcp`'s `manifest.clock` sets the founders' `T_join` = genesis time), so the timeline has a lower bound from event zero
   (Finding 6 — otherwise the pre-first-`Wit` window is unbounded).
 - **Run `≥ 5` live witnesses, not the bare `≥ 4` structural floor (operator doctrine, Finding 3).** The hard floor counts *roster
@@ -461,12 +461,12 @@ adversarial pass.
   them time-bounds every key's window (a retired key's `T_end` = its `Wit`'s clock time). `Wit`s are **rare** (§1a: ~yearly rotations, plus
   membership changes) — so the clock is cheap.
 - **Receipt timestamps.** Each witness receipt carries the witness's asserted time (frequent, per-witnessing,
-  self-asserted — individually untrusted). **A receipt's `τ` also gets a `≤ consumer-now + band` ceiling** (symmetric
-  with the clock's F4 upper bound — cold-12 F5): a receipt claiming a future time beyond `now + band` is rejected /
+  self-asserted — individually untrusted). **A receipt's `τ` also gets a `≤ consumer-now + CLOCK_TOLERANCE_BAND` ceiling** (symmetric
+  with the clock's F4 upper bound — cold-12 F5): a receipt claiming a future time beyond `now + CLOCK_TOLERANCE_BAND` is rejected /
   stale-flagged, so a forged receipt can't stamp ahead of real time.
 - **The split — the clock bounds the receipts.** The clock (the `Wit`s' `manifest.clock` times) is the **sealed, trustworthy bound** (each key's
   validity window `[T_join, T_end]` in time); receipts are the **frequent values that get bounded.** **Load-bearing
-  check:** a receipt counts only if its timestamp `τ ∈ [T_join(K) − band, T_end(K) + band]` per the clock. A
+  check:** a receipt counts only if its timestamp `τ ∈ [T_join(K) − CLOCK_TOLERANCE_BAND, T_end(K) + CLOCK_TOLERANCE_BAND]` per the clock. A
   harvested / rotated-out key (closed window) can therefore only validly stamp **old** receipts → a dormant forgery
   on it reads stale. Without this check the attacker just stamps "now"; with it, a closed-window key can't.
 - **Second conjunct — forward-of-the-last-confirmed tip (backdate defense, §5; `vdti-adversary-cases` case 8).**
@@ -495,16 +495,16 @@ adversarial pass.
   never a `fresh` verdict — vdtid-services §1d / cold-12 F1). A forgery can't obtain fresh re-confirmation (current honest witnesses won't witness an old-context event). A
   legit *active* chain re-pins and is freshly witnessed → trusted; a legit *dormant* chain is also stale-flagged
   (correct — its owner re-activates by re-pinning to be trusted for current-state). The forgery gains nothing.
-- **Tolerance band = 1 minute, a fixed protocol constant** (deterministic verification — every verifier agrees). It
+- **`CLOCK_TOLERANCE_BAND` = 1 minute, a fixed protocol constant** (deterministic verification — every verifier agrees). It
   absorbs honest clock skew at a window boundary; its security cost is nil (the attack is *gross* staleness, not
   boundary-seconds). Distinct from the **staleness threshold** ("how old before flagged"), which is consumer /
   loss-of-trust policy (like the F8 bar).
 - **Consumer clock sync — a load-bearing DEPLOYMENT INVARIANT (cold-13 F3 / C-2).** Every consumer's staleness /
-  at-risk / `clock ≤ now+band` (F4) / `receipt-τ ≤ now+band` (F5) check reads against the **consumer's own wall
-  clock**. So a consumer **must stay synced (NTP) to within the `band` (1 minute)**; a consumer out of sync by **more
+  at-risk / `clock ≤ now+CLOCK_TOLERANCE_BAND` (F4) / `receipt-τ ≤ now+CLOCK_TOLERANCE_BAND` (F5) check reads against the **consumer's own wall
+  clock**. So a consumer **must stay synced (NTP) to within the `CLOCK_TOLERANCE_BAND` (1 minute)**; a consumer out of sync by **more
   than a minute can't trust its own freshness results** — it mis-judges window boundaries, and a backward skew is the
   fail-*open* direction (stale reads fresh, at-risk suppressed). **Because it is fail-open, a drifted clock silently
-  defeats the entire dormant-forgery / backdate defense (§1f) — so NTP sync to within `band` is a *security control*,
+  defeats the entire dormant-forgery / backdate defense (§1f) — so NTP sync to within `CLOCK_TOLERANCE_BAND` is a *security control*,
   not best-effort, and belongs in every deployment's operating requirements.** This is on the consumer, not the framework (a
   verifier can't be defended against its own wrong clock). When the federation is reachable, **`evaluate_current`**
   (live challenge-response) is the **no-local-clock-trust** path.
@@ -518,9 +518,9 @@ adversarial pass.
   (the federation's only governance kind), so a witness rotation is **legal only as a synchronized federation
   `Wit`** (the witness's KEL `Wit` **is** the rotation and anchors the IEL `Wit` — no separate rotation event) — an **off-ceremony `Rot`** (a witness `Rot` anchoring no `Wit`) on a witness KEL produces receipts the federation **does not honor** (the new
   key earns no pinned window; the old key's window is treated as closed at the most recent federation `Wit`), and an
-  observed off-ceremony rotation is a **cut/eviction signal**. **Max-window auto-expiry — `MAX_WINDOW = 365 days` (cold-9 C2 / cold-10 F4, Jason 2026-06-29).** A key-window
-  may stay open at most `MAX_WINDOW`: an un-refreshed window is treated as **closed at `T_join + 365 days`** (a fixed
-  protocol constant, like the `band` — deterministic, every verifier agrees), **without** an explicit `cut`. So a
+  observed off-ceremony rotation is a **cut/eviction signal**. **Max-window auto-expiry — `MAXIMUM_WITNESS_KEY_WINDOW = 365 days` (cold-9 C2 / cold-10 F4, Jason 2026-06-29).** A key-window
+  may stay open at most `MAXIMUM_WITNESS_KEY_WINDOW`: an un-refreshed window is treated as **closed at `T_join + 365 days`** (a fixed
+  protocol constant, like the `CLOCK_TOLERANCE_BAND` — deterministic, every verifier agrees), **without** an explicit `cut`. So a
   witness that never participates in a `Wit` no longer keeps an *indefinitely* open key-window — it **auto-expires** at
   365 days and its later receipts read **stale**, the same closure a `cut` gives. This bounds **every** key-window to
   ≤ 365 days, so the never-rotated window collapses to the **ordinary `< threshold` current-key-compromise residual**
@@ -537,14 +537,14 @@ adversarial pass.
   governance event's clock time; the staleness check uses the **freshest valid clock time** as the upper reference. (Without
   this, an off-ceremony rotation would leave the retired key's window open and re-open the r4-F1 hole.)
 - **Clock upper sanity bound (F4, 2026-06-21).** Monotonicity stops *rollback*, but the clock needs a ceiling too:
-  a consumer **rejects / stale-flags any federation clock time beyond `consumer-now + band`.** Otherwise a
+  a consumer **rejects / stale-flags any federation clock time beyond `consumer-now + CLOCK_TOLERANCE_BAND`.** Otherwise a
   compromised-but-unevicted federation **with `t_govern` members compromised** (setting the clock requires authoring a
   `Wit` — a *governance* act, so this is **beyond** the witnessing `< threshold` residual — cold-12 F3; the F4 guard is
-  **defense-in-depth**, bounding an already-`t_govern`-compromised federation's blast radius to ~`band`) could
+  **defense-in-depth**, bounding an already-`t_govern`-compromised federation's blast radius to ~`CLOCK_TOLERANCE_BAND`) could
   **future-date** a `Wit`'s `manifest.clock` to push every key-window forward → closed windows read open →
   harvested-key forgeries read fresh.
-  The consumer's own wall clock is the cheap external check; future-dating beyond `band` is prima facie suspect —
-  bounding a clock-setting compromise's blast radius to ~`band`. (inv 14.)
+  The consumer's own wall clock is the cheap external check; future-dating beyond `CLOCK_TOLERANCE_BAND` is prima facie suspect —
+  bounding a clock-setting compromise's blast radius to ~`CLOCK_TOLERANCE_BAND`. (inv 14.)
 - **Residual — detection is delayed by the staleness threshold (F5, 2026-06-21).** A forgery on a key whose window
   closed **within** the staleness threshold (a *recently* cut/rotated witness whose key an attacker harvested) can
   stamp `τ ≤ T_end` and read **fresh** until the threshold elapses past `T_end`. The position-`terminator` (dropped)
@@ -609,7 +609,7 @@ adversarial pass.
   gate — a stale-membership pin earns **zero** countable receipts. **Orthogonal to §5's tip-ordering:** that gates
   *time* (freshness/backdate); `federationPin` gates *roster version* (which witnesses are selected).
 - **Federation-pin currency (Decision 5).** *Stale* = a governance `Wit` moved the roster **since** the pin, by
-  **more than the key-window band** (§1f). Detection is a **local pre-check at the receiving node returning a SIGNAL
+  **more than the key-window `CLOCK_TOLERANCE_BAND`** (§1f). Detection is a **local pre-check at the receiving node returning a SIGNAL
   only** (any node the user reaches is a current F member holding F's state): stale → a positive "stale — rebind"
   signal (not an absence-of-receipts timeout). **The signal is a hint, not authoritative** — the consumer **walks
   the federation chain** from the config-pinned `FEDERATION_IEL_PREFIX` to the **verified** current position and
@@ -627,11 +627,11 @@ adversarial pass.
   into its SAID) — rebind + submit a **new** event.
   - **The roster-change race** (event accepted at current pin P, then F rotates before the selectees receipt): the
     selection is **fixed by P** (as-of-context) — the rotation doesn't change who should witness *this* event. A
-    selectee **cut during the race still receipts within the key-window band** (§1f); if threshold is reached the
+    selectee **cut during the race still receipts within the key-window `CLOCK_TOLERANCE_BAND`** (§1f); if threshold is reached the
     event is **witnessed and durable** (established receipts keep counting after F advances past P). The currency
     gate is an **establishment-time** check (can't *start* gathering under a beyond-band-stale pin) — it **never
-    voids** receipts established under a then-current pin. **One band, three jobs:** cut-witness receipting,
-    just-stale-pin grace, race absorption. Beyond the band → refuse → rebind + resubmit (recoverable).
+    voids** receipts established under a then-current pin. **One `CLOCK_TOLERANCE_BAND`, three jobs:** cut-witness receipting,
+    just-stale-pin grace, race absorption. Beyond `CLOCK_TOLERANCE_BAND` → refuse → rebind + resubmit (recoverable).
 - **Batching — REVISED (witnessed-SEL redesign, 2026-07-12, area-sel §1c): SEL events now earn their own receipts,** so the receipt scope expands beyond IEL/KEL and the intra-batch receipt-skew / forward-of-confirmed-tip machinery (§5) applies to SELs too. _(The FIRST-CUT "batching collapses out — no multi-event witnessing batch remains; SEL batches become `anchors[]` content under one IEL `Ixn`" rested on the SEL not being witnessed; superseded.)_
   Client serialization stays, at **IEL granularity**. The one remaining multi-event batch — federation genesis
   (`Fcp` + founder `Rot`s) — is the **bootstrap exception**, not a receipt batch: its trust is the config-pinned

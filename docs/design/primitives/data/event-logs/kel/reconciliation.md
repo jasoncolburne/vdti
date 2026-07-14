@@ -216,11 +216,12 @@ The merge engine handles batches atomically:
   the `Rot` buries the content loser by position + ascent synchronously.
 - **`[Rot, Ixn]`** — auto-inserted by the builder when an `Ixn` would exceed the seal-advance cap
   interval.
-- **`[Fcp, Rot]` plus the federation IEL `Fcp` and receipts** — the founder bootstrap atomic batch.
+- **`[Fcp, Rot]` plus the federation IEL `Fcp` and receipts** — the founder bootstrap bundle,
+  dependency-ordered (not all-or-nothing; a partial genesis is sub-threshold and reads fail-secure).
   The v=1 `Rot` anchors the federation IEL's `Fcp` marker; the KEL events land alongside that
-  federation IEL `Fcp` and the cross-attestation receipts in a single transaction. See
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming) for the
-  bootstrap protocol.
+  federation IEL `Fcp` and the cross-attestation receipts. See
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) for the bootstrap
+  protocol.
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 
@@ -434,7 +435,7 @@ values are the evidence that a divergence exists there — the beacon **propagat
 data-local walk **decides** the verdict. The prefix is disputed at-and-beyond the divergent serial;
 events strictly below the last clean seal stay canonical. See
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) and
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) _(forthcoming)_.
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
 
 The seal-cap stays unconditional. Relaxing it to admit a competing event as a canonical extension at
 a sealed serial would re-open the stale-authority killswitch surface that the locked-portion bound
@@ -738,5 +739,5 @@ to a one-branch holder. The seal-cap stays unconditional.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#effective-said-comparison) —
   effective-SAID comparison (cross-primitive).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the kind-scoped witnessing ladder, the witnessing floor, the beacon,
-  divergent witness receipts.
+  witnessing: the kind-scoped witnessing ladder, the witnessing floor, the beacon, divergent witness
+  receipts.

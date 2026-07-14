@@ -68,7 +68,7 @@ at inception and carries it on the token
   federation prefix still roots trust). It carries the initial witness-KEL roster, the initial
   `witnesses` config, and the initial `clock` (the founders' join time), and is anchored kind-strict
   by each founder's KEL `Rot` (tier-2 → tier-2). The full genesis ceremony is federation doctrine —
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming).
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
 
 ## Authorization — threshold over member KELs, no adjacent signature
 
@@ -108,9 +108,9 @@ inception):
 - **An authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
   overlap and a sealed fork always names a double-dealer (closing the disjoint-quorum attribution
   loss).
-- **The roster is hard-capped at 32** — a DoS backstop; the verifier rebuilds the roster in memory
-  as it walks, and any delta pushing the live set past 32 is rejected (all IELs, including the
-  federation).
+- **The roster is hard-capped at `MAXIMUM_ROSTER_SIZE` (= 32)** — a DoS backstop; the verifier
+  rebuilds the roster in memory as it walks, and any delta pushing the live set past
+  `MAXIMUM_ROSTER_SIZE` is rejected (all IELs, including the federation).
 - **The roster is never emptied.** The post-delta size `|roster| + |add| − |cut| ≥ 1`. A roster is a
   **set**, so a delta is well-formed only with `add ∉` the current roster, `cut ⊆` it, and
   `cut ∩ add = ∅`. A singleton `cut` computes `1 + 0 − 1 = 0 < 1` and is rejected, so a singleton
@@ -282,11 +282,8 @@ malformed → rejected (trust still roots in the config-pin). A user `Wit` **mus
 (the prefix) or `witnesses`**: a same-federation re-pin (advancing only `federationPin`) is not a
 `Wit` — it rides any body event — and a pure key rotation is a member's KEL `Rot`, so a `Wit` that
 changes neither is a no-op → rejected. Initial binding rides the `Icp` (which always carries the
-federation); a later `Wit` **rebinds**, under a hard cap on `Wit`s per chain (a DoS backstop —
-over-cap rejected; the exact bound lands with
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md), forthcoming). Trust
-is **per-federation and non-transitive** — each event is witnessed by whichever federation was
-current when it landed.
+federation); a later `Wit` **rebinds**. Trust is **per-federation and non-transitive** — each event
+is witnessed by whichever federation was current when it landed.
 
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no
@@ -502,4 +499,4 @@ cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 - [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
   — the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing and the federation `Wit` governance mechanics (forthcoming).
+  witnessing and the federation `Wit` governance mechanics.

@@ -268,4 +268,4 @@ IEL's [§Cross-node races](../iel/merge.md#cross-node-races-and-gossip-send-side
   divergence and recovery (cross-primitive);
   [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor, first-seen, the beacon, cross-node propagation.
+  witnessing: the witnessing floor, first-seen, the beacon, cross-node propagation.

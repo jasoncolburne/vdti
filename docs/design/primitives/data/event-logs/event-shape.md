@@ -123,10 +123,10 @@ chain's validity needs no higher-layer input.
 
 The slots carry bounds — `t_use >= 1`; a **security floor** (`>= 2`) and **recoverability ceiling**
 (`<= |roster| − 1`) on the authority slots; the **authorization floor** (`> |roster|/2`); the roster
-**cap of 32** and the **never-emptied** floor (`|roster| + |add| − |cut| >= 1`); and, for a
-federation, the witness-config recoverability cap — all re-checked on the post-delta config at
-**every** config-changing event, not only inception. The bounds and their derivations are the IEL
-primitive's:
+**cap of `MAXIMUM_ROSTER_SIZE`** and the **never-emptied** floor (`|roster| + |add| − |cut| >= 1`);
+and, for a federation, the witness-config recoverability cap — all re-checked on the post-delta
+config at **every** config-changing event, not only inception. The bounds and their derivations are
+the IEL primitive's:
 [`iel/events.md` §The threshold vector and its bounds](iel/events.md#the-threshold-vector-and-its-bounds).
 
 The per-kind threshold/tier mapping and the bound derivations are the IEL primitive's —
@@ -319,9 +319,9 @@ anchoring the federation IEL `Fcp` it helps incept) **or** a standalone **`Icp`*
 existing federation) — **never** `Fcp → Icp`. A pre-federation `Fcp` is **self-attested**, carries
 **no `witnesses`** (there is no federation yet to witness it — which keeps the federation IEL's own
 bootstrap non-circular), and **cannot stand alone**: its v=1 is a **`Rot`** that anchors the
-federation IEL's **`Fcp`** marker (kind-strict, tier-2 → tier-2) in the **same atomic batch** (`Fcp`
-v=0 → `Rot` v=1). **Recovery is a plain `Rot`** — rotate at the first compromised position; the
-thief's run below dies on ascent (§Divergence is scoped to content). The full ceremony is KEL +
+federation IEL's **`Fcp`** marker (kind-strict, tier-2 → tier-2) as a **dependency-ordered pair**
+(`Fcp` v=0 → `Rot` v=1). **Recovery is a plain `Rot`** — rotate at the first compromised position;
+the thief's run below dies on ascent (§Divergence is scoped to content). The full ceremony is KEL +
 federation doctrine — [`kel/`](kel/), [`federation/`](../../../federation/).
 
 ### IEL — 8 kinds (+ the federation `Fcp` marker)
@@ -636,10 +636,12 @@ Some kinds land only as part of a multi-event atomic batch, enforced at the merg
   `Ath` may batch many grants; the same `Ath` may also carry `delegates`).
 - **Multi-identity document authorization** — the document names a custodied `issuers` SAD and each
   authorizing identity issues its **own** attestation independently (its own SEL, self-flooring via
-  its serial-1 `Pin` and self-locating via `derive`); there are no per-party document pins
-  ([`../../policy/documents.md`](../../policy/documents.md)).
+  its serial-1 `Pin` and self-locating by re-deriving its prefix); there are no per-party document
+  pins ([`../../policy/documents.md`](../../policy/documents.md)).
 - **Federation genesis** — the founder KEL `[Fcp, Rot]` pairs, the federation IEL `Fcp`, and the
-  cross-attestation receipts land as one atomic batch. See [`federation/`](../../../federation/).
+  cross-attestation receipts land together, but as a **dependency-ordered bundle**, not a
+  merge-layer all-or-nothing batch: a partial genesis is simply sub-threshold and reads fail-secure.
+  See [`../../../federation/bootstrap.md`](../../../federation/bootstrap.md).
 
 The full enforcement rules are per-primitive and federation doctrine.
 

@@ -166,4 +166,4 @@ overlap_.
   leaf resolves (members + threshold vector) and the delegate list a `del` leaf reads.
   _(Per-primitive doctrine.)_
 - [`../data/event-logs/sel/`](../data/event-logs/sel/) — the SEL primitive: the single-owner data
-  log a delegation's rescission lookup is read from. _(Per-primitive doctrine; forthcoming.)_
+  log a delegation's rescission lookup is read from. _(Per-primitive doctrine.)_

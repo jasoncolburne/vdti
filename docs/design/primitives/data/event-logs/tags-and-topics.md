@@ -32,6 +32,16 @@ grant-instance) differs in `hash('{tag}:{owner}:{data}')`. The primitive never h
 "document." `active` and `terminated` are formalized for a complete enumeration, though only
 `forked` / `disputed` are ever derived (the other two states carry a real SAID).
 
+Every `hash('{tag}:…')` derivation above hashes the **bytes of its fields in canonical form**
+([`../sad/said.md`](../sad/said.md)) — each `prefix` / `said` as its qualified representation, each
+`serial` in decimal — concatenated `':'`-joined, so every conforming node computes byte-identical
+output. The input is specified as **bytes**, not a fixed text encoding: the canonical form is text
+today (so the bytes are its UTF-8), but speccing bytes keeps the derivation stable if the canonical
+encoding later moves to binary. In the `forked` / `disputed` synthetic, `{position}` is the **SAID
+of the fork point**: the verification token's `divergence_ancestor` for `forked`, its
+`last_seal_advancing_event` for `disputed`. The synthetic is content-independent — never a digest
+over the competing tips — so it is flood-stable.
+
 ## SEL topics — a SEL inception field
 
 A lookup / content SEL's application discriminator — the `topic` field of its inception, one of the

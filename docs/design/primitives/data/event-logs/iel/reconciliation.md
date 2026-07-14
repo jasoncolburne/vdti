@@ -76,10 +76,11 @@ safety claims hold _by construction_, not by observation.
    forms a **live fork** (Forked / Disputed), retained as evidence.
 6. **Threshold anchoring; roster accumulation.** Every IEL event is authorized by a threshold of
    members' fresh KEL participations (kind-strict up), and the current roster is the **accumulation
-   of every delta while walking** (a `cut` `Evl` also evicts) with the hard live-set cap of 32 —
-   never "latest `Evl`". A rogue member KEL is **inert alone** (it cannot reach any threshold above
-   1 — `t_use` / `t_govern`; a singleton / `t_use = 1` roster is the exception, one member acting
-   alone), so distrust is non-participation + an `Evl` eviction, forward-only.
+   of every delta while walking** (a `cut` `Evl` also evicts) with the hard live-set cap of
+   `MAXIMUM_ROSTER_SIZE` — never "latest `Evl`". A rogue member KEL is **inert alone** (it cannot
+   reach any threshold above 1 — `t_use` / `t_govern`; a singleton / `t_use = 1` roster is the
+   exception, one member acting alone), so distrust is non-participation + an `Evl` eviction,
+   forward-only.
 
 These invariants make synchronous resolution, single-page recovery, and atomic batched submissions
 feasible. The proof matrices below rely on invariants 4–6.
@@ -195,9 +196,9 @@ differs, and shows up only in Position 1 and on a Terminated chain:
   seal-advance cap (the roster-less re-seal).
 - **`[Evl(cut), ..]`** — the atomic eviction: one sealing event buries the fork and evicts the
   divergence-causing member.
-- **the federation `Fcp` plus the founder `Rot`s and receipts** — the federation genesis atomic
-  batch (see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md),
-  forthcoming).
+- **the federation `Fcp` plus the founder `Rot`s and receipts** — the federation genesis bundle,
+  dependency-ordered (see
+  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md)).
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 
@@ -457,6 +458,6 @@ crossed with inherited severance — lands with
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor, the beacon, the federation-IEL schism mechanics.
+  witnessing: the witnessing floor, the beacon, the federation-IEL schism mechanics.
 - [`../../../../operations/sealing-serialization.md`](../../../../operations/sealing-serialization.md)
   — the sealing-serialization operator playbook (forthcoming).

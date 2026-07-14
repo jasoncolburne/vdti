@@ -82,9 +82,9 @@ attested document). Such an `owner`-bearing SAD **must be anchored by a SEL** (t
   `data` **is the SAD's SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's **serial-1
   event (its v1 — a `Pin`)** is anchored by an owner IEL `Ixn` whose **append-only position is the
   write's as-of** (the `Icp` itself is never anchored — it rides `v1.previous`, per the SEL
-  inception rule, _forthcoming_) — it cannot be inserted in the past, so the attribution cannot be
-  backdated. Forging it would require a fresh IEL `Ixn` at the owner's **current** tip, which a
-  rotated-out or broken old key cannot author.
+  inception rule) — it cannot be inserted in the past, so the attribution cannot be backdated.
+  Forging it would require a fresh IEL `Ixn` at the owner's **current** tip, which a rotated-out or
+  broken old key cannot author.
 - The anchor is **self-locating**: a holder re-derives the SEL prefix from the doc it holds (from
   `owner` + `topic` + the doc's `said`) and walks that SEL **by prefix** — no SAID is inverted (see
   [`said.md`](said.md)). This mirrors how a credential holder reaches a cred's revocation lookup SEL

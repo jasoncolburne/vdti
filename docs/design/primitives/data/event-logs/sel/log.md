@@ -361,8 +361,7 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — structural authorization,
   tiers and kind-strict anchoring, divergence and recovery, the layering principle.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor, first-seen, and disputed detection the SEL
-  inherits.
+  witnessing: the witnessing floor, first-seen, and disputed detection the SEL inherits.
 - [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
   [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the
   value-bearing `Gnt` consumers (both forthcoming).

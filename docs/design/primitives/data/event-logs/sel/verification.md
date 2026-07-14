@@ -297,8 +297,8 @@ termination rides the orthogonal `is_terminated()` accessor.
 
 The SEL is its **own** witnessed chain, so the verifier surfaces witnessing at the SEL's own
 position. Full mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
-section names what the SEL verifier reads. **The data decides; witnessing propagates.**
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md); this section names
+what the SEL verifier reads. **The data decides; witnessing propagates.**
 
 - **`witnessed`.** A SEL event is witnessed when the required threshold of the owner IEL's
   federation signs it **at the SEL's own `(prefix, serial)`** — the SEL inherits the owner IEL's
@@ -377,5 +377,4 @@ configurable).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — the feature layer that interprets
   a matched kill and a grant value.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor and first-seen the SEL inherits at its own
-  position.
+  witnessing: the witnessing floor and first-seen the SEL inherits at its own position.

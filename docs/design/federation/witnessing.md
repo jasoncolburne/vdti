@@ -127,9 +127,13 @@ select(chain_prefix, serial, membership, signers):
 ```
 
 The digest is keyed on the position and the witness prefix — never the event's bytes or pin — over
-the **currency-gated current membership** read from the verified federation context. Its exact byte
-scheme is fixed by the encoding library ([Cross-references](#cross-references)), so independent
-implementations match it exactly.
+the **currency-gated current membership** read from the verified federation context. The digest
+input follows the shared byte convention of the `hash('{tag}:…')` derivations
+([`../primitives/data/event-logs/tags-and-topics.md`](../primitives/data/event-logs/tags-and-topics.md)):
+each field in its canonical form
+([`../primitives/data/sad/said.md`](../primitives/data/sad/said.md)) — the prefixes as their
+qualified representation, `serial` in decimal — concatenated `':'`-joined, so independent
+implementations compute the identical selected set.
 
 For a **federation member's own KEL events**, selection runs the same algorithm with **that
 witness's own prefix removed** — exclude-self, a witness never receipts its own event — over the
@@ -186,9 +190,10 @@ federation IEL they already walk for the roster.
 the clock at the `Wit` that admitted or last rotated the key, `T_end` the clock at the `Wit` that
 retired it. Because witness key-windows change **exactly** at federation `Wit`s, timestamping those
 `Wit`s time-bounds every key's window. A receipt counts only if its own timestamp `τ` falls inside
-the signer's window, with a tolerance band: **`τ ∈ [T_join − band, T_end + band]`**. A cut or
-rotated-out witness, being out of the roster, earns no new pinned window, so its forward-rotated
-keys never count.
+the signer's window, with a tolerance of `CLOCK_TOLERANCE_BAND`:
+**`τ ∈ [T_join − CLOCK_TOLERANCE_BAND, T_end + CLOCK_TOLERANCE_BAND]`**. A cut or rotated-out
+witness, being out of the roster, earns no new pinned window, so its forward-rotated keys never
+count.
 
 **Wipe.** A witness **wipes superseded and removed private key material** on rotation and on removal
 (forward secrecy). Durability is unaffected — old receipts verify with the witness's _public_ keys,
@@ -198,41 +203,43 @@ byzantine residual). Wipe plus the clock together close the dormant-chain forger
 on a closed-window key is forced to carry old timestamps, so the tip reads **stale** and is
 detectable, fail-secure.
 
-**The 365-day auto-expiry.** A key-window may stay open at most **`MAX_WINDOW = 365 days`** — an
-un-refreshed window is treated as **closed at `T_join + 365 days`**, a fixed protocol constant, with
-no explicit `cut`. So a witness that never participates in a `Wit` no longer keeps an indefinitely
-open window; it auto-expires and its later receipts read stale, the same closure a cut gives. Every
-witness therefore rotates **at least once a year** as standard practice (ML-DSA-87 handles the
-frequency easily); a slow-but-honest witness that lets its window lapse simply reads stale until it
-rotates, at no security cost. A member whose window has auto-expired is **flagged at-risk** on the
-verification token — a data-local computed property, reported not raised — so operators
-evict-and-replace or reconfirm by rotation before cumulative loss reaches `t_govern`. There is no
-auto-eviction (removing a member is governance, which cannot be auto-authored). An **all-witness
-lapse** — a missed synchronized ceremony, every window expiring together — is **not a brick**: the
-federation reads stale (loss-of-trust decisions refuse) until a catch-up rotation `Wit` lands, which
-self-attests under the **new** windows it establishes (the clock axis is carved out of the
-no-self-weakening rule, so a rotation's fresh-key receipts are never judged under the expired old
-windows).
+**The 365-day auto-expiry.** A key-window may stay open at most
+**`MAXIMUM_WITNESS_KEY_WINDOW = 365 days`** — an un-refreshed window is treated as **closed at
+`T_join + 365 days`**, a fixed protocol constant, with no explicit `cut`. So a witness that never
+participates in a `Wit` no longer keeps an indefinitely open window; it auto-expires and its later
+receipts read stale, the same closure a cut gives. Every witness therefore rotates **at least once a
+year** as standard practice (ML-DSA-87 handles the frequency easily); a slow-but-honest witness that
+lets its window lapse simply reads stale until it rotates, at no security cost. A member whose
+window has auto-expired is **flagged at-risk** on the verification token — a data-local computed
+property, reported not raised — so operators evict-and-replace or reconfirm by rotation before
+cumulative loss reaches `t_govern`. There is no auto-eviction (removing a member is governance,
+which cannot be auto-authored). An **all-witness lapse** — a missed synchronized ceremony, every
+window expiring together — is **not a brick**: the federation reads stale (loss-of-trust decisions
+refuse) until a catch-up rotation `Wit` lands, which self-attests under the **new** windows it
+establishes (the clock axis is carved out of the no-self-weakening rule, so a rotation's fresh-key
+receipts are never judged under the expired old windows).
 
 **The upper sanity bound.** A consumer rejects or stale-flags any federation clock time — and any
-receipt `τ` — beyond **`now + band`**. This bounds a `t_govern`-compromised federation's ability to
-future-date a `Wit`'s clock (which would push every window forward, making closed windows read open)
-to roughly one band. It reads against the consumer's own wall clock.
+receipt `τ` — beyond **`now + CLOCK_TOLERANCE_BAND`**. This bounds a `t_govern`-compromised
+federation's ability to future-date a `Wit`'s clock (which would push every window forward, making
+closed windows read open) to roughly one `CLOCK_TOLERANCE_BAND`. It reads against the consumer's own
+wall clock.
 
 **Deployment invariant.** Because these are wall-clock checks, a consumer **must stay NTP-synced to
-within the band**. A consumer drifted by more than a band cannot trust its own freshness results,
-and a _backward_ skew is the fail-open direction (stale reads fresh). NTP sync to within the band is
-therefore a **security control**, not best-effort, and belongs in every deployment's operating
-requirements; a verifier cannot be defended against its own wrong clock. When the federation is
-reachable, a live challenge-response is the no-local-clock path.
+within `CLOCK_TOLERANCE_BAND`**. A consumer drifted by more than `CLOCK_TOLERANCE_BAND` cannot trust
+its own freshness results, and a _backward_ skew is the fail-open direction (stale reads fresh). NTP
+sync to within `CLOCK_TOLERANCE_BAND` is therefore a **security control**, not best-effort, and
+belongs in every deployment's operating requirements; a verifier cannot be defended against its own
+wrong clock. When the federation is reachable, a live challenge-response is the no-local-clock path.
 
-**Constants.** The tolerance **`band = 1 minute`** and **`MAX_WINDOW = 365 days`** are fixed
-protocol constants (deterministic — every verifier agrees). The band absorbs honest clock skew at a
-window boundary; its security cost is nil, since the attack it faces is gross staleness, not
-boundary-seconds. Distinct from the **staleness threshold** ("how old before a tip is flagged"),
-which is consumer / loss-of-trust policy. Clock timestamps are **UTC, RFC 3339, exactly 6 fractional
-digits (microseconds), zero-padded**, so the manifest canonicalizes byte-identically; the 6-place
-precision is for deterministic serialization, not a claim of microsecond accuracy.
+**Constants.** The tolerance **`CLOCK_TOLERANCE_BAND = 1 minute`** and
+**`MAXIMUM_WITNESS_KEY_WINDOW = 365 days`** are fixed protocol constants (deterministic — every
+verifier agrees). `CLOCK_TOLERANCE_BAND` absorbs honest clock skew at a window boundary; its
+security cost is nil, since the attack it faces is gross staleness, not boundary-seconds. Distinct
+from the **staleness threshold** ("how old before a tip is flagged"), which is consumer /
+loss-of-trust policy. Clock timestamps are **UTC, RFC 3339, exactly 6 fractional digits
+(microseconds), zero-padded**, so the manifest canonicalizes byte-identically; the 6-place precision
+is for deterministic serialization, not a claim of microsecond accuracy.
 
 ## The witness receipt
 
@@ -343,8 +350,9 @@ gates its trusting behavior off that report — an incomplete kill-walk reads _p
 _not-killed_; an unconfirmable loss-of-trust decision refuses. This is **separate** from the
 structural per-event caps (`MAXIMUM_MANIFEST_LIST` and the like), which stay deterministic
 _validity_ checks: the work bound governs how much a walk _traverses_, and a bailed traversal is
-reported, never silently treated as a clean result. The **`Wit`-per-chain cap** (below) folds into
-this bound — a ping-pong rebind DoS is rejected the same way.
+reported, never silently treated as a clean result. A **ping-pong rebind DoS** needs no special cap:
+an over-long chain of rebind `Wit`s is just a walk the work bound refuses, and every rebind `Wit`
+must itself reach witness threshold — so flooding is neither free nor unbounded.
 
 ## Rebinding
 
@@ -375,15 +383,15 @@ flowchart BT
 Solid arrows are chain order (`previous` points back); dotted arrows are the `federation` /
 `federationPin` binding; the thick arrow is `manifest.anchors`.
 
-A **hard cap on `Wit`s per chain** rejects a ping-pong rebind DoS (over-cap → reincept), reported
-through the token's work bound (above). The **migration overlap window** — during which members
-below `t_govern` still lag on the old federation until they each rebind — is **cooperative-only**:
-it assumes both federations are honest, an app-coordinated migration both approve. It does **not**
-cover _escaping_ a compromised federation: there the old federation still counts during the overlap,
-and an event mid-migration cannot be verified under the target federation alone. **Escaping a
-compromised federation is a hard cutover / reincept, not a graceful overlap.** Multi-federation
-orchestration is application-level; the framework gives the per-federation, non-transitive
-primitives and the recommendations, not an orchestrated protocol.
+A **ping-pong rebind DoS** is bounded by the verification work bound, not a separate cap (above).
+The **migration overlap window** — during which members below `t_govern` still lag on the old
+federation until they each rebind — is **cooperative-only**: it assumes both federations are honest,
+an app-coordinated migration both approve. It does **not** cover _escaping_ a compromised
+federation: there the old federation still counts during the overlap, and an event mid-migration
+cannot be verified under the target federation alone. **Escaping a compromised federation is a hard
+cutover / reincept, not a graceful overlap.** Multi-federation orchestration is application-level;
+the framework gives the per-federation, non-transitive primitives and the recommendations, not an
+orchestrated protocol.
 
 ## Roster governance
 
@@ -398,15 +406,15 @@ synced co-selectees that decline it first-seen, so the benign two-fresh-witnesse
 into the priced witness-compromise residual.
 
 The current roster is reconstructed by **accumulating add/cut while walking**, capped at a **hard
-live set of 32** (over-cap → reject as a DoS; operators run `≥ 5`, so 32 is generous headroom). The
-live roster is a **set**: a `Wit` whose `add` names an already-live prefix is rejected (re-adding
-would reset its `T_join`), and `add` membership is tested against the pre-delta roster, so a
-same-event `cut` + `add` of the same prefix is rejected too (order-independent). Every
-config-changing `Wit` is **re-checked on the post-delta config**, valid only if the full
-witness-config validity holds after the change — the witnessing floor, the `t_govern` bounds, and
-the federation's tighter recoverability cap (below). A bare `cut` that would strand the federation
-un-recoverable is rejected, forcing evict-and-replace or a simultaneous threshold-and-`signers`
-drop.
+live set of `MAXIMUM_ROSTER_SIZE`** (over-cap → reject as a DoS; operators run `≥ 5`, so
+`MAXIMUM_ROSTER_SIZE` is generous headroom). The live roster is a **set**: a `Wit` whose `add` names
+an already-live prefix is rejected (re-adding would reset its `T_join`), and `add` membership is
+tested against the pre-delta roster, so a same-event `cut` + `add` of the same prefix is rejected
+too (order-independent). Every config-changing `Wit` is **re-checked on the post-delta config**,
+valid only if the full witness-config validity holds after the change — the witnessing floor, the
+`t_govern` bounds, and the federation's tighter recoverability cap (below). A bare `cut` that would
+strand the federation un-recoverable is rejected, forcing evict-and-replace or a simultaneous
+threshold-and-`signers` drop.
 
 Witness **key rotation is a federation `Wit`** — the witness's KEL `Wit` **is** the rotation (it
 refreshes the signing key and rotation reserve) **and** anchors the federation IEL `Wit`

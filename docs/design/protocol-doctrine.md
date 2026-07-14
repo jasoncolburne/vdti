@@ -424,14 +424,15 @@ the clean seal (the backdate defense); a sealed dispute forms only at the **last
 witnessed seals there; see pre-seal verifiability, below.) Freezing origination on divergence is the
 founding insight of the event-log primitives.
 
-Every KEL and IEL is **federation-witnessed** — there is no direct mode; a SEL is not itself
-witnessed, inheriting fork-prevention from its owner IEL (below). On a witnessed chain a **content**
-fork rarely reaches this machinery at all: the witnessing floor makes two competing content siblings
-un-co-witnessable, so the fork is **prevented** from forming below fork-cost
-([§Federation convergence](#federation-convergence)). The rules below run in the **residual** — a
-**witness compromise** owning the intersection, split-stalls (where a burying seal-advancer is the
-exit), and **sealed** races — where the floor plus one-sealing-per-position decline the second
-sealed sibling (exactly as for content), so a _witnessed_ sealed fork requires witness collusion.
+Every KEL, IEL, and SEL is **federation-witnessed** — there is no direct mode; a SEL is its own
+witnessed chain at its own `(prefix, serial)`, inheriting its owner IEL's federation (below). On a
+witnessed chain a **content** fork rarely reaches this machinery at all: the witnessing floor makes
+two competing content siblings un-co-witnessable, so the fork is **prevented** from forming below
+fork-cost ([§Federation convergence](#federation-convergence)). The rules below run in the
+**residual** — a **witness compromise** owning the intersection, split-stalls (where a burying
+seal-advancer is the exit), and **sealed** races — where the floor plus one-sealing-per-position
+decline the second sealed sibling (exactly as for content), so a _witnessed_ sealed fork requires
+witness collusion.
 
 The **shape-validity gate** — reject a seal-advancer that would bury a **sealed** branch, or a
 self-burial (a burying seal-advancer siblinging its own retained chain) — runs wherever an event is
@@ -1152,8 +1153,8 @@ made in that window can transiently trust the wrong branch. This is the standard
 model; the multi-source freshness bar shrinks the window but does not close it, and recovery is
 operational (re-verify before binding; reincept on a surfaced divergence).
 
-Full mechanics — receipt encoding, witness selection, the clock's tolerance band and upper sanity
-bound — are the federation doctrine ([`federation/witnessing.md`](federation/witnessing.md)).
+Full mechanics — receipt encoding, witness selection, the clock's `CLOCK_TOLERANCE_BAND` and upper
+sanity bound — are the federation doctrine ([`federation/witnessing.md`](federation/witnessing.md)).
 
 ### Extension Discipline
 
@@ -1217,9 +1218,38 @@ checks** (revocation / rescission / divergence) against the new tip whenever any
 chain moves — an incremental resume that only extended chain state would advance the token past a
 revocation without surfacing it.
 
-Chain verification **streams** events page by page rather than loading whole chains; the verifier
-walks in generations (all events at a serial), and a generation spanning a page boundary re-fetches
-rather than being processed half-observed.
+Chain verification **pages through** events a page at a time rather than loading whole chains; the
+verifier walks in generations (all events at a serial), and a generation spanning a page boundary
+re-fetches rather than being processed half-observed.
+
+### Caching and continuation
+
+A verification token is **continuable and cacheable** — a consumer keeps it and resumes from it
+rather than re-verifying from inception. What to cache depends on what the next decision needs:
+
+- **The token alone** — enough when the decision reads only the token's own signals (structural
+  validity, which registered SAIDs were found anchored, the divergence verdict, witnessing status).
+  Reuse it iff the effective-SAID of every chain it transitively leans on still matches (the
+  transitive-reuse rule above) — a match means nothing moved, so the verdict stands. It cannot
+  answer a question about a **new** anchor or manifest role the original walk never sought; for that
+  the events are needed.
+- **The chain (the events)** — kept when a later decision must **re-walk to find other `manifest.*`
+  SAIDs** (a different anchor, a `roster` or `witnesses` role) the cached token never captured.
+- **The chain and the token together** — when the effective-SAID still matches, the re-walk **skips
+  structural re-verification** (already proven for this state) and only scans the events for the new
+  manifest detail: a faster re-walk that trusts the prior structural result because the fingerprint
+  is unchanged.
+
+Fetching is **incremental against a source**: a consumer queries with the token's effective-SAID as
+a **`since` cursor**, and the source returns only the events **after** that position. The mesh is
+beacon-plus-fetch, not a stream — every page is a network round-trip, so continuation avoids
+re-fetching settled history (the sink/source transfer surface is a services-layer mechanism,
+forthcoming). A `resume` still re-runs the to-tip negative checks (revocation / rescission /
+divergence) against the new tip whenever a transitively-pinned chain moved, so extending a walk
+never advances a token past a revocation without surfacing it.
+
+Caching is a **consumer choice**: a client may retain tokens and chains up to whatever its disk and
+memory allow; a service keeps no such per-consumer cache and re-walks under its work bound.
 
 ### Structural problems error; everything else is reported
 

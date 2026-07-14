@@ -46,7 +46,7 @@ Both layers carry `Fcp` (KEL = federation-infrastructure inception; IEL = the fe
   mechanism that **stays** — federation-witnessing §1d; it is the user's IEL rebinding, not a witness on two rosters.)*
 - A witness rotates as a federation **`Wit`**: its KEL `Wit` **IS** the rotation (refreshes signing + rotation reserve) **and
   anchors the federation IEL `Wit`** (kind-strict, T2 ↔ T2; the governance-facet match is the **witness-config only**
-  — Q3; roster rides the manifest `Evl`-style, `clock` is monotonic + `≤ now+band`; `pins = Wit.previous`, the
+  — Q3; roster rides the manifest `Evl`-style, `clock` is monotonic + `≤ now+CLOCK_TOLERANCE_BAND`; `pins = Wit.previous`, the
   pre-rotation KEL tip → the clock's `T_end`; the `Wit` is itself the rotation — **no separate rotation event**, no phantom key — cold-4 B1), with an inline
   **`clock`** timestamp in the `Wit`'s `manifest` — so the rotation boundary is recorded in the federation timeline
   (closes Finding 1). Adding/removing a witness is **also a `Wit`** (the federation has **no `Evl`** — `Wit` does all
@@ -73,7 +73,7 @@ No prior federation or gossip mesh exists yet, so the ceremony is point-to-point
 3. **Federation IEL `Fcp`** — the federation inception, marked `Fcp` (the structural disambiguator), whose roster is
    the founder witness KELs (threshold). It is authorized the ordinary way: its declared members (the founders)
    anchor it (step 2). The `Fcp` is the **marker**, **not** a self-witnessing rule — trust roots in the config-pin (§4).
-4. **Atomic batch** — founder `Rot`s + the federation `Fcp` land together (all-or-nothing). Founder `Fcp`s are
+4. **Dependency-ordered bundle** — founder `Rot`s + the federation `Fcp` land together, dependency-ordered (**not** all-or-nothing — a partial genesis is sub-threshold, fail-secure; the only real constraint is dependency, revised 2026-07-14). Founder `Fcp`s are
    per-founder local pre-work.
 5. **Gather → submit → redistribute** — founders push their bundles point-to-point to a *coordinator* (an
    operational convention, **not** a protocol leader / no election); the coordinator submits the `Fcp` once all

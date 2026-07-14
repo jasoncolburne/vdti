@@ -145,7 +145,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   rebind), a federation witness KEL's `Wit` anchors the federation IEL `Wit` (governance); the anchor-kind is
   uniform, but the field-match is **facet-specific** (Q3): user facet matches `{federation, federationPin}` (C4),
   the federation-governance facet matches **only the witness-config** (roster rides the manifest `Evl`-style; the
-  `clock` is a single IEL-side value, monotonic + `≤ now+band`); a *joining* witness instead rides a KEL `Ixn`
+  `clock` is a single IEL-side value, monotonic + `≤ now+CLOCK_TOLERANCE_BAND`); a *joining* witness instead rides a KEL `Ixn`
   alongside as consent-of-added, A1/E2 2026-06-28). Anchor-hosting KEL kinds are **`Ixn`/`Rot`/`Wit`** (the `Wit`
   hosts **only** the IEL `Wit`); `Trm` hosts none. **Federation bootstrap — RESOLVED (2026-06-28):** the
   federation's own witness KELs are **`Fcp`-rooted infrastructure** (governed *into* the roster, never self-bound);

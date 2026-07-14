@@ -22,9 +22,9 @@ cross-node correctness proof, [`reconciliation.md`](reconciliation.md).
 ## Single entry point
 
 `merge_events` is the single entry point for all write paths into a KEL — direct submissions, gossip
-propagation, federation sync, and bootstrap atomic batches. It runs under a database advisory lock
-for the duration of verification and write. Time-of-check-to-time-of-use is eliminated structurally:
-the verifier reads under the same lock the merge handler will use to write (see
+propagation, federation sync, and federation bootstrap bundles. It runs under a database advisory
+lock for the duration of verification and write. Time-of-check-to-time-of-use is eliminated
+structurally: the verifier reads under the same lock the merge handler will use to write (see
 [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 
 The merge handler returns either a **merge transition** (carrying the outcome, plus the resulting
@@ -526,4 +526,4 @@ for truncation.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#operation-categories) —
   operation categories (serving, consuming, resolving).
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the beacon, cross-node propagation.
+  witnessing: the beacon, cross-node propagation.

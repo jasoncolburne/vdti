@@ -319,5 +319,4 @@ is canonical in
   the layering principle.
 - [`../sel/`](../sel/) — SEL primitive. IEL events anchor SEL events and credentials.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the beacon, the witnessing floor, the clock, witness selection,
-  acceptance gating.
+  witnessing: the beacon, the witnessing floor, the clock, witness selection, acceptance gating.

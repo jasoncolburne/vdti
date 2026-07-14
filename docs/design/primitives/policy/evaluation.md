@@ -120,4 +120,4 @@ The tokens this layer names are produced by the per-primitive verifiers:
 - [`../data/event-logs/kel/`](../data/event-logs/kel/) — resolves a member device's key state, the
   base case `id` recursion bottoms out in. _(Per-primitive doctrine.)_
 - [`../data/event-logs/sel/`](../data/event-logs/sel/) — the single-owner data log a delegation's
-  rescission lookup is read from. _(Per-primitive doctrine; forthcoming.)_
+  rescission lookup is read from. _(Per-primitive doctrine.)_

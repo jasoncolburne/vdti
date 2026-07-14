@@ -383,9 +383,9 @@ a `disputed` chain; an above-seal anchor on a `disputed` chain grounds no new tr
 ## Federation witnessing in verification
 
 The verifier surfaces federation-witnessing signals on the token. Full witnessing mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
-section names what the KEL verifier reads. **The data decides; witnessing propagates** — receipts
-deliver competing branches and freshness, never a verdict.
+[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md); this section names
+what the KEL verifier reads. **The data decides; witnessing propagates** — receipts deliver
+competing branches and freshness, never a verdict.
 
 **`witnessed`.** True iff the event has accumulated threshold-many receipts under a consistent
 federation state. Witnesses are sort-selected by chain position `(prefix, serial)`; all competing
@@ -452,7 +452,7 @@ override), the federation is trusted for that event. Multi-federation chains (KE
 transferred federations via `Wit` events) require each federation in the chain's history to be
 independently trusted — no transitive trust. See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
-and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming).
+and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
 
 A consumer refuses to bind under a `disputed` region (the federation cannot agree at this position)
 or `witnessed = false` (insufficient attestation), and consults the config-pinned federation prefix
@@ -560,6 +560,6 @@ spanning two pages re-fetches at the next page rather than being processed half-
 - [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; stability
   under extension.
 - [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing mechanics (forthcoming).
+  witnessing mechanics.
 - [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap and the config-pinned federation prefix set (forthcoming).
+  bootstrap and the config-pinned federation prefix set.
