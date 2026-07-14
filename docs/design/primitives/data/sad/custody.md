@@ -30,11 +30,13 @@ Each sub-field is independently optional:
   IEL to resolve the write's authority — a SAID has no global index to invert ([`said.md`](said.md);
   [`../../../protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 - **`topic`** — the doc's **namespace / schema**: a discriminator naming what kind of document this
-  is. With `owner` it locates the write's SEL anchor (next section). A `topic` is either a
-  **VDTI-reserved** namespace (`CRED_REVOCATION_TOPIC`, `DLG_RSC_TOPIC`, `DOC_RSC_TOPIC` (`RSC` =
-  rescission), …) **or** an author-defined topic paired with its own schema. `owner` and `topic` are
-  **both present** (an attested write) or **both absent** (an anonymous write) — the writer-binding
-  is both-or-neither.
+  is. With `owner` it locates the write's SEL anchor (next section). A `topic` is a **SEL topic** —
+  either a feature-owned one from the catalogue
+  ([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) or an author-defined
+  topic paired with its own schema. It is distinct from a **derivation tag** (the `tag` in
+  `hash('{tag}:…')`, primitive-owned — same catalogue) and from a SAD's own `kind`
+  ([`kinds.md`](kinds.md)). `owner` and `topic` are **both present** (an attested write) or **both
+  absent** (an anonymous write) — the writer-binding is both-or-neither.
 - **`readPolicy`** — the SAID of a [policy](../../policy/policy.md) that gates read access at fetch
   time. The referenced policy is fetched and evaluated in **current mode**
   ([`../../policy/evaluation.md`](../../policy/evaluation.md)) against the verified prefixes of a

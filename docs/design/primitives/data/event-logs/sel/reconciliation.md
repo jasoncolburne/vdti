@@ -187,14 +187,14 @@ the lowest live one — a `Trm` on one lineage advances the walk, it does not co
 This matters because a value lookup's own live state is the sole authority for its **positive**
 resolution (no owner-IEL fallback there), so a Disputed or severed lineage is a real denial, and the
 walk re-establishes the value at a discoverable address. Rescinding one lineage is a monotone `Trm`
-whose anchoring `Dth` declares the **lineaged** target `hash('{topic}:{owner}:{data}:{lineage}')`,
-so the walk's per-lineage check reads `lineage: n` dead (from its own chain **or** that target in
-the owner IEL's fresh `kills[]`) while the re-established `n+1` survives — the positive walk
-consumes that per-lineage check, not a separate mechanism. Declaring that **matching lineaged
-target** is a **feature-layer obligation the primitive does not backstop** (the IEL never
-dereferences a target): the value-lookup feature constructs the rescission against the rule via the
-primitive-composition helpers — a rescission that named only an on-chain `Trm`, or a wrong-lineage
-target, would leave the kill on the withholdable leg
+whose anchoring `Dth` declares the **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')`, so
+the walk's per-lineage check reads `lineage: n` dead (from its own chain **or** that target in the
+owner IEL's fresh `kills[]`) while the re-established `n+1` survives — the positive walk consumes
+that per-lineage check, not a separate mechanism. Declaring that **matching lineaged target** is a
+**feature-layer obligation the primitive does not backstop** (the IEL never dereferences a target):
+the value-lookup feature constructs the rescission against the rule via the primitive-composition
+helpers — a rescission that named only an on-chain `Trm`, or a wrong-lineage target, would leave the
+kill on the withholdable leg
 ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)). A **monotone kill** (a
 cred revocation, a delegate / doc-member rescission) carries **no** `lineage` field and a
 **non-lineaged** target: it is answered by a single **negative check** (a verified `Trm` → killed),

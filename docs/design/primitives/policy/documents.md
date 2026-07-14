@@ -36,9 +36,9 @@ A document **carries no self-asserted pin.** Its issuer context is fixed by the 
 position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
 `Ixn` whose `manifest.anchors` names the document. For a **credential** — a direct-anchored SAD,
 never a SEL — that is the issuance `Ixn` naming the **issuance commitment**
-`hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, and that anchor **is** the validity proof
-([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
-fixed serial on the append-only chain, and it fixes the context two ways at once:
+`hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')`, and that anchor **is** the validity
+proof ([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at
+a fixed serial on the append-only chain, and it fixes the context two ways at once:
 
 - It **commits the point-in-time** so a verifier can find and verify the issuer's context — the
   state immediately **before** the anchoring event transitively commits the issuer's identity (its

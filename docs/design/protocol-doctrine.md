@@ -861,9 +861,9 @@ Inception tier follows what the inception establishes:
   an IEL `Dth` (rescission) or `Rev` (revocation).
 
 A **credential is not a SEL** — it is a **direct-anchored SAD**: the issuer anchors its issuance
-commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` on its own IEL via an `Ixn`, and
-that anchor **is** the validity proof (the cred is immutable and presented by the holder, never
-looked up by address — [§Negative checks](#negative-checks-are-positive-lookups)).
+commitment `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` on its own IEL via an
+`Ixn`, and that anchor **is** the validity proof (the cred is immutable and presented by the holder,
+never looked up by address — [§Negative checks](#negative-checks-are-positive-lookups)).
 
 A compromised tier-1 signing key can already issue content in your name, so letting it also create a
 SEL adds no blast radius — tier-1 inception is sound. Issuing a credential is tier 1 because a
@@ -1255,7 +1255,7 @@ algorithms:
   the positive walk landed on — the value's live state is read from its own SEL chain, its
   per-lineage kill from the lineaged target (area-sel §1f).
 - **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
-  authoritative only after the walk: compute `target = hash('{topic}:{owner}:{data}')` — the target
+  authoritative only after the walk: compute `target = hash('{tag}:{owner}:{data}')` — the target
   **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
   for a **value rescission** (scoped to one instance), a literal `:content` for a **content
   (app-SEL) closure** (area-sel §1f). This is **not** a separate "walk to tip" pass: the verifier

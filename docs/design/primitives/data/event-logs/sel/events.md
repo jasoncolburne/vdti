@@ -169,10 +169,11 @@ still-rostered culprit cannot race a fresh fork at the resolved tip.
 A **lookup SEL** is located by recomputing its prefix, and its shape names its purpose:
 
 - A **kill lookup** is `{Icp, Trm}` — born to kill, its v1 the `Trm` itself. Its prefix and SAID are
-  the usual two-hash derivation over `Icp{owner, topic, data}`, where `data` is the grant-instance
-  reference, so a re-grant after a kill gets a fresh locus. The owner IEL's `kills[]` target is a
-  **separate** flat, domain-qualified hash — distinct from the lookup SEL's prefix and SAID — so the
-  public declaration never leaks the lookup object's address
+  the usual two-hash derivation over its whole inception body (`owner`, `topic`, and optional `data`
+  / `content` / `lineage`), where `data` is the grant-instance reference, so a re-grant after a kill
+  gets a fresh locus. The owner IEL's `kills[]` target is a **separate** flat, domain-qualified hash
+  — distinct from the lookup SEL's prefix and SAID — so the public declaration never leaks the
+  lookup object's address
   ([`../iel/events.md` §Kills](../iel/events.md#kills--the-fail-secure-revocation-declaration) is
   authoritative on the IEL-side target and bound).
 - A **value lookup** is `{Icp, Gnt}` — its v1 the `Gnt` that seals the value. Rotating the value
@@ -191,25 +192,25 @@ derive to **different addresses**, so a content SEL can never occupy a lookup ad
 **squat** at a value's lookup address is impossible by construction. Content and lookups may share
 `(owner, topic, data)`; they are simply different addresses.
 
-**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix
-`derive(owner, topic, data)` is a pure function of fixed inputs, so a killed or disputed value
-lookup **cannot re-incept by rerolling randomness** — the same inputs recompute the same dead
-address. `lineage` gives it a fresh one: the base is `lineage: 0`, a re-incept sets `lineage: 1`,
-`lineage: 2`, and so on, each a distinct whole-content and so a distinct prefix. It is carried
-**only** by a **re-establishable value** lookup; a **monotone** lookup (a kill, or a
-non-re-establishable value) omits it, and content omits it too (content uses `content: true`). A
-re-establishable value's **canonical instance is the lowest non-dead lineage**, found by a
-**positive walk**; a lineage above a live one is inert, so an equivocation attempt fails safe (only
-the owner anchors at the locus).
+**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix —
+the two-hash digest over its inception body (`owner`, `topic`, and optional `data` / `content`) — is
+a pure function of fixed inputs, so a killed or disputed value lookup **cannot re-incept by
+rerolling randomness** — the same inputs recompute the same dead address. `lineage` gives it a fresh
+one: the base is `lineage: 0`, a re-incept sets `lineage: 1`, `lineage: 2`, and so on, each a
+distinct whole-content and so a distinct prefix. It is carried **only** by a **re-establishable
+value** lookup; a **monotone** lookup (a kill, or a non-re-establishable value) omits it, and
+content omits it too (content uses `content: true`). A re-establishable value's **canonical instance
+is the lowest non-dead lineage**, found by a **positive walk**; a lineage above a live one is inert,
+so an equivocation attempt fails safe (only the owner anchors at the locus).
 
 A **value lookup** is **positive-walked** — its own live state is the sole authority for "what is
 the live value" (no owner-IEL fallback for that resolution), so a dispute is genuine ambiguity and a
 collusion-forced dead lineage is a real denial; the walk re-establishes it. But the walk
 **consumes** a per-lineage negative check, not a separate mechanism: `lineage: N` reads dead when a
 `Trm` sits on its own chain **or** its **lineaged** `kills[]` target
-`hash('{topic}:{owner}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` —
-scoped to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm`
-whose `Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
+`hash('{tag}:{owner}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` — scoped
+to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm` whose
+`Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
 doc-member rescission) uses a **non-lineaged** target and is a single negative-checked read, never
 walked. The split is **structural** — the verifier reads the `content` flag and the `lineage`
 field's presence, never the topic's meaning, with **no tier-check** on the read path

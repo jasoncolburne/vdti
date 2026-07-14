@@ -194,7 +194,7 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
   kill event, so a grandfather check reads the `bound` from its `kills[]` entry directly, with no
   exhaustive `kills[]` scan of the chain.
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
-  `target = hash('{topic}:{owner}:{data}')` (the target **mirrors the killed address**:
+  `target = hash('{tag}:{owner}:{data}')` (the target **mirrors the killed address**:
   **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
   `:content` for a **content (app-SEL) closure** — area-sel §1f) and walk the owner's **fresh** IEL
   (from the relevant grant / issuance position to the tip), forward-matching the `target` against

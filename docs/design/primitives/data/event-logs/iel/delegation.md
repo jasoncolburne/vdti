@@ -19,15 +19,18 @@ bound-choice usage doctrine — is
 Delegation is an IEL `Ath` whose `manifest.delegates` names the delegate's IEL **prefix** (the
 delegate acts **for the delegator**) — tier 2, `t_authorize`. Rescission is a **`kills[]`
 declaration** on the delegator's witnessed IEL **`Dth`** (tier 2, `t_authorize`) plus a
-content-addressed lookup SEL `{Icp, Trm}` at `derive(delegator, DLG_RSC_TOPIC, grant_instance)` (the
+content-addressed lookup SEL `{Icp, Trm}` whose inception commits
+`{ owner: delegator, topic: vdti/sel/v1/targets/rescission, data: grant_instance }` (the
 grant-instance `said({ grant: said(Ath), delegate })`, so a re-grant gets a fresh locus). The
 `Dth`'s `kills[]` entry is `{ target, bound }`:
-`target = hash('{DLG_RSC_TOPIC}:{delegator}:{grant_instance}')` — a flat, domain-qualified hash the
-verifier forward-matches, and **distinct from the lookup SEL's derived prefix** (a separate `derive`
-pass), so the public `kills[]` never leaks the lookup object's address — and `bound`, the **last
-honoured event** on the delegate's chain (the grandfather boundary), rides **publicly in the
-`kills[].bound` field**, un-withholdable on the witnessed IEL. The lookup `Trm` carries **only its
-pin**. (Answering multi-hop liveness — the **bounded per-candidate walk** — is
+`target = hash('vdti/sel/v1/targets/rescission:{delegator}:{grant_instance}')` — a flat,
+domain-qualified hash the verifier forward-matches (the `tag` is a primitive derivation tag,
+[`tags-and-topics.md`](../tags-and-topics.md), never a feature name), and **distinct from the lookup
+SEL's derived prefix** (a separate derivation pass), so the public `kills[]` never leaks the lookup
+object's address — and `bound`, the **last honoured event** on the delegate's chain (the grandfather
+boundary), rides **publicly in the `kills[].bound` field**, un-withholdable on the witnessed IEL.
+The lookup `Trm` carries **only its pin**. (Answering multi-hop liveness — the **bounded
+per-candidate walk** — is
 [`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk).) _(A
 delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
 `bound` **is** participant-identifying and instead rides the SEL `Trm`'s gated `bound` role — see

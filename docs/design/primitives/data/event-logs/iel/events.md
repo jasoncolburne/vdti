@@ -142,7 +142,7 @@ change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit 
 
 Anchors content SEL events, each SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`, never
 itself anchored), **and a credential's issuance commitment**
-`hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` (an immutable SAD — a credential is
+`hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
 may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
 malformed / inert — a lightweight structural guard. Fork-prevention for a SEL is the SEL's **own**
@@ -220,17 +220,19 @@ every inline manifest list, capped at `MAXIMUM_MANIFEST_LIST = 128` entries (eve
 over-length list is rejected in structural validation, bounding the per-event forward-match work).
 It is the revocation / rescission **declaration** the fail-secure walk consumes:
 
-- **`target = hash('{topic}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier
-  computes directly and **forward-matches** on the owner's fresh IEL. The target **mirrors the
-  killed address** (area-sel §1f): **non-lineaged** `hash('{topic}:{owner}:{data}')` for a
-  **monotone kill** (cred revocation, delegate / doc-member rescission), **lineaged**
-  (`…:{lineage}`) for a **value rescission** (scoped to the one instance it kills, so the
-  re-established `lineage: N+1` survives), and a literal `:content` for a **content (app-SEL)
-  closure** (the content namespace). A value's positive resolution reads its own SEL chain; its
-  per-lineage negative check consults this lineaged target. The per-kind `topic`
-  (`CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`) is **opaque to the IEL** — the IEL
-  never dereferences a target or interprets a bound. Placement (kind-strict) is the only structural
-  rule; all revocation and grandfather logic is the feature layer's
+- **`target = hash('{tag}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier computes
+  directly and **forward-matches** on the owner's fresh IEL. The `tag` is a primitive derivation tag
+  ([`tags-and-topics.md`](../tags-and-topics.md)), never a feature name —
+  `vdti/sel/v1/targets/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/targets/rescission`
+  for a `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
+  distinguishes them). The target **mirrors the killed address** (area-sel §1f): **non-lineaged**
+  `hash('{tag}:{owner}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
+  rescission), **lineaged** (`…:{lineage}`) for a **value rescission** (scoped to the one instance
+  it kills, so the re-established `lineage: N+1` survives), and a literal `:content` for a **content
+  (app-SEL) closure**. A value's positive resolution reads its own SEL chain; its per-lineage
+  negative check consults this lineaged target. The `tag` is **opaque to the IEL** — the IEL never
+  dereferences a target or interprets a bound. Placement (kind-strict) is the only structural rule;
+  all revocation and grandfather logic is the feature layer's
   ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not** the
   lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.

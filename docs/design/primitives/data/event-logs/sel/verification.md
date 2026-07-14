@@ -190,7 +190,7 @@ resolve_lookup(owner, topic, data):                       # a re-establishable v
 
 **The positive walk consumes the per-lineage negative check — one act, not two mechanisms.**
 `lineage: n` reads dead when a `Trm` sits on its own SEL chain (Disputed or severed count too)
-**or** its **lineaged** target `hash('{topic}:{owner}:{data}:{lineage}')` is present in the owner
+**or** its **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')` is present in the owner
 IEL's **fresh** `Rev` / `Dth` `kills[]` — the fail-secure, un-withholdable authority
 ([`../iel/verification.md` §The kills forward-match](../iel/verification.md#the-kills-forward-match)).
 So a value's **positive** resolution — "what is the live value?" — has no owner-IEL fallback (the

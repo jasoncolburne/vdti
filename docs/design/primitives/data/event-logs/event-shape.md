@@ -170,9 +170,10 @@ The roles that carry discrimination or shape rules, in prose:
 - **`anchors`** is the one anchoring vocabulary, discriminated by the **anchored event's kind**, not
   a label — kind-strict both ways: a KEL `Wit` anchors the IEL `Wit`; an IEL `Ixn` anchors content
   SEL **v1s** (the `Icp` rides `v1.previous`, never itself anchored) **and** a credential's
-  **issuance commitment** `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` (an immutable SAD, no
-  credential-SEL — the anchor is the validity proof); `Ath` → SEL `Gnt`; `Rev` → SEL `Trm`
-  (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal recovery).
+  **issuance commitment** `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` (an
+  immutable SAD, no credential-SEL — the anchor is the validity proof); `Ath` → SEL `Gnt`; `Rev` →
+  SEL `Trm` (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal
+  recovery).
 - **`roster`** is a **delta**, never a snapshot (`{ add, cut, changed thresholds }`): `add` is a
   list on the user kinds and a **single** prefix on a federation `Wit`; a `cut` `Evl` carries a
   **required non-empty `cut`** + optional `threshold`, **never** an `add`.
@@ -182,13 +183,13 @@ The roles that carry discrimination or shape rules, in prose:
   starts that the `Gnt` opens.
 - **`kills`** is the revocation / rescission **declaration** — a flat list `[{ target, bound? }]`
   carried **alongside** `anchors[]` (two separate roles: `anchors` names the sealing `Trm`, `kills`
-  names _what_ is revoked). `target = hash('{topic}:{owner}:{data}')` — a flat, domain-qualified
-  hash the verifier computes directly and forward-matches; `bound` (rescission only) is the
-  grandfather cutoff, carried **either** inline-public in this `kills[]` entry **or** — when the
-  cutoff is participant-identifying — via the gated `bound` role on the SEL `Trm` (below). **`kills`
-  is opaque to the IEL** — placement (kind-strict to the tier-2 `Rev` / `Dth`) is the only
-  structural rule; the IEL never dereferences a target or interprets a bound (all revocation /
-  grandfather logic is the feature layer's).
+  names _what_ is revoked). `target = hash('{tag}:{owner}:{data}')` — a flat, domain-qualified hash
+  the verifier computes directly and forward-matches; `bound` (rescission only) is the grandfather
+  cutoff, carried **either** inline-public in this `kills[]` entry **or** — when the cutoff is
+  participant-identifying — via the gated `bound` role on the SEL `Trm` (below). **`kills` is opaque
+  to the IEL** — placement (kind-strict to the tier-2 `Rev` / `Dth`) is the only structural rule;
+  the IEL never dereferences a target or interprets a bound (all revocation / grandfather logic is
+  the feature layer's).
 - **`bound`** carries a doc-member rescission's participant-blind grandfather cutoff — a gated
   rescind-doc committed by the SEL `Trm`. It is the **gated custody mode** of the same grandfather
   `bound`: a delegate rescission, not participant-identifying, rides the **inline-public
@@ -609,13 +610,13 @@ inception populates.
   `pin`** (the pin rides a batched serial-1 event instead).
 
 A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anchors** by its
-**issuance commitment** `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` on an IEL `Ixn` (the
-anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL — the issuance
-commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are all hashes
-of it — so a private credential's status stays private (its `cred.said` is high-entropy via the body
-`nonce`) while a public credential's is correctly public. The custody rule: **direct-anchor an
-immutable SAD that is presented; SEL-wrap anything mutable or looked-up-by-address**
-([`../sad/custody.md`](../sad/custody.md)).
+**issuance commitment** `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` on an IEL
+`Ixn` (the anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL —
+the issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are
+all hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy
+via the body `nonce`) while a public credential's is correctly public. The custody rule:
+**direct-anchor an immutable SAD that is presented; SEL-wrap anything mutable or
+looked-up-by-address** ([`../sad/custody.md`](../sad/custody.md)).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
 computed prefix doesn't match its declared `prefix`.
@@ -625,9 +626,9 @@ computed prefix doesn't match its declared `prefix`.
 Some kinds land only as part of a multi-event atomic batch, enforced at the merge layer:
 
 - **Credential issuance** — the issuer anchors the credential's **issuance commitment**
-  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` under an IEL `Ixn`'s `manifest.anchors` (an
-  immutable SAD, no credential-SEL — the anchor is the validity proof); one IEL `Ixn` may batch many
-  issuances.
+  `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` under an IEL `Ixn`'s
+  `manifest.anchors` (an immutable SAD, no credential-SEL — the anchor is the validity proof); one
+  IEL `Ixn` may batch many issuances.
 - **A SEL kill** — a revocation lookup-SEL `Trm` is anchored by an IEL `Rev`, and a rescission
   lookup-SEL `Trm` by an IEL `Dth`, each under `manifest.anchors` (one kill-anchor may batch many
   kills), and the `Rev` / `Dth` also carries the `kills[]` declaration naming each killed locus.

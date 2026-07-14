@@ -45,8 +45,9 @@ A SEL inception event (`Icp`) is a
 [prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): its prefix is
 the whole-content two-hash digest of the inception body —
 [`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic (`prefix ≠ said`, for
-correlation resistance). What the **SEL** prefix commits to is the populated inception fields —
-shorthand `derive(owner, topic, data)`:
+correlation resistance). There is no `derive()` function: the prefix is the two-hash digest over the
+**whole inception body**, so it commits to every populated inception field — `owner` and `topic`,
+plus optional `data`, `content`, and `lineage`:
 
 - **`owner`** — the owner IEL prefix. It is **`Icp`-only and immutable**: a SEL has one owner for
   life, and no later event may change it.
@@ -114,11 +115,12 @@ is load-bearing for a published value but a monotone kill is a single read is
 A SEL is classified by **whether a verifier can recompute its address**, not by whether its data is
 discoverable:
 
-- A **lookup SEL** is one whose prefix a verifier **recomputes** — `derive(owner, topic, data)` —
-  from data it already holds, then fetches by that prefix. Two shapes: a **kill lookup**
-  `{Icp, Trm}` (a revocation or rescission locus — the read strategy the fail-secure kill check
-  consumes) and a **value lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key
-  — §The seal and its advancers).
+- A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
+  inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
+  already holds, then fetches by that prefix. Two shapes: a **kill lookup** `{Icp, Trm}` (a
+  revocation or rescission locus — the read strategy the fail-secure kill check consumes) and a
+  **value lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key — §The seal and
+  its advancers).
 - A **content SEL** is one a verifier is **handed** rather than recomputing. It records data over
   time (`Icp` → serial-1 event → further `Ixn`s).
 
