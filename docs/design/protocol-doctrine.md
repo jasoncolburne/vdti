@@ -1290,23 +1290,24 @@ algorithms:
   present-means-killed needs no freshness check). A monotone kill's address carries no lineage; a
   **value's** per-lineage check recomputes the lineaged address from
   `(owner, topic, data, lineage: N)` for the specific `N` the positive walk landed on — the value's
-  live state is read from its own SEL chain, its per-lineage kill from the lineaged target (area-sel
-  §1f).
+  live state is read from its own SEL chain, its per-lineage kill from the lineaged target
+  ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields)).
 - **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
   authoritative only after the walk: compute `target = hash('{tag}:{owner}:{data}')` — the target
   **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
   for a **value rescission** (scoped to one instance), a literal `:content` for a **content
-  (app-SEL) closure** (area-sel §1f). This is **not** a separate "walk to tip" pass: the verifier
-  **pre-computes the set of `target`s** it is checking (itself bounded — the candidate subjects are
-  capped input, at most `MAXIMUM_MANIFEST_LIST` per matching `kills[]` and otherwise bounded by the
-  caller / policy layer), and the **ordinary bounded verification walk** it already runs over the
-  owner's **fresh** IEL detects and reports any match **inline** as it passes each `Rev`/`Dth` —
-  forward-matching each `kills[]` against the target set, no accumulation. In some `kills[]` →
-  killed; in none, **on a walk that reached the fresh witnessed tip** → not killed. This **rides the
-  multi-source freshness gate**
-  ([§Verification tokens](#verification-tokens-as-proof-of-verification)): the only way to hide a
-  kill is a **stale** IEL, which the verifier already refuses when trusting the owner at all — so
-  kill-freshness equals authority-freshness. "**No lossy cap**" means the walk **drops nothing
+  (app-SEL) closure**
+  ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields)). This is
+  **not** a separate "walk to tip" pass: the verifier **pre-computes the set of `target`s** it is
+  checking (itself bounded — the candidate subjects are capped input, at most
+  `MAXIMUM_MANIFEST_LIST` per matching `kills[]` and otherwise bounded by the caller / policy
+  layer), and the **ordinary bounded verification walk** it already runs over the owner's **fresh**
+  IEL detects and reports any match **inline** as it passes each `Rev`/`Dth` — forward-matching each
+  `kills[]` against the target set, no accumulation. In some `kills[]` → killed; in none, **on a
+  walk that reached the fresh witnessed tip** → not killed. This **rides the multi-source freshness
+  gate** ([§Verification tokens](#verification-tokens-as-proof-of-verification)): the only way to
+  hide a kill is a **stale** IEL, which the verifier already refuses when trusting the owner at all
+  — so kill-freshness equals authority-freshness. "**No lossy cap**" means the walk **drops nothing
   within its bound** — but a walk that **cannot reach the fresh witnessed tip within `max_pages`**
   is a can't-freshness-confirm condition, so it **refuses (fail-secure)**, **never** reports
   not-killed.

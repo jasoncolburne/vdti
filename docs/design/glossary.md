@@ -236,6 +236,12 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   that Active and the effective-SAID's real-SAID arm read against. An unwitnessed or below-threshold
   tip is **not** confirmed (a non-witness never even holds a sub-threshold event — query-scoping).
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+- **witnessed vs accepted** — **witnessed**: a selected witness signed a first-seen receipt.
+  **accepted**: witnessed **at threshold** (a `confirmed tip`). The Active / `Disputed` boundary and
+  the effective-SAID read against **accepted**, never merely witnessed — `Disputed` needs ≥ 2
+  **accepted** sealed branches (which is why it takes collusion / a provable double-sign), and a
+  below-seal or sub-threshold sealed event is witnessed-but-not-accepted → dropped, never
+  `Disputed`. ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **keep-all-data / data-local detection** — nodes retain competing branches as evidence, so any
   verifier detects a fork or dispute from the data alone.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))

@@ -262,9 +262,10 @@ means **forbidden** (the field must be unset); the full `req` / `fbd` / `opt` le
   (schema is IEL doctrine — [`iel/`](iel/)).
 - ᵈ **`data`** — for a lookup SEL, `data` is the recompute input (a revocation / rescission locus:
   the grant-instance); absent for an `owner` + `topic`-only SEL.
-- ᵉ **`content`** — the content-vs-lookup discriminator (area-sel §1f), verifier-enforced against
-  the v1's tier (`content: true` ⟺ a v1-T1 content SEL; omitted ⟺ a v1-T2 lookup). Distinct from the
-  manifest `payload` role.
+- ᵉ **`content`** — the content-vs-lookup discriminator
+  ([`sel/log.md`](sel/log.md#the-content-and-lineage-fields)), verifier-enforced against the v1's
+  tier (`content: true` ⟺ a v1-T1 content SEL; omitted ⟺ a v1-T2 lookup). Distinct from the manifest
+  `payload` role.
 - ᶠ **`lineage`** — lets a re-establishable value re-incept at a fresh address (`lineage: n+1`)
   after a rescission; a monotone lookup and content carry none.
 

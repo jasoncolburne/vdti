@@ -309,6 +309,11 @@ and the two-scope transport are [`topics.md`](topics.md), and the AEAD nonce and
 discipline is owed at the encoding-library / infrastructure layer
 ([Cross-references](#cross-references)). What matters for witnessing is what a query returns.
 
+This position-indexed receipt query is **the beacon**: because receipts are keyed at
+`(prefix, serial)`, querying a position returns the receipts for **every** witnessed branch there,
+so a node holding one branch learns the others exist and fetches them to walk — the detection signal
+a `disputed` read rests on.
+
 A **not-yet-witnessed (sub-threshold) event is witness-scoped**: a query returns it **only to a
 selected witness** for that position; to every other node — a non-witness, or a witness not selected
 here — it is noise and is not returned. So **non-witnesses only ever hold witnessed-in-full
@@ -495,4 +500,5 @@ stale keys.
   `vdti/witness/v1/receipts/*`.
 - [`topics.md`](topics.md) — the gossip channels the mesh carries and the two-scope transport.
 - The encoding library — the byte-exact `select` scheme, the receipt canonicalization, and the AEAD
-  nonce / key-scope discipline for the encrypted mesh (its own doc, forthcoming).
+  nonce / key-scope discipline for the encrypted mesh (its own doc under `infrastructure/`,
+  forthcoming).

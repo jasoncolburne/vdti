@@ -18,7 +18,7 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 An identity's IEL is one of two facets, fixed by its inception root (§Two-kind inception). A **user
 IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`.
 
-| Kind  | Topic                    | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
+| Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                                                          |
 | `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors SEL events, each SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                                               |
@@ -225,7 +225,8 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
   ([`tags-and-topics.md`](../tags-and-topics.md)), never a feature name —
   `vdti/sel/v1/targets/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/targets/rescission`
   for a `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
-  distinguishes them). The target **mirrors the killed address** (area-sel §1f): **non-lineaged**
+  distinguishes them). The target **mirrors the killed address**
+  ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
   `hash('{tag}:{owner}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
   rescission), **lineaged** (`…:{lineage}`) for a **value rescission** (scoped to the one instance
   it kills, so the re-established `lineage: N+1` survives), and a literal `:content` for a **content

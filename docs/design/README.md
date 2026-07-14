@@ -50,6 +50,14 @@ its own reading-order note in `sad.md`.)
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
 
+Alongside these, three **identifier catalogues** define the naming conventions used surface-wide
+(all on the shared `vdti/{component}/v1/{category}/{name}` convention) — read one when a `kind`,
+`tag`, or `topic` first puzzles you: [`primitives/data/sad/kinds.md`](primitives/data/sad/kinds.md)
+(every SAD `kind`),
+[`primitives/data/event-logs/tags-and-topics.md`](primitives/data/event-logs/tags-and-topics.md)
+(the derivation `tag`s and SEL `topic`s), and [`federation/topics.md`](federation/topics.md) (the
+gossip topics, also at #28).
+
 ## 2 — Cross-cutting doctrine
 
 7. [`protocol-doctrine.md`](protocol-doctrine.md) — the rules that span every primitive: the two
@@ -164,4 +172,5 @@ These are referenced above as forward-references and are still forthcoming:
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
 - `operations/` — operator workflows (recovery ceremony, sealing serialization).
-- `infrastructure/` — the storage service.
+- `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
+  scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).

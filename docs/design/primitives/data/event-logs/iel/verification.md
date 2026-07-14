@@ -197,7 +197,8 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
   `target = hash('{tag}:{owner}:{data}')` (the target **mirrors the killed address**:
   **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
-  `:content` for a **content (app-SEL) closure** — area-sel §1f) and walk the owner's **fresh** IEL
+  `:content` for a **content (app-SEL) closure** —
+  [`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)) and walk the owner's **fresh** IEL
   (from the relevant grant / issuance position to the tip), forward-matching the `target` against
   each `Rev` / `Dth`'s `kills[]`. In some `kills[]` → killed (grandfathered to that entry's
   `bound`); in none **on a walk that reached the fresh witnessed tip** → not killed. Being in a

@@ -130,8 +130,11 @@ is content or sealed**. For an **Active** chain, every valid submission is in ex
    seal→tip run (content-only by definition).
 
 A new event whose own serial is below the seal's lands in the locked portion → `Sealed` (a content
-child) or reads `Disputed` (a sealed child), independent of attach-position. The attach-position,
-not the chain state, carries this distinction — the state stays one of the four live-chain states.
+child) or **dropped / inert** (a sealed child — **not** `Disputed`: a below-seal sealed straggler is
+not witnessable past the seal, the backdate defense, invariant 5), independent of attach-position. A
+sealed sibling **at the seal's own serial** is the live-fork case (Forked / Disputed) — Position 2,
+not this one. The attach-position, not the chain state, carries this distinction — the state stays
+one of the four live-chain states.
 
 ### Position 1 — the new event extends the tip (trivial: linear)
 

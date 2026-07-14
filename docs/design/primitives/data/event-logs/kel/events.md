@@ -1,12 +1,11 @@
 # KEL Events — Per-Kind Reference
 
-Per-kind structural reference for the KEL event taxonomy: five event kinds across two inception
-variants, one content kind, one rotation kind, one federation kind, and one terminal kind. The
-cross-primitive field shape — common fields, the `manifest` model, `previousSeal`, and the full
-per-kind field grid — is the [event-shape reference](../event-shape.md#kel); this doc states the
-KEL-specific semantics: the key-state fields, two-kind inception, the manifest roles a KEL event
-carries, forward-key commitments, the two-tier capability model, sort priority, and the seal-advance
-cap.
+Per-kind structural reference for the KEL event taxonomy: **five event kinds** (`Icp` / `Ixn` /
+`Rot` / `Wit` / `Trm`) plus the founder `Fcp` inception variant. The cross-primitive field shape —
+common fields, the `manifest` model, `previousSeal`, and the full per-kind field grid — is the
+[event-shape reference](../event-shape.md#kel); this doc states the KEL-specific semantics: the
+key-state fields, two-kind inception, the manifest roles a KEL event carries, forward-key
+commitments, the two-tier capability model, sort priority, and the seal-advance cap.
 
 For chain lifecycle (states, the seal and spine, locked-portion bound, page model), see
 [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For recovery doctrine,
@@ -14,7 +13,7 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 
 ## Event taxonomy
 
-| Kind  | Topic                    | Class     | Tier | Purpose                                                                                                                                                   |
+| Kind  | Kind string              | Class     | Tier | Purpose                                                                                                                                                   |
 | ----- | ------------------------ | --------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Fcp` | `vdti/kel/v1/events/fcp` | inception | 1    | Founder pre-federation inception (no federation exists yet).                                                                                              |
 | `Icp` | `vdti/kel/v1/events/icp` | inception | 1    | Standard inception (member or end-user KEL) — federation-bound (there is no direct mode).                                                                 |
@@ -29,9 +28,8 @@ The **class** column names the event's role under the
 — including the **terminal** kind (`Trm`, which also ends the chain); so a branch carrying a `Trm`
 counts as sealed in the divergence walk just as a `Rot` branch does. The **tier** column names which
 key material is required to forge the event — see
-[§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
-versioned schema identifier (`vdti/kel/v1/events/…`), unrelated to a standalone SAD's custody
-`topic`.
+[§Two-tier capability model](#two-tier-capability-model). The **Kind string** column is the kind's
+versioned schema identifier (`vdti/kel/v1/events/…`).
 
 ## Two-kind inception
 

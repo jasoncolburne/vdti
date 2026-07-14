@@ -17,7 +17,7 @@ walk, [`verification.md`](verification.md).
 
 A SEL uses exactly six kinds; any other kind code is malformed.
 
-| Kind  | Topic                    | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                       |
+| Kind  | Kind string              | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                       |
 | ----- | ------------------------ | --------- | ---- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/sel/v1/events/icp` | inception | 1    | `t_use`                                       | Inception — commits `owner` + `topic` + optional `data` (+ `content: true` for a content SEL, `lineage` for a re-establishable value lookup); **no `pin`, no manifest** (stays recomputable). Its serial-1 **v1** is anchored, not the `Icp`. |
 | `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records payload SAD(s) (the `payload` role, **required** — always ≥ 1) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`** (counting content). The divergeable content kind (first-seen, buriable).                   |
@@ -215,7 +215,8 @@ doc-member rescission) uses a **non-lineaged** target and is a single negative-c
 walked. The split is **structural** — the verifier reads the `content` flag and the `lineage`
 field's presence, never the topic's meaning, with **no tier-check** on the read path
 ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)); the walk is capped at
-`MAXIMUM_SEL_LINEAGE = 64`.
+`MAXIMUM_SEL_LINEAGE = 64` — the **highest valid lineage index**, walked **inclusive** (so
+`lineage: 64` is a valid instance).
 
 ## Inception and the serial-1 floor
 

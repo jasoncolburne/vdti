@@ -737,11 +737,11 @@ Honest unknowns: mechanisms not yet independently reviewed, and a discipline the
 but has not yet specified. These are assurance residuals, not known exploits.
 
 - **Mesh-encryption discipline — Low.** The mesh uses **ML-DSA** (signatures) and **ML-KEM +
-  AES-256-GCM** (key-establishment + symmetric encryption) — post-quantum primitives, on the kels
-  precedent (the extracted iroh core, `../kels`, available for review). The residual is only the
-  **AES-GCM nonce / key-scope discipline**: get nonce-reuse or key-scope wrong and the mesh's
-  confidentiality — never its trust — breaks. It closes with the implementation discipline, not a
-  new spec.
+  AES-256-GCM** (key-establishment + symmetric encryption) — post-quantum primitives, following the
+  sibling reference implementation this design was extracted from (available for review). The
+  residual is only the **AES-GCM nonce / key-scope discipline**: get nonce-reuse or key-scope wrong
+  and the mesh's confidentiality — never its trust — breaks. It closes with the implementation
+  discipline, not a new spec.
 - **Store-hardening not yet independently reviewed — Low.** The store-side event-kind filter (which
   keeps event bodies from being fetchable by identifier — the mechanism that stops an identifier
   from becoming a prefix-inversion oracle) and the receipt-encoded-threshold hint carry a
