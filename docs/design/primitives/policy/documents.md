@@ -36,7 +36,7 @@ A document **carries no self-asserted pin.** Its issuer context is fixed by the 
 position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
 `Ixn` whose `manifest.anchors` names the document. For a **credential** — a direct-anchored SAD,
 never a SEL — that is the issuance `Ixn` naming the **issuance commitment**
-`hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')`, and that anchor **is** the validity
+`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`, and that anchor **is** the validity
 proof ([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at
 a fixed serial on the append-only chain, and it fixes the context two ways at once:
 
@@ -107,7 +107,7 @@ applies at every level — with no self-asserted value carried at any level.
 A document may be authorized by a **delegate** of an identity — the `del(X, N)` leaf
 ([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
 each hop's delegating link is the content-addressed prefix recomputed from
-`(delegator, vdti/sel/v1/targets/delegation, delegate)` (delegator = owner, delegate = data — the
+`(delegator, vdti/sel/v1/actions/delegation, delegate)` (delegator = owner, delegate = data — the
 same scheme as a rescission lookup,
 [`../data/event-logs/iel/delegation.md`](../data/event-logs/iel/delegation.md)), **committed on the
 delegator's (owner's) own identity** (owner-rooted — only the owner anchors at a derived locus) and

@@ -497,17 +497,17 @@ the branches being buried are checked.
   _own_ rotation — it is kept, not buried. An adversary holding your signing key can append only
   content, and a burying `Rot` drops it — so **the rotation reserve defends the signing key.**
 - **Yes — a competing branch carries a sealed event** (a rotation, an `Evl`, an `Ath`, a
-  `Rev`/`Dth`, a `Wit`, a `Gnt`, a `Trm`) → **not recoverable → reincept** (for a **delegated** KEL
-  — one chartered under an IEL delegation, whose doctrine is the IEL's — the delegator `Dth`s it
-  instead). That event cannot be buried (rule 1), cannot be extended (rule 2 — it is not your
-  branch), and out-sealing it is a second sealed branch (Disputed). So **the rotation reserve does
-  not defend the rotation key: a key-state branch you did not author is the point of no return** — a
-  hostile `Rot` at a forked position is a **reserve-theft takeover-by-extend**, unrecoverable, while
-  the party that **did** author it recovers by **retaining** it. (A _winning_ terminal `Trm` sits on
-  the **retained** branch and resolves by tier-rank, above — it never triggers this arm; a
-  `Rev`/`Dth`, being non-terminal, is likewise retained in a `{Rev|Dth, content}` recovery. A
-  `Rev`/`Dth` or `Trm` reaches a **competing** branch only alongside a **second** sealed branch —
-  and then that second branch is the trigger.)
+  `Rev`/`Dth`, a `Wit`, a `Gnt`, a `Trm`) → **not recoverable → reincept** (for a **delegate
+  identity** — an IEL a delegator granted authority to, whose doctrine is the delegator's — the
+  delegator `Dth`s it instead). That event cannot be buried (rule 1), cannot be extended (rule 2 —
+  it is not your branch), and out-sealing it is a second sealed branch (Disputed). So **the rotation
+  reserve does not defend the rotation key: a key-state branch you did not author is the point of no
+  return** — a hostile `Rot` at a forked position is a **reserve-theft takeover-by-extend**,
+  unrecoverable, while the party that **did** author it recovers by **retaining** it. (A _winning_
+  terminal `Trm` sits on the **retained** branch and resolves by tier-rank, above — it never
+  triggers this arm; a `Rev`/`Dth`, being non-terminal, is likewise retained in a
+  `{Rev|Dth, content}` recovery. A `Rev`/`Dth` or `Trm` reaches a **competing** branch only
+  alongside a **second** sealed branch — and then that second branch is the trigger.)
 
 A divergence with **two or more sealed branches** is **Disputed** ([§Terminology](#terminology)) —
 terminal for _everyone_, not just the recovering party: whichever branch a party retains, a
@@ -862,7 +862,7 @@ Inception tier follows what the inception establishes:
   an IEL `Dth` (rescission) or `Rev` (revocation).
 
 A **credential is not a SEL** — it is a **direct-anchored SAD**: the issuer anchors its issuance
-commitment `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` on its own IEL via an
+commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` on its own IEL via an
 `Ixn`, and that anchor **is** the validity proof (the cred is immutable and presented by the holder,
 never looked up by address — [§Negative checks](#negative-checks-are-positive-lookups)).
 

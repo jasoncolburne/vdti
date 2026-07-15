@@ -91,14 +91,19 @@ valid" test a selected witness applies before signing includes the **seal-cap** 
 shape-validity gate —
 [`../../primitives/data/event-logs/kel/merge.md`](../../primitives/data/event-logs/kel/merge.md)): a
 sealed event whose parent lies **below the chain's current seal** is inert and is **declined**, so
-it never reaches threshold. This is the **backdate defense** — a below-seal sealed straggler must
-never be witnessed, or a total-key-compromise adversary could mint a fabricated historical fork
-years later; the **only** reachable dispute is a seal-vs-seal collision **at the last (live) seal**
-(two accepted seals there, which takes a provable witness double-sign — the `2·threshold − signers`
-collusion, the determinism price). This signing decision reads the event **body** and the witness's
-held chain state to locate the current seal; it is a different operation from the bodyless
-**receipt-counting** below ([§Query-scoping](#query-scoping-and-the-audit-flag)), which only
-confirms a receipt came from a legitimately-selected witness — not whether to sign.
+it never reaches threshold. This is the **backdate defense**: keeping a below-seal sealed straggler
+off the receipt path stops a total-key-compromise adversary from minting a fabricated historical
+fork years later. The witness decline is the **fast prevention layer** — it holds under honest,
+well-connected operation; the **guarantee** is the walk itself, because a below-seal sealed event is
+**dead on ascent** (its parent is already buried by a later seal — you cannot seal a buried chain),
+so even a partitioned or colluding witness set that _does_ sign one cannot overturn the live seal
+(the position is already spent). The **only** reachable dispute is therefore a seal-vs-seal
+collision **at the last (live) seal** (two accepted seals there, which takes a provable witness
+double-sign — the `2·threshold − signers` collusion, the determinism price). This signing decision
+reads the event **body** and the witness's held chain state to locate the current seal; it is a
+different operation from the bodyless **receipt-counting** below
+([§Query-scoping](#query-scoping-and-the-audit-flag)), which only confirms a receipt came from a
+legitimately-selected witness — not whether to sign.
 
 **The split-stall and its exit.** First-seen partitions the receipts at a contested content position
 (`a + b ≤ signers`); when neither sibling reaches a majority — an even-`signers` tie, abstentions,

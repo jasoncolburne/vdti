@@ -15,7 +15,7 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
   / `doc` / `exchange` / `cred` / `policy` / `gossip`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
-  `schemas` / `protocols` / `targets` / `states` / `topics`.
+  `schemas` / `protocols` / `actions` / `states` / `topics`.
 - **`name`** — the specific member.
 
 A `*` below marks a family whose members are listed inline or defined by a feature. There is

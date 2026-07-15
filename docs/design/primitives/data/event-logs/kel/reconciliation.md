@@ -319,8 +319,8 @@ normal operation, only unrecovered divergent cases reach the partitioning path.
 
 ### Effective-SAID convergence
 
-All nodes must eventually agree on the effective SAID for each prefix — the chain's canonical
-wire-format identifier, exchanged during anti-entropy. It is:
+All nodes must eventually agree on the effective SAID for each prefix — its canonical chain-state
+fingerprint, exchanged during anti-entropy. It is:
 
 - **A single confirmed tip** (a linear chain, or a fork settled below the seal — Active / Recovered
   / Terminated) → **that tip's real SAID** (a terminated chain's is its `Trm`).

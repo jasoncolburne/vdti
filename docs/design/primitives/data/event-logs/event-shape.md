@@ -170,7 +170,7 @@ The roles that carry discrimination or shape rules, in prose:
 - **`anchors`** is the one anchoring vocabulary, discriminated by the **anchored event's kind**, not
   a label — kind-strict both ways: a KEL `Wit` anchors the IEL `Wit`; an IEL `Ixn` anchors content
   SEL **v1s** (the `Icp` rides `v1.previous`, never itself anchored) **and** a credential's
-  **issuance commitment** `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` (an
+  **issuance commitment** `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an
   immutable SAD, no credential-SEL — the anchor is the validity proof); `Ath` → SEL `Gnt`; `Rev` →
   SEL `Trm` (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal
   recovery).
@@ -612,7 +612,7 @@ inception populates.
   batched serial-1 event instead).
 
 A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anchors** by its
-**issuance commitment** `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` on an IEL
+**issuance commitment** `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` on an IEL
 `Ixn` (the anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL —
 the issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are
 all hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy
@@ -628,7 +628,7 @@ computed prefix doesn't match its declared `prefix`.
 Some kinds land only as part of a multi-event atomic batch, enforced at the merge layer:
 
 - **Credential issuance** — the issuer anchors the credential's **issuance commitment**
-  `hash('vdti/iel/v1/targets/commitment:{issuer}:{cred.said}')` under an IEL `Ixn`'s
+  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` under an IEL `Ixn`'s
   `manifest.anchors` (an immutable SAD, no credential-SEL — the anchor is the validity proof); one
   IEL `Ixn` may batch many issuances.
 - **A SEL kill** — a revocation lookup-SEL `Trm` is anchored by an IEL `Rev`, and a rescission

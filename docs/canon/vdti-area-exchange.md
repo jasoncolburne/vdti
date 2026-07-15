@@ -215,7 +215,8 @@ enumerable member set and a time-cadence ratchet the shared-documents access-lis
 
 - **Members = IEL identities.** Each member's **receive key** is its `{Icp, Gnt}` value-bearing lookup
   SEL (§2). A member is an IEL, so it may hold several **device** KELs, each able to publish a receive
-  key — whether the epoch key wraps per member-identity or per device is an **open item** (below).
+  key — whether the epoch key **wraps** per member-identity or per device is an **open item** (below); the
+  per-message **subkey** is device-keyed regardless (see "Per-sender message keys").
 - **Group membership = a bounded, enumerable member roster (Jason 2026-07-14).** Unlike the
   shared-documents access-list — deliberately **unbounded**, resolved **per-participant** by O(1)
   lookup, **never materialized as a live set** (`vdti-area-shared-documents §1`) — the epoch wrap must
@@ -224,26 +225,51 @@ enumerable member set and a time-cadence ratchet the shared-documents access-lis
   the alternative — open). Membership changes are governed at **T2** (the creator's `Gnt`←`Ath`, or a
   group policy), so a signing-key theft (T1) cannot add or remove a member and a removed member cannot
   re-admit itself. A **1:1 chat is the degenerate roster of two**.
+  - **Roster privacy is an open axis (2026-07-15).** A raw IEL roster lists member prefixes **publicly**
+    (witnesses verify anchoring against it), so it **leaks the group membership graph** — who is in
+    which group — to the witnesses. That surrenders the **participant-blindness** shared-documents keeps
+    (member names live in **gated** content, never public structure — `vdti-area-shared-documents §1`).
+    So the roster representation must either **accept** that disclosure or use a **gated / blinded**
+    enumerable roster (member prefixes behind read-gated opaque SAIDs — enumerable by members, blind to
+    witnesses); pinned open below. This is the concrete answer to "does the bounded roster contradict a
+    shared-docs guarantee?" — yes, participant-blindness, unless blinded.
 - **Key epochs = a SEL** advancing **one symmetric group key per epoch**. Each epoch key is **freshly
   generated (independent random), never derived from a prior epoch key** — so a compromise of one epoch
   key exposes **only that epoch**, nothing forward. It is **ESSR-wrapped to each current member** (one
   wrapped-key SAD per member — the §1 seal to each receive key), referenced by the epoch SEL event; a
   member unwraps with its receive-key private key. ESSR is used **only** for the per-epoch key.
-- **Per-sender message keys — the nonce discipline (Jason 2026-07-14).** Bulk messages are AES-256-GCM,
-  but a **shared** epoch key has **many concurrent writers**, so a counter or naive nonce collides
-  across senders (catastrophic for AES-GCM — the §1 fresh-key argument and the mesh single-writer
-  counter both fail here). Each sender therefore encrypts under its **own derived subkey**
-  `blake3::derive_key(epoch_key, sender_prefix)` — restoring the one-writer-per-key shape, so its
-  per-message nonce cannot collide with another sender's. The epoch key is a **seed**, never used to
-  encrypt directly.
+- **Per-sender message keys — the nonce discipline (Jason 2026-07-14; device-keyed 2026-07-15).** Bulk
+  messages are AES-256-GCM, but a **shared** epoch key has **many concurrent writers**, so a counter or
+  naive nonce collides across senders (catastrophic for AES-GCM — the §1 fresh-key argument and the mesh
+  single-writer counter both fail here). Each writer therefore encrypts under its **own derived subkey**
+  `blake3::derive_key(epoch_key, device_kel_prefix)` — keyed on the **device (signing) KEL prefix, not
+  the member identity**, so **two devices of one member are distinct writers** (an identity-keyed subkey
+  would collide across a member's own two devices, reopening the reuse the subkey exists to close — and
+  the message signature (below) is a device `t_use` key, so the device is the true writer). This restores
+  the one-writer-per-key shape, so a device's per-message nonce cannot collide with another writer's. The
+  epoch key is a **seed**, never used to encrypt directly.
+- **Within-subkey nonce discipline.** A subkey has a **single writer** (one device), so its per-message
+  nonce is that device's own sequence — a **persisted monotonic counter** (persisted across a restart,
+  else a reset reuses a nonce) or a random nonce bounded by the epoch's message volume. The per-sender
+  subkey removes the **cross**-writer collision; this removes the **within**-writer one.
 - **Messages = kinded, nonce'd SADs, signed by their sender.** Confidentiality rides the per-sender
   subkey; **authenticity rides the sender's own signature** — each message SAD's SAID is
-  **ML-DSA-signed with the sender's current `t_use` key** and **timestamped**, verified against the
-  sender's **witnessed** KEL (the §3 currency check, so a captured-then-rotated key reads stale). The
-  epoch key proves only _"a group member"_; the signature proves _which_ member (ESSR's
-  sender-unforgeability, restored for group mode). Thread-ordered by `previous`; **off-chain by
-  default** (the signature + timestamp let a recipient judge currency from witness receipts without an
-  anchor), optionally **anchored** for non-repudiation.
+  **ML-DSA-signed with the sender's current `t_use` key** and **timestamped**. The epoch key proves only
+  _"a group member"_; the signature proves _which_ member (ESSR's sender-unforgeability, restored for
+  group mode). Thread-ordered by `previous`; **off-chain by default**, optionally **anchored** for
+  non-repudiation.
+- **Message currency binds to the witnessed epoch, not the self-asserted timestamp (Jason 2026-07-15,
+  "A2 is a good finding").** A long-lived chat accumulates messages signed under a **sequence** of the
+  sender's keys as it rotates, so the §3 one-off check ("refuse any key that is not current-**now**")
+  does **not** apply — old messages must stay verifiable under **since-rotated** keys. But accepting "a
+  key that was valid at some point" plus a **self-asserted** `timestamp` would let a
+  **captured-then-rotated** key backdate a message (no anchor witnesses an off-chain message to a
+  position). The sound binding is the **epoch window**: a message decrypts **only** under epoch _N_'s
+  per-sender subkey, and epoch _N_ is a **witnessed** SEL event carrying a federation-clock window — so
+  the check is _"the signing `t_use` key was the device's current establishment state **within epoch
+  _N_'s witnessed window**."_ A rotated-away key is current only for the epochs it actually spanned, and
+  injecting into epoch _N_ still needs epoch _N_'s subkey (a current member's secret) — bounded. The
+  self-asserted timestamp only orders messages **within** the window; it never establishes currency.
 
 **The ratchet — the epoch advances on either trigger, whichever comes first:**
 
@@ -275,9 +301,12 @@ only the receive-key + ESSR-wrap primitive.
 
 **Primitive-support check (Jason: "ensure the primitives + substrate can support it") — partially
 answered.** A SEL `Gnt` **can** seal a per-epoch value and IEL identities supply the members and
-receive keys (§2) — that much holds with no new primitive. **Still open:** the **bounded enumerable
-member roster** is a new membership shape (not the shared-docs access-list); the **per-sender-subkey /
-nonce** discipline; the **per-message sender signature**; and the **session-key SEL length bound**.
+receive keys (§2) — that much holds with no new primitive. The **per-sender subkey / nonce** discipline
+and the **per-message sender signature** are **now specified on existing primitives**
+(`blake3::derive_key` device-keyed + AES-256-GCM; ML-DSA `t_use` signing with epoch-window currency), so
+they need no new primitive. **Still open:** the **bounded enumerable member roster** is a new membership
+shape (not the shared-docs access-list), plus its **privacy** representation (public vs gated/blinded);
+and the **session-key SEL length bound**.
 Epoch advance is **stacking `Gnt`s** (`area-sel §1f`) — **not** `lineage` (a loss-of-control
 re-establishment counter capped at `MAXIMUM_SEL_LINEAGE`, irrelevant to the epoch count); over a
 years-long chat at ~6–12h that is **thousands** of seal-advancing `Gnt`s on one SEL, bounded by no
@@ -286,10 +315,12 @@ the whole SEL. Whether that is acceptable paged, or wants a periodic **checkpoin
 the session SEL, is open.
 
 **Open items (§7a):** the `SESSION_RATCHET_INTERVAL` value; the epoch-SEL shape and its length bound
-(checkpoint cadence); the bounded-roster representation (IEL-roster vs policy) and cap; whether the
-epoch key wraps per **member** or per **device**; how an **offline** member catches up across missed
-epochs; the 1:1 path; message-anchoring policy; whether the live channel ever carries epoch keys
-(resolve to **never raw** — always ESSR-wrapped).
+(checkpoint cadence); the bounded-roster representation (IEL-roster vs policy), its cap, **and its
+privacy** (public roster vs a gated / blinded enumerable one — above); whether the epoch key **wraps**
+per **member** or per **device** (the per-message **subkey** is device-keyed — resolved above; the
+**wrap** granularity is still open); how an **offline** member catches up across missed epochs; the 1:1
+path; message-anchoring policy; whether the live channel ever carries epoch keys (resolve to **never
+raw** — always ESSR-wrapped).
 
 ## 8. Reserved names + schemas (convention `vdti/<concept>/v1/<category>/<thing>`; concept **`exchange`**)
 
@@ -305,8 +336,9 @@ epochs; the 1:1 path; message-anchoring policy; whether the live channel ever ca
 - **Session / group names (§7a — owed at encode):** SEL topics `vdti/exchange/v1/topics/group` (the
   bounded member roster) and `vdti/exchange/v1/topics/session-key` (the key-epoch log); grant-value kind
   `vdti/sel/v1/grants/exchange-group-key` (the ESSR-wrapped epoch key); KDF context
-  `vdti/exchange/v1/protocols/session` (the per-sender subkey `blake3::derive_key(epoch_key, sender)`);
-  message SAD `vdti/exchange/v1/schemas/message` (sender-signed + timestamped); constant
+  `vdti/exchange/v1/protocols/session` (the per-sender subkey
+  `blake3::derive_key(epoch_key, device_kel_prefix)` — device-keyed, §7a); message SAD
+  `vdti/exchange/v1/schemas/message` (sender-signed + timestamped, epoch-window currency); constant
   `SESSION_RATCHET_INTERVAL` (~6–12h, value TBD).
 
 ## 9. Adversarial pass (Jason 2026-07-12 — "try to break it")
@@ -330,9 +362,10 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
 - **The session mode (§1a / §7a) is part of the exchange encode** — the two modes, the bounded member
   roster + key-epoch SELs, the per-sender-subkey nonce discipline, per-message sender signatures, and the
   ratchet; the `examples/chat` + `examples/mail` apps compose it. The §7a primitive-support check is
-  **partially** answered (a `Gnt` seals a value ✓; the bounded roster, nonce discipline, sender signature,
-  and SEL-length bound are open).
+  **partially** answered (a `Gnt` seals a value ✓; the per-sender-subkey nonce discipline + per-message
+  sender signature are now specified on existing primitives ✓; the **bounded enumerable roster + its
+  privacy** and the **SEL-length bound** remain open).
 - **Open (flagged):** the session-mode open items (§7a — ratchet interval, epoch-SEL shape + length bound,
-  bounded-roster representation, per-member-vs-device wrap, offline catch-up); scoped delivery metadata
-  (§5); the IPEX exchange-message detail (§7); whether **mail** is a sibling feature note rather than a
-  section here.
+  bounded-roster representation + its privacy, per-member-vs-device **wrap**, offline catch-up); scoped
+  delivery metadata (§5); the IPEX exchange-message detail (§7); whether **mail** is a sibling feature note
+  rather than a section here.

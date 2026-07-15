@@ -105,7 +105,8 @@ federation `Fcp` / `Wit`:
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the
 threshold bounds are re-checked on the post-delta config
-([`../event-logs/iel/events.md`](../event-logs/iel/events.md)).
+([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add` is
+a **single** prefix (one witness KEL added at a time), not a list.
 
 ### `vdti/event/v1/roles/pins` — the participating member KEL SAIDs
 
@@ -158,7 +159,8 @@ shared-documents encodes.
 ### Credentials — `vdti/cred/v1/schemas/*`
 
 A credential is a **direct-anchored** SAD (its issuance is a commitment hash on the issuer's IEL
-`Ixn` — [`../../../features/credentials/`](../../../features/credentials/)), not a chain event.
+`Ixn` — [`../../../features/credentials/`](../../../features/credentials/) _(forthcoming)_), not a
+chain event.
 
 | Field     | Type      | Required | Meaning                                                           |
 | --------- | --------- | -------- | ----------------------------------------------------------------- |

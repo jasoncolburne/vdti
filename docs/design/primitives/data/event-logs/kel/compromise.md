@@ -98,7 +98,7 @@ commitment, regardless of what other key material they hold. But that boundary d
   tail dead on ascent, no reincept.
 - **A tier-2 (reserve) theft is the point of no return.** When an adversary holds the reserve and
   lands `Rot_adversary` at `v_N`, the chain is **the attacker's** — there is **no in-band
-  recourse**; the legitimate party **reincepts** (for a delegated KEL, the delegator `Dth`s it
+  recourse**; the legitimate party **reincepts** (for a delegate identity, the delegator `Dth`s it
   instead). Three structural facts close every escape:
 
   - **You cannot bury the `Rot`.** `Rot_adversary` is a sealed event, and only content (`Ixn`) is

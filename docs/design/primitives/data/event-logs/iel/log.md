@@ -188,14 +188,14 @@ An IEL event's manifest may carry only these roles; one carrying any role outsid
 vocabulary is malformed and rejected, and a role is consumed only after dispatching on a kind
 permitted to carry it (read kind-first):
 
-| Role        | Carried by                                       | Commits to                                                                                                                                               |
-| ----------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                      |
-| `anchors`   | `Ixn` / `Ath` / `Rev` / `Dth`                    | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`)     |
-| `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                 |
-| `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration)) |
-| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                                                          |
-| `clock`     | `Fcp` / `Wit` / `Trm` (federation)               | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                                                               |
+| Role        | Carried by                                       | Commits to                                                                                                                                                                  |
+| ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                                         |
+| `anchors`   | `Ixn` / `Evl` / `Ath` / `Rev` / `Dth`            | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`) |
+| `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                                    |
+| `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration))                    |
+| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                                                                             |
+| `clock`     | `Fcp` / `Wit` / `Trm` (federation)               | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                                                                                  |
 
 The killed locus is named by `kills[].target` (a flat domain-qualified hash), separate from
 `anchors[]` (which names the sealing `Trm`): `anchors` establishes termination validity, `kills`
