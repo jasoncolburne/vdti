@@ -334,6 +334,21 @@ This position-indexed receipt query is **the beacon**: because receipts are keye
 so a node holding one branch learns the others exist and fetches them to walk — the detection signal
 a `disputed` read rests on.
 
+**Witnessed-in-full is a receipt count, checked against the committed config.** Each receipt carries
+the `threshold` in effect at its position, so a node reads "witnessed in full" by counting
+`threshold`-many receipts that agree on the same `(event SAID, threshold)` — with no chain-walk to
+re-derive the in-effect threshold (it still needs the roster and selection to know each receipt came
+from a selected witness). The carried `threshold` is a **hint, never the authority**: the count
+holds only on an **exact match** to the chain-committed witness-config in effect at that position —
+a receipt whose threshold does not match is invalid **even if it names a higher bar**. A bar set too
+low would under-count a forgery into acceptance; a bar set too high disagrees with honest receipts
+on `(SAID, threshold)` and is detected; and the consistent understatement — event and its receipts
+together — is defeated because the match is against the committed config, not the receipt field. A
+**stale-config** witness lagging a governance `Wit` emits a non-matching receipt that is simply
+discarded — a small liveness cost around config changes, never a safety hole. So a countable receipt
+needs all of: a valid signature, its signing key inside the witnessed window, a selected signer, and
+a matching threshold.
+
 A **not-yet-witnessed (sub-threshold) event is witness-scoped**: a query returns it **only to a
 selected witness** for that position; to every other node — a non-witness, or a witness not selected
 here — it is noise and is not returned. So **non-witnesses only ever hold witnessed-in-full

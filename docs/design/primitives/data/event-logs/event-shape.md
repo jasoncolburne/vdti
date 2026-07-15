@@ -448,28 +448,31 @@ KEL + federation doctrine — [`kel/`](kel/),
 
 ### IEL
 
-| Kind  | nonce | pins | previousSeal | manifest                                                                             |
-| ----- | ----- | ---- | ------------ | ------------------------------------------------------------------------------------ |
-| `Icp` | req   | req  | fbd          | req (`roster`; `witnesses` mandatory iff federated; a federation `Fcp` adds `clock`) |
-| `Ixn` | fbd   | req  | fbd          | req (`anchors`)                                                                      |
-| `Evl` | fbd   | req  | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                |
-| `Ath` | fbd   | req  | req          | req (`delegates` and/or `anchors`)                                                   |
-| `Rev` | fbd   | req  | req          | req (`anchors`, `kills`)                                                             |
-| `Dth` | fbd   | req  | req          | req (`anchors`, `kills`)                                                             |
-| `Trm` | fbd   | req  | req          | opt (a federation `Trm` carries `clock` req)                                         |
-| `Wit` | fbd   | req  | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                |
-| `Fcp` | req   | req  | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker             |
+| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                             |
+| ----- | ----- | ---- | ---------- | ------------- | ------------ | ------------------------------------------------------------------------------------ |
+| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory iff federated; a federation `Fcp` adds `clock`) |
+| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`)                                                                      |
+| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                |
+| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`)                                                   |
+| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                             |
+| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                             |
+| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                         |
+| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                |
+| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker             |
 
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **required** (there is no direct mode) and `witnesses` is **mandatory**; on a `Wit` all three
-are **present-iff-changed** (a field is carried only when it changes). The `nonce` (inception only)
-drives prefix unpredictability (§Prefix derivation). `pins` is the IEL's top-level **down-pins** — a
-scalar SAID naming a small SAD of the participating member **KEL event SAIDs** (a federation `Wit`'s
-are the witness KELs); every IEL event is anchored by a threshold of members, so every IEL event
-carries it. On a `cut` `Evl`, `roster` carries a **non-empty `cut` + an optional `threshold`**,
-never an `add`. The kind→role allowlist gates the role's _presence_; the delta shape is checked
-per-kind. The exact roster delta SAD and pins-SAD schemas, the consent rule for additions, and the
-per-kind anchor matrix are IEL doctrine — [`iel/`](iel/).
+are **present-iff-changed** (a field is carried only when it changes). Any other user event may
+carry `federationPin` (`opt`) for a **same-federation re-pin**, but never `federation` — only a
+`Wit` rebinds. **\*** On the **`Fcp`-rooted federation IEL**, `Wit` and `Trm` carry **neither**
+`federation` nor `federationPin`: the federation is self-rooted, never bound to another. The `nonce`
+(inception only) drives prefix unpredictability (§Prefix derivation). `pins` is the IEL's top-level
+**down-pins** — a scalar SAID naming a small SAD of the participating member **KEL event SAIDs** (a
+federation `Wit`'s are the witness KELs); every IEL event is anchored by a threshold of members, so
+every IEL event carries it. On a `cut` `Evl`, `roster` carries a **non-empty `cut` + an optional
+`threshold`**, never an `add`. The kind→role allowlist gates the role's _presence_; the delta shape
+is checked per-kind. The exact roster delta SAD and pins-SAD schemas, the consent rule for
+additions, and the per-kind anchor matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL
 
