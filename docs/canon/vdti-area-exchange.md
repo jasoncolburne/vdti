@@ -42,6 +42,8 @@ metadata. On open, the recipient **verifies the signature against the sender's *
 state** (a verifier requirement the infra already supports, so rotation recovers messaging; an optional
 message-anchor gives *provable* liveness). The feature is a **verification +
 discovery + transport** layer; confidentiality/authenticity is ESSR, integrity of the key is the chain.
+That is **mode 1** (ESSR, one-offs); a second **session mode** carries long-lived, ratcheting group chat
+over the same spine (§1a / §7a).
 
 ## 1. ESSR — the authenticated-encryption construction (adopted from kels; sound)
 
@@ -72,6 +74,29 @@ so an envelope, its inner, and every exchange message are SADs, anchorable by SA
 - **Crypto (strength-paired, kels precedent):** ML-KEM-768/1024 (KEM), ML-DSA-65/87 (signatures), AES-256-GCM
   (AEAD), Blake3 KDF. Users may run **65/768**; infrastructure runs **87/1024**; the algorithms are
   integration-identical, so the tier is a parameter, not a code path (`../kels`).
+
+## 1a. Two modes — ESSR one-offs and a ratcheting session (Jason 2026-07-14)
+
+Exchange **encapsulates two modes** over one shared spine — published receive keys (§2), sender-key
+currency (§3), the crypto suite, and mail (§5). **One feature, two modes:**
+
+- **ESSR — one-offs.** Per-message, stateless, sealed to the recipient's published receive key. The
+  **async baseline**: mail, one-offs, and any time the recipient is offline. Always available; the
+  construction is §1.
+- **Session — chat.** A **long-lived** (assume years), **ratcheting**, **group-capable** session
+  (§7a). Chosen for an ongoing conversation.
+
+It is **not "secure vs weaker"** — it is **async baseline vs. the ongoing/online path.** ESSR needs
+no live handshake (it seals to a static published key, so an offline recipient opens it later); the
+session gains forward secrecy from ratcheting but only fits an ongoing chat. The client selects by
+usage — one-off or offline → ESSR; an ongoing chat → the session.
+
+**Layering (Jason): the durable _data_ is SAD / SEL / IEL; _transport_ is a separate layer; _UI_ is
+later.** Members are IEL identities; group membership and key epochs are SELs; messages are SADs — the
+whole data model is vdti primitives, no bespoke off-chain structure. **Transport** (mail §5 for async;
+the live mesh channel — `docs/design/substrate/infrastructure/mesh-transport.md` — when peers are
+online) moves that data but is not it. The `examples/chat` + `examples/mail` apps compose these modes;
+the canon's job is to keep the primitives + substrate able to support them.
 
 ## 2. Receive-key publication — a value-bearing lookup SEL, `{Icp, Gnt}` at T2
 
@@ -175,9 +200,55 @@ so an envelope, its inner, and every exchange message are SADs, anchorable by SA
 - **shared-documents off-node content.** A shared doc's private content (`shared-documents §5`) is delivered
   member-to-member as **ESSR payloads** (each recipient gets the content — or a wrapped per-doc symmetric key
   — sealed to their receive key). The `shared-documents §9` "KEM-wrapped group key / re-key on removal / key
-  epochs" ideas are **this**, made concrete: ESSR to each current member; re-key = seal a fresh key to the
-  remaining members; epochs align to `[from, bound]` membership periods. **Open:** whether the group key rides
-  a SEL, the re-key cadence, and the epoch commitment — settle when shared-documents forces them.
+  epochs" ideas are the **§7a session-mode group-key mechanism**: the group key rides a **key-epoch SEL**,
+  ESSR-wrapped to per-period members, ratcheting on membership change + a time cadence — group chat and
+  shared-doc content share it. (Resolves the former "open: whether the group key rides a SEL / the re-key
+  cadence / the epoch commitment" — see §7a.)
+
+## 7a. The session mode — long-lived ratcheting group sessions (Jason 2026-07-14)
+
+The session mode (§1a) is **chat**: 1:1 and group, assumed to last **years**, so it **ratchets** for
+forward secrecy. It is built **entirely from SAD / SEL / IEL** — and it is the **same group-key
+mechanism** the shared-documents content case needs (§7), unified.
+
+- **Members = IEL identities.** Each member's **receive key** is its `{Icp, Gnt}` value-bearing lookup
+  SEL (§2).
+- **Group = a creator-governed SEL**, reusing the **shared-documents governance model**: `Gnt`←`Ath`
+  grants name member IEL prefixes with validity periods `[from, bound]`; a per-period rescission
+  removes a member. A **1:1 chat is the degenerate group of two** — one mechanism, no separate pairwise
+  crypto.
+- **Key epochs = a SEL** advancing **one symmetric group key per epoch**. Each epoch's key is
+  **ESSR-wrapped to each current member** (one wrapped-key SAD per member — the §1 seal, to each receive
+  key), referenced by the epoch SEL event; a member unwraps with its receive-key private key. ESSR is
+  used **only** for the per-epoch key — bulk **messages** ride the symmetric epoch key (cheap).
+- **Messages = kinded, nonce'd SADs**, encrypted under the current epoch key (AES-256-GCM),
+  thread-ordered by `previous`. **Off-chain by default** (carried by transport); optionally **anchored**
+  for non-repudiation (the §3 message-anchor pattern) on the sender's IEL.
+
+**The ratchet — the epoch advances on either trigger, whichever comes first:**
+
+- **Membership change** — add / remove → a new epoch sealed to the new member set. A removal gives
+  **forward secrecy** (the removed member can't read new epochs); a joiner **can't read past epochs**
+  (no back-sealing). Epochs align to the `[from, bound]` membership periods.
+- **Time cadence** — every `SESSION_RATCHET_INTERVAL` (~6–12h, a parameter — value TBD), advance the
+  epoch even with stable membership, so a compromised epoch key exposes only **that window** across a
+  years-long chat.
+
+**Epoch-based, not a per-message double-ratchet** — a per-window group key (MLS-like), matching the
+time-cadence ratchet and fitting the group case, not Signal's pairwise per-message ratchet. Per-message
+forward secrecy would be a heavier, separate mechanism; the epoch model is the call for a group system
+keyed by published keys.
+
+**Unifies with shared-documents.** This **is** the shared-documents §7/§9 "KEM-wrapped group key /
+re-key on removal / key epochs" — one mechanism (a governed group + key epochs sealed to per-period
+members) serving **both** group chat and shared-document content confidentiality. Resolves the §7/§10
+"open: group-key mechanism" flag.
+
+**Primitive-support check (Jason: "ensure the primitives + substrate can support it").** The model
+leans only on existing capability — governed membership (the shared-documents SEL governance), a
+value-sealing SEL (`Gnt`), per-member ESSR wrapping (§1), IEL member identities, and mail / the mesh
+channel for transport. No new primitive is required; the encode confirms a SEL can carry a per-epoch
+sealed value and that epoch advancement fits the `Gnt` / lineage machinery.
 
 ## 8. Reserved names + schemas (convention `vdti/<concept>/v1/<category>/<thing>`; concept **`exchange`**)
 
@@ -190,6 +261,10 @@ so an envelope, its inner, and every exchange message are SADs, anchorable by SA
   its `grants/*` kind — no bespoke schema.
 - **Exchange SADs** (`vdti/exchange/v1/schemas/*`): the ESSR envelope + inner + the exchange-message shapes
   (Apply/Offer/…); field layout at the encode, tracking `../kels lib/exchange`.
+- **Session / group names (§7a — owed at encode):** SEL topics `vdti/exchange/v1/topics/group` (group
+  governance) and `vdti/exchange/v1/topics/session-key` (the key-epoch log); grant-value kind
+  `vdti/sel/v1/grants/exchange-group-key` (the ESSR-wrapped epoch key); message SAD
+  `vdti/exchange/v1/schemas/message`; constant `SESSION_RATCHET_INTERVAL` (~6–12h, value TBD).
 
 ## 9. Adversarial pass (Jason 2026-07-12 — "try to break it")
 
@@ -209,5 +284,9 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
   `.working/vdti-receive-key-establishment-design.md`). Leading edge; the primitive encode follows.
 - **New invariant owed:** the 64-char kind cap + the `vdti/sel/v1/grants/*` naming convention; **and the §3
   sender-key-currency rule** (a verifier requirement, plus the optional message-anchor-for-liveness pattern).
-- **Open (flagged):** the group-key mechanism (§7); scoped delivery metadata (§5); the IPEX exchange-message
-  detail (§7); whether **mail** is a sibling feature note rather than a section here.
+- **The session mode (§1a / §7a) is part of the exchange encode** — the two modes, the group + key-epoch
+  SELs, and the ratchet; the `examples/chat` + `examples/mail` apps compose it. The §7a primitive-support
+  check confirms no new primitive is needed.
+- **Open (flagged):** the `SESSION_RATCHET_INTERVAL` value + the key-epoch SEL shape (§7a); scoped delivery
+  metadata (§5); the IPEX exchange-message detail (§7); whether **mail** is a sibling feature note rather
+  than a section here.
