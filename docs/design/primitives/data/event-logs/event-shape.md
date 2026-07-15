@@ -31,7 +31,7 @@ validation) adds fields per kind.
 | ---------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `said`     | Digest256 | Blake3-256 hash of the canonical event content (`said` set to the fixed-value placeholder, `prefix` populated real). Uniquely identifies the event.                                                                      |
 | `prefix`   | Digest256 | Hash of the canonical event content (both `said` and `prefix` set to the placeholder). Identifies the **chain**, derived from the **whole-event content** — so two inceptions collide only under a Blake3-256 collision. |
-| `serial`   | u64       | Chain position. Inception events have `serial == 0`; all others have `serial >= 1`, monotonic per branch.                                                                                                                |
+| `serial`   | u64       | Chain position. Inception events have `serial == 0`; all others have `serial ≥ 1`, monotonic per branch.                                                                                                                 |
 | `previous` | Digest256 | SAID of the parent event. Forbidden at inception (no parent); required elsewhere.                                                                                                                                        |
 | `kind`     | String    | Log-type × event-kind discriminator. Drives per-kind structural validation, tier dispatch, and the role vocabulary the event's `manifest` may carry.                                                                     |
 
@@ -121,9 +121,9 @@ federation rebind (`Wit`), and the terminal `Trm` from `t_govern`; an authorizat
 deauthorization (`Dth`) from `t_authorize`. Every kind draws from exactly one slot, so an IEL
 chain's validity needs no higher-layer input.
 
-The slots carry bounds — `t_use >= 1`; a **security floor** (`>= 2`) and **recoverability ceiling**
-(`<= |roster| − 1`) on the authority slots; the **authorization floor** (`> |roster|/2`); the roster
-**cap of `MAXIMUM_ROSTER_SIZE`** and the **never-emptied** floor (`|roster| + |add| − |cut| >= 1`);
+The slots carry bounds — `t_use ≥ 1`; a **security floor** (`≥ 2`) and **recoverability ceiling**
+(`≤ |roster| − 1`) on the authority slots; the **authorization floor** (`> |roster|/2`); the roster
+**cap of `MAXIMUM_ROSTER_SIZE`** and the **never-emptied** floor (`|roster| + |add| − |cut| ≥ 1`);
 and, for a federation, the witness-config recoverability cap — all re-checked on the post-delta
 config at **every** config-changing event, not only inception. The bounds and their derivations are
 the IEL primitive's:
@@ -421,7 +421,7 @@ flowchart LR
 
 The verifier enforces per-kind field rules: **req** (must be set), **fbd** (must be unset), **opt**
 (may be either). Common fields (`said`, `prefix`, `kind`) are always required; `previous` is
-forbidden on inception kinds and required elsewhere; `serial` is 0 on inception, `>=1` elsewhere;
+forbidden on inception kinds and required elsewhere; `serial` is 0 on inception, `≥1` elsewhere;
 signatures live adjacent (§Authentication & signatures).
 
 ### KEL

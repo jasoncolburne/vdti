@@ -82,7 +82,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   carried via `anchors[]`); serializing it is a liveness discipline, not a safety one.
   ([`protocol-doctrine.md`](protocol-doctrine.md#forks-are-seal-bounded))
 - **seal-cap** — the merge rule that a new event's parent must sit at-or-after the chain's tracked
-  seal (`parent_serial >= seal_serial`); a submission whose parent sits in the locked portion is
+  seal (`parent_serial ≥ seal_serial`); a submission whose parent sits in the locked portion is
   rejected as a canonical extension. The post-seal window is separately bounded — a busy chain
   re-seals — so a fork-and-recover always fits one page.
   ([`protocol-doctrine.md`](protocol-doctrine.md#forks-are-seal-bounded))

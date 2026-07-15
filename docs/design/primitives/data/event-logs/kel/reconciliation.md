@@ -80,7 +80,7 @@ protocol's safety claims hold _by construction_, not by observation.
    material. See
    [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 5. **Locked-portion bound is unconditional.** No event class is exempt from the seal-cap — not even
-   a recovery `Rot`: a clean canonical extension requires `event.parent.serial >= seal_serial`, so
+   a recovery `Rot`: a clean canonical extension requires `event.parent.serial ≥ seal_serial`, so
    nothing ever _extends the canonical chain_ from a parent in the locked portion, and
    stale-authority revival is structurally impossible. That refusal-as-a-canonical-extension is
    unconditional; the **disposition** of the refused event is not. A parent **strictly** below the

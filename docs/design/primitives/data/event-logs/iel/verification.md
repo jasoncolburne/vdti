@@ -247,8 +247,10 @@ BranchTip:
 ```
 
 Token fields are private with no public constructor — the only way to obtain one is through
-`IelVerifier`. Holding the token proves the corresponding chain was verified. The seal tracking is
-per [`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound).
+`IelVerifier`. Holding the token proves the corresponding chain was verified — so a trust decision,
+and any resumption toward one, is grounded **only** in a token, never a bare `BranchTip` (a
+read-only component of the token, not an independent verified state). The seal tracking is per
+[`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound).
 
 ### Derived accessors
 
@@ -402,14 +404,16 @@ rather than loading the full chain into memory, accumulating the roster as it go
 ### Constructors
 
 - **`IelVerifier::new(prefix)`** — start from inception; full verification of an untrusted chain.
-- **`IelVerifier::resume(prefix, &IelVerification)`** — resume from a verified token (the merge
-  handler's normal-append fast path); it re-applies the token's `root_facet` so a `Wit` is never
-  read facet-blind, and re-runs the to-tip negative checks (the `kills[]` forward-match) against the
-  new tip whenever a transitively-pinned chain moves
+- **`IelVerifier::resume(prefix, &IelVerification, branch_tip_said?)`** — resume from a verified
+  token — **the only way to resume**, since only a token proves a walk happened (a `BranchTip` is a
+  read-only component of the token, never an independent resume source). With `branch_tip_said`
+  **absent** it resumes the whole chain (the merge handler's normal-append fast path); with it
+  **naming one of the token's own branch tips** it scopes verification to that single branch
+  (divergence / recovery — the input stream is only that branch's events; the competing branches sit
+  excluded in retained storage). Either way it re-applies the token's `root_facet` so a `Wit` is
+  never read facet-blind, and re-runs the to-tip negative checks (the `kills[]` forward-match)
+  against the new tip whenever a transitively-pinned chain moves
   ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
-- **`IelVerifier::from_branch_tip(prefix, &BranchTip)`** — resume from a specific branch tip (its
-  input stream contains only that branch's events; competing branches sit in retained storage,
-  excluded), for verifying against a specific branch in divergence / recovery.
 
 ### Paginated verification helper
 

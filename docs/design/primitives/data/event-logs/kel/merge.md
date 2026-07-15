@@ -130,10 +130,10 @@ regardless of chain state. The verifier walks each event and checks:
 ### 2. Seal-cap
 
 The submitted event's parent must sit at-or-after `last_seal_advancing_event` in chain order
-(`parent_serial >= seal_serial`). A submission whose parent is in the locked portion and would
-change nothing is rejected `Sealed`; one that would **form or join a live fork** at the seal's own
-serial is a `Forked` / `Disputed` transition instead (retained evidence). This is the structural
-rule that enforces current-state-only authority — see
+(`parent_serial ≥ seal_serial`). A submission whose parent is in the locked portion and would change
+nothing is rejected `Sealed`; one that would **form or join a live fork** at the seal's own serial
+is a `Forked` / `Disputed` transition instead (retained evidence). This is the structural rule that
+enforces current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
 [`log.md` §The locked portion](log.md#the-locked-portion).
 
@@ -514,8 +514,8 @@ for truncation.
   roles, sort priority, seal-advance cap.
 - [`compromise.md`](compromise.md) — recovery doctrine: recovery attach shapes, locked-portion
   bound, pre-seal verifiability.
-- [`verification.md`](verification.md) — verifier algorithm: `KelVerifier::new` / `resume` /
-  `from_branch_tip`, signature verification, anchor checking.
+- [`verification.md`](verification.md) — verifier algorithm: `KelVerifier::new` / `resume`
+  (whole-chain or branch-scoped), signature verification, anchor checking.
 - [`reconciliation.md`](reconciliation.md) — cross-node correctness proof; race matrix;
   effective-SAID convergence.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#divergence-and-recovery) —

@@ -538,4 +538,5 @@ stale keys.
 - [`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md) — the authenticated,
   encrypted channel the mesh runs over: the handshake, the per-connection session keys, and the
   nonce discipline that makes reuse structural.
-- The encoding library — the byte-exact `select` scheme and the receipt canonicalization.
+- The encoding library _(forthcoming)_ — the byte-exact `select` scheme and the receipt
+  canonicalization.

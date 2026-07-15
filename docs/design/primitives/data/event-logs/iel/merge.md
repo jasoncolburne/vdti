@@ -228,9 +228,12 @@ The `Wit` kind is facet-dependent, and its manifest role allowlist differs by th
 facet** (`Fcp`-rooted federation versus `Icp`-rooted user —
 [`events.md` §The facet-dependent `Wit`](events.md#the-facet-dependent-wit)). The merge layer
 **establishes the root facet before reading any `Wit` payload** — on **every** `Wit`-reading path:
-the from-scratch walk, a `resume` from a cached token, and a `search_only` walk that ends early. The
-verification token carries the root facet, so a `resume` re-applies the dispatch without re-deriving
-it. **No `Wit`-reading path is exempt.**
+the from-scratch walk, a `resume` from a cached token (whole-chain or scoped to one of the token's
+own branch tips for divergence / recovery), and a `search_only` walk that ends early. The
+verification token carries the root facet, so every `resume` re-applies the dispatch **from the
+token** without re-deriving it — a branch-scoped resume is still **from the token** (a `BranchTip`
+is a component of the token, never an independent resume source). **No `Wit`-reading path is
+exempt.**
 
 A facet-blind allowlist would admit a governance-shaped payload (a roster delta) on a user `Wit` —
 and the directly-consumed governance roles have **no** downstream type-check, so the kind → role

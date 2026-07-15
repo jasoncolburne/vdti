@@ -260,22 +260,22 @@ inception). The full statement and derivations are the IEL primitive's
 ([`iel/events.md` §The threshold vector and its bounds](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds));
 the invariants:
 
-- `t_use >= 1` — exempt from the authorization floor (content is first-seen / recoverable).
-- The authority slots (`t_govern` / `t_authorize`) carry a **security floor `>= 2`** (no single
-  member exercises authority) and a **recoverability ceiling `<= |roster| − 1`** (evict/recover
-  without one member — advisory at `|roster| = 2`, hard at `|roster| >= 3`, where a threshold equal
+- `t_use ≥ 1` — exempt from the authorization floor (content is first-seen / recoverable).
+- The authority slots (`t_govern` / `t_authorize`) carry a **security floor `≥ 2`** (no single
+  member exercises authority) and a **recoverability ceiling `≤ |roster| − 1`** (evict/recover
+  without one member — advisory at `|roster| = 2`, hard at `|roster| ≥ 3`, where a threshold equal
   to `|roster|` is a gratuitous hostage config and is rejected).
 - An **authorization floor `> |roster|/2`** — a strict majority signs every governance / grant, so
   any two authorizing quorums overlap and a sealed fork always names a double-dealer.
-- The roster is **never emptied** (`|roster| + |add| − |cut| >= 1`; a set — `add ∉` it, `cut ⊆` it,
+- The roster is **never emptied** (`|roster| + |add| − |cut| ≥ 1`; a set — `add ∉` it, `cut ⊆` it,
   `cut ∩ add = ∅`, making a singleton's roster downward-immutable), **hard-capped at
   `MAXIMUM_ROSTER_SIZE`** (a DoS backstop); a singleton (`|roster| = 1`) sets all thresholds to 1.
 - A **federation** IEL's recoverability ceiling is **hard** (critical infrastructure must always be
-  able to evict a compromised witness), so `|roster| >= 4`, and its **witness-config** carries an
-  added cap `threshold <= min(|roster| − 2, signers − 1)` plus the witnessing floor
+  able to evict a compromised witness), so `|roster| ≥ 4`, and its **witness-config** carries an
+  added cap `threshold ≤ min(|roster| − 2, signers − 1)` plus the witnessing floor
   `threshold > signers/2`, re-applied on any `Wit` that changes roster / `threshold` / `signers`.
-  The witness signer pool **excludes at least one roster member** (`signers <= |roster| − 1` — a
-  witness never receipts its own event), which with `signers >= 3` is why `|roster| >= 4` and keeps
+  The witness signer pool **excludes at least one roster member** (`signers ≤ |roster| − 1` — a
+  witness never receipts its own event), which with `signers ≥ 3` is why `|roster| ≥ 4` and keeps
   the floor and the cap **jointly satisfiable** (the `signers − 1` leg binds, the roster leg stays
   slack): a four-witness federation selects at most three signers, thresholds to two, and can still
   evict one. Which leg binds, and the concrete roster shrinks that get rejected, are covered in
@@ -292,7 +292,7 @@ The structural mechanism that enforces current-state-only authority is the chain
 
 Each primitive tracks `last_seal_advancing_event` — the SAID of the chain's most recent
 seal-advancing event that landed cleanly on the linear chain. A new event's parent must sit
-at-or-after the seal (`parent_serial >= seal_serial`); a submission whose parent sits in the locked
+at-or-after the seal (`parent_serial ≥ seal_serial`); a submission whose parent sits in the locked
 portion is **rejected as a canonical extension**. Whether that rejected fork is **retained as
 non-canonical evidence** is a separate, witnessing-gated decision — a losing **content** sibling on
 a witnessed chain never forms (so there is nothing to retain), while a sealed branch is kept, so the
@@ -994,7 +994,7 @@ set is restricted to `Fcp` / `Wit` / `Trm` (no content, so it never has a **Fork
 no burying event; every federation fork is sealed — a `{Wit, Wit}` / `{Trm, Trm}` race is
 first-seen-declined under an honest partition (one sibling accepted, the other deferred), and only a
 **witness-colluded two-accepted** race is **Disputed**, terminal — which is why a federation runs a
-hard recoverability ceiling and `|roster| >= 4` with serialized sealing; no delegation, since trust
+hard recoverability ceiling and `|roster| ≥ 4` with serialized sealing; no delegation, since trust
 is per-federation and non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose
 **`add` is a single prefix** — one witness added per `Wit`, the `Fcp` inception alone standing up
 the founding roster wholesale (`cut` stays a list: cuts remove synced witnesses, so emergency
@@ -1033,33 +1033,33 @@ The convergence model has three components:
 (`{ threshold, signers }` — the `witnesses` role) sits above a structural **witnessing floor:
 `threshold > signers/2`**, a strict majority of the selected witnesses (a sub-majority config is
 rejected as un-usable — its `witnessed` signal would no longer mean per-position exclusivity; every
-config clears the `signers >= 3` witness-pool floor, so there is no lone-witness degenerate).
-Witness selection is deterministic by position, so any two threshold-quorums at one
-`(prefix, serial)` share at least `2·threshold − signers >= 1` witnesses — and an honest witness
-signs at most **one content sibling per position** (the kind-scoped witnessing counts below) — so
-**two competing content events can never both be witnessed**: a content fork on a witnessed chain is
-**prevented from forming**, not merely detected. Manufacturing one costs owning the whole quorum
-intersection — the **fork-cost `2·threshold − signers`**, a priced, tunable security parameter, not
-a free consequence of the network (the dial trades one-for-one against receipt redundancy:
-`fork-cost = threshold − slack` where `slack = signers − threshold`, so at `threshold = signers`
-fork resistance is maximal but one unreachable witness stalls the position). Paying fork-cost also
-means exposure: two receipts by one witness over two distinct **content** `witnessed_said`s at one
-position (or a second distinct sealed sibling — sealed is one-per-position too) are cryptographic
-proof of misbehavior — forensics, then eviction. The floor holds at KEL positions **and user-IEL
-positions**: a user IEL's content events must reach a majority quorum at their own
-`(IEL prefix, serial)` — a fork-prevention gate **alongside** their anchor-based authorization,
-closing the two-disjoint-member-sub-quorums content fork — while the **federation IEL** authors no
-content (so the content gate is moot) but gates its sealed events via exclude-self peer-witnessing
-(a competing sealed sibling is first-seen-declined, only witness collusion yields Disputed), and a
-SEL is its **own** witnessed chain, prevented at its own `(SEL-prefix, serial)` — an owner can
-equivocate its SEL even under a linear IEL, because an IEL anchor is an opaque SAID the IEL cannot
-dedupe, so the SEL witnesses itself, inheriting the owner IEL's federation (the SEL primitive states
-this). Every KEL, IEL, and SEL is federation-witnessed — there is no direct mode. What survives the
-floor is the **residual**: a witness compromise owning the intersection, and — rarely — a
-roster-delta straddle (two full quorums under disjoint contexts), which under the propagation
-premise below requires the new selectees cut off from the already-propagated old quorum — an
-entrance to the partition/eclipse family, not a freestanding race. In the residual, the machinery of
-[§Divergence and recovery](#divergence-and-recovery) runs unchanged.
+config clears the `signers ≥ 3` witness-pool floor, so there is no lone-witness degenerate). Witness
+selection is deterministic by position, so any two threshold-quorums at one `(prefix, serial)` share
+at least `2·threshold − signers ≥ 1` witnesses — and an honest witness signs at most **one content
+sibling per position** (the kind-scoped witnessing counts below) — so **two competing content events
+can never both be witnessed**: a content fork on a witnessed chain is **prevented from forming**,
+not merely detected. Manufacturing one costs owning the whole quorum intersection — the **fork-cost
+`2·threshold − signers`**, a priced, tunable security parameter, not a free consequence of the
+network (the dial trades one-for-one against receipt redundancy: `fork-cost = threshold − slack`
+where `slack = signers − threshold`, so at `threshold = signers` fork resistance is maximal but one
+unreachable witness stalls the position). Paying fork-cost also means exposure: two receipts by one
+witness over two distinct **content** `witnessed_said`s at one position (or a second distinct sealed
+sibling — sealed is one-per-position too) are cryptographic proof of misbehavior — forensics, then
+eviction. The floor holds at KEL positions **and user-IEL positions**: a user IEL's content events
+must reach a majority quorum at their own `(IEL prefix, serial)` — a fork-prevention gate
+**alongside** their anchor-based authorization, closing the two-disjoint-member-sub-quorums content
+fork — while the **federation IEL** authors no content (so the content gate is moot) but gates its
+sealed events via exclude-self peer-witnessing (a competing sealed sibling is first-seen-declined,
+only witness collusion yields Disputed), and a SEL is its **own** witnessed chain, prevented at its
+own `(SEL-prefix, serial)` — an owner can equivocate its SEL even under a linear IEL, because an IEL
+anchor is an opaque SAID the IEL cannot dedupe, so the SEL witnesses itself, inheriting the owner
+IEL's federation (the SEL primitive states this). Every KEL, IEL, and SEL is federation-witnessed —
+there is no direct mode. What survives the floor is the **residual**: a witness compromise owning
+the intersection, and — rarely — a roster-delta straddle (two full quorums under disjoint contexts),
+which under the propagation premise below requires the new selectees cut off from the
+already-propagated old quorum — an entrance to the partition/eclipse family, not a freestanding
+race. In the residual, the machinery of [§Divergence and recovery](#divergence-and-recovery) runs
+unchanged.
 
 **Witnessing is kind-scoped — the ladder (one rung per kind: one content sibling, one sealed, per
 position); the data decides** (witnesses are reporters, not deciders): a selected witness signs the
@@ -1117,7 +1117,7 @@ rests on prompt roster-wide propagation once an event is witnessed in full (the 
 roster member ordinarily sees a completed quorum before any later sibling arrives, which is what
 arms the first-seen declines. A fork that forms despite the premise lands in freeze → burying
 seal-advancer; nothing false becomes canonical on any node. First-seen-one-per-serial partitions the
-receipts at a contested position (`a + b <= signers`); when neither content sibling reaches majority
+receipts at a contested position (`a + b ≤ signers`); when neither content sibling reaches majority
 (an even-`signers` tie, abstentions, or a partition) the **position stalls, fail-secure** — signed
 witnesses cannot switch, so a minority partition **stalls, never forks** (consistency over
 availability). The **exit is a burying seal-advancer**: a `Rot` / `Evl` at the position is sealed —

@@ -79,7 +79,7 @@ verify_event(event):
     # 3. Structure validation
     validate_structure(event)          # Required / forbidden fields per kind (event-shape)
     assert event.manifest carries only roles in allowed(event.kind)   # read kind-first
-    if event.kind == Ixn:  assert event.manifest has payload (>= 1 SAD)   # Ixn payload is required
+    if event.kind == Ixn:  assert event.manifest has payload (≥ 1 SAD)   # Ixn payload is required
 
     # 4. Serial + chain continuity
     if event.serial != expected_serial: return Error("Serial gap or regression")
@@ -255,7 +255,9 @@ BranchTip:
 
 Token fields are private with no public constructor — the only way to obtain one is through
 `SelVerifier`. Holding the token proves the corresponding chain was verified against its owner IEL
-and its own witnessing.
+and its own witnessing — so a trust decision, and any resumption toward one, is grounded **only** in
+a token, never a bare `BranchTip` (a read-only component of the token, not an independent verified
+state).
 
 ### Derived accessors
 
@@ -322,13 +324,14 @@ rather than loading the full chain into memory, resolving each event's owner-IEL
 
 - **`SelVerifier::new(prefix, &owner_iel_token)`** — start from inception; full verification of an
   untrusted chain against its owner IEL's verified token.
-- **`SelVerifier::resume(prefix, &SelVerification, &owner_iel_token)`** — resume from a verified
-  token (the merge handler's normal-append fast path); it re-runs the to-tip severance and
-  divergence checks against the new tip whenever the owner IEL moves, so a SEL is never advanced
-  past an owner-IEL burial it did not re-read
-  ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
-- **`SelVerifier::from_branch_tip(prefix, &BranchTip, &owner_iel_token)`** — resume from a specific
-  branch tip, for verifying against a specific branch in divergence or recovery.
+- **`SelVerifier::resume(prefix, &SelVerification, &owner_iel_token, branch_tip_said?)`** — resume
+  from a verified token — **the only way to resume**, since only a token proves a walk happened (a
+  `BranchTip` is a read-only component of the token, never an independent resume source). With
+  `branch_tip_said` **absent** it resumes the whole chain (the merge handler's normal-append fast
+  path); with it **naming one of the token's own branch tips** it scopes verification to that single
+  branch (divergence / recovery). Either way it re-runs the to-tip severance and divergence checks
+  against the new tip whenever the owner IEL moves, so a SEL is never advanced past an owner-IEL
+  burial it did not re-read ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
 
 ### Paginated verification helper
 
