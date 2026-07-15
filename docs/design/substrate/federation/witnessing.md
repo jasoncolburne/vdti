@@ -305,9 +305,10 @@ rebind, then submit a new event.
 Events reach the nodes that need them over the federation's gossip mesh — roster-wide push-gossip
 for an event witnessed in full, and sub-gossip among a position's selected witnesses for one still
 gathering receipts. All mesh traffic is encrypted, so contents stay within the roster; the channels
-and the two-scope transport are [`topics.md`](topics.md), and the AEAD nonce and key-scope
-discipline is owed at the encoding-library / infrastructure layer
-([Cross-references](#cross-references)). What matters for witnessing is what a query returns.
+and the two-scope transport are [`topics.md`](topics.md); the channel underneath it — the handshake,
+the per-connection session keys, and the nonce discipline that makes reuse structural — is
+[`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md). What matters for
+witnessing is what a query returns.
 
 This position-indexed receipt query is **the beacon**: because receipts are keyed at
 `(prefix, serial)`, querying a position returns the receipts for **every** witnessed branch there,
@@ -500,6 +501,7 @@ stale keys.
 - [`../../primitives/data/sad/kinds.md`](../../primitives/data/sad/kinds.md) — the witness receipt
   kinds `vdti/witness/v1/receipts/*`.
 - [`topics.md`](topics.md) — the gossip channels the mesh carries and the two-scope transport.
-- The encoding library — the byte-exact `select` scheme, the receipt canonicalization, and the AEAD
-  nonce / key-scope discipline for the encrypted mesh (its own doc under `infrastructure/`,
-  forthcoming).
+- [`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md) — the authenticated,
+  encrypted channel the mesh runs over: the handshake, the per-connection session keys, and the
+  nonce discipline that makes reuse structural.
+- The encoding library — the byte-exact `select` scheme and the receipt canonicalization.

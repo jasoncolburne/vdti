@@ -8,7 +8,9 @@ on propagation — first-seen, the witnessing floor, query-scoping — are
 
 The mesh **is** the federation roster, and it carries only what stays within the federation: all
 inter-node traffic is encrypted (ML-KEM-1024 + AES-256-GCM) — receipts and the events they carry
-alike — so mesh contents never leave the roster.
+alike — so mesh contents never leave the roster. The channel underneath — how two nodes
+authenticate, agree a key, and encrypt each frame — is
+[`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md).
 
 ## Two meshes
 
@@ -50,6 +52,8 @@ derivation input — it is a routing label, distinct from a SAD's `kind`
   query-scoping, the propagation premise.
 - [`bootstrap.md`](bootstrap.md) — genesis: the mesh forms once nodes set their federation prefix;
   before that, arrangement is point-to-point.
+- [`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md) — the authenticated,
+  encrypted channel the mesh runs over.
 - [`../../protocol-doctrine.md`](../../protocol-doctrine.md) — how the primitives consume
   propagation (federation convergence).
 - [`../../primitives/data/sad/kinds.md`](../../primitives/data/sad/kinds.md) — SAD kinds.

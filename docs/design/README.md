@@ -150,6 +150,9 @@ from forming on an honest chain and makes a sealed fork detectable everywhere.
     and the recoverability cap.
 28. [`substrate/federation/topics.md`](substrate/federation/topics.md) — the gossip topics (the
     witness-mesh channels) and the two-scope encrypted transport.
+29. [`substrate/infrastructure/mesh-transport.md`](substrate/infrastructure/mesh-transport.md) — the
+    authenticated, encrypted channel the mesh runs over: handshake, per-connection session keys, and
+    the nonce discipline that makes reuse structural.
 
 ## 5 — The document-authorization layer
 

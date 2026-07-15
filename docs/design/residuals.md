@@ -90,8 +90,6 @@ are equally the point.
 - **Freshness** — whether a consumer can know the current truth in time. Is an attack real but
   unseen at decision time — an eclipse, a stale view, a drifted clock, a still-open harvested-key
   window?
-- **Assurance** — confidence that a mechanism is correct. Is it unreviewed, or does it rest on a
-  spec still owed?
 
 ## Ranked summary
 
@@ -112,8 +110,6 @@ by theme, not by these three groups; a handful of placements are noted in the en
 | ------------------------------------- | ------------ | ------------------- | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------- | ------------------------------------------------------------- |
 | Rotation-reserve theft                | Catastrophic | Reserve             | High (300)   | Trust + Recoverability | A `t_govern` or `t_authorize` reserve quorum                                                                                                                      | **Yes** — monitoring           | Attacker takes over your prefix                    | Reincept + notify relying parties                             |
 | Lookup prefix seen by witnesses       | Medium       | Human Intent        | High (300)   | Privacy                | Compromise a witness operator to weaponize a prefix it legitimately sees, + a known candidate subject                                                             | No — passive at the witness    | Infra confirms a subject you both know             | Inherent to a witnessed lookup; a cut stops only exfiltration |
-| Mesh-encryption discipline            | Low          | Human Error         | High (300)   | Assurance              | An AES-GCM nonce / key-scope error in the mesh layer                                                                                                              | —                              | Mesh confidentiality could break                   | Follow the nonce / key-scope discipline                       |
-| Unreviewed store hardening            | Low          | Human Error         | High (300)   | Assurance              | A classifier gap, until reviewed                                                                                                                                  | —                              | A possible hardening gap                           | Finish the review                                             |
 | Document governance-quorum compromise | High         | Reserve             | Medium (100) | Trust + Recoverability | A `t_authorize` quorum of the creator's reserves                                                                                                                  | **Yes** — monitoring           | The document is captured                           | Reincept + notify relying parties                             |
 | Forced-dead receive key               | High         | Reserve             | Medium (100) | Availability           | A `t_authorize` reserve quorum — forge a `Trm` rescind so the key reads dead                                                                                      | **Yes** — monitoring           | Senders can't reach you until you republish        | Republish at a fresh lineage                                  |
 | Just-cut key still reads fresh        | Medium       | Signing             | Medium (90)  | Freshness              | Harvest a just-cut key within the staleness window (seconds)                                                                                                      | **Yes** — stale on close       | A just-revoked key still forges, briefly           | Window closes/tighten thresholds                              |
@@ -743,21 +739,9 @@ witnessing model.
 
 ## 11. Owed work and unverified assumptions
 
-Honest unknowns: mechanisms not yet independently reviewed, and a discipline the design depends on
-but has not yet specified. These are assurance residuals, not known exploits.
+One assurance residual remains — a discipline the design leans on but that only independent
+implementations can confirm. Not a known exploit.
 
-- **Mesh-encryption discipline — Low.** The mesh uses **ML-DSA** (signatures) and **ML-KEM +
-  AES-256-GCM** (key-establishment + symmetric encryption) — post-quantum primitives, following the
-  sibling reference implementation this design was extracted from (available for review). The
-  residual is only the **AES-GCM nonce / key-scope discipline**: get nonce-reuse or key-scope wrong
-  and the mesh's confidentiality — never its trust — breaks. It closes with the implementation
-  discipline, not a new spec.
-- **Store-hardening not yet independently reviewed — Low.** The store-side event-kind filter (which
-  keeps event bodies from being fetchable by identifier — the mechanism that stops an identifier
-  from becoming a prefix-inversion oracle) and the receipt-encoded-threshold hint carry a
-  not-yet-independently-reviewed marker; their first decorrelated pass is the encode review. A
-  classifier gap would reopen what they close. One factual check is owed: that the kind field is
-  populated on every record kind.
 - **Cross-implementation encoding drift — Low.** The synthetic marker for a forked or disputed state
   must be encoded byte-exactly across implementations; a drift would spin the anti-entropy loop
   until a node escalates to a by-prefix fetch (which bounds it). A liveness discipline, not a safety

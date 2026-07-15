@@ -233,7 +233,7 @@ discipline, §1e, exists to prevent), a node escalates to a **by-prefix flat fet
   branches (≤ `MAXIMUM_UNSEALED_RUN` each) + the burying seal — fits **one `MINIMUM_PAGE_SIZE = 129` page** (area-kel); a ≥ 3-branch
   residual fork's extra branches ride later pages (reconciliation invariant 3).
 
-### 1j. SAD-store write path — the `kind` filter (first-seen hardening, 2026-07-08; ⚠ NOT previously design-reviewed — the encode-review is its first decorrelated pass)
+### 1j. SAD-store write path — the `kind` filter (first-seen hardening, 2026-07-08; design-reviewed 2026-07-14 — the fetch-by-SAID rule is stated in `docs/design/primitives/data/sad/kinds.md` §Fetch by SAID: default-deny, `.../events/*` never served, role/commitment SADs + public content served)
 
 A pure subtraction enforcing **inv 16** at the storage boundary. **The attack:** event SAIDs float free of their
 prefix by design (`said ≠ prefix`; the opaque `anchors[]` commitment — area-sel:129). From a **public** issuer IEL
@@ -258,7 +258,7 @@ only *through* a chain you already have the prefix for, so they give the attacke
 case. **Preferred over adding an availability field to every event.** *(One factual to-do before build: verify
 `kind` is populated on every SAD kind.)*
 
-### 1k. Receipt-encoded threshold + on-receiving-node routing (first-seen hardening, 2026-07-08; ⚠ NOT previously design-reviewed — the encode-review is its first decorrelated pass)
+### 1k. Receipt-encoded threshold + on-receiving-node routing (first-seen hardening, 2026-07-08; design-reviewed 2026-07-14 — sound as written: the committed-config match on pull is authoritative, the receipt-encoded threshold only a fast-path hint)
 
 The match-check *safety* was verified this session; the *value*-scope point is **resolved** (below). **Receipt-encoded
 threshold:** each receipt carries the **witness-config `threshold`**, so witnessed-detection becomes **count

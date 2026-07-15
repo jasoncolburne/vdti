@@ -1,9 +1,9 @@
 # SAD Kinds — the identifier catalogue
 
 Every SAD carries a **`kind`** — a versioned string naming its type, which drives structural
-validation, tier dispatch, and the role vocabulary it may carry. This doc is the canonical
-enumeration of every SAD kind. Two sibling identifier families share the same naming scheme and live
-in their own catalogues: **derivation tags and SEL topics**
+validation, tier dispatch, the role vocabulary it may carry, and whether the store will serve it by
+SAID. This doc is the canonical enumeration of every SAD kind. Two sibling identifier families share
+the same naming scheme and live in their own catalogues: **derivation tags and SEL topics**
 ([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) and **gossip topics**
 ([`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md)).
 
@@ -55,6 +55,42 @@ own.
 | `vdti/exchange/v1/protocols/essr` | the ESSR envelope                     |
 | `vdti/cred/v1/schemas/*`          | credential SADs (application-defined) |
 | `vdti/policy/v1/{group}/*`        | policy documents, grouped by domain   |
+
+## Fetch by SAID — what the store hands back
+
+`kind` also decides whether the store will hand back a SAD **by its SAID**. Two ways of reaching
+data sit side by side: a **chain event is found by prefix** — you reach it only by walking the chain
+whose prefix you already hold — while a **standalone SAD is found by SAID**, fetched directly. The
+store keeps the two apart with a list of the kinds it will serve, and **turns away everything
+else**:
+
+- **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
+  values a `Gnt` seals (`vdti/sel/v1/grants/*`), and content that is public by design (a public
+  credential body, or an application content kind the app has registered). A verifier walking a
+  chain has to resolve the role SADs an event commits to, so these have to be reachable by SAID.
+- **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
+  event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
+  gets back the same "not present" answer a SAID that never existed would.
+- **Everything else — refused.** A kind not on the served list is not handed back, so a later event
+  kind, or some future free-standing SAD type, is turned away by default instead of quietly opening
+  a way to fetch it.
+
+The whole rule in one line: **the store hands back a SAD by SAID only when learning that SAID
+already meant holding the chain, or when the SAD is public by design.** An event's SAID fails that
+test — it travels in the open as a commitment inside a public identity's `anchors[]`, so if the
+store answered for event bodies by SAID, an observer could gather those commitments and walk them
+back to the private positions they stand for, turning the store into the very lookup that reaching
+events by prefix alone was meant to deny. A commitment SAD's SAID passes the test — it appears only
+inside an event's `manifest`, which you reach only after reading an event you already hold the chain
+for, so serving it tells an observer nothing they could not already work out.
+[`event-shape.md`](../event-logs/event-shape.md) states the "there is no SAID-to-event index"
+property that this makes real.
+
+This is why every SAD carries a `kind` ([`sad.md`](sad.md)): the sort has no fallback — a SAD with
+no kind cannot be placed on either side of it, so it is refused. The store's write path turns away a
+kind it will not serve; that enforcement lives with the store
+([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md),
+forthcoming), on the retrieval boundary [`availability.md`](availability.md) describes.
 
 ## Cross-references
 

@@ -328,8 +328,9 @@ adversarial pass.
   `anchors[]` (cred = anchored SAD, no cred-SEL; `cred.said` never raw, never on a witness), so what a SEL
   receipt carries is the lookup-SEL's own (unguessable) `chain_prefix`. The residual receipt prefix is
   therefore a public **IEL/KEL identity** prefix **or** an unguessable lookup-SEL prefix (§1g Decision 2),
-  both route-metadata fine under the trust model. AEAD nonce/key-scope
-  discipline is owed at the doc layer.
+  both route-metadata fine under the trust model. The AEAD nonce/key-scope discipline is now specified
+  in `docs/design/substrate/infrastructure/mesh-transport.md` (per-connection session keys + a
+  per-direction monotonic counter → nonce reuse is structural, not an implementer's discipline).
   **Push over pull (Jason):** prefer gossiping events to a separate inter-node *query* — the sub-mesh event-gossip
   already pushes competing events to selected witnesses; extend it so a one-branch holder gets the branches by push,
   so there's no second channel to secure (the residual by-prefix fetch shrinks, rides the same encrypted mesh). Build
