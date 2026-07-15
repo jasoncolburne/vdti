@@ -87,8 +87,8 @@ Then the KEL (Key Event Log) primitive, in order:
 9. [`primitives/data/event-logs/kel/log.md`](primitives/data/event-logs/kel/log.md) — the chain
    primitive: the four-state per-node machine, the seal / spine / locked-portion, paging.
 10. [`primitives/data/event-logs/kel/events.md`](primitives/data/event-logs/kel/events.md) — the
-    kind taxonomy, the two-tier capability model, the kind-strict anchor matrix, and forward-key
-    commitments.
+    five-kind taxonomy (plus the founder `Fcp` inception variant), the two-tier capability model,
+    the kind-strict anchor matrix, and forward-key commitments.
 11. [`primitives/data/event-logs/kel/verification.md`](primitives/data/event-logs/kel/verification.md)
     — the verifier walk and the verification token: how a chain is read and validated.
 12. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
@@ -175,6 +175,5 @@ These are referenced above as forward-references and are still forthcoming:
 - `features/` — credentials and shared documents;
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
-- `operations/` — operator workflows (recovery ceremony, sealing serialization).
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
   scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).

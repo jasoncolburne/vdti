@@ -227,8 +227,8 @@ discipline: every chain is federation-witnessed, and the witnessing floor preven
 content sibling going live, so an un-serialized content race costs stalls and re-issuance — a
 liveness cost, not a safety one (the residual safety concern is a witness compromise).
 
-→ [`../operations/sealing-serialization.md`](../operations/sealing-serialization.md)
-_(forthcoming)_.
+→ [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md) — the witnessing floor
+that makes racing sealers stall and re-issue rather than brick.
 
 ### Cascade-reincept honesty
 

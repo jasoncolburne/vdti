@@ -181,6 +181,7 @@ The **V0 constitution** (derives the doc prefix):
 | Field        | Type   | Meaning                                                     |
 | ------------ | ------ | ----------------------------------------------------------- |
 | `said`       | SAID   | V0's SAID.                                                  |
+| `kind`       | string | `vdti/doc/v1/schemas/*` (the constitution schema).          |
 | `creator`    | prefix | The creator's IEL prefix — governs membership and sharing.  |
 | `readPolicy` | SAID   | The initial read/sharing gate.                              |
 | `nonce`      | bytes  | High-entropy — makes the doc prefix unguessable if private. |

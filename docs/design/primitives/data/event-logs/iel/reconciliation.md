@@ -323,10 +323,9 @@ collusion / quorum subversion**, which a designated submitter does **not** touch
 **forensic**: the two accepted seals are a provable witness **double-sign** → evict the colluders,
 and a `{Evl, Evl}` brick recovers by **reincept**, made detectable on heal by witnessing. (Sealing
 serialization stays a **liveness** aid — it keeps honest sealers from stalling, not a safety
-mechanism.) The operator playbook lands in
-[`../../../../../operations/sealing-serialization.md`](../../../../../operations/sealing-serialization.md)
-(forthcoming); the doctrine — that a second _witnessed_ sealed branch at the last seal is terminal —
-is the chain's.
+mechanism.) Serialization above the protocol — a designated submitter or leader election — is a
+liveness aid, not safety; the doctrine — that a second _witnessed_ sealed branch at the last seal is
+terminal — is the chain's, enforced by the witnessing floor.
 
 ### The federation IEL — always sealed, still first-seen-gated
 
@@ -465,5 +464,3 @@ crossed with inherited severance — lands with
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing: the witnessing floor, the beacon, the federation-IEL schism mechanics.
-- [`../../../../../operations/sealing-serialization.md`](../../../../../operations/sealing-serialization.md)
-  — the sealing-serialization operator playbook (forthcoming).

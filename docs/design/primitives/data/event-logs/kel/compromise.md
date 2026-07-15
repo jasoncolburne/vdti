@@ -17,13 +17,11 @@ steal — with very different outcomes:
   over under a new identity. The defense against that lives one layer up, where several keys back
   one identity, so losing one is survivable.
 
-This is doctrine, not workflow. Operator CLI ceremony and the choreography for a recovery `Rot` /
-`Trm` lives in
-[`../../../../../operations/recovery-workflow.md`](../../../../../operations/recovery-workflow.md)
-(forthcoming). Per-kind event-shape rules live in [`events.md`](events.md); merge-layer routing —
-including how a burying seal-advancer resolves a fork and the attach shapes — in
-[`merge.md`](merge.md); the cross-node correctness proof in
-[`reconciliation.md`](reconciliation.md).
+This is doctrine, not workflow — the operator ceremony is simply issuing the burying recovery `Rot`
+(or `Trm`) at the first compromised position with the standard tooling. Per-kind event-shape rules
+live in [`events.md`](events.md); merge-layer routing — including how a burying seal-advancer
+resolves a fork and the attach shapes — in [`merge.md`](merge.md); the cross-node correctness proof
+in [`reconciliation.md`](reconciliation.md).
 
 ## Two-tier compromise model
 
@@ -307,5 +305,3 @@ observable in the data layer. See
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing: the kind-scoped witnessing ladder, the witnessing floor, the beacon,
   divergent witness receipts.
-- [`../../../../../operations/recovery-workflow.md`](../../../../../operations/recovery-workflow.md)
-  — operator CLI ceremony (forthcoming).
