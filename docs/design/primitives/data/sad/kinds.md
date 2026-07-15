@@ -94,6 +94,7 @@ forthcoming), on the retrieval boundary [`availability.md`](availability.md) des
 
 ## Cross-references
 
+- [`shapes.md`](shapes.md) — the field shape of each SAD kind (the companion to this catalogue).
 - [`sad.md`](sad.md) — the SAD layer: what a SAD is, the `kind`-required rule.
 - [`said.md`](said.md) — the two-pass digest that turns a SAD's canonical content into a SAID.
 - [`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md) — the derivation tags and

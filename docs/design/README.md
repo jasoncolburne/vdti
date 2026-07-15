@@ -53,7 +53,8 @@ its own reading-order note in `sad.md`.)
 Alongside these, three **identifier catalogues** define the naming conventions used surface-wide
 (all on the shared `vdti/{component}/v1/{category}/{name}` convention) — read one when a `kind`,
 `tag`, or `topic` first puzzles you: [`primitives/data/sad/kinds.md`](primitives/data/sad/kinds.md)
-(every SAD `kind`),
+(every SAD `kind`, with each kind's field shape in
+[`primitives/data/sad/shapes.md`](primitives/data/sad/shapes.md)),
 [`primitives/data/event-logs/tags-and-topics.md`](primitives/data/event-logs/tags-and-topics.md)
 (the derivation `tag`s and SEL `topic`s), and
 [`substrate/federation/topics.md`](substrate/federation/topics.md) (the gossip topics, also at #28).
