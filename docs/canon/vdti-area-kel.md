@@ -29,7 +29,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
 
   | Kind | Tier | Sig | Role |
   |---|---|---|---|
-  | `Fcp` | T1 | single | **federation-infrastructure** inception (a federation witness KEL) — **self-attested, no `witnesses`** at genesis (can't commit to a federation IEL that doesn't exist yet), **single-federation** (§inv 14 / federation §1d — serves **one** federation; to serve another, spin up a new KEL). **Bound by founding:** its v=1 is a **`Rot` that anchors the federation IEL `Fcp`** (the federation inception marker — kind-strict, T2 ↔ T2) in the same atomic genesis batch — `Fcp`(v=0) → `Rot`(v=1). The witness is bound by being **named in the roster it founds / joins**, governed *into* the roster — **never self-bound** (it carries no user-style `{federation, federationPin}`). On an `Fcp`-rooted KEL a **`Wit` is federation governance** (it anchors the federation IEL `Wit`; the witness's own rotation), **never a user rebind** — `Fcp`-rooted = infrastructure, the `Icp`-rooted/user `Wit` is the rebind. Trust roots in the config-pinned `FEDERATION_IEL_PREFIX`. *(The `Fcp` genesis is unwitnessed — a config-pinned trust root — but this is **not** direct mode; it is the federation bootstrap, kept.)* |
+  | `Fcp` | T1 | single | **federation-infrastructure** inception (a federation witness KEL) — **self-attested, no `witnesses`** at genesis (can't commit to a federation IEL that doesn't exist yet), **single-federation** (§inv 14 / federation §1d — serves **one** federation; to serve another, spin up a new KEL). **Bound by founding:** its v=1 is a **`Rot` that anchors the federation IEL `Fcp`** (the federation inception marker — kind-strict, T2 ↔ T2) as a **dependency-ordered pair** — `Fcp`(v=0) → `Rot`(v=1) (not atomic — a partial genesis is sub-threshold, fail-secure; revised 2026-07-14). The witness is bound by being **named in the roster it founds / joins**, governed *into* the roster — **never self-bound** (it carries no user-style `{federation, federationPin}`). On an `Fcp`-rooted KEL a **`Wit` is federation governance** (it anchors the federation IEL `Wit`; the witness's own rotation), **never a user rebind** — `Fcp`-rooted = infrastructure, the `Icp`-rooted/user `Wit` is the rebind. Trust roots in the config-pinned `FEDERATION_IEL_PREFIX`. *(The `Fcp` genesis is unwitnessed — a config-pinned trust root — but this is **not** direct mode; it is the federation bootstrap, kept.)* |
   | `Icp` | T1 | single | inception — the **alternative root** (vs `Fcp`); an **ordinary user KEL**. **Federation-bound, always** (`federation`/`federationPin` required): every identity is federation-witnessed — **there is no direct mode** (§inv 14 / federation §1d). **Never preceded by `Fcp`** (a chain has `Fcp → Rot` *or* `Icp`, never `Fcp → Icp`). |
   | `Ixn` | T1 | single | content; anchors SADs via `manifest` (≥1); **the divergeable kind** — a content conflict is first-seen (recoverable) [inv 13]. |
   | `Rot` | T2 | single | rotation — reveals the next signing key, commits the next rotation reserve (the reserve persists — `rotationHash` re-committed); signed with **the rotation reserve** alone (the old signing key is not required). **Seal-advancing.** **Recovery is a `Rot`** (rotate at the first compromised position → the thief's run below dies on ascent — §1 divergence). A rotation conflict on this single-key chain is **first-seen** (the Rot'@v_M fix — a stolen signing key can only forge the *late* competing rotation, already declined; a genuinely competing rotation needs the reserve, which is takeover). |
@@ -130,7 +130,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   via `Wit`). **Two inception roots, never sequenced:** `Fcp` (federation-infrastructure founder) **or** `Icp`
   (a user KEL joining an existing federation) — **never `Fcp → Icp`**. An `Fcp` **is bound by founding**: its v=1 is
   a **`Rot` that anchors the federation IEL `Fcp`** (the federation inception marker — kind-strict, T2 ↔ T2) in the
-  **same atomic genesis batch** (`Fcp` v=0 → `Rot` v=1) — the witness is bound by being **named in the roster it
+  **dependency-ordered pair** (`Fcp` v=0 → `Rot` v=1; not atomic — revised 2026-07-14) — the witness is bound by being **named in the roster it
   founds**, never self-bound (governed *into* the roster — 2026-06-28). Genesis pattern: founder `Fcp → Rot`, the
   `Rot` anchoring the federation IEL `Fcp` (roster = founder witness KELs). A **user KEL's `Wit`** is its federation
   (re)bind — it moves *its* identity to a federation and **anchors the identity's IEL `Wit`**, which records the
@@ -145,7 +145,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   rebind), a federation witness KEL's `Wit` anchors the federation IEL `Wit` (governance); the anchor-kind is
   uniform, but the field-match is **facet-specific** (Q3): user facet matches `{federation, federationPin}` (C4),
   the federation-governance facet matches **only the witness-config** (roster rides the manifest `Evl`-style; the
-  `clock` is a single IEL-side value, monotonic + `≤ now+band`); a *joining* witness instead rides a KEL `Ixn`
+  `clock` is a single IEL-side value, monotonic + `≤ now+CLOCK_TOLERANCE_BAND`); a *joining* witness instead rides a KEL `Ixn`
   alongside as consent-of-added, A1/E2 2026-06-28). Anchor-hosting KEL kinds are **`Ixn`/`Rot`/`Wit`** (the `Wit`
   hosts **only** the IEL `Wit`); `Trm` hosts none. **Federation bootstrap — RESOLVED (2026-06-28):** the
   federation's own witness KELs are **`Fcp`-rooted infrastructure** (governed *into* the roster, never self-bound);
@@ -167,9 +167,9 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   `Extended`/`Recovered`/`Terminated`/`Forked`/`Disputed`, rejections `Sealed`/`Terminal`/`Invalid`/`Ignored`;
   canonical routing), `reconciliation.md` (the first-seen convergence walk — root-bury + deadness-ascends; the
   **four-state matrix**, Forked vs Disputed), `verification.md` (the walk).
-- **Seal cap** — the 64-event **content-run** bound (per lineage) is a seal-advancer property (any `Rot`/`Wit`).
-  **`MINIMUM_PAGE_SIZE = 129`, cap = `(MINIMUM_PAGE_SIZE − 1)/2` = 64 (per lineage).** The page is `2·64 + 1` so one
-  fetch/txn carries a **full recoverable content fork — both lineages (≤ 64 each) plus the burying `Rot`** —
+- **Seal cap** — the `MAXIMUM_UNSEALED_RUN` **content-run** bound (per lineage) is a seal-advancer property (any `Rot`/`Wit`).
+  **`MINIMUM_PAGE_SIZE = 129`, `MAXIMUM_UNSEALED_RUN = (MINIMUM_PAGE_SIZE − 1)/2 = 64` (per lineage).** The page is `2·MAXIMUM_UNSEALED_RUN + 1` so one
+  fetch/txn carries a **full recoverable content fork — both lineages (≤ `MAXIMUM_UNSEALED_RUN` each) plus the burying `Rot`** —
   atomically: a source→sink transfer must carry **both** competing content branches (the sink holds neither in
   storage; it is receiving the fork fresh), so the burying `Rot`'s content-only guard has every branch to walk under
   one advisory lock (Jason 2026-07-03). *(There is no repair batch — the burying event is a single ordinary `Rot`.)*

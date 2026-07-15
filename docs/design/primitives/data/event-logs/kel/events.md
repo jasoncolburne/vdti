@@ -1,12 +1,11 @@
 # KEL Events — Per-Kind Reference
 
-Per-kind structural reference for the KEL event taxonomy: five event kinds across two inception
-variants, one content kind, one rotation kind, one federation kind, and one terminal kind. The
-cross-primitive field shape — common fields, the `manifest` model, `previousSeal`, and the full
-per-kind field grid — is the [event-shape reference](../event-shape.md#kel); this doc states the
-KEL-specific semantics: the key-state fields, two-kind inception, the manifest roles a KEL event
-carries, forward-key commitments, the two-tier capability model, sort priority, and the seal-advance
-cap.
+Per-kind structural reference for the KEL event taxonomy: **five event kinds** (`Icp` / `Ixn` /
+`Rot` / `Wit` / `Trm`) plus the founder `Fcp` inception variant. The cross-primitive field shape —
+common fields, the `manifest` model, `previousSeal`, and the full per-kind field grid — is the
+[event-shape reference](../event-shape.md#kel); this doc states the KEL-specific semantics: the
+key-state fields, two-kind inception, the manifest roles a KEL event carries, forward-key
+commitments, the two-tier capability model, sort priority, and the seal-advance cap.
 
 For chain lifecycle (states, the seal and spine, locked-portion bound, page model), see
 [`log.md`](log.md). For merge-layer routing, [`merge.md`](merge.md). For recovery doctrine,
@@ -14,7 +13,7 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 
 ## Event taxonomy
 
-| Kind  | Topic                    | Class     | Tier | Purpose                                                                                                                                                   |
+| Kind  | Kind string              | Class     | Tier | Purpose                                                                                                                                                   |
 | ----- | ------------------------ | --------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Fcp` | `vdti/kel/v1/events/fcp` | inception | 1    | Founder pre-federation inception (no federation exists yet).                                                                                              |
 | `Icp` | `vdti/kel/v1/events/icp` | inception | 1    | Standard inception (member or end-user KEL) — federation-bound (there is no direct mode).                                                                 |
@@ -29,9 +28,8 @@ The **class** column names the event's role under the
 — including the **terminal** kind (`Trm`, which also ends the chain); so a branch carrying a `Trm`
 counts as sealed in the divergence walk just as a `Rot` branch does. The **tier** column names which
 key material is required to forge the event — see
-[§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
-versioned schema identifier (`vdti/kel/v1/events/…`), unrelated to a standalone SAD's custody
-`topic`.
+[§Two-tier capability model](#two-tier-capability-model). The **Kind string** column is the kind's
+versioned schema identifier (`vdti/kel/v1/events/…`).
 
 ## Two-kind inception
 
@@ -49,10 +47,10 @@ The verifier dispatches at v=0 on kind:
 
 - `Fcp` → pre-federation chain. It carries no `federation` binding and no `witnesses`, and cannot
   stand alone — its v=1 `Rot` anchors the federation IEL's `Fcp` marker (kind-strict, tier-2 →
-  tier-2) in the same atomic bootstrap batch. The founder is bound to the federation by being named
-  in the roster it founds — never self-bound. That federation IEL `Fcp` (the `Fcp`-rooted inception
-  marker) is brought into existence in that same batch (see
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md), forthcoming).
+  tier-2) in the same dependency-ordered bootstrap bundle. The founder is bound to the federation by
+  being named in the roster it founds — never self-bound. That federation IEL `Fcp` (the
+  `Fcp`-rooted inception marker) is brought into existence in that same bundle (see
+  [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md)).
 - `Icp` → federation-bound from inception. `federation` (the federation IEL prefix) and
   `federationPin` (the as-of federation position) declare the binding, and the `witnesses` manifest
   role declares the chain's witnessing policy — **all required**. Every identity is
@@ -157,11 +155,11 @@ A `Wit` event **rebinds** federation context (the must-change rule and the two f
 same-federation **re-pin** (advancing `federationPin` within the same federation) is **not** a `Wit`
 — since `federationPin` is optional on every event, a re-pin rides whatever the chain authors next,
 which is how an active chain answers the witness currency gate after a federation cut. See
-[`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming) for the
-bootstrap ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation re-binding
-mechanics. A `Wit` **is** the rotation — it refreshes the signing key and the rotation reserve — so
-it is structurally **tier-2**, single-signed with the reserve; this is a property of `Wit`'s own
-signature shape.
+[`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) for
+the bootstrap ceremony, the founder genesis (`Fcp → Rot`) pattern, and the inter-federation
+re-binding mechanics. A `Wit` **is** the rotation — it refreshes the signing key and the rotation
+reserve — so it is structurally **tier-2**, single-signed with the reserve; this is a property of
+`Wit`'s own signature shape.
 
 **The `Wit` kind has two facets, dispatched by the inception root — and a `Wit` is never a no-op.**
 The **`Icp`-rooted (user) KEL** facet is the identity's federation rebind, carrying `federation` /
@@ -175,7 +173,7 @@ rotation** of its participants and advances the monotonic federation `clock` (a 
 optional on top), so the rotation + clock advance **is** the change — it has **no** must-change
 predicate. The deep federation-governance mechanics — self-attestation, the recoverability cap, the
 federation clock — are federation doctrine
-([`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)).
+([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)).
 
 ## Authorization and signature shapes
 
@@ -273,21 +271,23 @@ establishment event. Future revelations are checked against the tracked digest: 
 KEL has one protocol-enforced cap (the seal-advance cap).
 
 A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal but ends the chain)
-must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` non-seal-advancing events per lineage. The
-cap bounds the **fold** — the content run since the last seal — to 64 events on each branch, so the
-canonical two-branch content fork plus the resolving burying seal-advancer is **sized to fit** one
-page (`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`): a source → sink transfer can carry both competing
-content branches plus the burying seal-advancer in one atomic page, since the sink holds neither
-branch in storage. A local node's hot page is smaller still (its retained branch ≤ 64 plus the
-burying seal-advancer; the losing branch is buried by position + ascent, validated from retained
-storage). See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+must land at least every `MAXIMUM_UNSEALED_RUN` non-seal-advancing events per lineage. The cap
+bounds the **fold** — the content run since the last seal — to `MAXIMUM_UNSEALED_RUN` events on each
+branch, so the canonical two-branch content fork plus the resolving burying seal-advancer is **sized
+to fit** one page (`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`): a source → sink transfer
+can carry both competing content branches plus the burying seal-advancer in one atomic page, since
+the sink holds neither branch in storage. A local node's hot page is smaller still (its retained
+branch ≤ `MAXIMUM_UNSEALED_RUN` plus the burying seal-advancer; the losing branch is buried by
+position + ascent, validated from retained storage). See
+[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
-**Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at 64 events
-past the last seal before they must produce a seal-advancing event — which requires at least tier-2
-capability (the rotation reserve). A tier-1 adversary lacking the reserve cannot extend a lineage
-beyond the cap. Builders auto-insert `Rot` when an `Ixn` would exceed the cap. Seal-cap satisfiers
-are `{Rot, Wit}` — `Trm` advances the seal but is terminal, so it is not a mid-chain cap-satisfier.
+**Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at
+`MAXIMUM_UNSEALED_RUN` events past the last seal before they must produce a seal-advancing event —
+which requires at least tier-2 capability (the rotation reserve). A tier-1 adversary lacking the
+reserve cannot extend a lineage beyond the cap. Builders auto-insert `Rot` when an `Ixn` would
+exceed the cap. Seal-cap satisfiers are `{Rot, Wit}` — `Trm` advances the seal but is terminal, so
+it is not a mid-chain cap-satisfier.
 
 ## Per-kind sort priority
 
@@ -329,8 +329,9 @@ The `Fcp` inception is pre-federation (no `federation`, no `witnesses`, no witne
 `Rot` anchors the federation IEL's `Fcp` marker (kind-strict, tier-2 → tier-2) and is the first
 seal, so it carries `previousSeal = fcp.said` (the spine root). The founder is bound to the
 federation by being named in the roster it founds — never self-bound — so it carries no `federation`
-/ `federationPin`. That federation IEL `Fcp` is brought into existence in the same atomic bootstrap
-batch — see [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md).
+/ `federationPin`. That federation IEL `Fcp` is brought into existence in the same
+dependency-ordered bootstrap bundle — see
+[`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md).
 
 ### Standard inception
 
@@ -412,7 +413,7 @@ non-canonical evidence and read data-locally — see
 - [`../iel/`](../iel/) — IEL primitive. Delegation is an identity-layer concern and lives there
   (delegated IEL inception; declare / rescind delegation); the `del(delegator)` policy node operates
   on IEL prefixes, not KEL prefixes.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming).
-- [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap atomic batch (forthcoming).
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing.
+- [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) —
+  federation bootstrap (the dependency-ordered genesis bundle).

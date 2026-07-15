@@ -11,16 +11,25 @@ comparative claim.
 ## The most important bit
 
 Both systems recover ordinary key compromises the same way and both lean on rotation hygiene. 
-They only diverge when a compromise reaches equivocation — two validly-signed competing histories.
-KERI keeps the identifier alive and leaves consumers to decide which history is real; that decision
-isn't fixed by the data, so two honest verifiers can disagree and never converge. vdti refuses to
-make that decision in-protocol: two competing seals means the identifier is provably dead, every
-verifier agrees from the data alone, and the owner rebuilds out of band. You pay a heavier recovery
-to guarantee nobody ever disagrees about a trust anchor.
+They diverge only at **equivocation** — two validly-signed competing histories — and the split is
+what each does with the **second** event. **KERI ignores it:** the duplicity is watcher-local
+out-of-band state, the identifier stays alive, and consumers decide which history is real — a
+decision the data doesn't fix, so two honest verifiers can disagree and never converge. **vdti
+accepts it:** two competing seals at a position is admitted to the log and read, from the data alone,
+as **`disputed`** — the identifier is provably dead, every verifier agrees, and the owner rebuilds
+out of band. You pay a heavier recovery to buy a deterministic, observer-independent verdict about a
+trust anchor.
 
-To put it plainly, if your current signing key is compromised and witness quorum coerced, you can be
-bricked. You probably will be. But this is the tradeoff we make for determinism at the verifier
-boundary. It's a pretty high bar.
+**The current signing key is the killswitch — never a takeover.** Under single-stream pre-rotation
+the current signing key **is** the reserve that was revealed to author the current sealing event, so
+a thief can re-reveal it in a **competing rotation at the same serial** → two seals → `disputed`.
+That is the brick: your current signing key **plus a coerced witness quorum** can dispute you (you
+probably lose — the determinism price). It **cannot take you over** — a takeover needs the _next_,
+committed-but-unrevealed reserve to rotate forward and win. And it reaches only the **current** seal:
+a below-seal straggler is declined (the witness mirrors the seal-cap), or an old exposed key would
+backdate the same trick. The collusion is the hard part — the second seal needs `2·threshold −
+signers` self-incriminating double-signers (federation §1e), so the real bar is **your key _and_ a
+byzantine federation majority.**
 
 **And "you" here is a device, not an identity — that's the point.** The brick above is a **KEL**
 (device) event. An identity is an **IEL — a threshold over device KELs** (§1), so a bricked device is

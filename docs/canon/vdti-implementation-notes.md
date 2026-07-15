@@ -70,12 +70,12 @@ Doctrine is the leading edge — these follow it.
     (`GROUP BY prefix, serial HAVING COUNT > 1`, `services/kels/src/repository.rs:212`) scan the **whole
     prefix** — O(chain length). On an indefinite vdti chain that is unacceptable per computation, and
     the effective SAID is computed constantly (token-reuse gate, anti-entropy compare, post-merge). The
-    **seal cap makes it boundable**: a live fork sits ≤ 64/lineage above a seal, an origination-frozen fork
+    **seal cap makes it boundable**: a live fork sits ≤ `MAXIMUM_UNSEALED_RUN`/lineage above a seal, an origination-frozen fork
     sits at the very top (nothing originates new work onto a live fork), and resolved-fork losers are archived
     out of the live table (below the last clean seal the live table is linear → no leaves there). So **every
     live tip lands within one page below `MAX(serial)`**. Bound both queries to
-    `serial > MAX(serial) − MINIMUM_PAGE_SIZE` (129, generous — all leaves are within ≤ 64 of the seal
-    and the seal is within ≤ 64 of `MAX`) and they stay O(page).
+    `serial > MAX(serial) − MINIMUM_PAGE_SIZE` (129, generous — all leaves are within ≤ `MAXIMUM_UNSEALED_RUN` of the seal
+    and the seal is within ≤ `MAXIMUM_UNSEALED_RUN` of `MAX`) and they stay O(page).
   - **Two queries** (matches kels' two-step and the expected shape): **(1)** `MAX(serial)` + a
     duplicate-serial check over the window (`GROUP BY serial HAVING COUNT > 1`, `serial > floor`) — cheap;
     a linear result (no duplicate) fast-paths to the max-serial tip's SAID. **(2)** only when divergent,
@@ -114,17 +114,15 @@ Doctrine is the leading edge — these follow it.
   not trust (trust is end-verifiable: SAIDs + sigs survive any transport); it closes the
   metadata/correlation residuals (inv 16). The KEM/AEAD mechanism already exists in `../kels` for
   gossip; extend it to the data path.
-- **The mesh-encryption key lives in a per-witness key SEL (RESOLVED 2026-06-26 — was the S-E / `Fcp`
-  open item).** The `ML-KEM-1024` public key sits in a SEL owned by a **degenerate per-device IEL** — a
-  single-member IEL (`members = [the witness KEL]`) **derived from the witness KEL prefix** (+ a purpose
-  discriminator), not separately incepted, so it does **not** break the `Fcp` founder bootstrap (the
-  device KEL incepts first via `Fcp`, its degenerate IEL derives, that IEL owns the key SEL; "reincept"
-  = re-derive from the recovered KEL). Its kind set excludes `Evl` (≈ `{Icp, Ixn, Trm}`), and the general **post-delta `|roster| ≥ 1`** rule (inv 12) forbids cutting the sole
-  member (a lone-member `cut` would compute `1 + 0 − 1 = 0`, rejected — and with no `Evl` there is no kind to carry a `cut` regardless),
-  so it can neither grow nor shrink → roster immutable (no new field; singleton → all
-  thresholds 1). Discovery: federation roster
-  → witness KEL prefixes → derive each degenerate IEL → its key SEL. See
-  `vdti-area-federation-witnessing.md` §1e.
+- **The mesh channel is an ephemeral, signature-authenticated handshake — no published per-witness key
+  (revised 2026-07-15).** Each connection runs a fresh `ML-KEM` exchange and both sides sign the
+  transcript against their **witnessed** identity, so the peer is authenticated from its witnessed
+  **signing** key and the channel gains **forward secrecy** —
+  `docs/design/substrate/infrastructure/mesh-transport.md`. There is **no persistent published witness
+  encryption key**. _(An earlier plan rooted a published per-witness key in a derived **degenerate IEL** —
+  considered, then not built once the handshake removed any published key to own; the thinking, the
+  deterministic nonce, and why it is not general-purpose are captured in
+  `supplemental/degenerate-iel-idea.md`.)_
 - **Push over pull.** Prefer gossiping events (push, over the encrypted mesh) to a separate inter-node
   *query* — then there is no second channel to secure, and a one-branch holder receives competing
   branches by push rather than a detection-time fetch (the sub-mesh event-gossip already does this for

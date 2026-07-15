@@ -30,11 +30,13 @@ Each sub-field is independently optional:
   IEL to resolve the write's authority — a SAID has no global index to invert ([`said.md`](said.md);
   [`../../../protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups)).
 - **`topic`** — the doc's **namespace / schema**: a discriminator naming what kind of document this
-  is. With `owner` it locates the write's SEL anchor (next section). A `topic` is either a
-  **VDTI-reserved** namespace (`CRED_REVOCATION_TOPIC`, `DLG_RSC_TOPIC`, `DOC_RSC_TOPIC` (`RSC` =
-  rescission), …) **or** an author-defined topic paired with its own schema. `owner` and `topic` are
-  **both present** (an attested write) or **both absent** (an anonymous write) — the writer-binding
-  is both-or-neither.
+  is. With `owner` it locates the write's SEL anchor (next section). A `topic` is a **SEL topic** —
+  either a feature-owned one from the catalogue
+  ([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) or an author-defined
+  topic paired with its own schema. It is distinct from a **derivation tag** (the `tag` in
+  `hash('{tag}:…')`, primitive-owned — same catalogue) and from a SAD's own `kind`
+  ([`kinds.md`](kinds.md)). `owner` and `topic` are **both present** (an attested write) or **both
+  absent** (an anonymous write) — the writer-binding is both-or-neither.
 - **`readPolicy`** — the SAID of a [policy](../../policy/policy.md) that gates read access at fetch
   time. The referenced policy is fetched and evaluated in **current mode**
   ([`../../policy/evaluation.md`](../../policy/evaluation.md)) against the verified prefixes of a
@@ -76,15 +78,15 @@ that anchor). The `custody` writer-binding covers the **other** case: a standalo
 attested document). Such an `owner`-bearing SAD **must be anchored by a SEL** (the
 [SEL primitive](../event-logs/sel/)):
 
-- The anchoring SEL's prefix is **`derive(owner, topic, data)`**, where the `data` argument **is the
-  SAD's SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's **serial-1 event (its v1 — a
-  `Pin`)** is anchored by an owner IEL `Ixn` whose **append-only position is the write's as-of**
-  (the `Icp` itself is never anchored — it rides `v1.previous`, per the SEL inception rule,
-  _forthcoming_) — it cannot be inserted in the past, so the attribution cannot be backdated.
+- The anchoring SEL's prefix is re-derived from its inception content `(owner, topic, data)`, where
+  `data` **is the SAD's SAID** (`SEL.owner == owner`, `SEL.data == said`). The SEL's **serial-1
+  event (its v1 — a `Pin`)** is anchored by an owner IEL `Ixn` whose **append-only position is the
+  write's as-of** (the `Icp` itself is never anchored — it rides `v1.previous`, per the SEL
+  inception rule) — it cannot be inserted in the past, so the attribution cannot be backdated.
   Forging it would require a fresh IEL `Ixn` at the owner's **current** tip, which a rotated-out or
   broken old key cannot author.
-- The anchor is **self-locating**: a holder re-derives the SEL prefix from the doc it holds
-  (`derive(owner, topic, said)`) and walks that SEL **by prefix** — no SAID is inverted (see
+- The anchor is **self-locating**: a holder re-derives the SEL prefix from the doc it holds (from
+  `owner` + `topic` + the doc's `said`) and walks that SEL **by prefix** — no SAID is inverted (see
   [`said.md`](said.md)). This mirrors how a credential holder reaches a cred's revocation lookup SEL
   by re-deriving its address.
 - Enforcement is **structural at two levels**: the storage service refuses to land an
@@ -122,11 +124,11 @@ Both modes fetch the writer's IEL by `owner` (never by inverting a SAID) and rea
 threshold; they differ only in **which position**:
 
 - **Point-in-time (as-issued).** The as-of is the **SEL anchor's** position — the owner IEL `Ixn`
-  that anchored the SAD's SEL (located by `derive(owner, topic, said)`, above). Read the IEL's
-  members + threshold **at that anchoring position** and check the write attestation against it. The
-  answer reflects how the writer's identity stood at write time — "was this write authorized when it
-  happened?" — and it is **backdate-proof**, because the anchoring position is append-only, not a
-  self-asserted claim.
+  that anchored the SAD's SEL (located by re-deriving its prefix from `owner` + `topic` + `said`,
+  above). Read the IEL's members + threshold **at that anchoring position** and check the write
+  attestation against it. The answer reflects how the writer's identity stood at write time — "was
+  this write authorized when it happened?" — and it is **backdate-proof**, because the anchoring
+  position is append-only, not a self-asserted claim.
 - **Identity-current.** Walk the writer's IEL to its **current tip** and read the tip's members +
   threshold. The answer reflects the IEL's current state — "is the writer's identity still
   authorized?"

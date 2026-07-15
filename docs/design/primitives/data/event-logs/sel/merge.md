@@ -52,8 +52,8 @@ acceptance also requires the owner to have authorized it):
   sibling is held pending, forcing nothing.
 
 The witnessing mechanics — the floor, first-seen-per-position, the beacon — are the federation's
-([`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)); this doc states
-the chain-scoped routing that composes with them.
+([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md));
+this doc states the chain-scoped routing that composes with them.
 
 ## Merge outcomes
 
@@ -267,5 +267,5 @@ IEL's [§Cross-node races](../iel/merge.md#cross-node-races-and-gossip-send-side
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#divergence-and-recovery) —
   divergence and recovery (cross-primitive);
   [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor, first-seen, the beacon, cross-node propagation.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, first-seen, the beacon, cross-node propagation.

@@ -79,7 +79,7 @@ verify_event(event):
     # 3. Structure validation
     validate_structure(event)          # Required / forbidden fields per kind (event-shape)
     assert event.manifest carries only roles in allowed(event.kind)   # read kind-first
-    if event.kind == Ixn:  assert event.manifest has payload (>= 1 SAD)   # Ixn payload is required
+    if event.kind == Ixn:  assert event.manifest has payload (≥ 1 SAD)   # Ixn payload is required
 
     # 4. Serial + chain continuity
     if event.serial != expected_serial: return Error("Serial gap or regression")
@@ -168,7 +168,7 @@ never what the value is _for_:
 ```
 resolve_lookup(owner, topic, data):                       # a re-establishable value
     for n in 0 ..= MAXIMUM_SEL_LINEAGE:                   # lineage: 0, 1, 2, …
-        sel = fetch(derive(owner, topic, data, lineage = n))
+        sel = fetch(lookup_prefix(owner, topic, data, lineage = n))
         if sel is absent:            return (not established, at lineage n)   # a gap ends the walk
         if lineage_n_dead(sel, n):   continue          # advance — a Trm on n's chain / Disputed / severed,
                                                         #   OR n's lineaged target in the owner's fresh kills[]
@@ -190,7 +190,7 @@ resolve_lookup(owner, topic, data):                       # a re-establishable v
 
 **The positive walk consumes the per-lineage negative check — one act, not two mechanisms.**
 `lineage: n` reads dead when a `Trm` sits on its own SEL chain (Disputed or severed count too)
-**or** its **lineaged** target `hash('{topic}:{owner}:{data}:{lineage}')` is present in the owner
+**or** its **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')` is present in the owner
 IEL's **fresh** `Rev` / `Dth` `kills[]` — the fail-secure, un-withholdable authority
 ([`../iel/verification.md` §The kills forward-match](../iel/verification.md#the-kills-forward-match)).
 So a value's **positive** resolution — "what is the live value?" — has no owner-IEL fallback (the
@@ -255,7 +255,9 @@ BranchTip:
 
 Token fields are private with no public constructor — the only way to obtain one is through
 `SelVerifier`. Holding the token proves the corresponding chain was verified against its owner IEL
-and its own witnessing.
+and its own witnessing — so a trust decision, and any resumption toward one, is grounded **only** in
+a token, never a bare `BranchTip` (a read-only component of the token, not an independent verified
+state).
 
 ### Derived accessors
 
@@ -297,8 +299,8 @@ termination rides the orthogonal `is_terminated()` accessor.
 
 The SEL is its **own** witnessed chain, so the verifier surfaces witnessing at the SEL's own
 position. Full mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
-section names what the SEL verifier reads. **The data decides; witnessing propagates.**
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md);
+this section names what the SEL verifier reads. **The data decides; witnessing propagates.**
 
 - **`witnessed`.** A SEL event is witnessed when the required threshold of the owner IEL's
   federation signs it **at the SEL's own `(prefix, serial)`** — the SEL inherits the owner IEL's
@@ -322,13 +324,14 @@ rather than loading the full chain into memory, resolving each event's owner-IEL
 
 - **`SelVerifier::new(prefix, &owner_iel_token)`** — start from inception; full verification of an
   untrusted chain against its owner IEL's verified token.
-- **`SelVerifier::resume(prefix, &SelVerification, &owner_iel_token)`** — resume from a verified
-  token (the merge handler's normal-append fast path); it re-runs the to-tip severance and
-  divergence checks against the new tip whenever the owner IEL moves, so a SEL is never advanced
-  past an owner-IEL burial it did not re-read
-  ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
-- **`SelVerifier::from_branch_tip(prefix, &BranchTip, &owner_iel_token)`** — resume from a specific
-  branch tip, for verifying against a specific branch in divergence or recovery.
+- **`SelVerifier::resume(prefix, &SelVerification, &owner_iel_token, branch_tip_said?)`** — resume
+  from a verified token — **the only way to resume**, since only a token proves a walk happened (a
+  `BranchTip` is a read-only component of the token, never an independent resume source). With
+  `branch_tip_said` **absent** it resumes the whole chain (the merge handler's normal-append fast
+  path); with it **naming one of the token's own branch tips** it scopes verification to that single
+  branch (divergence / recovery). Either way it re-runs the to-tip severance and divergence checks
+  against the new tip whenever the owner IEL moves, so a SEL is never advanced past an owner-IEL
+  burial it did not re-read ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
 
 ### Paginated verification helper
 
@@ -374,8 +377,7 @@ configurable).
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#verification-tokens-as-proof-of-verification)
   — verification tokens; [§Walk semantics](../../../../protocol-doctrine.md#walk-semantics);
   [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
-- [`../../../policy/documents.md`](../../../policy/documents.md) — the feature layer that interprets
-  a matched kill and a grant value.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor and first-seen the SEL inherits at its own
-  position.
+- [`../../../policy/documents.md`](../../../policy/documents.md) — the **policy /
+  document-authorization layer** that interprets a matched kill and a grant value.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor and first-seen the SEL inherits at its own position.

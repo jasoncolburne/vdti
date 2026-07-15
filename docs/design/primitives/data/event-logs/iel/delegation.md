@@ -19,15 +19,18 @@ bound-choice usage doctrine — is
 Delegation is an IEL `Ath` whose `manifest.delegates` names the delegate's IEL **prefix** (the
 delegate acts **for the delegator**) — tier 2, `t_authorize`. Rescission is a **`kills[]`
 declaration** on the delegator's witnessed IEL **`Dth`** (tier 2, `t_authorize`) plus a
-content-addressed lookup SEL `{Icp, Trm}` at `derive(delegator, DLG_RSC_TOPIC, grant_instance)` (the
+content-addressed lookup SEL `{Icp, Trm}` whose inception commits
+`{ owner: delegator, topic: vdti/sel/v1/actions/rescission, data: grant_instance }` (the
 grant-instance `said({ grant: said(Ath), delegate })`, so a re-grant gets a fresh locus). The
 `Dth`'s `kills[]` entry is `{ target, bound }`:
-`target = hash('{DLG_RSC_TOPIC}:{delegator}:{grant_instance}')` — a flat, domain-qualified hash the
-verifier forward-matches, and **distinct from the lookup SEL's derived prefix** (a separate `derive`
-pass), so the public `kills[]` never leaks the lookup object's address — and `bound`, the **last
-honoured event** on the delegate's chain (the grandfather boundary), rides **publicly in the
-`kills[].bound` field**, un-withholdable on the witnessed IEL. The lookup `Trm` carries **only its
-pin**. (Answering multi-hop liveness — the **bounded per-candidate walk** — is
+`target = hash('vdti/sel/v1/actions/rescission:{delegator}:{grant_instance}')` — a flat,
+domain-qualified hash the verifier forward-matches (the `tag` is a primitive derivation tag,
+[`tags-and-topics.md`](../tags-and-topics.md), never a feature name), and **distinct from the lookup
+SEL's derived prefix** (a separate derivation pass), so the public `kills[]` never leaks the lookup
+object's address — and `bound`, the **last honoured event** on the delegate's chain (the grandfather
+boundary), rides **publicly in the `kills[].bound` field**, un-withholdable on the witnessed IEL.
+The lookup `Trm` carries **only its pin**. (Answering multi-hop liveness — the **bounded
+per-candidate walk** — is
 [`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk).) _(A
 delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
 `bound` **is** participant-identifying and instead rides the SEL `Trm`'s gated `bound` role — see
@@ -56,3 +59,19 @@ flowchart BT
 Solid arrows are chain order; the dotted arrows are `manifest.delegates` (the grant) and the `Dth`'s
 `kills[]` `bound` (the last honoured event on the delegated chain); the thick arrow is
 `manifest.anchors` — the `Dth` sealing the rescission `Trm`, which carries only its pin.
+
+## The positive delegating link
+
+A `del(X, N)` document commits the exact authorizing path it was issued under, and a verifier
+re-derives it, through an owner-rooted **delegating-link** lookup SEL — the **positive** twin of the
+rescission lookup. Its prefix derives from `(delegator, vdti/sel/v1/actions/delegation, delegate)`
+(`delegate` = `data`, [`../tags-and-topics.md`](../tags-and-topics.md)); it is `{Icp, Pin}`-shaped.
+Granting a delegation is an **`Ath`** (the grant, carrying `delegates`) **plus** an **`Ixn`**
+anchoring the delegating-link `Pin`, whose pinned position **names that `Ath`** — the `Ath` does not
+anchor the `Pin` (the `Ath` `anchors` role is kind-strict to a `Gnt`). The link is a **re-verified
+pointer**: a verifier derives the address, reads the pinned `Ath` position, and **re-checks the
+`Ath` grant directly** (T2), so the link's own T1 (`Ixn`) anchoring is discoverability only and
+never weakens the grant. Same derived-locus scheme as the rescission lookup, but it **pins** the
+grant rather than killing it, so a verifier derives one locus per hop and walks up to `X` (bounded
+by `MAXIMUM_DELEGATION_DEPTH` and the verifier-wide work cap). See
+[`../../../policy/documents.md` §Delegation in a document](../../../policy/documents.md#delegation-in-a-document).

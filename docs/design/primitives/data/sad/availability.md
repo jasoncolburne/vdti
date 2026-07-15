@@ -8,7 +8,8 @@ carries.
 This doc states the structural role of `availability` and its three sub-axes. Per-axis policy
 expression — concrete encoding for replica references, TTL representation, one-shot semantics — and
 storage-side enforcement live in
-[`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md) (forward-ref; forthcoming).
+[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)
+(forward-ref; forthcoming).
 
 ## What availability declares
 

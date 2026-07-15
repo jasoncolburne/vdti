@@ -36,9 +36,9 @@ A document **carries no self-asserted pin.** Its issuer context is fixed by the 
 position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
 `Ixn` whose `manifest.anchors` names the document. For a **credential** — a direct-anchored SAD,
 never a SEL — that is the issuance `Ixn` naming the **issuance commitment**
-`hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, and that anchor **is** the validity proof
-([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
-fixed serial on the append-only chain, and it fixes the context two ways at once:
+`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`, and that anchor **is** the validity
+proof ([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at
+a fixed serial on the append-only chain, and it fixes the context two ways at once:
 
 - It **commits the point-in-time** so a verifier can find and verify the issuer's context — the
   state immediately **before** the anchoring event transitively commits the issuer's identity (its
@@ -82,11 +82,11 @@ A document whose **authorizing** condition spans separate identities cannot coll
 joint identity (a threshold over devices is not a threshold over identities). The document instead
 names a custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each authorizing identity
 issues its own attestation independently**: each authors its own attestation SEL over the document,
-self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by `derive`. The
-authorizing policy (`thr` / `wgt` / `and` over `id()`) is satisfied by the **positive lookup** of
-each named issuer's attestation — there are **no per-party pins**, no scan, and no cross-issuer
-coordination: each issuer anchors on its own chain at its own pace, and the verifier reads each
-one's authorization **as-of its own anchoring position**.
+self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by re-deriving its
+prefix. The authorizing policy (`thr` / `wgt` / `and` over `id()`) is satisfied by the **positive
+lookup** of each named issuer's attestation — there are **no per-party pins**, no scan, and no
+cross-issuer coordination: each issuer anchors on its own chain at its own pace, and the verifier
+reads each one's authorization **as-of its own anchoring position**.
 
 - An issuer that has **not** attested contributes no anchored position and is **not credited** — a
   malicious co-issuer cannot manufacture another's attestation, exactly as a single issuer cannot
@@ -106,14 +106,16 @@ applies at every level — with no self-asserted value carried at any level.
 
 A document may be authorized by a **delegate** of an identity — the `del(X, N)` leaf
 ([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
-each hop's delegating link is the content-addressed
-`derive(delegator, {delegation topic}, delegate)` (delegator = owner, delegate = data — the same
-scheme as a rescission lookup), **committed on the delegator's (owner's) own identity**
-(owner-rooted — only the owner anchors at a derived locus) and pinning up to `X`, so the verifier
-**derives** the authorizing chain from committed data and walks it (up to `N` hops, and never beyond
-the verifier-wide work cap — exceeding either denies, fail-secure) — the presenter furnishes nothing
-to prune. Per hop the verifier checks that the delegation was granted and that the grant has not
-been **rescinded** (a positive `kills[]` match, fail-secure by default — [`policy.md`](policy.md)).
+each hop's delegating link is the content-addressed prefix recomputed from
+`(delegator, vdti/sel/v1/actions/delegation, delegate)` (delegator = owner, delegate = data — the
+same scheme as a rescission lookup,
+[`../data/event-logs/iel/delegation.md`](../data/event-logs/iel/delegation.md)), **committed on the
+delegator's (owner's) own identity** (owner-rooted — only the owner anchors at a derived locus) and
+pinning up to `X`, so the verifier **derives** the authorizing chain from committed data and walks
+it (up to `N` hops, and never beyond the verifier-wide work cap — exceeding either denies,
+fail-secure) — the presenter furnishes nothing to prune. Per hop the verifier checks that the
+delegation was granted and that the grant has not been **rescinded** (a positive `kills[]` match,
+fail-secure by default — [`policy.md`](policy.md)).
 
 The **grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock:
 the **issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor

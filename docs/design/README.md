@@ -17,7 +17,8 @@ authorization layer that sits on top.
 - [1 — The data substrate](#1--the-data-substrate)
 - [2 — Cross-cutting doctrine](#2--cross-cutting-doctrine)
 - [3 — The event-log primitives](#3--the-event-log-primitives)
-- [4 — The document-authorization layer](#4--the-document-authorization-layer)
+- [4 — Federation and witnessing](#4--federation-and-witnessing)
+- [5 — The document-authorization layer](#5--the-document-authorization-layer)
 - [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
@@ -49,6 +50,15 @@ its own reading-order note in `sad.md`.)
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
 
+Alongside these, three **identifier catalogues** define the naming conventions used surface-wide
+(all on the shared `vdti/{component}/v1/{category}/{name}` convention) — read one when a `kind`,
+`tag`, or `topic` first puzzles you: [`primitives/data/sad/kinds.md`](primitives/data/sad/kinds.md)
+(every SAD `kind`, with each kind's field shape in
+[`primitives/data/sad/shapes.md`](primitives/data/sad/shapes.md)),
+[`primitives/data/event-logs/tags-and-topics.md`](primitives/data/event-logs/tags-and-topics.md)
+(the derivation `tag`s and SEL `topic`s), and
+[`substrate/federation/topics.md`](substrate/federation/topics.md) (the gossip topics, also at #28).
+
 ## 2 — Cross-cutting doctrine
 
 7. [`protocol-doctrine.md`](protocol-doctrine.md) — the rules that span every primitive: the two
@@ -77,8 +87,8 @@ Then the KEL (Key Event Log) primitive, in order:
 9. [`primitives/data/event-logs/kel/log.md`](primitives/data/event-logs/kel/log.md) — the chain
    primitive: the four-state per-node machine, the seal / spine / locked-portion, paging.
 10. [`primitives/data/event-logs/kel/events.md`](primitives/data/event-logs/kel/events.md) — the
-    kind taxonomy, the two-tier capability model, the kind-strict anchor matrix, and forward-key
-    commitments.
+    five-kind taxonomy (plus the founder `Fcp` inception variant), the two-tier capability model,
+    the kind-strict anchor matrix, and forward-key commitments.
 11. [`primitives/data/event-logs/kel/verification.md`](primitives/data/event-logs/kel/verification.md)
     — the verifier walk and the verification token: how a chain is read and validated.
 12. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
@@ -126,28 +136,44 @@ Then the SEL (SAD Event Log) primitive, in order:
 25. [`primitives/data/event-logs/sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)
     — the correctness proof: the SEL's own divergence crossed with inherited owner-IEL deadness.
 
-## 4 — The document-authorization layer
+## 4 — Federation and witnessing
+
+The witnessing layer every KEL, IEL, and SEL rests on for its soundness. A federation is a
+restricted IEL whose roster is witness KELs directly; witnessing is what prevents a content fork
+from forming on an honest chain and makes a sealed fork detectable everywhere.
+
+26. [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — genesis and the
+    configured trust root: the restricted-IEL shape, the dependency-ordered ceremony, and why there
+    is no self-witnessing carve-out.
+27. [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md) — the mechanism: the
+    witnessing floor, first-seen (content prevention / sealed detection), fork-cost, deterministic
+    selection, as-of-context receipts and the currency gate, the clock, the receipt SAD, rebinding,
+    and the recoverability cap.
+28. [`substrate/federation/topics.md`](substrate/federation/topics.md) — the gossip topics (the
+    witness-mesh channels) and the two-scope encrypted transport.
+29. [`substrate/infrastructure/mesh-transport.md`](substrate/infrastructure/mesh-transport.md) — the
+    authenticated, encrypted channel the mesh runs over: handshake, per-connection session keys, and
+    the nonce discipline that makes reuse structural.
+
+## 5 — The document-authorization layer
 
 Policy sits above the primitives — it governs documents, never the chain events themselves
 (chain-event authorization is structural). (This group carries its own reading-order note in
 `policy.md`.)
 
-26. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
+30. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
-27. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
+31. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-28. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
+32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
     evaluated (as-issued and current) and the seam to the primitives.
 
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `federation/` — federation bootstrap and witnessing;
-  [`federation/bootstrap.md`](federation/bootstrap.md) is a diagram stub carrying its diagrams ahead
-  of the prose.
 - `features/` — credentials and shared documents;
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
-- `operations/` — operator workflows (recovery ceremony, sealing serialization).
-- `infrastructure/` — the storage service.
+- `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
+  scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).

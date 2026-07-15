@@ -32,9 +32,9 @@ canonical** wherever they differ.
 - **manifest** — the SAID of a SAD that groups an event's upward commitments **by named role**.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **lookup-SEL** — a SEL whose **locus** — its derived lookup address (prefix) — is
-  blind-recomputable from `derive(owner, topic, data)`; a revocation / rescission check reads it
-  first (O(1), present → killed) and may fail-open on it — trusting a miss — instead of walking.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
+  blind-recomputable from its inception content `(owner, topic, data)`; a revocation / rescission
+  check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss — instead
+  of walking. ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
   `custody` field (`owner` + `topic` writer-binding, anchored in a SEL; `readPolicy` read gate).
   ([`custody.md`](primitives/data/sad/custody.md))
@@ -82,7 +82,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   carried via `anchors[]`); serializing it is a liveness discipline, not a safety one.
   ([`protocol-doctrine.md`](protocol-doctrine.md#forks-are-seal-bounded))
 - **seal-cap** — the merge rule that a new event's parent must sit at-or-after the chain's tracked
-  seal (`parent_serial >= seal_serial`); a submission whose parent sits in the locked portion is
+  seal (`parent_serial ≥ seal_serial`); a submission whose parent sits in the locked portion is
   rejected as a canonical extension. The post-seal window is separately bounded — a busy chain
   re-seals — so a fork-and-recover always fits one page.
   ([`protocol-doctrine.md`](protocol-doctrine.md#forks-are-seal-bounded))
@@ -115,19 +115,14 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   and it rides the whole-content prefix — so content and lookups derive to **distinct addresses**
   and a content squat at a lookup address is impossible by construction.
   ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
-- **lineage** — a value lookup-SEL's **re-establishment counter** (`Icp` only), carried **only** by
-  a **re-establishable value** lookup (base `lineage: 0`, then `1, 2, …`, each a distinct prefix). A
-  deterministic-prefix SEL can't reroll a nonce to re-incept, so a rescinded value re-incepts at the
-  next `lineage`. It is found by the **positive walk** — walk `lineage: 0, 1, …`, advance past a
-  dead lineage — a `Trm` on that lineage's chain, `Disputed`, severed, **or** its **lineaged**
-  `kills[]` target — and stop at the lowest live one (a `Trm` advances: it kills one lineage, not
-  the address); cap `MAXIMUM_SEL_LINEAGE = 64`. A value rescission is a monotone `Trm` whose `Dth`
-  declares the lineaged target `hash('…:{lineage}')`, so the positive walk **consumes** the
-  per-lineage negative check. A **monotone** lookup (a cred revocation, a delegate / doc-member
-  rescission, or a non-re-establishable value) carries no `lineage` field and a **non-lineaged**
-  target, and **content** never carries `lineage` either (content uses `content: true`).
-  Load-bearing for value-bearing lookups (a KEM key whose positive resolution has no owner-IEL
-  fallback). ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
+- **lineage** — a value lookup-SEL's **re-establishment counter** (`Icp` only; base `0`, then
+  `1, 2, …`, each a distinct prefix; cap `MAXIMUM_SEL_LINEAGE = 64`). A deterministic-prefix SEL
+  can't reroll a nonce to re-incept, so a rescinded **re-establishable value** re-incepts at the
+  next `lineage`, found by a **positive walk** to the lowest live one. Monotone lookups (cred /
+  delegate / doc-member rescissions, and non-re-establishable values) and content carry **no**
+  `lineage`. Load-bearing for value-bearing lookups; `sel/log.md` owns the walk and the lineaged
+  rescission target.
+  ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
@@ -145,16 +140,25 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 - **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`) whose roster is witness KELs; it
   propagates and time-stamps, it never decides.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
   the multi-source freshness evidence for a chain.
-  ([`system-thesis.md`](system-thesis.md#federation-convergence))
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+- **witnessing floor** — `threshold > signers/2`, a strict majority of the selected witnesses; it
+  makes any two threshold-quorums at a position overlap, so a content fork cannot form.
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+- **fork-cost** — `2·threshold − signers`, the number of selected witnesses an attacker must own and
+  expose to manufacture a fork on a witnessed chain.
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **beacon** — the receipt broadcast that enumerates a position's competing branches so a one-branch
   holder can fetch and walk them.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
   witness key-windows for freshness.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+- **gossip** — the witness-mesh transport: roster-wide push-gossip for witnessed events, and
+  sub-gossip among a position's selected witnesses for one still gathering receipts; encrypted and
+  roster-scoped. ([`substrate/federation/topics.md`](substrate/federation/topics.md))
 
 ### Chain states
 
@@ -229,6 +233,12 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   that Active and the effective-SAID's real-SAID arm read against. An unwitnessed or below-threshold
   tip is **not** confirmed (a non-witness never even holds a sub-threshold event — query-scoping).
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+- **witnessed vs accepted** — **witnessed**: a selected witness signed a first-seen receipt.
+  **accepted**: witnessed **at threshold** (a `confirmed tip`). The Active / `Disputed` boundary and
+  the effective-SAID read against **accepted**, never merely witnessed — `Disputed` needs ≥ 2
+  **accepted** sealed branches (which is why it takes collusion / a provable double-sign), and a
+  below-seal or sub-threshold sealed event is witnessed-but-not-accepted → dropped, never
+  `Disputed`. ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **keep-all-data / data-local detection** — nodes retain competing branches as evidence, so any
   verifier detects a fork or dispute from the data alone.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))

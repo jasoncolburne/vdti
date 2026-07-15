@@ -22,9 +22,9 @@ cross-node correctness proof, [`reconciliation.md`](reconciliation.md).
 ## Single entry point
 
 `merge_events` is the single entry point for all write paths into a KEL — direct submissions, gossip
-propagation, federation sync, and bootstrap atomic batches. It runs under a database advisory lock
-for the duration of verification and write. Time-of-check-to-time-of-use is eliminated structurally:
-the verifier reads under the same lock the merge handler will use to write (see
+propagation, federation sync, and federation bootstrap bundles. It runs under a database advisory
+lock for the duration of verification and write. Time-of-check-to-time-of-use is eliminated
+structurally: the verifier reads under the same lock the merge handler will use to write (see
 [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 
 The merge handler returns either a **merge transition** (carrying the outcome, plus the resulting
@@ -81,7 +81,7 @@ canonical-admission verdict — the competing branch does not extend the chain. 
 **retains** that branch as non-canonical evidence is a _separate_ decision, layered on top of the
 structural checks (it never replaces them); it is governed by witnessing — the additive gate for
 non-witnesses (the full rule lands with
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)):
 
 - A **sealed** competing branch (`Rot` / `Wit` / `Trm`) is witnessed **first-seen (one per
   position)**; a node **accepts and retains up to two witnessed** sealed branches per position (two
@@ -130,10 +130,10 @@ regardless of chain state. The verifier walks each event and checks:
 ### 2. Seal-cap
 
 The submitted event's parent must sit at-or-after `last_seal_advancing_event` in chain order
-(`parent_serial >= seal_serial`). A submission whose parent is in the locked portion and would
-change nothing is rejected `Sealed`; one that would **form or join a live fork** at the seal's own
-serial is a `Forked` / `Disputed` transition instead (retained evidence). This is the structural
-rule that enforces current-state-only authority — see
+(`parent_serial ≥ seal_serial`). A submission whose parent is in the locked portion and would change
+nothing is rejected `Sealed`; one that would **form or join a live fork** at the seal's own serial
+is a `Forked` / `Disputed` transition instead (retained evidence). This is the structural rule that
+enforces current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
 [`log.md` §The locked portion](log.md#the-locked-portion).
 
@@ -182,7 +182,7 @@ For events admitted past rule 3, kind-specific authorization fires:
 - **Forward-key commitment checks** for establishment events (see
   [`events.md` §Forward-key commitments](events.md#forward-key-commitments)).
 - **Seal-advance cap enforcement** — between successive seal-advancing events the count of
-  non-seal-advancing events must not exceed `(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage. See
+  non-seal-advancing events must not exceed `MAXIMUM_UNSEALED_RUN` per lineage. See
   [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 - **No burying a sealed branch.** A burying seal-advancer that extends a fork's winning branch
   buries the competing **content** below its new seal. If a competing branch it would bury carries a
@@ -325,8 +325,9 @@ content-only guard walk. The mechanics are pure position + ascent:
    not block the burial. Sealed branches are always retained (keep-all-data), so an unnamed sealed
    sibling is caught, never sealed past — the reserve defends the signing key, not the rotation key.
 
-The hot page covers the retained (winning) branch (≤ 64, the fold) plus the burying event; the
-competing content loser is validated from retained storage and need not co-reside in the hot page.
+The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
+burying event; the competing content loser is validated from retained storage and need not co-reside
+in the hot page.
 
 ## A burying seal-advancer is validated on arrival, not auto-applied
 
@@ -513,8 +514,8 @@ for truncation.
   roles, sort priority, seal-advance cap.
 - [`compromise.md`](compromise.md) — recovery doctrine: recovery attach shapes, locked-portion
   bound, pre-seal verifiability.
-- [`verification.md`](verification.md) — verifier algorithm: `KelVerifier::new` / `resume` /
-  `from_branch_tip`, signature verification, anchor checking.
+- [`verification.md`](verification.md) — verifier algorithm: `KelVerifier::new` / `resume`
+  (whole-chain or branch-scoped), signature verification, anchor checking.
 - [`reconciliation.md`](reconciliation.md) — cross-node correctness proof; race matrix;
   effective-SAID convergence.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#divergence-and-recovery) —
@@ -525,5 +526,5 @@ for truncation.
   — merge verification and advisory locking.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#operation-categories) —
   operation categories (serving, consuming, resolving).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the beacon, cross-node propagation.
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the beacon, cross-node propagation.

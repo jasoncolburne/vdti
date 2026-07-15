@@ -17,7 +17,7 @@ walk, [`verification.md`](verification.md).
 
 A SEL uses exactly six kinds; any other kind code is malformed.
 
-| Kind  | Topic                    | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                       |
+| Kind  | Kind string              | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                       |
 | ----- | ------------------------ | --------- | ---- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/sel/v1/events/icp` | inception | 1    | `t_use`                                       | Inception — commits `owner` + `topic` + optional `data` (+ `content: true` for a content SEL, `lineage` for a re-establishable value lookup); **no `pin`, no manifest** (stays recomputable). Its serial-1 **v1** is anchored, not the `Icp`. |
 | `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records payload SAD(s) (the `payload` role, **required** — always ≥ 1) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`** (counting content). The divergeable content kind (first-seen, buriable).                   |
@@ -32,7 +32,7 @@ The **class** column names the event's role under the
 buried or overturned — and are the SEL's **seal-advancers** (each carries `previousSeal`; any of the
 three buries a content fork by advancing the seal past the loser). The **tier** column names the KEL
 capability an adversary must forge to author the owner-IEL participation that anchors the act
-(§Two-tier capability model). The **Topic** column is the kind's versioned schema identifier
+(§Two-tier capability model). The **Kind string** column is the kind's versioned schema identifier
 (`vdti/sel/v1/events/…`), unrelated to a SEL's derivation `topic` (§Inception and the serial-1
 floor).
 
@@ -169,10 +169,11 @@ still-rostered culprit cannot race a fresh fork at the resolved tip.
 A **lookup SEL** is located by recomputing its prefix, and its shape names its purpose:
 
 - A **kill lookup** is `{Icp, Trm}` — born to kill, its v1 the `Trm` itself. Its prefix and SAID are
-  the usual two-hash derivation over `Icp{owner, topic, data}`, where `data` is the grant-instance
-  reference, so a re-grant after a kill gets a fresh locus. The owner IEL's `kills[]` target is a
-  **separate** flat, domain-qualified hash — distinct from the lookup SEL's prefix and SAID — so the
-  public declaration never leaks the lookup object's address
+  the usual two-hash derivation over its whole inception body (`owner`, `topic`, and optional `data`
+  / `content` / `lineage`), where `data` is the grant-instance reference, so a re-grant after a kill
+  gets a fresh locus. The owner IEL's `kills[]` target is a **separate** flat, domain-qualified hash
+  — distinct from the lookup SEL's prefix and SAID — so the public declaration never leaks the
+  lookup object's address
   ([`../iel/events.md` §Kills](../iel/events.md#kills--the-fail-secure-revocation-declaration) is
   authoritative on the IEL-side target and bound).
 - A **value lookup** is `{Icp, Gnt}` — its v1 the `Gnt` that seals the value. Rotating the value
@@ -181,40 +182,40 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
 
 ## The content and lineage fields
 
-Two orthogonal `Icp` fields carry the address model — each doing exactly one job, so neither
-overloads the other.
+The `content` / `lineage` field model is defined once at
+[`log.md` §The content and lineage fields](log.md#the-content-and-lineage-fields); this section
+states how the SEL **kinds** consume it.
 
-**`content: true` — the content discriminator.** A content SEL's `Icp` carries `content: true`; a
-lookup SEL's does not. The verifier enforces the biconditional (`content: true` matches a tier-1 v1,
-its absence a tier-2 v1). Because the flag rides the whole-content prefix, content and lookups
-derive to **different addresses**, so a content SEL can never occupy a lookup address — a content
-**squat** at a value's lookup address is impossible by construction. Content and lookups may share
-`(owner, topic, data)`; they are simply different addresses.
+**`content: true`** discriminates a content SEL (tier-1 v1) from a lookup (tier-2 v1),
+verifier-enforced as a biconditional; because it rides the whole-content prefix, content and lookups
+derive to **different addresses** even when they share `(owner, topic, data)` — a content **squat**
+at a lookup address is impossible by construction.
 
-**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix
-`derive(owner, topic, data)` is a pure function of fixed inputs, so a killed or disputed value
-lookup **cannot re-incept by rerolling randomness** — the same inputs recompute the same dead
-address. `lineage` gives it a fresh one: the base is `lineage: 0`, a re-incept sets `lineage: 1`,
-`lineage: 2`, and so on, each a distinct whole-content and so a distinct prefix. It is carried
-**only** by a **re-establishable value** lookup; a **monotone** lookup (a kill, or a
-non-re-establishable value) omits it, and content omits it too (content uses `content: true`). A
-re-establishable value's **canonical instance is the lowest non-dead lineage**, found by a
-**positive walk**; a lineage above a live one is inert, so an equivocation attempt fails safe (only
-the owner anchors at the locus).
+**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix —
+the two-hash digest over its inception body (`owner`, `topic`, and optional `data` / `content`) — is
+a pure function of fixed inputs, so a killed or disputed value lookup **cannot re-incept by
+rerolling randomness** — the same inputs recompute the same dead address. `lineage` gives it a fresh
+one: the base is `lineage: 0`, a re-incept sets `lineage: 1`, `lineage: 2`, and so on, each a
+distinct whole-content and so a distinct prefix. It is carried **only** by a **re-establishable
+value** lookup; a **monotone** lookup (a kill, or a non-re-establishable value) omits it, and
+content omits it too (content uses `content: true`). A re-establishable value's **canonical instance
+is the lowest non-dead lineage**, found by a **positive walk**; a lineage above a live one is inert,
+so an equivocation attempt fails safe (only the owner anchors at the locus).
 
 A **value lookup** is **positive-walked** — its own live state is the sole authority for "what is
 the live value" (no owner-IEL fallback for that resolution), so a dispute is genuine ambiguity and a
 collusion-forced dead lineage is a real denial; the walk re-establishes it. But the walk
 **consumes** a per-lineage negative check, not a separate mechanism: `lineage: N` reads dead when a
 `Trm` sits on its own chain **or** its **lineaged** `kills[]` target
-`hash('{topic}:{owner}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` —
-scoped to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm`
-whose `Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
+`hash('{tag}:{owner}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` — scoped
+to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm` whose
+`Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
 doc-member rescission) uses a **non-lineaged** target and is a single negative-checked read, never
 walked. The split is **structural** — the verifier reads the `content` flag and the `lineage`
 field's presence, never the topic's meaning, with **no tier-check** on the read path
 ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)); the walk is capped at
-`MAXIMUM_SEL_LINEAGE = 64`.
+`MAXIMUM_SEL_LINEAGE = 64` — the **highest valid lineage index**, walked **inclusive** (so
+`lineage: 64` is a valid instance).
 
 ## Inception and the serial-1 floor
 
@@ -324,14 +325,14 @@ meaning.
 
 ## Seal-advance cap
 
-A seal-advancer (`Gnt` / `Trm` / `Sea`) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64`
-content events per lineage, so the content run since the last seal is bounded to 64 on each branch
-and the canonical two-branch content fork plus the resolving burying seal fits one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`, the same bound as the KEL and IEL). A busy SEL with no
-natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral advancer, the SEL
-analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at one position
-dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two sealed
-branches → Disputed, exactly as any two sealed events would be.
+A seal-advancer (`Gnt` / `Trm` / `Sea`) must land at least every `MAXIMUM_UNSEALED_RUN` content
+events per lineage, so the content run since the last seal is bounded to `MAXIMUM_UNSEALED_RUN` on
+each branch and the canonical two-branch content fork plus the resolving burying seal fits one page
+(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, the same bound as the KEL and IEL). A busy
+SEL with no natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral
+advancer, the SEL analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at
+one position dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two
+sealed branches → Disputed, exactly as any two sealed events would be.
 
 ## Cross-references
 

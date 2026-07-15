@@ -45,8 +45,9 @@ A SEL inception event (`Icp`) is a
 [prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): its prefix is
 the whole-content two-hash digest of the inception body —
 [`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic (`prefix ≠ said`, for
-correlation resistance). What the **SEL** prefix commits to is the populated inception fields —
-shorthand `derive(owner, topic, data)`:
+correlation resistance). There is no `derive()` function: the prefix is the two-hash digest over the
+**whole inception body**, so it commits to every populated inception field — `owner` and `topic`,
+plus optional `data`, `content`, and `lineage`:
 
 - **`owner`** — the owner IEL prefix. It is **`Icp`-only and immutable**: a SEL has one owner for
   life, and no later event may change it.
@@ -114,17 +115,19 @@ is load-bearing for a published value but a monotone kill is a single read is
 A SEL is classified by **whether a verifier can recompute its address**, not by whether its data is
 discoverable:
 
-- A **lookup SEL** is one whose prefix a verifier **recomputes** — `derive(owner, topic, data)` —
-  from data it already holds, then fetches by that prefix. Two shapes: a **kill lookup**
-  `{Icp, Trm}` (a revocation or rescission locus — the read strategy the fail-secure kill check
-  consumes) and a **value lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key
-  — §The seal and its advancers).
+- A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
+  inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
+  already holds, then fetches by that prefix. Two shapes: a **kill lookup** `{Icp, Trm}` (a
+  revocation or rescission locus — the read strategy the fail-secure kill check consumes) and a
+  **value lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key — §The seal and
+  its advancers).
 - A **content SEL** is one a verifier is **handed** rather than recomputing. It records data over
   time (`Icp` → serial-1 event → further `Ixn`s).
 
 A **credential is neither** — it is not a SEL at all, but a direct-anchored immutable SAD (its
 issuance is a commitment anchored on the issuer's IEL by an `Ixn`, and that anchor is the validity
-proof). The credential feature and the kill read strategy live at the feature layer
+proof). The credential feature and the kill read strategy live **above** this primitive — the read
+strategy at the **policy / document-authorization layer**
 ([`../../../policy/documents.md`](../../../policy/documents.md)); this primitive states only the
 lookup-SEL **structure**.
 
@@ -169,7 +172,7 @@ The SEL is a witnessed chain in the IEL's mold, **inheriting the owner IEL's fed
 witnesses, no new trust root; witness selection is deterministic on `(SEL-prefix, serial)` and the
 inherited roster, and the SEL inherits the owner IEL's witness-config and federation binding. The
 mechanics are the federation's, applied at the SEL's own position
-([`../../../../federation/witnessing.md`](../../../../federation/witnessing.md)):
+([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)):
 
 - **Content (`Ixn` / `Pin`) is first-seen** — a selected witness signs the first content event at a
   position and declines the copies. With the **witnessing floor** (a strict majority of the selected
@@ -358,8 +361,8 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
   SEL events compose on; two-hash prefix and SAID derivation.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md) — structural authorization,
   tiers and kind-strict anchoring, divergence and recovery, the layering principle.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor, first-seen, and disputed detection the SEL
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, first-seen, and disputed detection the SEL
   inherits.
 - [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
   [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the

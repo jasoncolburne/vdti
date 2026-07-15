@@ -121,7 +121,7 @@ match event.kind:
     Icp                -> manifest carries { witnesses } (req);  federation + federationPin top-level (req)
     Wit (Icp-rooted)   -> manifest carries { anchors } (the user IEL Wit; req), may also carry { witnesses };  federation + federationPin top-level (opt — present-iff-changed; a config-only Wit carries neither)
     Wit (Fcp-rooted)   -> manifest carries { anchors } (the federation IEL Wit; req), may also carry { witnesses };  federation + federationPin fbd
-    Ixn                -> manifest carries { anchors } (req, >= 1)
+    Ixn                -> manifest carries { anchors } (req, ≥ 1)
     Rot                -> manifest may carry { anchors }
     Trm                -> no manifest (terminal seal; retained run derivable as [previousSeal..previous])
 ```
@@ -129,8 +129,8 @@ match event.kind:
 The verifier establishes the chain's **root facet** (`Fcp`-rooted vs `Icp`-rooted) **before**
 reading any `Wit` payload — on **every** `Wit`-reading path (from-scratch, `resume`, `search_only`)
 — so a federation-governance `Wit` is never read under the user-rebind allowlist or vice versa. The
-token carries `root_facet` (set at inception), so a `resume` re-applies the facet dispatch from the
-token without re-deriving it.
+token carries `root_facet` (set at inception), so every `resume` — whole-chain or scoped to a single
+branch — re-applies the facet dispatch **from the token** without re-deriving it.
 
 The federation binding is read from the **top-level** `federation` / `federationPin` fields, never
 the manifest. On a **user** (`Icp`-rooted) chain, `federation` (the prefix) appears on `Icp`
@@ -237,7 +237,9 @@ BranchTip:
 ```
 
 Token fields are private with no public constructor — the only way to obtain one is through
-`KelVerifier`. Holding the token proves the corresponding chain was verified. The seal tracking
+`KelVerifier`. Holding the token proves the corresponding chain was verified — so a trust decision,
+and any resumption toward one, is grounded **only** in a token, never a bare `BranchTip` (a
+read-only component of the token, not an independent verified state). The seal tracking
 (`last_seal_advancing_event`) is per
 [`log.md` §The seal, the spine, and the locked-portion bound](log.md#the-seal-the-spine-and-the-locked-portion-bound).
 
@@ -383,9 +385,9 @@ a `disputed` chain; an above-seal anchor on a `disputed` chain grounds no new tr
 ## Federation witnessing in verification
 
 The verifier surfaces federation-witnessing signals on the token. Full witnessing mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
-section names what the KEL verifier reads. **The data decides; witnessing propagates** — receipts
-deliver competing branches and freshness, never a verdict.
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md);
+this section names what the KEL verifier reads. **The data decides; witnessing propagates** —
+receipts deliver competing branches and freshness, never a verdict.
 
 **`witnessed`.** True iff the event has accumulated threshold-many receipts under a consistent
 federation state. Witnesses are sort-selected by chain position `(prefix, serial)`; all competing
@@ -452,7 +454,8 @@ override), the federation is trusted for that event. Multi-federation chains (KE
 transferred federations via `Wit` events) require each federation in the chain's history to be
 independently trusted — no transitive trust. See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
-and [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming).
+and
+[`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md).
 
 A consumer refuses to bind under a `disputed` region (the federation cannot agree at this position)
 or `witnessed = false` (insufficient attestation), and consults the config-pinned federation prefix
@@ -468,15 +471,16 @@ page rather than loading the full chain into memory.
 ### Constructors
 
 - **`KelVerifier::new(prefix)`** — Start from inception. Full verification of an untrusted chain.
-- **`KelVerifier::resume(prefix, &KelVerification)`** — Resume from a verified token. Used by the
-  merge handler's normal-append fast path to verify appended events without re-verifying the entire
-  chain. `resume` re-runs the to-tip negative checks against the new tip whenever a
-  transitively-pinned chain moves
+- **`KelVerifier::resume(prefix, &KelVerification, branch_tip_said?)`** — Resume from a verified
+  token — **the only way to resume**, since only a token proves a walk happened (a `BranchTip` is a
+  read-only component of the token, never an independent resume source). With `branch_tip_said`
+  **absent** it resumes the whole chain (the merge handler's normal-append fast path); with it
+  **naming one of the token's own branch tips** it scopes verification to that single branch
+  (divergence / recovery — the input stream is only that branch's events; the competing branches sit
+  excluded in retained storage). Either way it inherits `root_facet` and the verified state from the
+  token — so a `Wit` on the branch is never read facet-blind — and re-runs the to-tip negative
+  checks against the new tip whenever a transitively-pinned chain moves
   ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
-- **`KelVerifier::from_branch_tip(prefix, &BranchTip)`** — Resume verification from a specific
-  branch tip. Used for verifying events against a specific branch in divergence / recovery
-  scenarios. The walker's input stream contains only events on that branch; the competing branches
-  sit in retained storage but are excluded from the input stream.
 
 ### Paginated verification helper
 
@@ -559,7 +563,7 @@ spanning two pages re-fetches at the next page rather than being processed half-
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
 - [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; stability
   under extension.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing mechanics (forthcoming).
-- [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) — federation
-  bootstrap and the config-pinned federation prefix set (forthcoming).
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing mechanics.
+- [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) —
+  federation bootstrap and the config-pinned federation prefix set.

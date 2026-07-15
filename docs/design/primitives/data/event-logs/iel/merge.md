@@ -25,8 +25,8 @@ cross-node correctness proof, [`reconciliation.md`](reconciliation.md).
 ## Single entry point
 
 `merge_events` is the single entry point for all write paths into an IEL — direct submissions,
-gossip propagation, federation sync, and bootstrap atomic batches. It runs under a database advisory
-lock for the duration of verification and write. Time-of-check-to-time-of-use is eliminated
+gossip propagation, federation sync, and federation bootstrap bundles. It runs under a database
+advisory lock for the duration of verification and write. Time-of-check-to-time-of-use is eliminated
 structurally: the verifier reads under the same lock the merge handler will use to write (see
 [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 
@@ -57,8 +57,8 @@ The **federation** IEL is the pure case — every event is sealed; a competing s
 first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded **two-witnessed**
 race is disputed / terminal. The witnessing mechanics that make content first-seen work (the
 position gate, one-content-sibling-per-position witnessing, the beacon) are federation doctrine —
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md); this doc states the
-chain-scoped routing that composes with them.
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md);
+this doc states the chain-scoped routing that composes with them.
 
 ## Merge outcomes
 
@@ -228,9 +228,12 @@ The `Wit` kind is facet-dependent, and its manifest role allowlist differs by th
 facet** (`Fcp`-rooted federation versus `Icp`-rooted user —
 [`events.md` §The facet-dependent `Wit`](events.md#the-facet-dependent-wit)). The merge layer
 **establishes the root facet before reading any `Wit` payload** — on **every** `Wit`-reading path:
-the from-scratch walk, a `resume` from a cached token, and a `search_only` walk that ends early. The
-verification token carries the root facet, so a `resume` re-applies the dispatch without re-deriving
-it. **No `Wit`-reading path is exempt.**
+the from-scratch walk, a `resume` from a cached token (whole-chain or scoped to one of the token's
+own branch tips for divergence / recovery), and a `search_only` walk that ends early. The
+verification token carries the root facet, so every `resume` re-applies the dispatch **from the
+token** without re-deriving it — a branch-scoped resume is still **from the token** (a `BranchTip`
+is a component of the token, never an independent resume source). **No `Wit`-reading path is
+exempt.**
 
 A facet-blind allowlist would admit a governance-shaped payload (a roster delta) on a user `Wit` —
 and the directly-consumed governance roles have **no** downstream type-check, so the kind → role
@@ -269,14 +272,14 @@ commitment, no content-only guard walk. The mechanics are pure position + ascent
    and does not block the burial. Sealed branches are always retained, so an unnamed sealed sibling
    is caught, never sealed past.
 
-The hot page covers the retained (winning) branch (≤ 64, the fold) plus the burying event; the
-competing content loser is validated from retained storage and need not co-reside in the hot page. A
-burying seal is **validated on arrival, not auto-applied** — the merge layer validates it as an
-ordinary event at its attach-position (the same sibling / seal-cap / divergence checks any event
-faces) and only then advances the seal. An **under-covering** burial (a node behind on gossip holds
-content the burial never covered) is **accepted** (`Recovered`); the uncovered content inerts on the
-bounded forked chain and is re-issued forward by its author. An **un-covered sealed** branch makes
-the fork terminal (`Disputed`).
+The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
+burying event; the competing content loser is validated from retained storage and need not co-reside
+in the hot page. A burying seal is **validated on arrival, not auto-applied** — the merge layer
+validates it as an ordinary event at its attach-position (the same sibling / seal-cap / divergence
+checks any event faces) and only then advances the seal. An **under-covering** burial (a node behind
+on gossip holds content the burial never covered) is **accepted** (`Recovered`); the uncovered
+content inerts on the bounded forked chain and is re-issued forward by its author. An **un-covered
+sealed** branch makes the fork terminal (`Disputed`).
 
 ## Eviction — a `cut` `Evl` buries and evicts atomically
 
@@ -303,7 +306,7 @@ evict the member).
 ## The seal-cap and the roster-less re-seal `Evl`
 
 The seal-advance cap is enforced here: between successive sealing events the content run must not
-exceed `(MINIMUM_PAGE_SIZE − 1)/2 = 64` per lineage
+exceed `MAXIMUM_UNSEALED_RUN` per lineage
 ([`events.md` §Seal-advance cap](events.md#seal-advance-cap)). A busy issuer that fills the window
 re-seals with a **roster-less `Evl`** (omitting `roster`). Validation must **accept** it: no added
 members means no consent needed, and it is `t_govern`-authorized on the unchanged roster. Two
@@ -397,6 +400,6 @@ batch composition. See
   divergence and recovery (cross-primitive): freeze, tier-resolution, keep-all-data retention;
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Merge verification and advisory locking](../../../../protocol-doctrine.md#merge-verification-and-advisory-locking).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the witnessing floor, the beacon, content-fork prevention, cross-node
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the witnessing floor, the beacon, content-fork prevention, cross-node
   propagation.

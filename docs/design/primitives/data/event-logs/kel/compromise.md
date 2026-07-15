@@ -17,13 +17,11 @@ steal — with very different outcomes:
   over under a new identity. The defense against that lives one layer up, where several keys back
   one identity, so losing one is survivable.
 
-This is doctrine, not workflow. Operator CLI ceremony and the choreography for a recovery `Rot` /
-`Trm` lives in
-[`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md)
-(forthcoming). Per-kind event-shape rules live in [`events.md`](events.md); merge-layer routing —
-including how a burying seal-advancer resolves a fork and the attach shapes — in
-[`merge.md`](merge.md); the cross-node correctness proof in
-[`reconciliation.md`](reconciliation.md).
+This is doctrine, not workflow — the operator ceremony is simply issuing the burying recovery `Rot`
+(or `Trm`) at the first compromised position with the standard tooling. Per-kind event-shape rules
+live in [`events.md`](events.md); merge-layer routing — including how a burying seal-advancer
+resolves a fork and the attach shapes — in [`merge.md`](merge.md); the cross-node correctness proof
+in [`reconciliation.md`](reconciliation.md).
 
 ## Two-tier compromise model
 
@@ -66,14 +64,15 @@ drops by position + ascent. So a fork can resolve **incidentally**: a standard `
 rebind) you were committing anyway lands past a content loser and buries it — you never set out to
 recover, the seal-advance just did it. What is `Rot`-specific is the **deliberate** act: when you
 set out to _resolve_ a fork, you author a **`Rot`**, for two reasons — a `Rot` is **always
-available** (a `Wit` carries the must-change-federation/witnesses constraint, so you cannot fire a
-bare `Wit` purely to recover), and its rotation is what **closes new forks** by rotating the
-compromised signing key out: **recovery closes the fork window; the rotation closes new forks.** One
-recovery `Rot` buries the whole current fork, and its key rotation then denies the culprit the new
-signing key, so after it propagates they can mint no more. A sustained signing-key adversary merely
-spews **dead** content into a **bounded** fork (depth-capped at 64 per lineage, breadth bounded by
-retention + the one-content-sibling witnessing rule) — then the depth-cap forces a seal-advancer.
-(The burial mechanics and the two attach shapes are the merge layer's —
+available** (a `Wit` carries the must-change-substrate/federation/witnesses constraint, so you
+cannot fire a bare `Wit` purely to recover), and its rotation is what **closes new forks** by
+rotating the compromised signing key out: **recovery closes the fork window; the rotation closes new
+forks.** One recovery `Rot` buries the whole current fork, and its key rotation then denies the
+culprit the new signing key, so after it propagates they can mint no more. A sustained signing-key
+adversary merely spews **dead** content into a **bounded** fork (depth-capped at
+`MAXIMUM_UNSEALED_RUN` per lineage, breadth bounded by retention + the one-content-sibling
+witnessing rule) — then the depth-cap forces a seal-advancer. (The burial mechanics and the two
+attach shapes are the merge layer's —
 [`merge.md` §How a burying seal-advancer resolves a content fork](merge.md#how-a-burying-seal-advancer-resolves-a-content-fork).)
 
 There is **no repair kind, no recovery key, and nothing to prove** — no losing-branch commitment, no
@@ -97,7 +96,7 @@ commitment, regardless of what other key material they hold. But that boundary d
   tail dead on ascent, no reincept.
 - **A tier-2 (reserve) theft is the point of no return.** When an adversary holds the reserve and
   lands `Rot_adversary` at `v_N`, the chain is **the attacker's** — there is **no in-band
-  recourse**; the legitimate party **reincepts** (for a delegated KEL, the delegator `Dth`s it
+  recourse**; the legitimate party **reincepts** (for a delegate identity, the delegator `Dth`s it
   instead). Three structural facts close every escape:
 
   - **You cannot bury the `Rot`.** `Rot_adversary` is a sealed event, and only content (`Ixn`) is
@@ -303,8 +302,6 @@ observable in the data layer. See
   seal-cap and locked-portion bound; the spine.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
   — limit of the doctrine; layered defense; adversary patience; cascade-reincept honesty.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing (forthcoming): the kind-scoped witnessing ladder, the witnessing floor, the beacon,
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing: the kind-scoped witnessing ladder, the witnessing floor, the beacon,
   divergent witness receipts.
-- [`../../../../operations/recovery-workflow.md`](../../../../operations/recovery-workflow.md) —
-  operator CLI ceremony (forthcoming).

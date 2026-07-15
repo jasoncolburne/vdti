@@ -98,7 +98,15 @@ for my $file (@files) {
             # caller's line-based pass already reports those.
             next if $o{novel} && $m !~ /\n/ && $m !~ /[*_`~]/;
             my $line = 1 + (substr($c, 0, $off) =~ tr/\n//);
-            (my $show = $m) =~ s/\s+/ /g;
+            # Show the full source line(s) the match sits on (grep-style context), not
+            # just the matched term — a bare-term report forces a second grep to tell,
+            # say, the "band" constant from "out-of-band". A wrap-spanning match shows
+            # both lines, whitespace-collapsed to one.
+            my $ls = rindex($c, "\n", $off) + 1;
+            my $le = index($c, "\n", $+[0]);
+            $le = length($c) if $le < 0;
+            (my $show = substr($c, $ls, $le - $ls)) =~ s/\s+/ /g;
+            $show =~ s/^ | $//g;
             print "$file:$line: $show\n";
             $hits = 1;
         }

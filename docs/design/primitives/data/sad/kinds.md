@@ -1,0 +1,105 @@
+# SAD Kinds — the identifier catalogue
+
+Every SAD carries a **`kind`** — a versioned string naming its type, which drives structural
+validation, tier dispatch, the role vocabulary it may carry, and whether the store will serve it by
+SAID. This doc is the canonical enumeration of every SAD kind. Two sibling identifier families share
+the same naming scheme and live in their own catalogues: **derivation tags and SEL topics**
+([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) and **gossip topics**
+([`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md)).
+
+## The naming convention
+
+Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segments, always:
+
+- **`component`** — the subsystem that owns it: `kel` / `iel` / `sel` / `event` / `witness` / `log`
+  / `doc` / `exchange` / `cred` / `policy` / `gossip`.
+- **`v1`** — the schema version.
+- **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
+  `schemas` / `protocols` / `actions` / `states` / `topics`.
+- **`name`** — the specific member.
+
+A `*` below marks a family whose members are listed inline or defined by a feature. There is
+**never** a fifth segment: grouping is carried by descriptive names, not extra path depth.
+
+## SAD kinds — the `kind` field
+
+Every SAD carries one of these. **The chain events:**
+
+| Log | Kind                | Members                                               |
+| --- | ------------------- | ----------------------------------------------------- |
+| KEL | `…/kel/v1/events/*` | `fcp` `icp` `ixn` `rot` `wit` `trm`                   |
+| IEL | `…/iel/v1/events/*` | `icp` `ixn` `evl` `ath` `rev` `dth` `trm` `wit` `fcp` |
+| SEL | `…/sel/v1/events/*` | `icp` `ixn` `pin` `gnt` `trm` `sea`                   |
+
+**The commitment SADs events reference:**
+
+| Kind                            | What it is                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                        |
+| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                            |
+| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                             |
+| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                         |
+| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `exchange-ml-kem-1024`, `shared-document-governance` |
+| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                          |
+
+The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
+are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their
+own.
+
+**The feature / application SADs:**
+
+| Kind                              | What it is                            |
+| --------------------------------- | ------------------------------------- |
+| `vdti/doc/v1/schemas/*`           | shared-document SADs (`comment`, …)   |
+| `vdti/exchange/v1/schemas/*`      | exchange SADs                         |
+| `vdti/exchange/v1/protocols/essr` | the ESSR envelope                     |
+| `vdti/cred/v1/schemas/*`          | credential SADs (application-defined) |
+| `vdti/policy/v1/{group}/*`        | policy documents, grouped by domain   |
+
+## Fetch by SAID — what the store hands back
+
+`kind` also decides whether the store will hand back a SAD **by its SAID**. Two ways of reaching
+data sit side by side: a **chain event is found by prefix** — you reach it only by walking the chain
+whose prefix you already hold — while a **standalone SAD is found by SAID**, fetched directly. The
+store keeps the two apart with a list of the kinds it will serve, and **turns away everything
+else**:
+
+- **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
+  values a `Gnt` seals (`vdti/sel/v1/grants/*`), and content that is public by design (a public
+  credential body, or an application content kind the app has registered). A verifier walking a
+  chain has to resolve the role SADs an event commits to, so these have to be reachable by SAID.
+- **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
+  event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
+  gets back the same "not present" answer a SAID that never existed would.
+- **Everything else — refused.** A kind not on the served list is not handed back, so a later event
+  kind, or some future free-standing SAD type, is turned away by default instead of quietly opening
+  a way to fetch it.
+
+The whole rule in one line: **the store hands back a SAD by SAID only when learning that SAID
+already meant holding the chain, or when the SAD is public by design.** An event's SAID fails that
+test — it travels in the open as a commitment inside a public identity's `anchors[]`, so if the
+store answered for event bodies by SAID, an observer could gather those commitments and walk them
+back to the private positions they stand for, turning the store into the very lookup that reaching
+events by prefix alone was meant to deny. A commitment SAD's SAID passes the test — it appears only
+inside an event's `manifest`, which you reach only after reading an event you already hold the chain
+for, so serving it tells an observer nothing they could not already work out.
+[`event-shape.md`](../event-logs/event-shape.md) states the "there is no SAID-to-event index"
+property that this makes real.
+
+This is why every SAD carries a `kind` ([`sad.md`](sad.md)): the sort has no fallback — a SAD with
+no kind cannot be placed on either side of it, so it is refused. The store's write path turns away a
+kind it will not serve; that enforcement lives with the store
+([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md),
+forthcoming), on the retrieval boundary [`availability.md`](availability.md) describes.
+
+## Cross-references
+
+- [`shapes.md`](shapes.md) — the field shape of each SAD kind (the companion to this catalogue).
+- [`sad.md`](sad.md) — the SAD layer: what a SAD is, the `kind`-required rule.
+- [`said.md`](said.md) — the two-pass digest that turns a SAD's canonical content into a SAID.
+- [`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md) — the derivation tags and
+  SEL topics that share this convention.
+- [`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md) — the gossip
+  topics (mesh channels) that share this convention.
+- [`../event-logs/event-shape.md`](../event-logs/event-shape.md) — the event taxonomy and the
+  manifest role model these kinds instantiate.

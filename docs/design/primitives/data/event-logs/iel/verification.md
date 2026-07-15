@@ -40,7 +40,8 @@ For every event the verifier walks, it ensures:
 - The **root facet** (`Fcp` vs `Icp`) is established before any `Wit` payload is read, and each
   `Wit` is read under the facet-correct allowlist.
 - The current roster and threshold vector are the accumulation of every delta walked (with the
-  live-set cap of 32); every config-changing event re-checks the post-delta bounds.
+  live-set cap of `MAXIMUM_ROSTER_SIZE`); every config-changing event re-checks the post-delta
+  bounds.
 
 Events are linked by their `previous` SAID; the serial in the canonical bytes makes each event's
 position structurally unambiguous, and the `pins`-SAD records the members' prior KEL tips so the
@@ -151,10 +152,10 @@ declared threshold set; each `Evl` (user) or governance `Wit` (federation) carri
 `Evl` also evicts. The roster is a **set** (a delta is well-formed only with `add ∉ roster`,
 `cut ⊆ roster`, `cut ∩ add = ∅`), and the verifier **re-checks the bounds on the post-delta config
 at every config-changing event** — the security floor, the recoverability ceiling, the authorization
-floor, the live-set cap of 32, and the non-empty floor. A delta pushing the live set past 32 is
-rejected (a DoS backstop). A `cut` is priced the **outgoing** `t_govern` (the pre-change gate). This
-is why the token exposes the roster **as of a queried position** — the accumulation up to that
-point, not a stored value.
+floor, the live-set cap of `MAXIMUM_ROSTER_SIZE`, and the non-empty floor. A delta pushing the live
+set past `MAXIMUM_ROSTER_SIZE` is rejected (a DoS backstop). A `cut` is priced the **outgoing**
+`t_govern` (the pre-change gate). This is why the token exposes the roster **as of a queried
+position** — the accumulation up to that point, not a stored value.
 
 ## The bounded delegation walk
 
@@ -188,15 +189,16 @@ Rescission (a delegate deauthorized, an owned artifact revoked) is answered by a
 on the owner's fresh IEL, never by scanning for absence. Given a killed locus, the verifier reads
 **O(1) first, with a fail-secure fall-through**:
 
-- **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is
-  `derive(owner, topic, data)`; fetch its `{Icp, Trm}`): **present → killed**. Tamper-evident and
+- **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is recomputed
+  from `(owner, topic, data)`; fetch its `{Icp, Trm}`): **present → killed**. Tamper-evident and
   authoritative — and `Trm.pin` (= the killing `Rev` / `Dth`'s `previous`) points straight at that
   kill event, so a grandfather check reads the `bound` from its `kills[]` entry directly, with no
   exhaustive `kills[]` scan of the chain.
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
-  `target = hash('{topic}:{owner}:{data}')` (the target **mirrors the killed address**:
+  `target = hash('{tag}:{owner}:{data}')` (the target **mirrors the killed address**:
   **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
-  `:content` for a **content (app-SEL) closure** — area-sel §1f) and walk the owner's **fresh** IEL
+  `:content` for a **content (app-SEL) closure** —
+  [`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)) and walk the owner's **fresh** IEL
   (from the relevant grant / issuance position to the tip), forward-matching the `target` against
   each `Rev` / `Dth`'s `kills[]`. In some `kills[]` → killed (grandfathered to that entry's
   `bound`); in none **on a walk that reached the fresh witnessed tip** → not killed. Being in a
@@ -245,8 +247,10 @@ BranchTip:
 ```
 
 Token fields are private with no public constructor — the only way to obtain one is through
-`IelVerifier`. Holding the token proves the corresponding chain was verified. The seal tracking is
-per [`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound).
+`IelVerifier`. Holding the token proves the corresponding chain was verified — so a trust decision,
+and any resumption toward one, is grounded **only** in a token, never a bare `BranchTip` (a
+read-only component of the token, not an independent verified state). The seal tracking is per
+[`log.md` §The seal](log.md#the-seal-the-spine-and-the-locked-portion-bound).
 
 ### Derived accessors
 
@@ -291,10 +295,10 @@ termination rides the orthogonal `is_terminated()` accessor.
 
 The caller registers SAIDs of interest before the walk via `verifier.check_anchors(saids)`. As the
 verifier processes events, it checks each event's `manifest.anchors` against the registered SAIDs —
-the `anchors` role lives on `Ixn` (SEL v1s + credential issuance commitments), `Ath` (a `Gnt`), and
-`Rev` / `Dth` (a `Trm`). Results are on the token via `is_said_anchored()` / `anchors_all_saids()`.
-The token surfaces the **anchoring IEL event's kind** on each matched anchor, so a cross-chain
-consumer (the SEL verifier) can enforce the kind-strict anchor matrix
+the `anchors` role lives on `Ixn` (SEL v1s + credential issuance commitments), `Evl` (a `Sea`),
+`Ath` (a `Gnt`), and `Rev` / `Dth` (a `Trm`). Results are on the token via `is_said_anchored()` /
+`anchors_all_saids()`. The token surfaces the **anchoring IEL event's kind** on each matched anchor,
+so a cross-chain consumer (the SEL verifier) can enforce the kind-strict anchor matrix
 ([`events.md` §The kind-strict anchor matrix](events.md#the-kind-strict-anchor-matrix)).
 Registration before the walk lets the verifier record observations without a second database pass —
 the uniform verification-token pattern
@@ -351,9 +355,9 @@ composes the anchor's seal position with `region()`: a below-seal anchor is hono
 ## Federation witnessing in verification
 
 The verifier surfaces federation-witnessing signals on the token. Full mechanics live in
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) (forthcoming); this
-section names what the IEL verifier reads. **The data decides; witnessing propagates** — receipts
-deliver competing branches and freshness, never a verdict.
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md);
+this section names what the IEL verifier reads. **The data decides; witnessing propagates** —
+receipts deliver competing branches and freshness, never a verdict.
 
 - **`witnessed`.** An IEL event has **no key of its own**, so its witnessing **is** the witnessing
   of its **member KEL anchors** — the event is trusted when the required threshold of its anchoring
@@ -400,14 +404,16 @@ rather than loading the full chain into memory, accumulating the roster as it go
 ### Constructors
 
 - **`IelVerifier::new(prefix)`** — start from inception; full verification of an untrusted chain.
-- **`IelVerifier::resume(prefix, &IelVerification)`** — resume from a verified token (the merge
-  handler's normal-append fast path); it re-applies the token's `root_facet` so a `Wit` is never
-  read facet-blind, and re-runs the to-tip negative checks (the `kills[]` forward-match) against the
-  new tip whenever a transitively-pinned chain moves
+- **`IelVerifier::resume(prefix, &IelVerification, branch_tip_said?)`** — resume from a verified
+  token — **the only way to resume**, since only a token proves a walk happened (a `BranchTip` is a
+  read-only component of the token, never an independent resume source). With `branch_tip_said`
+  **absent** it resumes the whole chain (the merge handler's normal-append fast path); with it
+  **naming one of the token's own branch tips** it scopes verification to that single branch
+  (divergence / recovery — the input stream is only that branch's events; the competing branches sit
+  excluded in retained storage). Either way it re-applies the token's `root_facet` so a `Wit` is
+  never read facet-blind, and re-runs the to-tip negative checks (the `kills[]` forward-match)
+  against the new tip whenever a transitively-pinned chain moves
   ([§Walk semantics](../../../../protocol-doctrine.md#walk-semantics)).
-- **`IelVerifier::from_branch_tip(prefix, &BranchTip)`** — resume from a specific branch tip (its
-  input stream contains only that branch's events; competing branches sit in retained storage,
-  excluded), for verifying against a specific branch in divergence / recovery.
 
 ### Paginated verification helper
 
@@ -419,18 +425,18 @@ configurable).
 
 ## Per-event check summary
 
-| Property                        | Verification method                                                                                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SAID / prefix integrity         | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from roster + thresholds + `nonce`).                                 |
-| Event chaining                  | `previous` resolves to a verified prior event; each sealing event's `previousSeal` resolves to the prior seal.                                                                 |
-| Serial monotonicity             | Each event's serial equals the previous serial + 1; inception is serial 0.                                                                                                     |
-| Inception kind + facet dispatch | Branch on `Icp` / `Fcp`; fix `root_facet`; read `Wit` payloads facet-correctly on every path.                                                                                  |
-| Threshold authority             | A threshold of members' fresh KEL participations (kind-strict up) anchor the event; each anchoring KEL signature valid and witnessed.                                          |
-| Roster accumulation + bounds    | Accumulate every `add` / `cut` / threshold delta; re-check the post-delta bounds (security floor, recoverability ceiling, authorization floor, cap 32) at every config change. |
-| Manifest roles + anchor format  | The `manifest` carries only roles in the kind's facet-aware allowlist; each `anchors` entry a valid SAID-shaped token.                                                         |
-| Delegation / rescission         | Bounded per-candidate delegation walk; `kills[]` forward-match (fail-secure by default).                                                                                       |
-| Federation context              | Records the IEL's own binding per event (user); a federation IEL carries none.                                                                                                 |
-| Witness state                   | Token surfaces `witnessed` (member-anchor witnessing; a user IEL's own position gate), the divergence signal, `witnessed_anchors`.                                             |
+| Property                        | Verification method                                                                                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SAID / prefix integrity         | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from roster + thresholds + `nonce`).                                                    |
+| Event chaining                  | `previous` resolves to a verified prior event; each sealing event's `previousSeal` resolves to the prior seal.                                                                                    |
+| Serial monotonicity             | Each event's serial equals the previous serial + 1; inception is serial 0.                                                                                                                        |
+| Inception kind + facet dispatch | Branch on `Icp` / `Fcp`; fix `root_facet`; read `Wit` payloads facet-correctly on every path.                                                                                                     |
+| Threshold authority             | A threshold of members' fresh KEL participations (kind-strict up) anchor the event; each anchoring KEL signature valid and witnessed.                                                             |
+| Roster accumulation + bounds    | Accumulate every `add` / `cut` / threshold delta; re-check the post-delta bounds (security floor, recoverability ceiling, authorization floor, cap `MAXIMUM_ROSTER_SIZE`) at every config change. |
+| Manifest roles + anchor format  | The `manifest` carries only roles in the kind's facet-aware allowlist; each `anchors` entry a valid SAID-shaped token.                                                                            |
+| Delegation / rescission         | Bounded per-candidate delegation walk; `kills[]` forward-match (fail-secure by default).                                                                                                          |
+| Federation context              | Records the IEL's own binding per event (user); a federation IEL carries none.                                                                                                                    |
+| Witness state                   | Token surfaces `witnessed` (member-anchor witnessing; a user IEL's own position gate), the divergence signal, `witnessed_anchors`.                                                                |
 
 ## Cross-references
 
@@ -454,5 +460,5 @@ configurable).
   [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 - [`../../../policy/policy.md`](../../../policy/policy.md) — the `id(X)` / `del(X, N)` policy leaves
   the token's `roster_and_thresholds_at` and `is_delegate` accessors resolve.
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing mechanics (forthcoming).
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing mechanics.

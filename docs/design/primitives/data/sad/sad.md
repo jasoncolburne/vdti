@@ -42,7 +42,8 @@ an integrity commitment, not a global lookup key, and serving event bodies by SA
 attacker invert an identity's opaque commitments. The full argument (which uses vocabulary defined
 later) is
 [`protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups);
-storage-side enforcement is [`../../../infrastructure/vdtid.md`](../../../infrastructure/vdtid.md)
+storage-side enforcement is
+[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)
 (forthcoming).
 
 ## Required fields

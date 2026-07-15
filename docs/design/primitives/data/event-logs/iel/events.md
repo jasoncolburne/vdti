@@ -18,7 +18,7 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 An identity's IEL is one of two facets, fixed by its inception root (§Two-kind inception). A **user
 IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`.
 
-| Kind  | Topic                    | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
+| Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                                                          |
 | `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors SEL events, each SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                                               |
@@ -41,7 +41,7 @@ an act on a _downstream target_, not on the host IEL, so `{Rev, content}` stays 
 `Rev` branch survives, the content buries); a chain goes terminal only when it carries a `Trm`, a
 `{Wit, Wit}`, or ≥ 2 **accepted** sealed branches. The **tier** column names the KEL capability an
 adversary must forge to author the matching member participation — see
-[§Two-tier capability model](#two-tier-capability-model). The **Topic** column is the kind's
+[§Two-tier capability model](#two-tier-capability-model). The **Kind string** column is the kind's
 versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's custody
 `topic`.
 
@@ -68,7 +68,7 @@ at inception and carries it on the token
   federation prefix still roots trust). It carries the initial witness-KEL roster, the initial
   `witnesses` config, and the initial `clock` (the founders' join time), and is anchored kind-strict
   by each founder's KEL `Rot` (tier-2 → tier-2). The full genesis ceremony is federation doctrine —
-  [`../../../../federation/bootstrap.md`](../../../../federation/bootstrap.md) (forthcoming).
+  [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md).
 
 ## Authorization — threshold over member KELs, no adjacent signature
 
@@ -108,9 +108,9 @@ inception):
 - **An authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
   overlap and a sealed fork always names a double-dealer (closing the disjoint-quorum attribution
   loss).
-- **The roster is hard-capped at 32** — a DoS backstop; the verifier rebuilds the roster in memory
-  as it walks, and any delta pushing the live set past 32 is rejected (all IELs, including the
-  federation).
+- **The roster is hard-capped at `MAXIMUM_ROSTER_SIZE` (= 32)** — a DoS backstop; the verifier
+  rebuilds the roster in memory as it walks, and any delta pushing the live set past
+  `MAXIMUM_ROSTER_SIZE` is rejected (all IELs, including the federation).
 - **The roster is never emptied.** The post-delta size `|roster| + |add| − |cut| ≥ 1`. A roster is a
   **set**, so a delta is well-formed only with `add ∉` the current roster, `cut ⊆` it, and
   `cut ∩ add = ∅`. A singleton `cut` computes `1 + 0 − 1 = 0 < 1` and is rejected, so a singleton
@@ -142,7 +142,7 @@ change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit 
 
 Anchors content SEL events, each SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`, never
 itself anchored), **and a credential's issuance commitment**
-`hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` (an immutable SAD — a credential is
+`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
 may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
 malformed / inert — a lightweight structural guard. Fork-prevention for a SEL is the SEL's **own**
@@ -220,17 +220,20 @@ every inline manifest list, capped at `MAXIMUM_MANIFEST_LIST = 128` entries (eve
 over-length list is rejected in structural validation, bounding the per-event forward-match work).
 It is the revocation / rescission **declaration** the fail-secure walk consumes:
 
-- **`target = hash('{topic}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier
-  computes directly and **forward-matches** on the owner's fresh IEL. The target **mirrors the
-  killed address** (area-sel §1f): **non-lineaged** `hash('{topic}:{owner}:{data}')` for a
-  **monotone kill** (cred revocation, delegate / doc-member rescission), **lineaged**
-  (`…:{lineage}`) for a **value rescission** (scoped to the one instance it kills, so the
-  re-established `lineage: N+1` survives), and a literal `:content` for a **content (app-SEL)
-  closure** (the content namespace). A value's positive resolution reads its own SEL chain; its
-  per-lineage negative check consults this lineaged target. The per-kind `topic`
-  (`CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`) is **opaque to the IEL** — the IEL
-  never dereferences a target or interprets a bound. Placement (kind-strict) is the only structural
-  rule; all revocation and grandfather logic is the feature layer's
+- **`target = hash('{tag}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier computes
+  directly and **forward-matches** on the owner's fresh IEL. The `tag` is a primitive derivation tag
+  ([`tags-and-topics.md`](../tags-and-topics.md)), never a feature name —
+  `vdti/sel/v1/actions/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/actions/rescission`
+  for a `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
+  distinguishes them). The target **mirrors the killed address**
+  ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
+  `hash('{tag}:{owner}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
+  rescission), **lineaged** (`…:{lineage}`) for a **value rescission** (scoped to the one instance
+  it kills, so the re-established `lineage: N+1` survives), and a literal `:content` for a **content
+  (app-SEL) closure**. A value's positive resolution reads its own SEL chain; its per-lineage
+  negative check consults this lineaged target. The `tag` is **opaque to the IEL** — the IEL never
+  dereferences a target or interprets a bound. Placement (kind-strict) is the only structural rule;
+  all revocation and grandfather logic is the feature layer's
   ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not** the
   lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.
@@ -280,11 +283,8 @@ malformed → rejected (trust still roots in the config-pin). A user `Wit` **mus
 (the prefix) or `witnesses`**: a same-federation re-pin (advancing only `federationPin`) is not a
 `Wit` — it rides any body event — and a pure key rotation is a member's KEL `Rot`, so a `Wit` that
 changes neither is a no-op → rejected. Initial binding rides the `Icp` (which always carries the
-federation); a later `Wit` **rebinds**, under a hard cap on `Wit`s per chain (a DoS backstop —
-over-cap rejected; the exact bound lands with
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md), forthcoming). Trust
-is **per-federation and non-transitive** — each event is witnessed by whichever federation was
-current when it landed.
+federation); a later `Wit` **rebinds**. Trust is **per-federation and non-transitive** — each event
+is witnessed by whichever federation was current when it landed.
 
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no
@@ -297,7 +297,7 @@ is one authoritative IEL-side value, neither matched. A federation `Wit` is **al
 its participants and **advances the clock**, so the rotation + clock advance **is** the change — it
 has no must-change predicate. The federation-governance mechanics (self-attestation, the
 recoverability cap, the clock, roster-add consent) are federation doctrine —
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ### `Fcp` — the federation inception marker (federation IEL only)
 
@@ -433,7 +433,7 @@ minimum `|roster| = 4` a federation selects at most three signers and thresholds
 all-four-witnesses-sign config is not selectable. The witness-config validity, the clock, and
 witness selection are federation doctrine —
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and
-[`../../../../federation/witnessing.md`](../../../../federation/witnessing.md).
+[`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ## Per-kind sort priority
 
@@ -461,11 +461,12 @@ semantic meaning.
 ## Seal-advance cap
 
 A sealing event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
-but ends the chain) must land at least every `(MINIMUM_PAGE_SIZE − 1)/2 = 64` content events per
-lineage. The cap bounds the content run since the last seal to 64 on each branch, so the canonical
-two-branch content fork plus the resolving burying seal is sized to fit one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·64 + 1`). It is **required**: `Ixn` is content and does not advance
-the seal, and issuance rides `Ixn`, so without the cap the content window would grow unbounded.
+but ends the chain) must land at least every `MAXIMUM_UNSEALED_RUN` content events per lineage. The
+cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` on each branch, so the
+canonical two-branch content fork plus the resolving burying seal is sized to fit one page
+(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`). It is **required**: `Ixn` is content and
+does not advance the seal, and issuance rides `Ixn`, so without the cap the content window would
+grow unbounded.
 
 A busy issuer that fills the window **re-seals with a roster-less `Evl`** — a pure re-seal that
 omits `roster` (the seal advance via `previousSeal` is the change, not an empty delta). It is valid
@@ -495,9 +496,9 @@ cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
   [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery);
   [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — where a credential's issuance /
-  revocation targets are interpreted (the feature layer; the IEL states only the kill-anchor
+  revocation actions are interpreted (the feature layer; the IEL states only the kill-anchor
   structure).
 - [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
   — the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
-- [`../../../../federation/witnessing.md`](../../../../federation/witnessing.md) — federation
-  witnessing and the federation `Wit` governance mechanics (forthcoming).
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+  — federation witnessing and the federation `Wit` governance mechanics.
