@@ -161,11 +161,11 @@ Policy sits above the primitives — it governs documents, never the chain event
 (chain-event authorization is structural). (This group carries its own reading-order note in
 `policy.md`.)
 
-29. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
+30. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
-30. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
+31. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-31. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
+32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
     evaluated (as-issued and current) and the seam to the primitives.
 
 ## Forthcoming

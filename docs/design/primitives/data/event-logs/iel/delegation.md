@@ -59,3 +59,14 @@ flowchart BT
 Solid arrows are chain order; the dotted arrows are `manifest.delegates` (the grant) and the `Dth`'s
 `kills[]` `bound` (the last honoured event on the delegated chain); the thick arrow is
 `manifest.anchors` — the `Dth` sealing the rescission `Trm`, which carries only its pin.
+
+## The positive delegating link
+
+A `del(X, N)` document commits the exact authorizing path it was issued under, and a verifier
+re-derives it, through an owner-rooted **delegating-link** lookup SEL — the **positive** twin of the
+rescission lookup. Its prefix derives from `(delegator, vdti/sel/v1/targets/delegation, delegate)`
+(`delegate` = `data`, [`../tags-and-topics.md`](../tags-and-topics.md)); it is `{Icp, Pin}`-shaped,
+its `Pin` naming the `Ath` grant. Same derived-locus scheme as the rescission lookup, but it
+**pins** the grant rather than killing it, so a verifier derives one locus per hop and walks up to
+`X` (bounded by `MAXIMUM_DELEGATION_DEPTH` and the verifier-wide work cap). See
+[`../../../policy/documents.md` §Delegation in a document](../../../policy/documents.md#delegation-in-a-document).

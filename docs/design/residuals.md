@@ -68,11 +68,12 @@ factors carry the weights above; the product is bucketed **Critical ≥ 1000 / H
 Ranking is a judgment call about blast radius, reversibility, and what is protected. The ordering
 below is a first pass meant to be argued with, not a settled verdict.
 
-The **ranked summary** tags each residual by **axis** — the property it puts at risk — by
-**requirements** — what an attacker must already have or do — and by **outcome** — what a user or
-operator actually sees if it lands. Cost is how bad that outcome is, **Exploitability** how
-attainable it is, and **Risk = Exploitability × Cost** the sizing each table is sorted by;
-**requirements** lists the specific preconditions behind the Exploitability band.
+The **ranked summary** sizes each residual by **Cost** (how bad the outcome is), **Exploitability**
+(how attainable it is), and **Risk = Cost × Exploitability** (the sort key), and tags it by **axis**
+(the property at risk) and **outcome** (what a user or operator sees). The two ranked tables carry
+different remaining columns: **Irreducible** adds **requirements** (what an attacker must already
+have), **detectable**, and **resolution**; **Avoidable** adds **mitigation** (the deployment control
+that removes it). The **inherent trade-offs** table is unscored — accepted costs, not attacks.
 
 ## Classification axes
 
@@ -739,13 +740,20 @@ witnessing model.
 
 ## 11. Owed work and unverified assumptions
 
-One assurance residual remains — a discipline the design leans on but that only independent
-implementations can confirm. Not a known exploit.
+Two forward items — a cross-implementation encoding discipline and a feature-layer obligation that
+lands with the value-lookup feature. Neither is a known exploit.
 
 - **Cross-implementation encoding drift — Low.** The synthetic marker for a forked or disputed state
   must be encoded byte-exactly across implementations; a drift would spin the anti-entropy loop
   until a node escalates to a by-prefix fetch (which bounds it). A liveness discipline, not a safety
   break.
+- **Value-lookup lineaged-target discipline — Low (feature-layer, when the value-lookup feature
+  lands).** A value rescission must declare the **matching lineaged** `kills[]` target; a rescission
+  declaring only an on-chain `Trm`, or a non-lineaged / wrong-lineage target, leaves the kill on the
+  **withholdable** leg, so a node missing that lineage's `Trm` reads the value live and serves a
+  **stale** value. The primitive does not backstop this — it is a feature-layer obligation
+  ([`sel/verification.md`](primitives/data/event-logs/sel/verification.md),
+  [`sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)).
 
 ---
 

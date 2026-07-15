@@ -463,7 +463,7 @@ crossed with inherited severance — lands with
   [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery);
   [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded);
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
-- [`../../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
+- [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing: the witnessing floor, the beacon, the federation-IEL schism mechanics.
 - [`../../../../../operations/sealing-serialization.md`](../../../../../operations/sealing-serialization.md)
   — the sealing-serialization operator playbook (forthcoming).

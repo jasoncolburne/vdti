@@ -16,15 +16,16 @@ convention `vdti/{component}/v1/{category}/{name}`
 Primitive-owned. The `tag` that qualifies the digest so derivations in different domains never
 collide.
 
-| Tag                              | Derivation                                                                                                            |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `vdti/iel/v1/targets/commitment` | an issuer's `Ixn`-anchored commitment to an immutable SAD (a credential is one use) — `hash('…:{issuer}:{sad.said}')` |
-| `vdti/sel/v1/targets/revocation` | a `Rev`-anchored kill's target + its lookup-SEL — `hash('…:{owner}:{data}')`                                          |
-| `vdti/sel/v1/targets/rescission` | a `Dth`-anchored kill's target + its lookup-SEL                                                                       |
-| `vdti/log/v1/states/active`      | a single-tip chain — uses that tip's real SAID; no synthetic                                                          |
-| `vdti/log/v1/states/forked`      | the effective-SAID synthetic for a forked chain — `hash('…:{prefix}:{position}')`                                     |
-| `vdti/log/v1/states/disputed`    | the effective-SAID synthetic for a disputed chain                                                                     |
-| `vdti/log/v1/states/terminated`  | a terminated chain — uses its real `Trm` SAID; no synthetic                                                           |
+| Tag                              | Derivation                                                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/iel/v1/targets/commitment` | an issuer's `Ixn`-anchored commitment to an immutable SAD (a credential is one use) — `hash('…:{issuer}:{sad.said}')`                           |
+| `vdti/sel/v1/targets/revocation` | a `Rev`-anchored kill's target + its lookup-SEL — `hash('…:{owner}:{data}')`                                                                    |
+| `vdti/sel/v1/targets/rescission` | a `Dth`-anchored kill's target + its lookup-SEL                                                                                                 |
+| `vdti/sel/v1/targets/delegation` | the topic of a `del(X, N)` hop's positive **delegating-link** lookup SEL — locus derived from the delegator + delegate, pinning the `Ath` grant |
+| `vdti/log/v1/states/active`      | a single-tip chain — uses that tip's real SAID; no synthetic                                                                                    |
+| `vdti/log/v1/states/forked`      | the effective-SAID synthetic for a forked chain — `hash('…:{prefix}:{position}')`                                                               |
+| `vdti/log/v1/states/disputed`    | the effective-SAID synthetic for a disputed chain                                                                                               |
+| `vdti/log/v1/states/terminated`  | a terminated chain — uses its real `Trm` SAID; no synthetic                                                                                     |
 
 `revocation` and `rescission` carry **no feature name** — a delegate rescission and a
 document-member rescission share `rescission` and never collide, because the `data` (the
@@ -41,7 +42,11 @@ fixed text encoding: the canonical form is text today (so the bytes are its UTF-
 bytes keeps the derivation stable if the canonical encoding later moves to binary. In the `forked` /
 `disputed` synthetic, `{position}` is the **SAID of the fork point**: the verification token's
 `divergence_ancestor` for `forked`, its `last_seal_advancing_event` for `disputed`. The synthetic is
-content-independent — never a digest over the competing tips — so it is flood-stable.
+content-independent — never a digest over the competing tips — so it is flood-stable. Its **encoded
+token carries a distinct type qualifier** — a `states/*` state code, not a SAID's digest code — so a
+synthetic and a real tip SAID differ **structurally** (a qualifier mismatch), and the inequality
+that fires anti-entropy is never a probabilistic hash collision; the exact qualified byte form is
+pinned by the encoding library.
 
 ## SEL topics — a SEL inception field
 

@@ -86,6 +86,20 @@ lineage** — one that lost first-seen at any earlier position — is itself dea
 seal a buried chain), so a dispute cannot form across positions; it collapses to two witnessed
 seal-siblings at one fork.
 
+**A below-seal sealed event is declined — the witness mirrors the seal-cap.** The "structurally
+valid" test a selected witness applies before signing includes the **seal-cap** (the merge
+shape-validity gate —
+[`../../primitives/data/event-logs/kel/merge.md`](../../primitives/data/event-logs/kel/merge.md)): a
+sealed event whose parent lies **below the chain's current seal** is inert and is **declined**, so
+it never reaches threshold. This is the **backdate defense** — a below-seal sealed straggler must
+never be witnessed, or a total-key-compromise adversary could mint a fabricated historical fork
+years later; the **only** reachable dispute is a seal-vs-seal collision **at the last (live) seal**
+(two accepted seals there, which takes a provable witness double-sign — the `2·threshold − signers`
+collusion, the determinism price). This signing decision reads the event **body** and the witness's
+held chain state to locate the current seal; it is a different operation from the bodyless
+**receipt-counting** below ([§Query-scoping](#query-scoping-and-the-audit-flag)), which only
+confirms a receipt came from a legitimately-selected witness — not whether to sign.
+
 **The split-stall and its exit.** First-seen partitions the receipts at a contested content position
 (`a + b ≤ signers`); when neither sibling reaches a majority — an even-`signers` tie, abstentions,
 or a partition — the position **stalls, fail-secure**: signed witnesses cannot switch, so a minority
