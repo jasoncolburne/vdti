@@ -34,11 +34,14 @@ inventing new ones.
 A mesh link is an authenticated, encrypted session established once per connection:
 
 - **Authenticate.** The two nodes exchange identity prefixes and run an ML-KEM key exchange — the
-  initiator offers an encapsulation key, the responder encapsulates to it — yielding a shared
-  secret. Each side then signs the handshake transcript with ML-DSA, and each **verifies the peer's
-  signature against that peer's witnessed identity**. A node whose signing key does not match its
-  current witnessed key state is refused: authentication is mutual and bound to the witnessed chain,
-  not to a self-asserted key.
+  initiator offers a **fresh, per-connection** encapsulation key, the responder encapsulates to it —
+  yielding a shared secret. Each side then signs the handshake transcript with ML-DSA, and each
+  **verifies the peer's signature against that peer's witnessed identity**. A node whose signing key
+  does not match its current witnessed key state is refused: authentication is mutual and bound to
+  the witnessed chain, not to a self-asserted key. Because the encapsulation key is **ephemeral** —
+  generated for the connection, never a published or persistent key — the channel has **forward
+  secrecy**: a later compromise of a node's signing key cannot decrypt a past session, whose key
+  material is already gone.
 - **Derive.** From the shared secret, blake3 derives **two** AES-256-GCM keys — one per direction —
   under a domain-separated context on the `vdti/gossip/v1/*` convention. The two directions never
   share a key.
@@ -62,8 +65,10 @@ ruled out by the transport code that owns the counters.
 Keys and counters are scoped to a single connection. A dropped or re-dialed link runs a new
 handshake and starts fresh keys and counters from zero. There is no mid-session rekey and none is
 needed: a connection never exhausts a 64-bit per-direction counter within its lifetime, and any
-transient fault triggers a reconnect that refreshes the material anyway. A node that rotates its
-mesh key simply forces reconnection, so key rotation reaches the transport without a special path.
+transient fault triggers a reconnect that refreshes the material anyway. **There is no persistent
+mesh key to rotate** — a node's only long-lived key on the mesh is its **signing** key, and rotating
+that simply forces reconnection: the next handshake authenticates under the new witnessed key, so
+identity-key rotation reaches the transport without a special path.
 
 ## What rides above — the epidemic protocol
 

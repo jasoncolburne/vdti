@@ -213,26 +213,39 @@ shared-documents group-key idea (§7) rather than reusing it wholesale — chat 
 enumerable member set and a time-cadence ratchet the shared-documents access-list does not provide
 (see "Relationship to shared-documents" below).
 
-- **Members = IEL identities.** Each member's **receive key** is its `{Icp, Gnt}` value-bearing lookup
-  SEL (§2). A member is an IEL, so it may hold several **device** KELs, each able to publish a receive
-  key — whether the epoch key **wraps** per member-identity or per device is an **open item** (below); the
-  per-message **subkey** is device-keyed regardless (see "Per-sender message keys").
+- **Members = person identities (IELs); the epoch key wraps once per member (Jason 2026-07-15).** Each
+  member's **receive key** is owned by that member's **own identity IEL** — the `{Icp, Gnt}`
+  value-bearing lookup SEL of §2 — so the group **never controls a member's key**: the member establishes
+  and rotates it self-service, and no group governance can swap it. A member is a **person**, so
+  **per-device key control is meaningless** — every one of a person's devices is the **same principal**
+  (compromise one, you've compromised the person), so the epoch key wraps **once per member** (never per
+  device), and a person's devices share that receive key's material. The per-message **subkey** stays
+  device-keyed (see "Per-sender message keys") **purely for nonce-safety** (two of a person's devices
+  must not collide under the shared epoch key), never as a control boundary. **Contrast the federation:**
+  a witness has **no published receive key at all** — its mesh channel is an ephemeral,
+  signature-authenticated handshake (`vdti-area-federation-witnessing.md` §1e), so the "who owns the
+  key" question does not even arise there. Here it does, and the answer is the member's **own** identity
+  IEL.
 - **Group membership = a bounded, enumerable member roster (Jason 2026-07-14).** Unlike the
   shared-documents access-list — deliberately **unbounded**, resolved **per-participant** by O(1)
   lookup, **never materialized as a live set** (`vdti-area-shared-documents §1`) — the epoch wrap must
   **enumerate** the current members to seal the key to each, so chat carries a **bounded enumerable
-  roster** (the IEL-roster shape, capped like `MAXIMUM_ROSTER_SIZE`; a policy-expressed member set is
-  the alternative — open). Membership changes are governed at **T2** (the creator's `Gnt`←`Ath`, or a
-  group policy), so a signing-key theft (T1) cannot add or remove a member and a removed member cannot
-  re-admit itself. A **1:1 chat is the degenerate roster of two**.
-  - **Roster privacy is an open axis (2026-07-15).** A raw IEL roster lists member prefixes **publicly**
-    (witnesses verify anchoring against it), so it **leaks the group membership graph** — who is in
-    which group — to the witnesses. That surrenders the **participant-blindness** shared-documents keeps
-    (member names live in **gated** content, never public structure — `vdti-area-shared-documents §1`).
-    So the roster representation must either **accept** that disclosure or use a **gated / blinded**
-    enumerable roster (member prefixes behind read-gated opaque SAIDs — enumerable by members, blind to
-    witnesses); pinned open below. This is the concrete answer to "does the bounded roster contradict a
-    shared-docs guarantee?" — yes, participant-blindness, unless blinded.
+  roster** (capped like `MAXIMUM_ROSTER_SIZE`), **gated / blinded** (below). Membership changes are
+  governed at **T2** (the creator's `Gnt`←`Ath`, or a group policy), so a signing-key theft (T1) cannot
+  add or remove a member and a removed member cannot re-admit itself. A **1:1 chat is the degenerate
+  roster of two**.
+  - **Roster privacy = gated / blinded (Jason 2026-07-15).** A **raw** IEL roster would list member
+    prefixes **publicly** (witnesses verify anchoring against it), **leaking the group-membership
+    graph** — who is in which group — to the witnesses, surrendering the **participant-blindness**
+    shared-documents keeps (member names live in **gated** content, never public structure —
+    `vdti-area-shared-documents §1`). So the roster is **gated / blinded**: member prefixes ride
+    **read-gated opaque SAIDs** — **enumerable by members** (a member materializes the wrap-set), but
+    **blind to witnesses** (who see only opaque anchors, never the member set). This is the
+    shared-documents read-gating discipline applied to a **bounded enumerable** set — the answer to
+    "does the bounded roster contradict a shared-docs guarantee?" is **no, once blinded**. (A **public**
+    roster is therefore ruled out; the raw on-chain IEL-roster manifest is not the representation. How
+    the gated set is stored — a gated SEL vs a membership policy — is the remaining representation
+    detail, below.)
 - **Key epochs = a SEL** advancing **one symmetric group key per epoch**. Each epoch key is **freshly
   generated (independent random), never derived from a prior epoch key** — so a compromise of one epoch
   key exposes **only that epoch**, nothing forward. It is **ESSR-wrapped to each current member** (one
@@ -304,9 +317,10 @@ answered.** A SEL `Gnt` **can** seal a per-epoch value and IEL identities supply
 receive keys (§2) — that much holds with no new primitive. The **per-sender subkey / nonce** discipline
 and the **per-message sender signature** are **now specified on existing primitives**
 (`blake3::derive_key` device-keyed + AES-256-GCM; ML-DSA `t_use` signing with epoch-window currency), so
-they need no new primitive. **Still open:** the **bounded enumerable member roster** is a new membership
-shape (not the shared-docs access-list), plus its **privacy** representation (public vs gated/blinded);
-and the **session-key SEL length bound**.
+they need no new primitive. The roster is **gated / blinded** (privacy resolved — above). **Still open:**
+the **bounded enumerable member roster** is a new membership shape (not the shared-docs access-list) —
+its **storage** (a gated SEL vs a membership policy) is the remaining representation detail; and the
+**session-key SEL length bound**.
 Epoch advance is **stacking `Gnt`s** (`area-sel §1f`) — **not** `lineage` (a loss-of-control
 re-establishment counter capped at `MAXIMUM_SEL_LINEAGE`, irrelevant to the epoch count); over a
 years-long chat at ~6–12h that is **thousands** of seal-advancing `Gnt`s on one SEL, bounded by no
@@ -315,12 +329,12 @@ the whole SEL. Whether that is acceptable paged, or wants a periodic **checkpoin
 the session SEL, is open.
 
 **Open items (§7a):** the `SESSION_RATCHET_INTERVAL` value; the epoch-SEL shape and its length bound
-(checkpoint cadence); the bounded-roster representation (IEL-roster vs policy), its cap, **and its
-privacy** (public roster vs a gated / blinded enumerable one — above); whether the epoch key **wraps**
-per **member** or per **device** (the per-message **subkey** is device-keyed — resolved above; the
-**wrap** granularity is still open); how an **offline** member catches up across missed epochs; the 1:1
-path; message-anchoring policy; whether the live channel ever carries epoch keys (resolve to **never
-raw** — always ESSR-wrapped).
+(checkpoint cadence); the **gated / blinded** roster's **storage** (a gated SEL vs a membership policy)
+and its cap (**privacy resolved — gated / blinded, above**); the epoch key wraps **once per member**
+(per-device dropped as meaningless — resolved above); how an **offline** member catches up across missed
+epochs; the 1:1 path;
+message-anchoring policy; whether the live channel ever carries epoch keys (resolve to **never raw** —
+always ESSR-wrapped).
 
 ## 8. Reserved names + schemas (convention `vdti/<concept>/v1/<category>/<thing>`; concept **`exchange`**)
 
@@ -363,9 +377,8 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
   roster + key-epoch SELs, the per-sender-subkey nonce discipline, per-message sender signatures, and the
   ratchet; the `examples/chat` + `examples/mail` apps compose it. The §7a primitive-support check is
   **partially** answered (a `Gnt` seals a value ✓; the per-sender-subkey nonce discipline + per-message
-  sender signature are now specified on existing primitives ✓; the **bounded enumerable roster + its
-  privacy** and the **SEL-length bound** remain open).
+  sender signature are now specified on existing primitives ✓; the roster is **gated / blinded** ✓; the
+  **bounded enumerable roster's storage** and the **SEL-length bound** remain open).
 - **Open (flagged):** the session-mode open items (§7a — ratchet interval, epoch-SEL shape + length bound,
-  bounded-roster representation + its privacy, per-member-vs-device **wrap**, offline catch-up); scoped
-  delivery metadata (§5); the IPEX exchange-message detail (§7); whether **mail** is a sibling feature note
-  rather than a section here.
+  the gated/blinded roster's storage, offline catch-up); scoped delivery metadata (§5); the IPEX
+  exchange-message detail (§7); whether **mail** is a sibling feature note rather than a section here.

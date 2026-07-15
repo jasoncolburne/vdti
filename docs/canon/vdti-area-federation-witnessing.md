@@ -335,16 +335,14 @@ adversarial pass.
   already pushes competing events to selected witnesses; extend it so a one-branch holder gets the branches by push,
   so there's no second channel to secure (the residual by-prefix fetch shrinks, rides the same encrypted mesh). Build
   detail → `vdti-implementation-notes.md`.
-  **⚠ RESOLVED (Jason 2026-06-26):** the encryption **public key lives in a SEL** owned by a **degenerate per-device
-  IEL** — a single-member IEL (`members = [the witness device KEL]`), **derivable from the KEL prefix** (+ a purpose
-  discriminator). It's a **restricted IEL** whose kind set **excludes `Evl`**, and the general **post-delta `|roster| ≥ 1`** rule (inv 12) forbids cutting the
-  sole member (a lone-member `cut` would compute `1 + 0 − 1 = 0`, rejected — and with no `Evl` there is no kind to carry a `cut` regardless), so — with no `Evl` to grow — its roster is
-  **immutable** (a general rule, not a federation-member special case); no new "immutable" manifest field, and
-  `t_govern` stays mandatory (singleton exception → all thresholds = 1). Kind set ≈ `{Icp, Ixn, Trm}`.
-  **It does NOT break the `Fcp` bootstrap** — the IEL is *derived*, not separately incepted: the device KEL exists
-  first (`Fcp`) → its degenerate IEL derives → it owns the key SEL; "reincept" = re-derive from the recovered KEL
-  (the KEL carries the rotation/recovery story). Discovery: federation roster → witness KEL prefixes → derive each
-  degenerate IEL → its key SEL.
+  **⚠ REVISED (2026-07-15):** the mesh channel is an **ephemeral, ML-DSA-authenticated handshake** — each
+  connection a fresh `ML-KEM` exchange, both sides signing the transcript against their **witnessed** identity, so
+  the peer is authenticated from its witnessed **signing** key and the channel gains **forward secrecy**
+  (`docs/design/substrate/infrastructure/mesh-transport.md`). So there is **no published per-witness encryption
+  key** — and **no persistent mesh key to rotate**; a witness's only long-lived mesh key is its signing key, and
+  rotating that just forces reconnection. *(The earlier plan rooted a published per-witness key in a derived
+  **degenerate IEL**; not built once the handshake removed any key to own — the idea, its deterministic nonce, and
+  why it is not general-purpose are captured in `supplemental/degenerate-iel-idea.md`.)*
 - **Receipts ENUMERATE the branches; the data decides (reframed 2026-06-23; re-keyed post-floor 2026-07-02):**
   competing receipts at a position list the branches a verifier must gather — but **terminality is a data-local
   branch-level walk** (inv 13 / 17: ≥ 2 branches each with a sealed event past the fork, over **retained**
