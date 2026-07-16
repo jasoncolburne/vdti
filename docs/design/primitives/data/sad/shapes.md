@@ -216,7 +216,7 @@ rides adjacent:
 | `kem_ciphertext`    | bytes     | The ML-KEM encapsulation to the recipient's receive key. |
 | `encrypted_payload` | bytes     | The AES-256-GCM ciphertext of the inner.                 |
 | `nonce`             | bytes     | The 12-byte AEAD nonce (fresh random per message).       |
-| `createdAt`         | timestamp | Creation time (advisory).                                |
+| `created`           | timestamp | Creation time (advisory).                                |
 
 The **inner** (encrypted) is `{ sender, topic, payload }` — the sender prefix (proving authorship),
 the protocol topic (hidden from the transport), and the opaque payload. The exchange-message and

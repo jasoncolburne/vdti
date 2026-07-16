@@ -58,7 +58,7 @@ so an envelope, its inner, and every exchange message are SADs, anchorable by SA
   multiplexes protocols **without** exposing the message type to the transport (it is inside the ciphertext);
   `payload` opaque.
 - **Envelope (signed plaintext):** `{ said, sender, sender_serial, recipient, kem_ciphertext,
-  encrypted_payload, nonce, createdAt }` — `sender` plaintext for routing, `recipient` signed (anti-KCI),
+  encrypted_payload, nonce, created }` — `sender` plaintext for routing, `recipient` signed (anti-KCI),
   `sender_serial` = the sender's establishment serial at signing time, `kem_ciphertext` the ML-KEM
   encapsulation, `encrypted_payload` the AES-256-GCM ciphertext, `nonce` its 12-byte AEAD nonce. The
   **signature is ML-DSA over the envelope SAID**, and the SAID commits to every field — so the signature
@@ -166,7 +166,7 @@ the canon's job is to keep the primitives + substrate able to support them.
 
 - **Payload-agnostic transport.** A mail node stores opaque **`SignedEssrEnvelope`** blobs (object store, at
   the **origin node** only) and gossips **routing metadata** (`{ sender, recipient, sourceNode, blobDigest,
-  size, createdAt, expiresAt }`) to all nodes. Lifecycle: **send** (store blob + gossip metadata) →
+  size, created, expires }`) to all nodes. Lifecycle: **send** (store blob + gossip metadata) →
   **discover** (recipient queries any node's inbox) → **fetch** (from the origin node, authenticated —
   unauthenticated fetch would allow offline attacks on the ciphertext) → **open** (§1, with currency §3) →
   **ack** (origin deletes the blob, gossips removal). Rate limits: per-sender/day, per-recipient inbox cap,
