@@ -505,8 +505,9 @@ adversarial pass.
   fail-*open* direction (stale reads fresh, at-risk suppressed). **Because it is fail-open, a drifted clock silently
   defeats the entire dormant-forgery / backdate defense (§1f) — so NTP sync to within `CLOCK_TOLERANCE_BAND` is a *security control*,
   not best-effort, and belongs in every deployment's operating requirements.** This is on the consumer, not the framework (a
-  verifier can't be defended against its own wrong clock). When the federation is reachable, **`evaluate_current`**
-  (live challenge-response) is the **no-local-clock-trust** path.
+  verifier can't be defended against its own wrong clock). When the federation is reachable, a **live
+  challenge-response** to fresh witnessed state is the **no-local-clock-trust** path (a liveness check, not a
+  policy evaluation).
 - **Timestamp format:** **UTC, RFC3339, exactly 6 fractional digits (microseconds), fixed-width / zero-padded** so
   the manifest SAD canonicalizes byte-identically (JCS) — the same fixed-width rule whether the timestamp is inline or wrapped. The 6-place precision is for **deterministic serialization, not a
   claim of microsecond accuracy** — semantics stay coarse and skew-tolerant.

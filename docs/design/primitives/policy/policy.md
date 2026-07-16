@@ -20,8 +20,10 @@ declares is the **verification-token** seam in [`evaluation.md`](evaluation.md).
 Keeping the two mechanisms apart is a security decision, not a convenience. A chain event that chose
 its own authorization policy would let the author point that policy at a stale, more permissive past
 — the backdate surface the structural rules exist to close. Authorization that a third party relies
-on (who issued a credential, who may present it) is exactly where a policy language earns its keep,
-and that lives on the document, never on the chain.
+on — **who could issue a credential** — is exactly where a policy language earns its keep, and that
+lives on the document, never on the chain. (Who may _present_ a credential is a separate question,
+answered by a single-identity challenge to the issuee, not a policy —
+[`documents.md`](documents.md).)
 
 **Reading order for this layer:** this doc (the language and the two mechanisms) →
 [`documents.md`](documents.md) (where policy lives and how a document anchors its context) →
@@ -159,10 +161,10 @@ overlap_.
 
 ## Forward references
 
-- [`documents.md`](documents.md) — where a policy lives (a document's authorizing and acceptance
-  conditions) and how a document's issuer context is fixed by its anchoring position.
-- [`evaluation.md`](evaluation.md) — the two evaluation modes (as-issued and current), the shared
-  composer with two leaf resolvers, and the verification-token interface this layer declares.
+- [`documents.md`](documents.md) — where a policy lives (a document's authorizing condition) and how
+  a document's issuer context is fixed by its anchoring position.
+- [`evaluation.md`](evaluation.md) — the as-issued evaluation (one composer, one leaf resolver) and
+  the verification-token interface this layer declares.
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — the IEL primitive: the identity an `id`
   leaf resolves (members + threshold vector) and the delegate list a `del` leaf reads.
   _(Per-primitive doctrine.)_

@@ -6,29 +6,27 @@ mechanisms.
 Policy lives on **documents**, never on a chain event. A document is a [SAD](../data/sad/sad.md): an
 application-defined payload (a credential, an attestation, a signed declaration) that carries,
 alongside its content, the policy that authorizes it. This doc states the generic shape every
-policy-bearing document shares — the two conditions it can carry, and how its issuer context is
+policy-bearing document shares — the authorizing condition it carries, and how its issuer context is
 fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
 specific document kind (how a **credential** is issued and revoked, for instance) is a feature
 layered above this one — see [`../../features/credentials/`](../../features/credentials/) _(a
 feature; forthcoming)_.
 
-## A document's two conditions
+## A document's authorizing condition
 
-A policy-bearing document carries up to two policy references (each the SAID of a policy SAD —
-[`policy.md`](policy.md)):
+A policy-bearing document carries at most **one** policy reference (the SAID of a policy SAD —
+[`policy.md`](policy.md)): its **authorizing condition — who could issue it.** When a single
+identity issues the document, this condition is **structural**: the issuer's own IEL **`t_use`**
+threshold authorizes the issuance, and there is no policy expression to evaluate (the structural
+mechanism, [`policy.md`](policy.md), covers it). The condition becomes an explicit policy only when
+issuance **spans separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of
+three institutions) — there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
 
-- **The authorizing condition — who could issue it.** When a single identity issues the document,
-  this condition is **structural**: the issuer's own IEL **`t_use`** threshold authorizes the
-  issuance, and there is no policy expression to evaluate (the structural mechanism,
-  [`policy.md`](policy.md), covers it). The condition becomes an explicit policy only when issuance
-  **spans separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of three
-  institutions) — there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
-- **The acceptance condition — who may present it.** The rule for who may later present or act on
-  the document. This is evaluated **current** — against live proof at the time of presentation
-  ([`evaluation.md`](evaluation.md)).
-
-The composing logic is the same language in both cases; only how each leaf is resolved differs by
-mode.
+**Who may _present_ the document is not a policy.** It is the uniform **challenge-the-issuee** step
+— the holder proves control of the issuee identity live (single-identity authentication) — handled
+by the presentation exchange, not the policy layer. A **read** gate on a document is likewise not a
+policy: it is a `readers` membership ([`../data/sad/custody.md`](../data/sad/custody.md)). Policies
+are **as-issued only**; there is no current-mode evaluation.
 
 ## The anchoring position — fixing the issuer context
 

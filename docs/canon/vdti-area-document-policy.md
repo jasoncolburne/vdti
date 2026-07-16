@@ -13,10 +13,11 @@ policy-on-documents, [inv 8] walk-semantics, [inv 10] negative-checks-are-lookup
   (withdraw-`Ixn` + lookup-SEL status); F8 closure; the `project_vdti_credentials_layering` memory.
 
 ## Scope — the sub-questions this layer must answer
-- **A. What a document / cred IS** — `{said, issuer, issuee, claims, policy, issued, expires?, nonce?}`. **[DONE — §A]**
+- **A. What a document / cred IS** — `{said, issuer, issuee, claims, issued, expires?, nonce?}` (**no `policy`** — who-may-present is challenge-the-issuee, not a policy; 2026-07-16). **[DONE — §A]**
 - **B. The policy DSL** — leaves `id`/`del`/`pol` + composers `thr`/`wgt`/`and`; `dev` and `grp` dropped. **[DONE — §B]**
-- **C. The two evaluation functions** — one shared composer + two leaf resolvers (as-issued: anchoring position / as-of /
-  on-chain proof; current: tip / attestations / challenge). **[DONE — §C]**
+- **C. The evaluation function** — one shared composer + **one** leaf resolver (as-issued: anchoring position /
+  as-of / on-chain proof). The current-mode function is **removed** (2026-07-16 — live checks don't compose;
+  who-may-present is challenge-the-issuee, read-gating is a `readers` membership lookup, neither a policy). **[DONE — §C]**
 - **D. Document context** — fixed by the **anchoring position** (no body `pin`, dropped 2026-06-26); multi-identity
   uses an `issuers[]` SAD + independent attestations. **[RESOLVED — §A]**
 - **E. Policy-satisfaction matching** — how a server/verifier decides "satisfied" **is the shared composer of §C**
@@ -78,43 +79,47 @@ policy-on-documents, [inv 8] walk-semantics, [inv 10] negative-checks-are-lookup
 
 ## Worked — C (evaluation model) + B (leaf set) — 2026-06-20
 
-### C. Evaluation model — the canon has THREE functions; the reshape keeps TWO
-The landed canon (`evaluation.md`):
+### C. Evaluation model — the canon had THREE functions; ONE survives (as-issued)
+The landed canon (`evaluation.md`) had three:
 1. **`evaluate_gate_policy`** — anchored single-policy GATE for *chain governance events* (IEL `Evl`/`Trm`, SEL
    `Trm`), driven by the chain's floored pin.
 2. **`evaluate_anchored_policy`** — multi-party anchored validity (cred *issuance*; parties present pinnings;
    resolves as-of).
 3. **`evaluate_current_policy`** — challenge-response *current* control (attestations at chain tip).
 
-**Reshape reconciliation:**
+**Reconciliation — the gate dissolved (R1), then the current-mode function dissolved too (2026-07-16):**
 - **★ Function (1), the gate, DISSOLVES.** Primitives carry no policy [inv 1] → there is no chain-governance
   policy to evaluate. Chain-event authorization becomes **structural** (IEL threshold vector + tier, §12; SEL
   single-owner via manifest+pin). `policyPin` + the governance/operation/authentication/delegation policy-kinds
   go with it. → **R1.**
-- **Functions (2) + (3) ARE the document layer's "two-function model"** Jason flagged. `evaluate_as_issued`
-  (was-it-validly-issued — pins, as-of) + `evaluate_current` (current control — attestations, tip). The "minor
-  reconciliation" = drop the gate, strip `policyPin`, reconcile the leaves (B).
+- **★ Function (3), the current-mode function, ALSO DISSOLVES (2026-07-16 — live-policy removal).** Live checks
+  don't compose for a passive verifier, so there is no live policy composition to evaluate. What used it —
+  who-may-present (creds), the document read gate — is **not** a policy: who-may-present is the single-identity
+  **challenge-the-issuee** auth step (presentation exchange / IPEX), and read-gating is a **`readers`** membership
+  lookup (a read-authorization SEL — shared-documents §5), neither evaluated by the composer. `evaluate_current`
+  is removed. **Policies are as-issued only.**
+- **Function (2), `evaluate_as_issued`, is the sole survivor** — was-it-validly-issued (as-of the anchoring
+  position, committed on-chain anchors); the document layer's authorizing-condition check for a multi-identity
+  issuer.
 - **Rescission:** the canon's `del` self-traversal walks to *tip* for an `Rsc`; the reshape replaces that with
   the positive **lookup-SEL** check [inv 10] — no to-tip rescission scan.
 
-**The function structure — one composer, two resolvers (confirmed 2026-06-20).** The two surviving functions
-share their core:
+**The function structure — one composer, ONE resolver (as-issued; current-mode removed 2026-07-16).** After the
+current-mode function dissolves (above), a single evaluation function survives:
 - **Shared composer** — the `thr`/`wgt`/`and`/`pol` logic (credited-set union, distinct-by-prefix counting,
-  per-prefix-max weight, `and`-over-disjoint-pools, threshold check). **Identical** in both modes.
-- **Mode-specific leaf resolver** — each leaf needs **state** (the chain's roster/keys, from a verification
-  *token*) and **proof** (that the named party acted). Both differ by mode:
-
-  | | State (token) | Proof |
-  |---|---|---|
-  | **as-issued** | as-of the **anchoring position** | the **committed on-chain anchors** (reached via that position) — proof is already in the chain |
-  | **current** | at **tip** | **live attestations** over a fresh **challenge** |
-
-  `del` differs the same way (as-issued: self-traverse + ancestry-to-cutoff, as-of; current: live control +
-  self-traverse + rescission-not-present, at tip).
-- **Shape:** `evaluate(policy, resolver)` is the shared composer; `evaluate_as_issued` / `evaluate_current` are
-  thin wrappers that pick the resolver and assemble its inputs. **The composer never knows the mode.**
-- **Anchoring positions feed the as-issued resolver** (state token at a position + the committed-anchor proofs); **attestations
-  are the current resolver's analog.** Same evaluator, two ways of feeding it.
+  per-prefix-max weight, `and`-over-disjoint-pools, threshold check).
+- **As-issued leaf resolver** — each leaf needs **state** (the chain's roster/keys, from a verification *token*,
+  as-of the **anchoring position**) and **proof** (the **committed on-chain anchors** reached via that position —
+  the proof is already in the chain). `del` resolves the same way (self-traverse + ancestry-to-cutoff, as-of; the
+  rescission check is the positive lookup-SEL, inv 10 — no to-tip scan).
+- **Shape:** `evaluate(policy, resolver)` is the composer; the as-issued entry point is the thin wrapper that
+  assembles the resolver's inputs (the anchoring positions + the committed-anchor proofs).
+- **Why no current-mode resolver:** live checks don't compose (a passive verifier can't gather async parties'
+  live signatures), so there is no live policy composition. The live acts that *look* like a current policy —
+  who-may-present (creds), a read gate (docs) — are **single-identity** authentication (challenge-the-issuee /
+  challenge-the-requester) or a **membership lookup** (`readers`), neither of which is a policy; they live in the
+  presentation exchange / the SAD read gate, not here. A chain's current-state freshness (divergence / staleness /
+  revocation) is the **to-tip freshness step**, a separate thing from policy evaluation.
 
 ### B. Leaf set — reconciled (one real decision = grp)
 - **`dev`** — **DROPPED** (reshape §4; `id(X)` resolves X's IEL threshold-over-KELs). Deletes the whole
@@ -158,7 +163,7 @@ cred = {
   issuer,     // issuer IEL prefix          [inv 7: entity = prefix]
   issuee,     // issuee IEL prefix
   claims,     // → a SAD said (nested → partial disclosure); app payload, opaque to the core
-  policy,     // → a SAD said; acceptance condition (DSL: id/del/pol + thr/wgt/and) — evaluated CURRENT
+  // no `policy` — who-may-present is challenge-the-issuee, not a policy field (2026-07-16); no current-mode policy eval
   // no `pin` — issuer context is fixed by the anchoring position (the issuing IEL Ixn), not a body field (2026-06-26)
   issued,     // timestamp (feature-level — inv 6 allows; advisory)
   expires?,   // optional timestamp (advisory)
@@ -191,10 +196,14 @@ cred = {
   anchoring `Ixn` on its issuer's IEL, and authority-affecting as-of resolution is judged by that **anchoring
   position** (append-only: `D` ← its SEL ← IEL `Ixn` ← KEL `Ixn`, each `previous`-linked) — no body pin at any level.
   No separate machinery to establish time — **the append-only chain *is* the clock.** [inv 5, F1]
-- **Two policies, two modes:** the cred's **`policy`** is the *acceptance* condition (who can present) →
-  evaluated **current**. A document's *authorizing* policy (who could issue it), when multi-identity → evaluated
-  **as-issued** via the independent attestations (the `issuers[]` SAD). Single-issuer authorization is **structural** (the owner IEL threshold),
-  not a DSL eval (R1).
+- **Who-may-present is NOT a policy (2026-07-16 — live-policy removal).** A cred carries **no `policy` field**.
+  Ownership / who-may-present is the uniform **challenge-the-issuee** step — the issuee satisfies its own IEL
+  `use` quorum live (single-identity auth); a bearer cred skips it. This is authentication, not policy
+  composition, so it lives in the presentation exchange (IPEX), not the policy layer. The **only** surviving
+  document-layer policy is a document's *authorizing* condition (who could issue it), when multi-identity →
+  evaluated **as-issued** via the independent attestations (the `issuers[]` SAD); single-issuer authorization is
+  **structural** (the owner IEL threshold), not a DSL eval (R1). Policies are **as-issued only** — live checks
+  don't compose for a passive verifier, so there is no current-mode policy evaluation.
 - **Timestamps are advisory** [inv 6]: `issued`/`expires` never fail crypto/structural checks; an expired cred
   is *expired*, inspected by the caller via an **`is_expired()` helper** + surfaced in the **verification
   token**. All ordering/grandfather uses the **anchoring position** (append-only ancestry) — with the `pin` verified `==

@@ -75,30 +75,30 @@ verifiable structure without forcing the producer to commit to a separate compac
 
 Compaction interacts with custody. Under canonical form every sub-SAD is represented by SAID —
 meaning every sub-SAD is a separately-addressable stored unit, fetchable by anyone who has its SAID.
-**A parent SAD's `readPolicy` does not transitively protect its referenced sub-SADs.** If a parent
-has `readPolicy` but a referenced sub-SAD does not, the sub-SAD's content is publicly fetchable by
+**A parent SAD's `readers` gate does not transitively protect its referenced sub-SADs.** If a parent
+has `readers` but a referenced sub-SAD does not, the sub-SAD's content is publicly fetchable by
 SAID, even though the parent gates read access to its own content.
 
 ### The propagation rule
 
-A sub-SAD inherits no protection from its parent's `readPolicy`. To be private, it MUST declare its
-own `readPolicy`. Otherwise it is publicly fetchable by SAID.
+A sub-SAD inherits no protection from its parent's `readers` gate. To be private, it MUST declare
+its own `readers`. Otherwise it is publicly fetchable by SAID.
 
 ### Expansion-time enforcement
 
 When the storage service serves a SAD in expanded form, each sub-SAD reference resolved during
-expansion is independently subject to that sub-SAD's own `readPolicy`. Expansion is operationally a
-sequence of per-SAD fetches; a requester satisfying the parent's `readPolicy` does not automatically
-gain access to children's gated content. Sub-SADs whose `readPolicy` is not satisfied by the request
+expansion is independently subject to that sub-SAD's own `readers` gate. Expansion is operationally
+a sequence of per-SAD fetches; a requester satisfying the parent's `readers` does not automatically
+gain access to children's gated content. Sub-SADs whose `readers` is not satisfied by the request
 remain represented by their SAID in the expanded response — the same shape the requester would see
 if they fetched the parent compacted and walked the references themselves. Expansion is a round-trip
 convenience, not a privilege-escalation surface.
 
 ### Intentional disconnection
 
-The permissive rule is by design. A client MAY deliberately leave a sub-SAD without `readPolicy`
-under a parent with `readPolicy`, intending the child to be publicly addressable independently of
-the parent's gate — "disconnecting" the child from the parent's protection. Use cases include
+The permissive rule is by design. A client MAY deliberately leave a sub-SAD without `readers` under
+a parent with `readers`, intending the child to be publicly addressable independently of the
+parent's gate — "disconnecting" the child from the parent's protection. Use cases include
 selectively publishing a previously-gated artifact, attaching a public commitment alongside private
 content, or any pattern where the child SHOULD be accessible without the parent's gate.
 
@@ -106,7 +106,7 @@ content, or any pattern where the child SHOULD be accessible without the parent'
 
 Apps built on VDTI SHOULD bake the propagation rule into their compaction and SAD-construction logic
 so end users do not have to choose. The pattern: when an app constructs a sub-SAD whose content the
-parent semantically owns, the app automatically applies an equivalent `readPolicy` to the child
+parent semantically owns, the app automatically applies an equivalent `readers` gate to the child
 unless the application explicitly intends disconnection. End users compose data; the app handles the
 privacy propagation. This is a thin contract — the framework provides the mechanism; correct privacy
 semantics in user-facing apps live in those apps' construction logic.
@@ -128,13 +128,12 @@ any SAID-referenced sub-SAD ([`sad.md` §Composition by reference](sad.md#compos
 - **Undisclosed positions reveal no content.** A SAID is a hash output; the only information a
   non-expanding consumer learns is that some content with that SAID exists somewhere. The content
   itself is not derivable from the SAID.
-- **Sub-SAD reachability is per-SAD-policy-gated, not parent-policy-gated.** A parent's `readPolicy`
-  does not transitively protect referenced sub-SADs (see [§Privacy contract](#privacy-contract)).
-  The attack surface — an adversary learning a sub-SAD's SAID can fetch it directly, even when its
-  parent is gated — is structural and acknowledged. Protection composes one layer up: apps SHOULD
-  attach `readPolicy` to children where the parent semantically owns them, so the policy gates ride
-  with the content. The framework provides the mechanism (per-SAD `readPolicy`); apps provide the
-  policy.
+- **Sub-SAD reachability is per-SAD-gated, not parent-gated.** A parent's `readers` gate does not
+  transitively protect referenced sub-SADs (see [§Privacy contract](#privacy-contract)). The attack
+  surface — an adversary learning a sub-SAD's SAID can fetch it directly, even when its parent is
+  gated — is structural and acknowledged. Protection composes one layer up: apps SHOULD attach
+  `readers` to children where the parent semantically owns them, so the read gates ride with the
+  content. The framework provides the mechanism (per-SAD `readers`); apps provide the read set.
 
 ## Resource-amplification defense
 

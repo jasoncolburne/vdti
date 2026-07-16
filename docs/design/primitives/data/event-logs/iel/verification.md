@@ -176,10 +176,13 @@ within `N` hops?" is a **bounded per-candidate walk**, never a materialization o
   not authorize every actor directly. Each hop is a single `Ath`-inclusion lookup (itself bounded by
   `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary per-IEL cost — no
   delegation-specific fan-out. The walk is bounded by the per-policy depth `N` **and** by a fixed
-  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 4`** backstop; exceeding **either** denies
-  (fail-secure). Four leaves room for a real hierarchy several layers deep (e.g. root → company →
-  organization → team) while keeping chains shallow; a per-policy `N` sits tighter underneath. A
-  fixed protocol constant, not a per-deployment knob.
+  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 8`** backstop; exceeding **either** denies
+  (fail-secure). Eight leaves generous room — a real org hierarchy several layers deep (root →
+  company → division → region → branch → team → individual) **and** person-to-person chains that
+  reach across a well-connected planet (the six-degrees intuition, with headroom) — while the walk
+  stays a cheap linear climb: each hop is one bounded `Ath`-inclusion lookup with no fan-out, so
+  depth is the only quantity it adds. A per-policy `N` sits tighter underneath. A power of two, like
+  the other protocol constants, and fixed — not a per-deployment knob.
 - **Each hop's liveness is a `kills[]` forward-match** (below), never a scan for the absence of a
   rescission.
 

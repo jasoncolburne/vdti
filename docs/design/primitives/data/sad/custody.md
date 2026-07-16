@@ -20,7 +20,7 @@ threshold is the IEL primitive's — [`../event-logs/iel/`](../event-logs/iel/).
 `custody` is a top-level inline struct on the SAD wrapper:
 
 ```
-custody { owner, topic, readPolicy }
+custody { owner, topic, readers }
 ```
 
 Each sub-field is independently optional:
@@ -37,15 +37,14 @@ Each sub-field is independently optional:
   `hash('{tag}:…')`, primitive-owned — same catalogue) and from a SAD's own `kind`
   ([`kinds.md`](kinds.md)). `owner` and `topic` are **both present** (an attested write) or **both
   absent** (an anonymous write) — the writer-binding is both-or-neither.
-- **`readPolicy`** — the SAID of a [policy](../../policy/policy.md) that gates read access at fetch
-  time. The referenced policy is fetched and evaluated in **current mode**
-  ([`../../policy/evaluation.md`](../../policy/evaluation.md)) against the verified prefixes of a
-  signed read request. Composable via the policy language — `id(X)`, `thr(N, [...])`, and nested
-  `pol` are all permitted, so a single `readPolicy` can authorize an arbitrary multi-identity read
-  set without those identities sharing an IEL. Because the language names **identities** (`id(X)`),
-  not raw devices, a read grant tracks the named identity's current key state automatically: a
-  device the owner has rotated out no longer satisfies `id(X)`, so it can no longer read. `None` for
-  publicly readable content.
+- **`readers`** — a reference to a **read-authorization SEL** that names who may read the object, or
+  `None` for publicly readable content. Read access is a **membership** check at fetch time: the
+  requester's signed read request is resolved to an identity, and that identity must be a current
+  member of the `readers` set. Membership is an unbounded, per-participant lookup (the same
+  participant-blind grant / rescission machinery the SEL primitive provides — resolved one requester
+  at a time, never materialized as a set); it is **not** a policy expression, and there is no live
+  multi-party evaluation. Because the set names **identities**, not raw devices, it tracks the named
+  identity's current key state automatically: a device the owner has rotated out no longer reads.
 
 The `custody` struct is inline on the SAD wrapper — it has no `said` field, so per the Recognition
 rule in
@@ -100,22 +99,24 @@ anchor location — altering any of them changes the SAID and breaks the derivat
 
 ## Asymmetric semantics
 
-The write side (`owner` + `topic`) and the read side (`readPolicy`) are intentionally asymmetric:
+The write side (`owner` + `topic`) and the read side (`readers`) are intentionally asymmetric:
 
 - **Writes are single-identity-bound.** The writer-binding (`owner` + `topic`) names **one**
   identity and its document namespace, corroborated by a single SEL anchor (above). A SAD object has
   at most one writer attestation.
-- **Reads are composable.** `readPolicy` is a policy SAID; the policy language composes identities
-  and thresholds arbitrarily. A SAD object can be readable to "any 2 of 3 named identities" without
-  those identities forming a shared IEL, and the read set can include identities that did not
-  participate in the write. `readPolicy` gates only the SAD that declares it — referenced sub-SADs
-  do not transitively inherit the parent's read protection. See
+- **Reads are membership-gated.** `readers` names the authorized read set as a **membership** — a
+  reference to a read-authorization SEL (or `None` for public). A SAD object can be readable to an
+  arbitrary set of identities that did not participate in the write, without those identities
+  forming a shared IEL; a requester is authorized iff it is a current member of that set, resolved
+  by the same participant-blind membership lookup the rest of the system uses — never a live
+  multi-party check. `readers` gates only the SAD that declares it — referenced sub-SADs do not
+  transitively inherit the parent's read protection. See
   [`compaction.md` §Privacy contract](compaction.md#privacy-contract) for how privacy propagates (or
   doesn't) across the SAD graph.
 
 This matches how custody is actually used in practice. A write is an act by one party at one moment
 — the writer's identity and the policy in force at that moment are determinate. Reads can be
-policy-shaped: a private message between two parties, a credential gated by issuer-or-issuee, a
+membership-shaped: a private message between two parties, a credential gated by issuer-or-issuee, a
 drop-box that anyone can write but only the operator can drain.
 
 ## Two evaluation modes for the writer-binding
@@ -133,21 +134,21 @@ threshold; they differ only in **which position**:
   threshold. The answer reflects the IEL's current state — "is the writer's identity still
   authorized?"
 
-Both modes mirror the policy layer's two evaluation modes
-([`../../policy/evaluation.md`](../../policy/evaluation.md)). How an IEL event resolves its
-members + threshold, and the edge cases at IEL governance changes, are the IEL primitive's —
+These two reads — authority at the anchoring position, and authority at the current tip — are the
+same as-of / current split the rest of the system uses for chain state. How an IEL event resolves
+its members + threshold, and the edge cases at IEL governance changes, are the IEL primitive's —
 [`../event-logs/iel/`](../event-logs/iel/).
 
 ## The four combinations
 
 The two axes are independently optional, so a SAD object has four valid custody shapes:
 
-| `owner` + `topic` | `readPolicy` | Pattern                                           |
-| ----------------- | ------------ | ------------------------------------------------- |
-| `None`            | `None`       | Public, anonymous write                           |
-| `Some`            | `None`       | Attested write, public read                       |
-| `None`            | `Some`       | Anonymous write, controlled read (drop-box)       |
-| `Some`            | `Some`       | Attested write, controlled read (private message) |
+| `owner` + `topic` | `readers` | Pattern                                           |
+| ----------------- | --------- | ------------------------------------------------- |
+| `None`            | `None`    | Public, anonymous write                           |
+| `Some`            | `None`    | Attested write, public read                       |
+| `None`            | `Some`    | Anonymous write, controlled read (drop-box)       |
+| `Some`            | `Some`    | Attested write, controlled read (private message) |
 
 (`owner` and `topic` move together — both-or-neither, and an attested write is anchored by its SEL —
 so the left column is the writer-binding as a whole: `Some` = attested + anchored, `None` =
@@ -172,7 +173,7 @@ Custody and [`availability`](availability.md) (a sibling top-level field declari
 scope, TTL, and one-shot delivery) are independent axes:
 
 - A SAD object can be **widely replicated and custody-gated**: the bytes live on many nodes but
-  every read fetch enforces `readPolicy`.
+  every read fetch enforces `readers`.
 - A SAD object can be **unreplicated and permissive**: it lives on one node, but anyone who has its
   SAID can fetch and read.
 - A SAD object can be **widely replicated and permissive**: a public credential available
@@ -196,12 +197,12 @@ and re-checked by consumers.
   adversary who does not control X cannot author that anchor — and a broken **old** key cannot
   either, nor insert one in the past — so a write can be neither forged under X's name nor backdated
   ([`../../../protocol-doctrine.md` §Structural authorization](../../../protocol-doctrine.md#structural-authorization)).
-- **`readPolicy` evasion requires policy-level compromise.** An adversary that retrieves the bytes
+- **`readers` evasion requires membership-level compromise.** An adversary that retrieves the bytes
   of a read-gated SAD (e.g., from a misconfigured replica or a leaked cache) still cannot satisfy a
-  downstream verifier that re-checks `readPolicy` against the consumer's own verified prefix set.
-  The policy is evaluated on the read side, so a leaked byte stream does not automatically grant
-  authorized-read status.
-- **Custody fields are committed by the parent SAID.** `owner`, `topic`, and `readPolicy` are
+  downstream verifier that re-checks the requester's `readers` membership against the SAD's read
+  authorization. Membership is checked on the read side, so a leaked byte stream does not
+  automatically grant authorized-read status.
+- **Custody fields are committed by the parent SAID.** `owner`, `topic`, and `readers` are
   sub-fields of the top-level `custody` struct on the SAD wrapper, so they participate in the SAD's
   canonical serialization and the SAID derivation. An adversary cannot substitute a different
   `owner` or `topic` (e.g., to re-attribute the write, or to point the anchor derivation elsewhere)
@@ -217,8 +218,7 @@ and re-checked by consumers.
   rate-limits by default; cred-or-policy-language gated under lockdown) at the storage boundary. The
   anonymity attribute lives in the SAD; the acceptance decision lives in the operator's policy.
 
-The two axes and the four combinations are the protocol-level surface; the consumer-side checks
-(current-mode policy evaluation for `readPolicy`, SEL-anchor resolution for the `owner` + `topic`
-writer-binding) and the operator-side write-gate are the enforcement surfaces. Both are required —
-the SAD by itself is just data; the structural authority model is what the storage service and
-consumers enforce against it.
+The two axes and the four combinations are the protocol-level surface; the consumer-side checks (the
+`readers` membership lookup, SEL-anchor resolution for the `owner` + `topic` writer-binding) and the
+operator-side write-gate are the enforcement surfaces. Both are required — the SAD by itself is just
+data; the structural authority model is what the storage service and consumers enforce against it.

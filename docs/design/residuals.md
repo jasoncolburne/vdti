@@ -464,7 +464,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
   a known public group) composes it, hashes it, and compares to the committed public identifier — an
   offline confirmation oracle that de-anonymizes named members. Store-side "denied looks like
   absent" cannot defend an identifier already public on the chain.
-- **Mitigation** — Every gated record on public structure must carry its own read policy **and** a
+- **Mitigation** — Every gated record on public structure must carry its own read gate **and** a
   high-entropy nonce, so the identifier is not reconstructable. The framework provides the slot; it
   cannot force an application-builder to populate it.
 - **Lost** — If the nonce is omitted, offline de-anonymization of members — no chain access needed
@@ -526,7 +526,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
   per-credential counts. Leaks aggregate activity, never which credential or to whom.
 - **Sub-record identifier as a correlation handle** — Every sub-record is separately addressable by
   identifier, so collecting identifiers across disclosures reveals a composed record's shape and
-  lets any ungated leaf be fetched. A read policy plus nonce on each gated child closes the content
+  lets any ungated leaf be fetched. A read gate plus nonce on each gated child closes the content
   leg; the shape is the accepted price of partial disclosure.
 - **Document metadata to a mesh witness** — A witness sees a creator-to-document link and
   per-participant volume/timing for a private document, but never the member identities or the
@@ -538,14 +538,14 @@ nonce, or the standing exposure to the federation infrastructure that must route
 ## 7. Confidentiality is operational, not cryptographic
 
 The read gate controls **access through the store**, not the readability of bytes that have escaped
-it. There is no content encryption tied to a read policy (that is a forward direction).
+it. There is no content encryption tied to a read gate (that is a forward direction).
 
 ### Leaked bytes of a gated record are readable — Medium
 
 - **Attack** — An adversary who obtains the raw bytes of a read-gated record out-of-band (a
   misconfigured replica, a leaked cache, a compromised storage node, or a prior authorized reader
   who kept a copy) can read the plaintext. Any authorized co-author can likewise exfiltrate.
-- **Mitigation** — Downstream verifiers re-check the read policy against their **own** verified
+- **Mitigation** — Downstream verifiers re-check the read gate against their **own** verified
   identity set, so leaked bytes can't be presented as an authorized read; the gate keeps the
   canonical read-set uniform (an integrity property). For confidentiality, encrypt.
 - **Lost** — Plaintext confidentiality of a gated record once bytes escape — the gate is

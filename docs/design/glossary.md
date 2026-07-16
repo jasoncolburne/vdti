@@ -36,7 +36,7 @@ canonical** wherever they differ.
   check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss — instead
   of walking. ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
-  `custody` field (`owner` + `topic` writer-binding, anchored in a SEL; `readPolicy` read gate).
+  `custody` field (`owner` + `topic` writer-binding, anchored in a SEL; `readers` read gate).
   ([`custody.md`](primitives/data/sad/custody.md))
 - **availability** — a standalone SAD's per-object replication scope, TTL, and one-shot delivery.
   ([`availability.md`](primitives/data/sad/availability.md))
@@ -275,9 +275,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **as-of authority / pin-everything-to-current** — authority is judged by the append-only anchoring
   position, never a self-asserted pin; every event pins its dependencies' current tips.
   ([`documents.md`](primitives/policy/documents.md#the-anchoring-position--fixing-the-issuer-context))
-- **as-issued vs current** — the two document-evaluation modes: authority as of issuance, or live at
-  the current tip.
-  ([`evaluation.md`](primitives/policy/evaluation.md#one-shared-composer-two-leaf-resolvers))
+- **as-issued** — the single document-evaluation mode: authority resolved as of the issuance
+  (anchoring) position. There is no live current-mode policy evaluation — who-may-present is a
+  challenge to the issuee and read-gating is a `readers` membership, neither a policy.
+  ([`evaluation.md`](primitives/policy/evaluation.md#one-composer-one-leaf-resolver))
 - **correlation resistance** — deriving `prefix` and `said` via two hashes keeps a logged inception
   SAID from leaking the chain's lookup key. ([`said.md`](primitives/data/sad/said.md#derivation))
 - **fail-secure, not safe** — under partition or missing evidence a loss-of-trust decision refuses

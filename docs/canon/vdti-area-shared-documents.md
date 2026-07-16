@@ -31,10 +31,10 @@ prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer
 
 A shared document is **a DAG of _attributed_ SADs (versions), authored by **editors** whose
 membership is a _creator-governed, per-period access list_.** The creator governs three document roles —
-**view** (the document `readPolicy`), **comment** (`commenters[]`), **edit** (`editors[]`, who author
+**view** (the document `readers` gate), **comment** (`commenters[]`), **edit** (`editors[]`, who author
 versions) — the Google-Docs triad; commenting is reserved, its mechanism deferred (§7). Each version is
 a primitive attributed
-SAD — `custody { owner, topic, readPolicy }`, owner-rooted by its own
+SAD — `custody { owner, topic, readers }`, owner-rooted by its own
 `derive(owner, DOC_TOPIC, version_said)` SEL exactly like any bare SAD, so authorship is **provable
 and non-repudiable** (only the editor's `t_use` produces it). **Membership is not delegation** — an
 editor acts as _itself_, never with the creator's authority — it is an **access list** the creator
@@ -64,7 +64,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   - **the reserved topics** — a holder derives the governance chains from the **doc prefix**: the
     governance SEL `derive(creator, DOC_GOV_TOPIC, doc_prefix)`, per-period rescissions
     `derive(creator, DOC_RSC_TOPIC, hash(G | said_b))` (§Rescission; the full topic strings are in §7).
-  - **`readPolicy₀`** — the initial read/sharing gate (custody; evolution §5).
+  - **`readers₀`** — the initial read gate — a read-authorization (read-governance) SEL (custody; evolution §5).
   - **`nonce`** — high-entropy so the doc prefix (hence the governance / version chains) is unguessable
     for a **private** doc; a public doc may omit it.
   - V0 is **anonymous-write** (the shared constitution; no `owner`), so its legitimacy is
@@ -82,7 +82,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   (warm F11 / cold N4).
 - **Member names live in gated content, never in public structure (the core privacy discipline).** A
   SEL's structural fields (`owner` / `data` / manifest-role values) are witnessed → **public**, so a
-  member prefix in any of them leaks. Every member reference is therefore a **readPolicy-gated content
+  member prefix in any of them leaks. Every member reference is therefore a **readers-gated content
   SAD** named by an **opaque SAID** from the event's `manifest`; the public chain carries only the
   opaque commitment (the inv-16 private-data pattern).
 - **Governance SEL — the creator's access-list + sharing log.**
@@ -91,18 +91,18 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     creator's IEL **`Ath`**; the `Gnt`'s `manifest` names a **gated grant-doc** `G`, submitted as
     **compacted chunks** (top level all canonical SAIDs — the canonical/fully-compacted form is the one
     everyone commits to, always re-derivable by compacting down; `project_vdti_compacted_only_submission`):
-    `G = { said, kind, custody{ readPolicy }, editors, commenters }`, where `editors`/`commenters` are
+    `G = { said, kind, custody{ readers }, editors, commenters }`, where `editors`/`commenters` are
     role-list SADs `{ said, kind, add:[ entry-SAID, … ] }` and each entry is a nested SAD
-    `{ said, kind, <role>, from, nonce, custody{ readPolicy } }` (`<role>` = an `editor`/`commenter` IEL
+    `{ said, kind, <role>, from, nonce, custody{ readers } }` (`<role>` = an `editor`/`commenter` IEL
     prefix; `from` = the period start). The **`nonce` (high-entropy) makes each entry SAID `said_b`
     unguessable** on public structure — a participant-blind commitment (the area-sel data-entropy rule at
     the feature layer; a low-entropy entry would be a brute-force oracle — §5). The **`Gnt` event's SAID
     `G_x`** (public on the governance SEL) **identifies the validity period** — it commits the editors,
     commenters, and their `from`-positions. Multiple grants for a participant = multiple periods (re-add).
     **One uniform rule for per-participant and batch grants:** the rescission handle is the nonce'd entry
-    SAID `said_b` (below). _(The grant's `custody.readPolicy` gates the grant-doc itself; the **document**
-    read gate — who may **view** the doc — is the separate, evolving `readPolicy`, §5.)_
-  - **sharing changes** — `readPolicy` updates (§5).
+    SAID `said_b` (below). _(The grant's `custody.readers` gates the grant-doc itself; the **document**
+    read gate — who may **view** the doc — is the separate, evolving `readers` gate, §5.)_
+  - **sharing changes** — `readers` updates (§5).
   - A grant is a **T2 creator-governance act** (`Gnt` ← `Ath`, `t_authorize`, reserve-backed):
     a compromised creator _signing key_ (T1) **cannot** mint one — minting reveals a rotation preimage (the
     MFA elevation). Mechanically this is the **`Ath` merge** (`Del` generalized to carry `delegates` **or**
@@ -140,7 +140,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   (the grant is additive / walkable-forward, the rescind a monotone terminal kill), not threshold. (Undoes
   the earlier `@govern`, forced only because `delegate` was too specific — cold F8 / warm F7.)_
 - **Version — a primitive attributed SAD (the custody primitive, not a bespoke shape — Q2/F5).**
-  `custody { owner = the editor's IEL prefix, topic = DOC_TOPIC, readPolicy = the current gate }` — and
+  `custody { owner = the editor's IEL prefix, topic = DOC_TOPIC, readers = the current read gate }` — and
   because custody lives **only** on standalone SADs (`custody.md`: chain events carry no custody slot), a
   version _is_ a custody-attributed standalone SAD, so the primitive fixes its shape: owner-rooted by its
   `derive(owner, DOC_TOPIC, version_said)` SEL (`data = version_said`), a short **`{Icp, Pin}`** SEL
@@ -302,19 +302,23 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 ## 5. Custody, sharing, and privacy
 
-- **`readPolicy` = the document read (view) gate** — evaluated current-mode at fetch by the store. It is
-  **read-set invariance (integrity), not confidentiality** (carried, cold-2 F1 / cold-3 S2): a co-author
-  can always read + exfiltrate; the rule keeps the _canonical_ DAG's read-set uniform, it does not hide
-  bytes. **For confidentiality, encrypt** (a forward direction). **Two distinct `readPolicy`s (Jason
-  2026-07-04):** the one inside a grant's / entry's `custody` gates **that gated doc itself**; the
-  **document** read gate — who may **view** the doc content — is **separate and evolves**. Because it is
-  integrity, not confidentiality, sharing is a **light axis** (§7): the creator publishes read-gate
-  updates as **cheap T1 `Ixn`s** on the governance SEL, and a version declares the gate it was authored
-  under; a read-invariance mismatch is **presented-but-flagged, app-arbitrated**, never a structural
-  un-honor.
+- **`readers` = the document read (view) gate** — a reference to a **read-governance SEL**, a membership
+  resolved at fetch (`None` = public; `readers: []` = participants-only, since editors/commenters always
+  read what they author; `readers: [X, …]` = plus those). It is **read-set invariance (integrity), not
+  confidentiality** (carried, cold-2 F1 / cold-3 S2): a co-author can always read + exfiltrate; the rule
+  keeps the _canonical_ DAG's read-set uniform, it does not hide bytes. **For confidentiality, encrypt** (a
+  forward direction). **Two distinct `readers` gates (Jason 2026-07-04):** the one inside a grant's /
+  entry's `custody` gates **that gated doc itself**; the **document** read gate — who may **view** the doc
+  content — is **separate and evolves**. Read membership rides the **same grant machinery** as
+  editors/commenters (`Gnt` ← `Ath`, **T2**; participant-blind `hash(G | said_b)` rescission), on a
+  read-governance SEL **structurally constrained to carry only `readers`** — so a read-gate change is a
+  **T2 governance act, not the old cheap-T1 axis** (2026-07-16 — the earlier "light T1" framing is
+  superseded: read membership is now the same axis as edit membership). A version declares the gate it was
+  authored under; a read-invariance mismatch is **presented-but-flagged, app-arbitrated**, never a
+  structural un-honor.
 - **Attribution is opt-in-visible; privacy via the read gate.** A version carries `owner` (provable
   authorship) but read-gated — so `owner` is exposed only to authorized readers. Revealing authorship
-  is the deliberate cost of _proving_ it; the private default hides it behind `readPolicy`.
+  is the deliberate cost of _proving_ it; the private default hides it behind `readers`.
 - **The co-authorship + membership graphs close for a private doc.** A version SEL `Icp` carries
   `data = version_said` (a nonce'd, gated reference), and the version→V0 linkage rides read-gated
   `ancestors[]` — so a witness sees `(member, version_said)` pairs but **cannot group them by document**
@@ -331,18 +335,18 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   to a doc absent an oracle); (b) **cross-participant timing correlation** of version-SEL activity (co-editing
   clusters — the same inv-16 volume-timing class); (c) grant/rescission volume-timing. It is **never
   _who_ the members are** — the same inv-16 residual class accepted everywhere else, not the graph.
-- **Every gated doc on public structure needs its own `readPolicy` AND a high-entropy nonce (warm F2 —
-  the offline confirmation-oracle, a MAJOR the review found missable).** A parent's `readPolicy` does
+- **Every gated doc on public structure needs its own `readers` gate AND a high-entropy nonce (warm F2 —
+  the offline confirmation-oracle, a MAJOR the review found missable).** A parent's `readers` gate does
   **not** transitively protect its referenced sub-SADs (`compaction.md` §Privacy contract). So the
   grant-doc's participant entries `{said, kind, <role>, from, nonce, custody}`, the rescind-doc
   `{<role>, bound}`, and a private
-  doc's version SADs each carry **their own `readPolicy`** (else the content is publicly fetchable by
+  doc's version SADs each carry **their own `readers` gate** (else the content is publicly fetchable by
   SAID regardless of the parent's gate) **and a high-entropy `nonce`** (else the SAID is a **hash-match
   confirmation oracle** — compose candidate content, hash, compare the committed SAID; a member prefix +
   known `G` is candidate-composable). The store-side `denied ≈ absent` **cannot** defend a SAID already
   public on the chain — the entropy must be in the _input_ (the area-sel data-entropy rule at the
   feature layer; V0 already has its nonce by design). App-builder responsibility; the framework provides
-  the per-SAD `readPolicy` + the nonce slot.
+  the per-SAD `readers` gate + the nonce slot.
 - **Content off-node — submit the SELs, hold the content (the sovereignty mode).** A participant may
   submit only the **SEL chains** (version, governance, rescission — pure opaque structure, witnessed)
   and **never land any content SAD** (versions, grant/rescind docs) on the node; the content is held
@@ -352,7 +356,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   holds the content. So the node hosts a fully opaque chain and **nothing content-readable** (the
   governance `Icp`'s `data = doc_prefix` and the version-SEL `(owner, DOC_TOPIC, version_said)` are
   structural — cold N1). Two tiers, a per-doc choice: **content off-node** (max privacy; participants
-  bear availability) or **content on-node but gated** (`readPolicy` + nonce'd SADs — node availability,
+  bear availability) or **content on-node but gated** (`readers` + nonce'd SADs — node availability,
   the mesh-correlation residual). **Feature invariant: no node operation may require a content SAD**
   (§7) — and the encode must add an **off-node carve-out to deferred-deps (warm F12):** a
   permanently-off-node anchored SAD is an **opaque commitment, never a pending dependency** (the existing
@@ -365,7 +369,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 | ---------- | ------------------------------------------------ | --------------------------------------------------------- |
 | parties    | `issuer`(s) + an `issuee` — **asymmetric**       | a **creator** + **members** — governed, symmetric members |
 | membership | fixed at issuance                                | **creator-governed, evolving** (grant / bound / re-add)   |
-| policy     | authorizing + acceptance conditions              | none except `readPolicy` (the read/sharing gate)          |
+| policy     | authorizing condition (as-issued)                | none except the `readers` read gate                       |
 | content    | frozen (single version)                          | evolves (the version DAG)                                 |
 | kill       | revocation `Trm` (`Rev`)                | per-participant period-bound; **freeze** = bound-all + `Trm`-gov |
 | home       | `primitives/policy/documents.md`                 | `features/shared-documents/documents.md`                  |
@@ -428,43 +432,54 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     (`Del`→`Ath` net-0; `Kil`→`Rev`/`Dth` split `+1`; `Dec`→`Trm` rename) — *the later first-seen pivot dropped
     `Fld`/`Rpr`, so the current counts are **SEL 5** / **IEL 8***. The `del(X, N)` policy leaf, the `delegates` manifest role, and
     "delegation" the concept are **unchanged** (only the kind/count tokens rename).
-- **Sharing (`readPolicy`) evolution + read-invariance outcome (was warm F14, RESOLVED).** `readPolicy`
-  is **read-set integrity, not confidentiality** (§5 — a co-author can exfiltrate regardless), so sharing
-  is a **light axis**: the creator publishes `readPolicy` updates as **cheap T1 `Ixn`s** on the
-  governance SEL (no membership-style freshness / backdate machinery — sharing is not trust-granting),
-  and a version declares the `readPolicy` it was authored under. A **read-invariance violation is
-  presented-but-flagged, app-arbitrated** (the canonical DAG's read-set uniformity, like a canonical
-  tag) — **not** a structural un-honor, because a wrong-gate version is still a validly-authored version.
+- **Sharing (`readers`) evolution + read-invariance outcome (was warm F14; T2 rework 2026-07-16).**
+  `readers` is **read-set integrity, not confidentiality** (§5 — a co-author can exfiltrate regardless).
+  Read membership rides the **same grant machinery** as edit membership: the creator opens/closes a
+  reader's period with a **`Gnt` ← `Ath` (T2)** on the **read-governance SEL** (a `DOC_READ_GOV_TOPIC`
+  SEL structurally constrained to carry only `readers`), rescinded participant-blind exactly as an editor
+  is — **not** the earlier cheap-T1 axis. A version declares the `readers` gate it was authored under. A
+  **read-invariance violation is presented-but-flagged, app-arbitrated** (the canonical DAG's read-set
+  uniformity, like a canonical tag) — **not** a structural un-honor, because a wrong-gate version is still
+  a validly-authored version.
 - **Reserved names + SAD schemas — DEFINED (2026-07-04, with Jason).** Convention
   `vdti/<concept>/v1/<category>/<thing>` (from the KEL kinds + `.terminology-forbidden`); concept **`doc`**.
   - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/version` (owner = an editor,
-    data = `version_said`), `vdti/doc/v1/topics/governance` (owner = creator, data = `prefix`),
-    `vdti/doc/v1/topics/rescission` (owner = creator, data = `hash(G | said_b)`). _(The `DOC_TOPIC` /
-    `DOC_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_ The grant `Gnt` is anchored by **`Ath`**, and
-    the `rescission` (a SEL `Trm`) by **`Dth`** (add the rows at encode).
+    data = `version_said`), `vdti/doc/v1/topics/governance` (owner = creator, data = `prefix`) — the
+    **edit**-governance SEL, `vdti/doc/v1/topics/read-governance` (owner = creator, data = `prefix`) — the
+    **read**-governance SEL (structurally carries only `readers`), `vdti/doc/v1/topics/rescission`
+    (owner = creator, data = `hash(G | said_b)`) — shared by both governance SELs (`G` disambiguates).
+    _(The `DOC_TOPIC` / `DOC_GOV_TOPIC` / `DOC_READ_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_
+    Each grant `Gnt` is anchored by **`Ath`**, and the `rescission` (a SEL `Trm`) by **`Dth`** (add the
+    rows at encode).
   - **Doc SADs** (`vdti/doc/v1/schemas/*`; every SAD carries `kind`; **`custody` is inline** — no `said`,
     so it can't be compacted away, the SAD's authority travels with it):
-    - `inception` (V0): `{ said, kind, prefix, creator, custody{ readPolicy }, nonce? }`
-    - `version`: `{ said, kind, custody{ owner, topic, readPolicy }, prefix, grant, ancestors[], content, nonce?, edited? }`
-    - `grant` — the **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
+    - `inception` (V0): `{ said, kind, prefix, creator, custody{ readers }, nonce? }`
+    - `version`: `{ said, kind, custody{ owner, topic, readers }, prefix, grant, ancestors[], content, nonce?, edited? }`
+    - `grant` — the edit-governance **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
       (the `grants/*` convention shared with exchange, ≤ 64 chars; the generalized seal-a-typed-value `Gnt`,
-      area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readPolicy }, editors, commenters }`, two
+      area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readers }, editors, commenters }`, two
       role lists + the grant's own gate
+    - `read-grant` — the read-governance grant-value (the read-gov SEL's `Gnt`): kind
+      **`vdti/sel/v1/grants/shared-document-read-governance`** — `{ said, kind, custody{ readers }, readers }`,
+      structurally **only** the `readers` role list (an `editors`/`commenters` delta → malformed)
     - `editors` / `commenters`: `{ said, kind, add:[ entry-SAID, … ] }` (the role lists)
-    - `editor` / `commenter`: `{ said, kind, <role>, from, nonce, custody{ readPolicy } }` — `<role>` (= `editor`
-      or `commenter`) is that participant's IEL prefix; `said` = `said_b` (the rescission handle); `from` = `F`
-    - `rescind`: `{ said, kind, custody{ readPolicy }, <role>, bound, nonce }` — `bound` = `B`
+    - `editor` / `commenter` / `reader`: `{ said, kind, <role>, from, nonce, custody{ readers } }` — `<role>`
+      (= `editor`, `commenter`, or `reader`) is that participant's IEL prefix; `said` = `said_b` (the rescission
+      handle); `from` = `F`
+    - `rescind`: `{ said, kind, custody{ readers }, <role>, bound, nonce }` — `bound` = `B`
   - **Comments — reserved, design DEFERRED.** `vdti/doc/v1/schemas/comment` + `vdti/doc/v1/topics/comment`
     are reserved but unspecified (commenting resolves / threads / references a version-range — future work).
     The `commenters` list is used now (the grant's second role array); the comment *mechanism* is not.
   - **Prefix-naming rule:** an unqualified **`prefix` = the chain/DAG the document is part of** (the doc's own
     prefix); every **external prefix is named by its role** (`editor`, `commenter`, `creator`, `custody.owner`)
-    and documented as an IEL prefix — never a bare `prefix`, no `ielPrefix` qualifier. The only primitive SAD
-    referenced is `vdti/sad/v1/schemas/policy` (the `readPolicy` DSL doc).
+    and documented as an IEL prefix — never a bare `prefix`, no `ielPrefix` qualifier. The read gate
+    references a **read-governance SEL** (`readers`), not a policy SAD (2026-07-16 — the `readPolicy` DSL
+    reference is retired).
 - **Gated-doc shapes — settled (§1); field layout is encode-mechanical (RESOLVED).** Grant-doc
-  `G = {said, kind, custody{readPolicy}, editors, commenters}` (role lists of nonce'd `{said, kind, <role>,
-  from, nonce, custody{readPolicy}}` entries); rescind-doc `{said, kind, custody{readPolicy}, <role>, bound,
-  nonce}`; rescission key `hash(G | said_b)`. The precise field layout is above; JSON lands at encode.
+  `G = {said, kind, custody{readers}, editors, commenters}` (role lists of nonce'd `{said, kind, <role>,
+  from, nonce, custody{readers}}` entries); rescind-doc `{said, kind, custody{readers}, <role>, bound,
+  nonce}`; rescission key `hash(G | said_b)`. The read-governance grant is the same shape carrying **only**
+  a `readers` role list. The precise field layout is above; JSON lands at encode.
 - **Node-never-needs-content — VERIFIED + the off-node carve-out (was warm F12, RESOLVED).** Witnessing
   (over `(prefix, serial, event-said)`), merge (chain events), and chain-validity (the SEL walks) are all
   **chain-only**; every feature check (window, DAG placement, honored predicate) is **participant-side**.

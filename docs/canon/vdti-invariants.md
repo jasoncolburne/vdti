@@ -244,7 +244,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    DI2I/delegated-issuer forge-as-of-old route. **A standalone SAD's custody follows the same rule (2026-07-03):** no
    self-asserted position pin — an `owner`-bearing SAD is attributed via a SEL anchor (`derive(owner, topic, said)`),
    its as-of the append-only anchoring position; the self-asserted `pin` is dropped (`custody { owner, topic,
-   readPolicy }`) — see inv 16. `[locked]`
+   readers }`) — see inv 16. `[locked]`
 6. **No timestamps in the log primitives.** In KEL/IEL/SEL, ordering and "as-of" are expressed only by pins
    (which event) + the chain walk — never wall-clock time. **Feature layers (creds / documents) MAY use
    timestamps** — there a timestamp is a feature semantic (e.g. a cred validity window), not a primitive
@@ -752,7 +752,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     authority = the anchoring position** (inv 5 — backdate-proof: forging it needs a fresh IEL `Ixn` at the
     owner's *current* tip, which a rotated-out key can't author and can't insert in the past → the threat reduces to
     current-key-compromise-at-current-time, the accepted limit, inv 13); the **self-asserted `pin` is dropped** —
-    `custody { owner, topic, readPolicy }`; and the anchor is **self-locating** — a holder re-derives the SEL prefix
+    `custody { owner, topic, readers }`; and the anchor is **self-locating** — a holder re-derives the SEL prefix
     from the held doc's `owner` / `topic` / `said` and walks it **by prefix** (inv-16-clean, no SAID inversion —
     exactly the cred-holder mechanism, inv 15). **Two orthogonal `Icp` fields carry the address model
     (area-sel §1f):** **`content: true`** discriminates content (v1-T1, handed) from a lookup (v1-T2,
@@ -769,7 +769,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     them); a `topic` is a **vdti-reserved** namespace (`CRED_ISSUANCE_TOPIC` / `CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`, …) **or** an author-defined topic +
     schema, anchored ("SEL'd up") the same way. Because the doc's SAID commits `owner` and `topic`, the triple
     `(owner, topic, said)` is tamper-evidently bound to the anchor location. **Reads are the separate axis** —
-    `readPolicy`, current-mode, independent of write attribution. **Encode:** `custody.md` (§The sub-fields, the new
+    `readers` (a read-authorization SEL membership, not a policy; the current-mode read policy is retired
+    2026-07-16), independent of write attribution. **Encode:** `custody.md` (§The sub-fields, the new
     §SEL-anchor doctrine, §Two evaluation modes, §Four combinations, §Adversarial framing), the wrapper shape in
     `sad.md` / `availability.md`, landed `pin`/`ownerPin` refs (incl. `said.md`, `glossary.md`), and the `custody`
     refs in `vdti-area-shared-documents.md`. *Src:* Jason 2026-07-03. `[locked]`
@@ -920,8 +921,12 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     [inv 4]/[inv 5]/[inv 12]). `[locked-candidate]`
 
 ## Document-layer evaluation (confirmed — see document-policy §C)
-- **The as-issued / current two-function model** — `evaluate_as_issued` (consumes the anchoring positions, resolves
-  leaves as-of) vs `evaluate_current` (live attestations at tip) — is **confirmed** as the document/policy
-  evaluation model (document-policy §C, 2026-06-20): one shared composer + two leaf resolvers, reconciled to the
-  reshape (leaf set, no `policyPin`, revocation-as-lookup-SEL). `[locked-candidate]` *(F-L: was tagged
-  `[needs-reconciliation]`; §C did the reconciliation — synced 2026-06-21.)* **Mode renamed `anchored` → `as-issued` (L1, 2026-06-22):** `anchored` collides with the structural verb (`manifest.anchors`, "anchored by", "the anchoring position"); `as-issued` names the issuance-time mode unambiguously. Function: `evaluate_as_issued`.
+- **The evaluation model is a single as-issued function** — `evaluate_as_issued` (consumes the anchoring positions,
+  resolves leaves as-of): one shared composer + one leaf resolver, reconciled to the reshape (leaf set, no
+  `policyPin`, revocation-as-lookup-SEL). **`evaluate_current` is removed (2026-07-16 — live-policy removal):**
+  live checks don't compose for a passive verifier, so there is no current-mode policy evaluation; who-may-present
+  is the challenge-the-issuee auth step and read-gating is a `readers` membership, neither a policy
+  (document-policy §C). `[locked-candidate]` *(F-L: was tagged `[needs-reconciliation]`; §C did the reconciliation
+  — synced 2026-06-21. The two-function model collapsed to one — 2026-07-16.)* **Mode named `as-issued` (L1,
+  2026-06-22):** `anchored` collided with the structural verb (`manifest.anchors`, "anchored by", "the anchoring
+  position"); `as-issued` names the issuance-time mode unambiguously. Function: `evaluate_as_issued`.

@@ -55,10 +55,10 @@ values the inception's prefix commits to. Opaque to the chain; [`sel/log.md`](se
 full derivation and its optional fields. These are **feature-owned** — a primitive never enumerates
 them, keeping features out of the primitive layer.
 
-| Topic                       | Feature                                               |
-| --------------------------- | ----------------------------------------------------- |
-| `vdti/doc/v1/topics/*`      | shared documents (`comment`, `governance`, `version`) |
-| `vdti/exchange/v1/topics/*` | exchange (`exchange`, `receive-key`)                  |
+| Topic                       | Feature                                                                  |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `vdti/doc/v1/topics/*`      | shared documents (`comment`, `governance`, `read-governance`, `version`) |
+| `vdti/exchange/v1/topics/*` | exchange (`exchange`, `receive-key`)                                     |
 
 ## Cross-references
 

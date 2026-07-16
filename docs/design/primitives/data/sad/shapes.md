@@ -40,9 +40,9 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
 
 `custody` and `availability` are inline structs, each sub-field independently optional:
 
-- **`custody { owner, topic, readPolicy }`** — `owner` is the writer's IEL prefix, `topic` the SEL
-  namespace that locates the write's anchor (both-or-neither), `readPolicy` the SAID of a policy
-  that gates reads.
+- **`custody { owner, topic, readers }`** — `owner` is the writer's IEL prefix, `topic` the SEL
+  namespace that locates the write's anchor (both-or-neither), `readers` a reference to a
+  read-authorization SEL that gates reads (`None` → public).
 - **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
   everywhere), `ttl` a retention bound, `once` a destructive-read flag.
 
@@ -169,7 +169,6 @@ chain event.
 | `issuer`  | prefix    | yes      | The issuer's IEL prefix.                                          |
 | `issuee`  | prefix    | yes      | The issuee's IEL prefix.                                          |
 | `claims`  | SAID      | yes      | A claims SAD (nested → partial disclosure).                       |
-| `policy`  | SAID      | yes      | A policy SAD gating validity, evaluated in current mode.          |
 | `issued`  | timestamp | yes      | Issuance time (advisory).                                         |
 | `expires` | timestamp | no       | Expiry (advisory).                                                |
 | `nonce`   | bytes     | no       | High-entropy — makes `said` unguessable for a private credential. |
@@ -178,13 +177,13 @@ chain event.
 
 The **V0 constitution** (derives the doc prefix):
 
-| Field        | Type   | Meaning                                                     |
-| ------------ | ------ | ----------------------------------------------------------- |
-| `said`       | SAID   | V0's SAID.                                                  |
-| `kind`       | string | `vdti/doc/v1/schemas/*` (the constitution schema).          |
-| `creator`    | prefix | The creator's IEL prefix — governs membership and sharing.  |
-| `readPolicy` | SAID   | The initial read/sharing gate.                              |
-| `nonce`      | bytes  | High-entropy — makes the doc prefix unguessable if private. |
+| Field     | Type   | Meaning                                                             |
+| --------- | ------ | ------------------------------------------------------------------- |
+| `said`    | SAID   | V0's SAID.                                                          |
+| `kind`    | string | `vdti/doc/v1/schemas/*` (the constitution schema).                  |
+| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.          |
+| `readers` | SAID   | The initial read gate — a read-authorization SEL (`None` → public). |
+| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.         |
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
@@ -192,7 +191,7 @@ A **version** SAD (custody-attributed, chained into the version DAG):
 | ----------- | ---------- | -------------------------------------------------- |
 | `said`      | SAID       | The version's SAID.                                |
 | `kind`      | string     | `vdti/doc/v1/schemas/*`.                           |
-| `custody`   | struct     | `{ owner: the editor's IEL, topic, readPolicy }`.  |
+| `custody`   | struct     | `{ owner: the editor's IEL, topic, readers }`.     |
 | `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.     |
 | `nonce`     | bytes      | High-entropy — makes the version SAID unguessable. |
 
