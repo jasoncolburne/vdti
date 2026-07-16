@@ -1,9 +1,9 @@
-# vdti — area note: Exchange (ESSR authenticated encryption + published receive keys)
+# vdti — area note: Exchange (published receive keys + delivery; consumes the ESSR primitive)
 
 **Status: FIRST CUT — drafted with Jason 2026-07-12 (this session). Adapts the built `../kels` exchange +
 mail design; not yet dual-pass reviewed.** A **feature** over the SAD + SEL primitives: parties exchange
-**authenticated, confidential** point-to-point messages using **ESSR** (Encrypt-Sender-Sign-Receiver, the
-KERI-lineage construction — sound, adversarially checked below), delivered store-and-forward by a
+**authenticated, confidential** point-to-point messages using **ESSR** (the 1:1 sealed authenticated
+envelope, now a protocol primitive — [`vdti-area-essr.md`](vdti-area-essr.md)), delivered store-and-forward by a
 **mail** transport, keyed by **published ML-KEM receive keys**. **No new primitive** — a receive key is a
 **value-bearing lookup SEL** established `{Icp, Gnt}` (area-sel §1f + the generalized `Gnt` seal-a-typed-
 value mechanism). **This is the kels exchange/mail design re-expressed on vdti primitives**, with one
@@ -45,35 +45,22 @@ discovery + transport** layer; confidentiality/authenticity is ESSR, integrity o
 That is **mode 1** (ESSR, one-offs); a second **session mode** carries long-lived, ratcheting group chat
 over the same spine (§1a / §7a).
 
-## 1. ESSR — the authenticated-encryption construction (adopted from kels; sound)
+## 1. ESSR — the sealed authenticated envelope (now a protocol primitive)
+
+**ESSR moved to its own protocol primitive — [`vdti-area-essr.md`](vdti-area-essr.md) (2026-07-16).** The
+1:1 sealed, authenticated envelope — a lattice KEM to the recipient's receive key → AES-256-GCM, the sender
+prefix bound **inside** the ciphertext, the recipient prefix bound in the **signed** cleartext, a lattice
+signature over the envelope SAID (Encrypt-Sender-Sign-Receiver; the four guarantees) — is no longer defined
+here. See the primitive for the construction, the divergence ledger, and the capability boundary.
+
+Exchange **consumes** it. ESSR is thin: it holds no key material, does no chain lookup, and seals an
+**opaque** payload (a message timestamp or a topic multiplexer is application payload inside the ciphertext,
+not an ESSR field; the `senderPin` is a SAID, not a serial). This feature adds what ESSR leaves out: the
+**published receive keys** (§2) that resolve a recipient prefix to a receive key, the **sender-key
+currency** check (§3), the mail delivery + serve-time gate, and the **session / group** mode (§1a / §7).
 
 **Every message here is a kinded SAD** — the universal vdti rule (all data is a kinded, SAID-addressed SAD),
 so an envelope, its inner, and every exchange message are SADs, anchorable by SAID (§3).
-
-- **Encrypt-Sender-Sign-Receiver**, four UnForgeability properties: **TUF-PTXT/CTXT** (a third party forges
-  neither plaintext nor ciphertext), **RUF-PTXT** (the receiver can't forge sender attribution — the sender
-  prefix is **inside** the ciphertext), **RUF-CTXT** (an attacker can't strip/replace the signature — the
-  recipient is **in** the signed plaintext, anti-KCI).
-- **Inner (encrypted):** `{ sender, topic, payload }` — `sender` = the sender IEL prefix (RUF-PTXT); `topic`
-  multiplexes protocols **without** exposing the message type to the transport (it is inside the ciphertext);
-  `payload` opaque.
-- **Envelope (signed plaintext):** `{ said, sender, sender_serial, recipient, kem_ciphertext,
-  encrypted_payload, nonce, created }` — `sender` plaintext for routing, `recipient` signed (anti-KCI),
-  `sender_serial` = the sender's establishment serial at signing time, `kem_ciphertext` the ML-KEM
-  encapsulation, `encrypted_payload` the AES-256-GCM ciphertext, `nonce` its 12-byte AEAD nonce. The
-  **signature is ML-DSA over the envelope SAID**, and the SAID commits to every field — so the signature
-  binds the ciphertext, the KEM ciphertext, the recipient, and the nonce all at once.
-- **Seal:** encapsulate to the recipient's receive key → shared secret → `blake3::derive_key(context,
-  shared_secret)` (context = `vdti/exchange/v1/protocols/essr`) → AES key → **fresh random nonce** →
-  AES-256-GCM(inner) → build envelope + SAID → ML-DSA-sign the SAID.
-- **Open:** verify SAID → ML-DSA-verify against the sender's key **at the current establishment state**
-  (§3) → decapsulate → derive AES key → AES-256-GCM-decrypt → assert `inner.sender == envelope.sender`.
-- **Why the nonce is safe (adversarial note):** each message gets a **fresh** KEM shared secret → a **fresh**
-  AES key used **exactly once**, so the random nonce never repeats under a key. The AEAD nonce/key-scope
-  residual (federation §1e) does **not** bite here — the key is per-message.
-- **Crypto (strength-paired, kels precedent):** ML-KEM-768/1024 (KEM), ML-DSA-65/87 (signatures), AES-256-GCM
-  (AEAD), Blake3 KDF. Users may run **65/768**; infrastructure runs **87/1024**; the algorithms are
-  integration-identical, so the tier is a parameter, not a code path (`../kels`).
 
 ## 1a. Two modes — ESSR one-offs and a ratcheting session (Jason 2026-07-14)
 
