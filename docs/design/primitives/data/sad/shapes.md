@@ -94,13 +94,13 @@ federation IEL
 Carried by an IEL `Icp` (the initial roster + threshold vector), an `Evl` (a delta), and a
 federation `Fcp` / `Wit`:
 
-| Field            | Type                               | Meaning                                                                                          |
-| ---------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `said`           | SAID                               | The delta SAD's SAID.                                                                            |
-| `kind`           | string                             | `vdti/event/v1/roles/roster`.                                                                    |
-| `add`            | list⟨prefix⟩                       | Member KEL prefixes added (the full initial set at inception).                                   |
-| `cut`            | list⟨prefix⟩                       | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                        |
-| threshold vector | `{ t_use, t_govern, t_authorize }` | The declared or changed threshold counts — content (tier 1), governance, authorization (tier 2). |
+| Field            | Type                         | Meaning                                                                                          |
+| ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `said`           | SAID                         | The delta SAD's SAID.                                                                            |
+| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                    |
+| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                   |
+| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                        |
+| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), governance, authorization (tier 2). |
 
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the

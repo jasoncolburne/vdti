@@ -42,7 +42,7 @@ Every SEL kind sits at the intersection of **three independent axes**; conflatin
 classic error the model guards against.
 
 1. **Count — how many owner-IEL members must authorize.** The count is drawn from the **owner
-   IEL's** threshold vector `{t_use, t_govern, t_authorize}` and delivered by the **anchoring IEL
+   IEL's** threshold vector `{ use, authorize, govern }` and delivered by the **anchoring IEL
    event's** member participations (a SEL event has no signers of its own). `t_use` prices content,
    `t_govern` a revocation or a `Sea` bury, `t_authorize` a grant or a rescission. There is no
    recovery slot.

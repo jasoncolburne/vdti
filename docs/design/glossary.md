@@ -97,8 +97,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   **retains** the branch it keeps **canonical** (the recovery rule), while a buried loser is
   **retained** as non-canonical **evidence** (buried by position + ascent below a burying seal).
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
-- **threshold vector** — an IEL's `{t_use, t_govern, t_authorize}` — the **count** an act of each
-  kind requires (orthogonal to tier).
+- **threshold vector** — an IEL's `{ use, authorize, govern }` — the **count** an act of each kind
+  requires (orthogonal to tier).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#structural-authorization--the-three-mechanisms))
 - **authorization floor** — the bound `t_govern, t_authorize > |roster|/2` (a strict majority of the
   roster), so any two authorizing quorums overlap and a sealed fork always names a double-dealer.

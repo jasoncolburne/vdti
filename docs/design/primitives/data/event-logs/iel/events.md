@@ -84,14 +84,17 @@ exactly one threshold slot, and the verifier resolves each anchor down to a KEL 
 
 ## The threshold vector and its bounds
 
-An identity's authorization is a **threshold vector** `{t_use, t_govern, t_authorize}` — the
-**count** axis, orthogonal to tier. Each IEL kind draws its required count from exactly one slot:
+An identity's authorization is a **threshold vector** — a labelled object
+`{ use, authorize, govern }` — the **count** axis, orthogonal to tier. Prose (and the slot table
+below) writes a slot as **`t_use` / `t_govern` / `t_authorize`**: the `t_` marks a **threshold**,
+distinct from a **tier** (`T1` / `T2`) — it is a documentation label, not a data key. Each IEL kind
+draws its required count from exactly one slot:
 
 | Slot          | Consumed by                   | Meaning                                                                      |
 | ------------- | ----------------------------- | ---------------------------------------------------------------------------- |
 | `t_use`       | `Ixn`                         | Content — issuance and SEL authoring (tier 1).                               |
-| `t_govern`    | `Evl` / `Rev` / `Wit` / `Trm` | Roster / threshold change, revocation, federation rebind, terminal (tier 2). |
 | `t_authorize` | `Ath` / `Dth`                 | Authorize / deauthorize a party to act (tier 2).                             |
+| `t_govern`    | `Evl` / `Rev` / `Wit` / `Trm` | Roster / threshold change, revocation, federation rebind, terminal (tier 2). |
 
 The bounds (re-checked on the post-delta config at **every** config-changing event, not only
 inception):
@@ -129,7 +132,7 @@ carries additional bounds — see
 The **`Icp` declares the active threshold set** — exactly the authority kinds the IEL will ever use.
 A threshold is declared **iff its consuming kind is in the IEL's kind set**: a user IEL declares
 `t_govern` **mandatory** and `t_use` / `t_authorize` **optional and lockable**; a federation IEL
-(`Fcp` / `Wit` / `Trm`, no `Ixn` / `Ath`) declares **exactly `{t_govern}`** (declaring `t_use` or
+(`Fcp` / `Wit` / `Trm`, no `Ixn` / `Ath`) declares **exactly `{ govern }`** (declaring `t_use` or
 `t_authorize` is malformed → rejected — the threshold-declaration analog of the facet role
 allowlist). A kind **omitted at `Icp` can never be exercised** — there is no first-introducing it
 later. Thereafter a roster delta carries a threshold field **only when it changes** (present ⇒ must
@@ -302,7 +305,7 @@ recoverability cap, the clock, roster-add consent) are federation doctrine —
 ### `Fcp` — the federation inception marker (federation IEL only)
 
 The federation IEL's inception (§Two-kind inception). It carries the initial witness-KEL roster, the
-initial `witnesses` config, and the initial `clock`, declares exactly `{t_govern}`, and is anchored
+initial `witnesses` config, and the initial `clock`, declares exactly `{ govern }`, and is anchored
 kind-strict by each founder's KEL `Rot`. Its structural role is the **spine root** of the federation
 IEL (`previousSeal` walks terminate there). See
 [§The restricted federation IEL](#the-restricted-federation-iel).
@@ -418,7 +421,7 @@ aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every fed
 key change → record-both; a competing sealed sibling is **first-seen-declined** (exclude-self
 peer-witnessing), so an honest conflict does **not** schism — only a witness-colluded
 **two-witnessed** `{Wit, Wit}` → disputed → reincept; and **no `Ath`** (trust is per-federation and
-non-transitive). Its threshold vector is exactly `{t_govern}`.
+non-transitive). Its threshold vector is exactly `{ govern }`.
 
 The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike a general identity,
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always

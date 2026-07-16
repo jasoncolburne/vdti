@@ -27,11 +27,11 @@ chain primitive plays a distinct structural role:
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of
   custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
 - **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold
-  vector** `{t_use, t_govern, t_authorize}` — how many member devices must act for content,
-  governance, and authorization respectively (these are **counts**, orthogonal to the two capability
-  **tiers**, T1/T2 — T1 is content, forged with the signing key; T2 is everything sealed, forged
-  only with the rotation reserve; introduced below). A rule spanning several identities lives in the
-  document policy layer. Identity is the unit at which credentials are issued.
+  vector** `{ use, authorize, govern }` — how many member devices must act for content, governance,
+  and authorization respectively (these are **counts**, orthogonal to the two capability **tiers**,
+  T1/T2 — T1 is content, forged with the signing key; T2 is everything sealed, forged only with the
+  rotation reserve; introduced below). A rule spanning several identities lives in the document
+  policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
   **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are
   authorized structurally by the owner IEL, which anchors them; it floors **down** to the owner

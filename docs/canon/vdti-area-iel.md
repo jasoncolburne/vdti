@@ -47,7 +47,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   | `Fcp` *(federation IEL only)* | T2 | all founders (Rule A) | **federation inception marker** — the federation IEL's inception (replaces the old federation `Icp`; 2026-06-28). Anchored kind-strict by each founder's KEL **`Rot`** (T2 ↔ T2 — genesis `Fcp → Rot`, federation §1c). Carries the initial roster, the initial **witness-config** (`witnesses`), and the initial **`clock`** (the founders' `T_join` = genesis time). The marker lets a verifier **recognize** a federation IEL from its own data (restricted kinds, exclude-self witnessing) — **interpretation, not trust** (the config-pinned `FEDERATION_IEL_PREFIX` still roots trust; the self-witnessing carve-out killed in federation-ref §4 does **not** return). **The `Fcp` is *checked* at two times (Q2, Jason 2026-06-29): during witnessing checks** (resolving `roster(F @ context)`) **and during federation-binding validation** — the latter **rejects** a user `{federation, federationPin}` whose target prefix is **not** `Fcp`-rooted (a binding pointing at an `Icp`-rooted user IEL is malformed). *(Plus its structural role as the **spine root** of the federation IEL — `previousSeal` walks terminate there, inv 17 — same as any inception.)* |
 
 - **`roster` = KELs only.** No aggregate-of-IELs recursion; identity composition lives in the policy/document layer. [inv 1]
-- **Threshold vector** `{t_use, t_govern, t_authorize}` (the **count** axis, ⊥ tier — inv 11; `t_recover` is
+- **Threshold vector** `{ use, authorize, govern }` (the **count** axis, ⊥ tier — inv 11; `t_recover` is
   **dropped** — no repair, no recovery reserve); Rule A (unanimous-additions); removal of a member is an **`Evl` with
   a roster `cut`** (one sealing event evicts + buries; there is no `Rpr`-cut fold — inv 13). **Bounds (F-K, inv
   12):** `t_use ≥ 1`; the authority kinds (`t_govern`/`t_authorize`) have **two bounds of different kinds** — **`≥ 2`**
@@ -69,7 +69,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   authority kinds the IEL will ever use — **a threshold is declared iff its consuming kind is in the IEL's kind set**
   (`Ixn`→`t_use`, `Ath`/`Dth`→`t_authorize`, `Evl`/`Rev`/`Wit`/`Trm`→`t_govern`). A **user** IEL → `t_govern`
   **mandatory**, `t_use` + `t_authorize` **optional and lockable**; a **federation** IEL (`Fcp`/`Wit`/`Trm` —
-  no `Ixn`/`Ath`) declares **exactly `{t_govern}`** (`t_use`/`t_authorize` forbidden → a federation
+  no `Ixn`/`Ath`) declares **exactly `{ govern }`** (`t_use`/`t_authorize` forbidden → a federation
   `Fcp` declaring any is malformed, rejected — the threshold-declaration analog of the facet-dependent role allowlist,
   2026-06-29). A kind **omitted at `Icp` can never be exercised** (no first-introducing it on a later event). Thereafter
   a roster delta carries a threshold field **only when it changes** (present ⇒ **must** change; absent ⇒ unchanged)

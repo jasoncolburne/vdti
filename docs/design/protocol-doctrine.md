@@ -240,7 +240,7 @@ on the chains that root other chains' authority. The per-primitive anchor matrix
 **Authorization is structural**, per primitive:
 
 - **KEL** — the device's own key state (tier 1/2 above).
-- **IEL** — a roster of member KELs plus a **threshold vector** `{t_use, t_govern, t_authorize}`,
+- **IEL** — a roster of member KELs plus a **threshold vector** `{ use, authorize, govern }`,
   indexed by the event's kind (`t_govern` is mandatory; `t_use` / `t_authorize` are declared at
   inception or **locked out** for the chain's life —
   [`iel/events.md`](primitives/data/event-logs/iel/events.md)). Every IEL kind **prices itself**:

@@ -86,9 +86,9 @@ Each primitive authorizes its own events structurally.
   a signing key (tier 1) or a revealed rotation reserve (tier 2). The KEL is the root —
   self-authorizing, with no chain below it.
 - **IEL — an identity's threshold vector over its member devices.** An IEL is a roster of member
-  KELs plus a **threshold vector** `{t_use, t_govern, t_authorize}`, indexed by the kind of event
-  being authored (below). It composes no multi-party policy internally; "who is this identity" is
-  the roster, "how many must act for this kind of act" is the threshold vector.
+  KELs plus a **threshold vector** `{ use, authorize, govern }`, indexed by the kind of event being
+  authored (below). It composes no multi-party policy internally; "who is this identity" is the
+  roster, "how many must act for this kind of act" is the threshold vector.
 - **SEL — single-owner ownership.** A SEL is owned by exactly one IEL. Its events are authorized by
   that owner IEL: the owner's IEL event anchors the SEL event (commits to its SAID), and the
   required count is set by the SEL event's kind. A SEL hosts no roster of its own.

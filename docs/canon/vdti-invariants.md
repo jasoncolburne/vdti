@@ -373,7 +373,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     "safe-direction removals are T1 / `Trm` may be delayed"** — a kill can't be unsealed (inv 13, 15); it re-aligns
     with `document-policy §F`. *Src:* §1 + the kill-cluster resolution, 2026-06-21; two-tier collapse 2026-07-08.
     `[locked]`
-12. **IEL authorization is a threshold vector** `{t_use, t_govern, t_authorize}` (the **count** axis,
+12. **IEL authorization is a threshold vector** `{ use, authorize, govern }` (the **count** axis,
     ⊥ tier per inv 11; `t_recover` is **dropped** — no repair, no recovery reserve), indexed by kind; additions
     require unanimous consent of the added; a `Evl` needs consent-of-added ∧ `t_govern`-of-outgoing (its `cut` also
     evicts). **Bounds (F-K, hardened 2026-06-21; authorization floor + roster cap added 2026-07-08):**
@@ -440,7 +440,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     consuming kind is in the IEL's kind set** (`Ixn`→`t_use`, `Ath`/`Dth`→`t_authorize`,
     `Evl`/`Rev`/`Wit`/`Trm`→`t_govern`). A **user** IEL (kind set has `Ixn`/`Ath` + governance) → `t_govern`
     **mandatory**, `t_use` + `t_authorize` **optional and lockable**. A **federation** IEL (`Fcp`/`Wit`/`Trm`
-    — no `Ixn`, no `Ath`) declares **exactly `{t_govern}`** — `t_use` **and** `t_authorize`
+    — no `Ixn`, no `Ath`) declares **exactly `{ govern }`** — `t_use` **and** `t_authorize`
     forbidden (a federation `Fcp` declaring any is **malformed → rejected** — the threshold-declaration analog of
     the facet-dependent role allowlist, cold-9 Q3 / 2026-06-29). A kind **omitted at `Icp` can never be exercised** — there is no
     first-introducing it on a later event (closes a mid-life authority-introduction). Thereafter a roster delta
