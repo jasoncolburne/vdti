@@ -12,7 +12,7 @@ the same naming scheme and live in their own catalogues: **derivation tags and S
 Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segments, always:
 
 - **`component`** — the subsystem that owns it: `kel` / `iel` / `sel` / `event` / `witness` / `log`
-  / `doc` / `exchange` / `cred` / `policy` / `gossip`.
+  / `doc` / `exchange` / `essr` / `ipex` / `cred` / `policy` / `gossip`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
   `schemas` / `protocols` / `actions` / `states` / `topics`.
@@ -46,15 +46,25 @@ The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their
 own.
 
+**The protocol-primitive SADs:**
+
+| Kind                     | What it is                                                          |
+| ------------------------ | ------------------------------------------------------------------- |
+| `vdti/essr/v1/schemas/*` | the ESSR envelope, inner, and message                               |
+| `vdti/ipex/v1/schemas/*` | the IPEX messages (`apply` `offer` `agree` `grant` `admit` `spurn`) |
+
+The ESSR key-derivation context `vdti/essr/v1/protocols/kdf` shares the naming convention but is
+**not a SAD** — it is a domain-separation label used when deriving the sealing key, never stored or
+served ([`../../protocols/essr.md`](../../protocols/essr.md)).
+
 **The feature / application SADs:**
 
-| Kind                              | What it is                            |
-| --------------------------------- | ------------------------------------- |
-| `vdti/doc/v1/schemas/*`           | shared-document SADs (`comment`, …)   |
-| `vdti/exchange/v1/schemas/*`      | exchange SADs                         |
-| `vdti/exchange/v1/protocols/essr` | the ESSR envelope                     |
-| `vdti/cred/v1/schemas/*`          | credential SADs (application-defined) |
-| `vdti/policy/v1/{group}/*`        | policy documents, grouped by domain   |
+| Kind                         | What it is                            |
+| ---------------------------- | ------------------------------------- |
+| `vdti/doc/v1/schemas/*`      | shared-document SADs (`comment`, …)   |
+| `vdti/exchange/v1/schemas/*` | exchange SADs                         |
+| `vdti/cred/v1/schemas/*`     | credential SADs (application-defined) |
+| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain   |
 
 ## Fetch by SAID — what the store hands back
 

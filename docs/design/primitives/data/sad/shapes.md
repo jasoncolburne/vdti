@@ -3,8 +3,8 @@
 Every piece of content in VDTI is a [SAD](sad.md), and its [`kind`](kinds.md) names its type. This
 doc is the companion to those two: [`kinds.md`](kinds.md) enumerates the kinds, and this doc gives
 each kind's **shape** — the fields it carries. It covers the **standalone SADs** in full (receipts,
-configs, grant values, credentials, shared-document SADs, exchange envelopes, policy). For the
-**chain events**, the authoritative per-kind field tables live in
+configs, grant values, credentials, shared-document SADs, the ESSR and IPEX protocol messages,
+policy). For the **chain events**, the authoritative per-kind field tables live in
 [`../event-logs/event-shape.md`](../event-logs/event-shape.md); this doc summarizes their common
 envelope and points there rather than restating them.
 
@@ -155,6 +155,52 @@ value it carries is the sealed thing itself.
 Each grant value is a SAD (`said` + `kind` + its value); the value layouts land at the exchange and
 shared-documents encodes.
 
+## Protocol SADs
+
+### ESSR — `vdti/essr/v1/*`
+
+The **envelope** (`vdti/essr/v1/schemas/envelope`) — the signed cleartext; its signature rides
+adjacent ([`../../protocols/essr.md`](../../protocols/essr.md)):
+
+| Field              | Type   | Meaning                                                                    |
+| ------------------ | ------ | -------------------------------------------------------------------------- |
+| `said`             | SAID   | The envelope SAID — commits every field below; the signature is over it.   |
+| `kind`             | string | `vdti/essr/v1/schemas/envelope`.                                           |
+| `sender`           | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).   |
+| `senderPin`        | SAID   | The sender's establishment event current at signing — the verifying state. |
+| `recipient`        | prefix | The recipient's IEL prefix (signed — the recipient binding).               |
+| `kemCiphertext`    | bytes  | The key-encapsulation to the recipient's receive key.                      |
+| `encryptedPayload` | bytes  | The sealed inner, under the key derived from the encapsulated secret.      |
+| `nonce`            | bytes  | The sealing nonce (fresh random per message).                              |
+
+The **inner** (`vdti/essr/v1/schemas/inner`, sealed) is `{ said, kind, sender, payload }` — the
+sender prefix (the binding that rides inside the sealed content) and the opaque payload; a message
+timestamp or protocol label rides _inside_ `payload`, not as an envelope field. The **message**
+(`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the envelope SAD plus
+the sender's signature over `envelope.said`.
+
+### IPEX — `vdti/ipex/v1/*`
+
+Six message kinds `vdti/ipex/v1/schemas/{apply,offer,agree,grant,admit,spurn}`, each a signed SAD
+threaded by `previous` ([`../../protocols/ipex.md`](../../protocols/ipex.md)). Only the **`grant`**
+— the disclosure and its presentation-freshness envelope — carries content and a distinct shape:
+
+| Field       | Type      | Required | Meaning                                                                                                    |
+| ----------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `said`      | SAID      | yes      | Commits every field below; the signature is over it.                                                       |
+| `kind`      | string    | yes      | `vdti/ipex/v1/schemas/grant`.                                                                              |
+| `previous`  | SAID      | no       | The `agree` this grant answers (absent for a minimal push).                                                |
+| `discloser` | prefix    | yes      | The discloser's IEL prefix — equals the SAD's committed issuee if targeted.                                |
+| `audience`  | prefix    | yes      | The verifier's IEL prefix — binds the disclosure to one recipient.                                         |
+| `nonce`     | bytes     | yes      | Per-presentation, high-entropy — the replay-dedup entropy.                                                 |
+| `created`   | timestamp | yes      | Bounds cache retention; never a trust input.                                                               |
+| `challenge` | bytes     | no       | Echoes the verifier's `apply` challenge (stronger-liveness mode).                                          |
+| `disclosed` | SAID      | yes      | The disclosed SAD by SAID — expanded inline at full disclosure, or the committed SAID at a graduated step. |
+
+The other five messages (`apply` / `offer` / `agree` / `admit` / `spurn`) are lightweight
+negotiation and acknowledgement SADs, each `{ said, kind, previous?, … }` signed by its sender;
+their shapes land with [`../../protocols/ipex.md`](../../protocols/ipex.md).
+
 ## Feature SADs
 
 ### Credentials — `vdti/cred/v1/schemas/*`
@@ -204,24 +250,9 @@ shared-documents encode
 
 ### Exchange — `vdti/exchange/v1/*`
 
-The **ESSR envelope** (`vdti/exchange/v1/protocols/essr`) — the signed plaintext; its signature
-rides adjacent:
-
-| Field               | Type      | Meaning                                                  |
-| ------------------- | --------- | -------------------------------------------------------- |
-| `said`              | SAID      | The envelope SAID — commits every field below.           |
-| `kind`              | string    | `vdti/exchange/v1/protocols/essr`.                       |
-| `sender`            | prefix    | The sender's IEL prefix (plaintext, for routing).        |
-| `sender_serial`     | u64       | The sender's establishment serial at signing time.       |
-| `recipient`         | prefix    | The recipient's IEL prefix (signed — anti-KCI).          |
-| `kem_ciphertext`    | bytes     | The ML-KEM encapsulation to the recipient's receive key. |
-| `encrypted_payload` | bytes     | The AES-256-GCM ciphertext of the inner.                 |
-| `nonce`             | bytes     | The 12-byte AEAD nonce (fresh random per message).       |
-| `created`           | timestamp | Creation time (advisory).                                |
-
-The **inner** (encrypted) is `{ sender, topic, payload }` — the sender prefix (proving authorship),
-the protocol topic (hidden from the transport), and the opaque payload. The exchange-message and
-session-message shapes (`vdti/exchange/v1/schemas/*`) are **forthcoming** — at the exchange encode.
+The exchange-message and session-message shapes (`vdti/exchange/v1/schemas/*`) are **forthcoming** —
+at the exchange encode. The sealed one-to-one envelope is its own protocol primitive — see
+[Protocol SADs](#protocol-sads).
 
 ### Policy — `vdti/policy/v1/{group}/*`
 

@@ -119,10 +119,10 @@ grant = {
 }
 ```
 
-signed over the recomputed `grant.said` by the **presenter's current-tip `use` quorum**. That one
+signed over the recomputed `grant.said` by the **presenter's current-tip `t_use` quorum**. That one
 signature does **double duty**: it proves **ownership** — for a targeted disclosure the required signer is
 the disclosed SAD's committed **issuee** (not the self-declared `discloser`), so a valid signature means
-the presenter controls the issuee's `use` threshold (the "who may present" question, satisfied
+the presenter controls the issuee's `t_use` threshold (the "who may present" question, satisfied
 structurally, not by a separate live challenge) — **and** it binds the disclosure to `{audience, nonce,
 created}` so it cannot be replayed. This is why the baseline is a single round trip.
 
@@ -163,9 +163,9 @@ check needs (its issuer's prefix), which is how a verifier locates the issuer ch
 
 **Why it holds (adversary).** Replay **to me** → the nonce is already consumed (dedup). Replay
 **elsewhere** → `audience` mismatches. **Present someone else's targeted credential** → the required signer
-is that credential's committed `issuee`, whose `use` key the impersonator lacks. **Swap the credential**
+is that credential's committed `issuee`, whose `t_use` key the impersonator lacks. **Swap the credential**
 into a captured envelope → the recomputed `said` no longer matches the body, and the signature is over the
-recomputed `said`, so it breaks. **Forge** → no `use` key. A targeted credential's copy-and-replay is
+recomputed `said`, so it breaks. **Forge** → no `t_use` key. A targeted credential's copy-and-replay is
 closed **within a single `grant`** — no verifier-issued challenge is required.
 
 **The timestamp is a cache bound, never a trust input.** `created` is self-asserted and forgeable, so it
@@ -184,7 +184,7 @@ a mode, **not** the baseline.
 ## Targeted vs untargeted
 
 - **Targeted** — the disclosed SAD names an **issuee**. The verifier's gate requires the `grant` signature
-  to resolve to that **committed issuee**'s current-tip `use` quorum (and `discloser` to equal it) — so only
+  to resolve to that **committed issuee**'s current-tip `t_use` quorum (and `discloser` to equal it) — so only
   the issuee can present, enforced against the committed field, never the self-declared `discloser`.
 - **Untargeted (bearer)** — the SAD names no issuee. Any holder presents it; there is no ownership binding
   to check (the ownership step is **skipped**). The freshness envelope still binds `{audience, nonce}`, so
@@ -192,9 +192,9 @@ a mode, **not** the baseline.
   copied by an observer can be re-presented by the copier (the inherent bearer trade-off, stated in the
   credential residuals, not an IPEX defect).
 
-The "who may present" ownership step is an **authentication of the issuee** (satisfy its `use` threshold),
+The "who may present" ownership step is an **authentication of the issuee** (satisfy its `t_use` threshold),
 **not a policy** and not part of the disclosed SAD's authorization. IPEX realizes it as the `grant`'s
-`use`-quorum signature; a consumer never writes a policy for it.
+`t_use`-quorum signature; a consumer never writes a policy for it.
 
 ## The boundary — thin, payload-agnostic
 
@@ -236,7 +236,7 @@ graduated disclosure (reveal the compact form, then expand); targeted / untarget
   **compaction** primitive is the same property expressed as a recursive SAID commitment; we state it in
   those terms, over the canonical fully-compacted SAID.
 - **The presentation-freshness envelope on `grant`** — `{audience, nonce, created}` signed by the
-  discloser's `use` quorum. The spec's Security Considerations are unspecified; this is the model vdti
+  discloser's `t_use` quorum. The spec's Security Considerations are unspecified; this is the model vdti
   supplies. The **`audience`** binding (defeating cross-verifier replay) is the addition over the kels
   fetch-freshness precedent, which bound only the fetched object.
 - **Post-quantum crypto + sign-the-SAID.** Messages are vdti SADs; signatures are lattice signatures over
