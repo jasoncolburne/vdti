@@ -920,6 +920,23 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     + binding); everything inheritable is **`opt` (present-iff-changed)**. *Src:* Jason 2026-06-30 (generalizing
     [inv 4]/[inv 5]/[inv 12]). `[locked-candidate]`
 
+## Signatures & canonical form
+
+19. **Every signature is over the fully-compacted SAID; verify by compacting-then-checking (Jason
+    2026-07-17).** A SAD signature — and an anchor, which commits a SAID — is always taken over the SAD's
+    **fully-compacted** SAID: the canonical, always-re-derivable form in which every nested SAD is replaced
+    by its own SAID. A verifier **compacts the presented form to that canonical SAID first**, then checks
+    the signature over it. Because compaction is a **recursive SAID commitment** (every faithful expansion
+    of a SAD commits back to the same fully-compacted SAID — [inv 16]), one signature over the compacted
+    SAID **validates any faithful disclosed form** — compact, partially expanded, or full. This is what lets
+    **graduated disclosure** work without re-signing: sign once over the canonical SAID, and every variant a
+    holder chooses to reveal verifies against it. **The fully-compacted SAID is the sole canonical identity**
+    of a SAD; its other encodings are presentation forms, never the thing signed or addressed. Generalizes
+    the credential / anchor rule (proof-of-issuance is over the fully-compact SAID; any variant verifies) to
+    **every** signature in the system — ESSR envelopes, IPEX grants, exchange messages, receipts, group-chat
+    messages. *Src:* Jason 2026-07-17 — closes the said.md / compaction "canonical = fully-compacted" fix.
+    `[locked-candidate]`
+
 ## Document-layer evaluation (confirmed — see document-policy §C)
 - **The evaluation model is a single as-issued function** — `evaluate_as_issued` (consumes the anchoring positions,
   resolves leaves as-of): one shared composer + one leaf resolver, reconciled to the reshape (leaf set, no

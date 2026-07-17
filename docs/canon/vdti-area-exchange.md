@@ -197,6 +197,14 @@ the canon's job is to keep the primitives + substrate able to support them.
 
 ## 7a. The session mode — long-lived ratcheting group sessions (Jason 2026-07-14)
 
+**★ GROUP KEYING IS NOW A PRIMITIVE (2026-07-17) → [`vdti-area-group-key.md`](vdti-area-group-key.md).** The
+**epoch-key distribution machinery** below — the bounded gated/blinded roster, the key-epoch SEL, the
+ESSR-wrap-once-per-member, and the membership + time-cadence ratchet — is lifted to the **group-key** protocol
+primitive (shared with shared-documents content keying, which is why it is a primitive, not exchange-internal).
+This §7a is retained as the **chat consumer's** usage of it (per-sender lanes, per-writer subkeys, bulk AEAD,
+per-message signatures over the compacted SAID, epoch-window currency); the full trim to consumer-only content
+is owed. The primitive owns the distribution; chat composes it.
+
 The session mode (§1a) is **chat**: 1:1 and group, assumed to last **years**, so it **ratchets** for
 forward secrecy. It is built **entirely from SAD / SEL / IEL**, and it **specializes** the
 shared-documents group-key idea (§7) rather than reusing it wholesale — chat needs a bounded,
@@ -255,12 +263,20 @@ enumerable member set and a time-cadence ratchet the shared-documents access-lis
   nonce is that device's own sequence — a **persisted monotonic counter** (persisted across a restart,
   else a reset reuses a nonce) or a random nonce bounded by the epoch's message volume. The per-sender
   subkey removes the **cross**-writer collision; this removes the **within**-writer one.
-- **Messages = kinded, nonce'd SADs, signed by their sender.** Confidentiality rides the per-sender
-  subkey; **authenticity rides the sender's own signature** — each message SAD's SAID is
-  **ML-DSA-signed with the sender's current `t_use` key** and **timestamped**. The epoch key proves only
-  _"a group member"_; the signature proves _which_ member (ESSR's sender-unforgeability, restored for
-  group mode). Thread-ordered by `previous`; **off-chain by default**, optionally **anchored** for
-  non-repudiation.
+- **Messages = per-sender lanes; each a kinded, nonce'd SAD signed by its writer (Jason 2026-07-17).**
+  Group messages form a **DAG of per-writer lanes** — each writing device's messages are its own
+  `previous`-linked chain, merged into the group view, the way the shared-documents version DAG attributes
+  each version to its writer ([`vdti-area-shared-documents.md`](vdti-area-shared-documents.md)). **The lane
+  _is_ the writer:** a receiver reads which lane a message sits on, derives that lane's subkey
+  `blake3::derive_key(epoch_key, device_kel_prefix)` to decrypt, and verifies the signature against that
+  device's key — so **no sender field is carried on the message** (it would only duplicate the lane), and
+  attribution is to the writer's **owning member identity** (the device KEL's IEL). This is a **dedup, not
+  sender-hiding**: the lane reveals the writer the way custody attributes a doc version — visible to members,
+  and outside the ciphertext of necessity (you need it to pick the subkey). Confidentiality rides the
+  per-sender subkey; **authenticity rides the writer's own signature over the message's fully-compacted
+  SAID** ([inv 19]) — ML-DSA with the device's current `t_use` key, and **timestamped**. The epoch key
+  proves only _"a group member"_; the signature proves _which_ member (ESSR's sender-unforgeability, restored
+  for group mode). **Off-chain by default**, optionally **anchored** for non-repudiation.
 - **Message currency binds to the witnessed epoch, not the self-asserted timestamp (Jason 2026-07-15,
   "A2 is a good finding").** A long-lived chat accumulates messages signed under a **sequence** of the
   sender's keys as it rotates, so the §3 one-off check ("refuse any key that is not current-**now**")
