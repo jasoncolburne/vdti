@@ -38,8 +38,9 @@ Every app you compose inherits, by construction:
 
 - **Tamper-evidence** — a changed record breaks its own proof.
 - **Provenance** — who did what, when, and under what authority travels _with_ the data.
-- **Offline, end-to-end verification** — the client checks its own work; there is no server to
-  believe.
+- **End-to-end verification, no trusted server** — the client checks its own work against the data,
+  from any source; there is no service to believe. (Authenticity verifies with no network;
+  confirming a credential is _not revoked_ needs a fresh read — see below.)
 - **Revocation** — an issuer can revoke; a verifier confirms not-revoked from a fresh read of the
   issuer's chain (any source) and **fails secure** by default (an application may opt into
   fail-open).

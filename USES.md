@@ -132,16 +132,15 @@ verification).
 - **Age or identity verification** — disclose only what is needed, verifiable offline. **Composes:**
   credentials.
 - **Licensing and permits** — issue, verify, and revoke. **Composes:** credentials.
-- **Travel documents** — held by the traveler, verifiable without a live lookup. **Composes:**
-  credentials.
+- **Travel documents** — held by the traveler; authenticity verifies offline, revocation from a
+  fresh read of the issuer's chain (any source). **Composes:** credentials.
 - **Compliance attestation** — an auditor attests; a log holds the trail. **Composes:**
   credentials + a log.
 - **Voting / elections** — a government binds each citizen to **one** identity (one person, one
   vote) via a **registrar**, then collects anchored, auditable ballots with a durable tally.
   **Composes:** credentials + exchange + the `registrar` app. _(the `vote` example app, built on
-  `registrar`. A fully **secret** ballot — voter privacy with coercion resistance — needs
-  zero-knowledge proofs, which sit outside today's post-quantum crypto suite; the auditable-ballot
-  form does not.)_
+  `registrar`. A fully **secret** ballot — voter privacy with coercion resistance — is out of scope;
+  VDTI supports the auditable ballot.)_
 
 ### Health
 
@@ -175,7 +174,9 @@ Every application above inherits, by construction and with no extra work:
 
 - **Tamper-evidence** — a changed record breaks its own proof.
 - **Provenance** — who did what, when, and under what authority travels with the data.
-- **Offline, end-to-end verification** — a client verifies everything itself, from any source.
+- **End-to-end verification, no trusted server** — a client verifies everything itself against the
+  data, from any source. (Authenticity verifies with no network; fresh revocation needs a read — see
+  Revocation.)
 - **Revocation** — an issuer can revoke; a verifier confirms not-revoked from a fresh read of the
   issuer's chain (any source), failing secure by default (an application may opt into fail-open).
 - **No trusted backend** — you write the application; the infrastructure is run by the issuers who

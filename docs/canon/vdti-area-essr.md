@@ -52,14 +52,16 @@ the receiver itself, × _what_ they'd forge, the plaintext or the ciphertext):
 - **A third party cannot forge the ciphertext** — no outsider can produce a _ciphertext_ that verifies as
   the sender's. (Anyone _can_ encapsulate to the recipient — the KEM is a public operation — but not a
   ciphertext authenticated as from the sender.)
-- **The receiver cannot forge the ciphertext** — a malicious recipient cannot strip the sender's signature
-  and re-sign the same ciphertext to re-attribute it. The **sender bound inside the ciphertext** defeats
-  this: a re-signed envelope naming a different sender fails the `inner.sender == envelope.sender` check.
-- **The receiver cannot forge the plaintext** — a malicious recipient cannot substitute its own key and
-  claim the sender encrypted some _other_ plaintext to it (the non-repudiation case). The **recipient bound
-  in the signed cleartext** defeats this: the ciphertext must decrypt under the intended recipient's key or
-  the signature is invalid. **This is the guarantee ESSR adds** — plain encrypt-then-sign already gives the
-  other three.
+- **The receiver cannot forge the ciphertext** — a malicious recipient has no signing key, so it cannot
+  produce a new ciphertext that verifies as the sender's. This holds from the signature alone (plain
+  encrypt-then-sign).
+- **The receiver cannot forge the plaintext** — a malicious recipient cannot make the sender's message
+  appear to carry a plaintext the sender never authored (the non-repudiation case). **This is the one
+  guarantee ESSR adds**, and it takes **both** bindings: the **recipient bound in the signed cleartext**
+  stops a key-substitution (the ciphertext must decrypt under the intended recipient's key, or the signature
+  is invalid), and the **sender bound inside the ciphertext** stops a strip-and-re-sign (a re-signed envelope
+  naming a different sender fails the `inner.sender == envelope.sender` check). Plain encrypt-then-sign gives
+  the other three.
 
 **One strengthening from the identity model:** because sender and recipient are **chain prefixes** whose
 keys come from their logs, a malicious recipient cannot substitute an arbitrary key — only a key that
@@ -221,3 +223,18 @@ material and does no chain resolution)._
   (full hiding) and the serve-time recipient-prefix delivery-gate (limits harvesting). Not an ESSR concern.
 - **Sender-key currency is the consumer's.** ESSR verifies the signature against `senderPin`; whether that
   key-state is still trusted is checked outside ESSR, against the sender's current witnessed chain.
+
+## Drift → land
+
+- Write `docs/design/primitives/protocols/essr.md` fresh from this note (greenfield voice), alongside
+  `protocols/ipex.md`.
+- **Re-namespace the ESSR kinds** from the pre-carve `vdti/exchange/v1/protocols/essr` to
+  `vdti/essr/v1/schemas/{envelope,inner,message}` in `kinds.md` (currently line 55) and `shapes.md`; register
+  the **`essr` component** + the `vdti/essr/v1/protocols/kdf` context in `kinds.md`.
+- **Correct the `shapes.md` envelope table** to this note's shape: `sender_serial` → **`senderPin`** (a SAID,
+  not a serial — the fork-frozen axis); **drop the `created` field** (the divergence ledger removed the
+  exposed plaintext timestamp); inner → **`{ said, kind, sender, payload }`** (`topic` rides _inside_
+  `payload`, not an ESSR field); camelCase throughout.
+- **Fix `vdti-area-exchange.md` §8** so the ESSR envelope + inner are no longer listed under
+  `vdti/exchange/v1/schemas/*` (they moved to `vdti/essr/v1/schemas/*`); leave only the exchange-message
+  shapes there.

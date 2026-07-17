@@ -336,8 +336,9 @@ always ESSR-wrapped).
   chars): `vdti/sel/v1/grants/exchange-ml-kem-1024`, and the reduced-tier sibling
   `vdti/sel/v1/grants/exchange-ml-kem-768`. The grant value is the public ML-KEM key (scheme-tagged), named by
   its `grants/*` kind — no bespoke schema.
-- **Exchange SADs** (`vdti/exchange/v1/schemas/*`): the ESSR envelope + inner + the exchange-message shapes
-  (Apply/Offer/…); field layout at the encode, tracking `../kels lib/exchange`.
+- **Exchange SADs** (`vdti/exchange/v1/schemas/*`): the exchange-message shapes (Apply/Offer/…); field
+  layout at the encode, tracking `../kels lib/exchange`. (The ESSR envelope + inner moved to the primitive —
+  `vdti/essr/v1/schemas/*`; see [`vdti-area-essr.md`](vdti-area-essr.md).)
 - **Session / group names (§7a — owed at encode):** SEL topics `vdti/exchange/v1/topics/group` (the
   bounded member roster) and `vdti/exchange/v1/topics/session-key` (the key-epoch log); grant-value kind
   `vdti/sel/v1/grants/exchange-group-key` (the ESSR-wrapped epoch key); KDF context
