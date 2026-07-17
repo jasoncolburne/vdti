@@ -11,8 +11,9 @@ blocks it snaps together. Everything here inherits, for free, the properties in
 
 ## The building blocks
 
-Two tiers. The **primitives** are the raw material; the **features** are pre-built machinery for the
-hard problems. Most applications are mostly primitives.
+The **primitives** are the raw material; the **features** are pre-built machinery for the hard
+problems; the **substrate** is the shared infrastructure underneath; and **applications** are what
+you ship on top. Most applications are mostly primitives.
 
 **Primitives** (the raw material):
 
@@ -37,6 +38,13 @@ hard problems. Most applications are mostly primitives.
 **Substrate** (the infrastructure): federation witnessing, encrypted mesh transport, and the record
 store. Run by the organizations that issue and rely on trust — shared by everyone. You do not run
 it; you write applications on it.
+
+**Applications** (what you ship): your app, composing the tiers above — most of them mostly
+primitives. A handful of **reference apps** ship with VDTI (`mail`, `chat`, `edit`, `bbs`, `health`,
+and the `registrar` that `vote` builds on). This layer is also where an app plugs in logic VDTI
+doesn't own, via a trait, when it must reach an **external authority** — e.g. a government's
+`Registrar` (VDTI ships the binding and issuance glue; the org supplies only its private
+verification).
 
 ## The core patterns
 
@@ -128,8 +136,12 @@ it; you write applications on it.
   credentials.
 - **Compliance attestation** — an auditor attests; a log holds the trail. **Composes:**
   credentials + a log.
-- **Voting / elections** — anchored, auditable ballots with a durable record. **Composes:**
-  credentials (+ exchange). _(the `vote` example app)_
+- **Voting / elections** — a government binds each citizen to **one** identity (one person, one
+  vote) via a **registrar**, then collects anchored, auditable ballots with a durable tally.
+  **Composes:** credentials + exchange + the `registrar` app. _(the `vote` example app, built on
+  `registrar`. A fully **secret** ballot — voter privacy with coercion resistance — needs
+  zero-knowledge proofs, which sit outside today's post-quantum crypto suite; the auditable-ballot
+  form does not.)_
 
 ### Health
 
@@ -144,14 +156,15 @@ it; you write applications on it.
 
 The reference applications, built entirely from the same kit:
 
-| Application                 | Composes                    |
-| --------------------------- | --------------------------- |
-| `mail`                      | exchange                    |
-| `chat`                      | exchange + shared documents |
-| `bbs` (forum)               | shared documents            |
-| `edit` (collaborative docs) | exchange + shared documents |
-| `health`                    | exchange + credentials      |
-| `vote`                      | credentials (+ exchange)    |
+| Application                 | Composes                             |
+| --------------------------- | ------------------------------------ |
+| `mail`                      | exchange                             |
+| `chat`                      | exchange + shared documents          |
+| `bbs` (forum)               | shared documents                     |
+| `edit` (collaborative docs) | exchange + shared documents          |
+| `health`                    | exchange + credentials               |
+| `registrar`                 | credentials + exchange               |
+| `vote`                      | credentials + exchange + `registrar` |
 
 All of them run over the shared substrate (federation, witnessing, the record store) — which you do
 not build or operate.
@@ -163,7 +176,8 @@ Every application above inherits, by construction and with no extra work:
 - **Tamper-evidence** — a changed record breaks its own proof.
 - **Provenance** — who did what, when, and under what authority travels with the data.
 - **Offline, end-to-end verification** — a client verifies everything itself, from any source.
-- **Revocation** — an issuer can revoke, and verifiers fail secure.
+- **Revocation** — an issuer can revoke; a verifier confirms not-revoked from a fresh read of the
+  issuer's chain (any source), failing secure by default (an application may opt into fail-open).
 - **No trusted backend** — you write the application; the infrastructure is run by the issuers who
   rely on it.
 

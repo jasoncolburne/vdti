@@ -8,10 +8,6 @@ proof of who created it, when, and under what authority — so any client can ve
 itself, from any source, with no service to trust. You write the app; you don't build, secure, or
 run the trusted middle.
 
-In contrast to systems like KERI (a Decentralized Key Management Infrastructure), where system-wide
-state must be inferred through out-of-band watcher infrastructure, VDTI lets any verifier determine
-system-wide state — including attack exposure — by inspecting the data itself.
-
 ## Compose, don't build
 
 Underneath, you get the things every backend gives you — as verifiable primitives you snap together:
@@ -19,6 +15,8 @@ Underneath, you get the things every backend gives you — as verifiable primiti
 - **Data with custody** — content that carries a provable writer and a controlled read-set. Storage,
   provenance, and access control in one primitive.
 - **Logs** — single-owner, append-only, tamper-evident. Audit trails and event sourcing, free.
+- **Identity** — a person or organization as a threshold of their own devices: the unit you
+  authenticate and issue to, independent of any single device.
 
 Then three **features** escalate for the genuinely hard problems — and they compose:
 
@@ -42,10 +40,20 @@ Every app you compose inherits, by construction:
 - **Provenance** — who did what, when, and under what authority travels _with_ the data.
 - **Offline, end-to-end verification** — the client checks its own work; there is no server to
   believe.
-- **Revocation** — an issuer can revoke, and every verifier fails secure.
+- **Revocation** — an issuer can revoke; a verifier confirms not-revoked from a fresh read of the
+  issuer's chain (any source) and **fails secure** by default (an application may opt into
+  fail-open).
+- **Incident response by design** — a compromised or lost key is a **rotation**; a bad device is a
+  **roster cut**. What forces a truck roll or a fleet re-provision elsewhere is a single in-band
+  chain event here.
 
 Whole classes of bug stop being possible: "trust the server" auth bypasses, silent tampering, murky
 provenance, and "who had access when" forensic gaps.
+
+In contrast to systems like KERI (a Decentralized Key Management Infrastructure), where system-wide
+state must be inferred through out-of-band watcher infrastructure, VDTI lets any verifier determine
+system-wide state — including whether an identity has **diverged or been compromised** — from the
+data itself, with no watcher infrastructure.
 
 ## Who runs it
 
@@ -74,10 +82,11 @@ repo layout, 9-phase v1 sequencing, and acceptance criteria.
 - [`docs/design/`](docs/design/) — protocol design and doctrine (start with its
   [`README.md`](docs/design/README.md) for the full reading order, beginning with
   [`system-thesis.md`](docs/design/system-thesis.md) for orientation).
-- [`docs/reference/`](docs/reference/) — primitive references, attestation modes, KERI comparison.
-- [`docs/operations/`](docs/operations/) — deployment, backup, node retirement, shadow-node
-  patterns.
-- [`docs/analysis/`](docs/analysis/) — attack surfaces, scale, protocol analysis.
+- [`docs/reference/`](docs/reference/) _(forthcoming)_ — primitive references, attestation modes,
+  KERI comparison.
+- [`docs/operations/`](docs/operations/) _(forthcoming)_ — deployment, backup, node retirement,
+  shadow-node patterns.
+- [`docs/analysis/`](docs/analysis/) _(forthcoming)_ — attack surfaces, scale, protocol analysis.
 
 ## Contributing
 
