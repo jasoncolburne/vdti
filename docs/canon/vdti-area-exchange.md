@@ -181,10 +181,12 @@ the canon's job is to keep the primitives + substrate able to support them.
 
 ## 7. Consumers — credential exchange, and shared-documents content
 
-- **IPEX-style credential exchange (kels precedent).** Apply / Offer / Agree / Grant / Admit / Reject
-  messages (a thread chained by `previous`, topic `vdti/exchange/v1/topics/exchange`) ride ESSR to negotiate
-  issuance and presentation. Adopted from kels' exchange messages; the vdti realization tracks the
-  credential model (a credential = a direct-anchored SAD) — **detail deferred** to the exchange feature encode.
+- **IPEX credential exchange (now a protocol primitive — [`vdti-area-ipex.md`](vdti-area-ipex.md)).** Apply /
+  Offer / Agree / Grant / Admit / Spurn messages (a thread chained by `previous`, topic
+  `vdti/exchange/v1/topics/exchange`) negotiate issuance and presentation; they **MAY ride ESSR for a private
+  disclosure** (IPEX carries cleartext-structured SADs — sealing is the consumer's choice, wired here). The
+  vdti realization tracks the credential model (a credential = a direct-anchored SAD) — **detail deferred** to
+  the exchange feature encode.
 - **shared-documents off-node content.** A shared doc's private content (`shared-documents §5`) is delivered
   member-to-member as **ESSR payloads** (each recipient gets the content — or a wrapped per-doc symmetric key
   — sealed to their receive key). The `shared-documents §9` "KEM-wrapped group key / re-key on removal / key

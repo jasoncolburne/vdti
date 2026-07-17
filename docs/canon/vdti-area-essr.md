@@ -178,8 +178,12 @@ prefix with key-lookup from their logs** is the identity-chain adaptation's base
 - **Sign the SAID.** The signature is over the envelope's **SAID** (a commitment over every field) rather
   than over concatenated bytes — the universal vdti rule that all data is a kinded, SAID-addressed SAD.
   Signing a commitment that binds all fields is equivalent to signing the fields.
-- **Pin the signing key-state by SAID (`senderPin`).** vdti refers to a point-in-time by **SAID pin**, not
-  by a sequence number — self-verifying and unambiguous across a fork.
+- **Pin the signing key-state by SAID (`senderPin`).** vdti names a point-in-time by **SAID pin**, not by a
+  sequence number: a SAID names **one specific event** (specific bytes), so — unlike a serial, which two
+  forks share — the pin is never ambiguous about _which_ event it means. It does **not** let verification
+  survive a fork: `senderPin` resolves against the sender's **canonical** chain, and a fork **freezes** that
+  chain (resolution undefined until the fork resolves — the same limit as any signature). The SAID removes
+  the serial's ambiguity, not the fork's freeze.
 
 **kels artifacts corrected (dropped / changed):**
 
@@ -188,8 +192,9 @@ prefix with key-lookup from their logs** is the identity-chain adaptation's base
   ciphertext** (confidential and signed), or a *receive*-time is the mail service's own field in its outer
   wrapper. ESSR carries no timestamp.
 - **Establishment serial → SAID pin.** kels pinned the signing key-state by an establishment **serial** (a
-  sequence-number idiom); vdti pins by **SAID** (`senderPin`), consistent with refs-by-SAID and robust
-  under forks.
+  sequence-number idiom); vdti pins by **SAID** (`senderPin`), consistent with refs-by-SAID. The gain is
+  **disambiguation**, not fork-survival — a serial is identical on both sides of a fork, a SAID names one
+  side; neither pin verifies against a frozen (forked) chain.
 
 **Variants not used:** the sourceless / destinationless ESSR variants (omit a binding, trade a guarantee).
 We use full ESSR; any future variant would have to explicate the tradeoff it accepts.
