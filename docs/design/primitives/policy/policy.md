@@ -27,8 +27,8 @@ answered by a single-identity challenge to the issuee, not a policy —
 
 **Reading order for this layer:** this doc (the language and the two mechanisms) →
 [`documents.md`](documents.md) (where policy lives and how a document anchors its context) →
-[`evaluation.md`](evaluation.md) (the two ways a policy is evaluated, and the seam to the
-primitives).
+[`evaluation.md`](evaluation.md) (the as-issued evaluation — one composer, one leaf resolver — and
+the seam to the primitives).
 
 ## A policy is a SAD
 
@@ -63,12 +63,12 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
 
 - **`id(X)` — an identity.** Satisfied when entity `X`'s identity is satisfied: the verifier
   resolves `X`'s IEL (its member devices and its threshold vector) and checks that `X`'s **`t_use`**
-  quorum acted. `id(X)` resolves against the **use** slot in **both** evaluation modes — issuing a
-  document and presenting one are both _use_ acts, not governance — so an author wanting a higher
-  bar composes `thr` / `and` over more independently-controlled identities rather than expecting
-  `id(X)` to mean `t_govern`. `id(X)` _defers to X_: it accepts whatever rule `X` sets for who acts
-  as `X`, at `X`'s own `t_use` threshold. This is the recursive base of the language — a policy that
-  names other identities bottoms out in their IELs, which bottom out in member device keys.
+  quorum acted. `id(X)` resolves against the **use** slot: issuing a document is a _use_ act, not
+  governance — so an author wanting a higher bar composes `thr` / `and` over more
+  independently-controlled identities rather than expecting `id(X)` to mean `t_govern`. `id(X)`
+  _defers to X_: it accepts whatever rule `X` sets for who acts as `X`, at `X`'s own `t_use`
+  threshold. This is the recursive base of the language — a policy that names other identities
+  bottoms out in their IELs, which bottom out in member device keys.
 
 - **`del(X, N)` — a live delegate of `X`, within `N` hops.** Satisfied by a party that holds a live,
   non-rescinded delegation from `X`, reachable by walking **up** its own delegation chain to `X` in

@@ -24,12 +24,10 @@ policy mode.
   counting, per-identity-max weight, `and` over disjoint pools, the threshold check). It calls the
   leaf resolver, combines the results, and applies the
   [composition rules](policy.md#composition-rules).
-- **The as-issued leaf resolver** — each leaf needs the **state** it resolves against and the
-  **proof** that the named party acted:
-
-  |               | State                                                                                      | Proof that the party acted                                                                   |
-  | ------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-  | **as-issued** | the identity's members + **`t_use`** threshold **as of the document's anchoring position** | the **committed on-chain anchors** those positions reach — the proof is already in the chain |
+- **The as-issued leaf resolver** — each leaf needs two things: the **state** it resolves against —
+  the identity's members + **`t_use`** threshold **as of the document's anchoring position** — and
+  the **proof** that the named party acted — the **committed on-chain anchors** those positions
+  reach, the proof already in the chain.
 
   The `del(X, N)` leaf resolves the same way, and is **bounded** — the verifier walks **up** from
   the presented party at most `N` hops (and never beyond a verifier-wide work cap) to reach `X`,

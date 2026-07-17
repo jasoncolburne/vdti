@@ -165,8 +165,8 @@ Policy sits above the primitives — it governs documents, never the chain event
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
 31. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
-    evaluated (as-issued and current) and the seam to the primitives.
+32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — how a policy is evaluated
+    (as-issued) and the seam to the primitives.
 
 ## Forthcoming
 

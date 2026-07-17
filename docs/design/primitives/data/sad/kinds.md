@@ -33,14 +33,14 @@ Every SAD carries one of these. **The chain events:**
 
 **The commitment SADs events reference:**
 
-| Kind                            | What it is                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------- |
-| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                        |
-| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                            |
-| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                             |
-| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                         |
-| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `exchange-ml-kem-1024`, `shared-document-governance` |
-| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                          |
+| Kind                            | What it is                                                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                                                           |
+| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                                                               |
+| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                                                                |
+| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                                                            |
+| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `exchange-ml-kem-1024`, `shared-document-governance`, `shared-document-read-governance` |
+| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                             |
 
 The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their

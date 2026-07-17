@@ -302,9 +302,10 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 ## 5. Custody, sharing, and privacy
 
-- **`readers` = the document read (view) gate** — a reference to a **read-governance SEL**, a membership
-  resolved at fetch (`None` = public; `readers: []` = participants-only, since editors/commenters always
-  read what they author; `readers: [X, …]` = plus those). It is **read-set invariance (integrity), not
+- **`readers` = the document read (view) gate** — the field is `None` = **public**, or the **prefix** of
+  the **read-governance SEL** = **gated**; _that SEL's membership_ (not the field) decides who reads —
+  empty → participants-only (editors/commenters always read what they author), populated → plus those
+  named. It is **read-set invariance (integrity), not
   confidentiality** (carried, cold-2 F1 / cold-3 S2): a co-author can always read + exfiltrate; the rule
   keeps the _canonical_ DAG's read-set uniform, it does not hide bytes. **For confidentiality, encrypt** (a
   forward direction). **Two distinct `readers` gates (Jason 2026-07-04):** the one inside a grant's /

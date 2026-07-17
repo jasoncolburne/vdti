@@ -41,7 +41,7 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
 `custody` and `availability` are inline structs, each sub-field independently optional:
 
 - **`custody { owner, topic, readers }`** — `owner` is the writer's IEL prefix, `topic` the SEL
-  namespace that locates the write's anchor (both-or-neither), `readers` a reference to a
+  namespace that locates the write's anchor (both-or-neither), `readers` the prefix of a
   read-authorization SEL that gates reads (`None` → public).
 - **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
   everywhere), `ttl` a retention bound, `once` a destructive-read flag.
@@ -144,12 +144,13 @@ sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/rec
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                            | Carries                                                         | Status      |
-| ----------------------------------------------- | --------------------------------------------------------------- | ----------- |
-| `vdti/sel/v1/grants/exchange-ml-kem-1024`       | A published ML-KEM-1024 receive key (scheme-tagged public key). | forthcoming |
-| `vdti/sel/v1/grants/exchange-ml-kem-768`        | The reduced-tier ML-KEM-768 receive key.                        | forthcoming |
-| `vdti/sel/v1/grants/exchange-group-key`         | A session epoch key, ESSR-wrapped once per current member.      | forthcoming |
-| `vdti/sel/v1/grants/shared-document-governance` | The grant-doc — `editors` / `commenters` role-lists.            | forthcoming |
+| Kind                                                 | Carries                                                         | Status      |
+| ---------------------------------------------------- | --------------------------------------------------------------- | ----------- |
+| `vdti/sel/v1/grants/exchange-ml-kem-1024`            | A published ML-KEM-1024 receive key (scheme-tagged public key). | forthcoming |
+| `vdti/sel/v1/grants/exchange-ml-kem-768`             | The reduced-tier ML-KEM-768 receive key.                        | forthcoming |
+| `vdti/sel/v1/grants/exchange-group-key`              | A session epoch key, ESSR-wrapped once per current member.      | forthcoming |
+| `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.            | forthcoming |
+| `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.              | forthcoming |
 
 Each grant value is a SAD (`said` + `kind` + its value); the value layouts land at the exchange and
 shared-documents encodes.
@@ -177,13 +178,13 @@ chain event.
 
 The **V0 constitution** (derives the doc prefix):
 
-| Field     | Type   | Meaning                                                             |
-| --------- | ------ | ------------------------------------------------------------------- |
-| `said`    | SAID   | V0's SAID.                                                          |
-| `kind`    | string | `vdti/doc/v1/schemas/*` (the constitution schema).                  |
-| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.          |
-| `readers` | SAID   | The initial read gate — a read-authorization SEL (`None` → public). |
-| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.         |
+| Field     | Type   | Meaning                                                                                                  |
+| --------- | ------ | -------------------------------------------------------------------------------------------------------- |
+| `said`    | SAID   | V0's SAID.                                                                                               |
+| `kind`    | string | `vdti/doc/v1/schemas/*` (the constitution schema).                                                       |
+| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                                               |
+| `readers` | prefix | The initial read gate — the prefix of a read-authorization SEL, walked for membership (`None` → public). |
+| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                                              |
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
@@ -195,7 +196,8 @@ A **version** SAD (custody-attributed, chained into the version DAG):
 | `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.     |
 | `nonce`     | bytes      | High-entropy — makes the version SAID unguessable. |
 
-The **grant-doc** (`shared-document-governance`, editors/commenters role-lists) and the **gated
+The **grant-doc** (`shared-document-governance`, editors/commenters role-lists), the **read
+grant-doc** (`shared-document-read-governance`, the `readers` role-list only), and the **gated
 rescind-doc** (a `bound` position sealing a membership period) are **forthcoming** — shapes at the
 shared-documents encode
 ([`../../../features/shared-documents/documents.md`](../../../features/shared-documents/documents.md)).
@@ -238,11 +240,11 @@ A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../
 
 The kinds whose role is fixed but whose exact field layout is owed, with where each lands:
 
-| Kind / SAD                                                | Lands at                                |
-| --------------------------------------------------------- | --------------------------------------- |
-| Grant values (`exchange-*`, `shared-document-governance`) | the exchange / shared-documents encodes |
-| Shared-document grant-doc + rescind-doc                   | the shared-documents encode             |
-| Exchange + session message shapes                         | the exchange encode                     |
+| Kind / SAD                                                                                   | Lands at                                |
+| -------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Grant values (`exchange-*`, `shared-document-governance`, `shared-document-read-governance`) | the exchange / shared-documents encodes |
+| Shared-document grant-doc + read grant-doc + rescind-doc                                     | the shared-documents encode             |
+| Exchange + session message shapes                                                            | the exchange encode                     |
 
 ## Cross-references
 
