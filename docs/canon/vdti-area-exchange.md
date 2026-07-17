@@ -21,7 +21,8 @@ federation §1e (ML-KEM-1024 + AES-256-GCM; the lookup-prefix residual).
 
 - **`../kels` — the built design (adopted, not reinvented):** `docs/design/features/exchange.md` (ESSR +
   key publication + IPEX-style exchange messages), `docs/design/features/mail.md` (the store-and-forward
-  transport), `lib/exchange/src/essr.rs` (the reference implementation). ESSR is from the KERI lineage.
+  transport), `lib/exchange/src/essr.rs` (the reference implementation). ESSR's origin + adaptation credit
+  now lives in the primitive note's Attribution ([`vdti-area-essr.md`](vdti-area-essr.md)).
 - This session's design conversation (the `{Icp, Gnt}` T2 key tier, the `data` = device-KEL-prefix / alias
   keying, the swap-vs-rescind split, the sender-key-currency requirement). Captured in
   `.working/vdti-receive-key-establishment-design.md`.
@@ -122,10 +123,10 @@ the canon's job is to keep the primitives + substrate able to support them.
 ## 3. Sender-key currency — verify against the witnessed KEL; anchor for provable liveness
 
 - **Default: verify against the sender's _current_ witnessed key state.** ESSR's `open` extracts the sender's
-  key at `sender_serial`; the recipient MUST also confirm that serial is the sender's **current**
-  establishment state, read from the witnessed KEL/IEL (multi-source, inv 8) — **the infra already provides
-  it.** A stale serial (a **captured-then-rotated** key signing under its old serial) reads stale and is
-  **refused**, so a rotation recovers messaging and the concern collapses back into the stated
+  key at `senderPin` (a SAID, §1); the recipient MUST also confirm that pinned key-state is the sender's
+  **current** establishment state, read from the witnessed KEL/IEL (multi-source, inv 8) — **the infra
+  already provides it.** A stale pin (a **captured-then-rotated** key signing under its old key-state) reads
+  stale and is **refused**, so a rotation recovers messaging and the concern collapses back into the stated
   signing-key-compromise residual. A verifier **requirement** to state in the primitive (the kels doc leaves
   it to the client); no new mechanism — just read the chain.
 - **Optional: anchor the message for _provable_ liveness (Jason 2026-07-12).** A message is already a
@@ -327,7 +328,8 @@ always ESSR-wrapped).
 
 - **SEL topic:** `vdti/exchange/v1/topics/receive-key` (owner = identity IEL; `data` = device KEL prefix or
   opaque alias; `lineage` for reincept). Message topic (inside the ciphertext): `vdti/exchange/v1/topics/exchange`.
-- **KDF context:** `vdti/exchange/v1/protocols/essr` (Blake3 derive-key).
+- **KDF context (ESSR):** moved to the primitive — `vdti/essr/v1/protocols/kdf` (see
+  [`vdti-area-essr.md`](vdti-area-essr.md)); the session-mode KDF context stays here (§7a, below).
 - **Grant-value kinds** (`Gnt.manifest.grant` — `vdti/sel/v1/grants/<feature>-<detail>`, feature-first, ≤ 64
   chars): `vdti/sel/v1/grants/exchange-ml-kem-1024`, and the reduced-tier sibling
   `vdti/sel/v1/grants/exchange-ml-kem-768`. The grant value is the public ML-KEM key (scheme-tagged), named by

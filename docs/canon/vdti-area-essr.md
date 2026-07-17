@@ -18,7 +18,7 @@ ESSR is prior art we adopt, adapt for our identity model, and credit — we desi
 spec, keeping only the mods our own crypto and reference model require.
 
 - **Origin — Jee Hea An (2001), "Authenticated Encryption in the Public-Key Setting: Security Notions
-  and Analyses"** (`https://eprint.iacr.org/2001/079`; local copy `.working/2001-079.pdf`). The paper
+  and Analyses"** (`https://eprint.iacr.org/2001/079`; local copy `.working/2001-079.ps`). The paper
   proves that the generic compositions (encrypt-and-sign, sign-then-encrypt, encrypt-then-sign) do **not**
   in general meet all its authenticity/confidentiality notions, and constructs **ESSR** as the scheme that
   does. The four structural guarantees below are that paper's notions, stated in plain terms.
@@ -44,11 +44,22 @@ Strong 1:1 messaging needs two things at once: **confidentiality** (encrypt to t
   ciphertext; the second makes any recipient-key substitution detectable (the ciphertext must decrypt
   under the intended recipient's key, or the signature is invalid — anti-KCI).
 
-**The four guarantees** (An 2001, in vdti words):
+**The four guarantees** (An 2001, in vdti words — two axes: _who_ would forge, an outside third party or
+the receiver itself, × _what_ they'd forge, the plaintext or the ciphertext):
 
-- A third party can forge **neither the plaintext nor the ciphertext**.
-- The **recipient cannot forge sender attribution** — the sender is bound inside the ciphertext.
-- An attacker **cannot strip or replace the signature** — the recipient is bound in the signed cleartext.
+- **A third party cannot forge the plaintext** — no outsider can produce a message that verifies as the
+  sender's carrying a plaintext of their choosing.
+- **A third party cannot forge the ciphertext** — no outsider can produce a _ciphertext_ that verifies as
+  the sender's. (Anyone _can_ encapsulate to the recipient — the KEM is a public operation — but not a
+  ciphertext authenticated as from the sender.)
+- **The receiver cannot forge the ciphertext** — a malicious recipient cannot strip the sender's signature
+  and re-sign the same ciphertext to re-attribute it. The **sender bound inside the ciphertext** defeats
+  this: a re-signed envelope naming a different sender fails the `inner.sender == envelope.sender` check.
+- **The receiver cannot forge the plaintext** — a malicious recipient cannot substitute its own key and
+  claim the sender encrypted some _other_ plaintext to it (the non-repudiation case). The **recipient bound
+  in the signed cleartext** defeats this: the ciphertext must decrypt under the intended recipient's key or
+  the signature is invalid. **This is the guarantee ESSR adds** — plain encrypt-then-sign already gives the
+  other three.
 
 **One strengthening from the identity model:** because sender and recipient are **chain prefixes** whose
 keys come from their logs, a malicious recipient cannot substitute an arbitrary key — only a key that
@@ -98,11 +109,18 @@ message = {
 ```
 
 **Seal:** encapsulate to the recipient's receive key → shared secret → KDF (domain-separation context
-`vdti/essr/v1/contexts/kdf`) → AEAD key → encrypt `inner` with a fresh nonce → assemble `envelope` and
+`vdti/essr/v1/protocols/kdf`) → AEAD key → encrypt `inner` with a fresh nonce → assemble `envelope` and
 compute `said` → sign `said`.
 
-**Open:** verify `said` → verify `signature` against the sender's key **at `senderPin`** → decapsulate →
-derive the AEAD key → decrypt → assert `inner.sender == envelope.sender`.
+**Open:** **recompute `envelope.said` from the envelope fields and reject on any mismatch** (the standard
+SAD check — this is what makes the signature, which is over `said`, bind every field) → verify `signature`
+over `said` against the sender's verify-key (**handed to ESSR**, resolved by the caller from `sender` +
+`senderPin` — ESSR does no lookup; see the boundary) → **assert `envelope.recipient` is the opener's own
+prefix** → decapsulate → derive the AEAD key → decrypt → **assert `inner.sender == envelope.sender`**.
+
+Only `envelope.said` is signed, so only its recompute gates trust. `inner.said` and `message.said` are
+ordinary SAD content-addresses, present by the universal SAD rule — `inner`'s bytes are integrity-protected
+by the AEAD tag and the message by the envelope signature, so neither is separately security-load-bearing.
 
 **Crypto by what it is** (strength-paired; the tier is a parameter, not a code path): a **lattice KEM**
 (ML-KEM-768 / -1024), a **lattice signature** (ML-DSA-65 / -87), an **AEAD** (AES-256-GCM), a **KDF**
@@ -138,6 +156,9 @@ ESSR is deliberately narrow. Everything below is **not** ESSR:
   **mail feature's** — they limit store-side harvesting even though the prefix is on the message.
 - **Group keying.** Sealing an epoch key to many members, ratcheting, per-sender subkeys — the **exchange
   feature**, built on top of the 1:1 primitive.
+- **Replay / freshness.** A sealed message can be re-delivered verbatim; ESSR does not detect replays —
+  that is the **consumer's** (the presentation-freshness cache, or a mail dedup-by-SAID window). ESSR's
+  fresh nonce buys **AEAD key-uniqueness**, not replay resistance.
 
 **Keys enter through capabilities, not raw material.** ESSR is defined over what you can *do* with a key —
 a signing capability on the sender side, a decapsulation capability on the recipient side — so it holds no
