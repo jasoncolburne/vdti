@@ -155,15 +155,15 @@ verification).
 
 The reference applications, built entirely from the same kit:
 
-| Application                 | Composes                             |
-| --------------------------- | ------------------------------------ |
-| `mail`                      | exchange                             |
-| `chat`                      | exchange + shared documents          |
-| `bbs` (forum)               | shared documents                     |
-| `edit` (collaborative docs) | exchange + shared documents          |
-| `health`                    | exchange + credentials               |
-| `registrar`                 | credentials + exchange               |
-| `vote`                      | credentials + exchange + `registrar` |
+| Application                                  | Composes                             |
+| -------------------------------------------- | ------------------------------------ |
+| `mail`                                       | exchange                             |
+| `chat`                                       | exchange + shared documents          |
+| `bbs` (forum)                                | shared documents                     |
+| `edit` (collaborative docs)                  | exchange + shared documents          |
+| `health`                                     | exchange + credentials               |
+| `registrar` (bridges your off-chain data in) | credentials + exchange               |
+| `vote`                                       | credentials + exchange + `registrar` |
 
 All of them run over the shared substrate (federation, witnessing, the record store) — which you do
 not build or operate.
