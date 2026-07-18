@@ -31,12 +31,16 @@ federation §1e (ML-KEM-1024 + AES-256-GCM; the lookup-prefix residual).
 
 ## The model in one paragraph
 
-ESSR seals a message so that **only the recipient can read it** (ML-KEM-encapsulated to the recipient's
-published receive key → AES-256-GCM) and **the sender is provably the author** (the sender ML-DSA-**signs**
+ESSR seals a message so that **only the recipient can read it** (ML-KEM-encapsulated to a published receive
+key → AES-256-GCM) and **the sender is provably the author** (the sender ML-DSA-**signs**
 the envelope SAID; the sender prefix rides **inside** the ciphertext; the recipient prefix rides **inside**
 the signed plaintext). A **receive key** is a party's current public ML-KEM key, published as a
 **value-bearing lookup SEL** at a **deterministic address** any sender computes from the party's IEL prefix
-+ the receive-key directory topic + a `data` selector (the receive-key directory, §2). The published key is a **T2 sealed `Gnt`** (`vdti divergence`:
++ the receive-key directory topic + a `data` selector (the receive-key directory, §2). Exchange addresses by
+**identity**: by default it **fans out** — one envelope sealed to **each** of the recipient's device receive
+keys (enumerated from the recipient's IEL roster), so the message opens on **any** device; an optional
+**`key_label`** targets a **single** key instead (resolved by the directory at `data = key_label`,
+point-to-point). The published key is a **T2 sealed `Gnt`** (`vdti divergence`:
 kels signs it with the ordinary key; vdti puts it behind `t_authorize`@T2 so a signing-key theft can't swap
 it). Sealed envelopes are delivered by a **mail** service that stores opaque blobs and gossips only routing
 metadata. On open, the recipient **verifies the signature against the sender's *current* witnessed key
@@ -68,9 +72,10 @@ so an envelope, its inner, and every exchange message are SADs, anchorable by SA
 Exchange **encapsulates two modes** over one shared spine — published receive keys (§2), sender-key
 currency (§3), the crypto suite, and mail (§5). **One feature, two modes:**
 
-- **ESSR — one-offs.** Per-message, stateless, sealed to the recipient's published receive key. The
-  **async baseline**: mail, one-offs, and any time the recipient is offline. Always available; the
-  construction is §1.
+- **ESSR — one-offs.** Per-message, stateless, sealed to the recipient's device receive keys — **fanned out**
+  across them by default (so the message opens on any of the recipient's devices), or to a **single** key when a
+  `key_label` is supplied (§2). The **async baseline**: mail, one-offs, and any time the recipient is offline.
+  Always available; the construction is §1 (the fan-out is exchange calling ESSR once per key).
 - **Session — chat.** A **long-lived** (assume years), **ratcheting**, **group-capable** session
   (§7a). Chosen for an ongoing conversation.
 
@@ -92,8 +97,10 @@ An identity's device receive keys are published and resolved through the **recei
 ([`vdti-area-receive-key-directory.md`](vdti-area-receive-key-directory.md)) — a value-bearing lookup SEL the
 identity's IEL owns, `{Icp, Gnt}` at T2, keyed by `data` = a device KEL prefix or an opaque alias. It is
 **shared-core** (ESSR, group-key, and shared-documents read it too), not exchange-internal. Exchange **consumes**
-it: a sender resolves the recipient's receive key from the directory, then ESSR seals to it; to reach all of an
-identity's devices it enumerates the entries and fans out. The T2 publication (a signing-key theft can't swap the
+it: because it addresses by **identity**, a send **fans out** by default — it enumerates the recipient's device
+keys (from its IEL roster) and ESSR-seals **once per key**, so the message opens on any device. An optional
+**`key_label`** narrows a send to the **single** key at `data = key_label` (point-to-point; the opaque-alias
+case). The T2 publication (a signing-key theft can't swap the
 key — `vdti divergence` from kels' T1), the deterministic discoverable address, the opaque-alias correlation
 discipline, the hardware-resident keys, and optional attestation are the directory's — see the note.
 
@@ -131,8 +138,10 @@ discipline, the hardware-resident keys, and optional attestation are the directo
 
 - **Payload-agnostic transport.** A mail node stores opaque **`SignedEssrEnvelope`** blobs (object store, at
   the **origin node** only) and gossips **routing metadata** (`{ sender, recipient, sourceNode, blobDigest,
-  size, created, expires }`) to all nodes. Lifecycle: **send** (store blob + gossip metadata) →
-  **discover** (recipient queries any node's inbox) → **fetch** (from the origin node, authenticated —
+  size, created, expires }`) to all nodes. Lifecycle: **send** (store blob(s) + gossip metadata — a **fan-out**
+  send (§1a) stores **one blob per recipient device key**, each sealed to that key and all addressed to the
+  recipient identity, so the recipient's device fetches the blob sealed to **its** key; a `key_label` send stores
+  one) → **discover** (recipient queries any node's inbox) → **fetch** (from the origin node, authenticated —
   unauthenticated fetch would allow offline attacks on the ciphertext) → **open** (§1, with currency §3) →
   **ack** (origin deletes the blob, gossips removal). Rate limits: per-sender/day, per-recipient inbox cap,
   per-node storage cap, per-IP token bucket, message TTL, a short nonce-dedup window.
