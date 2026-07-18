@@ -12,7 +12,7 @@ the same naming scheme and live in their own catalogues: **derivation tags and S
 Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segments, always:
 
 - **`component`** — the subsystem that owns it: `kel` / `iel` / `sel` / `event` / `witness` / `log`
-  / `doc` / `exchange` / `essr` / `ipex` / `groupkey` / `cred` / `policy` / `gossip`.
+  / `doc` / `exchange` / `essr` / `ipex` / `groupkey` / `directory` / `cred` / `policy` / `gossip`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
   `schemas` / `protocols` / `actions` / `states` / `topics`.
@@ -33,14 +33,14 @@ Every SAD carries one of these. **The chain events:**
 
 **The commitment SADs events reference:**
 
-| Kind                            | What it is                                                                                                                                     |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                                                                                 |
-| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                                                                                     |
-| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                                                                                      |
-| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                                                                                  |
-| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `exchange-ml-kem-1024`, `shared-document-governance`, `shared-document-read-governance`, `groupkey-epoch-key` |
-| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                   |
+| Kind                            | What it is                                                                                                                                      |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                                                                                  |
+| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                                                                                      |
+| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                                                                                       |
+| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                                                                                   |
+| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `directory-ml-kem-1024`, `shared-document-governance`, `shared-document-read-governance`, `groupkey-epoch-key` |
+| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                    |
 
 The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their

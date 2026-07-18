@@ -32,8 +32,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    **The `kind` string (Jason 2026-07-12):** a `/`-delimited namespaced discriminator
    `vdti/<concept>/v1/<category>/<thing>`, **capped ≤ 64 chars** (a DoS bound — the verifier rejects a
    longer `kind`). **Grant-values** — what a `Gnt`'s `manifest.grant` names — are kinded under
-   **`vdti/sel/v1/grants/*`**, feature-first so grants sort by feature (`exchange-ml-kem-1024`,
-   `shared-document-governance`; area-sel §1b). `[locked]`
+   **`vdti/sel/v1/grants/*`**, owner-first (a feature or a stateful primitive) so grants sort by owner
+   (`directory-ml-kem-1024`, `shared-document-governance`; area-sel §1b). `[locked]`
    **The principle (Jason, 2026-06-21):**
    - **Top-level structural = the event's *own* links:** `said`, `previous`, **`previousSeal`** (seal-advancing
      events only — the back-link to the prior seal that renders the spine; inv 17), **`pin`** (a SEL's down-pin to
@@ -935,6 +935,24 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     the credential / anchor rule (proof-of-issuance is over the fully-compact SAID; any variant verifies) to
     **every** signature in the system — ESSR envelopes, IPEX grants, exchange messages, receipts, group-chat
     messages. *Src:* Jason 2026-07-17 — closes the said.md / compaction "canonical = fully-compacted" fix.
+    `[locked-candidate]`
+
+## Keys, devices & compromise
+
+20. **A compromised device is a confidentiality loss, never a control loss (Jason 2026-07-18).** A device is a
+    member KEL in an identity's IEL roster — **never its own IEL** (no per-device / "degenerate" IEL). It holds a
+    **use-tier signing key** (a `t_use` share) and a **receive key** (an enclave-resident, non-extractable ML-KEM
+    key). Compromising one device exposes **confidentiality** — what that device can decrypt — bounded by three
+    independent limits: the receive key is **hardware-non-extractable** (a live attacker reads only during
+    access, never walks off with the key), the group **ratchet** rots a grabbed epoch key, and **re-key on
+    removal** locks the device out going forward. It never exposes **control**: taking over the identity —
+    rotating keys, changing the device roster, terminating — is a **T2 governance** act needing `t_govern`, and
+    one device is a single `t_use` (T1) share, which cannot meet it. So the identity **cannot be taken over by a
+    single compromised device**; the holder rotates it out (a T2 act — a T1 device cannot re-admit itself). The
+    hard floor — a live rooted device reads its own in-use plaintext — is a **universal endpoint limit, not a
+    vdti property**. So confidentiality is **strong-at-rest, bounded-in-use**; control is **never takeable**.
+    Keep the two axes separate: conflating them (e.g. "compromise one device = compromise the person") is a
+    category error that invites confidentiality creep into the control story. *Src:* Jason 2026-07-18.
     `[locked-candidate]`
 
 ## Document-layer evaluation (confirmed — see document-policy §C)

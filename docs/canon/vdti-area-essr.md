@@ -144,9 +144,9 @@ ESSR is deliberately narrow. Everything below is **not** ESSR:
 - **Payload contents.** ESSR seals opaque bytes. A message timestamp, a protocol/topic multiplexer, the
   actual content — all shaped by the **application**, inside `payload`, confidential and signed. ESSR does
   not define or inspect them.
-- **Key resolution.** Turning `recipient` (a prefix) into a receive key, or `sender` (a prefix) into a
-  verify key, is the **exchange feature's** published-receive-key lookup and the caller's chain read. ESSR
-  is handed the keys.
+- **Key resolution.** Turning `recipient` (a prefix) into a receive key is the **receive-key directory's**
+  lookup (a shared-core primitive — [`vdti-area-receive-key-directory.md`](vdti-area-receive-key-directory.md));
+  turning `sender` (a prefix) into a verify key is the caller's chain read. ESSR is handed the keys.
 - **Sender-key currency.** "Is `senderPin`'s key-state still current / trusted, or superseded?" is the
   **consumer's** check against the sender's current witnessed chain. ESSR only needs the pin to verify the
   signature at all.

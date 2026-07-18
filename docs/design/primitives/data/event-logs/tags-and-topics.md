@@ -54,15 +54,17 @@ pinned by the encoding library.
 A lookup / content SEL's application discriminator — the `topic` field of its inception, one of the
 values the inception's prefix commits to. Opaque to the chain; [`sel/log.md`](sel/log.md) owns the
 full derivation and its optional fields. These are **feature-owned** — a base primitive never
-enumerates them, keeping features out of the primitive layer. The exception is a **stateful protocol
-primitive**: the group-key primitive owns the SELs its epochs and roster ride, so it enumerates
-their topics itself (the `vdti/groupkey/v1/topics/*` row).
+enumerates them, keeping features out of the primitive layer. The exceptions are **shared-core
+primitives that are themselves stateful**: the group-key primitive (its epoch + roster SELs) and the
+receive-key directory (its lookup SEL) own the SELs they ride, so they enumerate their own topics
+(the `vdti/groupkey/v1/topics/*` and `vdti/directory/v1/topics/*` rows).
 
-| Topic                       | Owner                                                                                  |
-| --------------------------- | -------------------------------------------------------------------------------------- |
-| `vdti/doc/v1/topics/*`      | shared documents (`comment`, `governance`, `read-governance`, `rescission`, `version`) |
-| `vdti/exchange/v1/topics/*` | exchange (`exchange`, `receive-key`)                                                   |
-| `vdti/groupkey/v1/topics/*` | the group-key primitive (`key-epoch`, `roster`)                                        |
+| Topic                        | Owner                                                                                  |
+| ---------------------------- | -------------------------------------------------------------------------------------- |
+| `vdti/doc/v1/topics/*`       | shared documents (`comment`, `governance`, `read-governance`, `rescission`, `version`) |
+| `vdti/exchange/v1/topics/*`  | exchange (`exchange`)                                                                  |
+| `vdti/directory/v1/topics/*` | the receive-key directory (`receive-key`)                                              |
+| `vdti/groupkey/v1/topics/*`  | the group-key primitive (`key-epoch`, `roster`)                                        |
 
 ## Cross-references
 

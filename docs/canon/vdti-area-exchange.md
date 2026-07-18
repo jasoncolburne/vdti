@@ -86,39 +86,16 @@ the live mesh channel — `docs/design/substrate/infrastructure/mesh-transport.m
 online) moves that data but is not it. The `examples/chat` + `examples/mail` apps compose these modes;
 the canon's job is to keep the primitives + substrate able to support them.
 
-## 2. Receive-key publication — a value-bearing lookup SEL, `{Icp, Gnt}` at T2
+## 2. Receive-key resolution — the receive-key directory (shared-core)
 
-- **The address is deterministic (discoverable).** A receive key lives at `derive(owner, EXCHANGE_TOPIC,
-  data)` — `owner` = the identity IEL prefix, topic = `vdti/exchange/v1/topics/receive-key`. A receive key is
-  meant to be **found**, so it is **not** nonce-blinded; any sender holding the recipient's prefix computes
-  it (the cost is the lookup-prefix residual, §6). `lineage` (area-sel §1f) handles reincept after a
-  forced-dead key.
-- **`data` = a device KEL prefix _or_ an alias (Jason 2026-07-12) — device-specific keys, elegantly.** The
-  publishing identity's IEL has a **roster of member KELs (devices)**; setting `data` = a **member KEL
-  prefix** yields a **per-device** receive key (a sender can target a specific device). Setting `data` = an
-  **alias** (a short label) yields a key **without** the device lookup (same identity, no device disclosure).
-  This is vdti's resolution of the kels in-flight "key-per-KEL vs key-per-identity" question (kels #137/#140)
-  — **support both**, selected by `data`.
-  - **Alias-naming discipline (correlation warning — load-bearing for the operator).** `data` is **public**
-    on the mesh. A **descriptive** alias (`basement-mac`, `personal-iphone`) **leaks which device/key to
-    steal** to read a given correspondent's mail. Aliases MUST be **opaque** (`primary`, `a`, a random
-    label), so an observer can't map a key to a physical device — it raises the bar on *what to compromise*.
-    A framework warning; the app/wallet enforces the naming.
-- **The published value is a T2 sealed `Gnt` (`vdti divergence` from kels' T1).** The `Icp` establishes the
-  lookup; a **`Gnt`** (area-sel §1b — T2 `t_authorize`, anchored by the owner IEL's `Ath`) seals the key.
-  `manifest.grant` names a grant-value SAD of kind **`vdti/sel/v1/grants/exchange-ml-kem-1024`** (feature-
-  first naming; the public ML-KEM-1024 encapsulation key). **kels signs its `kels/sel/v1/keys/mlkem`
-  publication with the ordinary signing key (T1)** — so a signing-key theft swaps the key and reads the
-  victim's mail. **vdti requires `t_authorize`@T2**, so a bare signing-key theft **cannot** swap it. The key
-  is never T1 content.
-  - `t_authorize` here is the **identity's own** authorization tier (the generalized `Gnt`/`Ath` applies to
-    any identity's value establishment, not only doc-governance). Single-device → the reserve at T2;
-    multi-device → its `t_authorize` quorum.
-- **Rotation = stack `Gnt`s** (latest sealed key is live; the lookup serves only the live tip, so a retired
-  key is never handed to a sender). Routine rotation is therefore a **T2 act**.
-- **Rescission = `Trm`** (area-sel §1b, T2) — terminal kill → the key reads **dead** → senders **fail
-  closed** (inv 10). Loss-of-control only; a rescinded key is respected; recovery is republish at a fresh
-  `lineage`. Routine key change is a rotation (stacked `Gnt`), never a rescind.
+An identity's device receive keys are published and resolved through the **receive-key directory**
+([`vdti-area-receive-key-directory.md`](vdti-area-receive-key-directory.md)) — a value-bearing lookup SEL the
+identity's IEL owns, `{Icp, Gnt}` at T2, keyed by `data` = a device KEL prefix or an opaque alias. It is
+**shared-core** (ESSR, group-key, and shared-documents read it too), not exchange-internal. Exchange **consumes**
+it: a sender resolves the recipient's receive key from the directory, then ESSR seals to it; to reach all of an
+identity's devices it enumerates the entries and fans out. The T2 publication (a signing-key theft can't swap the
+key — `vdti divergence` from kels' T1), the deterministic discoverable address, the opaque-alias correlation
+discipline, the hardware-resident keys, and optional attestation are the directory's — see the note.
 
 ## 3. Sender-key currency — verify against the witnessed KEL; anchor for provable liveness
 
@@ -218,7 +195,8 @@ degenerate group of two.**
   (the primitive's nonce-safety discipline — `blake3::derive_key(epoch_key, device_kel_prefix)`, keyed on the
   device signing KEL prefix) to decrypt, and verifies the signature against that device's key — so **no sender
   field is carried on the message** (it would only duplicate the lane), and
-  attribution is to the writer's **owning member identity** (the device KEL's IEL). This is a **dedup, not
+  attribution is to the writer's **owning identity** (the IEL that rosters the writing device's KEL — a device is
+  a KEL, never its own IEL). This is a **dedup, not
   sender-hiding**: the lane reveals the writer the way custody attributes a doc version — visible to members,
   and outside the ciphertext of necessity (you need it to pick the subkey). Confidentiality rides the
   per-sender subkey; **authenticity rides the writer's own signature over the message's fully-compacted
@@ -251,16 +229,20 @@ epoch-key rule are the **primitive's** — see [`vdti-area-group-key.md`](vdti-a
 
 ## 8. Reserved names + schemas (convention `vdti/<concept>/v1/<category>/<thing>`; concept **`exchange`**)
 
-- **SEL topic:** `vdti/exchange/v1/topics/receive-key` (owner = identity IEL; `data` = device KEL prefix or
-  opaque alias; `lineage` for reincept). Message topic (inside the ciphertext): `vdti/exchange/v1/topics/exchange`.
+- **SEL topics:** the **receive-key** topic moved to the directory primitive —
+  `vdti/directory/v1/topics/receive-key` (see
+  [`vdti-area-receive-key-directory.md`](vdti-area-receive-key-directory.md)). The exchange **message** topic
+  (inside the ciphertext) stays here: `vdti/exchange/v1/topics/exchange`.
 - **KDF context (ESSR):** moved to the primitive — `vdti/essr/v1/protocols/kdf` (see
   [`vdti-area-essr.md`](vdti-area-essr.md)). The session-mode **per-writer-subkey** KDF context also lives with
   a primitive now — `vdti/groupkey/v1/protocols/kdf` (see [`vdti-area-group-key.md`](vdti-area-group-key.md)),
   since the epoch key and its subkey discipline are the group-key primitive's.
-- **Grant-value kinds** (`Gnt.manifest.grant` — `vdti/sel/v1/grants/<feature>-<detail>`, feature-first, ≤ 64
-  chars): `vdti/sel/v1/grants/exchange-ml-kem-1024`, and the reduced-tier sibling
-  `vdti/sel/v1/grants/exchange-ml-kem-768`. The grant value is the public ML-KEM key (scheme-tagged), named by
-  its `grants/*` kind — no bespoke schema.
+- **Grant-value kinds** — the convention is `vdti/sel/v1/grants/<owner>-<detail>` (the owner — a feature, or a
+  stateful protocol primitive like group-key — first, ≤ 64 chars). Exchange defines none of its own: the
+  **receive-key** grants moved to the directory primitive (`vdti/sel/v1/grants/directory-ml-kem-1024` /
+  `directory-ml-kem-768`, the public ML-KEM key scheme-tagged — see
+  [`vdti-area-receive-key-directory.md`](vdti-area-receive-key-directory.md)), and the group **epoch-key** grant
+  is `groupkey-epoch-key` (below).
 - **Exchange SADs** (`vdti/exchange/v1/schemas/*`): the exchange-message shapes (Apply/Offer/…); field
   layout at the encode, tracking `../kels lib/exchange`. (The ESSR envelope + inner moved to the primitive —
   `vdti/essr/v1/schemas/*`; see [`vdti-area-essr.md`](vdti-area-essr.md).)
@@ -290,12 +272,13 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
   `.working/vdti-receive-key-establishment-design.md`). Leading edge; the primitive encode follows.
 - **New invariant owed:** the 64-char kind cap + the `vdti/sel/v1/grants/*` naming convention; **and the §3
   sender-key-currency rule** (a verifier requirement, plus the optional message-anchor-for-liveness pattern).
-- **The session mode (§1a / §7a) is part of the exchange encode** — the two modes, the bounded member
-  roster + key-epoch SELs, the per-sender-subkey nonce discipline, per-message sender signatures, and the
-  ratchet; the `examples/chat` + `examples/mail` apps compose it. The §7a primitive-support check is
-  **partially** answered (a `Gnt` seals a value ✓; the per-sender-subkey nonce discipline + per-message
-  sender signature are now specified on existing primitives ✓; the roster is **gated / blinded** ✓; the
-  **bounded enumerable roster's storage** and the **SEL-length bound** remain open).
-- **Open (flagged):** the session-mode open items (§7a — ratchet interval, epoch-SEL shape + length bound,
-  the gated/blinded roster's storage, offline catch-up); scoped delivery metadata (§5); the IPEX
-  exchange-message detail (§7); whether **mail** is a sibling feature note rather than a section here.
+- **The session mode (§1a / §7a) is the chat consumer of the group-key primitive.** The exchange encode owns
+  the two modes, the **per-sender-lane message model** (per-writer subkeys, per-message sender signatures,
+  epoch-window currency) and the chat **message SAD**; `examples/chat` + `examples/mail` compose it. The
+  **epoch-key distribution** — the bounded gated/blinded roster, the key-epoch SELs, the ESSR-wrap, and the
+  ratchet — is the **group-key primitive's** ([`vdti-area-group-key.md`](vdti-area-group-key.md)) and lands at
+  the `protocols/group-key.md` encode, not here.
+- **Open (flagged):** the chat consumer's session-mode items (§7a — offline catch-up, the 1:1 path,
+  message-anchoring); scoped delivery metadata (§5); the IPEX exchange-message detail (§7); whether **mail** is
+  a sibling feature note rather than a section here. (The roster storage, epoch-SEL length bound, and ratchet
+  interval are the group-key primitive's — see [`vdti-area-group-key.md`](vdti-area-group-key.md).)

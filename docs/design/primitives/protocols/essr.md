@@ -143,9 +143,9 @@ ESSR is deliberately narrow. Everything below sits **outside** it:
 - **Payload contents.** ESSR seals opaque bytes. A timestamp, a protocol or topic label, the content
   itself — all shaped by the **application**, inside `payload`, confidential and signed. ESSR
   neither defines nor inspects them.
-- **Key resolution.** Turning `recipient` into a receive key, or `sender` into a verify key, is the
-  exchange feature's published-receive-key lookup and the caller's chain read. ESSR is handed the
-  keys.
+- **Key resolution.** Turning `recipient` into a receive key is the **receive-key directory** lookup
+  — an identity's published device keys, resolved through a lookup log its identity owns; turning
+  `sender` into a verify key is the caller's chain read. ESSR is handed the keys.
 - **Sender-key currency.** Whether `senderPin`'s key state is still current and trusted, or has been
   superseded, is the **caller's** check against the sender's current witnessed chain. ESSR only
   needs the pin to verify the signature at all.
