@@ -1,4 +1,6 @@
-# VDTI — Verifiable Decentralized Trust Infrastructure ⚠️ Design in progress ⚠️
+# ⚠️ Design in progress ⚠️
+
+# VDTI — Verifiable Decentralized Trust Infrastructure
 
 **Build apps where the data proves itself — and skip the trusted backend.**
 
