@@ -906,7 +906,9 @@ takeover-by-extend), silent to third parties on a dormant chain, and unrecoverab
 - **The KEL rotation reserve** (held apart from the signing key) lets a device heal a suspected
   signing-key leak by itself — every key change reveals it, single-signed, so a signing-key-only
   thief can append content but never a key change. Healing a _fully_ compromised device (both keys)
-  is the identity's job (evict via an `Evl`). A single-device deployment is first-class.
+  is the identity's job (evict via an `Evl`). A single-device deployment is first-class for this
+  self-heal; an authority-bearing identity runs three or more devices, so surviving members can
+  evict a fully-compromised one.
 - **IEL threshold composition** (high thresholds — a roster (`M`) larger than the threshold (`N`) it
   needs — redundancy across **distinct custody domains**) handles total device compromise: evict the
   device via an `Evl`; surviving members keep the threshold and the identity stays alive. Two

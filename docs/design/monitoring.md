@@ -2,9 +2,10 @@
 
 Some compromises leave a fork to trip over; a verifier walking the chain sees the disagreement and
 refuses. The dangerous ones leave **nothing structural to catch**: a thief who steals a rotation
-reserve can simply extend the chain to their own key, and — on a chain nobody is actively watching —
-witnesses sign it as an ordinary next event. There is no competing branch, no dispute, no veto. The
-owner finds out late, if at all.
+reserve — a chain's reserve, or for an identity a `t_govern` quorum of them — can simply extend the
+chain to their own key, and — on a chain nobody is actively watching — witnesses sign it as an
+ordinary next event. There is no competing branch, no dispute, no veto. The owner finds out late, if
+at all.
 
 Monitoring is the owner-side answer to that class. It does not prevent the takeover — a structurally
 valid rotation cannot be vetoed — but it converts a **silent, indefinitely-undetected** takeover
@@ -26,8 +27,9 @@ last event they authored. So the whole detector is a comparison:
 > it does not, something advanced your chain that you did not author — a stolen-reserve rotation, an
 > unexpected governance change, or a fork. **A mismatch is the alarm.**
 
-That is the entire mechanism. There is no duplicity to reconstruct, no log to diff — the network
-already computes and serves the value; the owner only has to notice it changed out from under them.
+That is the entire mechanism. There is no duplicity to reconstruct, no log to diff — any node
+returns the chain by prefix and the owner computes the value locally, then only has to notice it
+changed out from under them.
 
 ## Modes
 
@@ -40,7 +42,8 @@ already computes and serves the value; the owner only has to notice it changed o
 Either can run on the owner's own device or on a service acting for them. The service is **untrusted
 for correctness** — the owner (or their wallet) still verifies the observed state end-to-end from
 the data; the service is trusted only for liveness and to deliver the alert. A lying or absent
-monitor costs detection speed, never a false sense of safety.
+monitor costs detection speed, never correctness — it can suppress the alarm, but it cannot make a
+wrong state verify.
 
 ## Response
 
@@ -82,6 +85,6 @@ the machinery it needs is a comparison, not a network.
 
 ## Status
 
-The effective SAID and its queryability exist today; this note describes the owner-side layer that
-consumes them. The wallet/service tooling — the poller, the persistent-connection service, the
-alert-and-prompt flow — is a build item, not a protocol change.
+The effective SAID and its by-prefix reachability are protocol properties; this note describes the
+owner-side layer that consumes them. The wallet/service tooling — the poller, the
+persistent-connection service, the alert-and-prompt flow — is a build item, not a protocol change.

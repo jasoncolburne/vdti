@@ -112,10 +112,10 @@ conjunction:
 - **Not revoked** — the fail-secure revocation walk ([Revocation](#revocation)).
 - **Owned** — the presenter satisfies the `issuee`'s `t_use`, bound to a fresh, audience-scoped
   `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
-  stronger-liveness mode). This resolves the issuee's **current-tip roster** (`roster()`): a forked,
-  disputed, or **terminated** issuee resolves no live `t_use` quorum — no single roster, or none at
-  all — so it grounds no ownership and is refused. (Termination is an implicit cut of the
-  membership; a retired identity cannot live-prove.) Bearer credentials skip this.
+  stronger-liveness mode). Proving ownership is a live **`t_use` action**, so it is **frozen on any
+  divergence**: a forked, disputed, or **terminated** issuee grounds no ownership and is refused — a
+  fork freezes actions until governance resolves it (only `t_govern` recovery proceeds on a fork), a
+  dispute is unreconcilable, and a retired identity is done. Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides.
 
 ## Presentation
@@ -244,12 +244,14 @@ then carries the terms and a **signed acceptance** of them: the presenting party
 discloses the terms-bearing credential, so the terms travel committed in it — no separate field —
 and the **disclosee** accepts them with its signed `admit` (chained to the `grant`, hence
 transitively over those terms) in the minimal push, or its `agree` in the negotiated flow. Either
-way there is a non-repudiable record of who accepted what. Because the terms are on the credential,
-an onward re-disclosure **inherits** them structurally, and the signed acceptances build a custody
-chain. Enforcement is **commitment and accountability**, not prevention: revealed bytes cannot be
-un-revealed, but the signed acceptance is non-repudiable evidence of a breach. One-off per-exchange
-conditions can still be negotiated in the exchange on top; the credential's own terms are the
-issuer's.
+way there is a non-repudiable record of who accepted what. In the minimal push that acceptance
+arrives only **with** the `admit`: a disclosee that takes the `grant` and never admits holds the
+disclosure with no signed acceptance on record — the discloser's exposure for choosing the push over
+the negotiated flow. Because the terms are on the credential, an onward re-disclosure **inherits**
+them structurally, and the signed acceptances build a custody chain. Enforcement is **commitment and
+accountability**, not prevention: revealed bytes cannot be un-revealed, but the signed acceptance is
+non-repudiable evidence of a breach. One-off per-exchange conditions can still be negotiated in the
+exchange on top; the credential's own terms are the issuer's.
 
 ## Bulk issuance
 

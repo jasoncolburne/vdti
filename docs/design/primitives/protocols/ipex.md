@@ -121,9 +121,10 @@ trading that correlation for third-party-provable liveness. Baseline presentatio
 - the signature resolves, at the signer's **current witnessed tip** (read from any source), to the
   **required signer** — for a **targeted** disclosed SAD, the SAD's committed **`issuee`** (and
   `discloser` equals it); for an **untargeted** SAD, the `discloser` (a bearer — no ownership
-  binding). The current-tip resolution is the signer's **`roster()`**, so a **terminated or
-  disputed** signer resolves no live `t_use` quorum — a retired or unreconcilable identity cannot
-  present, and the gate refuses (fail-secure);
+  binding). Presenting is a live **`t_use` action**, so it is **frozen on any divergence**
+  (`iel/verification.md`): a **forked, disputed, or terminated** signer cannot present — a fork
+  freezes actions pending governance recovery, a dispute is unreconcilable, a retired identity is
+  done — and the gate refuses (fail-secure);
 - `audience` is the verifier's own prefix;
 - `created` is within tolerance on **both** sides — `|now − created| ≤ tolerance`, rejecting stale
   **and** future — the tolerance absorbing clock skew;

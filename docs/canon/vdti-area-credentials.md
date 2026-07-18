@@ -119,14 +119,15 @@ A relying party **grants** iff **all** hold:
   fooled by a forged dormant-chain linear extension; only the to-tip step catches it. Fail-secure: a
   no-single-tip or stale chain grounds no new trust (REFUSE). A **terminated** issuer passes (its `Trm`
   is the definitive, un-extendable tip → pre-`Trm` issuance stays valid), but the `Trm` freezes its
-  SELs → no `Rev` possible → its unrevoked creds are unkillable: **revoke-before-terminate** discipline.
+  SELs → no `Rev` **and** no `Dth`: its unrevoked creds are unkillable, a terminated delegator can
+  never rescind an outstanding delegation, and a terminated doc-creator can never close a member's
+  period. **Close out everything you may need to kill — revoke _and_ rescind — before terminating.**
 - **Not revoked** — the fail-secure `kills[]` walk (§Revocation).
 - **Ownership (current)** — the presenter satisfies the `issuee` IEL's `t_use` over the verifier's
-  fresh, audience-bound challenge (realized as the `grant` signature, §Presentation), resolved against
-  the issuee's current-tip **`roster()`** (the verifier's membership accessor, `iel/verification.md`) —
-  a forked, disputed, or **terminated** issuee resolves no live `t_use` quorum (no single roster, or
-  none at all: a `Trm` implicit-cuts the membership), so it grounds no ownership and is refused
-  (fail-secure). Bearer credentials skip this.
+  fresh, audience-bound challenge (realized as the `grant` signature, §Presentation), a live **`t_use` action**, so
+  **frozen on any divergence** (`iel/verification.md`): a forked, disputed, or **terminated** issuee
+  grounds no ownership and is refused (fail-secure) — a fork freezes actions until governance recovers
+  it (only `t_govern` proceeds on a fork), a dispute is unreconcilable, a retired identity is done. Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides (an `is_expired()` helper surfaces it).
 
 ## Presentation — IPEX, single round trip
@@ -276,8 +277,12 @@ claim contents with its helpers.
 Terms-of-use ride the **credential**, not just the exchange. The issuer commits an optional **`terms`** — a
 terms-of-use SAD (e.g. "do not re-disclose") — at issuance, so the conditions **travel with the credential**
 rather than being re-negotiated per presentation. A presentation then carries a **signed acceptance** of
-those terms: the presenting party's `grant` (or, in the negotiated flow, the disclosee's `agree`) signs the
-credential's terms — a non-repudiable record of who accepted what.
+those terms: the terms travel committed in the presenting party's `grant` (no separate field), and the
+**disclosee** accepts them with its signed `admit` — chained to the `grant`, hence transitively over those
+terms — in the minimal push, or its `agree` in the negotiated flow. A non-repudiable record of who accepted
+what. In the minimal push the acceptance arrives only **with** the `admit`: a disclosee that takes the
+`grant` and never admits holds the disclosure with no signed acceptance on record — the discloser's exposure
+for the push; a discloser needing acceptance-first uses the negotiated flow, where `agree` precedes `grant`.
 
 **Chain-link confidentiality is then structural.** Because the terms are on the credential, an onward
 re-disclosure **inherits** them: a re-discloser's `grant` commits the same terms without having to choose

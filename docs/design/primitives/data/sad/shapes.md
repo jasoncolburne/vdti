@@ -119,7 +119,7 @@ a **single** prefix (one witness KEL added at a time), not a list.
 The remaining roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` — are
 carried **inline** in the manifest SAD, so they have no SAD of their own ([`kinds.md`](kinds.md));
 the `bound` and `grant` roles each name a SAD of their own (the gated rescind-doc, and the grant
-value — §Grant values above). Their value shapes are
+value — §Grant values below). Their value shapes are
 [`event-shape.md` §The manifest](../event-logs/event-shape.md).
 
 ## Witness receipts
@@ -153,8 +153,9 @@ value it carries is the sealed thing itself.
 | `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.                                            | forthcoming |
 | `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.                                              | forthcoming |
 
-Each grant value is a SAD (`said` + `kind` + its value); the value layouts land at the directory,
-shared-documents, and group-key encodes.
+Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
+encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the
+role-lists).
 
 ## Protocol SADs
 
@@ -281,11 +282,12 @@ A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../
 
 The kinds whose role is fixed but whose exact field layout is owed, with where each lands:
 
-| Kind / SAD                                                                                                                 | Lands at                                             |
-| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| Grant values (`directory-ml-kem-*`, `shared-document-governance`, `shared-document-read-governance`, `groupkey-epoch-key`) | the directory / shared-documents / group-key encodes |
-| Shared-document grant-doc + read grant-doc + rescind-doc                                                                   | the shared-documents encode                          |
-| Exchange + session message shapes                                                                                          | the exchange encode                                  |
+| Kind / SAD                                                                                                                                | Lands at                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                   | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
+| Shared-document grant values (`shared-document-governance`, `shared-document-read-governance`) + grant-doc + read grant-doc + rescind-doc | the shared-documents encode                                  |
+| Replica-set SAD (the `availability.replicas` target)                                                                                      | the vdtid encode                                             |
+| Exchange + session message shapes                                                                                                         | the exchange encode                                          |
 
 ## Cross-references
 

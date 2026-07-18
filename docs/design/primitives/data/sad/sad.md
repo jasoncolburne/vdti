@@ -24,7 +24,7 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   units. Their kind-specific schemas have no slots for custody or availability fields, so those
   fields cannot appear on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
-  replica sets, and the content payloads chain events anchor. Stored in the SAD object store and
+  replica sets, and the content payloads SEL events anchor. Stored in the SAD object store and
   retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field
   and per-object replication scope via an independent [`availability`](availability.md) field on the
   same wrapper.
@@ -53,6 +53,10 @@ Every SAD carries:
 - `said` — the SAD's self-addressing identifier. Computed per [`said.md`](said.md): the SAD is
   canonicalized with `said` populated to a fixed-value placeholder, Blake3-256 is computed over the
   canonical bytes, and the digest is base64 encoded and qualified.
+- `kind` — a versioned string naming the SAD's type (`vdti/{component}/v1/{category}/{name}`). It
+  drives structural validation, tier dispatch, the role vocabulary the SAD may carry, and whether
+  the store serves it by SAID; a SAD with no `kind` cannot be sorted and is refused. The catalogue
+  is [`kinds.md`](kinds.md).
 - For **chain inception events** (the prefix-deriving SADs): a `prefix` field in addition to `said`.
   The inception event derives the two values via two separate hashes, in order — first `prefix`
   (with both `said` and `prefix` set to the fixed-value placeholder), then `said` (with `prefix`

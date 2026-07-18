@@ -2,8 +2,8 @@
 
 Every SAD carries a **`kind`** — a versioned string naming its type, which drives structural
 validation, tier dispatch, the role vocabulary it may carry, and whether the store will serve it by
-SAID. This doc is the canonical enumeration of every SAD kind. Two sibling identifier families share
-the same naming scheme and live in their own catalogues: **derivation tags and SEL topics**
+SAID. This doc is the canonical enumeration of every SAD kind. Sibling identifier families share the
+same naming scheme and live in their own catalogues: **derivation tags and SEL topics**
 ([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) and **gossip topics**
 ([`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md)).
 
@@ -17,7 +17,8 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
   `schemas` / `claims` / `protocols` / `actions` / `states` / `topics`. This is the common set; a
   component may name its own family where these do not fit — policy groups by domain
-  (`vdti/policy/v1/{group}/*`), and the gossip catalogue channels by log.
+  (`vdti/policy/v1/{group}/*`), and the gossip catalogue channels by log (plus a `witness` channel
+  for receipts).
 - **`name`** — the specific member.
 
 A `*` below marks a family whose members are listed inline or defined by a feature. There is
@@ -59,7 +60,10 @@ The ESSR key-derivation context `vdti/essr/v1/protocols/kdf` shares the naming c
 **not a SAD** — it is a domain-separation label used when deriving the sealing key, never stored or
 served ([`../../protocols/essr.md`](../../protocols/essr.md)). The group-key primitive's
 per-writer-subkey context `vdti/groupkey/v1/protocols/kdf` is the same kind of non-SAD label
-([`../../protocols/group-key.md`](../../protocols/group-key.md)).
+([`../../protocols/group-key.md`](../../protocols/group-key.md)). The mesh transport's
+per-connection key-derivation context `vdti/gossip/v1/protocols/kdf` is the same kind of non-SAD
+label
+([`../../../substrate/infrastructure/mesh-transport.md`](../../../substrate/infrastructure/mesh-transport.md)).
 
 **The feature / application SADs:**
 
@@ -70,6 +74,10 @@ per-writer-subkey context `vdti/groupkey/v1/protocols/kdf` is the same kind of n
 | `vdti/cred/v1/schemas/*`     | credential SADs — the `kind` names the type (app-registered) |
 | `vdti/cred/v1/claims/*`      | credential claim SADs (app-defined, blinded per predicate)   |
 | `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain                          |
+
+One further standalone kind is owed by a forthcoming encode: the **replica-set SAD** an
+`availability.replicas` field names ([`availability.md`](availability.md)) — its `kind` and layout
+land at the vdtid encode, alongside the storage service.
 
 ## Fetch by SAID — what the store hands back
 

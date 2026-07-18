@@ -46,8 +46,8 @@ The rules for design are simple, now that I understand a bit more about how LLMs
 4. Use Claude's vernacular. You can use your own, but I find the models work best when you explain
    in terms they already use - it's like an established protocol, and allows you to catch the model
    reasoning in the wrong frame.
-   - 'Locked' - decision made. - 'Drift' - usually related to documentation not being updated as
-     required.
+   - 'Locked' - decision made.
+   - 'Drift' - usually related to documentation not being updated as required.
    - 'Fallout' - the changes to surrounding code required by the core change.
    - 'Invariant' - a system rule that cannot be broken
    - 'Gap' - a delta between design/correctness and implementation.

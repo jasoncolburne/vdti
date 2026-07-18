@@ -40,9 +40,9 @@ chain primitive plays a distinct structural role:
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized;
 cross-federation interop is by user-initiated transfer rather than implicit trust.
 
-Credentials are verifiable claims — documents that carry their own authorization policy and are
-issued by an identity (structurally, under its own threshold); they permit access to resources based
-on authenticated identity, and are revocable by their issuer.
+Credentials are verifiable, revocable claims an identity issues (structurally, under its own
+threshold); they permit access to resources based on authenticated identity, and what makes one
+acceptable is the relying party's decision, not a policy the credential carries.
 
 ## End-verifiability
 
@@ -185,7 +185,9 @@ Defense is **layered** — each layer catches what the one below it cannot:
   single-sign every key change (`Rot` / `Wit` / `Trm`), the KEL reserve lets a device recover from a
   suspected signing-key leak on its own: a signing-key-only thief (exfiltration, brute force,
   coerced signing, side channels) can append content but never a key change, and one recovery `Rot`
-  buries their run. A single-device deployment is first-class.
+  buries their run. A single-device deployment is first-class for this self-heal (and for a
+  messaging endpoint); an authority-bearing identity runs three or more devices, so its survivors
+  can evict a fully-compromised one.
 - **IEL threshold composition — the identity heals a device.** Healing a _fully_ compromised device
   (both keys) is the identity's job: a threshold vector with redundancy across distinct custodians
   (a roster `M` larger than the threshold `N` it needs) survives total device compromise — burn the

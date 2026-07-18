@@ -71,6 +71,12 @@ Compaction is the structural prerequisite for partial disclosure of nested conte
 The SAID-preservation invariant is what lets disclosed and undisclosed positions coexist in one
 verifiable structure without forcing the producer to commit to a separate compacted-shape SAID.
 
+Signing over a partially-compacted form is guarded separately. Because one signature covers every
+disclosure of a SAD, a signer must have seen the form it commits to — and cannot prove after the
+fact which form that was, since all disclosures share the one SAID. The discipline that enforces
+this at signing time — schema-detected full expansion, with an explicit override to commit by
+reference on purpose — lives in [`said.md` §Signing surface](said.md#signing-surface).
+
 ## Privacy contract
 
 Compaction interacts with custody. Under canonical form every sub-SAD is represented by SAID —
@@ -146,8 +152,10 @@ Compactor implementations defend by enforcing structural bounds at the storage l
 
 - **Two-phase storage.** A SAD object received for storage is parsed and validated in one pass
   without recursive expansion of its sub-SAD references; the second pass dedupes against
-  already-stored SAIDs and persists only what is new. Recursive expansion of children is deferred
-  until a consumer explicitly requests them.
+  already-stored SAIDs and persists only what is new — the dedupe pass is what absorbs batch and
+  replication arrivals, which may embed children even though a client's first submission arrives
+  compacted-only. Recursive expansion of children is deferred until a consumer explicitly requests
+  them.
 - **Existence-check before write.** A SAID already present in the object store is idempotently
   accepted without re-storing; an adversary cannot inflate storage by repeatedly submitting the same
   SAD.

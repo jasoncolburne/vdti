@@ -2,8 +2,7 @@
 
 **Availability** is the per-SAD declaration of where the bytes live, how long they live, and whether
 retrieval is destructive. It is a top-level `availability` field on the standalone-SAD wrapper,
-sibling to the [`custody`](custody.md) field, and is one of the per-object policy axes the wrapper
-carries.
+sibling to the [`custody`](custody.md) field, and is one of the per-object axes the wrapper carries.
 
 This doc states the structural role of `availability` and its three sub-axes. Per-axis policy
 expression — concrete encoding for replica references, TTL representation, one-shot semantics — and
@@ -24,7 +23,7 @@ Each sub-field is independently optional and covers one operational axis:
 - **`replicas`** — replication scope. Names which storage replicas hold the bytes. Absent →
   broadcast to all replicas (default; the SAD is replicated everywhere). Present → carries the SAID
   of a replica-set SAD listing eligible replicas; only those replicas participate in replication for
-  this SAD. The replica set is a separately-stored SAD per the canonical-form rule (see
+  this SAD. The replica set is referenced by SAID, so it is a separately-stored SAD (see
   [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)).
 - **`ttl`** — time-to-live. How long the bytes are retained at the storage boundary. Expired SADs
   are garbage-collected; fetches against an expired SAID return the same "not present" response a

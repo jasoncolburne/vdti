@@ -937,6 +937,21 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     messages. *Src:* Jason 2026-07-17 — closes the said.md / compaction "canonical = fully-compacted" fix.
     `[locked-candidate]`
 
+    **Sign-time disclosure discipline (rider on [inv 19]; tooling, not a verifier check — Jason
+    2026-07-18).** Because one signature validates any disclosed form, a signer handed a
+    _partially-compacted_ SAD can commit to sub-content it never expanded — the signature is valid either
+    way, and no verifier can later tell which form the signer saw (all disclosures share the one SAID). The
+    verifier cannot police this; the **signer's tooling** must. A signing helper locates the compacted
+    positions **by schema** — a typed SAD's `kind` names which fields are nested sub-SADs, so a bare SAID
+    where the schema expects an expanded child is an unseen position — and **refuses to sign until the input
+    is fully expanded there**, taking an explicit **override** only for a deliberate commit-by-reference
+    (counter-signing a SAD authored elsewhere). An unknown-`kind` SAD is override-only (nothing to
+    schema-check against). Fail-secure by default, opt-out is the signer's own (matches the status-read
+    posture); a SAD's author holds its full form by construction, so this bites only when signing something
+    handed over pre-compacted. **Kind-based detection + override is the limit** — compaction is not
+    self-announcing, so a schema is the only sound detector: an expand-everything scan false-positives on
+    scalar SAID references (`previous`, anchors) and false-negatives on positions it cannot fetch.
+
 ## Keys, devices & compromise
 
 20. **A compromised device is a confidentiality loss, never a control loss (Jason 2026-07-18).** A device is a

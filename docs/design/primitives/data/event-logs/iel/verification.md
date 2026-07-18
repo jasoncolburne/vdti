@@ -289,25 +289,34 @@ read-only component of the token, not an independent verified state). The seal t
   authoritative (seal-bearing) roster (**Active**, or **Forked**, where a content fork leaves
   key-state untouched), or **`Terminated`**. It **errors on `Disputed`** (≥ 2 competing key-state
   rosters; the caller must name a tip via `roster(tip_said)`, and the error surfaces the competing
-  tips). **Live** authority — an ownership `t_use`, a current-mode policy leaf — resolves against
-  `roster()`, so a **terminated or disputed** identity meets no live threshold and can perform no
-  live act; **as-issued** authority reads the roster at the historical anchoring position (single-
-  tipped in the past) and is untouched by the current tip's state.
+  tips). **Live authority is tiered by act.** A live **action** — a `t_use` ownership proof, or a
+  `t_authorize` grant / deauthorize (`Ixn` / `Ath` / `Dth`) — is **frozen on any divergence**: it
+  resolves only when the chain is **Active**, so a **forked, disputed, or terminated** identity
+  performs no live action. A live **governance** act — a `t_govern` recovery / eviction / rotation
+  (`Evl` / `Rev` / `Wit` / `Trm`) — resolves against `roster()`, so it proceeds wherever there is
+  one authoritative roster (**Active or Forked**), which is what lets a forked identity **govern its
+  way out of the fork** — but a **disputed** (no single roster → reincept) or **terminated**
+  identity cannot. The rule: **on a suspected compromise — a fork — freeze actions, allow only
+  governance.** **As-issued** authority reads the roster at the historical anchoring position
+  (single-tipped in the past) and is untouched by the current tip's state.
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three
 views of the one data-local walk:
 
-| chain state | `region()` | `effective_said`     | `roster()`                    |
-| ----------- | ---------- | -------------------- | ----------------------------- |
-| Active      | `trusted`  | real tip SAID        | the roster                    |
-| Forked      | `forked`   | `forked` synthetic   | the roster (frozen)           |
-| Disputed    | `disputed` | `disputed` synthetic | `Err` — per-tip `roster(tip)` |
-| Terminated  | `trusted`  | real `Trm` SAID      | `Terminated`                  |
+| chain state | `region()` | `effective_said`     | `roster()`                    | action (`t_use`/`t_authorize`) · govern (`t_govern`) |
+| ----------- | ---------- | -------------------- | ----------------------------- | ---------------------------------------------------- |
+| Active      | `trusted`  | real tip SAID        | the roster                    | ✓ · ✓                                                |
+| Forked      | `forked`   | `forked` synthetic   | the roster (frozen)           | ✗ · ✓ (govern out of the fork)                       |
+| Disputed    | `disputed` | `disputed` synthetic | `Err` — per-tip `roster(tip)` | ✗ · ✗ (reincept)                                     |
+| Terminated  | `trusted`  | real `Trm` SAID      | `Terminated`                  | ✗ · ✗ (retired)                                      |
 
 `region()` is the **divergence** axis, so Active and Terminated both project to `trusted`;
-termination rides the orthogonal `is_terminated()` accessor, and `roster()` (below) is the
-**membership** axis — a third projection of the one walk, where Terminated resolves to no roster and
-Disputed to one roster per competing tip.
+termination rides the orthogonal `is_terminated()` accessor, and `roster()` is the **membership**
+axis — a third projection of the one walk, where Terminated resolves to no roster and Disputed to
+one roster per competing tip. A live-act gate reads them together: a **`t_use` / `t_authorize`
+action** proceeds only at **Active**; a **`t_govern`** governance act proceeds wherever `roster()`
+yields a single `Roster` — **Active or Forked** — so recovery stays open on a fork but is refused on
+a dispute (reincept) or after termination.
 
 ## Inline anchor checking
 
