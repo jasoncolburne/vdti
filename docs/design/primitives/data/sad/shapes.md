@@ -222,6 +222,13 @@ is common to every type.
 | `expires` | timestamp | no       | Expiry (advisory).                                                 |
 | `nonce`   | bytes     | yes      | High-entropy — every credential has one; makes `said` unguessable. |
 
+The `claims` field is the SAID of a **claims SAD** (`vdti/cred/v1/claims/*`, application-defined).
+Each gated predicate it carries is a **uniformly-shaped blinded claim** — `{ said, nonce, data }`:
+the per-claim `said` is what the credential commits, a high-entropy `nonce` blinds it so a compacted
+claim leaks neither presence nor value, and `data` is the application-shaped value (a boolean
+bracket like `ageOver18`, a field). Disclosing a claim reveals its `{ nonce, data }` and recomputes
+the `said` against the commitment ([claim-gating](../../../features/credentials/#claim-gating)).
+
 ### Shared documents — `vdti/doc/v1/schemas/*`
 
 The **V0 constitution** (derives the doc prefix):

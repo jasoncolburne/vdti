@@ -57,11 +57,12 @@ already builds while walking the identity's chain, so it needs no extra lookup �
 device's key by its prefix, sealing one envelope per key. The message then opens on any of the
 recipient's devices.
 
-A sender that wants a **single** device instead supplies that key's **label**; the lookup resolves
-the one entry at that selector, and only that device can open the result. A key published under an
-**opaque label** is reachable _only_ this way — it is not part of the roster-derived fan-out, since
-the label is unguessable by design. That is the trade an opaque label makes: device-privacy in
-exchange for automatic discoverability, so it serves point-to-point sends rather than fan-out.
+A sender that wants a **single** device resolves just that one, at its selector — by the device's
+**prefix** if it knows which device it means, or by an **opaque label** if the device is to stay
+hidden; either way only that device can open the result. A key published under an opaque label is
+reachable _only_ this way — it is not part of the roster-derived fan-out, since the label is
+unguessable by design. That is the trade an opaque label makes: device-privacy in exchange for
+automatic discoverability, so it serves point-to-point sends rather than fan-out.
 
 An identity's **own** device roster is resolvable by a correspondent this way. A **group's**
 membership, which stays hidden from onlookers, is a different thing and a different mechanism.

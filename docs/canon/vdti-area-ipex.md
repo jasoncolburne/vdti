@@ -247,13 +247,15 @@ graduated disclosure (reveal the compact form, then expand); targeted / untarget
 
 **Dropped / not adopted:** the detached-signature (CESR-proof) apparatus; the status-registry identifier.
 
-**Secondary — modeled but deferred to the encode / a consumer:** the full negotiated flow
+**Secondary — modeled here, owned by a consumer (credentials):** the full negotiated flow
 (`apply / offer / agree`, terms-of-use); **chain-link confidentiality** (terms-of-use carried across a
-chain of successive Disclosees); credential **edges / chaining** (the disclosure DAG); **bulk issuance**
-(which needs its own issuance-proof shape — a set-commitment anchor over blinded SAIDs plus an unblinding
-proof, since the plain single-anchor proof-of-issuance does not cover set membership). The other deferred
-items extend `grant / admit` and the freshness envelope without changing the core; bulk issuance is the
-one that touches the two proofs, and gets its own shape at the encode.
+chain of successive Disclosees); credential **edges / chaining** (the disclosure DAG); **bulk issuance**.
+These extend `grant / admit` and the freshness envelope without changing the core, and the credentials
+note now settles their shapes. In particular **bulk issuance is the ordinary anchor at width** — N
+individual per-credential commitments co-located in one anchoring event (`vdti-area-credentials.md`
+§Bulk issuance), **not** a set-commitment anchor over blinded SAIDs: each credential is committed
+individually, so there is no set-membership proof to build and no blinding. The privacy trade is
+batch-linkability, chosen per issue (single issuance = unlinkable, bulk = cheap).
 
 ## [Implementation — not for design encoding]
 

@@ -21,6 +21,7 @@ below is the common wrapper every type carries.
 ```
 credential = {
   said,       // its self-address; the immutable anchor
+  kind,       // vdti/cred/v1/schemas/* — the registered type (see below)
   issuer,     // the issuer's identity prefix
   issuee?,    // the subject's identity prefix; ABSENT → a bearer credential
   claims,     // a nested SAD of the issuer's assertions (application-shaped)
@@ -78,16 +79,18 @@ policy lives on the credential or the chain.**
   simple case is "the issuer is who I trust"; the delegated case is "the issuer holds authority
   delegated N hops from a root I trust," evaluated by walking the **issuer's** chain — never carried
   on the credential. Delegated issuance is thus **derived**, not asserted.
-- **Does the presenter own it?** The uniform **challenge**: the presenter must satisfy the `issuee`
-  identity's `t_use` quorum, live, against the verifier's fresh challenge. This is the whole "who
-  may present" answer — structural, not a policy. A bearer credential (no `issuee`) skips it.
+- **Does the presenter own it?** The uniform **ownership proof**: the presenter must satisfy the
+  `issuee` identity's `t_use` quorum, live, binding the disclosure to a fresh, audience-scoped
+  `{ audience, nonce, created }` — realized as the IPEX `grant` signature, in one round trip, not a
+  separate challenge exchange. This is the whole "who may present" answer — structural, not a
+  policy. A bearer credential (no `issuee`) skips it.
 
-Why these are as-issued and challenge, never a live multi-party policy: anchors compose without
-coordination (each party commits on its own chain at its own pace, so you never need several parties
-online at once), while a live check does the one thing an anchor cannot — prove "this identity
-controls its keys, to this verifier, right now" — which is inherently about **one** identity. So
-credential composition is as-issued only, and the one live act is the single-identity ownership
-challenge.
+Why these are as-issued and a live ownership proof, never a live multi-party policy: anchors compose
+without coordination (each party commits on its own chain at its own pace, so you never need several
+parties online at once), while a live check does the one thing an anchor cannot — prove "this
+identity controls its keys, to this verifier, right now" — which is inherently about **one**
+identity. So credential composition is as-issued only, and the one live act is the single-identity
+ownership proof.
 
 ## Accepting a presented credential
 
@@ -104,8 +107,11 @@ conjunction:
   linear extension of a dormant chain, and only the to-tip check catches it. A no-single-tip or
   stale chain grounds no new trust and is refused.
 - **Not revoked** — the fail-secure revocation walk ([Revocation](#revocation)).
-- **Owned** — the presenter satisfies the `issuee`'s `t_use` over the verifier's fresh,
-  audience-bound challenge. Bearer credentials skip this.
+- **Owned** — the presenter satisfies the `issuee`'s `t_use`, bound to a fresh, audience-scoped
+  `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
+  stronger-liveness mode). This resolves at the issuee's **current tip**: a forked or disputed
+  issuee grounds no single tip, so it grounds no ownership and is refused — the same fail-secure bar
+  the issuer's chain meets above. Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides.
 
 ## Presentation
@@ -205,8 +211,8 @@ un-revocation.
 ## Edges / chaining
 
 A credential MAY reference another under a trust rule, so authority chains — a national accreditor
-issues an accreditation to a university, which issues a diploma to a student. An **edge** names
-another credential's SAID plus a boolean **`transitive`**:
+issues an accreditation to a university, which issues a diploma to a student. An **edge** is a claim
+naming another credential's SAID plus a boolean **`transitive`**:
 
 - **`transitive: true` — the authority chain.** The referenced (source) credential's `issuee` must
   equal **this** credential's `issuer`: the diploma's issuer must itself hold the accreditation the
@@ -219,17 +225,22 @@ another credential's SAID plus a boolean **`transitive`**:
 One boolean is the whole axis: authority chains through, or it does not. Whether a diploma _accepts_
 an accreditation as its source is the **relying party's** decision, made by dispatching on the
 source's `kind` — never a rule baked onto the credential. The edge itself is purely structural.
+Though it rides in `claims`, an edge has a **uniform, framework-recognized shape** — the source SAID
+plus `transitive` — so the framework locates it and drives the recursive check, the same way the
+[claim-gating](#claim-gating) verify helper is framework-supplied over otherwise app-shaped claims.
 
 ## Terms of use
 
 Terms-of-use ride the **credential**, not just the exchange. The issuer commits an optional `terms`
 at issuance, so conditions (e.g. "do not re-disclose") travel with the credential. A presentation
-then carries a **signed acceptance** of those terms — a non-repudiable record of who accepted what.
-Because the terms are on the credential, an onward re-disclosure **inherits** them structurally, and
-the signed acceptances build a custody chain. Enforcement is **commitment and accountability**, not
-prevention: revealed bytes cannot be un-revealed, but the signed acceptance is non-repudiable
-evidence of a breach. One-off per-exchange conditions can still be negotiated in the exchange on
-top; the credential's own terms are the issuer's.
+then carries a **signed acceptance** of those terms: the presenting party's IPEX `grant` discloses
+the terms-bearing credential and so commits its terms — no separate acceptance field — or, in the
+negotiated flow, the disclosee's `agree` signs them. Either way it is a non-repudiable record of who
+accepted what. Because the terms are on the credential, an onward re-disclosure **inherits** them
+structurally, and the signed acceptances build a custody chain. Enforcement is **commitment and
+accountability**, not prevention: revealed bytes cannot be un-revealed, but the signed acceptance is
+non-repudiable evidence of a breach. One-off per-exchange conditions can still be negotiated in the
+exchange on top; the credential's own terms are the issuer's.
 
 ## Bulk issuance
 

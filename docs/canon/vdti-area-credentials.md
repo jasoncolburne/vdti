@@ -23,6 +23,7 @@ type carries.
 ```
 cred = {
   said,
+  kind,       // vdti/cred/v1/schemas/* — the credential's registered type (§The credential)
   issuer,     // issuer IEL prefix                       [inv 16: entity = prefix]
   issuee,     // issuee/holder IEL prefix; ABSENT → a bearer credential (§Targeted vs bearer)
   claims,     // → a nested SAD of kind vdti/cred/v1/claims/* (app-defined, opaque when compacted)
@@ -119,7 +120,10 @@ A relying party **grants** iff **all** hold:
   no-single-tip or stale chain grounds no new trust (REFUSE).
 - **Not revoked** — the fail-secure `kills[]` walk (§Revocation).
 - **Ownership (current)** — the presenter satisfies the `issuee` IEL's `t_use` over the verifier's
-  fresh, audience-bound challenge. Bearer credentials skip this.
+  fresh, audience-bound challenge (realized as the `grant` signature, §Presentation), resolved at
+  the issuee's current tip — a forked or disputed issuee grounds no single tip, so it grounds no
+  ownership and is refused (fail-secure), the same bar the freshness bullet sets for the issuer.
+  Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides (an `is_expired()` helper surfaces it).
 
 ## Presentation — IPEX, single round trip
