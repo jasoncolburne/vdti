@@ -60,10 +60,9 @@ each from a **primitive it already has**.
   interaction event carrying a commitment to the credential's fully-compacted SAID (the commitment,
   not the raw SAID, is what the chain records). The anchor is **witnessed** (the federation attests
   it) and **positioned** (a point in the issuer's chain, so it is time-ordered and can be revoked in
-  place by a later event); the consumer's as-issued check floors it at the **earliest** anchor,
-  which closes re-anchoring an old claim into a newer, more permissive key state. This is strictly
-  stronger than a bare issuer signature: a signature is unwitnessed, unpositioned, and cannot be
-  revoked where it stands.
+  place by a later event); the consumer's as-issued check reads it **as-of that anchoring
+  position**, which the disclosed SAD locates directly. This is strictly stronger than a bare issuer
+  signature: a signature is unwitnessed, unpositioned, and cannot be revoked where it stands.
 - **Proof of disclosure — [compaction](../data/sad/compaction.md).** A SAD commits its nested
   sections by SAID (VDTI's compaction is a recursive self-addressing commitment), so the issuer's
   commitment to the fully-compacted SAID is at the same time a commitment to every faithful
@@ -131,8 +130,8 @@ trading that correlation for third-party-provable liveness. Baseline presentatio
 - `nonce` is **not** already in the dedup cache, keyed on `(signer, nonce)`; then **insert and
   consume** it, retaining it until `created + tolerance`;
 - the disclosed SAD passes its own type's **as-issued** validity check — a check IPEX **delegates**
-  to the caller (for a credential: the anchor on the issuer chain the SAD commits, the
-  earliest-anchor floor, not revoked, not expired);
+  to the caller (for a credential: the anchor on the issuer chain the SAD commits, located by its
+  `issuerPin`, not revoked, not expired);
 - **(negotiated flow only)** `previous` equals the `agree` the verifier issued, binding the
   disclosure to the accepted terms; absent for a minimal push;
 - **(stronger-liveness mode only)** `challenge` equals the value the verifier's `apply` issued.

@@ -25,6 +25,7 @@ cred = {
   said,
   kind,       // vdti/cred/v1/schemas/* — the credential's registered type (§The credential)
   issuer,     // issuer IEL prefix                       [inv 16: entity = prefix]
+  issuerPin,  // the anchoring Ixn's `previous` SAID — locates the anchor at previous.serial+1
   issuee,     // issuee/holder IEL prefix; ABSENT → a bearer credential (§Targeted vs bearer)
   claims,     // → a nested SAD of kind vdti/cred/v1/claims/* (app-defined, opaque when compacted)
   terms?,     // → an issuer-set terms-of-use SAD; travels with the credential (§Terms-of-use)
@@ -48,6 +49,10 @@ cred = {
   contents (its helpers). Types are what edges and relying parties dispatch on (§Edges / chaining).
 - **`terms` is issuer-set and optional.** A terms-of-use SAD the issuer commits at issuance, so conditions
   travel with the credential rather than being re-negotiated per exchange (§Terms-of-use).
+- **`issuerPin` locates the anchor.** The anchoring `Ixn`'s `previous` SAID (the issuer's tip when it
+  issued), committed by the credential — so a verifier finds the issuance anchor at `issuerPin`'s serial +
+  1 on the canonical chain and opens only that one manifest; the walk itself reads only top-level event
+  cues. Not circular: `previous` exists before the credential's SAID does.
 
 ## The two foundations — anchoring and compaction
 
@@ -55,15 +60,19 @@ These found the feature; both are existing primitives, reused unchanged.
 
 - **Proof of issuance = the anchor.** Issuance is the issuer anchoring the credential's canonical
   (fully-compact) SAID on its **own** witnessed IEL via an `Ixn` (T1), committing
-  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` through `manifest.anchors`. **That
-  anchor is the validity proof** — strictly stronger than a detached issuer signature: it is
+  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` through `manifest.anchors`. The
+  credential names that anchor's position with its **`issuerPin`** — the anchoring `Ixn`'s `previous`
+  (the issuer's tip when it issued) — so a verifier locates the anchor at **`issuerPin`'s serial +
+  1** on the canonical chain and opens **only that one manifest** to confirm the commitment, never
+  opening a manifest per event on the walk (structural cues ride each event's top level, by design).
+  **That anchor is the validity proof** — strictly stronger than a detached issuer signature: it is
   **witnessed** (federation-attested), **positioned** (a point in the issuer's chain, so it is
-  time-ordered and revocable in place), and floored at the **earliest** matching anchor (the
-  earliest-anchor floor closes re-anchor tier-inversion — [inv 5]). No registry object, no
-  registry identifier, no cred-SEL: the credential is immutable and holder-presented, so it needs no
-  lookup object. Non-circular — the cred SAID is fixed from its content, then the issuer authors the
-  anchoring `Ixn` naming it. The anchoring `Ixn` transitively commits the issuer's roster / key-state
-  and its whole delegation chain ([inv 4]).
+  time-ordered and revocable in place), and read **as-of that position** ([inv 5]). No registry
+  object, no registry identifier, no cred-SEL: the credential is immutable and holder-presented, so
+  it needs no lookup object. Non-circular — `issuerPin` is the anchor's `previous`, which exists
+  **before** the credential (the cred SAID commits it), and the issuer then authors the anchoring
+  `Ixn` at the next position. The anchoring `Ixn` transitively commits the issuer's roster /
+  key-state and its whole delegation chain ([inv 4]).
 - **Proof of disclosure = compaction.** Our compaction is a **recursive SAID commitment** (a SAD's
   SAID is a hash over its content with nested SADs replaced by their SAIDs) — **not** a Merkle root:
   a nested section is disclosed by revealing it and recomputing its SAID against the reference in its
@@ -76,7 +85,7 @@ These found the feature; both are existing primitives, reused unchanged.
 Verifying a presented credential is two independent questions:
 
 1. **Validly issued — checked as-issued, against the anchor.** The issuance commitment is anchored on
-   the issuer's IEL at the earliest matching position. Whether the *issuer* was entitled to issue —
+   the issuer's IEL at the position its `issuerPin` names. Whether the *issuer* was entitled to issue —
    `id(issuer)` (the simple case, which collapses to the structural fact that the issuer's IEL anchored
    it) or `del(issuer_root, N)` (delegated issuance) — is resolved **as-issued** against that position.
    **Crucially, this policy is the relying party's, not the credential's.** The credential carries no
@@ -110,7 +119,7 @@ A relying party **grants** iff **all** hold:
 - **Structural integrity** — the credential's SAID recomputes; `claims` is a well-formed SAD of the
   expected kind.
 - **Validly issued (as-issued)** — the issuance commitment is anchored on the issuer's IEL at the
-  earliest matching position, and the relying party's issuer condition (`id(issuer)` /
+  position its `issuerPin` names, and the relying party's issuer condition (`id(issuer)` /
   `del(issuer_root, N)`) resolves there — and, for a **delegated** issuer, the delegation path is **not
   rescinded** (the fail-secure positive delegating-link lookup, [inv 10]).
 - **Issuer trusted** — the relying party trusts the `issuer` prefix (application layer).
@@ -298,8 +307,8 @@ Issuing N credentials with N separate anchors is costly at scale (a university i
 diplomas). Bulk issuance anchors **many at once**: the issuer names up to `MAXIMUM_ANCHOR_BATCH` credential
 commitments in a **single** `Ixn`'s `manifest.anchors` — the same per-credential commitment
 (`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`), just batched. Each credential's
-proof-of-issuance is that shared anchor's position, floored at the **earliest** matching anchor (the same
-earliest-anchor rule, closing re-anchor tier-inversion — [inv 5]). Revocation stays per-credential (a
+proof-of-issuance is that shared anchor's position — the one its `issuerPin` names (all N in a batch share
+the batching `Ixn`'s `previous`). Revocation stays per-credential (a
 `kills[]` targeting the individual `cred.said`). No new manifest role and no set-commitment SAD — bulk is
 the ordinary anchor, at width.
 

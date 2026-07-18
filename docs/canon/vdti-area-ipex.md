@@ -83,8 +83,8 @@ a **primitive it already has**, which is where our two divergences from the spec
 - **Proof of issuance — the _anchor_.** The disclosed SAD is authentic-as-issued because its issuer
   **anchored** its fully-compacted SAID on the issuer's **witnessed** chain (an interaction event, T1).
   The anchor is **witnessed** (federation-attested), **positioned** (a point in the issuer's chain, so it
-  is time-ordered and revocable in place by a later event), and floored at the **earliest** anchor (which
-  closes re-anchor tier-inversion). This is strictly stronger than a detached issuer signature: a
+  is time-ordered and revocable in place by a later event), and read **as-of its anchoring position**
+  (which the disclosed SAD locates directly). This is strictly stronger than a detached issuer signature: a
   signature is unwitnessed, unpositioned, and cannot be revoked where it stands. **vdti does not use the
   detached-signature issuance proof** (see the ledger).
 - **Proof of disclosure — _compaction_.** The disclosed SAD commits its nested sections by **SAID**
@@ -154,8 +154,8 @@ backdate it). Baseline presentations do not.
 - `nonce` is **not** already in the dedup cache — keyed on `(signer, nonce)` — then **insert-and-consume**
   it; retention is measured **from `created`** (evict at `created + tolerance`);
 - the disclosed SAD passes its type's **as-issued** verification — a **delegation** to the
-  disclosed-SAD-type's own check (the consumer's: the anchor on the issuer chain the SAD commits, the
-  earliest-anchor floor, not revoked, not expired);
+  disclosed-SAD-type's own check (the consumer's: the anchor on the issuer chain the SAD commits, located
+  by its `issuerPin`, not revoked, not expired);
 - **(negotiated flow only)** `previous` equals the `agree` the verifier issued, binding the disclosure to
   the accepted terms; absent for a minimal push;
 - **(stronger-liveness mode only)** `challenge` equals the nonce the verifier's `apply` issued.

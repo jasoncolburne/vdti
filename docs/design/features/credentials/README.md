@@ -23,6 +23,7 @@ credential = {
   said,       // its self-address; the immutable anchor
   kind,       // vdti/cred/v1/schemas/* — the registered type (see below)
   issuer,     // the issuer's identity prefix
+  issuerPin,  // the anchoring event's `previous` SAID — locates the anchor (see below)
   issuee?,    // the subject's identity prefix; ABSENT → a bearer credential
   claims,     // a nested SAD of the issuer's assertions (application-shaped)
   terms?,     // an issuer-set terms-of-use SAD; travels with the credential
@@ -49,20 +50,25 @@ credential = {
 - **`terms` is issuer-set and optional** — a terms-of-use the issuer commits at issuance, so
   conditions travel with the credential rather than being re-negotiated each exchange
   ([Terms of use](#terms-of-use)).
+- **`issuerPin` locates the anchor.** The anchoring event's `previous` SAID, committed by the
+  credential, so a verifier jumps straight to the issuance anchor (at `issuerPin`'s serial + 1)
+  rather than opening a manifest at every step of the walk. Not circular — `previous` exists before
+  the credential does.
 
 ## The two foundations
 
 Both are existing primitives, reused unchanged.
 
 - **Proof of issuance is the anchor.** To issue, the issuer **anchors** the credential's canonical
-  SAID on its **own** chain — committing a hash of the credential's identity through an ordinary
-  interaction event. That anchor is the validity proof, and it is strictly stronger than a detached
-  issuer signature: it is **witnessed** (the federation attests it), **positioned** (a point in the
-  issuer's chain, so it is time-ordered and revocable in place), and floored at the **earliest**
-  matching anchor (so a later re-anchor cannot launder a credential past a change in the issuer's
-  authority). No registry object and no lookup record: the credential is immutable and
-  holder-presented, so it needs none. The anchoring event transitively commits the issuer's key
-  state and its whole authority chain.
+  SAID on its **own** chain — committing a hash of the credential's identity through an interaction
+  event. The credential carries an **`issuerPin`** — that anchoring event's `previous` — so a
+  verifier goes straight to the anchor (at `issuerPin`'s serial + 1 on the canonical chain) and
+  opens just that one event's manifest, rather than opening a manifest at every step of the walk.
+  That anchor is the validity proof, strictly stronger than a detached issuer signature: it is
+  **witnessed** (the federation attests it), **positioned** (a point in the issuer's chain, so it is
+  time-ordered and revocable in place), and read **as-of that position**. No registry object and no
+  lookup record: the credential is immutable and holder-presented, so it needs none. The anchoring
+  event transitively commits the issuer's key state and its whole authority chain.
 - **Proof of disclosure is compaction.** A SAD's SAID is a hash over its content with nested SADs
   replaced by their own SAIDs, so a section is disclosed by revealing it and recomputing its SAID
   against the reference in its parent — no sibling-hash paths. Because the anchored SAID is over the
@@ -75,7 +81,7 @@ Accepting a credential answers two independent questions, and **only structure a
 policy lives on the credential or the chain.**
 
 - **Was it validly issued?** Read **as issued**: the issuance is anchored on the issuer's chain at
-  the earliest matching position, and the relying party's issuer condition resolves _there_. The
+  the position its `issuerPin` names, and the relying party's issuer condition resolves _there_. The
   simple case is "the issuer is who I trust"; the delegated case is "the issuer holds authority
   delegated N hops from a root I trust," evaluated by walking the **issuer's** chain — never carried
   on the credential. Delegated issuance is thus **derived**, not asserted.
@@ -99,7 +105,7 @@ conjunction:
 
 - **Structural integrity** — the SAID recomputes and `claims` is a well-formed SAD of the expected
   kind.
-- **Validly issued** — the issuance is anchored at the earliest matching position and the issuer
+- **Validly issued** — the issuance is anchored at the position its `issuerPin` names and the issuer
   condition resolves there; for a **delegated** issuer, the delegation path is **not rescinded**.
 - **Issuer trusted** — the relying party trusts the `issuer` (its application decision).
 - **Fresh to the tip** — the issuer's chain is not forked, not disputed, and current, read against
