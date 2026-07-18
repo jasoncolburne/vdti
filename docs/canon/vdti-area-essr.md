@@ -156,8 +156,9 @@ ESSR is deliberately narrow. Everything below is **not** ESSR:
 - **Delivery + the serve-time gate.** Storing and routing the opaque message, and gating delivery on a
   **live check of the recipient prefix** (prove you control it before the store serves you), are the
   **mail feature's** — they limit store-side harvesting even though the prefix is on the message.
-- **Group keying.** Sealing an epoch key to many members, ratcheting, per-sender subkeys — the **exchange
-  feature**, built on top of the 1:1 primitive.
+- **Group keying.** Sealing an epoch key to many members, ratcheting, per-sender subkeys — the **group-key
+  primitive** ([`vdti-area-group-key.md`](vdti-area-group-key.md)), which both the exchange and
+  shared-documents features compose, built on top of this 1:1 primitive.
 - **Replay / freshness.** A sealed message can be re-delivered verbatim; ESSR does not detect replays —
   that is the **consumer's** (the presentation-freshness cache, or a mail dedup-by-SAID window). ESSR's
   fresh nonce buys **AEAD key-uniqueness**, not replay resistance.

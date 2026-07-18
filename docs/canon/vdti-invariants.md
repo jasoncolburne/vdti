@@ -925,7 +925,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
 19. **Every signature is over the fully-compacted SAID; verify by compacting-then-checking (Jason
     2026-07-17).** A SAD signature — and an anchor, which commits a SAID — is always taken over the SAD's
     **fully-compacted** SAID: the canonical, always-re-derivable form in which every nested SAD is replaced
-    by its own SAID. A verifier **compacts the presented form to that canonical SAID first**, then checks
+    by its own SAID and the content is **JCS-canonicalized** (the digest said.md governs). A verifier **compacts the presented form to that canonical SAID first**, then checks
     the signature over it. Because compaction is a **recursive SAID commitment** (every faithful expansion
     of a SAD commits back to the same fully-compacted SAID — [inv 16]), one signature over the compacted
     SAID **validates any faithful disclosed form** — compact, partially expanded, or full. This is what lets

@@ -11,7 +11,7 @@ deliberate vdti divergence (the encap key at **T2** not T1) and one stated verif
 (**sender-key currency**, checked against the witnessed KEL — an optional message-anchor gives provable
 liveness). **Lands at** `docs/design/features/exchange/exchange.md` (design-voice, forthcoming).
 
-**Invariants:** [inv 4] witnessed-in-full uniqueness, [inv 8] multi-source freshness (the sender's
+**Invariants:** [inv 14] witnessing prevents content forks, [inv 8] multi-source freshness (the sender's
 key-lookup + the recipient's sender-KEL read), [inv 10] value-bearing lookup fails-closed on ambiguity,
 [inv 16] addressing by prefix + data-entropy, [inv 17] chain validity is content-independent. Primitive
 precedent: area-sel §1b (`Gnt` = a T2 sealed value-establishment), §1f (value-bearing lookup + `lineage`);

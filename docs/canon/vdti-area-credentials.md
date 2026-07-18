@@ -101,7 +101,8 @@ A relying party **grants** iff **all** hold:
   expected kind.
 - **Validly issued (as-issued)** — the issuance commitment is anchored on the issuer's IEL at the
   earliest matching position, and the relying party's issuer condition (`id(issuer)` /
-  `del(issuer_root, N)`) resolves there.
+  `del(issuer_root, N)`) resolves there — and, for a **delegated** issuer, the delegation path is **not
+  rescinded** (the fail-secure positive delegating-link lookup, [inv 10]).
 - **Issuer trusted** — the relying party trusts the `issuer` prefix (application layer).
 - **Current trust / freshness (to-tip)** — the issuer's chain is not forked, not disputed, and fresh,
   read against multi-source witnessed state ([inv 8]). **Mandatory** — an as-issued-only resolve is
@@ -205,7 +206,8 @@ and **without a predicate language** by shaping the credential:
 
 A credential needs no revocation object unless it is ever revoked. To revoke, the issuer signs a **`Rev`**
 on its own witnessed IEL declaring `kills[] = [{ target }]` with
-`target = hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')`, alongside a sealed `{Icp, Trm}`
+`target = hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')` (the tag the constant-named canon
+writes as `CRED_REVOCATION_TOPIC`), alongside a sealed `{Icp, Trm}`
 lookup SEL (the SEL prefix ≠ the flat `target`, so `kills[]` doesn't leak the object's address). A
 non-issuer cannot declare it (no forged revocation); a witnessed `Rev` + sealed monotone `Trm` cannot be
 rolled back (no silent un-revocation).
@@ -233,8 +235,9 @@ claim naming another credential's SAID plus a trust **operator**:
 - **I2I (issuer-to-issuee)** — the referenced (source) credential's `issuee` must equal **this**
   credential's `issuer`. This is the authority chain: the diploma's issuer (the university) must itself
   hold the accreditation credential the edge names. Verification **recurses** — the source credential
-  must itself pass §Accepting (valid, fresh, not-revoked, issuer-trusted) — bounded by a verifier-wide
-  depth cap, fail-secure on exceed.
+  must itself verify **valid, fresh, not-revoked, and issuer-trusted** (the §Accepting checks **minus the
+  ownership / presentation step**: the source is _referenced_, not presented, so there is no live issuee to
+  challenge) — bounded by a verifier-wide depth cap, fail-secure on exceed.
 - **NI2I (not-issuer-to-issuee)** — a plain reference (the source is cited, no issuer-chain
   requirement) for "this credential refers to that data," no authority delegation.
 
@@ -257,10 +260,12 @@ terms compose with the blinded-claim disclosure set.
 
 Issuing N credentials with N separate anchors is costly at scale (a university issuing thousands of
 diplomas). Bulk issuance anchors **one set-commitment** instead: the issuer anchors a SAD committing to
-the N credential SAIDs — **blinded** (each SAID carried with a nonce) so the set doesn't enumerate the
-cohort — and each holder receives an **unblinding proof** (its nonce) demonstrating membership without
-revealing the others. Proof-of-issuance for a bulk credential is then **(the set anchor) + (membership
-proof)** rather than a per-credential anchor. Revocation stays per-credential (a `kills[]` targeting the
+the N credential SAIDs — **blinded** (each SAID carried with its **own high-entropy nonce**, so the set
+doesn't enumerate the cohort and no entry is guessable from another) — and each holder receives an
+**unblinding proof** (its nonce) demonstrating membership without revealing the others. Proof-of-issuance for
+a bulk credential is then **(the set anchor) + (membership proof)** rather than a per-credential anchor,
+floored at the **earliest** set-anchor (the same earliest-anchor rule as a per-credential anchor, closing
+re-anchor tier-inversion). Revocation stays per-credential (a `kills[]` targeting the
 individual `cred.said`). This is the one extension that touches the proof-of-issuance model, so it gets
 its own shape. **Open for review:** the set-commitment structure (a recursive-SAID set vs. an explicit
 list SAD), and the membership-proof shape.
@@ -293,17 +298,20 @@ machinery (below) is only needed for greenfield enrollment, where no prior accou
   `X ↔ P`. Drop the `P`-signature and someone could migrate `X`'s data onto an attacker's prefix; drop
   the login and anyone could claim to be `X`.
 
-**Recommend a second factor, out of band from the login** — so a stolen password alone cannot migrate an
-account. Proportional to stakes: a one-time code to a contact on file (low stakes); the **mailed token**
-(the greenfield mechanism reused — physical possession of something sent to the address on record); a
-knowledge factor from the old account (a recent statement / transaction); or an in-person / video ID
-check (highest stakes).
+**Two auth modes — a normal login and a step-up login.** Step-up is a second factor out of band from the
+login: a one-time code to a contact on file (low stakes); the **mailed token** (the greenfield mechanism
+reused — physical possession of something sent to the address on record); a knowledge factor from the old
+account (a recent statement / transaction); or an in-person / video ID check (highest stakes). Step-up is
+**recommended on a first bind** and **enforced on any re-bind** (the `exists` case — see the trait and the
+recovery ladder), so a stolen password alone can never re-bind an already-enrolled subject.
 
 **The `Registrar` trait — "prove the requester, return their data."** The trait is the seam between
 VDTI's generic issuance machinery and the org's private logic: the org implements **authenticate the
 requester** (however it already does — an existing login, a mailed token, step-up factors) → return the
-data to embed, or abort; plus a **binding check** (is this subject already bound? enforce single-binding
-/ allow re-bind on recovery). VDTI supplies the rest — receive the bind request over exchange, issue +
+data to embed, or abort; plus a **binding check** — a **new** subject binds under either mode (normal login or step-up, step-up **recommended**); an
+**already-bound** subject (`exists`) — every re-bind, including recovery — **enforces step-up** (a normal
+login alone must not re-bind an existing subject), and the re-bind **replaces** the binding, preserving
+single-binding. VDTI supplies the rest — receive the bind request over exchange, issue +
 anchor the credential to the presented prefix, record the binding, and run the revoke-old / issue-new
 recovery path. **One trait, three backends:** **migration** (an existing login), **greenfield** (a mailed
 high-entropy token plus a public spent-token SEL of random nullifiers, enforcing single-use for people
@@ -314,9 +322,11 @@ traits and the replay-cache trait; interface shapes are implementation, not doct
 migrate, and it is the fallback if someone loses their new keys (log in again → revoke the old credential
 → re-issue to a new prefix). As migration completes it shrinks to just the binding map, then retires.
 Crucially, **after** a user migrates, that credential is anchored and self-sovereign (they hold `P`'s
-keys), so a *later* breach of the old system cannot take over an already-migrated credential. The old
-system's auth strength bounds a **one-time migration window**, not a permanent dependency — the whole
-point is to transfer trust off a central login onto a self-sovereign identity, once.
+keys), so a *later* breach of the old system cannot **present** it (the holder alone controls `P`) **nor
+re-bind** it — the subject now **exists** in the binding map, and a re-bind of an existing subject
+**enforces step-up** (a normal login can do a _first_ bind, never a re-bind). So the old system's auth
+strength bounds a **one-time enrollment window**, not a permanent takeover vector — the whole point is to
+transfer trust off a central login onto a self-sovereign identity, once.
 
 **Data encoding.** The trait hands back the org's data; VDTI shapes it into the credential's `claims`
 (blinded per §Claim-gating where privacy matters). The org owns its data → claims mapping (app-layer,
@@ -329,21 +339,24 @@ prefix `P`, for re-issuance / recovery) — minimal, and envelope-encryptable in
   (same prefix); re-fetch its bytes from the replicated record store. No registrar.
 - **Lost one device, multi-device IEL** — surviving members evict the dead member KEL via `Evl`/`cut`;
   the prefix survives, the credential stays valid. No registrar.
-- **Total loss (reserve gone / whole IEL dead)** (tier-2) — reincept a **new** prefix, then re-run the
-  bind (the existing login, or step-up factors proportional to stakes): the registrar **revokes the old
-  credential, issues a new one to the new prefix.** "True recovery." Credential loss can't destroy the
-  data — the credential is a re-fetchable SAD and its source of truth is the registrar's own records, so
-  re-issuance regenerates it (no credential-backup service; a user-encrypted backup is circular).
+- **Total loss (reserve gone / whole IEL dead)** (tier-2) — reincept a **new** prefix, then re-run the bind.
+  This is an **`exists`** case (the subject is already bound), so **step-up auth is enforced** (a normal login
+  alone cannot re-bind): the registrar **revokes the old credential first, then issues** a new one to the new
+  prefix, and the binding map **replaces** `X ↔ P_old` with `X ↔ P_new` (never a second binding for `X`).
+  "True recovery." Credential loss can't destroy the data — the credential is a re-fetchable SAD and its
+  source of truth is the registrar's own records, so re-issuance regenerates it (no credential-backup service;
+  a user-encrypted backup is circular).
 
 **Deployable services (so a registrar doesn't roll its own):** an **envelope-encryption service** (secures
 the binding map with the org's own keys) and a **local sadstore-only service** (the org runs its own
 record store).
 
-**Honest soft spots — the registrar stays the trust boundary:** the migration window's assurance is
-bounded by the old login's strength (a compromised login migrates an account — mitigate with a second
-factor for high stakes; it does not extend past migration); registry data quality (duplicate accounts →
-duplicate bindings); and single-binding is registrar-**attested**, not independently verifiable by
-outsiders (only the registrar holds the map). A **ZK nullifier** would remove even the map, but
+**Honest soft spots — the registrar stays the trust boundary:** a compromised login can complete a **first**
+enrollment (a first bind) — mitigate with step-up for high stakes; it **cannot re-bind** an already-enrolled
+subject, because a re-bind is an `exists` case where **step-up is enforced**, so a login breach never becomes
+a permanent takeover of an existing binding. Registry data quality (duplicate accounts → duplicate bindings);
+and single-binding is registrar-**attested**, not independently verifiable by outsiders (only the registrar
+holds the map). A **ZK nullifier** would remove even the map, but
 production SNARKs aren't post-quantum; the token / login approach is the answer within our crypto suite.
 
 ## Protocols as primitives — compose, don't couple

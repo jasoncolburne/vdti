@@ -11,7 +11,7 @@ features.
 **Layering:** ESSR (1:1 seal) → **group-key** (fan-out + epochs + ratchet) → {exchange, shared-documents}
 features → apps. **Credentials never touches it** (credentials composes IPEX only, staying transport-agnostic).
 
-**Invariants:** [inv 4] witnessed-in-full uniqueness (the epoch SEL is its own witnessed chain), [inv 8]
+**Invariants:** [inv 14] witnessing prevents content forks (the epoch SEL is its own witnessed chain), [inv 8]
 multi-source freshness (a member reads the current epoch), [inv 10] value-bearing lookup fails-closed, [inv 16]
 addressing by prefix + gated membership, [inv 19] signatures are over the fully-compacted SAID (the consumer's
 per-message signatures). Composes: ESSR (§Distribution); the SEL primitive (the roster + key-epoch logs).
@@ -50,8 +50,17 @@ the epoch key (or a subkey of it), by the consumer.
   times (once per current member), producing one wrapped-key SAD per member. The **epoch's authenticity is the
   T2-governed key-epoch SEL event** (a member trusts an epoch by validating that event and finding its own wrap
   committed by it); the ESSR **signature** on each wrap is uniform with the rest of the system but not
-  load-bearing for epoch authenticity — a KEM+AEAD-only wrap (confidentiality without the per-wrap signature)
-  is an available optimization, settled at the encode.
+  load-bearing for that. The baseline wrap is therefore **full ESSR**; a lighter **KEM+AEAD-only** seal — ESSR's
+  confidentiality core _without_ the signature, so **not ESSR proper** — is an available optimization, settled
+  at the encode.
+- **The wraps are member-delivered, never published.** Each ESSR wrap carries its `recipient` in cleartext (for
+  routing + anti-KCI), so the wrap-set would **enumerate the members** to anyone holding it. The wrap **bodies**
+  are therefore delivered member-to-member and **never served to the store / witnesses** — the same never-publish
+  discipline [inv 16] imposes on a private credential body or a data-bearing `Icp` — so the key-epoch SEL event
+  leaks only the **count** of wraps (the roster size, already bounded), never _who_. The cleartext `recipient` is
+  seen only by the receiving member and the transport (the §5 delivery-metadata residual), not by chain
+  verifiers. **This is what keeps the member set blind to witnesses** — the gated roster alone does not, since
+  the wraps would otherwise re-expose it.
 - **The ratchet — the epoch advances on either trigger, whichever comes first:**
   - **Membership change** — add / remove → a **fresh** epoch sealed to the new member set. A removal gives
     **forward secrecy** (the removed member cannot read new epochs); a joiner **cannot read past epochs** (past
@@ -59,7 +68,10 @@ the epoch key (or a subkey of it), by the consumer.
     the new epoch immediately**, senders **must** encrypt under the new epoch once they observe the removal, and
     a message under the **retired** epoch is **rejected** after the removal boundary — else a lagging sender's
     old-epoch message stays readable / forgeable by the just-removed member. The wrap-set is bound to the
-    membership rescission, not an author's local view.
+    membership rescission, not an author's local view. **Residual:** a message a lagging sender emits under the
+    retired epoch **before** it observes the removal is still readable by the just-removed member (a removal
+    can't retroactively unsend it); the window is bounded by how fast senders observe the removal, and closes
+    once all have switched over.
   - **Time cadence** — every `SESSION_RATCHET_INTERVAL` (~6–12h, a parameter — value TBD), advance to a **fresh**
     epoch even with stable membership, so a compromised **epoch key** exposes only **that window**. (This bounds a
     symmetric-key leak; a compromise of a member's **receive (KEM) key** unwraps every epoch wrapped to it during

@@ -522,13 +522,13 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   spans are corrected to "the v1 (`Pin`) is anchored, the `Icp` rides `v1.previous`" (inv 15) — same
   change, landed-docs-current rule. And the `compaction.md`/`said.md` SAID-invariance fix (§7).
 
-## 9. Content confidentiality → the exchange feature
+## 9. Content confidentiality → the group-key primitive
 
 The off-node / private-content confidentiality thread — a per-doc symmetric key (AES-256-GCM) wrapped to
 each member's published KEM receive key, re-key on removal for forward secrecy, key epochs aligned to the
-honored `[from, bound]` membership periods (one notion of "since when," not two), tiered PQ crypto — is
-**re-homed to `vdti-area-exchange`**: shared documents is a **consumer** of exchange. A doc's private
-content is delivered member-to-member as **ESSR** payloads sealed to each member's receive key; re-key =
-seal a fresh key to the **remaining** members (the past can't be un-shared — a co-author keeps what they
-already read). Open items — group-key-on-a-SEL, re-key cadence, epoch commitment — live in the exchange
-note (§7 there).
+honored `[from, bound]` membership periods (one notion of "since when," not two), tiered PQ crypto — **is
+the [group-key primitive](vdti-area-group-key.md)**: shared documents is a **consumer** of it (as is
+exchange/chat). A doc's private content is delivered member-to-member as **ESSR** payloads sealed to each
+member's receive key; re-key = the primitive's ratchet, sealing a fresh epoch key to the **remaining**
+members (the past can't be un-shared — a co-author keeps what they already read). The key-epoch-on-a-SEL,
+re-key cadence, and epoch commitment are the primitive's (`vdti-area-group-key.md`).
