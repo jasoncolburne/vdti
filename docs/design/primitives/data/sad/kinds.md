@@ -61,12 +61,13 @@ per-writer-subkey context `vdti/groupkey/v1/protocols/kdf` is the same kind of n
 
 **The feature / application SADs:**
 
-| Kind                         | What it is                            |
-| ---------------------------- | ------------------------------------- |
-| `vdti/doc/v1/schemas/*`      | shared-document SADs (`comment`, …)   |
-| `vdti/exchange/v1/schemas/*` | exchange SADs                         |
-| `vdti/cred/v1/schemas/*`     | credential SADs (application-defined) |
-| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain   |
+| Kind                         | What it is                                                   |
+| ---------------------------- | ------------------------------------------------------------ |
+| `vdti/doc/v1/schemas/*`      | shared-document SADs (`comment`, …)                          |
+| `vdti/exchange/v1/schemas/*` | exchange SADs                                                |
+| `vdti/cred/v1/schemas/*`     | credential SADs — the `kind` names the type (app-registered) |
+| `vdti/cred/v1/claims/*`      | credential claim SADs (app-defined, blinded per predicate)   |
+| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain                          |
 
 ## Fetch by SAID — what the store hands back
 

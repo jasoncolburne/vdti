@@ -206,19 +206,21 @@ their shapes land with [`../../protocols/ipex.md`](../../protocols/ipex.md).
 ### Credentials — `vdti/cred/v1/schemas/*`
 
 A credential is a **direct-anchored** SAD (its issuance is a commitment hash on the issuer's IEL
-`Ixn` — [`../../../features/credentials/`](../../../features/credentials/) _(forthcoming)_), not a
-chain event.
+`Ixn` — [`../../../features/credentials/`](../../../features/credentials/)), not a chain event. Its
+`kind` names its **type** (application-registered — a diploma, an accreditation); the wrapper below
+is common to every type.
 
-| Field     | Type      | Required | Meaning                                                           |
-| --------- | --------- | -------- | ----------------------------------------------------------------- |
-| `said`    | SAID      | yes      | The credential's SAID — its immutable anchor.                     |
-| `kind`    | string    | yes      | `vdti/cred/v1/schemas/*` (application-defined).                   |
-| `issuer`  | prefix    | yes      | The issuer's IEL prefix.                                          |
-| `issuee`  | prefix    | yes      | The issuee's IEL prefix.                                          |
-| `claims`  | SAID      | yes      | A claims SAD (nested → partial disclosure).                       |
-| `issued`  | timestamp | yes      | Issuance time (advisory).                                         |
-| `expires` | timestamp | no       | Expiry (advisory).                                                |
-| `nonce`   | bytes     | no       | High-entropy — makes `said` unguessable for a private credential. |
+| Field     | Type      | Required | Meaning                                                            |
+| --------- | --------- | -------- | ------------------------------------------------------------------ |
+| `said`    | SAID      | yes      | The credential's SAID — its immutable anchor.                      |
+| `kind`    | string    | yes      | `vdti/cred/v1/schemas/*` — the credential's registered type.       |
+| `issuer`  | prefix    | yes      | The issuer's IEL prefix.                                           |
+| `issuee`  | prefix    | no       | The issuee's IEL prefix; **absent → a bearer credential**.         |
+| `claims`  | SAID      | yes      | A claims SAD (nested → partial disclosure).                        |
+| `terms`   | SAID      | no       | An issuer-set terms-of-use SAD; travels with the credential.       |
+| `issued`  | timestamp | yes      | Issuance time (advisory).                                          |
+| `expires` | timestamp | no       | Expiry (advisory).                                                 |
+| `nonce`   | bytes     | yes      | High-entropy — every credential has one; makes `said` unguessable. |
 
 ### Shared documents — `vdti/doc/v1/schemas/*`
 

@@ -20,6 +20,7 @@ authorization and protocol layers that sit on top.
 - [4 — Federation and witnessing](#4--federation-and-witnessing)
 - [5 — The document-authorization layer](#5--the-document-authorization-layer)
 - [6 — The protocol primitives](#6--the-protocol-primitives)
+- [7 — The feature layer](#7--the-feature-layer)
 - [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
@@ -190,11 +191,21 @@ primitives below rather than extending them.
     key a group encrypts under: per-device fan-out, epochs, and the ratchet, with chat and shared
     documents as its consumers.
 
+## 7 — The feature layer
+
+Features compose the primitives into what an application ships. The first is credentials; shared
+documents and secure messaging follow.
+
+37. [`features/credentials/`](features/credentials/) — issuing a credential and, the core case, a
+    relying party accepting a presented one: the anchor and compaction as its proofs, the two
+    questions (validly-issued, ownership), IPEX presentation, targeted-vs-bearer, blinded
+    claim-gating, revocation, edges, terms-of-use, bulk issuance, and the migration-first registrar.
+
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `features/` — credentials and shared documents;
+- `features/` — shared documents (its full prose beyond the diagram stub) and secure messaging;
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`

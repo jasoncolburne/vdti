@@ -10,7 +10,7 @@ It is **thin**. ESSR holds no key material, reads no chain, and does not inspect
 seals. Turning a prefix into a key, checking whether a sender's key is still current, delivering the
 message, hiding who is talking to whom, keying a group — none of those are ESSR. They belong to the
 [exchange](../../features/exchange/exchange.md) _(forthcoming)_ feature or to whoever calls ESSR.
-That narrowness is what lets [credentials](../../features/credentials/) _(forthcoming)_ and the
+That narrowness is what lets [credentials](../../features/credentials/) and the
 [presentation exchange](ipex.md) seal a message at the edge without dragging a feature's machinery
 along.
 
