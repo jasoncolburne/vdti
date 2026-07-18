@@ -126,9 +126,9 @@ stacks another `Gnt`** (the walk serves the live sealed tip, so a retired value 
 What a grant value _means_ — a document-governance grant, an encryption receive-key — is its
 **owner's**: a feature
 ([`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
-[`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md), both
 forthcoming) or a **shared-core primitive** (the receive-key directory owns the encryption
-receive-key grant); this primitive states only the seal-a-typed-value structure.
+receive-key grant, group keying its epoch-key wrap); this primitive states only the
+seal-a-typed-value structure.
 
 ### `Trm` — the kill (tier 2)
 

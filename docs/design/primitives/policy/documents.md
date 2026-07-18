@@ -10,7 +10,7 @@ policy-bearing document shares — the authorizing condition it carries, and how
 fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
 specific document kind (how a **credential** is issued and revoked, for instance) is a feature
 layered above this one — see [`../../features/credentials/`](../../features/credentials/) _(a
-feature; forthcoming)_.
+feature)_.
 
 ## A document's authorizing condition
 

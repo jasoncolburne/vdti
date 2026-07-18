@@ -105,13 +105,17 @@ conjunction:
 - **Fresh to the tip** — the issuer's chain is not forked, not disputed, and current, read against
   multi-source witnessed state. This is **mandatory**: an as-issued read alone is fooled by a forged
   linear extension of a dormant chain, and only the to-tip check catches it. A no-single-tip or
-  stale chain grounds no new trust and is refused.
+  stale chain grounds no new trust and is refused. A **terminated** issuer passes — its `Trm` is the
+  definitive, un-extendable tip, so pre-`Trm` issuance stays valid — but a `Trm` freezes the
+  issuer's logs, so its unrevoked credentials can no longer be killed: **revoke before terminating**
+  anything you may need to revoke.
 - **Not revoked** — the fail-secure revocation walk ([Revocation](#revocation)).
 - **Owned** — the presenter satisfies the `issuee`'s `t_use`, bound to a fresh, audience-scoped
   `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
-  stronger-liveness mode). This resolves at the issuee's **current tip**: a forked or disputed
-  issuee grounds no single tip, so it grounds no ownership and is refused — the same fail-secure bar
-  the issuer's chain meets above. Bearer credentials skip this.
+  stronger-liveness mode). This resolves the issuee's **current-tip roster** (`roster()`): a forked,
+  disputed, or **terminated** issuee resolves no live `t_use` quorum — no single roster, or none at
+  all — so it grounds no ownership and is refused. (Termination is an implicit cut of the
+  membership; a retired identity cannot live-prove.) Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides.
 
 ## Presentation
@@ -153,6 +157,9 @@ non-transferable by copy because presenting it requires the issuee's keys.
   - **The inherent residual:** between issuance and first redemption, copies **race** — the first
     presentation scanned wins. A photocopied paper ticket behaves identically; acceptable for
     single-use.
+  - **A terminated issuer cannot redeem.** Redemption rides revocation, which a `Trm` **freezes**,
+    so a terminated issuer can no longer mark its bearer credential spent — treat it as reusable.
+    Don't terminate an issuer with live single-use bearer credentials outstanding.
 - **Reuse, re-entry, and membership are targeted, not bearer.** Reusable + transferable + bearer is
   not a coherent thing: with no identity binding a copy is indistinguishable from the original and
   reuses just as well, so there is nothing to detect. Re-entry therefore forces an identity binding:
@@ -233,14 +240,16 @@ plus `transitive` — so the framework locates it and drives the recursive check
 
 Terms-of-use ride the **credential**, not just the exchange. The issuer commits an optional `terms`
 at issuance, so conditions (e.g. "do not re-disclose") travel with the credential. A presentation
-then carries a **signed acceptance** of those terms: the presenting party's IPEX `grant` discloses
-the terms-bearing credential and so commits its terms — no separate acceptance field — or, in the
-negotiated flow, the disclosee's `agree` signs them. Either way it is a non-repudiable record of who
-accepted what. Because the terms are on the credential, an onward re-disclosure **inherits** them
-structurally, and the signed acceptances build a custody chain. Enforcement is **commitment and
-accountability**, not prevention: revealed bytes cannot be un-revealed, but the signed acceptance is
-non-repudiable evidence of a breach. One-off per-exchange conditions can still be negotiated in the
-exchange on top; the credential's own terms are the issuer's.
+then carries the terms and a **signed acceptance** of them: the presenting party's IPEX `grant`
+discloses the terms-bearing credential, so the terms travel committed in it — no separate field —
+and the **disclosee** accepts them with its signed `admit` (chained to the `grant`, hence
+transitively over those terms) in the minimal push, or its `agree` in the negotiated flow. Either
+way there is a non-repudiable record of who accepted what. Because the terms are on the credential,
+an onward re-disclosure **inherits** them structurally, and the signed acceptances build a custody
+chain. Enforcement is **commitment and accountability**, not prevention: revealed bytes cannot be
+un-revealed, but the signed acceptance is non-repudiable evidence of a breach. One-off per-exchange
+conditions can still be negotiated in the exchange on top; the credential's own terms are the
+issuer's.
 
 ## Bulk issuance
 

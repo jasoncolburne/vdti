@@ -15,7 +15,9 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
   / `doc` / `exchange` / `essr` / `ipex` / `groupkey` / `directory` / `cred` / `policy` / `gossip`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
-  `schemas` / `claims` / `protocols` / `actions` / `states` / `topics`.
+  `schemas` / `claims` / `protocols` / `actions` / `states` / `topics`. This is the common set; a
+  component may name its own family where these do not fit — policy groups by domain
+  (`vdti/policy/v1/{group}/*`), and the gossip catalogue channels by log.
 - **`name`** — the specific member.
 
 A `*` below marks a family whose members are listed inline or defined by a feature. There is
@@ -84,10 +86,11 @@ else**:
   **Kind is only the first gate.** A served SAD that carries a custody `readers` gate
   ([`custody.md`](custody.md)) is handed back only to a requester that gate admits, and one
   delivered member-to-member rather than published (its `availability`) is never in the store to
-  serve at all. So a _public_ grant value — a directory receive key — is served to anyone, while a
-  _member-private_ one — a `groupkey-epoch-key` wrap, which names its recipient in the clear, or a
-  read-gated shared-document grant — is read-gated or member-delivered. Serving the grant family by
-  SAID therefore never enumerates who a private grant was sealed to.
+  serve at all. So a _public_ grant value — a directory receive key — is served to anyone. A
+  _member-private_ one is not: a `groupkey-epoch-key` wrap is **member-delivered** (never handed to
+  the store — it names its recipient in the clear), and a read-gated shared-document grant is served
+  only to a reader its `readers` gate admits. Serving the grant family by SAID therefore never
+  enumerates who a private grant was sealed to.
 - **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
   event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
   gets back the same "not present" answer a SAID that never existed would.

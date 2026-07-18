@@ -141,8 +141,8 @@ those commitments **by named role**. The manifest SAD reads
 {anchors / roster / delegates / kills / …}." The event row holds only the manifest SAID; the grouped
 commitments live in the SAD, separately custody-able. A role value is either an **inline list** of
 SAIDs/prefixes — `anchors` / `payload` / `delegates` / `kills` — a **single SAID** naming a further
-structured SAD (`roster`, `witnesses`, `bound`), or a **direct scalar** (the federation `clock` — an
-inline timestamp value, the lone non-SAID role).
+structured SAD (`roster`, `witnesses`, `bound`, `grant`), or a **direct scalar** (the federation
+`clock` — an inline timestamp value, the lone non-SAID role).
 
 **Inline lists are length-capped.** Every inline manifest list — `anchors`, `payload`, `delegates`,
 `kills` — is bounded to **`MAXIMUM_MANIFEST_LIST = 128` entries**, a fixed protocol constant the
@@ -397,11 +397,12 @@ chain** — first-seen at its own `(prefix, serial)`, inheriting the owner IEL's
 content fork is prevented by its own witnessing and, where one forms under witness compromise,
 buried by a seal-advancer (`Gnt` / `Trm` / `Sea`) that advances the seal past the loser. A dead
 owner-IEL anchor **severs** the SEL — the portion after the earliest dead anchor is un-verifiable,
-with no repair. Credential issuance, revocation, and status are a **feature** layered on the SEL
-primitive — [`features/credentials/`](../../../features/credentials/); shared documents and
-value-bearing exchange keys are others —
-[`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md),
-[`features/exchange/exchange.md`](../../../features/exchange/exchange.md) _(all forthcoming)_.
+with no repair. Credential **revocation and status** are a **feature** layered on the SEL primitive
+(issuance itself is the issuer's IEL anchor, not an SEL) —
+[`features/credentials/`](../../../features/credentials/); shared documents are another
+([`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md),
+forthcoming), and value-bearing **receive keys** ride the SEL as a shared-core primitive (the
+[receive-key directory](../../protocols/receive-key-directory.md)).
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two
 kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's type, and the `Evl`

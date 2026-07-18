@@ -949,11 +949,17 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     rotating keys, changing the device roster, terminating — is a **T2 governance** act needing `t_govern`, and
     one device is a single `t_use` (T1) share, which cannot meet it. So the identity **cannot be taken over by a
     single compromised device**; the holder rotates it out (a T2 act — a T1 device cannot re-admit itself). **This
-    assumes the T2 governance secret is not itself on the compromised device:** a multi-device identity's
-    `t_govern` quorum spans its other devices; a single-device identity's T2 **reserve must be custodied
-    off-device** — a wallet that keeps the reserve on the one device makes control takeable on a full compromise
-    (the control-side parallel to the confidentiality floor). The hard floor — a live rooted device reads its own
-    in-use plaintext — is a **universal endpoint limit, not a vdti property**. So confidentiality is **strong-at-rest, bounded-in-use**; control is **never takeable**.
+    holds for the intended three-or-more-device identity:** a compromised device is one `t_use` share, and the
+    identity's other devices meet the `t_govern` quorum that cuts it. A **single-device IEL is the degenerate
+    exception** — its one device is the whole `t_govern` quorum, so a full compromise (its signing key and its
+    on-device reserve together) is a control loss, with no other device to cut it. Recovering in place instead needs the
+    **surviving** devices to meet `t_govern` and evict the compromised one — a strict-majority `t_govern` the
+    survivors still reach after losing one, so a roster of **at least three** (at two, a majority `t_govern` = 2
+    leaves a single survivor, too few to evict — the two-member freeze; a lower `t_govern` makes one stolen
+    device a takeover). So a control-sensitive identity runs **three or more devices**; a one- or two-device IEL
+    is an avoidable degenerate config (`residuals.md` §Degenerate configurations), not a property to patch by
+    custodying the reserve off the device (which would only slow the immediate rotation recovery relies on). The hard floor — a live rooted device reads its own
+    in-use plaintext — is a **universal endpoint limit, not a vdti property**. So confidentiality is **strong-at-rest, bounded-in-use**; control is **not takeable by a single compromised device** (the degenerate sub-three-device roster aside).
     Keep the two axes separate: conflating them (e.g. "compromise one device = compromise the person") is a
     category error that invites confidentiality creep into the control story. *Src:* Jason 2026-07-18.
     `[locked-candidate]`

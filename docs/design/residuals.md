@@ -123,26 +123,28 @@ by theme, not by these three groups; a handful of placements are noted in the en
 These aren't the point — someone configured and operating correctly carries none of them. They are
 enumerated for completeness, each with the one thing that makes it go away.
 
-| Residual                       | Cost   | Exploitability | Risk            | Axis           | Outcome                                       | Mitigation                                                                                                           |
-| ------------------------------ | ------ | -------------- | --------------- | -------------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Lost keys left in the roster   | High   | Human Error    | Critical (3000) | Trust          | Federation governance is taken over           | Cut lost keys promptly (watch the at-risk flag)                                                                      |
-| Skipping the freshness check   | High   | Human Error    | Critical (3000) | Trust          | You accept a forged, stale-issuer credential  | Always run the mandatory to-tip check                                                                                |
-| Gated record without a nonce   | High   | Human Error    | Critical (3000) | Privacy        | A named member is de-anonymized               | Give every gated record a high-entropy nonce                                                                         |
-| Fail-open revocation opt-out   | Medium | Human Error    | High (900)      | Trust          | You accept a revoked subject                  | Stay fail-secure; don't opt down                                                                                     |
-| Fail-open on a walk timeout    | Medium | Human Error    | High (900)      | Trust          | You accept a revoked subject under latency    | Fail secure on timeout where it matters                                                                              |
-| Leaked chain prefix            | Medium | Human Error    | High (900)      | Privacy        | Your whole history becomes linkable           | Keep prefixes out of logs and shared refs                                                                            |
-| Guessable derived address      | Medium | Human Error    | High (900)      | Privacy        | An attacker probes your status / existence    | Use a high-entropy `data` input                                                                                      |
-| Mis-set rescission boundary    | Medium | Human Error    | High (900)      | Recoverability | You cut honest work or miss bad work          | Cut at genesis when the loss time is unknown                                                                         |
-| Naive delegator rescission     | Medium | Human Error    | High (900)      | Recoverability | Sub-delegated creds keep being issued         | Move the boundary before the sub-grant                                                                               |
-| Routing around a delegator     | Medium | Human Error    | High (900)      | Recoverability | A cred via another path stays valid           | Rescind at the root, or issue under a threshold                                                                      |
-| Consumer clock drifts backward | Medium | Human Error    | High (900)      | Freshness      | You accept backdated data unknowingly         | Keep the clock NTP-synced within `CLOCK_TOLERANCE_BAND`                                                              |
-| Anonymous-write flood          | Medium | Human Error    | High (900)      | Availability   | Your store fills with junk (until gated)      | Rate-limit or gate anonymous writes                                                                                  |
-| Two-member identity            | Medium | Human Error    | High (900)      | Availability   | One bad device freezes you; reincept          | Add a third key to become recoverable                                                                                |
-| Recovery breaks a dependent    | Medium | Human Error    | High (900)      | Recoverability | A dependent event breaks                      | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
-| Leaked gated-record bytes      | Medium | Human Error    | High (900)      | Privacy        | Gated plaintext is readable once bytes escape | Encrypt sensitive content (use the exchange channel)                                                                 |
-| Even-signers tie               | Low    | Human Error    | High (300)      | Availability   | A position stalls (never forks)               | Use an odd number of signers                                                                                         |
-| Never-rotated witness key      | Medium | Signing        | Medium (90)     | Freshness      | A stolen witness key forges up to a year      | Rotate witness keys with margin                                                                                      |
-| Under-provisioned witness set  | High   | Witnesses      | Medium (50)     | Trust          | N compromised witnesses forks you             | Provision `signers`/`threshold` for the fork-cost `N = 2·threshold − signers` you need (traded against availability) |
+| Residual                             | Cost         | Exploitability | Risk            | Axis                   | Outcome                                         | Mitigation                                                                                                           |
+| ------------------------------------ | ------------ | -------------- | --------------- | ---------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Lost keys left in the roster         | High         | Human Error    | Critical (3000) | Trust                  | Federation governance is taken over             | Cut lost keys promptly (watch the at-risk flag)                                                                      |
+| Skipping the freshness check         | High         | Human Error    | Critical (3000) | Trust                  | You accept a forged, stale-issuer credential    | Always run the mandatory to-tip check                                                                                |
+| Gated record without a nonce         | High         | Human Error    | Critical (3000) | Privacy                | A named member is de-anonymized                 | Give every gated record a high-entropy nonce                                                                         |
+| Fail-open revocation opt-out         | Medium       | Human Error    | High (900)      | Trust                  | You accept a revoked subject                    | Stay fail-secure; don't opt down                                                                                     |
+| Fail-open on a walk timeout          | Medium       | Human Error    | High (900)      | Trust                  | You accept a revoked subject under latency      | Fail secure on timeout where it matters                                                                              |
+| Leaked chain prefix                  | Medium       | Human Error    | High (900)      | Privacy                | Your whole history becomes linkable             | Keep prefixes out of logs and shared refs                                                                            |
+| Guessable derived address            | Medium       | Human Error    | High (900)      | Privacy                | An attacker probes your status / existence      | Use a high-entropy `data` input                                                                                      |
+| Mis-set rescission boundary          | Medium       | Human Error    | High (900)      | Recoverability         | You cut honest work or miss bad work            | Cut at genesis when the loss time is unknown                                                                         |
+| Naive delegator rescission           | Medium       | Human Error    | High (900)      | Recoverability         | Sub-delegated creds keep being issued           | Move the boundary before the sub-grant                                                                               |
+| Routing around a delegator           | Medium       | Human Error    | High (900)      | Recoverability         | A cred via another path stays valid             | Rescind at the root, or issue under a threshold                                                                      |
+| Consumer clock drifts backward       | Medium       | Human Error    | High (900)      | Freshness              | You accept backdated data unknowingly           | Keep the clock NTP-synced within `CLOCK_TOLERANCE_BAND`                                                              |
+| Anonymous-write flood                | Medium       | Human Error    | High (900)      | Availability           | Your store fills with junk (until gated)        | Rate-limit or gate anonymous writes                                                                                  |
+| Single-device IEL full compromise    | Catastrophic | Signing        | High (900)      | Trust + Recoverability | A full device compromise takes over your prefix | Run a ≥3-device IEL (survivors meet `t_govern` to cut a compromised device)                                          |
+| Two-member identity                  | Medium       | Human Error    | High (900)      | Availability           | One bad device freezes you; reincept            | Add a third key to become recoverable                                                                                |
+| Terminated issuer freezes revocation | Medium       | Human Error    | High (900)      | Recoverability         | A retired issuer's creds can't be revoked       | Revoke before terminating                                                                                            |
+| Recovery breaks a dependent          | Medium       | Human Error    | High (900)      | Recoverability         | A dependent event breaks                        | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
+| Leaked gated-record bytes            | Medium       | Human Error    | High (900)      | Privacy                | Gated plaintext is readable once bytes escape   | Encrypt sensitive content (use the exchange channel)                                                                 |
+| Even-signers tie                     | Low          | Human Error    | High (300)      | Availability           | A position stalls (never forks)                 | Use an odd number of signers                                                                                         |
+| Never-rotated witness key            | Medium       | Signing        | Medium (90)     | Freshness              | A stolen witness key forges up to a year        | Rotate witness keys with margin                                                                                      |
+| Under-provisioned witness set        | High         | Witnesses      | Medium (50)     | Trust                  | N compromised witnesses forks you               | Provision `signers`/`threshold` for the fork-cost `N = 2·threshold − signers` you need (traded against availability) |
 
 ### Inherent trade-offs — deliberate design costs, not attacks
 
@@ -618,6 +620,19 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
 - **Lost** — Integrity of a dependent event whose anchor is buried — detected, not prevented;
   recovered operationally.
 
+### Terminated issuer freezes revocation — Medium (avoidable)
+
+- **Attack** — An IEL `Trm` freezes all the issuer's SELs, so a terminated issuer can author no
+  further `Rev`. Its unrevoked credentials read **not-revoked forever** (bounded only by advisory
+  `expires`), and a **bearer** credential — redeemed by revocation — can no longer be marked spent,
+  so it reads reusable.
+- **Mitigation** — **Revoke before terminating** anything you may need to kill. A terminated
+  issuer's pre-`Trm` credentials stay valid by design (pre-`Trm` content keeps its meaning) and a
+  relying party still chooses whether to trust a retired issuer at all; termination is a `t_govern`
+  act, so this is not a takeover (a compromised `t_govern` is the reserve-theft case already).
+- **Lost** — Revocability of a terminated issuer's outstanding credentials, and single-use
+  enforcement of its bearer credentials. Removed by the revoke-before-terminate discipline.
+
 ### Lower-cost finality costs — Low
 
 - **Retroactive per-event distrust is forbidden** — An event the quorum co-signed alongside a member
@@ -698,6 +713,27 @@ are not exploitable breaks — they are the bounds themselves.
 
 Costs of the smallest configurations and of the trust roots that, by necessity, sit outside the
 witnessing model.
+
+### Single-device IEL full compromise → takeover — Catastrophic (avoidable)
+
+- **Attack** — A single-device IEL's one member KEL is the **whole `t_govern` quorum**. A full
+  compromise of that device — both its `t_use` signing key and its on-device rotation reserve —
+  meets `t_govern`, so the adversary can rotate, re-roster, or terminate. With no other device to
+  cut the compromised one, this is a **control loss** — unlike an identity of three or more devices,
+  where a device compromise is a bounded **confidentiality** loss and the surviving devices evict
+  it.
+- **Mitigation** — Run an identity of **at least three devices** wherever control matters, so a
+  strict-majority `t_govern` still has a quorum after one device is lost: the compromised device is
+  then one `t_use` share, and the surviving devices meet `t_govern` to cut it out. **Two devices
+  cannot do both** — a majority `t_govern` = 2 leaves one survivor, too few to evict (the two-member
+  freeze below), and a lower `t_govern` makes one stolen device a takeover; a single device is the
+  whole quorum. A one- or two-device IEL is for a send/receive endpoint (the wallet a witness spins
+  up to message), not an authority-bearing identity. The model deliberately does **not** patch this
+  by custodying the reserve off the device — that would only slow the immediate rotation recovery
+  depends on.
+- **Lost** — Control of a one- or two-device identity's prefix on a full device compromise (or its
+  freeze at two); recovery is reinception under a new prefix. Fully avoided by binding three or more
+  devices.
 
 ### Two-member identity freeze — Medium
 

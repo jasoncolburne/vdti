@@ -280,19 +280,34 @@ read-only component of the token, not an independent verified state). The seal t
   **witnessed** sealed fork **at the last seal** keeps the chain in the synthetic (a spine fork →
   `disputed`). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
+- `roster(tip_said)` → the **membership at a specific tip**: the roster + thresholds the verifier
+  forked per branch (above), or **`Terminated`** when that tip is a `Trm`. Termination is an
+  **implicit cut** of the whole membership — the `Trm` is validated against the roster it inherited,
+  and nothing past it can meet any threshold — so it is a distinct resolution, **not** a size-0
+  roster. This is the roster **twin of `effective_said`**: the roster-projection of the same walk.
+- `roster()` → the **single** membership when there is one — a `Roster` on a chain with one
+  authoritative (seal-bearing) roster (**Active**, or **Forked**, where a content fork leaves
+  key-state untouched), or **`Terminated`**. It **errors on `Disputed`** (≥ 2 competing key-state
+  rosters; the caller must name a tip via `roster(tip_said)`, and the error surfaces the competing
+  tips). **Live** authority — an ownership `t_use`, a current-mode policy leaf — resolves against
+  `roster()`, so a **terminated or disputed** identity meets no live threshold and can perform no
+  live act; **as-issued** authority reads the roster at the historical anchoring position (single-
+  tipped in the past) and is untouched by the current tip's state.
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three
 views of the one data-local walk:
 
-| chain state | `region()` | `effective_said`     |
-| ----------- | ---------- | -------------------- |
-| Active      | `trusted`  | real tip SAID        |
-| Forked      | `forked`   | `forked` synthetic   |
-| Disputed    | `disputed` | `disputed` synthetic |
-| Terminated  | `trusted`  | real `Trm` SAID      |
+| chain state | `region()` | `effective_said`     | `roster()`                    |
+| ----------- | ---------- | -------------------- | ----------------------------- |
+| Active      | `trusted`  | real tip SAID        | the roster                    |
+| Forked      | `forked`   | `forked` synthetic   | the roster (frozen)           |
+| Disputed    | `disputed` | `disputed` synthetic | `Err` — per-tip `roster(tip)` |
+| Terminated  | `trusted`  | real `Trm` SAID      | `Terminated`                  |
 
 `region()` is the **divergence** axis, so Active and Terminated both project to `trusted`;
-termination rides the orthogonal `is_terminated()` accessor.
+termination rides the orthogonal `is_terminated()` accessor, and `roster()` (below) is the
+**membership** axis — a third projection of the one walk, where Terminated resolves to no roster and
+Disputed to one roster per competing tip.
 
 ## Inline anchor checking
 

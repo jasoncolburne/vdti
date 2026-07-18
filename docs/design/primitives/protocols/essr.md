@@ -143,9 +143,10 @@ ESSR is deliberately narrow. Everything below sits **outside** it:
 - **Payload contents.** ESSR seals opaque bytes. A timestamp, a protocol or topic label, the content
   itself — all shaped by the **application**, inside `payload`, confidential and signed. ESSR
   neither defines nor inspects them.
-- **Key resolution.** Turning `recipient` into a receive key is the **receive-key directory** lookup
-  — an identity's published device keys, resolved through a lookup log its identity owns; turning
-  `sender` into a verify key is the caller's chain read. ESSR is handed the keys.
+- **Key resolution.** Turning `recipient` into a receive key is the
+  [**receive-key directory**](receive-key-directory.md) lookup — an identity's published device
+  keys, resolved through a lookup log its identity owns; turning `sender` into a verify key is the
+  caller's chain read. ESSR is handed the keys.
 - **Sender-key currency.** Whether `senderPin`'s key state is still current and trusted, or has been
   superseded, is the **caller's** check against the sender's current witnessed chain. ESSR only
   needs the pin to verify the signature at all.
@@ -156,7 +157,8 @@ ESSR is deliberately narrow. Everything below sits **outside** it:
   on a **live check that you control the recipient prefix** before the store serves you, are the
   mail feature's — they limit store-side harvesting even though the prefix is on the message.
 - **Group keying.** Sealing an epoch key to many members, ratcheting, per-sender subkeys — the
-  exchange feature, built atop this one-to-one primitive.
+  [group-key primitive](group-key.md), which both the exchange and shared-documents features
+  compose, built atop this one-to-one primitive.
 - **Replay.** A sealed message can be re-delivered verbatim; ESSR does not detect that. Replay
   defence is the consumer's (the [presentation-freshness](ipex.md) cache, or a mail dedup window).
   The fresh nonce buys key-uniqueness, not replay resistance.
@@ -206,5 +208,9 @@ and states the design here in VDTI's own terms.
   the `vdti/essr/v1/*` identifiers follow.
 - [`../data/event-logs/iel/events.md`](../data/event-logs/iel/events.md) — the IEL an identity's
   `sender` / `recipient` prefix resolves to, and the key state `senderPin` names.
-- [`../../features/exchange/exchange.md`](../../features/exchange/exchange.md) _(forthcoming)_ — key
-  resolution, delivery, identity hiding, and group keying, all built on this primitive.
+- [`receive-key-directory.md`](receive-key-directory.md) — the directory that resolves a `recipient`
+  prefix to its device receive keys, the keys this envelope encapsulates to.
+- [`group-key.md`](group-key.md) — the group-key primitive, which composes this one-to-one seal to
+  distribute an epoch key to a whole group's devices.
+- [`../../features/exchange/exchange.md`](../../features/exchange/exchange.md) _(forthcoming)_ —
+  delivery, the serve-time gate, and identity hiding, all built on this primitive.

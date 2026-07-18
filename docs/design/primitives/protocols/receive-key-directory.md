@@ -26,7 +26,7 @@ There is deliberately no single "identity-wide" key. One shared key would funnel
 through one device; instead each device publishes its own, and a sender reaches the whole identity
 by fanning out over them (below).
 
-Publishing — or changing — a key takes the identity's **authorization tier**: the rotation reserve,
+Publishing — or changing — a key takes the identity's **rotation reserve** — its tier-2 authority,
 held apart from the everyday signing key, not the signing key alone. So an attacker who steals a
 signing key **cannot** swap the key others seal to and begin reading the identity's mail. Changing a
 receive key is always a reserve act, never something a bare signing key can do.
@@ -76,7 +76,7 @@ because it takes the reserve, a stolen signing key cannot undo it.
 A key is retired for good by a terminal kill on its log. A killed key **reads dead**, and a sender
 that resolves it **fails closed** rather than sealing to a key the owner has disowned. That path is
 for loss of control; ordinary key changes are rotations, and a disowned key recovers by
-re-publishing at a fresh line.
+re-publishing at a fresh lineage.
 
 ## The boundary — what the directory is not
 

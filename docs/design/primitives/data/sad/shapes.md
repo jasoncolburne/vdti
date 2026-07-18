@@ -116,9 +116,10 @@ a **single** prefix (one witness KEL added at a time), not a list.
 | `kind` | string     | `vdti/event/v1/roles/pins`.                                            |
 | `pins` | list⟨SAID⟩ | Each participating member's KEL event SAID (an IEL event's down-pins). |
 
-The remaining roles — `anchors`, `delegates`, `payload`, `kills`, `bound`, `grant`, and the scalar
-`clock` — are carried **inline** in the manifest SAD, so they have no SAD of their own
-([`kinds.md`](kinds.md)); their value shapes are
+The remaining roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` — are
+carried **inline** in the manifest SAD, so they have no SAD of their own ([`kinds.md`](kinds.md));
+the `bound` and `grant` roles each name a SAD of their own (the gated rescind-doc, and the grant
+value — §Grant values above). Their value shapes are
 [`event-shape.md` §The manifest](../event-logs/event-shape.md).
 
 ## Witness receipts
@@ -152,8 +153,8 @@ value it carries is the sealed thing itself.
 | `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.                                            | forthcoming |
 | `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.                                              | forthcoming |
 
-Each grant value is a SAD (`said` + `kind` + its value); the value layouts land at the exchange and
-shared-documents encodes.
+Each grant value is a SAD (`said` + `kind` + its value); the value layouts land at the directory,
+shared-documents, and group-key encodes.
 
 ## Protocol SADs
 

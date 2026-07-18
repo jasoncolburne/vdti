@@ -227,9 +227,9 @@ The three advancers differ by what else they do:
   tip is served); the value-bearing instances are their **owner's** — a feature (a
   document-governance grant —
   [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
-  [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md), both
-  forthcoming) or a shared-core primitive (the receive-key directory's encryption receive-key). A
-  `Gnt` is non-terminal and is walked back only by a later rescission, never overturned.
+  forthcoming) or a shared-core primitive (the receive-key directory's encryption receive-key, group
+  keying's epoch-key wrap). A `Gnt` is non-terminal and is walked back only by a later rescission,
+  never overturned.
 - **`Trm`** is the **kill** — a revocation or rescission. It is terminal: it advances the seal to
   its own serial and admits no successor, so it buries a content sibling by winning as the sole
   sealed branch. A `Trm` is monotone and can never be un-done.

@@ -31,8 +31,11 @@ collide.
 `revocation` and `rescission` carry **no feature name** — a delegate rescission and a
 document-member rescission share `rescission` and never collide, because the `data` (the
 grant-instance) differs in `hash('{tag}:{owner}:{data}')`. The primitive never hears "delegate" or
-"document." `active` and `terminated` are formalized for a complete enumeration, though only
-`forked` / `disputed` are ever derived (the other two states carry a real SAID).
+"document." `delegation` differs from those two: it serves **only** as a lookup-SEL inception
+**topic** (the delegating-link SEL's derivation), never as a flat kills-target the way `revocation`
+/ `rescission` also do — but it is a primitive-owned derivation string all the same, catalogued here
+with them. `active` and `terminated` are formalized for a complete enumeration, though only `forked`
+/ `disputed` are ever derived (the other two states carry a real SAID).
 
 Every `hash('{tag}:…')` derivation above hashes the **bytes of its fields in canonical form** — each
 `prefix` / `said` as its qualified representation ([`../sad/said.md`](../sad/said.md)), each

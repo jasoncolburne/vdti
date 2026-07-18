@@ -205,7 +205,8 @@ documents and secure messaging follow.
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `features/` — shared documents (its full prose beyond the diagram stub) and secure messaging;
+- `features/` — shared documents (its full prose beyond the diagram stub) and secure messaging (the
+  `exchange` feature — its identifiers, paths, and grant kinds all read `exchange`);
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`

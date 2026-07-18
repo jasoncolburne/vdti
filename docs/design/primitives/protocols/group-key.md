@@ -39,10 +39,11 @@ store-and-forward transport.
   nor remove a member, and a removed member cannot re-admit itself. Members are **people**
   (identities), and a person's device keys live in that person's own receive-key directory, so the
   group never controls a member's key.
-- **The key-epoch log — one fresh key per epoch.** A single-owner log advances one independent
-  symmetric key per epoch; each epoch's event references the per-device wraps for that epoch, and a
-  device opens its own with its hardware receive key. Because each epoch's key is independent,
-  compromising one exposes only that epoch.
+- **The key-epoch log — one fresh key per epoch.** A single-owner log — owned by the group's
+  **governing identity** (as is the roster) — advances one independent symmetric key per epoch; each
+  epoch's event references the per-device wraps for that epoch, and a device opens its own with its
+  hardware receive key. Because each epoch's key is independent, compromising one exposes only that
+  epoch.
 - **The wraps are member-delivered, never published.** Each wrap names its recipient in the clear
   (to route it and to resist key-confusion), so the set of wraps would **enumerate the devices** to
   anyone holding it. The wraps are therefore delivered member-to-member and **never served to the
@@ -84,7 +85,9 @@ whose private half never leaves it, with no software-key path (the
 - **A device compromise is a confidentiality loss, never a control loss.** What a compromised device
   can read is bounded — by non-extractability, the ratchet, and re-key on removal — and it **cannot
   take over the member's identity**, which is a governance act a single device's key cannot reach.
-  (For a one-device identity, that assumes the governance reserve is kept off the device.)
+  (The exception is a single-device identity: its one device is the whole governance quorum, so a
+  full compromise there is a control loss — an authority-bearing identity needs at least three
+  devices, so its survivors can evict a compromised one.)
 
 The epoch key never needs to sit on disk in the clear: its at-rest form is the wrap on the key-epoch
 log, opened on demand by the hardware key. The unavoidable floor — a live, fully-compromised device

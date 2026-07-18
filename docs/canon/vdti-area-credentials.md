@@ -117,13 +117,16 @@ A relying party **grants** iff **all** hold:
 - **Current trust / freshness (to-tip)** — the issuer's chain is not forked, not disputed, and fresh,
   read against multi-source witnessed state ([inv 8]). **Mandatory** — an as-issued-only resolve is
   fooled by a forged dormant-chain linear extension; only the to-tip step catches it. Fail-secure: a
-  no-single-tip or stale chain grounds no new trust (REFUSE).
+  no-single-tip or stale chain grounds no new trust (REFUSE). A **terminated** issuer passes (its `Trm`
+  is the definitive, un-extendable tip → pre-`Trm` issuance stays valid), but the `Trm` freezes its
+  SELs → no `Rev` possible → its unrevoked creds are unkillable: **revoke-before-terminate** discipline.
 - **Not revoked** — the fail-secure `kills[]` walk (§Revocation).
 - **Ownership (current)** — the presenter satisfies the `issuee` IEL's `t_use` over the verifier's
-  fresh, audience-bound challenge (realized as the `grant` signature, §Presentation), resolved at
-  the issuee's current tip — a forked or disputed issuee grounds no single tip, so it grounds no
-  ownership and is refused (fail-secure), the same bar the freshness bullet sets for the issuer.
-  Bearer credentials skip this.
+  fresh, audience-bound challenge (realized as the `grant` signature, §Presentation), resolved against
+  the issuee's current-tip **`roster()`** (the verifier's membership accessor, `iel/verification.md`) —
+  a forked, disputed, or **terminated** issuee resolves no live `t_use` quorum (no single roster, or
+  none at all: a `Trm` implicit-cuts the membership), so it grounds no ownership and is refused
+  (fail-secure). Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides (an `is_expired()` helper surfaces it).
 
 ## Presentation — IPEX, single round trip
@@ -168,6 +171,9 @@ because presentation requires the issuee's `t_use`.
   - **Residual (inherent to bearer):** between issuance and first redemption, copies **race** — the
     first presentation scanned wins, the rest are turned away. A photocopied paper ticket behaves
     identically; acceptable for single-use.
+  - **A terminated issuer cannot redeem.** Redemption rides `kills[]`, which a `Trm` freezes, so a
+    terminated issuer can no longer mark its bearer credential spent → it reads reusable. Don't
+    terminate an issuer with live single-use bearer credentials outstanding (revoke-before-terminate).
 - **Reusable / re-entry / membership is NOT bearer — it is targeted.** Reusable + transferable + bearer
   is not a coherent thing: with no identity binding, a copy is indistinguishable from the original and
   reuses just as well — nothing to detect. So re-entry forces an identity binding. A **membership** is

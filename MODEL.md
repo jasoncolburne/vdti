@@ -21,11 +21,13 @@ An identity isn't a single key, and it isn't a group of people — it's **one pe
 device (a _degenerate_ identity — what a witness spins up from one key just to send and receive
 messages). That's the valid floor.
 
-For a real identity you want **more than one device.** That's where resilience comes from: if a
-device is lost or compromised, the others vote it out and carry the identity forward. There's no
-separate "cold reserve" doing this job — the guarantee comes from having other live devices on the
-same identity. You _could_ hold one device's rotation key somewhere separate, but it doesn't help —
-it just makes your own recovery slower. More devices, not split-up keys.
+For a real identity you want **three or more devices.** That's where resilience comes from: if a
+device is lost or compromised, the survivors vote it out and carry the identity forward — which
+needs a governing majority still standing after you lose one, so three is the floor (at two, the
+lone survivor can't reach it, and you're frozen into starting over). There's no separate "cold
+reserve" doing this job — the guarantee comes from having other live devices on the same identity.
+You _could_ hold one device's rotation key somewhere separate, but it doesn't help — it just makes
+your own recovery slower. More devices, not split-up keys.
 
 Two boundaries to be clear about. **The threshold is over _devices_, not people** — an IEL's roster
 is your own device set, and a device-threshold is not an identity-threshold. Multiple _people_ (a
@@ -44,9 +46,10 @@ Each device holds two secrets, both in its hardware — no cold storage, no sepa
 
 The split lets a device heal a suspected signing-key leak by itself. But healing a _fully_
 compromised device — where an attacker can use both keys — is the **identity's** job, not the
-device's: the other devices vote it out. So on a single-device identity a full compromise is the
-point of no return; on a multi-device identity it isn't — which is exactly why you bind more than
-one.
+device's: the surviving devices vote it out. That needs a governing majority still standing after
+one is gone, so it works only at **three or more**. On a single-device identity a full compromise is
+the point of no return; at two you're still stuck — the lone survivor can't reach the majority to
+evict, freezing you into reinception. Three is the floor, and that's why you bind that many.
 
 ## The core rule: conflicts
 
@@ -187,12 +190,11 @@ delegation — the layers built for it.
 
 ## An issued artifact rides its owner's identity
 
-A credential or document has its own little log, but every event on it is **anchored** to the
-identity that issued it — each artifact event must be pinned to, _and named by,_ a fresh event on
-the owner's identity log. The identity log is both the artifact's clock and its authorization: an
-artifact event isn't valid unless a matching identity event vouches for it, and an already-recorded
-identity event can't take on a new artifact after the fact. Two things fall out, and they're the
-whole story:
+A document has its own little log, but every event on it is **anchored** to the identity that issued
+it — each artifact event must be pinned to, _and named by,_ a fresh event on the owner's identity
+log. The identity log is both the artifact's clock and its authorization: an artifact event isn't
+valid unless a matching identity event vouches for it, and an already-recorded identity event can't
+take on a new artifact after the fact. Two things fall out, and they're the whole story:
 
 - **An artifact can't go wrong on its own.** To write a competing artifact event, an attacker who
   stole the owner's key has to author a _fresh_ identity event to anchor it — there's no way to hang

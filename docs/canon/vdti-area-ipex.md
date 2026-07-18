@@ -144,7 +144,9 @@ backdate it). Baseline presentations do not.
   `disclosed`, …);
 - the signature resolves, at its **current witnessed tip** (multi-source, [inv 8]), to the **required
   signer** — for a **targeted** disclosed SAD, the SAD's committed **`issuee`** (and `discloser` equals
-  it); for an **untargeted** SAD, the `discloser` (bearer — no ownership binding);
+  it); for an **untargeted** SAD, the `discloser` (bearer — no ownership binding). The current-tip
+  resolution is the signer's **`roster()`** (`iel/verification.md`), so a **terminated or disputed**
+  signer resolves no live `t_use` quorum → a retired or unreconcilable identity cannot present, REFUSE;
 - `audience` is the verifier's own prefix;
 - `created` is within tolerance on **both** sides: `|now − created| ≤ tolerance` (reject stale **and**
   future; the tolerance absorbs clock skew);
