@@ -16,7 +16,9 @@ chain validity is content-independent.
 ## The credential
 
 A credential is a **direct-anchored SAD** — data that references identities, never a chain kind of its
-own. Its kind is `vdti/cred/v1/schemas/*` (the shape below; application-specialized).
+own. Its **`kind` names its type** — `vdti/cred/v1/schemas/*`, app-registered (a diploma, an accreditation)
+— so a relying party can dispatch on _which_ credential it is; the shape below is the common wrapper every
+type carries.
 
 ```
 cred = {
@@ -24,6 +26,7 @@ cred = {
   issuer,     // issuer IEL prefix                       [inv 16: entity = prefix]
   issuee,     // issuee/holder IEL prefix; ABSENT → a bearer credential (§Targeted vs bearer)
   claims,     // → a nested SAD of kind vdti/cred/v1/claims/* (app-defined, opaque when compacted)
+  terms?,     // → an issuer-set terms-of-use SAD; travels with the credential (§Terms-of-use)
   issued,     // advisory timestamp — always present     [inv 6: timestamps advisory]
   expires?,   // advisory timestamp
   nonce,      // high-entropy — every credential has one; makes the SAID unique and unguessable
@@ -38,6 +41,12 @@ cred = {
   built-in field validation. Claim-gating (below) shapes it for privacy.
 - **Every credential carries a `nonce`.** A high-entropy value, so the SAID is unique and unguessable —
   not optional ([inv 16]).
+- **The `kind` is the credential's type.** Every credential shares the wrapper above, but its `kind` names
+  _which_ credential it is (app-registered under `vdti/cred/v1/schemas/*`). The framework validates the
+  wrapper and that the `kind` is a **registered** credential kind; the **application** validates the claim
+  contents (its helpers). Types are what edges and relying parties dispatch on (§Edges / chaining).
+- **`terms` is issuer-set and optional.** A terms-of-use SAD the issuer commits at issuance, so conditions
+  travel with the credential rather than being re-negotiated per exchange (§Terms-of-use).
 
 ## The two foundations — anchoring and compaction
 
@@ -226,49 +235,75 @@ rolled back (no silent un-revocation).
   SAID keeps its revocation status private (you can only *confirm* a subject whose cred you hold, never
   invert a `target` or bulk-enumerate).
 
-## Edges / chaining — ★ FIRST CUT (pressure-test with Jason)
+## Edges / chaining
 
-A credential MAY reference another credential under a trust rule, so authority chains: a national
-accreditor issues an accreditation to a university, which issues a diploma to a student. An **edge** is a
-claim naming another credential's SAID plus a trust **operator**:
+A credential MAY reference another credential under a trust rule, so authority chains: a national accreditor
+issues an accreditation to a university, which issues a diploma to a student. An **edge** is a claim naming
+another credential's SAID plus a boolean **`transitive`**:
 
-- **I2I (issuer-to-issuee)** — the referenced (source) credential's `issuee` must equal **this**
-  credential's `issuer`. This is the authority chain: the diploma's issuer (the university) must itself
-  hold the accreditation credential the edge names. Verification **recurses** — the source credential
-  must itself verify **valid, fresh, not-revoked, and issuer-trusted** (the §Accepting checks **minus the
-  ownership / presentation step**: the source is _referenced_, not presented, so there is no live issuee to
-  challenge) — bounded by a verifier-wide depth cap, fail-secure on exceed.
-- **NI2I (not-issuer-to-issuee)** — a plain reference (the source is cited, no issuer-chain
-  requirement) for "this credential refers to that data," no authority delegation.
+- **`transitive: true` — the authority chain.** The referenced (source) credential's `issuee` must equal
+  **this** credential's `issuer`: the diploma's issuer (the university) must itself hold the accreditation
+  the edge names. Verification **recurses** — the source credential must itself verify **valid, fresh,
+  not-revoked, and issuer-trusted** (the §Accepting checks **minus the ownership / presentation step**: the
+  source is _referenced_, not presented, so there is no live issuee to challenge) — bounded by a
+  verifier-wide depth cap, fail-secure on exceed.
+- **`transitive: false` — a plain reference.** The source is cited, with no issuer-chain requirement, for
+  "this credential refers to that data" — no authority delegation.
 
-Edges are optional (most credentials carry none). **Open for review:** the exact operator set (whether
-more than I2I / NI2I is needed), and whether the trust rule lives in the edge (referrer-declared) or is
-supplied by the relying party at accept-time.
+Edges are optional (most credentials carry none). One boolean is the whole axis: authority chains through,
+or it does not — a genuinely different trust rule would be a **new field**, not a third value here.
 
-## Terms-of-use / chain-link confidentiality — ★ FIRST CUT (pressure-test with Jason)
+**A credential's `kind` is its type, and that is what dispatch keys on.** How a relying party knows *what it
+is looking at* — a diploma vs an accreditation — is the credential's `kind` ([§The credential](#the-credential),
+app-registered). So "a diploma accepts an accreditation as its source" is the **relying party's** application
+decision, made by dispatching on the source's `kind` — never a rule baked onto the credential (policy stays
+off the credential, §The two questions). The edge itself is purely structural (the source SAID + `transitive`);
+the framework validates the credential wrapper and that the `kind` is registered, and the app validates the
+claim contents with its helpers.
 
-In the negotiated IPEX flow, the disclosee's `agree` (or the discloser's `offer`) MAY commit a
-**terms-of-use** SAD the accepting party signs — a non-repudiable acceptance of conditions (e.g. "do not
-re-disclose"). **Chain-link confidentiality:** if a disclosee later re-discloses onward, its `grant`
-carries and commits the same terms, building a signed custody chain of who accepted what. Enforcement is
+## Terms-of-use / chain-link confidentiality
+
+Terms-of-use ride the **credential**, not just the exchange. The issuer commits an optional **`terms`** — a
+terms-of-use SAD (e.g. "do not re-disclose") — at issuance, so the conditions **travel with the credential**
+rather than being re-negotiated per presentation. A presentation then carries a **signed acceptance** of
+those terms: the presenting party's `grant` (or, in the negotiated flow, the disclosee's `agree`) signs the
+credential's terms — a non-repudiable record of who accepted what.
+
+**Chain-link confidentiality is then structural.** Because the terms are on the credential, an onward
+re-disclosure **inherits** them: a re-discloser's `grant` commits the same terms without having to choose
+to, and the signed acceptances build a custody chain of who accepted the conditions. Enforcement is
 **commitment + accountability**, not prevention — revealed bytes can't be un-revealed, but the signed
-acceptance is non-repudiable evidence of a breach. **Open for review:** whether v1 ships onward-binding
-by convention (the re-discloser SHOULD carry the terms) or attempts stronger structural binding, and how
-terms compose with the blinded-claim disclosure set.
+acceptance is non-repudiable evidence of a breach. Per-exchange conditions negotiated in IPEX (an `offer` /
+`agree`) can still ride on top for one-off terms; the credential's own terms are the **issuer's**, and now
+they are where you look.
 
-## Bulk issuance — ★ FIRST CUT (pressure-test with Jason)
+## Bulk issuance
 
 Issuing N credentials with N separate anchors is costly at scale (a university issuing thousands of
-diplomas). Bulk issuance anchors **one set-commitment** instead: the issuer anchors a SAD committing to
-the N credential SAIDs — **blinded** (each SAID carried with its **own high-entropy nonce**, so the set
-doesn't enumerate the cohort and no entry is guessable from another) — and each holder receives an
-**unblinding proof** (its nonce) demonstrating membership without revealing the others. Proof-of-issuance for
-a bulk credential is then **(the set anchor) + (membership proof)** rather than a per-credential anchor,
-floored at the **earliest** set-anchor (the same earliest-anchor rule as a per-credential anchor, closing
-re-anchor tier-inversion). Revocation stays per-credential (a `kills[]` targeting the
-individual `cred.said`). This is the one extension that touches the proof-of-issuance model, so it gets
-its own shape. **Open for review:** the set-commitment structure (a recursive-SAID set vs. an explicit
-list SAD), and the membership-proof shape.
+diplomas). Bulk issuance anchors **many at once**: the issuer names up to `MAXIMUM_ANCHOR_BATCH` credential
+commitments in a **single** `Ixn`'s `manifest.anchors` — the same per-credential commitment
+(`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`), just batched. Each credential's
+proof-of-issuance is that shared anchor's position, floored at the **earliest** matching anchor (the same
+earliest-anchor rule, closing re-anchor tier-inversion — [inv 5]). Revocation stays per-credential (a
+`kills[]` targeting the individual `cred.said`). No new manifest role and no set-commitment SAD — bulk is
+the ordinary anchor, at width.
+
+**Bulk trades batch-unlinkability for cost, and that is the whole choice.** Single issuance anchors each
+credential at its own position, so two credentials from a cohort are unlinked. Bulk co-locates N commitments
+in one event, so a **presented** credential is linkable to its issuance batch (an onlooker who sees the
+presentation and the public chain learns it was one of the N issued together — the issuer and rough time
+were already visible, but the batch makes it exact). So there are **two modes, and the issuer picks by its
+privacy need:**
+
+- **Single issuance** — unlinkable, one anchor each. **Use it when the cohort must not be linkable** (a
+  sensitive population).
+- **Bulk issuance** — cheap, but batch-linkable. Use it when the cohort is not sensitive (a graduating class
+  already public).
+
+There is deliberately **no blinded-set third mode** (cheap _and_ unlinkable): the batch-linkability it would
+remove is marginal over the issuer + time any presentation already reveals, and a use case that truly needs
+unlinkability at scale issues singly and accepts the cost. `MAXIMUM_ANCHOR_BATCH` (the `anchors` list bound)
+is a pinned constant — settle the exact value at the encode.
 
 ## Registrar — migration-first, single-binding, recovery
 

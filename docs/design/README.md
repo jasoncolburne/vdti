@@ -171,9 +171,10 @@ Policy sits above the primitives — it governs documents, never the chain event
 
 ## 6 — The protocol primitives
 
-Two protocols sit atop the verified primitives — the sealed envelope and the disclosure exchange
-that credentials and secure messaging are built from. Both are thin: they hold no keys and read no
-chains, composing the primitives below rather than extending them.
+These primitives sit atop the verified layer — the sealed envelope and the disclosure exchange that
+credentials and secure messaging are built from, the device-key directory recipients are resolved
+through, and the shared group key that chat and shared documents encrypt under. They compose the
+primitives below rather than extending them.
 
 33. [`primitives/protocols/essr.md`](primitives/protocols/essr.md) — the sealed, authenticated
     one-to-one envelope: confidential to the recipient, provably from the sender, and the two
@@ -182,6 +183,12 @@ chains, composing the primitives below rather than extending them.
     exchange: every exchange a disclosure from a discloser to a disclosee, the anchor and compaction
     as its two proofs, and the single-round-trip freshness envelope that binds a presentation to one
     use.
+35. [`primitives/protocols/receive-key-directory.md`](primitives/protocols/receive-key-directory.md)
+    — the directory of an identity's device receive keys: how a key is published, and how a sender
+    resolves one or fans out to all of a recipient's devices.
+36. [`primitives/protocols/group-key.md`](primitives/protocols/group-key.md) — the ratcheting shared
+    key a group encrypts under: per-device fan-out, epochs, and the ratchet, with chat and shared
+    documents as its consumers.
 
 ## Forthcoming
 
