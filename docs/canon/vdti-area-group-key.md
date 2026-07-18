@@ -129,14 +129,16 @@ epoch distributed by wrapping), **not** a derived key schedule.
 
 ## Drift → land
 
-- Write `docs/design/primitives/protocols/group-key.md` fresh from this note (greenfield voice), alongside
-  `protocols/{essr,ipex}.md`.
-- **Trim `vdti-area-exchange.md` §7a** to the **chat-consumer** usage (per-sender lanes, bulk AEAD, per-message
-  signatures, epoch-window currency), pointing the roster / key-epoch / wrap / ratchet here (the primitive owns
-  them now). **Update `vdti-area-shared-documents.md` §7 / §9** to compose this primitive for content keying.
-  **Update the ESSR note's boundary** ("group keying … the exchange feature" → "group keying is a primitive both
-  exchange and shared-documents compose").
-- **Reserved names** (register in `kinds.md` / `tags-and-topics.md` at the encode; component **`groupkey`** —
-  settleable): the **key-epoch SEL topic** and the **gated-roster SEL topic**; the **grant-value kind** for the
-  ESSR-wrapped epoch key (was `vdti/sel/v1/grants/exchange-group-key`); the KDF context for the per-writer subkey;
-  the constants `SESSION_RATCHET_INTERVAL` and the checkpoint cadence `K`.
+- **DONE (2026-07-17 lift-reconcile).** `vdti-area-exchange.md` §7a trimmed to the **chat-consumer** usage
+  (per-sender lanes, per-message signatures, epoch-window currency), with the roster / key-epoch / wrap / ratchet
+  pointed here; `vdti-area-shared-documents.md` §9 composes this primitive for content keying (§7 carried no
+  keying); the ESSR note's boundary names this primitive.
+- **DONE — reserved names registered** (`kinds.md` + `tags-and-topics.md`; the exchange §8 names moved out of the
+  `exchange/` namespace): component **`groupkey`**; SEL topics `vdti/groupkey/v1/topics/key-epoch` (the key-epoch
+  log) and `vdti/groupkey/v1/topics/roster` (the gated member roster); grant-value kind
+  `vdti/sel/v1/grants/groupkey-epoch-key` (the ESSR-wrapped epoch key); KDF context
+  `vdti/groupkey/v1/protocols/kdf` (the per-writer subkey); constant `SESSION_RATCHET_INTERVAL` and the
+  checkpoint cadence `K`.
+- **Owed (design encode).** Write `docs/design/primitives/protocols/group-key.md` fresh from this note
+  (greenfield voice), alongside `protocols/{essr,ipex}.md`; the `SESSION_RATCHET_INTERVAL` value, the checkpoint
+  cadence `K`, and the roster-storage / epoch-SEL length bound settle there.

@@ -9,7 +9,8 @@ convention `vdti/{component}/v1/{category}/{name}`
 - a **tag** — the `tag` in a domain-qualified digest `hash('{tag}:…')`, so every conforming node
   derives byte-identical output. Primitive-owned.
 - a **SEL topic** — the `topic` field of a SEL inception, one of the values the inception's prefix
-  commits to. Feature-owned.
+  commits to. Feature-owned — or, for a stateful protocol primitive like group-key, that
+  primitive's.
 
 ## Tags — the `tag` in `hash('{tag}:…')`
 
@@ -52,13 +53,16 @@ pinned by the encoding library.
 
 A lookup / content SEL's application discriminator — the `topic` field of its inception, one of the
 values the inception's prefix commits to. Opaque to the chain; [`sel/log.md`](sel/log.md) owns the
-full derivation and its optional fields. These are **feature-owned** — a primitive never enumerates
-them, keeping features out of the primitive layer.
+full derivation and its optional fields. These are **feature-owned** — a base primitive never
+enumerates them, keeping features out of the primitive layer. The exception is a **stateful protocol
+primitive**: the group-key primitive owns the SELs its epochs and roster ride, so it enumerates
+their topics itself (the `vdti/groupkey/v1/topics/*` row).
 
-| Topic                       | Feature                                                                                |
+| Topic                       | Owner                                                                                  |
 | --------------------------- | -------------------------------------------------------------------------------------- |
 | `vdti/doc/v1/topics/*`      | shared documents (`comment`, `governance`, `read-governance`, `rescission`, `version`) |
 | `vdti/exchange/v1/topics/*` | exchange (`exchange`, `receive-key`)                                                   |
+| `vdti/groupkey/v1/topics/*` | the group-key primitive (`key-epoch`, `roster`)                                        |
 
 ## Cross-references
 
