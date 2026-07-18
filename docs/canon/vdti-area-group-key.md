@@ -58,8 +58,8 @@ subkey of it), by the consumer.
   **sealed-send core** (ESSR + the [receive-key directory](vdti-area-receive-key-directory.md) + substrate
   transport): the primitive enumerates the roster (members) → each member's directory (its devices) → **seals the
   epoch key to each device's receive key**, producing one wrapped-key SAD per device. This is **KEM+DEM** — the
-  epoch key is the (32-byte) payload, wrapped `Encaps(pk) → ss`, `AEAD(KDF(ss), epoch_key)`; the consumer's bulk
-  data is never wrapped, only the key. Because it is the sealed-send core, **offline catch-up falls out**:
+  epoch key is the (32-byte) payload: `Encaps(pk) → (ct, ss)`, and the wrap carries `(ct, AEAD(KDF(ss),
+  epoch_key))`; the consumer's bulk data is never wrapped, only the key. Because it is the sealed-send core, **offline catch-up falls out**:
   transport is store-and-forward, so a device offline at ratchet time receives its wrap on reconnect. The
   **epoch's authenticity is the T2-governed key-epoch SEL event** (a member trusts an epoch by validating that
   event and finding its device's wrap committed by it); the ESSR **signature** on each wrap is uniform with the
@@ -105,10 +105,16 @@ The wrap targets are **device receive keys**, and each is an **enclave-resident,
 always in hardware** (the [receive-key directory](vdti-area-receive-key-directory.md)'s rule). Three consequences
 the primitive relies on:
 
-- **Removal is a genuine lockout.** A removed device's KEM key cannot be exfiltrated (hardware), so on a ratchet
-  it simply is not among the wrap targets — it never held a key it could replay against the next epoch. (Contrast
-  a software key, which a compromise could copy and use to unwrap every future epoch offline — hence hardware is
-  required, no software path.)
+- **Removal locks out by exclusion, not by hardware.** On a ratchet the next epoch is wrapped **only to the
+  survivors** (fan-out exclusion) and epochs are **independent**, so a removed device is simply never a wrap
+  target again — it cannot decrypt any epoch after its removal. This holds for a software key too; removal-lockout
+  does not depend on hardware.
+- **Hardware bounds a _retained-membership_ compromise to live access.** While a compromised device is **still a
+  member**, each new epoch _is_ wrapped to its receive key — but the KEM private key is **non-extractable**, so an
+  attacker decrypts a new epoch **only while it holds live access to the device**; it cannot exfiltrate the key
+  and unwrap future epochs offline. (A **software** key could be copied and then unwrap every epoch wrapped to it
+  during membership, offline — hence hardware, no software path.) That is what gives the time-cadence ratchet its
+  teeth against a persistent, undetected compromise.
 - **Confidentiality ≠ control ([inv 20]).** A compromised device reads what it can decrypt — bounded by hardware
   non-extractability (read only during live access), the ratchet (a grabbed epoch key rots), and re-key on
   removal (locked out forward). It **cannot take over the identity** (governance is `t_govern`@T2; one device is
@@ -155,7 +161,9 @@ The two consumers realize the rest their own way:
   drives; the primitive consumes the resulting bounded roster.
 - **A member's device receive keys** — the [receive-key directory](vdti-area-receive-key-directory.md)
   (shared-core, owned by the member's own identity IEL); the group reads it to fan out, never owns it.
-- **The 1:1 degenerate case, offline catch-up across missed epochs** — consumer / feature concerns.
+- **The 1:1 degenerate case; re-obtaining _missed past-epoch_ keys (history retention)** — consumer / feature
+  concerns. (Catch-up on the **current** epoch falls out of the store-and-forward transport — §Distribution; it is
+  the past-epoch history a long-offline device re-obtains that is a retention concern.)
 
 ## Divergence / sources
 

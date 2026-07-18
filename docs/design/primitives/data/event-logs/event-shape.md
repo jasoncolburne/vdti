@@ -384,8 +384,9 @@ and [`substrate/federation/`](../../../substrate/federation/).
 - ᶜ **`Gnt`** — seals a **typed value**: `manifest.grant` names a `vdti/sel/v1/grants/*` SAD (≤ 64
   chars). The additive twin of `Trm`, kind-strict (an `Ath` anchors only `Gnt`s), walked back by a
   rescission (`Dth` → SEL `Trm`) or reincept, never overturned. A **value lookup SEL** is
-  `{Icp, Gnt}` at tier 2 (rotation stacks `Gnt`s, the live sealed tip served); its instances (a
-  doc-governance grant, an encryption receive-key) are the feature layer's.
+  `{Icp, Gnt}` at tier 2 (rotation stacks `Gnt`s, the live sealed tip served); its instances are
+  their **owner's** — a feature (a doc-governance grant) or a shared-core primitive (the receive-key
+  directory's encryption receive-key).
 - ᵈ **`Sea`** — the neutral seal-advancer, kind-strict (an `Evl` anchors only `Sea`s); a re-seal
   that buries a content fork on a SEL with no natural `Gnt` / `Trm`. The anchoring `Evl` is empty
   for a pure re-seal, or carries a `cut` to evict the colluding owner member atomically.

@@ -36,7 +36,7 @@ published receive key → AES-256-GCM) and **the sender is provably the author**
 the envelope SAID; the sender prefix rides **inside** the ciphertext; the recipient prefix rides **inside**
 the signed plaintext). A **receive key** is a party's current public ML-KEM key, published as a
 **value-bearing lookup SEL** at a **deterministic address** any sender computes from the party's IEL prefix
-+ the exchange topic + a `data` selector. The published key is a **T2 sealed `Gnt`** (`vdti divergence`:
++ the receive-key directory topic + a `data` selector (the receive-key directory, §2). The published key is a **T2 sealed `Gnt`** (`vdti divergence`:
 kels signs it with the ordinary key; vdti puts it behind `t_authorize`@T2 so a signing-key theft can't swap
 it). Sealed envelopes are delivered by a **mail** service that stores opaque blobs and gossips only routing
 metadata. On open, the recipient **verifies the signature against the sender's *current* witnessed key

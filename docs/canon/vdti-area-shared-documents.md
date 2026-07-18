@@ -525,7 +525,9 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
 ## 9. Content confidentiality → the group-key primitive
 
 The off-node / private-content confidentiality thread — a per-doc symmetric key (AES-256-GCM) wrapped to
-each member's published KEM receive key, re-key on removal for forward secrecy, key epochs aligned to the
+each member's published KEM receive key (resolved through the
+[receive-key directory](vdti-area-receive-key-directory.md), the shared-core primitive the group-key primitive
+composes), re-key on removal for forward secrecy, key epochs aligned to the
 honored `[from, bound]` membership periods (one notion of "since when," not two), tiered PQ crypto — **is
 the [group-key primitive](vdti-area-group-key.md)**: shared documents is a **consumer** of it (as is
 exchange/chat). A doc's private content is delivered member-to-member as **ESSR** payloads sealed to each

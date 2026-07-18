@@ -114,7 +114,7 @@ SEL's `Trm` or `Gnt`), no separate serial-1 `Pin` is needed.
 ### `Gnt` — the grant (tier 2, `t_authorize`)
 
 Seals a **typed value** — a value a third party depends on. Its `manifest.grant` names a
-**grant-value SAD** whose kind sits under `vdti/sel/v1/grants/*` (a feature-first namespace, capped
+**grant-value SAD** whose kind sits under `vdti/sel/v1/grants/*` (an owner-first namespace, capped
 at 64 characters like any event or SAD kind). It is anchored by an owner-IEL **`Ath`** (kind-strict
 — an `Ath` anchors only `Gnt`s), sealed on arrival, seal-advancing, and **non-buriable**; it is
 walked back only by a later rescission (a `Trm` under an owner-IEL `Dth`), never overturned.
@@ -123,11 +123,12 @@ A **value must ride a `Gnt`, never tier-1 content**, when a third party acts on 
 sender encrypts to, for instance, must not be swappable by a bare signing key, so changing it needs
 the reserve. A **value lookup SEL** is established `{Icp, Gnt}` at tier 2, and **rotating the value
 stacks another `Gnt`** (the walk serves the live sealed tip, so a retired value is never served).
-What a grant value _means_ — a document-governance grant, an encryption receive-key — is the feature
-layer's
+What a grant value _means_ — a document-governance grant, an encryption receive-key — is its
+**owner's**: a feature
 ([`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
 [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md), both
-forthcoming); this primitive states only the seal-a-typed-value structure.
+forthcoming) or a **shared-core primitive** (the receive-key directory owns the encryption
+receive-key grant); this primitive states only the seal-a-typed-value structure.
 
 ### `Trm` — the kill (tier 2)
 

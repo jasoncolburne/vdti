@@ -948,9 +948,12 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     removal** locks the device out going forward. It never exposes **control**: taking over the identity —
     rotating keys, changing the device roster, terminating — is a **T2 governance** act needing `t_govern`, and
     one device is a single `t_use` (T1) share, which cannot meet it. So the identity **cannot be taken over by a
-    single compromised device**; the holder rotates it out (a T2 act — a T1 device cannot re-admit itself). The
-    hard floor — a live rooted device reads its own in-use plaintext — is a **universal endpoint limit, not a
-    vdti property**. So confidentiality is **strong-at-rest, bounded-in-use**; control is **never takeable**.
+    single compromised device**; the holder rotates it out (a T2 act — a T1 device cannot re-admit itself). **This
+    assumes the T2 governance secret is not itself on the compromised device:** a multi-device identity's
+    `t_govern` quorum spans its other devices; a single-device identity's T2 **reserve must be custodied
+    off-device** — a wallet that keeps the reserve on the one device makes control takeable on a full compromise
+    (the control-side parallel to the confidentiality floor). The hard floor — a live rooted device reads its own
+    in-use plaintext — is a **universal endpoint limit, not a vdti property**. So confidentiality is **strong-at-rest, bounded-in-use**; control is **never takeable**.
     Keep the two axes separate: conflating them (e.g. "compromise one device = compromise the person") is a
     category error that invites confidentiality creep into the control story. *Src:* Jason 2026-07-18.
     `[locked-candidate]`

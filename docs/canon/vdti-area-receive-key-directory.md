@@ -43,6 +43,15 @@ sealed-send core wraps to each — see the group case in [`vdti-area-group-key.m
     the mesh. A **descriptive** alias (`basement-mac`, `personal-iphone`) leaks **which device to steal** to read
     a correspondent's mail. Aliases MUST be **opaque** (`primary`, `a`, a random label) so an observer can't map
     a key to a physical device. A framework warning; the app / wallet enforces the naming.
+- **Fan-out enumerates the identity's IEL roster; opaque aliases are opt-in and point-to-point.** To reach
+  **all** of an identity's devices, a sender enumerates the identity's **IEL roster** (its member KEL prefixes —
+  its devices) and derives each device's receive-key address `derive(owner, RECEIVE_KEY_TOPIC,
+  device_kel_prefix)`, so a device published under its **KEL prefix** is automatically fanned-out-to. A device
+  published under an **opaque alias** is **not** roster-derivable (the alias is unguessable by design), so it is
+  reachable only by a sender given the alias **out-of-band** — a **point-to-point** address, not part of the
+  default fan-out. That is the deliberate trade: an alias buys device-privacy at the cost of automatic
+  discoverability. (This assumes an identity's **own device roster** is resolvable by a correspondent — distinct
+  from a **group's** membership graph, which stays participant-blind.)
 - **The published value is a T2 sealed `Gnt`, hardware-resident.** The `Icp` establishes the lookup; a **`Gnt`**
   (area-sel §1b — T2 `t_authorize`, anchored by the owner IEL's `Ath`) seals the key. `manifest.grant` names a
   grant-value SAD of kind **`vdti/sel/v1/grants/directory-ml-kem-1024`** (the public ML-KEM-1024 encapsulation
