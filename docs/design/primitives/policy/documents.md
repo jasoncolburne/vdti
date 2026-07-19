@@ -9,7 +9,8 @@ alongside its content, the policy that authorizes it. This doc states the generi
 policy-bearing document shares — the authorizing condition it carries, and how its issuer context is
 fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
 specific document kind (how a **credential** is issued and revoked, for instance) is a feature
-layered above this one — see [`../../features/credentials/`](../../features/credentials/) _(a
+layered above this one — see
+[`../../features/credentials/credentials.md`](../../features/credentials/credentials.md) _(a
 feature)_.
 
 ## A document's authorizing condition

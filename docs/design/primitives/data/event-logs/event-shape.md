@@ -399,7 +399,8 @@ buried by a seal-advancer (`Gnt` / `Trm` / `Sea`) that advances the seal past th
 owner-IEL anchor **severs** the SEL — the portion after the earliest dead anchor is un-verifiable,
 with no repair. Credential **revocation and status** are a **feature** layered on the SEL primitive
 (issuance itself is the issuer's IEL anchor, not an SEL) —
-[`features/credentials/`](../../../features/credentials/); shared documents are another
+[`features/credentials/credentials.md`](../../../features/credentials/credentials.md); shared
+documents are another
 ([`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md),
 forthcoming), and value-bearing **receive keys** ride the SEL as a shared-core primitive (the
 [receive-key directory](../../protocols/receive-key-directory.md)).

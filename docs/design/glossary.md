@@ -24,7 +24,8 @@ canonical** wherever they differ.
   in (and anchored to) an owning IEL. ([`sel/log.md`](primitives/data/event-logs/sel/log.md))
 - **credential (cred)** — a bounded, revocable claim an issuer makes about a subject (targeted to an
   `issuee`, or bearer); a **direct-anchored SAD** (the issuer anchors its issuance commitment on its
-  own IEL), revoked by a `kills[]` declaration. ([`features/credentials/`](features/credentials/))
+  own IEL), revoked by a `kills[]` declaration.
+  ([`features/credentials/credentials.md`](features/credentials/credentials.md))
 - **document** — a standalone SAD carrying application content plus its authorization conditions.
   ([`documents.md`](primitives/policy/documents.md))
 - **policy** — the authorization language that lives on a document (leaves + composers), never on a
