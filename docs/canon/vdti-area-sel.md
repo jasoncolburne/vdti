@@ -333,7 +333,9 @@ SEL needs its **own** witnessed state.
   is **not** evidence of issuance (authentication is the v1's anchor — inv 15 S1).
 - **Which event is v1:** a content SEL's is the first content `Ixn`, or a bare **`Pin`** for an
   incept-and-sit SEL (a doc author who endorses before editing); a **kill lookup's is its `Trm`** (`{Icp,
-  Trm}` — born-to-kill, no separate `Pin`); a **value lookup's is its `Gnt`** (`{Icp, Gnt}`). The `Pin` kind
+  Trm}` — born-to-kill, no separate `Pin`); a **value lookup's is its `Gnt`** (`{Icp, Gnt}`); a
+  **delegating-link lookup's is a bare `Pin`** (`{Icp, Pin}` — the positive twin of the rescission
+  lookup). The `Pin` kind
   does **only** the pin re-pin (`t_use` / T1, not sealing) and is the **pin-only re-pin at any serial** — its
   serial-1 instance is the issuance floor here; a later content-less re-pin is also a `Pin`. **`Ixn` and `Pin`
   are disjoint:** an `Ixn` always carries payload (required), a `Pin` never does, so no event is expressible

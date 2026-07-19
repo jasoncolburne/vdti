@@ -216,10 +216,10 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
 
 The `target` is **opaque to the IEL** — the verifier computes and matches it but never dereferences
 it or interprets a `bound` (all revocation / grandfather logic is the feature layer's). A
-**delegate**'s `bound` rides publicly in the `kills[].bound` field; a **doc-member**'s `bound` is
-participant-identifying, so `kills[]` carries only the blind `target` and the verifier fetches the
-`bound` from the **SEL `Trm`'s gated `bound` role** (a rescind-doc behind the read gate; withheld →
-conservative, don't honor). See
+**delegate**'s `bound` rides publicly in the `kills[].bound` field; a participant-identifying
+`bound` — a **doc-member** grandfather cutoff or a **chat-membership** per-lane bound — has
+`kills[]` carry only the blind `target`, and the verifier fetches the `bound` from the **SEL `Trm`'s
+gated `bound` role** (a rescind-doc behind the read gate; withheld → conservative, don't honor). See
 [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 
 ## `IelVerification` token

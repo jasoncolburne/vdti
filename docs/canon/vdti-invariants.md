@@ -348,7 +348,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       "in none" is exactly "not revoked", nothing to miss. This **rides inv 8's freshness gate**: the only way to hide
       a kill is a **stale** IEL, which the verifier already refuses when trusting the owner at all — so kill-freshness
       == authority-freshness. Streamed with the subject(s)-in-scope (bounded — O(subjects) memory, O(range) time, no
-      lossy cap); self-contained (delegate `bound` on the IEL, un-withholdable; a doc-member's gated `bound` is
+      lossy cap); self-contained (delegate `bound` on the IEL, un-withholdable; a doc-member's or chat-membership's gated `bound` is
       fetched from the rescind-doc → withheld = conservative don't-honor).
     - **Fail-open lookup (OPT-OUT):** build the `Icp{owner, topic, data}` → two-pass → the SEL **prefix** → fetch its
       **`{Icp, Trm}` lookup SEL** (content-addressed, O(1), no index) — **found → revoked; not-found → best-effort

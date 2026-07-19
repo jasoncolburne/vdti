@@ -212,9 +212,9 @@ differ by domain and count:
 
 - **`Rev` (revoke, `t_govern`)** — kills an **owned** artifact: a credential's revocation, or an
   app-SEL closure. `anchors` names revocation lookup-SEL `Trm`s.
-- **`Dth` (deauthorize, `t_authorize`)** — kills a **granted authorization** (delegation or
-  doc-membership): the polarity-inverse of `Ath`. `anchors` names rescission lookup-SEL `Trm`s, and
-  its `kills[]` entry carries the rescission `bound`.
+- **`Dth` (deauthorize, `t_authorize`)** — kills a **granted authorization** (delegation,
+  doc-membership, or chat-membership): the polarity-inverse of `Ath`. `anchors` names rescission
+  lookup-SEL `Trm`s, and its `kills[]` entry carries the rescission `bound`.
 
 Both carry **no roster delta** (they cannot mutate establishment state) and both **force a `Rot`**
 on each approving member — a permanent kill needs a ≥ tier-2 KEL anchor, and the distinction from
@@ -248,13 +248,16 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
   ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not** the
   lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.
-- **`bound`** (rescission only) — the grandfather cutoff, the last honored event on the rescinded
-  party's chain. One concept, two custody modes. A **delegate**'s `bound` is not
-  participant-identifying, so it rides **publicly** in the `kills[].bound` field (un-withholdable on
-  the witnessed IEL). A **doc-member**'s `bound` **is** participant-identifying, so `kills[]`
-  carries only the blind `target` and the `bound` rides the **SEL `Trm`'s gated `bound` role** (a
-  rescind-doc behind the read gate) — see [`delegation.md`](delegation.md) and
-  [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md).
+- **`bound`** (rescission only) — the cutoff, the last honored event on the rescinded party's chain
+  (a doc-member **grandfather** cutoff, or a chat-membership **per-lane bound**). One concept, two
+  custody modes. A **delegate**'s `bound` is not participant-identifying, so it rides **publicly**
+  in the `kills[].bound` field (un-withholdable on the witnessed IEL). A participant-identifying
+  `bound` — a **doc-member** or **chat-membership** rescission — has `kills[]` carry only the blind
+  `target`, and the `bound` rides the **SEL `Trm`'s gated `bound` role** (a rescind-doc behind the
+  read gate) — see [`delegation.md`](delegation.md),
+  [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md), and
+  [`../../../protocols/membership.md`](../../../protocols/membership.md) (the chat-membership
+  per-lane bound).
 
 The check reads the derived lookup-SEL **first** (an O(1) content-addressed read, **present →
 killed**); on a miss it is **fail-secure by default** — compute the `target` and walk the owner's

@@ -103,20 +103,21 @@ divergence is.
   eventual-but-not-hideable on an unwitnessed chat lane). A **removed** writer — still holding a
   retired key — is closed **structurally** instead, because its removal left an **on-chain fact**: a
   chat `chat-membership` rescission records a **lane-tip `bound`** (the device's tip at removal) on
-  the governing identity's **witnessed** grant chain, so every verifier holds it durably. The
-  device's honored history is then exactly the `previous`-chain from the `bound` back to the
-  **anchored root** — `[root … bound]` — and **any node it signs off that chain is not honored**: a
-  **forward-append past the bound** (a descendant), a **fork below the bound** (a sibling of a node
-  on the chain), and a **fresh parentless root** (a disjoint lane the root anchor already rejects)
-  all fall outside the interval. That is a **local interval check against the durable `bound`**, not
-  fork detection — the verifier never has to see the offending sibling to exclude it, so it neither
-  waits on propagation nor defers to policy. The two brackets — the **anchored root** on the way in,
-  the witnessed **`bound`** on the way out — pin the interval (to the anchored root alone if the
-  device wrote nothing past it) ([membership](membership.md)). The DAG gives monotonicity and fork
-  _detection_; the feature gives the root anchor and the removal bound that _resolve_ it. (A
-  **current**, non-removed writer that merely went dormant can still forward-append into an epoch it
-  held but was silent for — no bound, valid key — the accepted backdate-within-a-held-window
-  residual, confined to its own lane.)
+  the governing identity's **witnessed** grant chain, so the bound is a **durable witnessed
+  commitment** every verifier holds (the gated bound _value_ degrades fail-secure if withheld —
+  [membership](membership.md)). The device's honored history is then exactly the `previous`-chain
+  from the `bound` back to the **anchored root** — `[root … bound]` — and **any node it signs off
+  that chain is not honored**: a **forward-append past the bound** (a descendant), a **fork below
+  the bound** (a sibling of a node on the chain), and a **fresh parentless root** (a disjoint lane
+  the root anchor already rejects) all fall outside the interval. That is a **local interval check
+  against the durable `bound`**, not fork detection — the verifier never has to see the offending
+  sibling to exclude it, so it neither waits on propagation nor defers to policy. The two brackets —
+  the **anchored root** on the way in, the witnessed **`bound`** on the way out — pin the interval
+  (to the anchored root alone if the device wrote nothing past it) ([membership](membership.md)).
+  The DAG gives monotonicity and fork _detection_; the feature gives the root anchor and the removal
+  bound that _resolve_ it. (A **current**, non-removed writer that merely went dormant can still
+  forward-append into an epoch it held but was silent for — no bound, valid key — the accepted
+  backdate-within-a-held-window residual, confined to its own lane.)
 - **Node witnessing is the feature's, not the DAG's.** A document version is **anchored** on its
   editor's identity (custody direct-anchor) and so is witnessed; a chat message is a
   store-and-forward blob and is **not** individually witnessed — its fork detection rests on

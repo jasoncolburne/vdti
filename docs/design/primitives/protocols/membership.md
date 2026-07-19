@@ -114,15 +114,17 @@ What it points to is the feature's:
   sibling, so it neither waits on propagation nor defers to policy; it closes both the removed
   member's monotone forward-append and a fork below the bound into a **retired** epoch it held. For
   chat the `bound` is **required** on every rescind, and a missing or unresolvable `bound` reads
-  **fail-secure** (honor the anchored marker only, nothing past it). The **epoch turning** gives
-  forward secrecy for **new** epochs; the **anchor + bound** pin each device's honored history to
-  `[root … bound]` — the three together, not the store's deposit check, bind it. A **crash at the
-  root** does not brick the lane: the marker is minted before the anchoring act (re-mint freely
-  until anchored) and, once anchored, re-fetchable by the SAID the grant chain records (its bytes
-  are **retained** on the group's nodes and served under the same `chat-membership` gate as any lane
-  message). **Membership periods are disjoint anchored lanes:** a re-added member's device anchors a
-  **new** marker, so its later stint is a fresh lane with its own bracket, never a continuation past
-  the old bound.
+  **fail-secure** (honor the anchored marker only, nothing past it); likewise a walk that cannot
+  reach the marker (a withheld interior lane node) honors **nothing below the gap** — the check is
+  positive placement, so missing bytes only **shrink** the honored set, never extend it. The **epoch
+  turning** gives forward secrecy for **new** epochs; the **anchor + bound** pin each device's
+  honored history to `[root … bound]` — the three together, not the store's deposit check, bind it.
+  A **crash at the root** does not brick the lane: the marker is minted before the anchoring act
+  (re-mint freely until anchored) and, once anchored, re-fetchable by the SAID the grant chain
+  records (its bytes are **retained** on the group's nodes and served under the same
+  `chat-membership` gate as any lane message). **Membership periods are disjoint anchored lanes:** a
+  re-added member's device anchors a **new** marker, so its later stint is a fresh lane with its own
+  bracket, never a continuation past the old bound.
 - **Grandfathered** — content the member authored (or was entitled to) **before** the bound stays
   honored, only its reach past the bound is cut. A shared document uses this so a removed editor's
   earlier versions do not retroactively vanish.

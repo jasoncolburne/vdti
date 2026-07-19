@@ -294,19 +294,19 @@ recomputable), so the first pin rides the SEL's **serial-1 event**, never the `I
 A SEL event may carry only these roles; one carrying any role outside its kind's vocabulary is
 malformed and rejected (read kind-first):
 
-| Role      | Carried by | Commits to                                                                  |
-| --------- | ---------- | --------------------------------------------------------------------------- |
-| `payload` | `Ixn`      | the payload SAD SAID(s) this `Ixn` records (single-owner data)              |
-| `grant`   | `Gnt`      | the grant-value SAD this `Gnt` seals (a `vdti/sel/v1/grants/*` kind)        |
-| `bound`   | `Trm`      | opt — a doc-member rescission's gated, participant-blind grandfather cutoff |
+| Role      | Carried by | Commits to                                                                                                                   |
+| --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `payload` | `Ixn`      | the payload SAD SAID(s) this `Ixn` records (single-owner data)                                                               |
+| `grant`   | `Gnt`      | the grant-value SAD this `Gnt` seals (a `vdti/sel/v1/grants/*` kind)                                                         |
+| `bound`   | `Trm`      | opt — a feature rescission's gated, participant-blind cutoff (a doc-member grandfather, or a chat-membership per-lane bound) |
 
 The `Icp` (recomputable), the floor `Pin` (a pure re-pin), and the neutral `Sea` carry **no
 manifest**; a `Trm`'s termination validity is carried by its anchoring `Rev` / `Dth`, and its
 manifest is **opt** — when present it carries the **`bound`** role, a feature-layer gated
-rescind-doc holding a doc-member rescission's participant-blind grandfather cutoff (the gated
-custody mode of the grandfather `bound`; a delegate's rides the inline-public `kills[].bound`
-field). The `owner` / `topic` / `data` / `lineage` derivation inputs and the down-`pin` stay
-**top-level structural**. See
+rescind-doc holding a feature rescission's participant-blind cutoff — a doc-member grandfather, or a
+chat-membership **per-lane bound list** (the gated custody mode; a delegate's rides the
+inline-public `kills[].bound` field). The `owner` / `topic` / `data` / `lineage` derivation inputs
+and the down-`pin` stay **top-level structural**. See
 [`events.md` §The manifest](events.md#the-manifest--roles-a-sel-event-carries) for the per-kind
 detail.
 
