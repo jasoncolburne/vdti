@@ -196,11 +196,10 @@ primitives below rather than extending them.
 Features compose the primitives into what an application ships. The first is credentials; shared
 documents and secure messaging follow.
 
-37. [`features/credentials/credentials.md`](features/credentials/credentials.md) — issuing a
-    credential and, the core case, a relying party accepting a presented one: the anchor and
-    compaction as its proofs, the two questions (validly-issued, ownership), IPEX presentation,
-    targeted-vs-bearer, blinded claim-gating, revocation, edges, terms-of-use, bulk issuance, and
-    the migration-first registrar.
+37. [`features/credentials.md`](features/credentials.md) — issuing a credential and, the core case,
+    a relying party accepting a presented one: the anchor and compaction as its proofs, the two
+    questions (validly-issued, ownership), IPEX presentation, targeted-vs-bearer, blinded
+    claim-gating, revocation, edges, terms-of-use, bulk issuance, and the migration-first registrar.
 
 ## Forthcoming
 
@@ -208,7 +207,7 @@ These are referenced above as forward-references and are still forthcoming:
 
 - `features/` — shared documents (its full prose beyond the diagram stub) and secure messaging (the
   `exchange` feature — its identifiers, paths, and grant kinds all read `exchange`);
-  [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
-  stub carrying its diagrams ahead of the prose.
+  [`features/shared-documents.md`](features/shared-documents.md) is a diagram stub carrying its
+  diagrams ahead of the prose.
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
   scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).

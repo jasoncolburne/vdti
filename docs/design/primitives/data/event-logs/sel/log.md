@@ -226,7 +226,7 @@ The three advancers differ by what else they do:
   not be swappable by a bare signing key. Rotating the value stacks another `Gnt` (the live sealed
   tip is served); the value-bearing instances are their **owner's** — a feature (a
   document-governance grant —
-  [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
+  [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
   forthcoming) or a shared-core primitive (the receive-key directory's encryption receive-key, group
   keying's epoch-key wrap). A `Gnt` is non-terminal and is walked back only by a later rescission,
   never overturned.
@@ -364,6 +364,6 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing: the witnessing floor, first-seen, and disputed detection the SEL
   inherits.
-- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
-  [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the
-  value-bearing `Gnt` consumers (both forthcoming).
+- [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
+  [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
+  consumers (both forthcoming).

@@ -21,5 +21,5 @@ docs/analysis
 docs/operations
 
 # --- Forthcoming design docs (one exact path each; add a line when a new ref lands) ---
-docs/design/features/exchange/exchange.md         # exchange feature — canon: vdti-area-exchange.md
+docs/design/features/exchange.md                  # exchange feature — canon: vdti-area-exchange.md
 docs/design/substrate/infrastructure/vdtid.md     # vdtid services/architecture — canon: vdti-area-vdtid-services.md

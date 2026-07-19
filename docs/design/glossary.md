@@ -25,7 +25,7 @@ canonical** wherever they differ.
 - **credential (cred)** — a bounded, revocable claim an issuer makes about a subject (targeted to an
   `issuee`, or bearer); a **direct-anchored SAD** (the issuer anchors its issuance commitment on its
   own IEL), revoked by a `kills[]` declaration.
-  ([`features/credentials/credentials.md`](features/credentials/credentials.md))
+  ([`features/credentials.md`](features/credentials.md))
 - **document** — a standalone SAD carrying application content plus its authorization conditions.
   ([`documents.md`](primitives/policy/documents.md))
 - **policy** — the authorization language that lives on a document (leaves + composers), never on a

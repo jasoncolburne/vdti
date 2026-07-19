@@ -211,10 +211,9 @@ their shapes land with [`../../protocols/ipex.md`](../../protocols/ipex.md).
 ### Credentials — `vdti/cred/v1/schemas/*`
 
 A credential is a **direct-anchored** SAD (its issuance is a commitment hash on the issuer's IEL
-`Ixn` —
-[`../../../features/credentials/credentials.md`](../../../features/credentials/credentials.md)), not
-a chain event. Its `kind` names its **type** (application-registered — a diploma, an accreditation);
-the wrapper below is common to every type.
+`Ixn` — [`../../../features/credentials.md`](../../../features/credentials.md)), not a chain event.
+Its `kind` names its **type** (application-registered — a diploma, an accreditation); the wrapper
+below is common to every type.
 
 | Field       | Type      | Required | Meaning                                                                         |
 | ----------- | --------- | -------- | ------------------------------------------------------------------------------- |
@@ -234,8 +233,7 @@ Each gated predicate it carries is a **uniformly-shaped blinded claim** — `{ s
 the per-claim `said` is what the credential commits, a high-entropy `nonce` blinds it so a compacted
 claim leaks neither presence nor value, and `data` is the application-shaped value (a boolean
 bracket like `ageOver18`, a field). Disclosing a claim reveals its `{ nonce, data }` and recomputes
-the `said` against the commitment
-([claim-gating](../../../features/credentials/credentials.md#claim-gating)).
+the `said` against the commitment ([claim-gating](../../../features/credentials.md#claim-gating)).
 
 ### Shared documents — `vdti/doc/v1/schemas/*`
 
@@ -263,7 +261,7 @@ The **grant-doc** (`shared-document-governance`, editors/commenters role-lists),
 grant-doc** (`shared-document-read-governance`, the `readers` role-list only), and the **gated
 rescind-doc** (a `bound` position sealing a membership period) are **forthcoming** — shapes at the
 shared-documents encode
-([`../../../features/shared-documents/documents.md`](../../../features/shared-documents/documents.md)).
+([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
 
 ### Exchange — `vdti/exchange/v1/*`
 

@@ -9,8 +9,8 @@ the **receiver** rides in the clear.
 It is **thin**. ESSR holds no key material, reads no chain, and does not inspect the payload it
 seals. Turning a prefix into a key, checking whether a sender's key is still current, delivering the
 message, hiding who is talking to whom, keying a group — none of those are ESSR. They belong to the
-[exchange](../../features/exchange/exchange.md) _(forthcoming)_ feature or to whoever calls ESSR.
-That narrowness is what lets [credentials](../../features/credentials/credentials.md) and the
+[exchange](../../features/exchange.md) _(forthcoming)_ feature or to whoever calls ESSR. That
+narrowness is what lets [credentials](../../features/credentials.md) and the
 [presentation exchange](ipex.md) seal a message at the edge without dragging a feature's machinery
 along.
 
@@ -212,5 +212,5 @@ and states the design here in VDTI's own terms.
   prefix to its device receive keys, the keys this envelope encapsulates to.
 - [`group-key.md`](group-key.md) — the group-key primitive, which composes this one-to-one seal to
   distribute an epoch key to a whole group's devices.
-- [`../../features/exchange/exchange.md`](../../features/exchange/exchange.md) _(forthcoming)_ —
-  delivery, the serve-time gate, and identity hiding, all built on this primitive.
+- [`../../features/exchange.md`](../../features/exchange.md) _(forthcoming)_ — delivery, the
+  serve-time gate, and identity hiding, all built on this primitive.

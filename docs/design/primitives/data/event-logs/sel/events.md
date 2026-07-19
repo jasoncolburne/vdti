@@ -125,7 +125,7 @@ the reserve. A **value lookup SEL** is established `{Icp, Gnt}` at tier 2, and *
 stacks another `Gnt`** (the walk serves the live sealed tip, so a retired value is never served).
 What a grant value _means_ — a document-governance grant, an encryption receive-key — is its
 **owner's**: a feature
-([`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
+([`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
 forthcoming) or a **shared-core primitive** (the receive-key directory owns the encryption
 receive-key grant, group keying its epoch-key wrap); this primitive states only the
 seal-a-typed-value structure.
@@ -354,6 +354,6 @@ sealed branches → Disputed, exactly as any two sealed events would be.
   [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — where a credential's revocation
   or a rescission is interpreted (the feature layer; the SEL states only the kill structure).
-- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
-  [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the
-  value-bearing `Gnt` consumers (both forthcoming).
+- [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
+  [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
+  consumers (both forthcoming).

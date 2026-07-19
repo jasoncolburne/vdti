@@ -9,7 +9,7 @@ envelope, now a protocol primitive — [`vdti-area-essr.md`](vdti-area-essr.md))
 value mechanism). **This is the kels exchange/mail design re-expressed on vdti primitives**, with one
 deliberate vdti divergence (the encap key at **T2** not T1) and one stated verifier requirement
 (**sender-key currency**, checked against the witnessed KEL — an optional message-anchor gives provable
-liveness). **Lands at** `docs/design/features/exchange/exchange.md` (design-voice, forthcoming).
+liveness). **Lands at** `docs/design/features/exchange.md` (design-voice, forthcoming).
 
 **Invariants:** [inv 14] witnessing prevents content forks, [inv 8] multi-source freshness (the sender's
 key-lookup + the recipient's sender-KEL read), [inv 10] value-bearing lookup fails-closed on ambiguity,
@@ -275,7 +275,7 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
 
 ## 10. Drift → land
 
-- Write `docs/design/features/exchange/exchange.md` fresh from this note (greenfield voice).
+- Write `docs/design/features/exchange.md` fresh from this note (greenfield voice).
 - **Depends on the area-sel encode** of the generalized `Gnt` (seal a typed value under `grants/*`) + the
   `{Icp, Gnt}` value-bearing-lookup establishment — **not yet in canon** (captured in
   `.working/vdti-receive-key-establishment-design.md`). Leading edge; the primitive encode follows.

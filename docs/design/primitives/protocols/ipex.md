@@ -10,10 +10,10 @@ It is **thin, and generic over what it carries.** IPEX moves anchored, compactab
 not know they are credentials. It hands its caller exactly three things: an **authenticated
 discloser**, a **binding to one recipient** (so a disclosure cannot be replayed to a party it was
 not made to), and the **disclosed SAD** (verifiable as issued, revealed to the promised depth).
-[Credentials](../../features/credentials/credentials.md) is one caller; a shared-document capability
-grant could be another. Confidentiality is **not** IPEX: to hide a disclosure from the transport,
-seal an IPEX message inside an [ESSR](essr.md) envelope — integrity and attribution from IPEX,
-confidentiality from ESSR, stacked at the edge.
+[Credentials](../../features/credentials.md) is one caller; a shared-document capability grant could
+be another. Confidentiality is **not** IPEX: to hide a disclosure from the transport, seal an IPEX
+message inside an [ESSR](essr.md) envelope — integrity and attribution from IPEX, confidentiality
+from ESSR, stacked at the edge.
 
 ## The model — disclosure, discloser to disclosee
 
@@ -186,8 +186,8 @@ Everything below sits **outside** IPEX:
   inside an ESSR envelope. IPEX carries cleartext-structured SADs; the choice to seal is the
   caller's.
 - **Transport and delivery.** Routing, store-and-forward, the serve-time gate — the
-  [exchange / mail](../../features/exchange/exchange.md) _(forthcoming)_ feature. IPEX defines the
-  messages; the feature moves them.
+  [exchange / mail](../../features/exchange.md) _(forthcoming)_ feature. IPEX defines the messages;
+  the feature moves them.
 - **Revocation status.** Whether the disclosed credential is still live is the **caller's**
   fail-secure check — the issuer's revocation declaration plus its lookup log
   ([`../data/event-logs/iel/events.md`](../data/event-logs/iel/events.md)) — read at verification
@@ -235,5 +235,5 @@ original serialization.
   anchor is witnessed and how the current tip is read from any source.
 - [`../policy/evaluation.md`](../policy/evaluation.md) — as-issued evaluation, the same discipline
   the disclosed SAD's validity check follows.
-- [`../../features/credentials/credentials.md`](../../features/credentials/credentials.md) — the
-  first caller: what a disclosed SAD means, and the revocation and expiry checks IPEX delegates.
+- [`../../features/credentials.md`](../../features/credentials.md) — the first caller: what a
+  disclosed SAD means, and the revocation and expiry checks IPEX delegates.
