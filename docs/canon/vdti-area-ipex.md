@@ -146,8 +146,8 @@ backdate it). Baseline presentations do not.
   signer** — for a **targeted** disclosed SAD, the SAD's committed **`issuee`** (and `discloser` equals
   it); for an **untargeted** SAD, the `discloser` (bearer — no ownership binding). Presenting is a live
   **`t_use` action**, **frozen on any divergence** (`iel/verification.md`): a **forked, disputed, or
-  terminated** signer cannot present — a fork freezes actions pending governance recovery, a dispute
-  is unreconcilable, a retired identity is done — REFUSE;
+  terminated** signer cannot present — a fork freezes actions pending any **T2 seal-out**
+  (`iel/verification.md`), a dispute is unreconcilable, a retired identity is done — REFUSE;
 - `audience` is the verifier's own prefix;
 - `created` is within tolerance on **both** sides: `|now − created| ≤ tolerance` (reject stale **and**
   future; the tolerance absorbs clock skew);

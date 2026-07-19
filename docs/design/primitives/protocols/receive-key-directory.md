@@ -81,9 +81,13 @@ retired key is never handed to a sender. Removing a compromised device's key is 
 because it takes the reserve, a stolen signing key cannot undo it.
 
 A key is retired for good by a terminal kill on its log. A killed key **reads dead**, and a sender
-that resolves it **fails closed** rather than sealing to a key the owner has disowned. That path is
-for loss of control; ordinary key changes are rotations, and a disowned key recovers by
-re-publishing at a fresh lineage.
+that resolves it **fails closed** rather than sealing to a key the owner has disowned. For that
+"fails closed" to hold against a **withholding** node, the kill must declare the **matching
+lineaged** `kills[]` target — not just an on-chain `Trm` — else a node missing that lineage's kill
+reads the retired key **live** and serves it (the value-lookup lineaged-target discipline,
+[`../data/event-logs/sel/verification.md`](../data/event-logs/sel/verification.md)); the directory
+is the **first value-lookup to carry this obligation**. That path is for loss of control; ordinary
+key changes are rotations, and a disowned key recovers by re-publishing at a fresh lineage.
 
 ## The boundary — what the directory is not
 

@@ -45,11 +45,12 @@ receipts.
 ## The variants — the fork rule is the only difference
 
 - **Single-parent — a lane (chat).** Exactly one `previous` per node; a member's nodes are a single chain. A
-  **second child of a node is a fork = misbehavior** — the writer signed two conflicting successors to one point
-  in its own history = self-proving **equivocation** (a crash-resend re-sends the *same* SAID, not a new
-  sibling). Each node's **content-addressed SAID** commits its content and carries the writer's signature, so
-  the two siblings are provably the same writer's conflicting successors — **undeniable**, no way to pass a fork
-  off as one node. **Surfacing** it needs both siblings to reach a common honest reader: a witnessed node (a doc
+  **second child of a node is a fork** — the writer signed two conflicting successors to one point in its own
+  history = self-proving **equivocation**. Each node's **content-addressed SAID** commits its content and carries
+  the writer's signature, so the two siblings are provably the same writer's conflicting successors —
+  **undeniable** (a same-writer fork), no way to pass a fork off as one node. Whether it is **misbehavior** is the
+  group's policy, not automatic: a crash-**resend** carries the *same* SAID (a dedup), but a crash before
+  persisting the record, re-authored with a fresh nonce, is a genuine honest sibling. **Surfacing** it needs both siblings to reach a common honest reader: a witnessed node (a doc
   version) has the receipt beacon; an **unwitnessed** chat node rides propagation, so an eclipse / split delivery
   only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
   consequence is the group's policy (for chat, coupled to membership removal + the epoch turn).
@@ -60,11 +61,13 @@ receipts.
 
 ## What this leaves standing
 
-- **Backdating shrinks to a detectable act (round-3 F4 resolution).** Monotonicity kills tip-append backdating
-  outright; a member can still **fork its own lane** to inject a node dated within its key-state ∩ epoch-window
-  range, but that fork is a self-signed equivocation any reader surfaces — **evidence-bearing, not silent**. The
-  F4 framing correction also lands: the residual is a **standing capability of every current member with a
-  never-rotated device**, not the narrower former-member/theft case.
+- **Backdating shrinks to a detectable act — for a writer whose tip has advanced (round-3 F4 + whole-design
+  cold-P1).** When the writer's tip is **past** the target, monotonicity forces a backdate to **fork its own
+  lane** — a self-signed equivocation any reader surfaces (evidence-bearing, not silent). A **frozen-tip** writer
+  (removed from the group, still holding a retired key) can instead forward-append **monotonically** into the
+  frozen range — not a fork, so the DAG alone won't surface it; **the composing feature's removal `bound` closes
+  it** (a chat `chat-membership` rescission records a **lane-tip `bound`** the verifier cuts past —
+  [membership](vdti-area-membership.md)). The DAG gives monotonicity; the feature gives the removal bound.
 - **The lane-fork ambiguity is closed for honest readers, too.** Before F4 two messages sharing one `previous`
   had **no stated semantics**; single-parent says "that is equivocation," so an honest reader assembling the
   group view has a rule.

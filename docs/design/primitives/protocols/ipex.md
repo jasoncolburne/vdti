@@ -122,8 +122,8 @@ trading that correlation for third-party-provable liveness. Baseline presentatio
   `discloser` equals it); for an **untargeted** SAD, the `discloser` (a bearer — no ownership
   binding). Presenting is a live **`t_use` action**, so it is **frozen on any divergence**
   (`iel/verification.md`): a **forked, disputed, or terminated** signer cannot present — a fork
-  freezes actions pending governance recovery, a dispute is unreconcilable, a retired identity is
-  done — and the gate refuses (fail-secure);
+  freezes actions pending any **T2 seal-out** (`iel/verification.md`), a dispute is unreconcilable,
+  a retired identity is done — and the gate refuses (fail-secure);
 - `audience` is the verifier's own prefix;
 - `created` is within tolerance on **both** sides — `|now − created| ≤ tolerance`, rejecting stale
   **and** future — the tolerance absorbing clock skew;

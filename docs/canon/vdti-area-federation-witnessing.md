@@ -223,7 +223,7 @@ adversarial pass.
   **deferred-pending, non-propagating, droppable** (a spent-preimage or partition race — no witness fault). The
   `disputed` verdict is unchanged and rides the **data-local walk over *accepted* branches** (inv 13/17 — receipts
   attribute, they do not decide; an unwitnessed sibling a node merely holds is not an accepted branch). On a
-  content-only divergence the resolving burying seal-advancer (a `Rot`/`Evl`) is that **one** witnessed sealing event;
+  content-only divergence the resolving burying seal-advancer (any T2 seal-advancer) is that **one** witnessed sealing event;
   a *second* witnessed seal-advancer is the proving pair `{Rot, Rot}` (or `{Evl, Evl}`) → `disputed`, now necessarily
   collusion. So **divergence detection is now sealed-only** (content is prevented upstream). **Residual** content-fork
   evidence (the witness-compromise residual) is still retention-bounded at **≥ 2 per position** (the content analog of
@@ -263,7 +263,7 @@ adversarial pass.
   hold *anyway*, so first-seen already declines), and it puts cross-context historical verification in the
   witnessing hot path. The straddle is a recoverable content fork (freeze → one burying seal); the honest fix is
   the per-context marker scoping above, not more witness machinery.
-- **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the burying seal-advancer** (a `Rot`/`Evl`)
+- **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the burying seal-advancer** (any T2 seal-advancer — a `Rot`, `Evl`, `Ath`, `Rev`/`Dth`, or `Wit`)
   that condemned a fork **declines to witness** dead **content** events on a **dead** branch — one whose ancestry passes
   below the burying seal or through a below-seal fork. **A below-seal sealed event is declined too** — the witness **mirrors the seal-cap** (a parent below the tracked seal is inert, content _or_ sealed; revised 2026-07-11): it never reaches threshold, so it is neither dispute evidence nor able to retreat the clean seal. **The sealed leg is load-bearing — the backdate defense:** a below-seal sealed straggler must **not** be witnessed, or a total-key-compromise adversary could mint a fabricated historical fork years after the fact; the only reachable dispute is a **seal-vs-seal collision at the last (live) seal** (two accepted seals there, a provable witness double-sign). **The gate generalizes — you can't seal a buried chain (dead-on-ascent, Jason 2026-07-11):** a lineage is dead from its **first-seen loss** at any position, not only below a burying seal. A selected witness that first-seen-accepted the winner at a fork **declines every descendant of the loser — content _or_ a `Rot`/`Evl` seal forged on it** — so a buried branch never gathers the majority a seal needs; a seal does not revive it. This is what **collapses a dispute to the fork** (inv 13): two branches both **accepted** at a seal share their lineage to a fork where **both** siblings are accepted — a same-position double-sign — so no **cross-position** dispute forms. **The content leg is an efficiency gate, not load-bearing:** deadness ascends
   (inv 13 — an event whose parent is dead is dead), so a dead event that a lagging witness signs before it holds the

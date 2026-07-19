@@ -128,8 +128,9 @@ conjunction:
   `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
   stronger-liveness mode). Proving ownership is a live **`t_use` action**, so it is **frozen on any
   divergence**: a forked, disputed, or **terminated** issuee grounds no ownership and is refused — a
-  fork freezes actions until governance resolves it (only `t_govern` recovery proceeds on a fork), a
-  dispute is unreconcilable, and a retired identity is done. Bearer credentials skip this.
+  fork freezes actions until any **T2 sealed act** seals it out (`iel/verification.md` — not only
+  `t_govern`), a dispute is unreconcilable, and a retired identity is done. Bearer credentials skip
+  this.
 - **Not expired** — advisory; the caller decides.
 
 ## Presentation

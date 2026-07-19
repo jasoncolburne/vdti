@@ -294,10 +294,11 @@ read-only component of the token, not an independent verified state). The seal t
   tips). **Live authority is tiered — T1 live vs T2 sealed.** A live **T1 action** — a `t_use`
   ownership proof or content origination (`Ixn`) — is **frozen on any divergence**: it resolves only
   when the chain is **Active**, so a **forked, disputed, or terminated** identity exercises no live
-  T1 authority (the forked tier itself is the one in doubt). Any **T2 sealed act** — `Evl` / `Ath` /
-  `Rev` / `Dth` / `Wit`, each at its own threshold (`t_authorize` or `t_govern`) — **seals**: it
-  resolves against `roster()` and advances the seal, burying a content fork below it, so **any T2
-  act is a way out of a fork** (a forked identity **seals** its way back to **Active**). This is
+  T1 authority (the forked tier itself is the one in doubt). Any **non-terminal T2 sealed act** —
+  `Evl` / `Ath` / `Rev` / `Dth` / `Wit`, each at its own threshold (`t_authorize` or `t_govern`) —
+  **seals**: it resolves against `roster()` and advances the seal, burying a content fork below it,
+  so **any such act is a way out of a fork** (a forked identity **seals** its way back to
+  **Active**); a **`Trm`** (also T2) buries the content but the chain goes **Terminated**. This is
   sound because a fork is authored with a **T1** key and no T1 actor holds any **T2** quorum, so
   allowing T2 to seal out only ever hands recovery to legitimate higher authority; it proceeds
   wherever there is one authoritative roster (**Active or Forked**), while a **disputed** (no single

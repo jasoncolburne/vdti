@@ -36,10 +36,13 @@ same fail-secure / fail-open split a credential's revocation check uses:
   against the multi-source-fresh chain. In some grant delta and not since rescinded → a member; in
   none → not. This is the sound reading: hiding a rescind would take a stale chain, which the
   freshness bar already refuses. For this to stay the **default**, the non-member store must be able
-  to **run** it holding only the requester's prefix: the per-member commitment is **blinded from
-  inputs the store also has** (the requester's prefix + the group), so the store **recomputes** the
-  target and matches it against the chain — it never rests on a per-member secret the request does
-  not carry (which would make the walk non-performable and silently force the fail-open path).
+  to **run** it — and it can, because the requester **discloses its own `{ nonce, data }`** in the
+  live-signed request (the same disclosure a credential holder makes): the store recomputes the
+  member's blinded-claim `said` and matches it on the grant chain. So the commitment stays
+  **unguessable to an outsider** (the high-entropy `nonce` — no confirm-a-guessed-prefix oracle) yet
+  **store-checkable** (the requester carries its own secret, the way a credential disclosure does).
+  What the walk must **not** rest on is a secret the requester does **not** hold — that would make
+  it non-performable and silently force the fail-open path.
 - **The O(1) happy path (opt-out).** A rescinded member has a **content-addressed rescission
   lookup** — a tiny `{ inception, termination }` log derived from
   `{ group, the rescission topic, the member }` — whose termination **pins to the grant delta that
@@ -65,18 +68,25 @@ Where a group genuinely must reach every member — wrapping a shared key — th
 
 ## Rescission and the grandfather boundary
 
-Removing a member is a `rescinds` entry. Two flavors, set by the feature:
+Removing a member is a `rescinds` entry `{ target, bound? }` — the same shape as a `kills` entry — a
+blinded `target` and an optional grandfather `bound`. The `bound` is what a **verifier** enforces,
+so a removed member is cut at a **provable** point, not just refused live by the untrusted store.
+What it points to is the feature's:
 
-- **Immediate** — the member is out at once. A keyed group (chat) uses this: forward secrecy comes
-  from the epoch turning in the same act, so nothing the removed member holds opens anything new.
-- **Grandfathered** — the rescind carries a **boundary**: content the member authored (or was
-  entitled to) **before** the boundary stays honored, only its reach past the boundary is cut. A
-  shared document uses this so a removed editor's earlier versions do not retroactively vanish. The
-  boundary is itself blinded when it would otherwise identify a participant, riding behind the read
-  gate; a non-identifying boundary rides in the open.
+- **Chat — the bound is the member's lane tip.** A chat rescission records `bound` = the removed
+  member's **last message** on its lane. The verifier honors that member's lane **only up to the
+  bound** and rejects any message reaching **past** it — so a removed member still holding a
+  **retired** group key cannot append new history into that old epoch (a forward step within a past
+  epoch is monotone, so it is not a fork and nothing else would surface it; the bound is what closes
+  it). The **epoch turning** gives forward secrecy for **new** epochs; the **lane bound** closes the
+  **old-epoch** backfill — the two together, not the store's deposit check, bind it.
+- **Grandfathered** — content the member authored (or was entitled to) **before** the bound stays
+  honored, only its reach past the bound is cut. A shared document uses this so a removed editor's
+  earlier versions do not retroactively vanish.
 
-Either way the removal is one `rescinds` entry plus, for the happy path, the member's
-content-addressed rescission lookup.
+The `bound` is blinded when it would otherwise identify a participant (riding behind the read gate);
+a non-identifying one rides in the open. Either way the removal is one `rescinds` entry plus, for
+the happy path, the member's content-addressed rescission lookup.
 
 ## Two instances
 

@@ -218,12 +218,13 @@ degenerate group of two** — the same machinery, no separate two-party construc
   conflicting successors to one point in its own lane. Each message's **public SAID** commits its
   (encrypted) content — a high-entropy `nonce` keeps that SAID unguessable, so a guessable body
   can't be confirmed against it — so a writer that ciphers two different payloads produces two
-  provably-same-writer SAIDs sharing one `previous`: an **undeniable** fork, never a benign resend
-  (a crash-resend re-sends the same SAID). Surfacing it needs the sibling SAIDs to reach a common
-  honest member — the normal propagation case; an eclipse or split delivery only **defers**
-  detection (the standard _detection-is-eventual_ residual, reported when the siblings converge), it
-  cannot disguise a fork as one message. The group couples the consequence to `chat-membership`
-  removal + the epoch turn.
+  provably-same-writer SAIDs sharing one `previous`: an **undeniable same-writer fork** (a
+  crash-**resend** re-sends the same SAID — a dedup; only a crash before persisting its record,
+  re-authored with a fresh nonce, is a genuine honest sibling — the policy, not the structure, calls
+  it misbehavior). Surfacing it needs the sibling SAIDs to reach a common honest member — the normal
+  propagation case; an eclipse or split delivery only **defers** detection (the standard
+  _detection-is-eventual_ residual, reported when the siblings converge), it cannot disguise a fork
+  as one message. The group couples the consequence to `chat-membership` removal + the epoch turn.
 - **Currency: the signature is checked against the writer's own key-window; the epoch bounds when.**
   Chat's authenticity uses the **same key-window mail does** — the signature verifies against the
   writer's signing key-state, valid per the **writer's own witnessed KEL/IEL** interval, each
@@ -239,12 +240,15 @@ degenerate group of two** — the same machinery, no separate two-party construc
   _within_ that witnessed bound, never outside it. So the check composes two witnessed sources: the
   **IEL** says whether the signing key was valid, the **epoch SEL** says the message was authored
   within epoch _N_'s window — authentic iff the key was valid (per its IEL interval) at a time
-  inside that window. The **residual** shrinks to a **detectable act**: monotonicity along the lane
-  (the lane's ordering rule, above) kills tip-append backdating, so the standing capability — held
-  by **every current member with a never-rotated device**, not only a former member — is to **fork
-  its own lane** to inject a node dated within (its IEL interval ∩ epoch _N_'s window); that fork is
-  a self-signed equivocation any reader surfaces. Confined, never forward, and no longer silent. A
-  self-asserted timestamp never establishes currency; the two witnessed windows do.
+  inside that window. Two backdate paths, both closed: a **current** member's backdating decreases
+  `(epoch, timestamp)` below its advanced tip, so it must **fork** its own lane — an undeniable
+  self-signed equivocation any reader surfaces on convergence (monotonicity, above); a **removed**
+  member's _frozen-tip_ forward-append into a **retired** epoch _is_ monotone (not a fork, so
+  nothing else would surface it) — but its **`chat-membership` removal records a lane-tip `bound`**
+  (the member's last message), so the **verifier** honors that member's lane only **up to the
+  bound** and **cuts** any message past it. The store's deposit gate is defense-in-depth; the bound
+  is what makes the cut **verifier-enforced**, not store-only. A self-asserted timestamp never
+  establishes currency; the two witnessed windows do.
 - **Catch-up is the union of your membership periods.** A member decrypts exactly the epochs during
   which it was a member — membership can be intermittent, and it reads **every period it was in**,
   none it was not. Catch-up after being offline is walking the key-epoch SEL from last-seen to
@@ -260,11 +264,13 @@ degenerate group of two** — the same machinery, no separate two-party construc
   wrap roster is materialized _by members_ (with the read gate) to key each epoch and is **blind to
   the store**, so the store cannot authorize against it — chat composes **both**, the roster to
   distribute the epoch key and `chat-membership` to authorize a requester, the way any keyed group
-  does. A **member removal rescinds the `chat-membership` grant** as the same act turns the epoch,
-  so a removed member can no longer deposit or drain. A downloader enumerates nothing (the grant is
-  participant-blind); the store, handed a self-identifying requester, only ever confirms that one —
-  so a non-member can neither deposit a chat blob nor drain one, and learning that a requester who
-  showed up holds a grant is the mechanism working, not a leak.
+  does. A **member removal rescinds the `chat-membership` grant** — with a **lane-tip `bound`** (the
+  member's last message) the verifier enforces — as the same act turns the epoch, so a removed
+  member can no longer deposit or drain, nor backfill its lane past the bound. A downloader
+  enumerates nothing (the grant is participant-blind); the store, handed a self-identifying
+  requester, only ever confirms that one — so a non-member can neither deposit a chat blob nor drain
+  one, and learning that a requester who showed up holds a grant is the mechanism working, not a
+  leak.
 - **Delivery and retention are group-scoped.** A chat message's blob is one ciphertext readable by
   every member, scoped by `availability.replicas` to the **group's nodes** (the members' inbox
   hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the

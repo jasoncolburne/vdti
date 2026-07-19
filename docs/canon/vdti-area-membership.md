@@ -46,8 +46,10 @@ seals a **membership delta** — `{ grants, rescinds }`:
 - **`grants`** — identities admitted, each a **blinded per-member commitment** `{ said, nonce, data }` (the same
   claim-gating construction [credentials](vdti-area-credentials.md) uses for per-predicate gating): the
   commitment names the member without publishing who, so a chain onlooker learns a **count**, never a roster.
-- **`rescinds`** — identities removed, each a blinded target, optionally carrying a **grandfather boundary**
-  (below).
+- **`rescinds`** — identities removed, each an entry **`{ target, bound? }`** — the **same shape as a `kills[]`
+  entry** (event-shape) — a blinded `target` and an optional **grandfather `bound`** (below). A
+  participant-identifying `bound` rides the **gated `bound` role** (read-gated); a non-identifying one rides
+  inline.
 
 One delta carries **both** — there is no separate "add" and "remove" event, the way an identity's own roster
 change carries adds and cuts together. **The delta is what keeps the set unbounded:** the chain records only the
@@ -78,15 +80,17 @@ the exact triple round-3 F3 needed — **store-checkable** (the store resolves a
 and checks that one), **per-requester** (the requester self-identifies; the store confirms that one and nothing
 else), and **non-enumerating** (no operation asks "who are all the members").
 
-**The walk must be store-performable — blinded commitments the store recomputes, pins that locate.** The
-fail-secure walk is only the *default* if the **non-member store can actually run it** holding only the
-requester's self-identifying prefix. So the per-member commitment is **blinded from inputs the store also has** —
-the requester's prefix + the group + the public commitment scheme — so the store **recomputes** the target and
-matches it against the chain (credentials' revocation-target construction), and a **pin locates** the grant /
-rescission on any disagreement ([inv 5]). It must **not** rest on a per-member secret the request does not carry:
-a shape that did would make the fail-secure walk **non-performable**, silently forcing the fail-open path and
-inverting the "fail-secure by default" guarantee (whole-design cold — enforceability). The forthcoming
-`chat-membership` shape pins this.
+**The walk must be store-performable — the requester discloses its own grant, pins locate.** The fail-secure walk
+is only the *default* if the **non-member store can actually run it**. It can: the requester **discloses its own
+`{ nonce, data }`** in the live-signed request (the same disclosure a credential holder makes) — and the store
+**recomputes the member's blinded-claim `said`** and matches it on the grant chain, a **pin** locating the
+grant / rescission on disagreement ([inv 5]). So the commitment stays **unguessable to an outsider** (the high-entropy
+`nonce` — no confirm-a-guessed-prefix oracle, so it **satisfies** the offline-oracle residual rather than
+downgrading to confirm-a-known-subject) yet **store-checkable** (the requester carries its own secret, like a
+credential presentation). What the walk must **not** rest on is a secret the requester does **not** hold — that
+would make it **non-performable**, silently forcing fail-open and inverting the "fail-secure by default"
+guarantee (whole-design cold — enforceability + oracle reconciliation). The forthcoming `chat-membership` shape
+pins this.
 
 ## No cap, no enumeration
 
@@ -102,16 +106,23 @@ Where a group genuinely must reach **every** member — wrapping a shared key �
 
 ## Rescission and the grandfather boundary
 
-Removing a member is one `rescinds` entry (plus, for the happy path, its content-addressed rescission lookup).
-Two flavors, set by the composing feature:
+Removing a member is one `rescinds` entry `{ target, bound? }` (plus, for the happy path, its content-addressed
+rescission lookup) — reusing the `kills[]` grandfather-`bound` machinery. The `bound` is what a **verifier**
+enforces, so a removed member's authority is cut at a **provable** point rather than only refused live by the
+(untrusted) store. What the `bound` points to is set by the composing feature:
 
-- **Immediate** — out at once. A **keyed** group (chat) uses this: forward secrecy comes from the epoch turning
-  in the same act (group-key), so nothing the removed member holds opens anything new.
-- **Grandfathered** — the rescind carries a **boundary**: content the member authored (or was entitled to)
-  **before** the boundary stays honored; only its reach **past** the boundary is cut. A shared document uses this
-  so a removed editor's earlier versions do not retroactively vanish. The boundary is itself **blinded** when it
-  would otherwise identify a participant (riding behind the read gate); a non-identifying boundary rides in the
-  open.
+- **Chat — the bound is the member's lane tip.** A `chat-membership` rescission records `bound` = the removed
+  member's **last lane message** (its lane tip at removal). The verifier honors that member's lane **only up to
+  the bound** and rejects any message descending **past** it — so a removed member holding a **retired** epoch's
+  key cannot clean-tip-append new history into that epoch (the frozen-tip backfill: a `(epoch, timestamp)`
+  tip-append forward within a past epoch is monotone, hence not a fork, so nothing else surfaces it — the bound
+  is what closes it). The **epoch turn** (group-key) gives forward secrecy for **new** epochs; the **lane bound**
+  closes the **retired-epoch** backfill — the two together, not the store's deposit gate, bind it. The `bound` is
+  participant-identifying, so it rides the gated role.
+- **Shared document — the bound is a period / version boundary.** Content the member authored (or was entitled
+  to) **before** the bound stays honored; only its reach **past** the bound is cut, so a removed editor's earlier
+  versions do not retroactively vanish. The `bound` is blinded when it would identify a participant (gated role),
+  in the open otherwise.
 
 ## The cap is keying's, not membership's
 
@@ -138,7 +149,9 @@ own roster / key-epoch names), not the primitive's. Two instances exist:
 
 - **`chat-membership`** (exchange feature, [`vdti-area-exchange.md`](vdti-area-exchange.md) §7a) — the set a
   chat's store checks to gate deposit and drain. Bounded **in practice** (the chat is a keyed group, so group-key
-  already caps it), but checked the same one-at-a-time way; rescission is **immediate**. **Landed this PR.**
+  already caps it), but checked the same one-at-a-time way; rescission records a **lane-tip `bound`** (the
+  verifier cuts the removed member's lane there) plus an **immediate epoch turn** for forward secrecy.
+  **Landed this PR.**
 - **`document-membership`** (shared-documents feature — **forthcoming**) — the set a shared document's store
   checks. Genuinely **unbounded** (an open readership), **grandfather**-rescinded. See "Drift → land" — the
   rename + wiring is owed to the shared-documents encode, where the **read-vs-write split** is decided.
@@ -175,7 +188,7 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
   this canon note.
 - **Owed (this PR — the exchange encode).** The [group-key](vdti-area-group-key.md) cross-ref (its wrap roster is
   the cap; membership is the separate unbounded authorization); the **`chat-membership`** instance in
-  `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, immediate rescission), replacing the
+  `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, a lane-tip `bound` rescission), replacing the
   round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers` is the read-authorization
   **pointer into** a membership set (a `readers` value is a membership-set prefix — already stated at
   `custody.md`).
