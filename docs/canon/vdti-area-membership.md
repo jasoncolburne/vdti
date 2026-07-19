@@ -78,6 +78,16 @@ the exact triple round-3 F3 needed — **store-checkable** (the store resolves a
 and checks that one), **per-requester** (the requester self-identifies; the store confirms that one and nothing
 else), and **non-enumerating** (no operation asks "who are all the members").
 
+**The walk must be store-performable — blinded commitments the store recomputes, pins that locate.** The
+fail-secure walk is only the *default* if the **non-member store can actually run it** holding only the
+requester's self-identifying prefix. So the per-member commitment is **blinded from inputs the store also has** —
+the requester's prefix + the group + the public commitment scheme — so the store **recomputes** the target and
+matches it against the chain (credentials' revocation-target construction), and a **pin locates** the grant /
+rescission on any disagreement ([inv 5]). It must **not** rest on a per-member secret the request does not carry:
+a shape that did would make the fail-secure walk **non-performable**, silently forcing the fail-open path and
+inverting the "fail-secure by default" guarantee (whole-design cold — enforceability). The forthcoming
+`chat-membership` shape pins this.
+
 ## No cap, no enumeration
 
 The set is **unbounded** — a document may be readable by an open-ended audience — so it is **never materialized**.

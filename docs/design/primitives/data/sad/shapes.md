@@ -323,6 +323,7 @@ The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on 
 | `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                                                                              |
 | `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                          |
 | `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                                                                         |
+| `nonce`         | bytes     | High-entropy — makes `said` unguessable, so a **guessable** message body can't be confirmed against the public SAID (a known-plaintext oracle on the symmetric-encrypted chat content). Mandatory.      |
 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
 from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no

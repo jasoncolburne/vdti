@@ -175,6 +175,15 @@ roster is re-checked against the bounds above (a stranding / hostage cut is reje
 simultaneous `threshold` drop or reincept). The timing rationale is in
 [`merge.md` §Eviction](merge.md#eviction--a-cut-evl-buries-and-evicts-atomically).
 
+A key-state (roster + thresholds) an establishment event installs — an `Icp`, an `Evl`, or a
+governance `Wit` — has an **establishment interval** for sender-key currency: from the **witnessed
+time** of the event that installs it to that of the next establishment event that supersedes it (an
+eviction `cut` closes the pre-eviction interval, even though it never touches an evicted device's
+own KEL). This is the IEL axis a message's currency check reads, intersected with the signing
+device's KEL key-window; the witnessed times are checked in-bounds + non-decreasing and reported on
+the verification token
+([witnessing §An-event's-witnessed-time](../../../../substrate/federation/witnessing.md#an-events-witnessed-time)).
+
 ### `Ath` — authorize a party to act (tier 2, `t_authorize`)
 
 The unified authorization anchor, carrying **two manifest roles, both permitted at once**

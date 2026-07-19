@@ -328,13 +328,18 @@ instant at which `threshold`-many witnesses had attested at or before it, i.e. *
 became witnessed-in-full**. It is a single deterministic value every verifier computes identically
 from the receipts, distinct from any one witness's `τ`.
 
-It is **robust against a byzantine minority**, which a per-witness or "newest `τ`" reduction is not.
-To sit at the threshold-crossing position a value needs `threshold`-many receipts at or below it, so
-a sub-threshold set of colluding witnesses cannot move the crossing — not **earlier** (that needs
-`threshold`-many receipts below the honest cluster, which a minority cannot supply) and not
-**later** (the honest receipts at or below the true time already reach `threshold`). Each `τ` is
-independently bounded — capped at `now + CLOCK_TOLERANCE_BAND` and valid only inside its signer's
-key-window — so a rogue future- or past-dated `τ` is discarded before it can skew the crossing. The
+It is **robust against a byzantine minority**, which a per-witness or "newest `τ`" reduction is not,
+and the security-critical direction is the strongest: the crossing **cannot be pushed later**. A
+witnessed event has already earned **≥ `threshold` durable honest receipts** at its true time (that
+is what made it witnessed-in-full); an adversary can neither delete them nor move the
+`threshold`-th-smallest `τ` later by **adding** late receipts (adding larger values leaves the
+bottom-`threshold` unchanged). So read against the multi-source freshness bar, the upper boundary a
+stale key would need inflated is **pinned in the past** by those durable receipts. Pushing the
+crossing **earlier** needs `threshold`-many receipts below the honest cluster — a full witness
+compromise (`threshold` witnesses, the catastrophic residual) — and even then only shrinks a past
+interval (fail-secure) or lets the **newer** key backdate, never lets a stale key read current. Each
+`τ` is independently capped at `now + CLOCK_TOLERANCE_BAND` and valid only inside its signer's
+key-window, so a rogue future- or past-dated `τ` is discarded before it can skew the crossing. The
 witnessed time is therefore a consensus timestamp for **when an event became final**, carried by the
 same receipts the currency gate already trusts threshold-many-strong.
 
@@ -344,11 +349,20 @@ receipt-derived without circularity, since a receipt counts only if its `τ` sit
 window. An ordinary event (a user's rotation, a group-key epoch) has no such circularity — its
 authors are not its witnesses — so its finality time is read from its **own** receipts. Because the
 witnessed time comes from the event's own receipts rather than the federation clock (which advances
-only at federation governance events, roughly yearly), **successive events at any cadence carry
-distinct witnessed times** — a user rotating monthly, an epoch turning hourly — so intervals derived
-from them never collapse to empty. Consumers use it as the time boundary wherever a witnessed event
-needs one: the **key-state validity intervals** a message's sender-key currency reads
-([`../../features/exchange.md`](../../features/exchange.md)) and a **group-key epoch's window**.
+only at federation governance events, roughly yearly), it gives **per-event granularity** — a user
+rotating monthly, an epoch turning hourly, each gets its **own** boundary — resolving the
+quantization a governance-cadence clock would impose.
+
+Witnessed times are **not self-ordering**, though: two establishment events witnessed within a
+tolerance band can come out inverted. So a currency consumer **checks** the establishment times it
+reads are **in-bounds** (`≤ now + CLOCK_TOLERANCE_BAND`) and **non-decreasing along the chain** and
+**reports the result on its verification token** — a structural violation **bails** (fail-secure),
+an in-bounds-but-out-of-order pair is **reported** (the informative-token model, §The token reports
+its own completeness), never silently treated as a valid empty interval. This is the same
+compute-check-report discipline every chain-validity property rides. Consumers use the witnessed
+time as the time boundary wherever a witnessed event needs one: the **key-state validity intervals**
+a message's sender-key currency reads ([`../../features/exchange.md`](../../features/exchange.md))
+and a **group-key epoch's window**.
 
 ## Query-scoping and the audit flag
 

@@ -80,6 +80,15 @@ unrevealed). The forward-key commitment drives the pre-rotation mechanic — see
 additionally carry the top-level `previousSeal` spine back-link
 ([`log.md` §The spine](log.md#the-spine)).
 
+A device signing key has a **validity window** — the interval a consumer reads it against when
+checking that a signature was current when it signed (sender-key currency): from the **witnessed
+time** of the `Rot` that reveals the key to that of the next `Rot` that supersedes it, where an
+event's witnessed time is its threshold-crossing receipt τ
+([witnessing §An-event's-witnessed-time](../../../../substrate/federation/witnessing.md#an-events-witnessed-time)).
+The windows are not self-ordering, so a consumer **checks** them in-bounds and non-decreasing along
+the chain and **reports** on its verification token — the same compute-check-report discipline every
+chain property rides.
+
 ## The manifest — roles a KEL event carries
 
 A KEL event commits to higher-layer SAIDs and its witnessing policy through a **`manifest`** — the

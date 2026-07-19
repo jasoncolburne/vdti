@@ -54,10 +54,14 @@ A **second child of any node is a fork**, and on a single-parent structure a for
 **misbehavior**: the writer signed two conflicting successors to the same point in its own history —
 self-proving **equivocation**. There is no benign reading (a crash-resend re-sends the _same_ node,
 same SAID — not a new sibling), so a reader that sees two signed children of one node holds
-**evidence**, not an ordering ambiguity. Both siblings reach every reader because nothing is dropped
-(keep-all-data), and both carry the forker's signature, so the fork is provable from data alone — no
-witness cooperation needed to _detect_ it (the group's policy decides the consequence — for chat,
-coupled to removal + the epoch turn).
+**undeniable evidence**: each node's **content-addressed SAID** commits its content and carries the
+writer's signature, so the two are provably the same writer's conflicting successors — no ordering
+ambiguity, and no way to pass a fork off as one node. **Surfacing** it needs the two siblings to
+reach a common honest reader: on a **witnessed** node (a document version — anchored, below) the
+receipt beacon forces that; on an **unwitnessed** node (a chat lane) it rides propagation, so an
+eclipse or a split delivery only **defers** detection — the standard _detection-is-eventual_
+residual, never a way to hide the fork permanently. The group's policy decides the consequence (for
+chat, coupled to removal + the epoch turn).
 
 ### Multi-parent — a version graph (shared documents)
 

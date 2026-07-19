@@ -35,7 +35,11 @@ same fail-secure / fail-open split a credential's revocation check uses:
   search** — you are looking for exactly this identity's grant, and for any later rescind of it —
   against the multi-source-fresh chain. In some grant delta and not since rescinded → a member; in
   none → not. This is the sound reading: hiding a rescind would take a stale chain, which the
-  freshness bar already refuses.
+  freshness bar already refuses. For this to stay the **default**, the non-member store must be able
+  to **run** it holding only the requester's prefix: the per-member commitment is **blinded from
+  inputs the store also has** (the requester's prefix + the group), so the store **recomputes** the
+  target and matches it against the chain — it never rests on a per-member secret the request does
+  not carry (which would make the walk non-performable and silently force the fail-open path).
 - **The O(1) happy path (opt-out).** A rescinded member has a **content-addressed rescission
   lookup** — a tiny `{ inception, termination }` log derived from
   `{ group, the rescission topic, the member }` — whose termination **pins to the grant delta that

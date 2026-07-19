@@ -19,8 +19,8 @@ features → apps. Gated by [membership](vdti-area-membership.md) (who may appen
 [group-key](vdti-area-group-key.md).
 
 **Invariants:** [inv 16] attribution by prefix (the writer at a path's root, inherited via the backward link),
-[inv 19] signatures over the fully-compacted SAID (each node bound to its writer), [inv 17] keep-all-data (both
-fork siblings surface, so a single-parent fork is data-local provable), [inv 8] the writer's key-state is
+[inv 19] signatures over the fully-compacted SAID (each node bound to its writer), [inv 17] keep-all-data (fork
+siblings surface on propagation → a single-parent fork is data-local provable once both reach a reader), [inv 8] the writer's key-state is
 current-as-of-authoring (the feature's sender-key-currency bound). A **multi-parent** node is additionally
 witnessed via its **custody anchor** ([inv 14], [inv 16] the anchored write); a **single-parent** chat node is a
 store-and-forward blob, **not** individually witnessed — fork detection is **propagation + signature**, not
@@ -47,9 +47,12 @@ receipts.
 - **Single-parent — a lane (chat).** Exactly one `previous` per node; a member's nodes are a single chain. A
   **second child of a node is a fork = misbehavior** — the writer signed two conflicting successors to one point
   in its own history = self-proving **equivocation** (a crash-resend re-sends the *same* SAID, not a new
-  sibling). Both siblings reach every reader (keep-all-data) and both carry the forker's signature, so it is
-  **data-local provable** without witness cooperation; the consequence is the group's policy (for chat, coupled
-  to membership removal + the epoch turn).
+  sibling). Each node's **content-addressed SAID** commits its content and carries the writer's signature, so
+  the two siblings are provably the same writer's conflicting successors — **undeniable**, no way to pass a fork
+  off as one node. **Surfacing** it needs both siblings to reach a common honest reader: a witnessed node (a doc
+  version) has the receipt beacon; an **unwitnessed** chat node rides propagation, so an eclipse / split delivery
+  only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
+  consequence is the group's policy (for chat, coupled to membership removal + the epoch turn).
 - **Multi-parent — a version graph (shared documents).** A node may name **several** `ancestors`; **branch and
   merge are legitimate** (concurrent editing diverges, a later version reconciles by naming both parents). Two
   successors carry **no** equivocation charge — divergence is the point, merge is the resolution. Monotonicity

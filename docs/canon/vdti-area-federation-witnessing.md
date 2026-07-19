@@ -643,6 +643,34 @@ adversarial pass.
   (a SEL receipt carries only an unguessable lookup-SEL prefix), not on hiding the prefix (KERI AIDs are
   public).
 
+### 1h. An event's witnessed time — the receipt-derived finality timestamp (2026-07-19, for sender-key currency)
+
+Distinct from the federation **clock** (§1f), which is a governance-authored value on federation events bounding
+**witness** key-windows: **an event's witnessed time** is the `τ` of the receipt that brought it to `threshold`
+— order its valid receipts by `τ`, take the `threshold`-th smallest, the instant it became **witnessed-in-full**.
+A single deterministic value every verifier computes from the receipts. It exists because ordinary events (a
+user's rotation, a group-key epoch) have no `clock` of their own, yet sender-key currency ([inv 21]) needs a
+per-event finality time to bound each key-state's validity interval — and the clock, ticking only at federation
+governance events (~yearly, §1f), quantizes (round-3 P0). Its properties:
+
+- **The security-critical direction can't be inflated.** A witnessed event already earned ≥ `threshold`
+  **durable** honest receipts at its true time; an adversary can neither delete them nor move the
+  `threshold`-th-smallest `τ` later by adding late receipts — so read multi-source ([inv 8]), the upper boundary
+  a stale key would need inflated is **pinned in the past**. Pushing it **earlier** needs `threshold`-many
+  witnesses (a full compromise) and only shrinks a past interval or lets the newer key backdate. Each `τ` is
+  capped at `now + CLOCK_TOLERANCE_BAND` and window-bounded. This is byzantine-robust where a per-witness /
+  newest-`τ` reduction is not.
+- **Not self-ordering → checked and reported.** Witnessed times are **distinct per event** (resolving the clock's
+  quantization at any cadence) but two events witnessed within a tolerance band can come out **inverted**. So a
+  consumer **checks** the establishment / epoch times it reads are **in-bounds** (`≤ now + CLOCK_TOLERANCE_BAND`)
+  and **non-decreasing along the chain**, and **reports on its verification token** — a structural violation
+  **bails** (fail-secure), an in-bounds-but-out-of-order pair is **reported**, never silently treated as a valid
+  empty interval. The same compute-check-report discipline every chain-validity property rides.
+
+Consumed by: sender-key currency's **key-state validity intervals** (an IEL establishment interval + a device KEL
+key-window — inv 21, area-exchange §3) and a **group-key epoch's window** (area-exchange §7a). The design-doc
+statement is `substrate/federation/witnessing.md §An-event's-witnessed-time`.
+
 ## 2. Mined from kels-216 — patterns that carry (confirm in land)
 - **Receipts indexed by `(prefix, serial)`**, *not* event SAID — structural; this is what lets **competing receipts
   at a position** aggregate into one detectable signal. *(kels' threshold-two-events — both branches at threshold —

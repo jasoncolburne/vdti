@@ -136,9 +136,13 @@ right now," which would strand honest mail sent before a routine rotation.
   interval, so a live message passes; an honest message sent before a later rotation still falls in
   its now-closed interval and is **accepted**, so a rotation no longer strands in-flight mail.
   Because each boundary is an event's **own** witnessed time — not the federation clock, which ticks
-  only at federation governance events — successive rotations at **any** cadence carry **distinct**
-  boundaries, so intervals never collapse to empty. A chain read the infrastructure already provides
-  — **data-only**, leaning on no node's word.
+  only at federation governance events — it has **per-event granularity** at any rotation cadence,
+  resolving the quantization a governance clock would impose. Witnessed times are **not**
+  self-ordering, so the recipient **checks** the establishment times are in-bounds and
+  non-decreasing along the chain and **reports** on its verification token — a structural violation
+  bails (fail-secure), an in-bounds-but-out-of-order pair is reported, never a silent empty
+  interval. A chain read the infrastructure already provides — **data-only**, leaning on no node's
+  word.
 - **What it bounds, and what it doesn't.** A **captured-then-rotated** key — a stolen old key
   signing under its since-abandoned key-state — can still be backdated **within** the now-closed
   interval it was valid for, but it is **stuck there**: that interval lies in the past, and a
@@ -211,10 +215,15 @@ degenerate group of two** — the same machinery, no separate two-party construc
   timestamp, so a tip-append cannot be backdated (a stamp earlier than the tip's is malformed,
   rejected on the same footing as a broken signature). Because each message has exactly one
   `previous`, a **second child of any message is a fork = equivocation** — the writer signed two
-  conflicting successors to one point in its own lane; both siblings reach every reader (nothing is
-  dropped) and both carry the writer's signature, so the fork is **self-proving evidence**, not a
-  benign resend (a crash-resend re-sends the same SAID, not a new sibling). The group couples the
-  consequence to `chat-membership` removal + the epoch turn.
+  conflicting successors to one point in its own lane. Each message's **public SAID** commits its
+  (encrypted) content — a high-entropy `nonce` keeps that SAID unguessable, so a guessable body
+  can't be confirmed against it — so a writer that ciphers two different payloads produces two
+  provably-same-writer SAIDs sharing one `previous`: an **undeniable** fork, never a benign resend
+  (a crash-resend re-sends the same SAID). Surfacing it needs the sibling SAIDs to reach a common
+  honest member — the normal propagation case; an eclipse or split delivery only **defers**
+  detection (the standard _detection-is-eventual_ residual, reported when the siblings converge), it
+  cannot disguise a fork as one message. The group couples the consequence to `chat-membership`
+  removal + the epoch turn.
 - **Currency: the signature is checked against the writer's own key-window; the epoch bounds when.**
   Chat's authenticity uses the **same key-window mail does** — the signature verifies against the
   writer's signing key-state, valid per the **writer's own witnessed KEL/IEL** interval, each
