@@ -648,7 +648,12 @@ adversarial pass.
 Distinct from the federation **clock** (§1f), which is a governance-authored value on federation events bounding
 **witness** key-windows: **an event's witnessed time** is the `τ` of the receipt that brought it to `threshold`
 — order its valid receipts by `τ`, take the `threshold`-th smallest, the instant it became **witnessed-in-full**.
-A single deterministic value every verifier computes from the receipts. It exists because ordinary events (a
+A single value every verifier holding the **same receipts** computes identically — though not unconditionally
+per-verifier deterministic (with `signers > threshold`, a verifier handed only the latest `threshold` receipts
+computes a **later** crossing; accumulating receipts moves it only earlier; a receipt-curating eclipse can inflate
+a boundary by at most the honest receipt spread, and every consequence stays inside an accepted class — a later
+closing boundary widens the accepted backdate sliver, a later opening boundary fails secure, sub-`threshold`
+withholding is query-scoped + freshness-barred; PR#25 r3 cold-P3-2). It exists because ordinary events (a
 user's rotation, a group-key epoch) have no `clock` of their own, yet sender-key currency ([inv 21]) needs a
 per-event finality time to bound each key-state's validity interval — and the clock, ticking only at federation
 governance events (~yearly, §1f), quantizes (round-3 P0). Its properties:

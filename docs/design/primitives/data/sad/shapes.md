@@ -170,13 +170,14 @@ sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/rec
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                                 | Carries                                                                                                            | Status      |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------- |
-| `vdti/sel/v1/grants/directory-ml-kem-1024`           | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints. | forthcoming |
-| `vdti/sel/v1/grants/directory-ml-kem-768`            | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                        | forthcoming |
-| `vdti/sel/v1/grants/groupkey-epoch-key`              | A group epoch key, ESSR-wrapped once per member device.                                                            | forthcoming |
-| `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.                                                               | forthcoming |
-| `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.                                                                 | forthcoming |
+| Kind                                                 | Carries                                                                                                                                                                                                                     | Status      |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `vdti/sel/v1/grants/directory-ml-kem-1024`           | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints.                                                                                                          | forthcoming |
+| `vdti/sel/v1/grants/directory-ml-kem-768`            | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                                                                                                                                 | forthcoming |
+| `vdti/sel/v1/grants/groupkey-epoch-key`              | A group epoch key, ESSR-wrapped once per member device.                                                                                                                                                                     | forthcoming |
+| `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.                                                                                                                                                                        | forthcoming |
+| `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.                                                                                                                                                                          | forthcoming |
+| `vdti/sel/v1/grants/chat-membership`                 | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role. | forthcoming |
 
 Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
 encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the
@@ -328,16 +329,16 @@ The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
 from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no
 `previous`) carries `writer` to root the lane; every later message inherits it, so the field never
-duplicates what the lane already says. That **root is anchored** by the `chat-membership` grant that
-admits the writer, so a writer has exactly one honored lane per membership period — an unanchored
-root is rejected ([membership](../../protocols/membership.md) /
-[exchange](../../../features/exchange.md)). The lane is a **single-parent
-[authored DAG](../../protocols/authored-dag.md)**: `(epoch, timestamp)` is **non-decreasing** along
-`previous` (a backdated tip-append is malformed), and a **second child of a message is a fork =
-equivocation** (self-signed evidence; a crash-**resend** carries the same SAID — a dedup — so
-whether a fork is misbehavior is the group's policy, not automatic). The writer's signature over
-`said` rides **adjacent** (the universal rule — a SAD carries no signature over its own SAID), so
-there is no signature field.
+duplicates what the lane already says. That **root is anchored** by a `chat-membership` grant-chain
+act (a body-less join marker the writing device mints), so each writing **device** has exactly one
+honored lane per membership period — an unanchored root is rejected
+([membership](../../protocols/membership.md) / [exchange](../../../features/exchange.md)). The lane
+is a **single-parent [authored DAG](../../protocols/authored-dag.md)**: `(epoch, timestamp)` is
+**non-decreasing** along `previous` (a backdated tip-append is malformed), and a **second child of a
+message is a fork = equivocation** (self-signed evidence; a crash-**resend** carries the same SAID —
+a dedup — so whether a fork is misbehavior is the group's policy, not automatic). The writer's
+signature over `said` rides **adjacent** (the universal rule — a SAD carries no signature over its
+own SAID), so there is no signature field.
 
 ### Policy — `vdti/policy/v1/{group}/*`
 
@@ -356,13 +357,13 @@ A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../
 
 The kinds whose role is fixed but whose exact field layout is owed, with where each lands:
 
-| Kind / SAD                                                                                                                                                                                                 | Lands at                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                                                                                    | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
-| Shared-document grant values (`shared-document-governance`, `shared-document-read-governance`) + grant-doc + read grant-doc + rescind-doc                                                                  | the shared-documents encode                                  |
-| Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a `grants` entry anchors the writer's lane root, a `rescinds` entry records its lane-tip `bound`) | the exchange encode                                          |
-| Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals                                                                     | the exchange encode                                          |
-| Replica-set SAD (the `availability.replicas` target)                                                                                                                                                       | the vdtid encode                                             |
+| Kind / SAD                                                                                                                                                                                                                                                                                                          | Lands at                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                                                                                                                                                                                             | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
+| Shared-document grant values (`shared-document-governance`, `shared-document-read-governance`) + grant-doc + read grant-doc + rescind-doc                                                                                                                                                                           | the shared-documents encode                                  |
+| Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a grant-chain entry anchors a writing device's body-less lane-root marker; a `rescinds` entry records each device lane's `bound` on the rescission `Trm`'s `bound` role) + the body-less join-marker shape | the exchange encode                                          |
+| Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals                                                                                                                                                                              | the exchange encode                                          |
+| Replica-set SAD (the `availability.replicas` target)                                                                                                                                                                                                                                                                | the vdtid encode                                             |
 
 ## Cross-references
 

@@ -58,10 +58,14 @@ store-and-forward transport.
   - **A membership change** — an add or a remove seals a **fresh** epoch to the new set. A removal
     gives **forward secrecy** (the removed member cannot open new epochs); a joiner **cannot read
     past epochs** (their keys were never wrapped to it, and epochs are independent). A removal
-    installs the new epoch at once, and a message under the **retired** epoch is rejected past the
-    removal, so a lagging sender cannot keep a just-removed member readable. The one residual: a
-    message a lagging sender emits under the retired epoch **before** it sees the removal is still
-    readable by the removed member — bounded by how fast senders observe the change.
+    installs the new epoch at once, and a retired-epoch message **stamped outside that epoch's
+    witnessed window** (as current, past the removal) is rejected by the sender-key-currency
+    epoch-window check ([exchange](../../features/exchange.md)), so a lagging sender cannot pass a
+    just-removed member off as currently readable — while **in-window** late history a member
+    authored while it legitimately held the epoch is the accepted backdate-within-a-held-window
+    residual, not this rejection. The further residual: a message a lagging sender emits under the
+    retired epoch **before** it sees the removal is still readable by the removed member — bounded
+    by how fast senders observe the change.
   - **A time cadence** — after a set interval, the epoch turns even with stable membership, so a
     compromised epoch key exposes only that window.
 - **Checkpoints keep verification bounded.** A long-lived group accrues a great many epoch events on

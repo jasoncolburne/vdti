@@ -253,7 +253,7 @@ degenerate group of two.**
   **current** member backdating below its advanced tip must **fork its own lane** — a self-signed equivocation any
   reader surfaces, confined, never forward. A **removed** member is **fully closed at the verifier**: a frozen-tip
   forward-append into a retired epoch it held is cut by the `chat-membership` removal's **lane-tip `bound`**, and a
-  **fresh parentless root** is rejected because admission **anchored** the one honored lane (its history pinned to
+  **fresh parentless root** is rejected because a grant-chain act **anchored** each writing device's lane (its history pinned to
   `[anchored root … bound]`). The **residual** is a **dormant current** member (never removed, valid key)
   forward-appending into an epoch it held but was silent for — the accepted backdate-within-a-held-window class,
   own lane, timestamp advisory; the opt-in anchor strengthens it. The self-asserted timestamp never establishes
@@ -270,10 +270,15 @@ instance of the [membership](vdti-area-membership.md) primitive — a **distinct
 the group-key wrap roster (the roster is member-materialized + blind to the store; chat composes **both** — the
 roster to distribute the epoch key, `chat-membership` to authorize a requester). Per-requester (fail-secure walk
 by default, O(1) content-addressed rescission lookup — keyed on the member's **grant instance**, not the bare
-prefix (PR#25 r2 W5) — under a latency budget), never materializing the set; **admission anchors the writer's lane
-root, and removal rescinds the grant + records the lane-tip `bound` as the same act turns the epoch** — bracketing
-the member's honored lane **`[anchored root … bound]`** (disjoint per membership period; a fresh unanchored root
-is rejected — PR#25 r2 W1/cold-P1). Retires round-3 F3 **and** the round-2
+prefix (PR#25 r2 W5) — under a latency budget), never materializing the set. The store check is per **identity**
+(any of a member's devices reads), while each writing **device** anchors its own lane **on-demand** — a body-less
+join marker registered by a governing grant-chain act (never a member self-attestation: a removed member still
+controls its own devices). **Removal rescinds the grant + records a per-device-lane `bound` on the rescission
+`Trm`'s `bound` role as the same act turns the epoch** — bracketing each writing device's honored lane
+**`[anchored root … bound]`** (disjoint per membership period; a fresh unanchored root is rejected; a
+missing/unresolvable `bound` reads fail-secure — PR#25 r2 W1/cold-P1 + r3 cold-P1). A **divergent** sender/writer
+chain freezes the read like any live `t_use` consumer — **Disputed → refuse**, a content fork proceeds on the
+single sealed spine (PR#25 r3 cold-P2-2). Retires round-3 F3 **and** the round-2
 "readers-grant" open. The lane's monotonicity + fork rule + anchored root is the
 [authored-DAG](vdti-area-authored-dag.md) single-parent variant (round-3 F4 + PR#25 r2 W1). _(Offline catch-up, the 1:1 path,
 and the anchoring policy resolved — decisions 1/2/3.)_ The roster storage, the epoch-SEL length bound / checkpoint

@@ -325,8 +325,17 @@ A witnessed event gathers receipts, each carrying its witness's asserted time `�
 payload (above). The event's **witnessed time** is the `τ` of the receipt that brought it to
 `threshold` — order the event's valid receipts by `τ` and take the `threshold`-th smallest: the
 instant at which `threshold`-many witnesses had attested at or before it, i.e. **when the event
-became witnessed-in-full**. It is a single deterministic value every verifier computes identically
-from the receipts, distinct from any one witness's `τ`.
+became witnessed-in-full**. It is a single value every verifier holding the **same receipts**
+computes identically, distinct from any one witness's `τ` — though not unconditionally per-verifier
+deterministic: with `signers > threshold`, a verifier handed only the **latest** `threshold` valid
+receipts computes a **later** crossing than one holding the earliest, and accumulating receipts
+moves it only **earlier** (monotone downward). A receipt-curating adversary (eclipse-class — it must
+control which receipts your sources hand you) can inflate a computed boundary by at most the
+**honest receipt spread** (the slack witnesses' in-window `τ`s, gossip-latency scale), and the
+consequences stay inside accepted classes: a later **closing** boundary only widens the
+already-accepted backdate-into-closed-interval sliver, a later **opening** boundary refuses honest
+edge messages (fail-secure), and full withholding below `threshold` is closed by query-scoping plus
+the freshness bar.
 
 It is **robust against a byzantine minority**, which a per-witness or "newest `τ`" reduction is not,
 and the security-critical direction is the strongest: the crossing **cannot be pushed later**. A
@@ -357,12 +366,13 @@ Witnessed times are **not self-ordering**, though: two establishment events witn
 tolerance band can come out inverted. So a currency consumer **checks** the establishment times it
 reads are **in-bounds** (`≤ now + CLOCK_TOLERANCE_BAND`) and **non-decreasing along the chain** and
 **reports the result on its verification token** — a structural violation **bails** (fail-secure),
-an in-bounds-but-out-of-order pair is **reported** (the informative-token model, §The token reports
-its own completeness), never silently treated as a valid empty interval. This is the same
-compute-check-report discipline every chain-validity property rides. Consumers use the witnessed
-time as the time boundary wherever a witnessed event needs one: the **key-state validity intervals**
-a message's sender-key currency reads ([`../../features/exchange.md`](../../features/exchange.md))
-and a **group-key epoch's window**.
+an in-bounds-but-out-of-order pair is **reported and the message whose interval that inversion makes
+untrustworthy is refused** (the informative-token model, §The token reports its own completeness),
+never silently treated as a valid empty interval. This is the same compute-check-report discipline
+every chain-validity property rides. Consumers use the witnessed time as the time boundary wherever
+a witnessed event needs one: the **key-state validity intervals** a message's sender-key currency
+reads ([`../../features/exchange.md`](../../features/exchange.md)) and a **group-key epoch's
+window**.
 
 ## Query-scoping and the audit flag
 

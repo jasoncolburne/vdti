@@ -122,16 +122,16 @@ right now," which would strand honest mail sent before a routine rotation.
   send-time `timestamp`. The recipient reads the sender's **witnessed** chains against a
   **multi-source freshness bar** — read to the tip; a single-source or eclipsed read is **refused**,
   fail-secure — and confirms the signature was current on **both** axes at the claimed time: **(i)**
-  `senderPin`'s **IEL establishment interval** is still open — an eviction or roster change closes
-  it, even though it never touches an evicted device's own KEL — and the signature meets that
-  establishment's roster + `t_use`; **(ii)** each signing **device's KEL** key-window is open — a
-  harvested rotated-out device key is closed here. Each interval is bounded by the **witnessed
-  times** of the sender's own establishment events — its IEL _spine_ (the events that establish each
-  key-state) and its devices' KEL rotations — where an event's **witnessed time** is the instant it
-  became witnessed-in-full, the receipt τ that brought it to threshold
-  ([witnessing](../substrate/federation/witnessing.md#an-events-witnessed-time)), a consensus value
-  no byzantine minority can move. The message is accepted only if its `timestamp` falls in the
-  interval its key-state was current for **and is not future-dated**
+  `senderPin`'s **IEL establishment interval** was **open at that `timestamp`** — an eviction or
+  roster change closes it, even though it never touches an evicted device's own KEL — and the
+  signature meets that establishment's roster + `t_use`; **(ii)** each signing **device's KEL**
+  key-window was **open at that same time** — a harvested rotated-out device key is closed here.
+  Each interval is bounded by the **witnessed times** of the sender's own establishment events — its
+  IEL _spine_ (the events that establish each key-state) and its devices' KEL rotations — where an
+  event's **witnessed time** is the instant it became witnessed-in-full, the receipt τ that brought
+  it to threshold ([witnessing](../substrate/federation/witnessing.md#an-events-witnessed-time)), a
+  consensus value no byzantine minority can move. The message is accepted only if its `timestamp`
+  falls in the interval its key-state was current for **and is not future-dated**
   (`timestamp ≤ now + the clock tolerance band`). A still-current key-state has an **open**
   interval, so a live message passes; an honest message sent before a later rotation still falls in
   its now-closed interval and is **accepted**, so a rotation no longer strands in-flight mail.
@@ -140,9 +140,16 @@ right now," which would strand honest mail sent before a routine rotation.
   resolving the quantization a governance clock would impose. Witnessed times are **not**
   self-ordering, so the recipient **checks** the establishment times are in-bounds and
   non-decreasing along the chain and **reports** on its verification token — a structural violation
-  bails (fail-secure), an in-bounds-but-out-of-order pair is reported, never a silent empty
-  interval. A chain read the infrastructure already provides — **data-only**, leaning on no node's
-  word.
+  bails (fail-secure), an in-bounds-but-out-of-order pair is reported **and the message whose
+  interval that inversion makes untrustworthy is refused**, never a silent empty interval. A chain
+  read the infrastructure already provides — **data-only**, leaning on no node's word.
+- **A divergent sender chain freezes the read, like any live `t_use` consumer.** Reading the
+  sender's key-state is a live authority check, so it obeys the fork-gate. On a **Disputed** sender
+  (≥ 2 competing sealed spines) the establishment interval has no single answer, so the check
+  **refuses** (fail-secure); on a **content fork** (the sealed spine is single, key-state untouched)
+  the closed-interval acceptance of already-witnessed history soundly proceeds. IPEX and credentials
+  state the same gate at their presentation checks; for **chat**, the writer's own chains are read
+  the same way.
 - **What it bounds, and what it doesn't.** A **captured-then-rotated** key — a stolen old key
   signing under its since-abandoned key-state — can still be backdated **within** the now-closed
   interval it was valid for, but it is **stuck there**: that interval lies in the past, and a
@@ -216,18 +223,19 @@ degenerate group of two** — the same machinery, no separate two-party construc
   rejected on the same footing as a broken signature). Because each message has exactly one
   `previous`, a **second child of any message is a fork = equivocation** — the writer signed two
   conflicting successors to one point in its own lane. A second **root**, by contrast, is not a fork
-  — two roots share no parent — so a writer's single lane is enforced by its **grant-anchored root**
-  (the `chat-membership` grant that admits the writer registers its lane root), not by
-  single-parenthood: an unanchored root is rejected. Each message's **public SAID** commits its
-  (encrypted) content — a high-entropy `nonce` keeps that SAID unguessable, so a guessable body
-  can't be confirmed against it — so a writer that ciphers two different payloads produces two
-  provably-same-writer SAIDs sharing one `previous`: an **undeniable same-writer fork** (a
-  crash-**resend** re-sends the same SAID — a dedup; only a crash before persisting its record,
-  re-authored with a fresh nonce, is a genuine honest sibling — the policy, not the structure, calls
-  it misbehavior). Surfacing it needs the sibling SAIDs to reach a common honest member — the normal
-  propagation case; an eclipse or split delivery only **defers** detection (the standard
-  _detection-is-eventual_ residual, reported when the siblings converge), it cannot disguise a fork
-  as one message. The group couples the consequence to `chat-membership` removal + the epoch turn.
+  — two roots share no parent — so a writing **device's** single lane is enforced by its
+  **grant-anchored root** (a body-less join marker the device mints, registered by a
+  `chat-membership` grant-chain act), not by single-parenthood: an unanchored root is rejected. Each
+  message's **public SAID** commits its (encrypted) content — a high-entropy `nonce` keeps that SAID
+  unguessable, so a guessable body can't be confirmed against it — so a writer that ciphers two
+  different payloads produces two provably-same-writer SAIDs sharing one `previous`: an **undeniable
+  same-writer fork** (a crash-**resend** re-sends the same SAID — a dedup; only a crash before
+  persisting its record, re-authored with a fresh nonce, is a genuine honest sibling — the policy,
+  not the structure, calls it misbehavior). Surfacing it needs the sibling SAIDs to reach a common
+  honest member — the normal propagation case; an eclipse or split delivery only **defers**
+  detection (the standard _detection-is-eventual_ residual, reported when the siblings converge), it
+  cannot disguise a fork as one message. The group couples the consequence to `chat-membership`
+  removal + the epoch turn.
 - **Currency: the signature is checked against the writer's own key-window; the epoch bounds when.**
   Chat's authenticity uses the **same key-window mail does** — the signature verifies against the
   writer's signing key-state, valid per the **writer's own witnessed KEL/IEL** interval, each
@@ -279,14 +287,17 @@ degenerate group of two** — the same machinery, no separate two-party construc
   wrap roster is materialized _by members_ (with the read gate) to key each epoch and is **blind to
   the store**, so the store cannot authorize against it — chat composes **both**, the roster to
   distribute the epoch key and `chat-membership` to authorize a requester, the way any keyed group
-  does. A **member removal rescinds the `chat-membership` grant** — recording a **lane-tip `bound`**
-  (the member's last message) the verifier enforces — as the same act turns the epoch, so a removed
-  member can no longer deposit or drain, nor backfill its lane past the bound, nor mint a **fresh
-  lane** (its admission grant anchored the one lane the verifier honors, so a second parentless root
-  is unanchored → rejected — see currency, above). A downloader enumerates nothing (the grant is
-  participant-blind); the store, handed a self-identifying requester, only ever confirms that one —
-  so a non-member can neither deposit a chat blob nor drain one, and learning that a requester who
-  showed up holds a grant is the mechanism working, not a leak.
+  does. The store check is per **identity** (any of a member's devices proves it, so all its devices
+  read), while **writing** is per **device** — each writing device anchors its own lane on-demand. A
+  **member removal rescinds the `chat-membership` grant** — recording a **`bound`** for each of the
+  member's anchored device lanes (that device's last message) the verifier enforces — as the same
+  act turns the epoch, so a removed member can no longer deposit or drain, nor backfill any lane
+  past its bound, nor mint a **fresh lane** (a writing device's lane root is anchored by a
+  grant-chain act, so a second parentless root is unanchored → rejected — see currency, above). A
+  downloader enumerates nothing (the grant is participant-blind); the store, handed a
+  self-identifying requester, only ever confirms that one — so a non-member can neither deposit a
+  chat blob nor drain one, and learning that a requester who showed up holds a grant is the
+  mechanism working, not a leak.
 - **Delivery and retention are group-scoped.** A chat message's blob is one ciphertext readable by
   every member, scoped by `availability.replicas` to the **group's nodes** (the members' inbox
   hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
@@ -326,9 +337,12 @@ Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
   [membership](../primitives/protocols/membership.md) instance: SEL topic
   `vdti/exchange/v1/topics/chat-membership` (the grant chain the store checks per-requester) and its
   grant value `vdti/sel/v1/grants/chat-membership` (the `{ grants, rescinds }` delta grant-doc;
-  exact field layout forthcoming). A `grants` entry anchors the admitted writer's **lane root**; a
-  `rescinds` entry records the removed writer's lane-tip **`bound`** — together they bracket the
-  writer's honored lane `[root … bound]`, and a removal also turns the epoch for forward secrecy.
+  exact field layout forthcoming). Reading is gated per **identity** (any of a member's devices);
+  only a **writing device** anchors a lane — a `grants` (or later grant-chain) entry anchors that
+  device's **body-less lane-root marker**, and a `rescinds` entry records each anchored device
+  lane's **`bound`** (its lane tip, on the rescission `Trm`'s `bound` role), together bracketing
+  each writing device's honored lane `[root … bound]`; a removal also turns the epoch for forward
+  secrecy.
 - **Mail-payload inner shape**: `vdti/exchange/v1/schemas/mail-payload` — the ESSR inner payload a
   mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
   `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and
@@ -369,3 +383,14 @@ epoch/roster/KDF names belong to those primitives; exchange defines none of them
   (fail-secure): the bar **shrinks the detection window, it does not close it** — a consumer
   eclipsed to a malicious subset sees the truth after the heal, so a decision made inside the window
   can transiently trust a stale read, and a high-value open re-verifies before acting.
+- **A chat message's authenticity is one device's signature, not a `t_use` quorum.** Mail
+  authenticates with the sender's `t_use` quorum; a chat message authenticates with a **single**
+  writing device's signature, attributed to its owning identity. So one compromised member device
+  can author chat history in that identity's name — bounded by the device's KEL window, its epoch
+  membership, and its own lane. A strictly lower bar than mail's quorum, deliberate (a per-message
+  quorum is impractical for a high-volume conversation).
+- **Chat's home nodes see the writer set.** A lane-root marker carries the writing device's KEL
+  prefix in **cleartext** (the receiver needs it to pick the per-writer subkey), so the group's
+  storage nodes passively learn who has written and when — the chat instance of the
+  communication-graph-at-home-nodes residual above, beyond the confirm-one-requester framing of the
+  participant-blind store check.

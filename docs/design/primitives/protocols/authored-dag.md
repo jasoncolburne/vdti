@@ -70,12 +70,12 @@ yields a **forest**: a writer can mint a second parentless **root** (a disjoint 
 rule never fires on it — two roots share no parent, so neither is a "second child" of the other. And
 unlike a fork, two roots are **not self-proving**: a fork is undeniable from the two siblings and
 their shared parent alone, but two roots are just two validly-signed lanes, with nothing intrinsic
-marking which is the writer's real one. So the composing feature **anchors the root** — a chat
-lane's root is registered by the `chat-membership` grant that admits the writer
-([membership](membership.md)), so the lane is created at admission and begins at an anchored point —
-and a verifier honors only the lane rooted there; an **unanchored root is rejected** data-locally.
-That is what makes "one lane per writer" a rule rather than a hope, and it is what closes a removed
-member's fresh-root backdate (below).
+marking which is the writer's real one. So the composing feature **anchors the root** — for chat, a
+writing device's lane root is a body-less **join marker** it mints (with its device key alone),
+registered by a `chat-membership` grant-chain act ([membership](membership.md)) — and a verifier
+honors only the lane rooted there; an **unanchored root is rejected** data-locally. That is what
+makes "one lane per writer" a rule rather than a hope, and it is what closes a removed member's
+fresh-root backdate (below).
 
 ### Multi-parent — a version graph (shared documents)
 
@@ -105,10 +105,11 @@ divergence is.
   fork rule never fires on) is rejected because the feature **anchors** each lane's root (above) —
   an unanchored root is not honored. The two brackets — the **anchored root** on the way in, the
   **`bound`** on the way out — pin a removed writer's honored history to exactly `[root … bound]`
-  ([membership](membership.md)). The DAG gives monotonicity; the feature gives the root anchor and
-  the removal bound. (A **current**, non-removed writer that merely went dormant can still
-  forward-append into an epoch it held but was silent for — no bound, valid key — the accepted
-  backdate-within-a-held-window residual, confined to its own lane.)
+  (to the anchored root alone if it wrote nothing past it) ([membership](membership.md)). The DAG
+  gives monotonicity; the feature gives the root anchor and the removal bound. (A **current**,
+  non-removed writer that merely went dormant can still forward-append into an epoch it held but was
+  silent for — no bound, valid key — the accepted backdate-within-a-held-window residual, confined
+  to its own lane.)
 - **Node witnessing is the feature's, not the DAG's.** A document version is **anchored** on its
   editor's identity (custody direct-anchor) and so is witnessed; a chat message is a
   store-and-forward blob and is **not** individually witnessed — its fork detection rests on

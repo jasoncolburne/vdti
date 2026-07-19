@@ -80,8 +80,11 @@ subkey of it), by the consumer.
     **forward secrecy** (the removed member cannot read new epochs); a joiner **cannot read past epochs** (past
     keys were never wrapped to it, and epochs are independent). **Switchover discipline:** a removal **installs
     the new epoch immediately**, senders **must** encrypt under the new epoch once they observe the removal, and
-    a message under the **retired** epoch is **rejected** after the removal boundary — else a lagging sender's
-    old-epoch message stays readable / forgeable by the just-removed member. The wrap-set is bound to the
+    a retired-epoch message **stamped as current** (outside that epoch's witnessed window) is **rejected** by the
+    sender-key-currency epoch-window check (`vdti-area-exchange.md` §7a / [inv 21]) after the removal boundary —
+    else a lagging sender's current-stamped old-epoch message stays readable / forgeable by the just-removed
+    member; **in-window** late history a member authored while it legitimately held the epoch is the accepted
+    backdate-within-a-held-window residual, not this rejection (PR#25 r3 cold-P2-3). The wrap-set is bound to the
     membership rescission, not an author's local view. **Residual:** a message a lagging sender emits under the
     retired epoch **before** it observes the removal is still readable by the just-removed member (a removal
     can't retroactively unsend it); the window is bounded by how fast senders observe the removal, and closes

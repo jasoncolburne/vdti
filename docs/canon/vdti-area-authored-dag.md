@@ -58,8 +58,9 @@ receipts.
   single-parenthood alone yields a **forest** — a second parentless **root** is a disjoint lane the fork rule
   never fires on (two roots share no parent), and two roots are **not self-proving** the way a shared-parent fork
   is (nothing intrinsic marks which is the writer's real one). So the composing feature **anchors the lane root**
-  — the `chat-membership` grant that admits the writer registers it, and a verifier honors only the lane rooted
-  there; an unanchored root is **rejected** data-locally ([membership](vdti-area-membership.md)).
+  — for chat, a writing **device's** lane root is a body-less join marker it mints, registered by a
+  `chat-membership` grant-chain act, and a verifier honors only the lane rooted there; an unanchored root is
+  **rejected** data-locally ([membership](vdti-area-membership.md)).
 - **Multi-parent — a version graph (shared documents).** A node may name **several** `ancestors`; **branch and
   merge are legitimate** (concurrent editing diverges, a later version reconciles by naming both parents). Two
   successors carry **no** equivocation charge — divergence is the point, merge is the resolution. Monotonicity

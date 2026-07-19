@@ -18,9 +18,12 @@ it seals a **membership delta** — `{ grants, rescinds }`:
 - **`grants`** — identities admitted, each as a **blinded per-member commitment** (the same
   `{ said, nonce, data }` claim construction [credentials](../../features/credentials.md) use for
   per-predicate gating): the commitment names the member without publishing who, so an onlooker
-  reading the chain learns a count, never a roster. A grant may also carry a **feature admission
-  anchor** — for chat, the writer's **lane root** (below) — the companion to the `rescinds` `bound`.
-- **`rescinds`** — identities removed, each a blinded target, optionally carrying a **grandfather
+  reading the chain learns a count, never a roster. A grant-chain event may also carry a **feature
+  lane anchor** — for chat, a writing **device's lane root** (below), anchored on-demand — the
+  companion to the `rescinds` `bound`.
+- **`rescinds`** — identities removed, each a **blinded `target`** (derived from the member's grant
+  instance — the same no-guessing rationale as the O(1) address; a raw-prefix target would leak
+  removal-status to a guessing onlooker on the chain), optionally carrying a **grandfather
   boundary** (below).
 
 A membership change is one such delta. There is no separate "add" and "remove" event — one delta
@@ -50,11 +53,13 @@ same fail-secure / fail-open split a credential's revocation check uses:
   blinded-claim `said`**, not the bare prefix — a raw-prefix address would be a
   confirm-a-guessed-removal oracle, reopening for removals exactly what the grant-side `nonce`
   closes for admissions; keyed on the grant instance, the address is no more guessable than the
-  grant it locates) — whose termination **pins to the grant delta that rescinded it** (its pin is
-  that delta event's `previous`, so the pin points straight at the delta carrying the rescind).
-  Fetch it: **found → rescinded**, no walk. The grant side is symmetric — a member's grant is
-  located directly by its own pin. A consumer under a latency budget opts down to this; **not-found
-  reads best-effort not-rescinded**, so it is a deliberate step down from the walk, never a step up.
+  grant it locates) — whose **termination `Trm` records the removal** and carries the lane-tip
+  **`bound` on the `Trm`'s `bound` role** (a gated rescind-doc — the same carrier a document-member
+  rescission uses), so the verifier reads both the removal and its cutoff from the `Trm` itself, no
+  cross-SEL pin. Fetch it: **found → rescinded**, no walk. The grant side is symmetric — a member's
+  grant is located directly by its own pin. A consumer under a latency budget opts down to this;
+  **not-found reads best-effort not-rescinded**, so it is a deliberate step down from the walk,
+  never a step up.
 
 Both modes check **one identity at a time**. Neither ever builds the set.
 
@@ -77,21 +82,32 @@ blinded `target` and an optional grandfather `bound`. The `bound` is what a **ve
 so a removed member is cut at a **provable** point, not just refused live by the untrusted store.
 What it points to is the feature's:
 
-- **Chat — the lane is bracketed `[anchored root … bound]`.** Admission and removal set the two
-  ends. **Admission anchors the lane root:** the grant that admits the member registers its lane's
-  root (the lane is created at admission), so a verifier honors only the lane rooted at that
-  anchored point and rejects any **fresh parentless root** the member mints later — a removed member
-  cannot fabricate a second lane, because the fork rule never fires across two roots (they share no
-  parent) and two roots are not self-proving, so the anchor is the fact that distinguishes the real
-  one. **Removal records `bound`** = the member's **last message** on that lane; the verifier honors
-  the lane **only up to the bound** and cuts any message **past** it — closing the removed member's
-  monotone forward-append into a **retired** epoch it held (a forward step within a past epoch is
-  monotone, so it is not a fork and nothing else would surface it). The **epoch turning** gives
-  forward secrecy for **new** epochs; the **anchor + bound** pin the member's honored history to
-  `[root … bound]` for that membership period — the three together, not the store's deposit check,
-  bind it. **Membership periods are disjoint anchored lanes:** a re-added member's grant anchors a
-  **new** root, so its later stint is a fresh lane with its own bracket, never a continuation past
-  the old bound.
+- **Chat — each writing device's lane is bracketed `[anchored root … bound]`.** Reading and writing
+  gate differently: the store's per-requester check gates **reading and deposit** at the
+  **identity** level (any of a member's devices proves it), while **writing** is per **device** — a
+  lane _is_ a device (its subkey is keyed on the device prefix), so only a device that actually
+  writes needs an anchored lane, and a member's read-only devices anchor nothing. **Anchoring the
+  root:** a writing device's lane root is a **body-less join marker** it mints with its **device key
+  alone** (no epoch key — which it does not yet hold at admission), and a **governing grant-chain
+  act anchors that marker's SAID** — at admission if the device is already known to write (one
+  event), else a later act when the device first writes (**on-demand**). The verifier honors only
+  the lane rooted at the anchored marker and rejects any **fresh parentless root** a device mints
+  outside it — a removed member cannot fabricate a second lane, because the fork rule never fires
+  across two roots (they share no parent) and two roots are not self-proving, so the anchor is the
+  fact that distinguishes the real one. Anchoring **must** be the governing grant-chain act, never a
+  member self-attestation: a removed member still controls its own devices, so a self-anchor would
+  reopen the fresh-lane hole. **Removal records a `bound`** per anchored device lane = that device's
+  **last message** (or the **anchored marker itself** if the device wrote nothing past it); the
+  verifier honors the lane **only up to the bound** and cuts any message **past** it — closing the
+  removed member's monotone forward-append into a **retired** epoch it held. For chat the `bound` is
+  **required** on every rescind, and a missing or unresolvable `bound` reads **fail-secure** (honor
+  the anchored marker only, nothing past it). The **epoch turning** gives forward secrecy for
+  **new** epochs; the **anchor + bound** pin each device's honored history to `[root … bound]` — the
+  three together, not the store's deposit check, bind it. A **crash at the root** does not brick the
+  lane: the marker is minted before the anchoring act (re-mint freely until anchored) and, once
+  anchored, re-fetchable by the SAID the grant chain records. **Membership periods are disjoint
+  anchored lanes:** a re-added member's device anchors a **new** marker, so its later stint is a
+  fresh lane with its own bracket, never a continuation past the old bound.
 - **Grandfathered** — content the member authored (or was entitled to) **before** the bound stays
   honored, only its reach past the bound is cut. A shared document uses this so a removed editor's
   earlier versions do not retroactively vanish.
@@ -107,8 +123,9 @@ convention, and the two that exist are parallel:
 
 - **`chat-membership`** — the set a chat's store checks to gate deposit and fetch. Bounded in
   practice (the chat is a keyed group, so group-key already caps it), but checked the same
-  one-at-a-time way; admission anchors the writer's lane root and removal records its lane-tip
-  `bound`, so each membership period is a disjoint bracketed lane (above).
+  one-at-a-time way; the check is per **identity** (any device reads), while each writing **device**
+  anchors its own lane on-demand and removal records a per-lane `bound`, so each device's membership
+  period is a disjoint bracketed lane (above).
 - **`document-membership`** — the set a shared document's store checks to gate read and write.
   Genuinely unbounded (an open readership), grandfather-rescinded.
 
