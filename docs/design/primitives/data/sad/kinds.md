@@ -14,8 +14,9 @@ catalogues: **derivation tags and SEL topics**
 
 Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segments, always:
 
-- **`component`** — the subsystem that owns it: `kel` / `iel` / `sel` / `event` / `witness` / `log`
-  / `doc` / `exchange` / `essr` / `ipex` / `groupkey` / `directory` / `cred` / `policy` / `gossip`.
+- **`component`** — the subsystem that owns it: `kel` / `iel` / `sel` / `sad` / `event` / `witness`
+  / `log` / `doc` / `exchange` / `essr` / `ipex` / `groupkey` / `directory` / `cred` / `policy` /
+  `gossip`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
   `schemas` / `claims` / `protocols` / `actions` / `states` / `topics`. This is the common set; a
@@ -51,6 +52,12 @@ Every SAD carries one of these. **The chain events:**
 The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their
 own.
+
+**The SAD-layer content SADs:**
+
+| Kind                       | What it is                                                                                                                                                                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/sad/v1/schemas/file` | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
 
 **The protocol-primitive SADs:**
 

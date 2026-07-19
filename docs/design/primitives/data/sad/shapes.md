@@ -3,8 +3,8 @@
 Every piece of content in VDTI is a [SAD](sad.md), and its [`kind`](kinds.md) names its type. This
 doc is the companion to those two: [`kinds.md`](kinds.md) enumerates the kinds, and this doc gives
 each kind's **shape** — the fields it carries. It covers the **standalone SADs** in full (receipts,
-configs, grant values, credentials, shared-document SADs, the ESSR and IPEX protocol messages,
-policy). For the **chain events**, the authoritative per-kind field tables live in
+configs, grant values, credentials, shared-document SADs, the ESSR and IPEX protocol messages, file
+payloads, policy). For the **chain events**, the authoritative per-kind field tables live in
 [`../event-logs/event-shape.md`](../event-logs/event-shape.md); this doc summarizes their common
 envelope and points there rather than restating them.
 
@@ -13,10 +13,11 @@ or primitive encode named in its source; the [Forthcoming shapes](#forthcoming-s
 collects them.
 
 Types read as: **SAID** / **prefix** — a 256-bit digest (a SAID addresses content, a prefix names a
-chain); **SAD** — a **nested sub-SAD** at that position (referenced by its SAID, but expandable
-content the signing discipline must have seen — distinct from a scalar **SAID** reference like a
-`previous`, a pin, or an anchor); **string**; **u64** — an unsigned integer; **bool**; **bytes**;
-**timestamp** — an RFC 3339 time; **list⟨T⟩**.
+chain); **digest** — a 256-bit content-address of a raw opaque **blob** (Blake3-256 of the bytes;
+distinct from a **SAID**, which addresses a canonical SAD); **SAD** — a **nested sub-SAD** at that
+position (referenced by its SAID, but expandable content the signing discipline must have seen —
+distinct from a scalar **SAID** reference like a `previous`, a pin, or an anchor); **string**;
+**u64** — an unsigned integer; **bool**; **bytes**; **timestamp** — an RFC 3339 time; **list⟨T⟩**.
 
 ## The two shapes
 
@@ -48,6 +49,27 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
   public).
 - **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
   everywhere), `ttl` a retention bound, `once` a destructive-read flag.
+
+## The file payload — `vdti/sad/v1/schemas/file`
+
+The SAD layer's general content wrapper: a standalone SAD that names **bulk opaque bytes** — an
+encrypted payload, a file, media — as a **content-addressed blob** rather than inlining them
+([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)).
+
+| Field       | Type   | Required | Meaning                                                           |
+| ----------- | ------ | -------- | ----------------------------------------------------------------- |
+| `said`      | SAID   | yes      | The file SAD's SAID.                                              |
+| `kind`      | string | yes      | `vdti/sad/v1/schemas/file`.                                       |
+| `digest`    | digest | yes      | Blake3-256 content-address of the raw blob — committed by `said`. |
+| `size`      | u64    | yes      | The blob's byte length.                                           |
+| `mediaType` | string | no       | Advisory MIME type.                                               |
+| `name`      | string | no       | Advisory filename.                                                |
+| `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.       |
+
+The `custody` / `availability` wrapper applies as to any standalone SAD: `custody.readers` gates who
+may fetch, and `availability` governs the referenced **blob** (its replicas, TTL, one-shot) as well
+as the SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest** from
+the store's blob path and accepted only when its recomputed digest matches `digest`.
 
 ## Chain events
 
@@ -148,17 +170,31 @@ sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/rec
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                                 | Carries                                                                                         | Status      |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------- |
-| `vdti/sel/v1/grants/directory-ml-kem-1024`           | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation). | forthcoming |
-| `vdti/sel/v1/grants/directory-ml-kem-768`            | The reduced-tier ML-KEM-768 receive key.                                                        | forthcoming |
-| `vdti/sel/v1/grants/groupkey-epoch-key`              | A group epoch key, ESSR-wrapped once per member device.                                         | forthcoming |
-| `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.                                            | forthcoming |
-| `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.                                              | forthcoming |
+| Kind                                                 | Carries                                                                                                            | Status      |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------- |
+| `vdti/sel/v1/grants/directory-ml-kem-1024`           | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints. | forthcoming |
+| `vdti/sel/v1/grants/directory-ml-kem-768`            | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                        | forthcoming |
+| `vdti/sel/v1/grants/groupkey-epoch-key`              | A group epoch key, ESSR-wrapped once per member device.                                                            | forthcoming |
+| `vdti/sel/v1/grants/shared-document-governance`      | The grant-doc — `editors` / `commenters` role-lists.                                                               | forthcoming |
+| `vdti/sel/v1/grants/shared-document-read-governance` | The read grant-doc — the `readers` role-list only.                                                                 | forthcoming |
 
 Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
 encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the
 role-lists).
+
+The **directory receive-key** grant value carries the reachability a sender needs — the key to seal
+to and where to deliver:
+
+| Field         | Type         | Meaning                                                            |
+| ------------- | ------------ | ------------------------------------------------------------------ |
+| `said`        | SAID         | The grant value's SAID.                                            |
+| `kind`        | string       | `vdti/sel/v1/grants/directory-ml-kem-1024` (or `-768`).            |
+| `receiveKey`  | bytes        | The scheme-tagged ML-KEM public key others seal to.                |
+| `attestation` | bytes        | Optional — a vendor-signed hardware attestation.                   |
+| `nodeHints`   | list⟨string⟩ | The storage nodes where a message sealed to this key is deposited. |
+
+(The scheme-tagged key and attestation byte layouts land at the encoding library; the structural
+fields — including the `nodeHints` exchange delivers against — are fixed here.)
 
 ## Protocol SADs
 
@@ -167,22 +203,25 @@ role-lists).
 The **envelope** (`vdti/essr/v1/schemas/envelope`) — the signed cleartext; its signature rides
 adjacent ([`../../protocols/essr.md`](../../protocols/essr.md)):
 
-| Field              | Type   | Meaning                                                                    |
-| ------------------ | ------ | -------------------------------------------------------------------------- |
-| `said`             | SAID   | The envelope SAID — commits every field below; the signature is over it.   |
-| `kind`             | string | `vdti/essr/v1/schemas/envelope`.                                           |
-| `sender`           | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).   |
-| `senderPin`        | SAID   | The sender's establishment event current at signing — the verifying state. |
-| `recipient`        | prefix | The recipient's IEL prefix (signed — the recipient binding).               |
-| `kemCiphertext`    | bytes  | The key-encapsulation to the recipient's receive key.                      |
-| `encryptedPayload` | bytes  | The sealed inner, under the key derived from the encapsulated secret.      |
-| `nonce`            | bytes  | The sealing nonce (fresh random per message).                              |
+| Field           | Type   | Meaning                                                                                           |
+| --------------- | ------ | ------------------------------------------------------------------------------------------------- |
+| `said`          | SAID   | The envelope SAID — commits every field below; the signature is over it.                          |
+| `kind`          | string | `vdti/essr/v1/schemas/envelope`.                                                                  |
+| `sender`        | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).                          |
+| `senderPin`     | SAID   | The sender's establishment event current at signing — the verifying state.                        |
+| `recipient`     | prefix | The recipient's IEL prefix (signed — the recipient binding).                                      |
+| `kemCiphertext` | bytes  | The key-encapsulation to the recipient's receive key — small, inline (derives the key).           |
+| `payloadDigest` | digest | Commitment to the sealed inner (the encrypted payload) — a content-addressed blob, not the bytes. |
+| `payloadSize`   | u64    | The encrypted payload's byte length.                                                              |
+| `nonce`         | bytes  | The sealing nonce (fresh random per message).                                                     |
 
 The **inner** (`vdti/essr/v1/schemas/inner`, sealed) is `{ said, kind, sender, payload }` — the
 sender prefix (the binding that rides inside the sealed content) and the opaque payload; a message
-timestamp or protocol label rides _inside_ `payload`, not as an envelope field. The **message**
-(`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the envelope SAD plus
-the sender's signature over `envelope.said`.
+timestamp or protocol label rides _inside_ `payload`, not as an envelope field. The **sealed inner
+(the ciphertext) is not carried in the envelope** — it rides as a content-addressed blob named by
+the envelope's `payloadDigest` (+ `payloadSize`), fetched by digest and checked before decryption.
+The **message** (`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the
+envelope SAD plus the sender's signature over `envelope.said`.
 
 ### IPEX — `vdti/ipex/v1/*`
 
@@ -265,9 +304,25 @@ shared-documents encode
 
 ### Exchange — `vdti/exchange/v1/*`
 
-The exchange-message and session-message shapes (`vdti/exchange/v1/schemas/*`) are **forthcoming** —
-at the exchange encode. The sealed one-to-one envelope is its own protocol primitive — see
-[Protocol SADs](#protocol-sads).
+Exchange defines one message SAD of its own — the **chat message**, on a per-sender lane. The
+one-off async message is the **ESSR message** (Protocol SADs above — its envelope names the payload
+by digest), scoped to the recipient's inbox nodes by `availability`; the issuance/presentation
+messages (`apply` / `offer` / …) are **IPEX**'s (above).
+
+The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on the writer's lane:
+
+| Field           | Type      | Meaning                                                                         |
+| --------------- | --------- | ------------------------------------------------------------------------------- |
+| `said`          | SAID      | The message SAID; the writer signs it.                                          |
+| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                             |
+| `previous`      | SAID      | The writer's **own** prior message on this lane; absent at lane start.          |
+| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).   |
+| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob.                          |
+| `payloadSize`   | u64       | The body's byte length.                                                         |
+| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency). |
+
+There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
+from the lane, decrypts, and verifies the writer's signature.
 
 ### Policy — `vdti/policy/v1/{group}/*`
 
@@ -291,7 +346,6 @@ The kinds whose role is fixed but whose exact field layout is owed, with where e
 | Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                   | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
 | Shared-document grant values (`shared-document-governance`, `shared-document-read-governance`) + grant-doc + read grant-doc + rescind-doc | the shared-documents encode                                  |
 | Replica-set SAD (the `availability.replicas` target)                                                                                      | the vdtid encode                                             |
-| Exchange + session message shapes                                                                                                         | the exchange encode                                          |
 
 ## Cross-references
 

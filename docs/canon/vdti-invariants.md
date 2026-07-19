@@ -988,6 +988,23 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     category error that invites confidentiality creep into the control story. *Src:* Jason 2026-07-18.
     `[locked-candidate]`
 
+21. **A pinned key-state authenticates only if it is the signer's *current* witnessed state — else time-bind it
+    another way (sender-key currency; Jason 2026-07-18).** Authenticating a party by a signature verified against
+    the key-state its message **pins** (a `senderPin`) is sound only if that pinned state is the signer's
+    **current** establishment state, read against the **witnessed** KEL (multi-source, inv 8). A
+    **captured-then-rotated** key — a stolen old key signing under its since-abandoned key-state — reads stale and
+    is **refused**, so a rotation *recovers* messaging and the threat collapses to the ordinary
+    signing-key-compromise limit (inv 13). A verifier **requirement**, not new machinery — a chain read the
+    infrastructure already provides. Two constructions bind the time another way where "current-now" is too strict
+    or unavailable: **(a)** a message MAY be **anchored** — its SAID committed on an `Ixn` the current signing key
+    authors at the current position, which a stale key cannot forge and any verifier reads on the witnessed chain
+    (provable liveness; a per-message opt-in for non-repudiable messages); **(b)** a **long-lived group message**
+    binds not to current-now but to its **witnessed epoch window** — it decrypts only under that epoch's per-sender
+    subkey, and the epoch is a witnessed SEL event carrying a federation-clock window, so a since-rotated key is
+    current only for the epochs it actually spanned (the group-key epoch model). A self-asserted timestamp never
+    establishes currency — it only orders messages within a bound the chain already fixes. *Src:* Jason
+    2026-07-18. `[locked-candidate]`
+
 ## Document-layer evaluation (confirmed — see document-policy §C)
 - **The evaluation model is a single as-issued function** — `evaluate_as_issued` (consumes the anchoring positions,
   resolves leaves as-of): one shared composer + one leaf resolver, reconciled to the reshape (leaf set, no

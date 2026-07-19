@@ -36,6 +36,12 @@ The three sub-fields compose freely — a SAD MAY declare any combination (e.g.,
 replication + bounded TTL + non-destructive read; or default replication + no TTL + one-shot
 delivery).
 
+When a SAD names bulk bytes as a **content-addressed blob** rather than inlining them
+([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)), the blob is
+the bytes this `availability` governs: the `replicas` scope, `ttl`, and `once` semantics apply to
+the referenced blob, not only the SAD wrapper. Scoping a `file` SAD's `replicas` to a recipient's
+storage nodes therefore places the blob there and nowhere else.
+
 ## Scope
 
 Availability applies to **standalone SADs only.** Chain events (KEL, IEL, SEL) have a fixed

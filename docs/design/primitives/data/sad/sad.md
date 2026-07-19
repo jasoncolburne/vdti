@@ -24,10 +24,10 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   units. Their kind-specific schemas have no slots for custody or availability fields, so those
   fields cannot appear on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
-  replica sets, and the content payloads SEL events anchor. Stored in the SAD object store and
-  retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field
-  and per-object replication scope via an independent [`availability`](availability.md) field on the
-  same wrapper.
+  replica sets, file payloads, and the content payloads SEL events anchor. Stored in the SAD object
+  store and retrieved by SAID. MAY carry per-object authority via a top-level
+  [`custody`](custody.md) field and per-object replication scope via an independent
+  [`availability`](availability.md) field on the same wrapper.
 
 A chain event is a SAD with additional structural commitments — chain identity, monotonic position,
 continuity via `previous`. A standalone SAD is independently addressable and carries its content
@@ -99,6 +99,28 @@ wire bytes as-is.
 The reference graph composes: a parent SAD's SAID commits to the SAIDs of its referenced children,
 which commit to their own children, and so on. An adversary cannot substitute any node in the graph
 without changing every SAID at-and-above that node.
+
+## Bulk opaque bytes — the content-addressed blob
+
+Composition by SAID (above) is for **structured** children — nested SADs that canonicalize and
+expand for disclosure. Bulk **opaque** bytes — an encrypted payload, a file, media — are different:
+canonical SADs are JCS text, so inlining raw bytes base64-encodes them, bloating a large payload by
+roughly a third and forcing every reader to carry the whole blob just to verify its parent. So a SAD
+names bulk bytes by **digest** rather than inlining them. The bytes live in the store as a
+**content-addressed blob** — raw, addressed by the Blake3-256 digest of the bytes themselves (a
+`digest`, not a SAID over a canonical SAD) — and the referencing SAD carries a `{ digest, size }`
+reference. Because the SAD's SAID commits that reference, the parent's signature covers the exact
+bytes by binding; a consumer fetches the blob separately and accepts it only when its recomputed
+digest matches.
+
+A content-addressed blob is **not itself a SAD** — it is opaque bytes, so it carries no `kind`, no
+`custody`, no nested structure. Everything structured about it — its type, who wrote it, who may
+read it, where the bytes live and for how long — rides the **`file` SAD** that names it
+([`shapes.md`](shapes.md)); the blob is only that SAD's payload, governed by the SAD's
+[`availability`](availability.md) (replication scope, TTL, one-shot) and written under an
+authorization the storage service enforces
+([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md),
+forthcoming).
 
 ## Adversarial framing
 

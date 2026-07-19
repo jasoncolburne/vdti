@@ -186,8 +186,8 @@ Everything below sits **outside** IPEX:
   inside an ESSR envelope. IPEX carries cleartext-structured SADs; the choice to seal is the
   caller's.
 - **Transport and delivery.** Routing, store-and-forward, the serve-time gate — the
-  [exchange / mail](../../features/exchange.md) _(forthcoming)_ feature. IPEX defines the messages;
-  the feature moves them.
+  [exchange / mail](../../features/exchange.md) feature. IPEX defines the messages; the feature
+  moves them.
 - **Revocation status.** Whether the disclosed credential is still live is the **caller's**
   fail-secure check — the issuer's revocation declaration plus its lookup log
   ([`../data/event-logs/iel/events.md`](../data/event-logs/iel/events.md)) — read at verification

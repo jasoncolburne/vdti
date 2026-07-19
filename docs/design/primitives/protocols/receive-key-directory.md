@@ -26,6 +26,13 @@ There is deliberately no single "identity-wide" key. One shared key would funnel
 through one device; instead each device publishes its own, and a sender reaches the whole identity
 by fanning out over them (below).
 
+Alongside each published key, the identity publishes **inbox-node hints** — the storage nodes where
+a message sealed to that key is deposited — so a sender learns, in one lookup, both the key to seal
+to and where to deliver. A recipient lists several nodes for redundancy, and a send deposits to
+each. The hints are a **discovery fact**, not a channel: they say _where_ a recipient reads its
+mail, so its routing is visible only to its own nodes rather than gossiped federation-wide
+([exchange](../../features/exchange.md)).
+
 Publishing — or changing — a key takes the identity's **rotation reserve** — its tier-2 authority,
 held apart from the everyday signing key, not the signing key alone. So an attacker who steals a
 signing key **cannot** swap the key others seal to and begin reading the identity's mail. Changing a
@@ -85,8 +92,9 @@ re-publishing at a fresh lineage.
 - **Reaching all devices in one operation** — the fan-out and the epoch-key wrap that build on it
   are the caller's and the [group-key](group-key.md) primitive's; the directory only resolves one
   key per selector.
-- **Delivery** — moving a sealed message is transport's job; the directory is a lookup, not a
-  channel.
+- **Delivery** — the directory publishes **where** a recipient reads its mail (the inbox-node hints
+  above, a discovery fact); actually **moving** the bytes there is transport's job. The directory is
+  a lookup, not a channel.
 - **A device's signing key** — the directory publishes only the encapsulation (receive) key. A
   device's signing key and its identity's authority live in the key and identity logs.
 - **Witnesses** — a witness publishes **no** receive key. Its channel is an ephemeral,
