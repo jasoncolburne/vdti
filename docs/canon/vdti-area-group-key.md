@@ -37,7 +37,8 @@ subkey of it), by the consumer.
 
 - **The member roster — a bounded, enumerable, gated/blinded SEL.** The epoch key must be wrapped to each
   current member's devices, so the primitive must **enumerate** the members (then, via each one's directory, their
-  devices) — unlike the shared-documents access-list, which is deliberately unbounded and never materialized. So the roster is a **bounded, enumerable** set (capped like
+  devices) — unlike a [membership](vdti-area-membership.md) set (the per-requester authorization primitive), which
+  is deliberately **unbounded and never materialized**. So the roster is a **bounded, enumerable** set (capped like
   `MAXIMUM_ROSTER_SIZE`), **gated / blinded**: member prefixes ride **read-gated opaque SAIDs** — enumerable by
   members (a member materializes the wrap-set), **blind to witnesses** (who see only opaque anchors, never the
   membership graph). This applies the shared-documents read-gating discipline to a bounded enumerable set, so the
@@ -158,7 +159,13 @@ The two consumers realize the rest their own way:
 - **The 1:1 seal** — ESSR, below (the primitive calls it, does not define it).
 - **Bulk data encryption, message structure (lanes), per-message signatures, delivery** — the consuming feature.
 - **Membership governance** (who is admitted / removed, under what authority) — a **T2 act** the feature / app
-  drives; the primitive consumes the resulting bounded roster.
+  drives; the primitive consumes the resulting bounded roster. **This bounded wrap roster is not the
+  [membership](vdti-area-membership.md) set** — membership is the separate, **unbounded, per-requester**
+  authorization check a keyed feature **also** composes (chat authorizes a store requester by `chat-membership`,
+  *and* wraps the epoch key by this roster). The two move together at the one membership event (a removal
+  rescinds the membership grant as it turns the epoch), but they are opposite-shaped structures: the wrap roster
+  is bounded and materialized **only because wrapping a key forces enumeration**; the cap is keying's, not
+  membership's.
 - **A member's device receive keys** — the [receive-key directory](vdti-area-receive-key-directory.md)
   (shared-core, owned by the member's own identity IEL); the group reads it to fan out, never owns it.
 - **The 1:1 degenerate case; re-obtaining _missed past-epoch_ keys (history retention)** — consumer / feature

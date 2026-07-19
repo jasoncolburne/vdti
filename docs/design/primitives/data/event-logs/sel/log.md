@@ -366,4 +366,4 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
   inherits.
 - [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
   [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
-  consumers (both forthcoming).
+  consumers (shared-documents forthcoming).

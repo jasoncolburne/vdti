@@ -356,4 +356,4 @@ sealed branches → Disputed, exactly as any two sealed events would be.
   or a rescission is interpreted (the feature layer; the SEL states only the kill structure).
 - [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
   [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
-  consumers (both forthcoming).
+  consumers (shared-documents forthcoming).

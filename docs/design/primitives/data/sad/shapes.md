@@ -327,8 +327,12 @@ The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
 from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no
 `previous`) carries `writer` to root the lane; every later message inherits it, so the field never
-duplicates what the lane already says. The writer's signature over `said` rides **adjacent** (the
-universal rule — a SAD carries no signature over its own SAID), so there is no signature field.
+duplicates what the lane already says. The lane is a **single-parent
+[authored DAG](../../protocols/authored-dag.md)**: `(epoch, timestamp)` is **non-decreasing** along
+`previous` (a backdated tip-append is malformed), and a **second child of a message is a fork =
+equivocation** (self-signed, evidence — not a benign resend). The writer's signature over `said`
+rides **adjacent** (the universal rule — a SAD carries no signature over its own SAID), so there is
+no signature field.
 
 ### Policy — `vdti/policy/v1/{group}/*`
 
@@ -351,6 +355,8 @@ The kinds whose role is fixed but whose exact field layout is owed, with where e
 | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                   | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
 | Shared-document grant values (`shared-document-governance`, `shared-document-read-governance`) + grant-doc + read grant-doc + rescind-doc | the shared-documents encode                                  |
+| Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc                                   | the exchange encode                                          |
+| Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals    | the exchange encode                                          |
 | Replica-set SAD (the `availability.replicas` target)                                                                                      | the vdtid encode                                             |
 
 ## Cross-references

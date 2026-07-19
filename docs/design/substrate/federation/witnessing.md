@@ -319,6 +319,37 @@ Resubmission is idempotent (dedup by SAID), so resubmitting any event doubles as
 resubmitting a _stale-pin_ event never fixes it (the pin is baked into its SAID) — the fix is
 rebind, then submit a new event.
 
+## An event's witnessed time
+
+A witnessed event gathers receipts, each carrying its witness's asserted time `τ` inside the signed
+payload (above). The event's **witnessed time** is the `τ` of the receipt that brought it to
+`threshold` — order the event's valid receipts by `τ` and take the `threshold`-th smallest: the
+instant at which `threshold`-many witnesses had attested at or before it, i.e. **when the event
+became witnessed-in-full**. It is a single deterministic value every verifier computes identically
+from the receipts, distinct from any one witness's `τ`.
+
+It is **robust against a byzantine minority**, which a per-witness or "newest `τ`" reduction is not.
+To sit at the threshold-crossing position a value needs `threshold`-many receipts at or below it, so
+a sub-threshold set of colluding witnesses cannot move the crossing — not **earlier** (that needs
+`threshold`-many receipts below the honest cluster, which a minority cannot supply) and not
+**later** (the honest receipts at or below the true time already reach `threshold`). Each `τ` is
+independently bounded — capped at `now + CLOCK_TOLERANCE_BAND` and valid only inside its signer's
+key-window — so a rogue future- or past-dated `τ` is discarded before it can skew the crossing. The
+witnessed time is therefore a consensus timestamp for **when an event became final**, carried by the
+same receipts the currency gate already trusts threshold-many-strong.
+
+This is **distinct from the federation clock**. The clock (a governance-authored `clock` role) times
+**federation governance events** and bounds **witness** key-windows — which cannot be
+receipt-derived without circularity, since a receipt counts only if its `τ` sits inside the signer's
+window. An ordinary event (a user's rotation, a group-key epoch) has no such circularity — its
+authors are not its witnesses — so its finality time is read from its **own** receipts. Because the
+witnessed time comes from the event's own receipts rather than the federation clock (which advances
+only at federation governance events, roughly yearly), **successive events at any cadence carry
+distinct witnessed times** — a user rotating monthly, an epoch turning hourly — so intervals derived
+from them never collapse to empty. Consumers use it as the time boundary wherever a witnessed event
+needs one: the **key-state validity intervals** a message's sender-key currency reads
+([`../../features/exchange.md`](../../features/exchange.md)) and a **group-key epoch's window**.
+
 ## Query-scoping and the audit flag
 
 Events reach the nodes that need them over the federation's gossip mesh — roster-wide push-gossip

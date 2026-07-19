@@ -46,10 +46,10 @@ kels signs it with the ordinary key; vdti puts it behind `t_authorize`@T2 so a s
 it). Sealed envelopes are delivered by a **mail** service that stores opaque blobs **scoped to the
 recipient's own inbox nodes** (`availability.replicas` = the recipient's published node hints — no
 federation-wide gossip of the communication graph). On open, the recipient **binds the signature to the
-sender's witnessed key-state _window_** — the `senderPin` key-state's validity window from the federation
-clock, the same clock-window discipline receipts and epochs use, so an honest pre-rotation message is
-accepted and a captured-then-rotated key is bounded to its now-closed window; an optional message-anchor
-gives an *end-verifiable* send-time. The feature is a **verification +
+sender's witnessed key-state _window_** — the `senderPin` key-state's validity window bounded by the sender's
+own **witnessed establishment times** (each establishment event's threshold-crossing receipt τ, §3), so an
+honest pre-rotation message is accepted and a captured-then-rotated key is bounded to its now-closed window; an
+optional message-anchor gives an *end-verifiable* send-time. The feature is a **verification +
 discovery + transport** layer; confidentiality/authenticity is ESSR, integrity of the key is the chain.
 That is **mode 1** (ESSR, one-offs); a second **session mode** carries long-lived, ratcheting group chat
 over the same spine (§1a / §7a).
@@ -110,19 +110,12 @@ discipline, the hardware-resident keys, and optional attestation are the directo
 
 ## 3. Sender-key currency — bind the signature to the witnessed key-state window; anchor for an end-verifiable send-time
 
-- **Default: bind to the `senderPin` key-state's validity interval, bounded by the federation clock (reworked
-  2026-07-19; boundary derivation pinned 2026-07-19b).** ESSR's `open` extracts the sender's key at `senderPin`
-  (a SAID, §1); the recipient reads the sender's witnessed KEL/IEL (multi-source, inv 8) and reads, for each
-  rotation, the **federation-clock time of the federation position that rotation pins to** — a user rotation
-  carries no `clock`; it reads its time from its federation context (federation §1f), a **consensus,
-  governance-authored** value, **not** a per-witness receipt-τ reduction, so **no single witness can inflate a
-  boundary**. Those form a **monotonic sequence of consensus timestamps** `t1 < t2 < …`, and `open` accepts iff
-  the message's `timestamp` falls in the interval `senderPin`'s key-state was current for. A still-current key
+- **Default: bind to the `senderPin` key-state's validity interval, bounded by the sender's own witnessed establishment times (reworked
+  2026-07-19; spine / witnessed-time derivation 2026-07-19c, superseding the 2026-07-19b federation-clock derivation — which quantized to federation governance cadence (~yearly) → empty intervals → re-stranded honest mail, round-3 P0).** ESSR's `open` extracts the sender's key at `senderPin`
+  (an **IEL key-state position**, §1); the recipient reads the sender's witnessed KEL/IEL to the tip under a **multi-source freshness bar** (inv 8; a single-source / eclipsed read **refuses**, fail-secure) and checks the signature was current on **both axes** at the message's `timestamp`: **(i)** `senderPin`'s **IEL establishment interval** is open — an eviction / roster change closes it though it never touches an evicted device's own KEL — and the signature meets that establishment's roster + `t_use`; **(ii)** each signing **device's KEL** key-window is open (a harvested rotated-out device key is closed here) — cold-F2. Each interval is bounded by the **witnessed times** of the sender's own establishment events (its IEL _spine_ + its devices' KEL rotations), where an event's **witnessed time** is the instant it became witnessed-in-full — the receipt τ that brought it to `threshold` (federation §An-event's-witnessed-time). `open` accepts iff the `timestamp` falls in the interval `senderPin`'s key-state was current for **and is not future-dated** (`≤ now + CLOCK_TOLERANCE_BAND`, cold-F11). A still-current key
   has an **open** interval (a live message passes); an honest message sent **before** a later rotation falls in
   the now-closed interval and is **accepted** — so a rotation no longer strands in-flight mail (this
-  **supersedes** the earlier rigid "must be the _current_ tip"). A per-witness receipt-τ reduction would be
-  **wrong** (newest-τ freshness is one-sided; a byzantine selected witness could inflate the **upper** boundary
-  and read a since-rotated key as current); the boundaries are the consensus clock, and its **tolerance band**
+  **supersedes** the earlier rigid "must be the _current_ tip"). **The threshold-crossing witnessed time is byzantine-robust where a per-witness or "newest-τ" reduction is not:** it needs `threshold`-many receipts at or below it, so a sub-threshold set can't move the crossing past the honest cluster; each τ is independently capped at `now + CLOCK_TOLERANCE_BAND` and window-bounded; and because each boundary is the event's **own** witnessed time (not the federation clock), successive rotations at **any** cadence carry **distinct** boundaries, so intervals never collapse. The tolerance band
   (federation §1f) absorbs an honest sender's near-boundary skew. A verifier **requirement**, data-only, no new
   mechanism. **The send-time `timestamp` rides inside the sealed payload** (ESSR carries no cleartext timestamp
   — area-essr §privacy), is **required** on a mail payload, checked **post-decrypt**, and **refuse-on-absent**
@@ -235,22 +228,27 @@ degenerate group of two.**
   per-sender subkey; **authenticity rides the writer's own signature over the message's fully-compacted
   SAID** ([inv 19]) — ML-DSA with the device's current `t_use` key, and **timestamped**. The epoch key
   proves only _"a group member"_; the signature proves _which_ member (ESSR's sender-unforgeability, restored
-  for group mode). **Off-chain by default**, optionally **anchored** for non-repudiation.
+  for group mode). The lane is a **single-parent [authored DAG](vdti-area-authored-dag.md)**: `(epoch,
+  timestamp)` is **non-decreasing** along `previous` (a backdated tip-append is malformed) and a **second child
+  of a message = a fork = self-signed equivocation** (evidence any reader surfaces, not a benign resend —
+  a crash-resend re-sends the same SAID; consequence coupled to `chat-membership` removal + the epoch turn).
+  **Off-chain by default**, optionally **anchored** for non-repudiation.
 - **Message currency: auth against the writer's own IEL key-window; the epoch SEL bounds _when_ (Jason
   2026-07-15 "A2 is a good finding"; two-axis correction 2026-07-19).** Chat's **auth uses the same key-window
   as §3** — the signature verifies against the writer's signing key-state, valid per the **writer's own
-  witnessed KEL/IEL** interval, each boundary the **consensus federation-clock value** of the federation position
-  the rotation pins to (§3 — **not** a per-witness receipt-τ reduction). The **epoch is a _separate_ axis** — the
+  witnessed KEL/IEL** interval, each boundary the **witnessed time** of the writer's own establishment event
+  (the receipt-threshold-crossing τ — §3; **not** a per-witness or newest-τ reduction). The **epoch is a _separate_ axis** — the
   **encryption** key, **not** the auth window: a message decrypts **only** under epoch _N_'s per-sender subkey
   (you must hold that epoch key to produce a readable message), and epoch _N_ is a **witnessed** SEL event whose
-  federation-clock window (read the same way, via the position it pins to) **bounds when** the message was
+  **window — bounded by the witnessed times of epoch _N_'s and _N+1_'s SEL events** — **bounds when** the message was
   authored — the **epoch anchors the key-state selection**, so the chat message has **no** key-state pin and
   needs none. So the check composes two witnessed sources — the **IEL** says whether the signing key was valid,
   the **epoch SEL** says the message was authored within epoch _N_'s window — authentic iff the key was valid
-  (per its IEL interval) at a time inside that window. **Residual** = the intersection: a former member
-  holding both a device's era-valid signing key and epoch _N_'s key can backdate within (its IEL window ∩ epoch
-  _N_'s window) — confined, never forward. The self-asserted timestamp never establishes currency; the two
-  witnessed windows do.
+  (per its IEL interval) at a time inside that window. **Residual** shrinks to a **detectable act** (cold-F4): the lane's `(epoch, timestamp)` monotonicity
+  (the authored-DAG rule, below) kills tip-append backdating, so the standing capability — **every current member
+  with a never-rotated device**, not only a former member — is to **fork its own lane** to inject a node within
+  (its IEL window ∩ epoch _N_'s window); that fork is a self-signed equivocation any reader surfaces — confined,
+  never forward. The self-asserted timestamp never establishes currency; the two witnessed windows do.
 
 **The ratchet is the primitive's.** Epochs advance on a membership change or a time cadence — that, with
 the forward-secrecy and switchover discipline, is the group-key primitive's ([`vdti-area-group-key.md`](vdti-area-group-key.md));
@@ -258,11 +256,15 @@ chat only observes the current epoch. What chat adds over the primitive is the *
 nonce discipline, above) and the **per-message sender signatures** — the two properties a high-traffic chat
 needs that a shared-document does not.
 
-**Open items (§7a — the chat consumer's):** whether the store's **per-requester membership grant** (the
-`readers` mechanism the store checks to authorize a deposit/fetch) is a per-requester **view of the wrap-roster
-membership log** or a **distinct** read/write-authorization SEL alongside it — removal rescinds whichever the
-store checks (Jason's eye, 2026-07-19). _(Offline catch-up, the 1:1 path, and the anchoring policy are
-**resolved** and encoded — decisions 1/2/3.)_ The roster storage, the epoch-SEL length bound / checkpoint
+**Resolved (§7a — the chat consumer's store-auth, 2026-07-19):** the store checks a **`chat-membership`**
+instance of the [membership](vdti-area-membership.md) primitive — a **distinct** grant chain, **not** a view of
+the group-key wrap roster (the roster is member-materialized + blind to the store; chat composes **both** — the
+roster to distribute the epoch key, `chat-membership` to authorize a requester). Per-requester (fail-secure walk
+by default, O(1) content-addressed rescission lookup under a latency budget), never materializing the set;
+**removal rescinds the grant as the same act turns the epoch**. Retires round-3 F3 **and** the round-2
+"readers-grant" open. The lane's monotonicity + fork rule is the
+[authored-DAG](vdti-area-authored-dag.md) single-parent variant (round-3 F4). _(Offline catch-up, the 1:1 path,
+and the anchoring policy resolved — decisions 1/2/3.)_ The roster storage, the epoch-SEL length bound / checkpoint
 cadence, the `SESSION_RATCHET_INTERVAL` value, and the never-raw epoch-key rule are the **primitive's** — see
 [`vdti-area-group-key.md`](vdti-area-group-key.md).
 
@@ -321,3 +323,15 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
   message-anchoring); scoped delivery metadata (§5); the IPEX exchange-message detail (§7); whether **mail** is
   a sibling feature note rather than a section here. (The roster storage, epoch-SEL length bound, and ratchet
   interval are the group-key primitive's — see [`vdti-area-group-key.md`](vdti-area-group-key.md).)
+- **DONE (2026-07-19, round-3 fold).** Sender-key currency reworked to the **spine / witnessed-time** mechanism
+  (§3 + inv 21 + §Model + §7a — boundaries = the sender's own establishment events' witnessed times, the
+  threshold-crossing receipt τ defined in federation §An-event's-witnessed-time; drops the 2026-07-19b
+  federation-clock derivation, round-3 P0; two-axis IEL + KEL, cold-F2). Chat store-auth is the
+  **`chat-membership`** instance of the new [membership](vdti-area-membership.md) primitive (round-3 F3); the
+  chat lane is the single-parent [authored-DAG](vdti-area-authored-dag.md) with monotonicity +
+  fork-is-equivocation (round-3 F4). Reserved `vdti/exchange/v1/topics/chat-membership` +
+  `vdti/sel/v1/grants/chat-membership`; fixed the tags-and-topics SEL-vs-message-topic collision.
+- **⚠ Deferred (shared-documents PR — DO NOT DROP):** the `shared-document-governance` → `document-membership`
+  rename (+ its `shared-document-read-governance` sibling) and wiring shared-docs onto membership + the
+  multi-parent authored-DAG — see [`vdti-area-membership.md`](vdti-area-membership.md) and
+  [`vdti-area-authored-dag.md`](vdti-area-authored-dag.md) Drift → land.

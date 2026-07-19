@@ -88,18 +88,22 @@ The bytes are uploaded through the store's **payload endpoint**, authorized by t
 
 - The request carries the **message's SAID**, the blob, a client-chosen **nonce + timestamp**, and a
   signature over them. The store looks the message up, reads its committed payload digest, hashes
-  the blob and requires a match, checks the timestamp is within a **tight freshness window (~10s)**
-  and the nonce is unseen (a small, bounded replay cache), and verifies the signature **authorizes
-  the requester to write for this message**: for an ESSR/mail message that is the **sender** named
-  in the envelope, under its current key; for a sender-less **chat** message it is a **current group
-  member** (the participant-blind membership check, the same `readers` machinery, resolved one
-  requester at a time). Then it stores the blob, scoped to the message's `availability`.
+  the blob and requires a match, checks the timestamp is within the **clock tolerance band**
+  (`CLOCK_TOLERANCE_BAND` — so an NTP-conforming client is never falsely rejected; the unseen-nonce
+  cache, not a sub-band window, closes replay) and the nonce is unseen (a small, bounded replay
+  cache), and verifies the signature **authorizes the requester to write for this message**: for an
+  ESSR/mail message that is the **sender** named in the envelope, under its current key; for a
+  sender-less **chat** message it is a **current group member** (the participant-blind
+  `chat-membership` check, resolved one requester at a time). Then it stores the blob, scoped to the
+  message's `availability`.
 - On upload the signature **authenticates the uploader** (rate-limiting who may write), and replay
   protection stays light because the write is **content-addressed and idempotent** — a replay
   re-stores identical bytes and changes nothing.
 - **Fetch is the mirror**, and there the nonce + freshness window is **load-bearing** rather than
   belt-and-suspenders: the bytes are served only to a live-signed requester — an ESSR/mail blob to
-  one that proves it controls the **recipient prefix**, a chat blob to a **current member** — and a
+  one that proves it controls the **recipient prefix** (**any current member device** of the
+  recipient IEL suffices — a membership check, **not** a `t_use` quorum, so polling stays a
+  single-device act), a chat blob to a **current member** (the `chat-membership` check) — and a
   captured signed fetch request, if replayable, would be a bearer token for the sealed bytes. A bare
   content-addressed blob carries no `custody` of its own, so this request gate — not `readers` — is
   what gates the bytes; the concrete endpoints are the store service's to specify.
@@ -113,21 +117,28 @@ Opening a message authenticates its sender, and that check is only sound if the 
 against the **window it was actually valid for** — not blindly, and not with a rigid "is it the tip
 right now," which would strand honest mail sent before a routine rotation.
 
-- **On open, place the message in the sender's witnessed rotation timeline.** The envelope names the
-  sender's key-state position (`senderPin`), and the message carries a send-time `timestamp`. The
-  recipient reads the sender's **witnessed** KEL and reads, for each rotation, the
-  **federation-clock time of the federation position that rotation pins to** — a user rotation
-  carries no clock of its own, but it binds to a federation position whose clock is a single,
-  consensus, governance-authored value. Those form a **monotonic sequence of consensus timestamps**
-  `t1 < t2 < t3 …`, and the message is accepted only if its `timestamp` falls in the interval its
-  signing key-state was current for (`[t1, t2)` for the key established at the first rotation, and
-  so on). A key that is still the tip has an **open** interval, so a live message just passes; an
-  honest message sent before a later rotation still falls in the now-closed interval and is
-  **accepted**, so a rotation no longer strands in-flight mail. The boundaries are **consensus**
-  clock values — **not** a per-witness average of receipt times, so no single witness can move one —
-  and the federation clock's **tolerance band** absorbs an honest sender's small skew right at a
-  boundary. This is a chain read the infrastructure already provides — **data-only**, leaning on no
-  node's word.
+- **On open, place the message in the sender's witnessed key-state timeline — on both axes.** The
+  envelope names the sender's **IEL key-state position** (`senderPin`), and the message carries a
+  send-time `timestamp`. The recipient reads the sender's **witnessed** chains against a
+  **multi-source freshness bar** — read to the tip; a single-source or eclipsed read is **refused**,
+  fail-secure — and confirms the signature was current on **both** axes at the claimed time: **(i)**
+  `senderPin`'s **IEL establishment interval** is still open — an eviction or roster change closes
+  it, even though it never touches an evicted device's own KEL — and the signature meets that
+  establishment's roster + `t_use`; **(ii)** each signing **device's KEL** key-window is open — a
+  harvested rotated-out device key is closed here. Each interval is bounded by the **witnessed
+  times** of the sender's own establishment events — its IEL _spine_ (the events that establish each
+  key-state) and its devices' KEL rotations — where an event's **witnessed time** is the instant it
+  became witnessed-in-full, the receipt τ that brought it to threshold
+  ([witnessing](../substrate/federation/witnessing.md#an-events-witnessed-time)), a consensus value
+  no byzantine minority can move. The message is accepted only if its `timestamp` falls in the
+  interval its key-state was current for **and is not future-dated**
+  (`timestamp ≤ now + the clock tolerance band`). A still-current key-state has an **open**
+  interval, so a live message passes; an honest message sent before a later rotation still falls in
+  its now-closed interval and is **accepted**, so a rotation no longer strands in-flight mail.
+  Because each boundary is an event's **own** witnessed time — not the federation clock, which ticks
+  only at federation governance events — successive rotations at **any** cadence carry **distinct**
+  boundaries, so intervals never collapse to empty. A chain read the infrastructure already provides
+  — **data-only**, leaning on no node's word.
 - **What it bounds, and what it doesn't.** A **captured-then-rotated** key — a stolen old key
   signing under its since-abandoned key-state — can still be backdated **within** the now-closed
   interval it was valid for, but it is **stuck there**: that interval lies in the past, and a
@@ -135,22 +146,27 @@ right now," which would strand honest mail sent before a routine rotation.
   produce a message that reads as **current** — a rotation recovers messaging going forward. This is
   the ordinary signing-key-compromise limit — bounded, not prevented — the same residual the group
   epoch accepts. A self-asserted `timestamp` only places the message _within_ its past interval; the
-  interval boundaries, which the federation clock fixes, are the trust anchor.
+  interval boundaries, which the sender's own **witnessed establishment times** fix, are the trust
+  anchor.
 - **The send-time timestamp is a required mail-payload field, checked after decrypt.** ESSR carries
   **no cleartext timestamp** — a deliberate privacy call, keeping timing metadata off the envelope —
-  so a mail message's send-time `timestamp` rides **inside the sealed payload**, and a conforming
-  mail sender **must** include it. The window check is therefore **post-decrypt** (safe: the
-  signature is verified first, and the recipient decrypts its own message), and a payload with
+  so a mail message's send-time `timestamp` rides **inside the sealed payload** (the `mail-payload`
+  inner shape — `{ topic, timestamp, body }`, see [Reserved names](#reserved-names)), and a
+  conforming mail sender **must** include it. The window check is therefore **post-decrypt** (safe:
+  the signature is verified first, and the recipient decrypts its own message), and a payload with
   **no** timestamp is **refused** — fail-secure, since accepting on the signature alone would
   silently void the currency check. (A chat message carries its `timestamp` as a SAD field.)
 - **Optionally, anchor a message for an end-verifiable send-time.** For a high-value, non-repudiable
-  message, the sender commits its SAID on an `Ixn` at its current position — which a stale key
-  cannot forge, and which any verifier (not only the recipient) reads on the sender's witnessed
-  chain, proving the message sat in a witnessed batch by a witness-asserted time, stronger than the
-  window bound. It is a **per-message opt-in**; several messages sent at once share one `Ixn`, the
-  way a batch of issuances does, so it need not cost a chain event apiece — which, like batch
-  issuance, publishes on the sender's own chain that those messages were **co-sent in one batch** (a
-  linkage a per-message anchor would not create, confined to the sender's own messages).
+  message, the sender commits the message's **issuance commitment** — the blinded
+  `hash('vdti/iel/v1/actions/commitment:{sender}:{message.said}')` every owner-anchored SAD uses, so
+  the raw message SAID never appears on the public chain — on an `Ixn` at its current position. A
+  stale key cannot forge it, and any verifier (not only the recipient) reads the anchor on the
+  sender's witnessed chain and **recomputes the commitment from the message to match**, proving the
+  message sat in a witnessed batch by a witness-asserted time, stronger than the window bound. It is
+  a **per-message opt-in**; several messages sent at once share one `Ixn`, the way a batch of
+  issuances does, so it need not cost a chain event apiece — which, like batch issuance, publishes
+  on the sender's own chain that those messages were **co-sent in one batch** (a linkage a
+  per-message anchor would not create, confined to the sender's own messages).
 
 ## Mail — the store-and-forward transport
 
@@ -160,9 +176,10 @@ the recipient find and fetch it:
 - **Deposit** the message SAD + upload its payload (above), scoped to the recipient's inbox nodes →
   the recipient **discovers** it by polling its own nodes → **fetches** the blob through the
   **serve-time gate** — the store serves the bytes only to a requester that proves, with a live
-  signature, that it controls the recipient prefix; the seal already protects confidentiality, so
-  the gate limits store-side harvesting, it does not add integrity → **opens** it (with sender-key
-  currency) → **acknowledges**, and the origin node deletes the bytes.
+  signature, that it controls the recipient prefix (any current member device — a membership check,
+  not a `t_use` quorum); the seal already protects confidentiality, so the gate limits store-side
+  harvesting, it does not add integrity → **opens** it (with sender-key currency) →
+  **acknowledges**, and the origin node deletes the bytes.
 - **Rate limits** bound abuse: per-sender-per-day, a per-recipient inbox cap, a per-node storage
   cap, a per-IP token bucket, a message TTL, and a short dedup window.
 - **Replay** is closed by the stable SAID: a recipient dedups by the message's SAID (the short dedup
@@ -188,43 +205,57 @@ degenerate group of two** — the same machinery, no separate two-party construc
   signature is over the compacted SAID, so any faithful disclosure verifies against it — and the
   message is attributed to that device's **owning identity**, not merely the device. The epoch key
   proves only "a member"; the signature proves **which** member.
+- **The lane is a single-parent [authored DAG](../primitives/protocols/authored-dag.md) — ordered
+  and fork-evident.** Along a lane the ordering key `(epoch, timestamp)` is **non-decreasing**: a
+  message may not sit in an earlier epoch than the message it follows, nor carry an earlier
+  timestamp, so a tip-append cannot be backdated (a stamp earlier than the tip's is malformed,
+  rejected on the same footing as a broken signature). Because each message has exactly one
+  `previous`, a **second child of any message is a fork = equivocation** — the writer signed two
+  conflicting successors to one point in its own lane; both siblings reach every reader (nothing is
+  dropped) and both carry the writer's signature, so the fork is **self-proving evidence**, not a
+  benign resend (a crash-resend re-sends the same SAID, not a new sibling). The group couples the
+  consequence to `chat-membership` removal + the epoch turn.
 - **Currency: the signature is checked against the writer's own key-window; the epoch bounds when.**
   Chat's authenticity uses the **same key-window mail does** — the signature verifies against the
   writer's signing key-state, valid per the **writer's own witnessed KEL/IEL** interval, each
-  boundary a **consensus federation-clock** value read via the federation position the rotation pins
-  to (exactly as for mail — see [Sender-key currency](#sender-key-currency)). The **epoch is a
-  separate axis** — the _encryption_ key — and it does two things, neither of them the auth check: a
-  message decrypts only under epoch _N_'s subkey (so you must hold that epoch key to produce a
-  readable message), and epoch _N_ is a witnessed SEL event whose **federation-clock window** (read
-  the same way, via the position it pins to) **bounds when** the message was authored. The chat
-  message carries **no key-state pin** and needs none, because the **witnessed epoch anchors the
-  time**: the verifier resolves the writer's key-state among those valid **within epoch _N_'s
-  window** and checks the signature, so the self-asserted `timestamp` only selects _within_ that
-  witnessed bound, never outside it. So the check composes two witnessed sources: the **IEL** says
-  whether the signing key was valid, the **epoch SEL** says the message was authored within epoch
-  _N_'s window — authentic iff the key was valid (per its IEL interval) at a time inside that
-  window. The **residual** is their intersection: a former member holding both a device's era-valid
-  signing key and epoch _N_'s key can backdate a message within (that key's interval ∩ epoch _N_'s
-  window) — confined, never forward. A self-asserted timestamp never establishes currency; the two
-  witnessed windows do.
+  boundary the **witnessed time** of the writer's own establishment event (the receipt-threshold
+  crossing τ, exactly as for mail — see [Sender-key currency](#sender-key-currency)). The **epoch is
+  a separate axis** — the _encryption_ key — and it does two things, neither of them the auth check:
+  a message decrypts only under epoch _N_'s subkey (so you must hold that epoch key to produce a
+  readable message), and epoch _N_ is a witnessed SEL event whose **window — bounded the same way,
+  by the witnessed times of epoch _N_'s and _N+1_'s SEL events** — **bounds when** the message was
+  authored. The chat message carries **no key-state pin** and needs none, because the **witnessed
+  epoch anchors the time**: the verifier resolves the writer's key-state among those valid **within
+  epoch _N_'s window** and checks the signature, so the self-asserted `timestamp` only selects
+  _within_ that witnessed bound, never outside it. So the check composes two witnessed sources: the
+  **IEL** says whether the signing key was valid, the **epoch SEL** says the message was authored
+  within epoch _N_'s window — authentic iff the key was valid (per its IEL interval) at a time
+  inside that window. The **residual** shrinks to a **detectable act**: monotonicity along the lane
+  (the lane's ordering rule, above) kills tip-append backdating, so the standing capability — held
+  by **every current member with a never-rotated device**, not only a former member — is to **fork
+  its own lane** to inject a node dated within (its IEL interval ∩ epoch _N_'s window); that fork is
+  a self-signed equivocation any reader surfaces. Confined, never forward, and no longer silent. A
+  self-asserted timestamp never establishes currency; the two witnessed windows do.
 - **Catch-up is the union of your membership periods.** A member decrypts exactly the epochs during
   which it was a member — membership can be intermittent, and it reads **every period it was in**,
   none it was not. Catch-up after being offline is walking the key-epoch SEL from last-seen to
   current and unwrapping the epochs it was a member for; an epoch after a removal stays sealed to it
   (forward secrecy).
-- **Store authorization is a per-requester membership grant.** A chat message is sender-less, so the
-  store cannot gate its upload or fetch on "the sender" the way mail does. Instead the group
-  maintains a **read/write-authorization grant** — the
-  [`readers`](../primitives/data/sad/custody.md) mechanism — that the store checks
-  **per-requester**: it resolves a live-signed request to an identity and confirms a **live grant**
-  for it (a positive lookup, never materializing the set). This is a **different structure** from
-  the group-key **wrap roster**: the wrap roster is materialized _by members_ (with the read gate)
-  to key each epoch and is **blind to the store**, so the store cannot authorize against it —
-  authorization rides the per-requester grant instead. A **member removal rescinds that grant** as
-  it turns the epoch, so a removed member can no longer deposit or drain. A downloader enumerates
-  nothing (the grant is participant-blind); the store, handed a self-identifying requester, only
-  ever confirms that one — so a non-member can neither deposit a chat blob nor drain one, and
-  learning that a requester who showed up holds a grant is the mechanism working, not a leak.
+- **Store authorization is the `chat-membership` set — a per-requester membership check.** A chat
+  message is sender-less, so the store cannot gate its upload or fetch on "the sender" the way mail
+  does. Instead chat composes a [membership](../primitives/protocols/membership.md) instance —
+  **`chat-membership`** — that the store checks **per-requester**: it resolves a live-signed request
+  to an identity and confirms **that one** identity is a current member (the fail-secure walk by
+  default, or the O(1) content-addressed rescission lookup under a latency budget), never
+  materializing the set. This is a **different structure** from the group-key **wrap roster**: the
+  wrap roster is materialized _by members_ (with the read gate) to key each epoch and is **blind to
+  the store**, so the store cannot authorize against it — chat composes **both**, the roster to
+  distribute the epoch key and `chat-membership` to authorize a requester, the way any keyed group
+  does. A **member removal rescinds the `chat-membership` grant** as the same act turns the epoch,
+  so a removed member can no longer deposit or drain. A downloader enumerates nothing (the grant is
+  participant-blind); the store, handed a self-identifying requester, only ever confirms that one —
+  so a non-member can neither deposit a chat blob nor drain one, and learning that a requester who
+  showed up holds a grant is the mechanism working, not a leak.
 - **Delivery and retention are group-scoped.** A chat message's blob is one ciphertext readable by
   every member, scoped by `availability.replicas` to the **group's nodes** (the members' inbox
   hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
@@ -255,10 +286,22 @@ only observes the current epoch and adds the per-lane volume and the per-message
 Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
 ([`../primitives/data/sad/kinds.md`](../primitives/data/sad/kinds.md)):
 
-- **Message topic** (inside the ciphertext): `vdti/exchange/v1/topics/exchange`.
+- **Message topic** — a payload discriminator inside the ciphertext, **not** a SEL inception field:
+  `vdti/exchange/v1/topics/exchange`.
 - **Chat message SAD**: `vdti/exchange/v1/schemas/message` — sender-signed, timestamped,
   epoch-window currency. This is the one message shape exchange owns: the issuance/presentation
   messages (`apply` / `offer` / …) are IPEX's, and the one-off async message is the ESSR message.
+- **Chat-membership SEL** — the store-authorization
+  [membership](../primitives/protocols/membership.md) instance: SEL topic
+  `vdti/exchange/v1/topics/chat-membership` (the grant chain the store checks per-requester) and its
+  grant value `vdti/sel/v1/grants/chat-membership` (the `{ grants, rescinds }` delta grant-doc;
+  exact field layout forthcoming). Rescission is **immediate** — coupled to the epoch turn.
+- **Mail-payload inner shape**: `vdti/exchange/v1/schemas/mail-payload` — the ESSR inner payload a
+  mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
+  `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and
+  `body` is the content (a message, or a carried SAD such as an IPEX message rides). This gives the
+  fail-secure "no timestamp → refuse" rule a defined conforming form; exact field layout
+  forthcoming.
 
 The receive-key grants and directory topic, the ESSR envelope and its KDF context, and the group-key
 epoch/roster/KDF names belong to those primitives; exchange defines none of them.
@@ -289,5 +332,7 @@ epoch/roster/KDF names belong to those primitives; exchange defines none of them
 - **The receive key's swap and rescind attacks are tier-2.** Both changing an identity's published
   receive key and rescinding it require a `t_authorize` act, not a signing key — the primitive's
   concern; see [the directory](../primitives/protocols/receive-key-directory.md).
-- **Eclipse on a key lookup or a sender-KEL read** is defeated by the multi-source freshness bar
-  (fail-secure): a consumer eclipsed to a malicious subset sees the truth after the heal.
+- **Eclipse on a key lookup or a sender-chain read** is bounded by the multi-source freshness bar
+  (fail-secure): the bar **shrinks the detection window, it does not close it** — a consumer
+  eclipsed to a malicious subset sees the truth after the heal, so a decision made inside the window
+  can transiently trust a stale read, and a high-value open re-verifies before acting.
