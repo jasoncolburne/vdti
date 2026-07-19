@@ -80,15 +80,16 @@ by binding, and a recipient accepts the blob only when its recomputed digest mat
 
 The bytes are uploaded through the store's **payload endpoint**, authorized by the message itself:
 
-- The request carries the **message's SAID**, the blob, and a **live signature** over a fresh,
-  store-issued challenge. The store looks the message up, reads its committed payload digest, hashes
-  the blob and requires a match, and verifies the live signature authenticates the requester as the
-  message's **sender**, under that sender's **current** key. Then it stores the blob, scoped to the
-  message's `availability`.
-- The live signature does double duty: it **authenticates the uploader** (the message's own stored
-  signature could be replayed by anyone who saw the message, so the store demands a fresh one), and,
-  being under the sender's current key, it **composes with sender-key currency** below — a
-  captured-then-rotated key cannot produce it.
+- The request carries the **message's SAID**, the blob, and a signature over a client-chosen
+  **nonce + timestamp** — **one round trip**, no store-issued challenge. The store looks the message
+  up, reads its committed payload digest, hashes the blob and requires a match, checks the timestamp
+  is within a **tight freshness window (~10s)** and the nonce is unseen (a small, bounded replay
+  cache), and verifies the signature authenticates the requester as the message's **sender**, under
+  that sender's **current** key. Then it stores the blob, scoped to the message's `availability`.
+- The signature does double duty: it **authenticates the uploader** (rate-limiting who may write),
+  and, being under the sender's current key, it **composes with sender-key currency** below — a
+  captured-then-rotated key cannot produce it. Replay protection stays light by design: the write is
+  **content-addressed and idempotent**, so a replay re-stores identical bytes and changes nothing.
 - The message is deposited **first** (the store needs its body to read the digest), then the payload
   is uploaded against it. A recipient that sees the message before the blob lands reads "payload
   pending" and retries; a digest that is referenced but never uploaded expires by the payload's TTL.
