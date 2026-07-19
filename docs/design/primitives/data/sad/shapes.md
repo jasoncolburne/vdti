@@ -327,7 +327,8 @@ The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
 from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no
 `previous`) carries `writer` to root the lane; every later message inherits it, so the field never
-duplicates what the lane already says.
+duplicates what the lane already says. The writer's signature over `said` rides **adjacent** (the
+universal rule — a SAD carries no signature over its own SAID), so there is no signature field.
 
 ### Policy — `vdti/policy/v1/{group}/*`
 
