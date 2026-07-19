@@ -256,9 +256,12 @@ closed by the layers composed above KEL:
   its threshold requires, spread across distinct custodians — tolerates single-KEL tier-2
   compromise. The surviving members rotate the compromised KEL out via the IEL's `Evl` event (a
   `cut`) without losing the IEL prefix.
-- **Custody separation.** KEL-internal custody hygiene (the reserve on a different device,
-  HSM-resident, ceremony-gated) raises the practical bar to acquire the reserve. This is operational
-  hardening; the protocol is custody-agnostic.
+- **Reserve residence.** The rotation reserve lives in the device's own hardware alongside its
+  signing key — no cold storage, no separate custody. Holding it off-device does not raise the bar
+  in this model; it only slows the immediate rotation recovery relies on. The reserve defends the
+  **signing** key (a signing-key-only thief can append content but never a key change); defense
+  against a _full_ device compromise is the identity layer's job (the threshold-composition bullet
+  above), not reserve custody.
 - **Federation witnessing.** A selected witness signs the **first** sealed sibling per position and
   declines later ones (first-seen). A **reserve-tier fork** is a competing rotation seal at **one
   position** — the reserve reveal, `{Rot, Rot}`. Without witness collusion only **one** rotation

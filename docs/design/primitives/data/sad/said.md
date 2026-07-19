@@ -15,10 +15,10 @@ all other SADs. Both algorithms share the same fixed-value placeholder mechanism
 canonicalization, and the same Blake3-256 hash; they differ in which fields carry the placeholder
 and how many hashes are computed.
 
-**Canonicalization is RFC 8785 (JSON Canonicalization Scheme), pinned normatively.** Implementing
-crates MUST conform to RFC 8785's key ordering, number representation, and escape rules. Any
-divergence is a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only
-under a single canonicalization spec, and the design pins that spec here.
+**Canonicalization is RFC 8785 (JSON Canonicalization Scheme), pinned normatively.** Implementations
+MUST conform to RFC 8785's key ordering, number representation, and escape rules. Any divergence is
+a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only under a single
+canonicalization spec, and the design pins that spec here.
 
 Base64-encoding and qualifying the Blake3-256 digest produces a fixed-length text token. The
 qualifier carries the algorithm code in its leading characters, so any consumer can re-derive
@@ -74,7 +74,7 @@ byte-length lets a SAID name its own SAD without circularity.
 
 **Why two hashes, not one — correlation resistance.** A single hash would set the inception event's
 SAID equal to the prefix — and the prefix is the chain's lookup key, while a SAID is an opaque
-per-event commitment (effectively an event's primary key) that is not itself a lookup key. So an
+per-event commitment — a unique per-event identifier that is not itself a lookup key. So an
 application that logs event SAIDs — an audit trail, a trace, a debug line — reveals nothing about
 which chain an event belongs to, _except_ at the inception: if `said(Icp) == prefix`, logging that
 one SAID hands an observer the chain's lookup key, correlating every other logged SAID back to the
@@ -174,6 +174,23 @@ signer to the canonical bytes that produced it.
   canonicalization the verifier should reapply; signatures over a SAID are unambiguous — the SAID
   names exactly one content. A verifier checks the signature against the SAID, then independently
   re-derives the SAID from the content and checks equality.
+- **Sign only a form you have seen.** One signature validates every faithful disclosure of a SAD —
+  that is what makes graduated disclosure work — so a signer handed a _partially-compacted_ SAD can
+  commit to sub-content it never expanded, and no later reader can recover which form the signer
+  saw, because every disclosure shares the one SAID. A verifier cannot police this after the fact;
+  the signer's own tooling must, before it commits. A signing helper finds the compacted positions
+  **by schema**: a typed SAD's `kind` names which fields carry nested sub-SADs, so a bare SAID where
+  the schema expects an expanded child is a position the signer has not seen. The helper **refuses
+  to sign until the input is fully expanded at those positions**, and takes an explicit **override**
+  for the deliberate case — committing to a SAD authored elsewhere by reference, vouching for it by
+  hash on purpose. An unknown-`kind` SAD cannot be schema-checked, so it is override-only. **Schema
+  is the only sound detector** — compaction is not self-announcing, so an expand-everything scan
+  would false-positive on scalar SAID references (a `previous`, a pin, an anchor) and false-negative
+  on positions it cannot fetch. The real predicate is **whether the signer's tooling has seen the
+  content**: a position passes when the tooling holds (or has verified) the full sub-SAD, not merely
+  when the input is expanded — so an author signing its own SAD, or a holder presenting one it
+  received (graduated disclosure), passes without an override; the gate bites only on content the
+  signer's tooling has never held. The default is fail-secure and the opt-out is the signer's own.
 
 ## Adversarial framing
 
@@ -204,8 +221,9 @@ Blake3-256 collision against each — two independent collisions, not one. The b
 the SAID-side argument; the parallel prefix-side argument holds by construction.
 
 The SAID is the load-bearing handle every reference in the system uses to commit to a SAD:
-`previous` pointers, `pin` references (a SEL event floors down to its owner IEL via its `pin`), KEL
-anchor SAIDs, policy SAIDs, `manifest` SAIDs on chain events, and a SEL's `data` naming the
-standalone SAD it attributes (a write's custody anchor; see [`custody.md`](custody.md)). When the
-doctrine talks about "a SAID anchored in a KEL `Ixn`" or "the `previous` SAID matches the parent,"
-it is talking about this identifier and the recomputable derivation that backs it.
+`previous` pointers, `pin` references (a custody SAD's `pin`, or a SEL event's down-pin, each floors
+to an owner IEL position), KEL anchor SAIDs, policy SAIDs, `manifest` SAIDs on chain events, and a
+SEL's `data` naming a standalone SAD it references (a revocation lookup SEL naming a credential —
+the SEL's own reference, not the custody anchor; see [`custody.md`](custody.md)). When the doctrine
+talks about "a SAID anchored in a KEL `Ixn`" or "the `previous` SAID matches the parent," it is
+talking about this identifier and the recomputable derivation that backs it.

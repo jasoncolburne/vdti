@@ -23,11 +23,11 @@ transport** — the same algorithm choices the rest of the system runs on:
 - **AES-256-GCM** — frame encryption.
 - **blake3** — key derivation from the shared secret.
 
-The mesh runs the **infrastructure tier** (ML-KEM-1024, ML-DSA at the infrastructure parameter),
+The mesh runs the **infrastructure tier** (ML-KEM-1024, ML-DSA-87 — the infrastructure parameter),
 matching [`../federation/topics.md`](../federation/topics.md)'s statement that all inter-node
 traffic is ML-KEM-1024 + AES-256-GCM. This is the same suite and the same tier-as-a-parameter shape
-the exchange layer uses for end-to-end messages; the transport reuses the choices rather than
-inventing new ones.
+ESSR ([`../../primitives/protocols/essr.md`](../../primitives/protocols/essr.md)) uses for
+end-to-end messages; the transport reuses the choices rather than inventing new ones.
 
 ## The channel — one session per connection
 
@@ -43,8 +43,8 @@ A mesh link is an authenticated, encrypted session established once per connecti
   secrecy**: a later compromise of a node's signing key cannot decrypt a past session, whose key
   material is already gone.
 - **Derive.** From the shared secret, blake3 derives **two** AES-256-GCM keys — one per direction —
-  under a domain-separated context on the `vdti/gossip/v1/*` convention. The two directions never
-  share a key.
+  under a domain-separated context — `vdti/gossip/v1/protocols/kdf` — on the `vdti/gossip/v1/*`
+  convention. The two directions never share a key.
 - **Scope.** The keys last the connection's lifetime. Nothing rides the mesh in the clear.
 
 ## Nonce discipline — reuse is structural, not a convention
@@ -55,20 +55,21 @@ incremented once per frame. Because the two directions use **different keys**, a
 load-bearing rule — never reuse a nonce under a key — therefore holds **by construction**, not by an
 implementer following a rule.
 
-This is the same shape the exchange layer relies on: there, a fresh per-message key makes a random
-nonce safe; here, a per-connection key with a per-direction counter makes the nonce safe. Either way
-the unsafe state is unreachable, so "get the nonce wrong" is not an operator or author risk — it is
-ruled out by the transport code that owns the counters.
+This is the same shape ESSR relies on: there, a fresh per-message key makes a random nonce safe;
+here, a per-connection key with a per-direction counter makes the nonce safe. Either way the unsafe
+state is unreachable, so "get the nonce wrong" is not an operator or author risk — it is ruled out
+by the transport code that owns the counters.
 
 ## Rekey — a fresh handshake per connection
 
 Keys and counters are scoped to a single connection. A dropped or re-dialed link runs a new
 handshake and starts fresh keys and counters from zero. There is no mid-session rekey and none is
-needed: a connection never exhausts a 64-bit per-direction counter within its lifetime, and any
-transient fault triggers a reconnect that refreshes the material anyway. **There is no persistent
-mesh key to rotate** — a node's only long-lived key on the mesh is its **signing** key, and rotating
-that simply forces reconnection: the next handshake authenticates under the new witnessed key, so
-identity-key rotation reaches the transport without a special path.
+needed: a connection never exhausts a 64-bit per-direction counter within its lifetime, its per-key
+data volume stays orders of magnitude below AES-256-GCM's confidentiality margin, and any transient
+fault triggers a reconnect that refreshes the material anyway. **There is no persistent mesh key to
+rotate** — a node's only long-lived key on the mesh is its **signing** key, and rotating that simply
+forces reconnection: the next handshake authenticates under the new witnessed key, so identity-key
+rotation reaches the transport without a special path.
 
 ## What rides above — the epidemic protocol
 

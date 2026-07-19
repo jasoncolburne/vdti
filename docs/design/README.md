@@ -9,7 +9,7 @@ record identified by the hash of its own content. And the system's central claim
 **end-verifiability**: any consumer can validate any chain, credential, or event from the data
 alone, trusting no service, database, or peer. The reading order follows from that — the data
 substrate first, then the doctrine that governs it, then the primitives that implement it, then the
-authorization layer that sits on top.
+authorization and protocol layers that sit on top.
 
 ## Table of contents
 
@@ -19,6 +19,8 @@ authorization layer that sits on top.
 - [3 — The event-log primitives](#3--the-event-log-primitives)
 - [4 — Federation and witnessing](#4--federation-and-witnessing)
 - [5 — The document-authorization layer](#5--the-document-authorization-layer)
+- [6 — The protocol primitives](#6--the-protocol-primitives)
+- [7 — The feature layer](#7--the-feature-layer)
 - [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
@@ -165,14 +167,47 @@ Policy sits above the primitives — it governs documents, never the chain event
     / `pol` leaves; `thr` / `wgt` / `and` combinators).
 31. [`primitives/policy/documents.md`](primitives/policy/documents.md) — where policy lives:
     documents as policy hosts, and how a document anchors its evaluation context.
-32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — the two ways a policy is
-    evaluated (as-issued and current) and the seam to the primitives.
+32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — how a policy is evaluated
+    (as-issued) and the seam to the primitives.
+
+## 6 — The protocol primitives
+
+These primitives sit atop the verified layer — the sealed envelope and the disclosure exchange that
+credentials and secure messaging are built from, the device-key directory recipients are resolved
+through, and the shared group key that chat and shared documents encrypt under. They compose the
+primitives below rather than extending them.
+
+33. [`primitives/protocols/essr.md`](primitives/protocols/essr.md) — the sealed, authenticated
+    one-to-one envelope: confidential to the recipient, provably from the sender, and the two
+    identity bindings that make it so.
+34. [`primitives/protocols/ipex.md`](primitives/protocols/ipex.md) — the issuance and presentation
+    exchange: every exchange a disclosure from a discloser to a disclosee, the anchor and compaction
+    as its two proofs, and the single-round-trip freshness envelope that binds a presentation to one
+    use.
+35. [`primitives/protocols/receive-key-directory.md`](primitives/protocols/receive-key-directory.md)
+    — the directory of an identity's device receive keys: how a key is published, and how a sender
+    resolves one or fans out to all of a recipient's devices.
+36. [`primitives/protocols/group-key.md`](primitives/protocols/group-key.md) — the ratcheting shared
+    key a group encrypts under: per-device fan-out, epochs, and the ratchet, with chat and shared
+    documents as its consumers.
+
+## 7 — The feature layer
+
+Features compose the primitives into what an application ships. The first is credentials; shared
+documents and secure messaging follow.
+
+37. [`features/credentials/credentials.md`](features/credentials/credentials.md) — issuing a
+    credential and, the core case, a relying party accepting a presented one: the anchor and
+    compaction as its proofs, the two questions (validly-issued, ownership), IPEX presentation,
+    targeted-vs-bearer, blinded claim-gating, revocation, edges, terms-of-use, bulk issuance, and
+    the migration-first registrar.
 
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `features/` — credentials and shared documents;
+- `features/` — shared documents (its full prose beyond the diagram stub) and secure messaging (the
+  `exchange` feature — its identifiers, paths, and grant kinds all read `exchange`);
   [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
   stub carrying its diagrams ahead of the prose.
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`

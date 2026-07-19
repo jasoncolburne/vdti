@@ -9,29 +9,33 @@ convention `vdti/{component}/v1/{category}/{name}`
 - a **tag** — the `tag` in a domain-qualified digest `hash('{tag}:…')`, so every conforming node
   derives byte-identical output. Primitive-owned.
 - a **SEL topic** — the `topic` field of a SEL inception, one of the values the inception's prefix
-  commits to. Feature-owned.
+  commits to. Feature-owned — or, for a stateful protocol primitive like group-key, that
+  primitive's.
 
 ## Tags — the `tag` in `hash('{tag}:…')`
 
 Primitive-owned. The `tag` that qualifies the digest so derivations in different domains never
 collide.
 
-| Tag                              | Derivation                                                                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/iel/v1/actions/commitment` | an issuer's `Ixn`-anchored commitment to an immutable SAD (a credential is one use) — `hash('…:{issuer}:{sad.said}')`                           |
-| `vdti/sel/v1/actions/revocation` | a `Rev`-anchored kill's target + its lookup-SEL — `hash('…:{owner}:{data}')`                                                                    |
-| `vdti/sel/v1/actions/rescission` | a `Dth`-anchored kill's target + its lookup-SEL                                                                                                 |
-| `vdti/sel/v1/actions/delegation` | the topic of a `del(X, N)` hop's positive **delegating-link** lookup SEL — locus derived from the delegator + delegate, pinning the `Ath` grant |
-| `vdti/log/v1/states/active`      | a single-tip chain — uses that tip's real SAID; no synthetic                                                                                    |
-| `vdti/log/v1/states/forked`      | the effective-SAID synthetic for a forked chain — `hash('…:{prefix}:{position}')`                                                               |
-| `vdti/log/v1/states/disputed`    | the effective-SAID synthetic for a disputed chain                                                                                               |
-| `vdti/log/v1/states/terminated`  | a terminated chain — uses its real `Trm` SAID; no synthetic                                                                                     |
+| Tag                              | Derivation                                                                                                                                                                |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/iel/v1/actions/commitment` | an owner's `Ixn`-anchored commitment to an immutable owned SAD — the direct custody anchor (a credential is one use, `owner` = `issuer`) — `hash('…:{owner}:{sad.said}')` |
+| `vdti/sel/v1/actions/revocation` | a `Rev`-anchored kill's target + its lookup-SEL — `hash('…:{owner}:{data}')`                                                                                              |
+| `vdti/sel/v1/actions/rescission` | a `Dth`-anchored kill's target + its lookup-SEL                                                                                                                           |
+| `vdti/sel/v1/actions/delegation` | the topic of a `del(X, N)` hop's positive **delegating-link** lookup SEL — locus derived from the delegator + delegate, pinning the `Ath` grant                           |
+| `vdti/log/v1/states/active`      | a single-tip chain — uses that tip's real SAID; no synthetic                                                                                                              |
+| `vdti/log/v1/states/forked`      | the effective-SAID synthetic for a forked chain — `hash('…:{prefix}:{position}')`                                                                                         |
+| `vdti/log/v1/states/disputed`    | the effective-SAID synthetic for a disputed chain                                                                                                                         |
+| `vdti/log/v1/states/terminated`  | a terminated chain — uses its real `Trm` SAID; no synthetic                                                                                                               |
 
 `revocation` and `rescission` carry **no feature name** — a delegate rescission and a
 document-member rescission share `rescission` and never collide, because the `data` (the
 grant-instance) differs in `hash('{tag}:{owner}:{data}')`. The primitive never hears "delegate" or
-"document." `active` and `terminated` are formalized for a complete enumeration, though only
-`forked` / `disputed` are ever derived (the other two states carry a real SAID).
+"document." `delegation` differs from those two: it serves **only** as a lookup-SEL inception
+**topic** (the delegating-link SEL's derivation), never as a flat kills-target the way `revocation`
+/ `rescission` also do — but it is a primitive-owned derivation string all the same, catalogued here
+with them. `active` and `terminated` are formalized for a complete enumeration, though only `forked`
+/ `disputed` are ever derived (the other two states carry a real SAID).
 
 Every `hash('{tag}:…')` derivation above hashes the **bytes of its fields in canonical form** — each
 `prefix` / `said` as its qualified representation ([`../sad/said.md`](../sad/said.md)), each
@@ -52,13 +56,18 @@ pinned by the encoding library.
 
 A lookup / content SEL's application discriminator — the `topic` field of its inception, one of the
 values the inception's prefix commits to. Opaque to the chain; [`sel/log.md`](sel/log.md) owns the
-full derivation and its optional fields. These are **feature-owned** — a primitive never enumerates
-them, keeping features out of the primitive layer.
+full derivation and its optional fields. These are **feature-owned** — a base primitive never
+enumerates them, keeping features out of the primitive layer. The exceptions are **shared-core
+primitives that are themselves stateful**: the group-key primitive (its epoch + roster SELs) and the
+receive-key directory (its lookup SEL) own the SELs they ride, so they enumerate their own topics
+(the `vdti/groupkey/v1/topics/*` and `vdti/directory/v1/topics/*` rows).
 
-| Topic                       | Feature                                               |
-| --------------------------- | ----------------------------------------------------- |
-| `vdti/doc/v1/topics/*`      | shared documents (`comment`, `governance`, `version`) |
-| `vdti/exchange/v1/topics/*` | exchange (`exchange`, `receive-key`)                  |
+| Topic                        | Owner                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------- |
+| `vdti/doc/v1/topics/*`       | shared documents (`comment`, `governance`, `read-governance`, `rescission`) |
+| `vdti/exchange/v1/topics/*`  | exchange (`exchange`)                                                       |
+| `vdti/directory/v1/topics/*` | the receive-key directory (`receive-key`)                                   |
+| `vdti/groupkey/v1/topics/*`  | the group-key primitive (`key-epoch`, `roster`)                             |
 
 ## Cross-references
 

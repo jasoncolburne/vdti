@@ -3,11 +3,11 @@
 The **Identity Event Log** (IEL) is a per-identity chain of cryptographically-linked events
 describing one identity's evolving membership and the authority it grants. An identity is **a
 threshold over member KELs** — a roster of member device KELs plus a **threshold vector**
-`{t_use, t_govern, t_authorize}`. The IEL composes no policy internally (that is the document
-layer); "who is this identity" is the roster, "how many must act for this kind of act" is the
-threshold vector. Each event is a [SAD](../../sad/sad.md) carrying chain-linkage fields (`prefix`,
-`previous`, `serial`, `kind`) plus kind-specific commitments; authority is asserted **not** by an
-adjacent signature but by a threshold of members' fresh KEL participation anchoring the event
+`{ use, authorize, govern }`. The IEL composes no policy internally (that is the document layer);
+"who is this identity" is the roster, "how many must act for this kind of act" is the threshold
+vector. Each event is a [SAD](../../sad/sad.md) carrying chain-linkage fields (`prefix`, `previous`,
+`serial`, `kind`) plus kind-specific commitments; authority is asserted **not** by an adjacent
+signature but by a threshold of members' fresh KEL participation anchoring the event
 ([`../event-shape.md` §Authentication & signatures](../event-shape.md#authentication--signatures)).
 The per-kind field shape is the cross-primitive [event-shape reference](../event-shape.md#iel); this
 doc and its siblings state the IEL-specific doctrine.

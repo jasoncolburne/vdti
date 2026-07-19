@@ -27,11 +27,11 @@ chain primitive plays a distinct structural role:
 - **KEL** (Key Event Log) — anchors authenticity to devices. A device's cryptographic chain of
   custody; signing a SAID under a KEL event proves the device produced or endorsed that data.
 - **IEL** (Identity Event Log) — governs identities. Aggregates member devices under a **threshold
-  vector** `{t_use, t_govern, t_authorize}` — how many member devices must act for content,
-  governance, and authorization respectively (these are **counts**, orthogonal to the two capability
-  **tiers**, T1/T2 — T1 is content, forged with the signing key; T2 is everything sealed, forged
-  only with the rotation reserve; introduced below). A rule spanning several identities lives in the
-  document policy layer. Identity is the unit at which credentials are issued.
+  vector** `{ use, authorize, govern }` — how many member devices must act for content, governance,
+  and authorization respectively (these are **counts**, orthogonal to the two capability **tiers**,
+  T1/T2 — T1 is content, forged with the signing key; T2 is everything sealed, forged only with the
+  rotation reserve; introduced below). A rule spanning several identities lives in the document
+  policy layer. Identity is the unit at which credentials are issued.
 - **SEL** (SAD Event Log) — content-addressed application data, identity-rooted. A SEL is a
   **single-owner data log**: owned by exactly one IEL, with no roster of its own. Its events are
   authorized structurally by the owner IEL, which anchors them; it floors **down** to the owner
@@ -40,9 +40,9 @@ chain primitive plays a distinct structural role:
 Federation is itself an identity, governed by a shared IEL. Membership is governance-authorized;
 cross-federation interop is by user-initiated transfer rather than implicit trust.
 
-Credentials are verifiable claims — documents that carry their own authorization policy and are
-issued by an identity (structurally, under its own threshold); they permit access to resources based
-on authenticated identity, and are revocable by their issuer.
+Credentials are verifiable, revocable claims an identity issues (structurally, under its own
+threshold); they permit access to resources based on authenticated identity, and what makes one
+acceptable is the relying party's decision, not a policy the credential carries.
 
 ## End-verifiability
 
@@ -185,7 +185,9 @@ Defense is **layered** — each layer catches what the one below it cannot:
   single-sign every key change (`Rot` / `Wit` / `Trm`), the KEL reserve lets a device recover from a
   suspected signing-key leak on its own: a signing-key-only thief (exfiltration, brute force,
   coerced signing, side channels) can append content but never a key change, and one recovery `Rot`
-  buries their run. A single-device deployment is first-class.
+  buries their run. A single-device deployment is first-class for this self-heal (and for a
+  messaging endpoint); an authority-bearing identity runs three or more devices, so its survivors
+  can evict a fully-compromised one.
 - **IEL threshold composition — the identity heals a device.** Healing a _fully_ compromised device
   (both keys) is the identity's job: a threshold vector with redundancy across distinct custodians
   (a roster `M` larger than the threshold `N` it needs) survives total device compromise — burn the

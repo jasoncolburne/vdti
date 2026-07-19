@@ -31,7 +31,7 @@ ways, all fixed at inception by the `Fcp` root kind:
   every witness rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation
   authors no content) and **no `Ath`** (trust is per-federation and non-transitive, so there is
   nothing to delegate).
-- **The threshold vector is exactly `{t_govern}`.** With no `Ixn` and no `Ath` there is no `t_use`
+- **The threshold vector is exactly `{ govern }`.** With no `Ixn` and no `Ath` there is no `t_use`
   or `t_authorize` to declare — a threshold exists only when its consuming kind is in the kind set
   ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)),
   so a federation `Fcp` that declares either is malformed and rejected.
@@ -160,7 +160,7 @@ A verifier validates a received genesis against the configured prefix as follows
   the inception content `(roster, threshold, nonce)`, so this both places the chain and confirms the
   founder set is exactly the configured one.
 - **The `Fcp` is well-formed as a federation inception** — the restricted kind set is in force, the
-  threshold vector is exactly `{t_govern}`, `|roster| ≥ 4`, and the witness-config clears its floors
+  threshold vector is exactly `{ govern }`, `|roster| ≥ 4`, and the witness-config clears its floors
   ([`witnessing.md`](witnessing.md)).
 - **A `t_govern` threshold of the founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2
   → tier 2)** — the anchoring authors are roster founders (no outsiders), so the ordinary inception

@@ -105,7 +105,7 @@ federation) — for the whole chain. At `serial = 0` the verifier dispatches on 
 | Inception kind | Root facet | Verifier behavior                                                                                                                                                                                                                                                                    |
 | -------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `Icp`          | user       | Federation-bound (required — there is no direct mode): reads `{federation, federationPin}` and the `witnesses` config; pins the initial roster + threshold vector; anchored by all initial members' KEL `Rot`s (each consenting). An `Icp` omitting the binding is rejected.         |
-| `Fcp`          | federation | The restricted facet: pins the witness-KEL roster, the `witnesses` config, and the `clock`; declares exactly `{t_govern}`; anchored kind-strict by each founder's KEL `Rot`. Recognizes a federation IEL from its own data — interpretation, not trust (the config-pin roots trust). |
+| `Fcp`          | federation | The restricted facet: pins the witness-KEL roster, the `witnesses` config, and the `clock`; declares exactly `{ govern }`; anchored kind-strict by each founder's KEL `Rot`. Recognizes a federation IEL from its own data — interpretation, not trust (the config-pin roots trust). |
 
 The kind discriminator is structural — encoded in the chain data — so the verifier dispatches from
 chain data alone. **The root facet is established before any `Wit` payload is read**, on **every**
@@ -176,10 +176,13 @@ within `N` hops?" is a **bounded per-candidate walk**, never a materialization o
   not authorize every actor directly. Each hop is a single `Ath`-inclusion lookup (itself bounded by
   `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary per-IEL cost — no
   delegation-specific fan-out. The walk is bounded by the per-policy depth `N` **and** by a fixed
-  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 4`** backstop; exceeding **either** denies
-  (fail-secure). Four leaves room for a real hierarchy several layers deep (e.g. root → company →
-  organization → team) while keeping chains shallow; a per-policy `N` sits tighter underneath. A
-  fixed protocol constant, not a per-deployment knob.
+  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 8`** backstop; exceeding **either** denies
+  (fail-secure). Eight leaves generous room — a real org hierarchy several layers deep (root →
+  company → division → region → branch → team → individual) **and** person-to-person chains that
+  reach across a well-connected planet (the six-degrees intuition, with headroom) — while the walk
+  stays a cheap linear climb: each hop is one bounded `Ath`-inclusion lookup with no fan-out, so
+  depth is the only quantity it adds. A per-policy `N` sits tighter underneath. A power of two, like
+  the other protocol constants, and fixed — not a per-deployment knob.
 - **Each hop's liveness is a `kills[]` forward-match** (below), never a scan for the absence of a
   rescission.
 
@@ -190,10 +193,11 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
 **O(1) first, with a fail-secure fall-through**:
 
 - **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is recomputed
-  from `(owner, topic, data)`; fetch its `{Icp, Trm}`): **present → killed**. Tamper-evident and
-  authoritative — and `Trm.pin` (= the killing `Rev` / `Dth`'s `previous`) points straight at that
-  kill event, so a grandfather check reads the `bound` from its `kills[]` entry directly, with no
-  exhaustive `kills[]` scan of the chain.
+  from `(owner, topic, data)`; the `Icp` is recomputed locally, never served, and only the `Trm` (+
+  receipts) is fetched): **present → killed**. Tamper-evident and authoritative — and `Trm.pin` (=
+  the killing `Rev` / `Dth`'s `previous`) points straight at that kill event, so a grandfather check
+  reads the `bound` from its `kills[]` entry directly, with no exhaustive `kills[]` scan of the
+  chain.
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
   `target = hash('{tag}:{owner}:{data}')` (the target **mirrors the killed address**:
   **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
@@ -233,7 +237,7 @@ IelVerification:
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
     last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event that landed cleanly on the linear run (not a competing sibling)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
-    anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and credential issuance commitments found anchored on the canonical branch
+    anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and custody-anchored SAD issuance commitments (a credential is one use) found anchored on the canonical branch
     delegates_of: ...                      # per-candidate delegation-walk results (bounded scalar state)
     kills_matched: ...                     # kills[] forward-match results for the loci the caller registered
     structurally_valid: bool               # the structural-validity result (threshold anchoring, linkage, roster bounds)
@@ -277,19 +281,44 @@ read-only component of the token, not an independent verified state). The seal t
   **witnessed** sealed fork **at the last seal** keeps the chain in the synthetic (a spine fork →
   `disputed`). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
+- `roster(tip_said)` → the **membership at a specific tip**: the roster + thresholds the verifier
+  forked per branch (above), or **`Terminated`** when that tip is a `Trm`. Termination is an
+  **implicit cut** of the whole membership — the `Trm` is validated against the roster it inherited,
+  and nothing past it can meet any threshold — so it is a distinct resolution, **not** a size-0
+  roster. This is the roster **twin of `effective_said`**: the roster-projection of the same walk.
+- `roster()` → the **single** membership when there is one — a `Roster` on a chain with one
+  authoritative (seal-bearing) roster (**Active**, or **Forked** — a content fork leaves key-state
+  untouched, and a witness-declined sealed straggler never counts, so the **last-sealed** roster
+  stays authoritative), or **`Terminated`**. It **errors on `Disputed`** (≥ 2 competing key-state
+  rosters; the caller must name a tip via `roster(tip_said)`, and the error surfaces the competing
+  tips). **Live authority is tiered by act.** A live **action** — a `t_use` ownership proof, or a
+  `t_authorize` grant / deauthorize (`Ixn` / `Ath` / `Dth`) — is **frozen on any divergence**: it
+  resolves only when the chain is **Active**, so a **forked, disputed, or terminated** identity
+  performs no live action. A live **governance** act — a `t_govern` recovery / eviction / rotation
+  (`Evl` / `Rev` / `Wit` / `Trm`) — resolves against `roster()`, so it proceeds wherever there is
+  one authoritative roster (**Active or Forked**), which is what lets a forked identity **govern its
+  way out of the fork** — but a **disputed** (no single roster → reincept) or **terminated**
+  identity cannot. The rule: **on a suspected compromise — a fork — freeze actions, allow only
+  governance.** **As-issued** authority reads the roster at the historical anchoring position
+  (single-tipped in the past) and is untouched by the current tip's state.
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three
 views of the one data-local walk:
 
-| chain state | `region()` | `effective_said`     |
-| ----------- | ---------- | -------------------- |
-| Active      | `trusted`  | real tip SAID        |
-| Forked      | `forked`   | `forked` synthetic   |
-| Disputed    | `disputed` | `disputed` synthetic |
-| Terminated  | `trusted`  | real `Trm` SAID      |
+| chain state | `region()` | `effective_said`     | `roster()`                    | action (`t_use`/`t_authorize`) · govern (`t_govern`) |
+| ----------- | ---------- | -------------------- | ----------------------------- | ---------------------------------------------------- |
+| Active      | `trusted`  | real tip SAID        | the roster                    | ✓ · ✓                                                |
+| Forked      | `forked`   | `forked` synthetic   | the roster (frozen)           | ✗ · ✓ (govern out of the fork)                       |
+| Disputed    | `disputed` | `disputed` synthetic | `Err` — per-tip `roster(tip)` | ✗ · ✗ (reincept)                                     |
+| Terminated  | `trusted`  | real `Trm` SAID      | `Terminated`                  | ✗ · ✗ (retired)                                      |
 
 `region()` is the **divergence** axis, so Active and Terminated both project to `trusted`;
-termination rides the orthogonal `is_terminated()` accessor.
+termination rides the orthogonal `is_terminated()` accessor, and `roster()` is the **membership**
+axis — a third projection of the one walk, where Terminated resolves to no roster and Disputed to
+one roster per competing tip. A live-act gate reads them together: a **`t_use` / `t_authorize`
+action** proceeds only at **Active**; a **`t_govern`** governance act proceeds wherever `roster()`
+yields a single `Roster` — **Active or Forked** — so recovery stays open on a fork but is refused on
+a dispute (reincept) or after termination.
 
 ## Inline anchor checking
 
@@ -350,7 +379,8 @@ divergence. (Against a **witnessed** sealed fork **at** the last (clean) seal th
 `disputed`, and permanence runs against the last **clean** seal; a below-seal sealed straggler is
 **dropped**, not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer
 composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
-`disputed` chain; an above-seal anchor on a `disputed` chain grounds no new trust.
+`disputed` chain — for as-issued finality and existing bindings; granting **new** current trust
+still gates on `region()` — while an above-seal anchor on a `disputed` chain grounds no new trust.
 
 ## Federation witnessing in verification
 

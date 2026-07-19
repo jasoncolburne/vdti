@@ -13,7 +13,7 @@ cut_ — **this cut's fresh dual-pass is folded (2026-07-04).** Lands at
 [inv 5] as-of = the anchoring position, [inv 8] the multi-source freshness bar (loss-of-trust reads),
 [inv 10] negative-check-as-lookup, [inv 12] IEL self-pricing (grant tier), [inv 13] rescission `bound`
 / grandfather boundary / deadness-ascends, [inv 15] inception + attribution, [inv 16] addressing by
-prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer precedent:
+prefix + the custody `owner`+`pin` direct-anchor note (2026-07-18). Feature-layer precedent:
 `document-policy §F` (the to-tip freshness step is mandatory for any trust-granting acceptance).
 
 ## Sources
@@ -31,12 +31,12 @@ prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer
 
 A shared document is **a DAG of _attributed_ SADs (versions), authored by **editors** whose
 membership is a _creator-governed, per-period access list_.** The creator governs three document roles —
-**view** (the document `readPolicy`), **comment** (`commenters[]`), **edit** (`editors[]`, who author
+**view** (the document `readers` gate), **comment** (`commenters[]`), **edit** (`editors[]`, who author
 versions) — the Google-Docs triad; commenting is reserved, its mechanism deferred (§7). Each version is
 a primitive attributed
-SAD — `custody { owner, topic, readPolicy }`, owner-rooted by its own
-`derive(owner, DOC_TOPIC, version_said)` SEL exactly like any bare SAD, so authorship is **provable
-and non-repudiable** (only the editor's `t_use` produces it). **Membership is not delegation** — an
+SAD — `custody { owner, pin, readers }`, owner-rooted by a **direct anchor** on the editor's IEL
+(its `pin` locating the `Ixn` that commits `version_said`) exactly like any bare SAD, so authorship
+is **provable and non-repudiable** (only the editor's `t_use` produces it). **Membership is not delegation** — an
 editor acts as _itself_, never with the creator's authority — it is an **access list** the creator
 maintains on a doc-governance SEL: a **grant** opens a validity _period_ on the editor's own IEL
 (`from` = the editor's IEL tip at grant), and a **rescission** — a period-scoped lookup-SEL carrying
@@ -64,7 +64,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   - **the reserved topics** — a holder derives the governance chains from the **doc prefix**: the
     governance SEL `derive(creator, DOC_GOV_TOPIC, doc_prefix)`, per-period rescissions
     `derive(creator, DOC_RSC_TOPIC, hash(G | said_b))` (§Rescission; the full topic strings are in §7).
-  - **`readPolicy₀`** — the initial read/sharing gate (custody; evolution §5).
+  - **`readers₀`** — the initial read gate — a read-authorization (read-governance) SEL (custody; evolution §5).
   - **`nonce`** — high-entropy so the doc prefix (hence the governance / version chains) is unguessable
     for a **private** doc; a public doc may omit it.
   - V0 is **anonymous-write** (the shared constitution; no `owner`), so its legitimacy is
@@ -82,7 +82,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   (warm F11 / cold N4).
 - **Member names live in gated content, never in public structure (the core privacy discipline).** A
   SEL's structural fields (`owner` / `data` / manifest-role values) are witnessed → **public**, so a
-  member prefix in any of them leaks. Every member reference is therefore a **readPolicy-gated content
+  member prefix in any of them leaks. Every member reference is therefore a **readers-gated content
   SAD** named by an **opaque SAID** from the event's `manifest`; the public chain carries only the
   opaque commitment (the inv-16 private-data pattern).
 - **Governance SEL — the creator's access-list + sharing log.**
@@ -91,18 +91,18 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
     creator's IEL **`Ath`**; the `Gnt`'s `manifest` names a **gated grant-doc** `G`, submitted as
     **compacted chunks** (top level all canonical SAIDs — the canonical/fully-compacted form is the one
     everyone commits to, always re-derivable by compacting down; `project_vdti_compacted_only_submission`):
-    `G = { said, kind, custody{ readPolicy }, editors, commenters }`, where `editors`/`commenters` are
+    `G = { said, kind, custody{ readers }, editors, commenters }`, where `editors`/`commenters` are
     role-list SADs `{ said, kind, add:[ entry-SAID, … ] }` and each entry is a nested SAD
-    `{ said, kind, <role>, from, nonce, custody{ readPolicy } }` (`<role>` = an `editor`/`commenter` IEL
+    `{ said, kind, <role>, from, nonce, custody{ readers } }` (`<role>` = an `editor`/`commenter` IEL
     prefix; `from` = the period start). The **`nonce` (high-entropy) makes each entry SAID `said_b`
     unguessable** on public structure — a participant-blind commitment (the area-sel data-entropy rule at
     the feature layer; a low-entropy entry would be a brute-force oracle — §5). The **`Gnt` event's SAID
     `G_x`** (public on the governance SEL) **identifies the validity period** — it commits the editors,
     commenters, and their `from`-positions. Multiple grants for a participant = multiple periods (re-add).
     **One uniform rule for per-participant and batch grants:** the rescission handle is the nonce'd entry
-    SAID `said_b` (below). _(The grant's `custody.readPolicy` gates the grant-doc itself; the **document**
-    read gate — who may **view** the doc — is the separate, evolving `readPolicy`, §5.)_
-  - **sharing changes** — `readPolicy` updates (§5).
+    SAID `said_b` (below). _(The grant's `custody.readers` gates the grant-doc itself; the **document**
+    read gate — who may **view** the doc — is the separate, evolving `readers` gate, §5.)_
+  - **sharing changes** — `readers` updates (§5).
   - A grant is a **T2 creator-governance act** (`Gnt` ← `Ath`, `t_authorize`, reserve-backed):
     a compromised creator _signing key_ (T1) **cannot** mint one — minting reveals a rotation preimage (the
     MFA elevation). Mechanically this is the **`Ath` merge** (`Del` generalized to carry `delegates` **or**
@@ -117,7 +117,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   warm F1 — the earlier "unguessable to a witness" claim was false):**
   - **participant-blind** — the member prefix is **never** a derivation input; the input is `hash(G |
     said_b)`, and `said_b = said({nonce_b, prefix_b})` is unguessable via `nonce_b`. So a witness (which
-    _does_ hold member prefixes — the version-SEL v1 anchors on the editor's IEL, §5) **cannot
+    _does_ hold member prefixes — a version's direct anchor sits on the editor's IEL, §5) **cannot
     brute-force candidate members** to confirm one. This is the property the review found load-bearing.
   - **grant-blind** — a witness **holds `G` and `G_x`** (both public — the grant-doc SAID and the
     governance `Ixn` SAID it witnesses), so "a witness can't derive it" was false as first written; but
@@ -140,15 +140,14 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   (the grant is additive / walkable-forward, the rescind a monotone terminal kill), not threshold. (Undoes
   the earlier `@govern`, forced only because `delegate` was too specific — cold F8 / warm F7.)_
 - **Version — a primitive attributed SAD (the custody primitive, not a bespoke shape — Q2/F5).**
-  `custody { owner = the editor's IEL prefix, topic = DOC_TOPIC, readPolicy = the current gate }` — and
+  `custody { owner = the editor's IEL prefix, pin = the version's anchoring-`Ixn` locator, readers = the current read gate }` — and
   because custody lives **only** on standalone SADs (`custody.md`: chain events carry no custody slot), a
-  version _is_ a custody-attributed standalone SAD, so the primitive fixes its shape: owner-rooted by its
-  `derive(owner, DOC_TOPIC, version_said)` SEL (`data = version_said`), a short **`{Icp, Pin}`** SEL
-  whose **`Pin` (the serial-1 v1) is anchored** by the editor's IEL `Ixn` at position `V_x` — the
-  version's **as-of** (append-only). _(The `Icp` is never anchored — it rides `v1.previous`, inv 15; the
-  `Pin` is the anchored v1, not a redundant floor. No `{Icp, Ixn}` content-on-a-log variant — that
-  couldn't carry `custody`; no `{Icp, Trm}` seal variant — nothing consumes a version SEL past v1, and a
-  `Trm` would move the as-of onto a `Rev` position, defeating the cheap-`t_use` authorship.)_
+  version _is_ a custody-attributed standalone SAD, so the primitive fixes its shape: **directly anchored**
+  on the editor's IEL. The editor authors an `Ixn` at position `V_x` whose `manifest.anchors[]` commits the
+  version's issuance commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{version_said}')`; the custody
+  `pin` (= that `Ixn`'s `previous`) locates `V_x` — the version's **as-of** (append-only). _(No per-version
+  SEL: the direct anchor carries both attribution and position, at cheap `t_use` cost, and the
+  `version_said` is blinded on the public IEL by the commitment hash — §5.)_
   The version SAD carries: a high-entropy **`nonce`** (private docs — so `version_said` is unguessable on
   public structure, §5), the **doc prefix** (doc-scoping + governance lookup, direct — no `ancestors[]`
   walk to root), the **authorizing grant `G_x`** (the period this version claims — reveals nothing new,
@@ -236,21 +235,23 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 - **SEL-chain fork** (two events at one SEL serial) — **prevented by the SEL's own witnessing** (first-seen
   at its `(prefix, serial)`, inheriting the owner IEL's federation — witnessed-SEL redesign, area-sel §1c;
-  the FIRST-CUT "forbidden by the cross-layer divergence model" rested on the retired theorem). So each
-  version SEL and the governance SEL are **linear on a witnessed chain** — a fork needs witness collusion,
-  reads Forked (fail-secure), and is buried by a SEL `Sea` (area-sel §1d).
+  the FIRST-CUT "forbidden by the cross-layer divergence model" rested on the retired theorem). So the
+  governance and rescission SELs are **linear on a witnessed chain** — a fork needs witness collusion,
+  reads Forked (fail-secure), and is buried by a SEL `Sea` (area-sel §1d); a **version** carries no SEL,
+  so version anti-equivocation rests on the editor's own witnessed IEL (where its direct anchor lives).
 - **Version fork** (two versions naming the same `ancestors` parent) — **allowed/presented**; the DAG
-  branches at the document layer over linear SELs. Acyclic by SAID (a cycle = a Blake3 preimage
-  cycle).
+  branches at the document layer over the editors' linear witnessed IELs. Acyclic by SAID (a cycle = a
+  Blake3 preimage cycle).
 - **A editor's IEL divergence is handled by two composed rules, not one (cold F2 / warm F3).** A
   divergent editor's IEL **reads suspect** — _not_ "is compromised" (the data can't diagnose intent; a
   benign two-device race is a recoverable content fork, resolved first-seen — area-iel §5) — and a version
   anchored above that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
-  - **The anchor edge severs the SEL (witnessed-SEL redesign, area-sel §1e).** If the IEL resolves with the
-    version's v1 anchored in a **dead** (non-canonical) member event, the version SEL is **severed** at that
-    anchor — dead + un-verifiable from there (no repair to re-root; the surviving IEL branch is a different
-    author). _(The FIRST-CUT "dies by cross-layer deadness-descends via the cross-layer theorem" is
-    superseded — the theorem is retired; inherited IEL deadness severs the SEL, area-sel §1e.)_
+  - **A dead anchor un-attributes the version (witnessed-SEL redesign, area-sel §1e).** If the IEL resolves
+    with the version's anchoring `Ixn` on a **dead** (non-canonical) member branch, the version fails
+    attribution on the canonical walk — its direct anchor is unreachable, so it reads unattributed (no repair
+    to re-root; the surviving IEL branch is a different author). _(The FIRST-CUT "dies by cross-layer
+    deadness-descends via the cross-layer theorem" is superseded — the theorem is retired; inherited IEL
+    deadness un-attributes the version, area-sel §1e.)_
   - **DAG descent is _this feature's own_ rule, derived as a placement consequence — not inv 13/17.**
     `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-ascends is defined only over
     `previous`-linkage and the IEL→SEL anchor edge, so claiming the primitives provide descent down the
@@ -302,22 +303,29 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 ## 5. Custody, sharing, and privacy
 
-- **`readPolicy` = the document read (view) gate** — evaluated current-mode at fetch by the store. It is
-  **read-set invariance (integrity), not confidentiality** (carried, cold-2 F1 / cold-3 S2): a co-author
-  can always read + exfiltrate; the rule keeps the _canonical_ DAG's read-set uniform, it does not hide
-  bytes. **For confidentiality, encrypt** (a forward direction). **Two distinct `readPolicy`s (Jason
-  2026-07-04):** the one inside a grant's / entry's `custody` gates **that gated doc itself**; the
-  **document** read gate — who may **view** the doc content — is **separate and evolves**. Because it is
-  integrity, not confidentiality, sharing is a **light axis** (§7): the creator publishes read-gate
-  updates as **cheap T1 `Ixn`s** on the governance SEL, and a version declares the gate it was authored
-  under; a read-invariance mismatch is **presented-but-flagged, app-arbitrated**, never a structural
-  un-honor.
+- **`readers` = the document read (view) gate** — the field is `None` = **public**, or the **prefix** of
+  the **read-governance SEL** = **gated**; _that SEL's membership_ (not the field) decides who reads —
+  empty → participants-only (editors/commenters always read what they author), populated → plus those
+  named. It is **read-set invariance (integrity), not
+  confidentiality** (carried, cold-2 F1 / cold-3 S2): a co-author can always read + exfiltrate; the rule
+  keeps the _canonical_ DAG's read-set uniform, it does not hide bytes. **For confidentiality, encrypt** (a
+  forward direction). **Two distinct `readers` gates (Jason 2026-07-04):** the one inside a grant's /
+  entry's `custody` gates **that gated doc itself**; the **document** read gate — who may **view** the doc
+  content — is **separate and evolves**. Read membership rides the **same grant machinery** as
+  editors/commenters (`Gnt` ← `Ath`, **T2**; participant-blind `hash(G | said_b)` rescission), on a
+  read-governance SEL **structurally constrained to carry only `readers`** — so a read-gate change is a
+  **T2 governance act, not the old cheap-T1 axis** (2026-07-16 — the earlier "light T1" framing is
+  superseded: read membership is now the same axis as edit membership). A version declares the gate it was
+  authored under; a read-invariance mismatch is **presented-but-flagged, app-arbitrated**, never a
+  structural un-honor.
 - **Attribution is opt-in-visible; privacy via the read gate.** A version carries `owner` (provable
   authorship) but read-gated — so `owner` is exposed only to authorized readers. Revealing authorship
-  is the deliberate cost of _proving_ it; the private default hides it behind `readPolicy`.
-- **The co-authorship + membership graphs close for a private doc.** A version SEL `Icp` carries
-  `data = version_said` (a nonce'd, gated reference), and the version→V0 linkage rides read-gated
-  `ancestors[]` — so a witness sees `(member, version_said)` pairs but **cannot group them by document**
+  is the deliberate cost of _proving_ it; the private default hides it behind `readers`.
+- **The co-authorship + membership graphs close for a private doc.** A version's anchoring IEL `Ixn`
+  commits `hash('vdti/iel/v1/actions/commitment:{owner}:{version_said}')` (an **opaque, blinded**
+  reference), and the version→V0 linkage rides read-gated
+  `ancestors[]` — so a witness sees `(member, opaque commitment)` entries but **cannot recover
+  `version_said` or group them by document**
   for a **private** doc; the strong on-chain co-authorship graph is **closed** (a public doc's graph is
   readable anyway). The **membership graph closes** because the rescission key is `hash(G | said_b)` —
   **participant-blind** (no member prefix as input) **and grant-blind** (a witness can't compute it without
@@ -325,34 +333,36 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   Given the grant records are read-gated for a private doc, a witness sees only **`creator ↔ doc`**
   (unavoidable — the governance SEL derives from `doc_prefix`) plus grant/rescission **volume-timing**.
 - **The stated residual, completed (cold F9 / warm F9).** For a mesh witness the residual is
-  `creator ↔ doc` **plus**: (a) **per-participant `DOC_TOPIC` volume-timing** — the `(member, version_said)`
-  pairs above, and the **topic** itself (a version SEL `Icp` is recomputable content carrying
-  `(owner, topic, data)`, so a witness learns _"member X authors shared-doc versions"_, unlinkable
-  to a doc absent an oracle); (b) **cross-participant timing correlation** of version-SEL activity (co-editing
-  clusters — the same inv-16 volume-timing class); (c) grant/rescission volume-timing. It is **never
+  `creator ↔ doc` **plus**: (a) **per-participant version-anchor volume-timing** — the editor's IEL
+  `Ixn`s carrying opaque version commitments (generic IEL-anchor activity; the direct anchor **removes**
+  the version-SEL topic leak the SEL model carried — no `(owner, topic, data)` recomputable content, so a
+  witness no longer learns _"member X authors shared-doc versions"_); (b) **cross-participant timing
+  correlation** of version-anchor activity (co-editing clusters — the same inv-16 volume-timing class);
+  (c) grant/rescission volume-timing. It is **never
   _who_ the members are** — the same inv-16 residual class accepted everywhere else, not the graph.
-- **Every gated doc on public structure needs its own `readPolicy` AND a high-entropy nonce (warm F2 —
-  the offline confirmation-oracle, a MAJOR the review found missable).** A parent's `readPolicy` does
+- **Every gated doc on public structure needs its own `readers` gate AND a high-entropy nonce (warm F2 —
+  the offline confirmation-oracle, a MAJOR the review found missable).** A parent's `readers` gate does
   **not** transitively protect its referenced sub-SADs (`compaction.md` §Privacy contract). So the
   grant-doc's participant entries `{said, kind, <role>, from, nonce, custody}`, the rescind-doc
   `{<role>, bound}`, and a private
-  doc's version SADs each carry **their own `readPolicy`** (else the content is publicly fetchable by
+  doc's version SADs each carry **their own `readers` gate** (else the content is publicly fetchable by
   SAID regardless of the parent's gate) **and a high-entropy `nonce`** (else the SAID is a **hash-match
   confirmation oracle** — compose candidate content, hash, compare the committed SAID; a member prefix +
   known `G` is candidate-composable). The store-side `denied ≈ absent` **cannot** defend a SAID already
   public on the chain — the entropy must be in the _input_ (the area-sel data-entropy rule at the
   feature layer; V0 already has its nonce by design). App-builder responsibility; the framework provides
-  the per-SAD `readPolicy` + the nonce slot.
+  the per-SAD `readers` gate + the nonce slot.
 - **Content off-node — submit the SELs, hold the content (the sovereignty mode).** A participant may
-  submit only the **SEL chains** (version, governance, rescission — pure opaque structure, witnessed)
+  submit only the **governance + rescission SEL chains** (pure opaque structure, witnessed) and the
+  **version anchors** on the editor's own IEL (opaque commitments)
   and **never land any content SAD** (versions, grant/rescind docs) on the node; the content is held
   on-device and shared peer-to-peer (exchange/mail, §9). This composes because **the node's role is
   chain-only** — chain validity + witnessing are content-independent (inv 17), and every feature check
   (membership window, DAG placement, the honored predicate) is **participant-side**, run by whoever
   holds the content. So the node hosts a fully opaque chain and **nothing content-readable** (the
-  governance `Icp`'s `data = doc_prefix` and the version-SEL `(owner, DOC_TOPIC, version_said)` are
+  governance `Icp`'s `data = doc_prefix` and the version anchors' opaque commitments are
   structural — cold N1). Two tiers, a per-doc choice: **content off-node** (max privacy; participants
-  bear availability) or **content on-node but gated** (`readPolicy` + nonce'd SADs — node availability,
+  bear availability) or **content on-node but gated** (`readers` + nonce'd SADs — node availability,
   the mesh-correlation residual). **Feature invariant: no node operation may require a content SAD**
   (§7) — and the encode must add an **off-node carve-out to deferred-deps (warm F12):** a
   permanently-off-node anchored SAD is an **opaque commitment, never a pending dependency** (the existing
@@ -365,13 +375,13 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 | ---------- | ------------------------------------------------ | --------------------------------------------------------- |
 | parties    | `issuer`(s) + an `issuee` — **asymmetric**       | a **creator** + **members** — governed, symmetric members |
 | membership | fixed at issuance                                | **creator-governed, evolving** (grant / bound / re-add)   |
-| policy     | authorizing + acceptance conditions              | none except `readPolicy` (the read/sharing gate)          |
+| policy     | authorizing condition (as-issued)                | none except the `readers` read gate                       |
 | content    | frozen (single version)                          | evolves (the version DAG)                                 |
 | kill       | revocation `Trm` (`Rev`)                | per-participant period-bound; **freeze** = bound-all + `Trm`-gov |
 | home       | `primitives/policy/documents.md`                 | `features/shared-documents/documents.md`                  |
 
-Shared substrate: documents are **attributed SADs** (`owner`+`topic`+SEL-anchor), located by
-`derive`, in a DAG; membership reuses the §5 grandfather-`bound` mechanism. They specialize
+Shared substrate: documents are **attributed SADs** (`owner`+`pin` direct-anchor), located by their
+`pin`, in a DAG; membership reuses the §5 grandfather-`bound` mechanism. They specialize
 differently and are **not** merged.
 
 ## 7. Resolutions + what actually stays open
@@ -428,43 +438,54 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     (`Del`→`Ath` net-0; `Kil`→`Rev`/`Dth` split `+1`; `Dec`→`Trm` rename) — *the later first-seen pivot dropped
     `Fld`/`Rpr`, so the current counts are **SEL 5** / **IEL 8***. The `del(X, N)` policy leaf, the `delegates` manifest role, and
     "delegation" the concept are **unchanged** (only the kind/count tokens rename).
-- **Sharing (`readPolicy`) evolution + read-invariance outcome (was warm F14, RESOLVED).** `readPolicy`
-  is **read-set integrity, not confidentiality** (§5 — a co-author can exfiltrate regardless), so sharing
-  is a **light axis**: the creator publishes `readPolicy` updates as **cheap T1 `Ixn`s** on the
-  governance SEL (no membership-style freshness / backdate machinery — sharing is not trust-granting),
-  and a version declares the `readPolicy` it was authored under. A **read-invariance violation is
-  presented-but-flagged, app-arbitrated** (the canonical DAG's read-set uniformity, like a canonical
-  tag) — **not** a structural un-honor, because a wrong-gate version is still a validly-authored version.
+- **Sharing (`readers`) evolution + read-invariance outcome (was warm F14; T2 rework 2026-07-16).**
+  `readers` is **read-set integrity, not confidentiality** (§5 — a co-author can exfiltrate regardless).
+  Read membership rides the **same grant machinery** as edit membership: the creator opens/closes a
+  reader's period with a **`Gnt` ← `Ath` (T2)** on the **read-governance SEL** (a `DOC_READ_GOV_TOPIC`
+  SEL structurally constrained to carry only `readers`), rescinded participant-blind exactly as an editor
+  is — **not** the earlier cheap-T1 axis. A version declares the `readers` gate it was authored under. A
+  **read-invariance violation is presented-but-flagged, app-arbitrated** (the canonical DAG's read-set
+  uniformity, like a canonical tag) — **not** a structural un-honor, because a wrong-gate version is still
+  a validly-authored version.
 - **Reserved names + SAD schemas — DEFINED (2026-07-04, with Jason).** Convention
   `vdti/<concept>/v1/<category>/<thing>` (from the KEL kinds + `.terminology-forbidden`); concept **`doc`**.
-  - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/version` (owner = an editor,
-    data = `version_said`), `vdti/doc/v1/topics/governance` (owner = creator, data = `prefix`),
-    `vdti/doc/v1/topics/rescission` (owner = creator, data = `hash(G | said_b)`). _(The `DOC_TOPIC` /
-    `DOC_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_ The grant `Gnt` is anchored by **`Ath`**, and
-    the `rescission` (a SEL `Trm`) by **`Dth`** (add the rows at encode).
+  - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/governance` (owner = creator,
+    data = `prefix`) — the
+    **edit**-governance SEL, `vdti/doc/v1/topics/read-governance` (owner = creator, data = `prefix`) — the
+    **read**-governance SEL (structurally carries only `readers`), `vdti/doc/v1/topics/rescission`
+    (owner = creator, data = `hash(G | said_b)`) — shared by both governance SELs (`G` disambiguates).
+    _(The `DOC_GOV_TOPIC` / `DOC_READ_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_
+    Each grant `Gnt` is anchored by **`Ath`**, and the `rescission` (a SEL `Trm`) by **`Dth`** (add the
+    rows at encode).
   - **Doc SADs** (`vdti/doc/v1/schemas/*`; every SAD carries `kind`; **`custody` is inline** — no `said`,
     so it can't be compacted away, the SAD's authority travels with it):
-    - `inception` (V0): `{ said, kind, prefix, creator, custody{ readPolicy }, nonce? }`
-    - `version`: `{ said, kind, custody{ owner, topic, readPolicy }, prefix, grant, ancestors[], content, nonce?, edited? }`
-    - `grant` — the **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
+    - `inception` (V0): `{ said, kind, prefix, creator, custody{ readers }, nonce? }`
+    - `version`: `{ said, kind, custody{ owner, pin, readers }, prefix, grant, ancestors[], content, nonce?, edited? }`
+    - `grant` — the edit-governance **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
       (the `grants/*` convention shared with exchange, ≤ 64 chars; the generalized seal-a-typed-value `Gnt`,
-      area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readPolicy }, editors, commenters }`, two
+      area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readers }, editors, commenters }`, two
       role lists + the grant's own gate
+    - `read-grant` — the read-governance grant-value (the read-gov SEL's `Gnt`): kind
+      **`vdti/sel/v1/grants/shared-document-read-governance`** — `{ said, kind, custody{ readers }, readers }`,
+      structurally **only** the `readers` role list (an `editors`/`commenters` delta → malformed)
     - `editors` / `commenters`: `{ said, kind, add:[ entry-SAID, … ] }` (the role lists)
-    - `editor` / `commenter`: `{ said, kind, <role>, from, nonce, custody{ readPolicy } }` — `<role>` (= `editor`
-      or `commenter`) is that participant's IEL prefix; `said` = `said_b` (the rescission handle); `from` = `F`
-    - `rescind`: `{ said, kind, custody{ readPolicy }, <role>, bound, nonce }` — `bound` = `B`
+    - `editor` / `commenter` / `reader`: `{ said, kind, <role>, from, nonce, custody{ readers } }` — `<role>`
+      (= `editor`, `commenter`, or `reader`) is that participant's IEL prefix; `said` = `said_b` (the rescission
+      handle); `from` = `F`
+    - `rescind`: `{ said, kind, custody{ readers }, <role>, bound, nonce }` — `bound` = `B`
   - **Comments — reserved, design DEFERRED.** `vdti/doc/v1/schemas/comment` + `vdti/doc/v1/topics/comment`
     are reserved but unspecified (commenting resolves / threads / references a version-range — future work).
     The `commenters` list is used now (the grant's second role array); the comment *mechanism* is not.
   - **Prefix-naming rule:** an unqualified **`prefix` = the chain/DAG the document is part of** (the doc's own
     prefix); every **external prefix is named by its role** (`editor`, `commenter`, `creator`, `custody.owner`)
-    and documented as an IEL prefix — never a bare `prefix`, no `ielPrefix` qualifier. The only primitive SAD
-    referenced is `vdti/sad/v1/schemas/policy` (the `readPolicy` DSL doc).
+    and documented as an IEL prefix — never a bare `prefix`, no `ielPrefix` qualifier. The read gate
+    references a **read-governance SEL** (`readers`), not a policy SAD (2026-07-16 — the `readPolicy` DSL
+    reference is retired).
 - **Gated-doc shapes — settled (§1); field layout is encode-mechanical (RESOLVED).** Grant-doc
-  `G = {said, kind, custody{readPolicy}, editors, commenters}` (role lists of nonce'd `{said, kind, <role>,
-  from, nonce, custody{readPolicy}}` entries); rescind-doc `{said, kind, custody{readPolicy}, <role>, bound,
-  nonce}`; rescission key `hash(G | said_b)`. The precise field layout is above; JSON lands at encode.
+  `G = {said, kind, custody{readers}, editors, commenters}` (role lists of nonce'd `{said, kind, <role>,
+  from, nonce, custody{readers}}` entries); rescind-doc `{said, kind, custody{readers}, <role>, bound,
+  nonce}`; rescission key `hash(G | said_b)`. The read-governance grant is the same shape carrying **only**
+  a `readers` role list. The precise field layout is above; JSON lands at encode.
 - **Node-never-needs-content — VERIFIED + the off-node carve-out (was warm F12, RESOLVED).** Witnessing
   (over `(prefix, serial, event-said)`), merge (chain events), and chain-validity (the SEL walks) are all
   **chain-only**; every feature check (window, DAG placement, honored predicate) is **participant-side**.
@@ -497,7 +518,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
 - Write `docs/design/features/shared-documents/documents.md` fresh from this note (greenfield voice;
   credentials as the _contrast_). Forward-ref from `primitives/policy/documents.md` + the SEL
   primitive.
-- Depends on the landed custody `owner`+`topic`+SEL-anchor model (inv 16 note) and the §5
+- Depends on the landed custody `owner`+`pin` direct-anchor model (inv 16 note) and the §5
   rescission-`bound` mechanism.
 - **Encode-voice (cold N3 / warm N3):** the §5 first-cut-relative framing and the `cold Fn`/`warm Fn`
   citations throughout are working-note bookkeeping — restate every property in **absolute** greenfield
@@ -506,13 +527,15 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   spans are corrected to "the v1 (`Pin`) is anchored, the `Icp` rides `v1.previous`" (inv 15) — same
   change, landed-docs-current rule. And the `compaction.md`/`said.md` SAID-invariance fix (§7).
 
-## 9. Content confidentiality → the exchange feature
+## 9. Content confidentiality → the group-key primitive
 
 The off-node / private-content confidentiality thread — a per-doc symmetric key (AES-256-GCM) wrapped to
-each member's published KEM receive key, re-key on removal for forward secrecy, key epochs aligned to the
-honored `[from, bound]` membership periods (one notion of "since when," not two), tiered PQ crypto — is
-**re-homed to `vdti-area-exchange`**: shared documents is a **consumer** of exchange. A doc's private
-content is delivered member-to-member as **ESSR** payloads sealed to each member's receive key; re-key =
-seal a fresh key to the **remaining** members (the past can't be un-shared — a co-author keeps what they
-already read). Open items — group-key-on-a-SEL, re-key cadence, epoch commitment — live in the exchange
-note (§7 there).
+each member's published KEM receive key (resolved through the
+[receive-key directory](vdti-area-receive-key-directory.md), the shared-core primitive the group-key primitive
+composes), re-key on removal for forward secrecy, key epochs aligned to the
+honored `[from, bound]` membership periods (one notion of "since when," not two), tiered PQ crypto — **is
+the [group-key primitive](vdti-area-group-key.md)**: shared documents is a **consumer** of it (as is
+exchange/chat). A doc's private content is delivered member-to-member as **ESSR** payloads sealed to each
+member's receive key; re-key = the primitive's ratchet, sealing a fresh epoch key to the **remaining**
+members (the past can't be un-shared — a co-author keeps what they already read). The key-epoch-on-a-SEL,
+re-key cadence, and epoch commitment are the primitive's (`vdti-area-group-key.md`).

@@ -23,7 +23,7 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
 - `docs/canon/vdti-area-iel.md` (the structural mold — the SEL is now a witnessed chain in the IEL's
   shape), `docs/canon/vdti-area-federation-witnessing.md` §1e (the witnessing floor / first-seen / disputed
   detection the SEL now inherits) — **§1g Decision 1 is REVISED by this note** (the SEL _is_ witnessed now).
-- `docs/canon/vdti-area-shared-documents.md` (doc / governance / version SELs), `…-delegation.md`,
+- `docs/canon/vdti-area-shared-documents.md` (governance / rescission SELs), `…-delegation.md`,
   `…-document-policy.md` §F (the kill lookup SELs).
 
 ## 1. The current SEL model
@@ -59,8 +59,8 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
   anchor is the validity proof — the holder **presents** the cred, it is **never looked up by address**.
   **Revocation** is a **`kills[]` declaration** on the issuer's **witnessed** IEL `Rev` (fail-secure by
   default, inv 8/10) + a content-addressed **lookup SEL** giving a fail-open fast path (§document-policy
-  §F). **Custody rule:** direct-anchor an immutable SAD that is _presented_; SEL-wrap anything _mutable_ or
-  _looked-up-by-address_ (inv 16).
+  §F). **Custody rule:** an `owner`-bearing SAD is **directly anchored** on the owner's IEL, located by its
+  `pin` (inv 16); SELs are the separate primitive for _mutable_ / _evolving_ state.
 
 ### 1b. Kinds — six (the `Sea` seal-advancer is new)
 
@@ -69,7 +69,7 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
 | `Icp` | `t_use` | **T1** | — (not anchored; v1 via `previous`) | no | delayed — `owner` (immutable) + `topic` + `data`? + `content: true`? (content only) + `lineage`? (re-establishable value lookup only); **no manifest, no `pin`** (stays recomputable). |
 | `Ixn` (content) | `t_use` | T1 | `Ixn` | no | delayed — payload SAD(s) (the `payload` role, **required** — always ≥ 1) + re-`pin`; **≤ 1 per SEL per IEL `Ixn`** (counting content); the **divergeable / first-seen content kind** (buriable). A payload-less `Ixn` is malformed. |
 | `Pin` (pin-only re-pin) | `t_use` | T1 | `Ixn` | no | delayed — re-pins the SEL→owner-IEL floor (top-level `pin` only, **no manifest**); the **pin-only re-pin at any serial**. Its serial-1 instance is the **issuance floor** (incept-and-sit); a pure re-pin is always a `Pin`, never a payload-less `Ixn` (disjoint). Buriable like content. |
-| `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **yes** | **sealed on arrival** — **seals a typed value**: `manifest.grant` names a grant-value SAD kinded under **`vdti/sel/v1/grants/*`** (feature-first naming, any kind ≤ **64 chars**). Instances: the doc-governance grant-doc `G` (`grants/shared-document-governance` — opens editor/commenter periods, shared-documents §1); an **exchange receive-key** (`grants/exchange-ml-kem-1024` — the value-bearing lookup §1f, vdti-area-exchange). Non-buriable; walked back by a `Dth` rescission, never overturned. |
+| `Gnt` (grant) | `t_authorize` | **T2** | **`Ath`** | **yes** | **sealed on arrival** — **seals a typed value**: `manifest.grant` names a grant-value SAD kinded under **`vdti/sel/v1/grants/*`** (owner-first naming, any kind ≤ **64 chars**). Instances: the doc-governance grant-doc `G` (`grants/shared-document-governance` — opens editor/commenter periods, shared-documents §1); the doc **read**-governance grant (`grants/shared-document-read-governance` — opens reader periods, structurally only `readers`); a **directory receive-key** (`grants/directory-ml-kem-1024` — the value-bearing lookup §1f, vdti-area-receive-key-directory). Non-buriable; walked back by a `Dth` rescission, never overturned. |
 | `Trm` (kill) | `t_govern` (revoke) · `t_authorize` (rescind) | **T2** | **`Rev`** (revoke) / **`Dth`** (rescind) | **yes** | **sealed on arrival** — the SEL kill. `Rev` = a revocation lookup-SEL `Trm` / app-SEL closure; `Dth` = a delegation / doc-membership rescission. Monotone, terminal-on-divergence; can't be overturned or un-done. |
 | **`Sea`** (re-seal / bury) | **`t_govern`** | **T2** | **`Evl`** | **yes** | **sealed on arrival** — the SEL's **neutral** seal-advancer (§1d): a re-seal that buries a content fork below its own seal, authored when no natural `Gnt` / `Trm` advances the seal (a plain content SEL) — the SEL analog of the KEL recovery `Rot` / the IEL roster-less `Evl`. Anchored by an IEL `Evl` (empty for a pure re-seal, or the `Evl` carries a `cut` to evict the colluding owner member(s) atomically). |
 

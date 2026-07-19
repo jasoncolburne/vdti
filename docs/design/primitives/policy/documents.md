@@ -6,39 +6,41 @@ mechanisms.
 Policy lives on **documents**, never on a chain event. A document is a [SAD](../data/sad/sad.md): an
 application-defined payload (a credential, an attestation, a signed declaration) that carries,
 alongside its content, the policy that authorizes it. This doc states the generic shape every
-policy-bearing document shares — the two conditions it can carry, and how its issuer context is
+policy-bearing document shares — the authorizing condition it carries, and how its issuer context is
 fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
 specific document kind (how a **credential** is issued and revoked, for instance) is a feature
-layered above this one — see [`../../features/credentials/`](../../features/credentials/) _(a
-feature; forthcoming)_.
+layered above this one — see
+[`../../features/credentials/credentials.md`](../../features/credentials/credentials.md) _(a
+feature)_.
 
-## A document's two conditions
+## A document's authorizing condition
 
-A policy-bearing document carries up to two policy references (each the SAID of a policy SAD —
-[`policy.md`](policy.md)):
+A policy-bearing document carries at most **one** policy reference (the SAID of a policy SAD —
+[`policy.md`](policy.md)): its **authorizing condition — who could issue it.** When a single
+identity issues the document, this condition is **structural**: the issuer's own IEL **`t_use`**
+threshold authorizes the issuance, and there is no policy expression to evaluate (the structural
+mechanism, [`policy.md`](policy.md), covers it). The condition becomes an explicit policy only when
+issuance **spans separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of
+three institutions) — there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
 
-- **The authorizing condition — who could issue it.** When a single identity issues the document,
-  this condition is **structural**: the issuer's own IEL **`t_use`** threshold authorizes the
-  issuance, and there is no policy expression to evaluate (the structural mechanism,
-  [`policy.md`](policy.md), covers it). The condition becomes an explicit policy only when issuance
-  **spans separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of three
-  institutions) — there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
-- **The acceptance condition — who may present it.** The rule for who may later present or act on
-  the document. This is evaluated **current** — against live proof at the time of presentation
-  ([`evaluation.md`](evaluation.md)).
-
-The composing logic is the same language in both cases; only how each leaf is resolved differs by
-mode.
+**Who may _present_ the document is not a policy.** It is the uniform **challenge-the-issuee** step
+— the holder proves control of the issuee identity live (single-identity authentication) — handled
+by the presentation exchange, not the policy layer. A **read** gate on a document is likewise not a
+policy: it is a `readers` membership ([`../data/sad/custody.md`](../data/sad/custody.md)). Policies
+are **as-issued only**; there is no current-mode evaluation. (Durable **joint** presentation is a
+**shared IEL** — one issuee prefix whose roster carries the required threshold, satisfied by the
+same challenge; live multi-party consent is the exchange layer's, not the credential's.)
 
 ## The anchoring position — fixing the issuer context
 
-A document **carries no self-asserted pin.** Its issuer context is fixed by the **anchoring
-position**: the issuer commits the document to its IEL by authoring an **anchoring event** — an IEL
-`Ixn` whose `manifest.anchors` names the document. For a **credential** — a direct-anchored SAD,
-never a SEL — that is the issuance `Ixn` naming the **issuance commitment**
-`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`, and that anchor **is** the validity
-proof ([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at
-a fixed serial on the append-only chain, and it fixes the context two ways at once:
+A document carries no self-asserted **authority** pin — no value the issuer is _trusted_ on. Its
+issuer context is fixed by the **anchoring position**: the issuer commits the document to its IEL by
+authoring an **anchoring event** — an IEL `Ixn` whose `manifest.anchors` names the document. For a
+**credential** — a direct-anchored SAD, never a SEL — that is the issuance `Ixn` naming the
+**issuance commitment** `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`, and that
+anchor **is** the validity proof
+([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
+fixed serial on the append-only chain, and it fixes the context two ways at once:
 
 - It **commits the point-in-time** so a verifier can find and verify the issuer's context — the
   state immediately **before** the anchoring event transitively commits the issuer's identity (its
@@ -49,32 +51,38 @@ a fixed serial on the append-only chain, and it fixes the context two ways at on
   it actually anchors in the restrictive present.
 
 So **authority-affecting resolution is judged by the anchoring position.** The _document_ carries no
-self-asserted value the issuer chose — the as-of is read from where it is anchored, and there is no
-separate machinery to establish "when": the append-only chain is the clock.
+self-asserted value the issuer is _trusted_ on — the as-of is read from where it is anchored (a
+credential's `issuerPin` / a custody SAD's `pin` only _locates_ that anchor, checked, never trusted)
+— and there is no separate machinery to establish "when": the append-only chain is the clock.
 
-**Under multiple anchors of the same commitment, the anchoring position is the EARLIEST.** A cred's
-issuance commitment is a flat hash in `anchors[]`, not a chain event, so nothing structurally
-forbids re-anchoring it — and a later re-anchor must not move the as-of forward. Concretely: a **T1
-`Ixn` re-anchor** landing _after_ a **T2 `Rev`** revoked the cred would push a naive latest-anchor
-floor _past_ the revocation, silently un-revoking it — a **tier inversion**. So the feature layer
-resolves the issuance position as the **first** matching anchor on the fresh inception→tip walk and
-treats any later re-anchor as **inert** (never trusting a supplied or cached later position). The
-earliest floor is load-bearing alongside the fresh tip — the two ends of the revocation walk's range
+**The anchoring position is named by the credential's committed `issuerPin`.** A cred's issuance
+commitment is a flat hash in `anchors[]`, not a chain event, so nothing structurally forbids
+re-anchoring it — and a later re-anchor must not move the as-of forward. Concretely: a **T1 `Ixn`
+re-anchor** landing _after_ a **T2 `Rev`** revoked the cred would, under a naive latest-anchor
+floor, push the as-of _past_ the revocation, silently un-revoking it — a **tier inversion**. The
+credential's **`issuerPin`** (= the anchoring `Ixn`'s `previous`, committed by `cred.said`) fixes
+the position at `issuerPin`'s serial + 1: a **checked locator** (the `Ixn` there must carry
+`previous == issuerPin` and the commitment), and **provably the earliest** possible anchor — an
+earlier one would need a hash cycle, since the commitment embeds `cred.said` which embeds
+`issuerPin`. So a later re-anchor is **never consulted** — no scan reads `anchors[]` per event
+(which would open a manifest per event — the cost the canonical walk is built to avoid). The pinned
+position is the fixed range start for the revocation walk, alongside the fresh tip
 ([`evaluation.md`](evaluation.md)).
 
 A document that is instead **looked up by a derived address** rather than presented — a
 multi-identity **attestation SEL** (below), or any looked-up attested SAD — is located through the
 serial-1 `Pin` (its `v1`) of its anchoring SEL. That `Pin` names a position but is **checked, not
 trusted**: the verifier enforces `Pin.pin ==` the anchoring `Ixn`'s `previous`, so a served `Pin`
-can't resolve under a stale roster (the custody SEL-anchor mechanism,
-[`../data/sad/custody.md`](../data/sad/custody.md)).
+can't resolve under a stale roster (a SEL down-pin, checked the same way —
+[`../data/event-logs/sel/log.md`](../data/event-logs/sel/log.md)).
 
 ### Non-circular
 
 The document's SAID is fixed from its content; only **then** does the issuer author the anchoring
 event whose `manifest` names that SAID. So the anchoring event commits to a document that is already
-fixed, and the document is found and dated through an event that already exists — no cycle, and no
-value the document must carry to point back at the chain.
+fixed. The document **does** carry a checked locator (a credential's `issuerPin`, a custody SAD's
+`pin`) to _find_ that event — committed before the event exists, so still no cycle — but it is
+verified against the real anchor, never a _trusted_ value that points back at the chain.
 
 ## Multi-identity authorization — independent attestations
 

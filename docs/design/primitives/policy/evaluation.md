@@ -1,53 +1,43 @@
-# Evaluating a policy — two modes, one composer
+# Evaluating a policy — the as-issued composer
 
 Part of the policy layer — see [`policy.md`](policy.md) for the language and
 [`documents.md`](documents.md) for where a policy lives.
 
-A policy is evaluated in one of **two modes**, depending on the question being asked:
+A policy answers one question — **_was this validly issued?_** — and it is evaluated **as-issued**:
+resolve each leaf **as of the document's anchoring position** (the issuer's identity state at the
+moment of issuance). The proof that the named parties acted is **already on the chain** — the
+committed anchors that position reaches ([`documents.md`](documents.md)). This is how a document's
+**authorizing** condition is checked when it spans separate identities.
 
-- **As-issued — _was this validly issued?_** Resolve each leaf **as of the document's anchoring
-  position** (the issuer's identity state at the moment of issuance). The proof that the named
-  parties acted is **already on the chain** — the committed anchors that position reaches
-  ([`documents.md`](documents.md)). This is how a document's **authorizing** condition is checked
-  when it spans separate identities.
-- **Current — _does the presenter control the named identities right now?_** Resolve each leaf at
-  the **chain tip** (the identity's current members and keys). The proof is **live signatures over a
-  fresh challenge** the verifier issues. This is how a document's **acceptance** condition is
-  checked.
+There is no live, current-mode policy evaluation. Live checks don't compose — a passive verifier
+cannot gather async parties' live signatures — so composition is **as-issued only**. The live acts
+that might look like a current policy are **not** policies: _who may present a credential_ is a
+single-identity **challenge** to the issuee (the presentation exchange, not this layer), and _who
+may read a document_ is a **membership** lookup against the SAD's `readers` gate
+([`../data/sad/custody.md`](../data/sad/custody.md)). Neither is composed by the policy engine. A
+chain's current-state freshness is the **to-tip freshness step** below — a separate check, not a
+policy mode.
 
-The split is by _question_, not by policy shape. The same policy expression can be evaluated in
-either mode; what changes is where each leaf reads its state and what counts as proof that the named
-party acted.
+## One composer, one leaf resolver
 
-## One shared composer, two leaf resolvers
-
-The two modes share their entire composing logic and differ only at the leaves.
-
-- **The composer is identical in both modes.** The `thr` / `wgt` / `and` / `pol` logic — credited
-  set, distinct-by-identity counting, per-identity-max weight, `and` over disjoint pools, the
-  threshold check — is the same code regardless of mode. **The composer never knows which mode it is
-  in.** It calls the leaf resolver, combines the results, and applies the
+- **The composer** — the `thr` / `wgt` / `and` / `pol` logic (credited set, distinct-by-identity
+  counting, per-identity-max weight, `and` over disjoint pools, the threshold check). It calls the
+  leaf resolver, combines the results, and applies the
   [composition rules](policy.md#composition-rules).
-- **The leaf resolver is mode-specific.** Each leaf needs two things: the **state** it resolves
-  against, and the **proof** that the named party acted. Both differ by mode:
+- **The as-issued leaf resolver** — each leaf needs two things: the **state** it resolves against —
+  the identity's members + **`t_use`** threshold **as of its anchoring position** — and the
+  **proof** that the named party acted — the **committed on-chain anchors** those positions reach,
+  the proof already in the chain.
 
-  |               | State                                                                                      | Proof that the party acted                                                                   |
-  | ------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-  | **as-issued** | the identity's members + **`t_use`** threshold **as of the document's anchoring position** | the **committed on-chain anchors** those positions reach — the proof is already in the chain |
-  | **current**   | the identity's members + **`t_use`** threshold **at the chain tip**                        | **live signatures** over a fresh, single-use **challenge**                                   |
+  The `del(X, N)` leaf resolves the same way, and is **bounded** — the verifier walks **up** from
+  the presented party at most `N` hops (and never beyond a verifier-wide work cap) to reach `X`,
+  denying fail-secure if either is exceeded: it resolves each hop's delegation as of the anchoring
+  position and checks the grant's grandfather ancestry against the rescission bound. "Is this
+  delegation rescinded?" is the **positive lookup** of [`policy.md`](policy.md), never a scan.
 
-  The `del(X, N)` leaf differs the same way, and is **bounded the same way** in both modes — the
-  verifier walks **up** from the presented party at most `N` hops (and never beyond a verifier-wide
-  work cap) to reach `X`, denying fail-secure if either is exceeded: as-issued, it resolves each
-  hop's delegation as of the anchoring position and checks the grant's grandfather ancestry against
-  the rescission bound; current, it confirms the delegate controls its identity now and that no hop
-  is rescinded as of the tip. In both modes "is this delegation rescinded?" is the **positive
-  lookup** of [`policy.md`](policy.md), never a scan.
-
-So evaluation is one function over the policy expression, parameterized by a resolver. The as-issued
-and current entry points are thin wrappers that pick the resolver and assemble its inputs (the
-anchoring positions, or the challenge and the presented signatures). Everything above the leaves is
-shared.
+So evaluation is one function over the policy expression, parameterized by the as-issued resolver: a
+thin entry point assembles the resolver's inputs (the anchoring positions and the committed-anchor
+proofs). Everything above the leaves is the composer.
 
 ## The to-tip freshness step is mandatory for trust
 

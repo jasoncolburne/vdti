@@ -46,8 +46,8 @@ The rules for design are simple, now that I understand a bit more about how LLMs
 4. Use Claude's vernacular. You can use your own, but I find the models work best when you explain
    in terms they already use - it's like an established protocol, and allows you to catch the model
    reasoning in the wrong frame.
-   - 'Locked' - decision made. - 'Drift' - usually related to documentation not being updated as
-     required.
+   - 'Locked' - decision made.
+   - 'Drift' - usually related to documentation not being updated as required.
    - 'Fallout' - the changes to surrounding code required by the core change.
    - 'Invariant' - a system rule that cannot be broken
    - 'Gap' - a delta between design/correctness and implementation.
@@ -136,11 +136,11 @@ or dig deeper (guided mostly by my instinct).
 
 ## The design capabilities of Claude code
 
-I tried Fable for a brief period, and was flagged about 50% of the time. It did make a couple good
-finds, but I was using it to review in both a cold and warm context, so I'm not sure how it performs
-outside that use case. It wasn't that different to be honest. It babbles less while 'thinking', I
-did notice that. Not sure if that's to conserve context, prevent previous bias, or what. I kind of
-prefer Opus.
+I tried Fable for a brief period, and was flagged about 25-50% of the time. It did make a couple
+good finds, but I was using it to review in both a cold and warm context, so I'm not sure how it
+performs outside that use case. It wasn't that different to be honest. It babbles less while
+'thinking', I did notice that. Not sure if that's to conserve context, prevent previous bias, or
+what. I kind of prefer Opus.
 
 Claude is more than capable of verifying design work, but it takes several iterations of review to
 get there. It's not good at seeing beyond the next chess move, but it's very good at understanding
@@ -152,6 +152,9 @@ rival my own. It's an impressive tool, but it's very much a tool at present. I u
 board for the most part, though it sometimes makes good simplifications and does add occasional
 value to the process. On the whole however, against a human designer/colleague, we'd get from A to B
 much faster as humans. That said, those humans would cost far more than an Anthropic subscription.
+
+That said, after designing the primitives Claude did compose them very easily, understanding
+quickly.
 
 On the whole - for a critical, design-heavy project, Claude is an amazing resource for a small team
 that simply needs extra high-quality review capacity.

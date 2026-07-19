@@ -170,9 +170,9 @@ Witness receipts are **adjacent attestation data** (like a KEL's signatures sit 
    (a non-rotating key only *widens* its as-of-validity window — the wrong direction). Witnesses stay stable,
    rotatable members; destruction on confirmed-witnessing is the closure.
 
-Drawn in `docs/design/vdti.excalidraw` examples **6** (member lifecycle — `federationPin` ratcheting forward when
-the federation does a `Wit`) and **7** (a user KEL rebinding to a new federation, `federation` + `federationPin`
-both moving).
+Illustrated by the federation design diagrams (inline mermaid): member lifecycle — `federationPin` ratcheting
+forward when the federation does a `Wit` — and a user KEL rebinding to a new federation (`federation` +
+`federationPin` both moving).
 
 **Durability vs. creds:** a cred is a durable *authorization* (a floored chain event, valid as-of issuance);
 witnessing is a live *observation* re-affirmed as-of-context. The floored cred *gets* the as-of-context

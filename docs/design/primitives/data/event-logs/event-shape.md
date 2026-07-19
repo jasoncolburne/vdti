@@ -86,9 +86,9 @@ Each primitive authorizes its own events structurally.
   a signing key (tier 1) or a revealed rotation reserve (tier 2). The KEL is the root —
   self-authorizing, with no chain below it.
 - **IEL — an identity's threshold vector over its member devices.** An IEL is a roster of member
-  KELs plus a **threshold vector** `{t_use, t_govern, t_authorize}`, indexed by the kind of event
-  being authored (below). It composes no multi-party policy internally; "who is this identity" is
-  the roster, "how many must act for this kind of act" is the threshold vector.
+  KELs plus a **threshold vector** `{ use, authorize, govern }`, indexed by the kind of event being
+  authored (below). It composes no multi-party policy internally; "who is this identity" is the
+  roster, "how many must act for this kind of act" is the threshold vector.
 - **SEL — single-owner ownership.** A SEL is owned by exactly one IEL. Its events are authorized by
   that owner IEL: the owner's IEL event anchors the SEL event (commits to its SAID), and the
   required count is set by the SEL event's kind. A SEL hosts no roster of its own.
@@ -141,8 +141,8 @@ those commitments **by named role**. The manifest SAD reads
 {anchors / roster / delegates / kills / …}." The event row holds only the manifest SAID; the grouped
 commitments live in the SAD, separately custody-able. A role value is either an **inline list** of
 SAIDs/prefixes — `anchors` / `payload` / `delegates` / `kills` — a **single SAID** naming a further
-structured SAD (`roster`, `witnesses`, `bound`), or a **direct scalar** (the federation `clock` — an
-inline timestamp value, the lone non-SAID role).
+structured SAD (`roster`, `witnesses`, `bound`, `grant`), or a **direct scalar** (the federation
+`clock` — an inline timestamp value, the lone non-SAID role).
 
 **Inline lists are length-capped.** Every inline manifest list — `anchors`, `payload`, `delegates`,
 `kills` — is bounded to **`MAXIMUM_MANIFEST_LIST = 128` entries**, a fixed protocol constant the
@@ -224,8 +224,8 @@ downstream type-check, so the allowlist is their sole protection (a `kills` on a
 malformed → rejected, closing declare-a-revoke-at-`t_use`). The back-checked role `anchors` is
 additionally caught when each referenced event is validated against its required kind — the anchor
 matrix is **kind-strict** both directions: an IEL `Rev`'s or `Dth`'s anchors resolve **only** to SEL
-`Trm`s, an IEL `Ixn`'s only to content SEL v1s or a credential's issuance commitment, and neither
-the reverse.
+`Trm`s, an IEL `Ixn`'s only to content SEL v1s or a custody-anchored SAD's issuance commitment (a
+credential is one use), and neither the reverse.
 
 ## Cross-cutting fields
 
@@ -384,8 +384,9 @@ and [`substrate/federation/`](../../../substrate/federation/).
 - ᶜ **`Gnt`** — seals a **typed value**: `manifest.grant` names a `vdti/sel/v1/grants/*` SAD (≤ 64
   chars). The additive twin of `Trm`, kind-strict (an `Ath` anchors only `Gnt`s), walked back by a
   rescission (`Dth` → SEL `Trm`) or reincept, never overturned. A **value lookup SEL** is
-  `{Icp, Gnt}` at tier 2 (rotation stacks `Gnt`s, the live sealed tip served); its instances (a
-  doc-governance grant, an encryption receive-key) are the feature layer's.
+  `{Icp, Gnt}` at tier 2 (rotation stacks `Gnt`s, the live sealed tip served); its instances are
+  their **owner's** — a feature (a doc-governance grant) or a shared-core primitive (the receive-key
+  directory's encryption receive-key).
 - ᵈ **`Sea`** — the neutral seal-advancer, kind-strict (an `Evl` anchors only `Sea`s); a re-seal
   that buries a content fork on a SEL with no natural `Gnt` / `Trm`. The anchoring `Evl` is empty
   for a pure re-seal, or carries a `cut` to evict the colluding owner member atomically.
@@ -396,11 +397,13 @@ chain** — first-seen at its own `(prefix, serial)`, inheriting the owner IEL's
 content fork is prevented by its own witnessing and, where one forms under witness compromise,
 buried by a seal-advancer (`Gnt` / `Trm` / `Sea`) that advances the seal past the loser. A dead
 owner-IEL anchor **severs** the SEL — the portion after the earliest dead anchor is un-verifiable,
-with no repair. Credential issuance, revocation, and status are a **feature** layered on the SEL
-primitive — [`features/credentials/`](../../../features/credentials/); shared documents and
-value-bearing exchange keys are others —
-[`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md),
-[`features/exchange/exchange.md`](../../../features/exchange/exchange.md) _(all forthcoming)_.
+with no repair. Credential **revocation and status** are a **feature** layered on the SEL primitive
+(issuance itself is the issuer's IEL anchor, not an SEL) —
+[`features/credentials/credentials.md`](../../../features/credentials/credentials.md); shared
+documents are another
+([`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md),
+forthcoming), and value-bearing **receive keys** ride the SEL as a shared-core primitive (the
+[receive-key directory](../../protocols/receive-key-directory.md)).
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two
 kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's type, and the `Evl`
@@ -619,9 +622,11 @@ A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anc
 `Ixn` (the anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL —
 the issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are
 all hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy
-via the body `nonce`) while a public credential's is correctly public. The custody rule:
-**direct-anchor an immutable SAD that is presented; SEL-wrap anything mutable or
-looked-up-by-address** ([`../sad/custody.md`](../sad/custody.md)).
+via the body `nonce`) while a public credential's is correctly public. The custody rule: an
+`owner`-bearing SAD is **directly anchored** on the owner's IEL — its `Ixn` commits the issuance
+commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` (the credential is one use),
+located by its `pin`; SELs are the separate primitive for mutable / evolving state
+([`../sad/custody.md`](../sad/custody.md)).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
 computed prefix doesn't match its declared `prefix`.

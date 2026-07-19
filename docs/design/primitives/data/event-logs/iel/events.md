@@ -21,7 +21,7 @@ IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `
 | Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                                                          |
-| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors SEL events, each SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                                               |
+| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors content SEL events, each content SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                               |
 | `Evl` | `vdti/iel/v1/events/evl` | sealed    | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster / threshold **delta** (`add` + `cut`); a `cut` `Evl` **evicts**. Anchors no kills, but **anchors a SEL `Sea`** (the burying-seal recovery, `Sea ← Evl`). **Seal-advancing.** |
 | `Ath` | `vdti/iel/v1/events/ath` | sealed    | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and / or `anchors` a SEL `Gnt` (act **as itself**). Sealed on arrival, non-terminal. **Seal-advancing.**                                        |
 | `Rev` | `vdti/iel/v1/events/rev` | sealed    | 2    | `t_govern`                                 | **Revoke** an owned artifact — a `kills[]` declaration + anchors the revocation-SEL `Trm`. Sealed on arrival, non-terminal. **Seal-advancing.**                                                          |
@@ -42,8 +42,7 @@ an act on a _downstream target_, not on the host IEL, so `{Rev, content}` stays 
 `{Wit, Wit}`, or ≥ 2 **accepted** sealed branches. The **tier** column names the KEL capability an
 adversary must forge to author the matching member participation — see
 [§Two-tier capability model](#two-tier-capability-model). The **Kind string** column is the kind's
-versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's custody
-`topic`.
+versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's own `kind`.
 
 ## Two-kind inception
 
@@ -84,14 +83,17 @@ exactly one threshold slot, and the verifier resolves each anchor down to a KEL 
 
 ## The threshold vector and its bounds
 
-An identity's authorization is a **threshold vector** `{t_use, t_govern, t_authorize}` — the
-**count** axis, orthogonal to tier. Each IEL kind draws its required count from exactly one slot:
+An identity's authorization is a **threshold vector** — a labelled object
+`{ use, authorize, govern }` — the **count** axis, orthogonal to tier. Prose (and the slot table
+below) writes a slot as **`t_use` / `t_govern` / `t_authorize`**: the `t_` marks a **threshold**,
+distinct from a **tier** (`T1` / `T2`) — it is a documentation label, not a data key. Each IEL kind
+draws its required count from exactly one slot:
 
 | Slot          | Consumed by                   | Meaning                                                                      |
 | ------------- | ----------------------------- | ---------------------------------------------------------------------------- |
 | `t_use`       | `Ixn`                         | Content — issuance and SEL authoring (tier 1).                               |
-| `t_govern`    | `Evl` / `Rev` / `Wit` / `Trm` | Roster / threshold change, revocation, federation rebind, terminal (tier 2). |
 | `t_authorize` | `Ath` / `Dth`                 | Authorize / deauthorize a party to act (tier 2).                             |
+| `t_govern`    | `Evl` / `Rev` / `Wit` / `Trm` | Roster / threshold change, revocation, federation rebind, terminal (tier 2). |
 
 The bounds (re-checked on the post-delta config at **every** config-changing event, not only
 inception):
@@ -129,7 +131,7 @@ carries additional bounds — see
 The **`Icp` declares the active threshold set** — exactly the authority kinds the IEL will ever use.
 A threshold is declared **iff its consuming kind is in the IEL's kind set**: a user IEL declares
 `t_govern` **mandatory** and `t_use` / `t_authorize` **optional and lockable**; a federation IEL
-(`Fcp` / `Wit` / `Trm`, no `Ixn` / `Ath`) declares **exactly `{t_govern}`** (declaring `t_use` or
+(`Fcp` / `Wit` / `Trm`, no `Ixn` / `Ath`) declares **exactly `{ govern }`** (declaring `t_use` or
 `t_authorize` is malformed → rejected — the threshold-declaration analog of the facet role
 allowlist). A kind **omitted at `Icp` can never be exercised** — there is no first-introducing it
 later. Thereafter a roster delta carries a threshold field **only when it changes** (present ⇒ must
@@ -140,8 +142,8 @@ change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit 
 
 ### `Ixn` — content (tier 1)
 
-Anchors content SEL events, each SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`, never
-itself anchored), **and a credential's issuance commitment**
+Anchors content SEL events, each content SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`,
+never itself anchored), **and a credential's issuance commitment**
 `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
 may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
@@ -302,7 +304,7 @@ recoverability cap, the clock, roster-add consent) are federation doctrine —
 ### `Fcp` — the federation inception marker (federation IEL only)
 
 The federation IEL's inception (§Two-kind inception). It carries the initial witness-KEL roster, the
-initial `witnesses` config, and the initial `clock`, declares exactly `{t_govern}`, and is anchored
+initial `witnesses` config, and the initial `clock`, declares exactly `{ govern }`, and is anchored
 kind-strict by each founder's KEL `Rot`. Its structural role is the **spine root** of the federation
 IEL (`previousSeal` walks terminate there). See
 [§The restricted federation IEL](#the-restricted-federation-iel).
@@ -337,13 +339,13 @@ directions**:
 An IEL kind anchors **only** its matching SEL kind(s), and each SEL kind is valid **only** anchored
 by its matching IEL kind:
 
-| IEL kind | Anchors (SEL)                                                           | Tier-elevation floor |
-| -------- | ----------------------------------------------------------------------- | -------------------- |
-| `Ixn`    | content SEL events, each SEL's v1, and a credential issuance commitment | tier 1               |
-| `Evl`    | a SEL `Sea` (the neutral burying-seal recovery)                         | tier 2               |
-| `Ath`    | a SEL `Gnt` (doc-membership grant)                                      | tier 2               |
-| `Rev`    | a revocation-SEL `Trm`                                                  | tier 2               |
-| `Dth`    | a rescission-SEL `Trm`                                                  | tier 2               |
+| IEL kind | Anchors (SEL)                                                                   | Tier-elevation floor |
+| -------- | ------------------------------------------------------------------------------- | -------------------- |
+| `Ixn`    | content SEL events, each content SEL's v1, and a credential issuance commitment | tier 1               |
+| `Evl`    | a SEL `Sea` (the neutral burying-seal recovery)                                 | tier 2               |
+| `Ath`    | a SEL `Gnt` (doc-membership grant)                                              | tier 2               |
+| `Rev`    | a revocation-SEL `Trm`                                                          | tier 2               |
+| `Dth`    | a rescission-SEL `Trm`                                                          | tier 2               |
 
 ```mermaid
 flowchart LR
@@ -418,7 +420,7 @@ aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every fed
 key change → record-both; a competing sealed sibling is **first-seen-declined** (exclude-self
 peer-witnessing), so an honest conflict does **not** schism — only a witness-colluded
 **two-witnessed** `{Wit, Wit}` → disputed → reincept; and **no `Ath`** (trust is per-federation and
-non-transitive). Its threshold vector is exactly `{t_govern}`.
+non-transitive). Its threshold vector is exactly `{ govern }`.
 
 The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike a general identity,
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always

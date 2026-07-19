@@ -32,8 +32,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    **The `kind` string (Jason 2026-07-12):** a `/`-delimited namespaced discriminator
    `vdti/<concept>/v1/<category>/<thing>`, **capped ≤ 64 chars** (a DoS bound — the verifier rejects a
    longer `kind`). **Grant-values** — what a `Gnt`'s `manifest.grant` names — are kinded under
-   **`vdti/sel/v1/grants/*`**, feature-first so grants sort by feature (`exchange-ml-kem-1024`,
-   `shared-document-governance`; area-sel §1b). `[locked]`
+   **`vdti/sel/v1/grants/*`**, owner-first (a feature or a stateful primitive) so grants sort by owner
+   (`directory-ml-kem-1024`, `shared-document-governance`; area-sel §1b). `[locked]`
    **The principle (Jason, 2026-06-21):**
    - **Top-level structural = the event's *own* links:** `said`, `previous`, **`previousSeal`** (seal-advancing
      events only — the back-link to the prior seal that renders the spine; inv 17), **`pin`** (a SEL's down-pin to
@@ -147,7 +147,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      **Kill-semantics → kill-anchor kind (the total rule, S5/D):** a `Trm` is anchored by **`Dth`** (`t_authorize`)
      **iff** it is an **authorization-rescission** — a lookup-SEL that closes a granted authorization: a
      **delegation**-rescission or a **doc-membership** rescission — and by **`Rev`** (`t_govern`) **otherwise**. So a
-     **cred revocation** and a shared-doc-leg (a version-SEL closure) `Trm` are `Rev`-sealed; the rescission
+     **cred revocation** and a shared-doc-leg (a doc governance / freeze closure) `Trm` are `Rev`-sealed; the rescission
      lookup-SELs are `Dth`-sealed; and an **arbitrary app-topic** SEL's `Trm` defaults to `Rev` (never the cheaper
      `Dth` when `t_authorize < t_govern`). *(The revocation/rescission lookup-SELs use **distinct topics per kind** —
      `CRED_REVOCATION_TOPIC` (Rev) / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC` (Dth), **never a shared `KILL_TOPIC`** —
@@ -228,23 +228,30 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    resolution that affects *authority* (grandfather / rescission ancestry, roster / delegation state) is judged by
    the **anchoring position** — the serial of the committing IEL `Ixn`/`Evl`, append-only-fixed via the chain
    `cred ← IEL Ixn ← KEL Ixn` (each `previous`-linked; the cred is anchored **directly** — no cred-SEL, 2026-07-09) — the as-of is read directly from the anchoring position, which is append-only and can't be inserted in the past.
-   **Under multiple anchors of the same commitment, "the anchoring position" is the EARLIEST (R1, the fail-secure
-   re-review's converged break).** A cred's issuance commitment is a flat hash in `anchors[]` (not a SEL event), so
-   nothing in the chain forbids re-anchoring it — and a **T1 `Ixn` re-anchor after a T2 `Rev` would move a naive
-   floor past the revocation, silently un-revoking (a *tier inversion*)**. So the cred feature layer resolves the
-   issuance position as the **first** matching anchor on the fresh inception→tip walk and treats any later re-anchor
-   as **inert** (no effect on the floor); it never trusts a supplied/cached later position. This **earliest floor is
-   load-bearing alongside the fresh tip** (both range ends). The chain still **accepts** the re-anchoring `Ixn` as
-   structurally valid — it doesn't arbitrate whether a re-anchor is "allowed" (the feature layer decides what it
-   *means*; §Layering / area-sel). *(Cred-only — delegate/doc-member targets are grant-epoch-scoped, so a re-grant
-   makes a *fresh* locus rather than moving a floor.)*
-   **The document carries NO self-asserted pin (removed 2026-06-26)** — there's no issuer-chosen value to constrain;
-   the cred's as-of is the **anchoring IEL `Ixn`** position (append-only), and a content/lookup SEL's structural
-   down-pin still satisfies `pin == anchor.previous` as a chain link, but it's a chain field, not a document claim. Closes the pin-backdate forgery and the
-   DI2I/delegated-issuer forge-as-of-old route. **A standalone SAD's custody follows the same rule (2026-07-03):** no
-   self-asserted position pin — an `owner`-bearing SAD is attributed via a SEL anchor (`derive(owner, topic, said)`),
-   its as-of the append-only anchoring position; the self-asserted `pin` is dropped (`custody { owner, topic,
-   readPolicy }`) — see inv 16. `[locked]`
+   **The anchoring position is named by the credential's committed `issuerPin` (R1, supersedes the earliest-scan —
+   Jason 2026-07-18).** A cred's issuance commitment is a flat hash in `anchors[]` (not a SEL event), so nothing in
+   the chain forbids re-anchoring it — and a **T1 `Ixn` re-anchor after a T2 `Rev` would, under a naive latest-anchor
+   floor, move the as-of past the revocation, silently un-revoking (a *tier inversion*)**. The cred's **`issuerPin`**
+   (= the anchoring `Ixn`'s `previous`, committed by `cred.said`) fixes the position at **`issuerPin.serial + 1`**: a
+   **checked locator** (the `Ixn` there must carry `previous == issuerPin` **and** the commitment), and **provably the
+   earliest** possible anchor — an earlier one would need a hash cycle, the commitment embedding `cred.said` which
+   embeds `issuerPin = said(E_pin)`, and every event at-or-below `E_pin` feeds `said(E_pin)` via the `previous` chain.
+   So a later re-anchor is **never consulted** — no scan reads `anchors[]` per event (the canonical walk
+   opens no manifest per event); the pinned position is the fixed range start for the revocation walk, alongside the
+   fresh tip. The chain still **accepts** a re-anchoring `Ixn` as structurally valid; it just never bears on the
+   pinned as-of. *(Cred-only — delegate/doc-member targets are grant-epoch-scoped, so a re-grant makes a *fresh*
+   locus.)*
+   **No self-asserted _authority_ pin (removed 2026-06-26)** — no issuer-chosen value is *trusted* as the as-of; the
+   as-of is the **anchoring IEL `Ixn`** position (append-only). A **checked locator** pin is a different thing and is
+   fine: the cred's `issuerPin` and a content/lookup SEL's `v1` down-pin both satisfy `pin == anchor.previous`, are
+   **verified against the real anchor** (never trusted), and only *locate* it (at `pin.serial + 1`, one manifest — no
+   scan), asserting no authority. Closes the pin-backdate forgery and the DI2I/delegated-issuer forge-as-of-old route:
+   a *trusted* position claim is backdateable, a *checked* locator is not (the anchor must actually sit there,
+   append-only). **A standalone SAD's custody follows the same split (2026-07-03; direct-anchor rework Jason
+   2026-07-18):** an `owner`-bearing SAD is **directly anchored** on the owner's IEL — the owner authors an `Ixn`
+   committing the SAD's `said`; the SAD's **`pin`** (a checked locator, `pin == anchor.previous`) finds it at
+   `pin + 1`, and `owner ⟹ pin` (`custody { owner, pin, readers }` — the SAD's `kind` names its type, no `topic`),
+   its as-of the append-only anchoring position. See inv 16. `[locked]`
 6. **No timestamps in the log primitives.** In KEL/IEL/SEL, ordering and "as-of" are expressed only by pins
    (which event) + the chain walk — never wall-clock time. **Feature layers (creds / documents) MAY use
    timestamps** — there a timestamp is a feature semantic (e.g. a cred validity window), not a primitive
@@ -373,7 +380,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     "safe-direction removals are T1 / `Trm` may be delayed"** — a kill can't be unsealed (inv 13, 15); it re-aligns
     with `document-policy §F`. *Src:* §1 + the kill-cluster resolution, 2026-06-21; two-tier collapse 2026-07-08.
     `[locked]`
-12. **IEL authorization is a threshold vector** `{t_use, t_govern, t_authorize}` (the **count** axis,
+12. **IEL authorization is a threshold vector** `{ use, authorize, govern }` (the **count** axis,
     ⊥ tier per inv 11; `t_recover` is **dropped** — no repair, no recovery reserve), indexed by kind; additions
     require unanimous consent of the added; a `Evl` needs consent-of-added ∧ `t_govern`-of-outgoing (its `cut` also
     evicts). **Bounds (F-K, hardened 2026-06-21; authorization floor + roster cap added 2026-07-08):**
@@ -440,7 +447,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     consuming kind is in the IEL's kind set** (`Ixn`→`t_use`, `Ath`/`Dth`→`t_authorize`,
     `Evl`/`Rev`/`Wit`/`Trm`→`t_govern`). A **user** IEL (kind set has `Ixn`/`Ath` + governance) → `t_govern`
     **mandatory**, `t_use` + `t_authorize` **optional and lockable**. A **federation** IEL (`Fcp`/`Wit`/`Trm`
-    — no `Ixn`, no `Ath`) declares **exactly `{t_govern}`** — `t_use` **and** `t_authorize`
+    — no `Ixn`, no `Ath`) declares **exactly `{ govern }`** — `t_use` **and** `t_authorize`
     forbidden (a federation `Fcp` declaring any is **malformed → rejected** — the threshold-declaration analog of
     the facet-dependent role allowlist, cold-9 Q3 / 2026-06-29). A kind **omitted at `Icp` can never be exercised** — there is no
     first-introducing it on a later event (closes a mid-life authority-introduction). Thereafter a roster delta
@@ -661,8 +668,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       A **credential is a direct-anchored SAD, not a SEL** (issuance SEL dropped 2026-07-09, area-sel §1): the issuer
       anchors the **issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an
       `Ixn`, and that anchor **is** the validity proof (an issuance commitment with no resolvable anchor on the
-      issuer's fresh IEL is not validly issued). The cred body carries **no pin** (dropped 2026-06-26 — the as-of is
-      the **anchoring position**). The **revocation kill-target** `hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`
+      issuer's fresh IEL is not validly issued). The cred body carries a checked-locator **`issuerPin`** (= the anchoring `Ixn`'s `previous`; the as-of is
+      still the **anchoring position** it finds, never a trusted claim). The **revocation kill-target** `hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`
       is a separate flat hash of the same preimage → its `{Icp, Trm}` lookup SEL (built two-pass, prefix ≠ target);
       safety is **owner-rooting** (only the owner IEL declares a kill / anchors the cred), **not** prefix-secrecy.
       A *private* cred stays private because **`cred.said` appears nowhere raw** on the public IEL — issuance
@@ -732,46 +739,49 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     identity — the exact correlation this invariant otherwise closes. Everything *in the content* is already coupled to
     the prefix (the prefix is a content hash), so `v1.previous → said(Icp)` leaks nothing new; the SAID is the one
     derived handle that must not coincide with the lookup key.
-    **Attribution on a standalone SAD requires a SEL anchor, never a self-asserted pin — the custody fix
-    (2026-07-03).** A binding a verifier must *resolve* (fetch the named chain and walk it) needs the entity
+    **Attribution on a standalone SAD requires a direct IEL anchor located by a checked `pin`, never a
+    self-asserted *authority* pin — the custody fix (2026-07-03; direct-anchor rework 2026-07-18).** A binding a verifier must *resolve* (fetch the named chain and walk it) needs the entity
     **prefix** — a SAID has no global index (above) to invert. On a **chain event** a position pin is sound: it is a
     chain field corroborated by append-only `previous`-linkage (the SEL down-pin `owner`(prefix) + `pin`(SAID); the
     federation `federation`(prefix) + `federationPin`(SAID) — inv 5). But a **standalone SAD is not a chain event** —
     it sits on no chain, so a self-asserted position pin has **nothing to corroborate it** and is freely
     **backdateable**: pick an old position where a since-broken key was authorized → forge a "valid as-of-then" write
     (and over a long enough horizon *any* key breaks, so the backdate is real, not hypothetical). This is the exact
-    self-asserted-pin forgery inv 5 already closed for documents. **Resolution — an `owner`-bearing SAD is attributed
-    via an append-only anchor on the owner's IEL:** custody carries **`owner`** (the writer IEL prefix) **+ `topic`**
-    (the doc's namespace / schema). **Custody rule (written down, B1 fail-secure rework 2026-07-09): direct-anchor an
-    immutable SAD that is *presented*; SEL-wrap anything *mutable* or *looked-up-by-address*.** A **credential** is
-    the first **direct-anchor** case (not an arbitrary exception): the issuer anchors its issuance commitment
-    `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` by an IEL `Ixn` — the cred needs no derived-address lookup
-    (the holder presents it; the fail-secure revocation walk locates the commitment on the issuer's fresh IEL). A doc
-    needing **self-location by a derived address** (the revocation/rescission lookup SELs; any looked-up attested SAD)
-    is **SEL-wrapped** — anchored **by a SEL** built from `Icp{owner, topic, said}` (usual two-pass). Then **as-of
-    authority = the anchoring position** (inv 5 — backdate-proof: forging it needs a fresh IEL `Ixn` at the
-    owner's *current* tip, which a rotated-out key can't author and can't insert in the past → the threat reduces to
-    current-key-compromise-at-current-time, the accepted limit, inv 13); the **self-asserted `pin` is dropped** —
-    `custody { owner, topic, readPolicy }`; and the anchor is **self-locating** — a holder re-derives the SEL prefix
-    from the held doc's `owner` / `topic` / `said` and walks it **by prefix** (inv-16-clean, no SAID inversion —
-    exactly the cred-holder mechanism, inv 15). **Two orthogonal `Icp` fields carry the address model
+    self-asserted-pin forgery inv 5 already closed for documents. **Resolution (direct-anchor rework, Jason 2026-07-18) — an
+    `owner`-bearing SAD is attributed by a direct append-only anchor on the owner's IEL:** the owner authors an
+    `Ixn` whose `manifest.anchors[]` commits the SAD's issuance commitment
+    `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` (a blinded hash — the `said` never appears raw on the
+    public IEL) — a `t_use` content act only the owner's quorum can author, witnessed. That anchor **is** the write authorization. Custody carries **`owner`** (the writer IEL
+    prefix) **+ `pin`** — the SAID of that anchoring `Ixn`'s `previous`, a **checked locator** (`pin ==
+    anchor.previous`) finding the `Ixn` at `pin + 1`, one manifest, no scan. **`owner ⟹ pin`** (an `owner`-bearing
+    SAD with no `pin` cannot be verified and is rejected — it reads ambiguous). A **credential** is the named
+    instance (its `issuer` + `issuerPin` are `owner` + `pin`, and its issuance commitment
+    `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is the generic custody commitment with
+    `owner` = `issuer`, `said` = `cred.said`). The SAD's own `kind` names its type, so custody needs
+    **no `topic`**. **`pin` is a checked locator, not the dropped self-asserted *authority* pin** — as-of authority
+    stays the anchoring position (inv 5 — backdate-proof: forging it needs a fresh IEL `Ixn` at the owner's *current*
+    tip, which a rotated-out key can't author and can't insert in the past → the threat reduces to
+    current-key-compromise-at-current-time, the accepted limit, inv 13). **A SEL is a separate primitive** for
+    *mutable* / *evolving* state or a *derived-address lookup* (the revocation / rescission lookup SELs); a SEL may
+    *name* a SAD by `said` via its own action-topic, but never anchors the SAD's write. **Two orthogonal `Icp` fields carry the address model
     (area-sel §1f):** **`content: true`** discriminates content (v1-T1, handed) from a lookup (v1-T2,
     blind-recomputed) — verifier-enforced biconditional, and it **rides the prefix** (so content and lookups
     occupy distinct namespaces, and a content squat at a lookup address is impossible by construction — its
     prefix differs, and a v1-T1 at a lookup address is invalid). **`lineage`** (lookups only) is a pure
     re-establishment counter: a **re-establishable value** carries `lineage: 0, 1, …` (distinct prefixes) and is
     read by the **positive walk** (walk from `lineage: 0`, advance past a dead lineage, stop at the lowest live
-    one); a **monotone** lookup omits it (absent-is-absent; `content` never carries it). **Structural at
-    two levels:** the write path **pre-auths** (the
-    sadstore refuses an `owner`-bearing SAD without its corroborating SEL — `SEL.owner == owner ∧ SEL.data == said`),
-    **and** a consumer **verifies independently** (self-location above; the store is untrusted — end-verifiability).
-    **Field rule: `owner` present ⟺ `topic` present ⟺ the anchoring SEL exists** (an anonymous write carries none of
-    them); a `topic` is a **vdti-reserved** namespace (`CRED_ISSUANCE_TOPIC` / `CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`, …) **or** an author-defined topic +
-    schema, anchored ("SEL'd up") the same way. Because the doc's SAID commits `owner` and `topic`, the triple
-    `(owner, topic, said)` is tamper-evidently bound to the anchor location. **Reads are the separate axis** —
-    `readPolicy`, current-mode, independent of write attribution. **Encode:** `custody.md` (§The sub-fields, the new
-    §SEL-anchor doctrine, §Two evaluation modes, §Four combinations, §Adversarial framing), the wrapper shape in
-    `sad.md` / `availability.md`, landed `pin`/`ownerPin` refs (incl. `said.md`, `glossary.md`), and the `custody`
+    one); a **monotone** lookup omits it (absent-is-absent; `content` never carries it). **Structural, split by layer:** the SAD structural pass enforces only the **presence** rule (`owner ⟹ pin`; an
+    `owner`-bearing SAD with no `pin` is rejected), and a consumer **verifies the anchor independently** —
+    `verify_anchored_sad` locates the `Ixn` at `pin + 1`, confirms it is an `Ixn` carrying the issuance commitment
+    `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` in `manifest.anchors[]`, and that it
+    is a valid owner-authored event (the store is untrusted — end-verifiability; a generic `verify_sad` delegates to
+    it whenever the SAD is owned). **Field rule: `owner` present ⟺ `pin` present** (an anonymous write carries
+    neither). Because the SAD's SAID commits `owner` and `pin`, the pair `(owner, pin)` is tamper-evidently bound to
+    the anchor location. **Reads are the separate axis** —
+    `readers` (a read-authorization SEL membership, not a policy; the current-mode read policy is retired
+    2026-07-16), independent of write attribution. **Encode:** `custody.md` (§The sub-fields, the direct-anchor
+    §Attribution, §Two evaluation modes, §Four combinations, §Adversarial framing), the wrapper shape in
+    `sad.md` / `availability.md`, landed `pin` refs (incl. `said.md`, `glossary.md`), and the `custody`
     refs in `vdti-area-shared-documents.md`. *Src:* Jason 2026-07-03. `[locked]`
     *Consequence (the private-cred boundary, F2 — B1 fail-secure rework 2026-07-09, CLOSED):* a credential is a
     **direct-anchored SAD** (no cred-SEL). **`cred.said` appears NOWHERE raw on the public IEL** — every public value
@@ -919,9 +929,72 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     + binding); everything inheritable is **`opt` (present-iff-changed)**. *Src:* Jason 2026-06-30 (generalizing
     [inv 4]/[inv 5]/[inv 12]). `[locked-candidate]`
 
+## Signatures & canonical form
+
+19. **Every signature is over the fully-compacted SAID; verify by compacting-then-checking (Jason
+    2026-07-17).** A SAD signature — and an anchor, which commits a SAID — is always taken over the SAD's
+    **fully-compacted** SAID: the canonical, always-re-derivable form in which every nested SAD is replaced
+    by its own SAID and the content is **JCS-canonicalized** (the digest said.md governs). A verifier **compacts the presented form to that canonical SAID first**, then checks
+    the signature over it. Because compaction is a **recursive SAID commitment** (every faithful expansion
+    of a SAD commits back to the same fully-compacted SAID — [inv 16]), one signature over the compacted
+    SAID **validates any faithful disclosed form** — compact, partially expanded, or full. This is what lets
+    **graduated disclosure** work without re-signing: sign once over the canonical SAID, and every variant a
+    holder chooses to reveal verifies against it. **The fully-compacted SAID is the sole canonical identity**
+    of a SAD; its other encodings are presentation forms, never the thing signed or addressed. Generalizes
+    the credential / anchor rule (proof-of-issuance is over the fully-compact SAID; any variant verifies) to
+    **every** signature in the system — ESSR envelopes, IPEX grants, exchange messages, receipts, group-chat
+    messages. *Src:* Jason 2026-07-17 — closes the said.md / compaction "canonical = fully-compacted" fix.
+    `[locked-candidate]`
+
+    **Sign-time disclosure discipline (rider on [inv 19]; tooling, not a verifier check — Jason
+    2026-07-18).** Because one signature validates any disclosed form, a signer handed a
+    _partially-compacted_ SAD can commit to sub-content it never expanded — the signature is valid either
+    way, and no verifier can later tell which form the signer saw (all disclosures share the one SAID). The
+    verifier cannot police this; the **signer's tooling** must. A signing helper locates the compacted
+    positions **by schema** — a typed SAD's `kind` names which fields are nested sub-SADs, so a bare SAID
+    where the schema expects an expanded child is an unseen position — and **refuses to sign until the input
+    is fully expanded there**, taking an explicit **override** only for a deliberate commit-by-reference
+    (counter-signing a SAD authored elsewhere). An unknown-`kind` SAD is override-only (nothing to
+    schema-check against). Fail-secure by default, opt-out is the signer's own (matches the status-read
+    posture); a SAD's author holds its full form by construction, so this bites only when signing something
+    handed over pre-compacted. **Kind-based detection + override is the limit** — compaction is not
+    self-announcing, so a schema is the only sound detector: an expand-everything scan false-positives on
+    scalar SAID references (`previous`, anchors) and false-negatives on positions it cannot fetch.
+
+## Keys, devices & compromise
+
+20. **A compromised device is a confidentiality loss, never a control loss (Jason 2026-07-18).** A device is a
+    member KEL in an identity's IEL roster — **never its own IEL** (no per-device / "degenerate" IEL). It holds a
+    **use-tier signing key** (a `t_use` share) and a **receive key** (an enclave-resident, non-extractable ML-KEM
+    key). Compromising one device exposes **confidentiality** — what that device can decrypt — bounded by three
+    independent limits: the receive key is **hardware-non-extractable** (a live attacker reads only during
+    access, never walks off with the key), the group **ratchet** rots a grabbed epoch key, and **re-key on
+    removal** locks the device out going forward. It never exposes **control**: taking over the identity —
+    rotating keys, changing the device roster, terminating — is a **T2 governance** act needing `t_govern`, and
+    one device is a single `t_use` (T1) share, which cannot meet it. So the identity **cannot be taken over by a
+    single compromised device**; the holder rotates it out (a T2 act — a T1 device cannot re-admit itself). **This
+    holds for the intended three-or-more-device identity:** a compromised device is one `t_use` share, and the
+    identity's other devices meet the `t_govern` quorum that cuts it. A **single-device IEL is the degenerate
+    exception** — its one device is the whole `t_govern` quorum, so a full compromise (its signing key and its
+    on-device reserve together) is a control loss, with no other device to cut it. Recovering in place instead needs the
+    **surviving** devices to meet `t_govern` and evict the compromised one — a strict-majority `t_govern` the
+    survivors still reach after losing one, so a roster of **at least three** (at two, a majority `t_govern` = 2
+    leaves a single survivor, too few to evict — the two-member freeze; a lower `t_govern` makes one stolen
+    device a takeover). So a control-sensitive identity runs **three or more devices**; a one- or two-device IEL
+    is an avoidable degenerate config (`residuals.md` §Degenerate configurations), not a property to patch by
+    custodying the reserve off the device (which would only slow the immediate rotation recovery relies on). The hard floor — a live rooted device reads its own
+    in-use plaintext — is a **universal endpoint limit, not a vdti property**. So confidentiality is **strong-at-rest, bounded-in-use**; control is **not takeable by a single compromised device** (the degenerate sub-three-device roster aside).
+    Keep the two axes separate: conflating them (e.g. "compromise one device = compromise the person") is a
+    category error that invites confidentiality creep into the control story. *Src:* Jason 2026-07-18.
+    `[locked-candidate]`
+
 ## Document-layer evaluation (confirmed — see document-policy §C)
-- **The as-issued / current two-function model** — `evaluate_as_issued` (consumes the anchoring positions, resolves
-  leaves as-of) vs `evaluate_current` (live attestations at tip) — is **confirmed** as the document/policy
-  evaluation model (document-policy §C, 2026-06-20): one shared composer + two leaf resolvers, reconciled to the
-  reshape (leaf set, no `policyPin`, revocation-as-lookup-SEL). `[locked-candidate]` *(F-L: was tagged
-  `[needs-reconciliation]`; §C did the reconciliation — synced 2026-06-21.)* **Mode renamed `anchored` → `as-issued` (L1, 2026-06-22):** `anchored` collides with the structural verb (`manifest.anchors`, "anchored by", "the anchoring position"); `as-issued` names the issuance-time mode unambiguously. Function: `evaluate_as_issued`.
+- **The evaluation model is a single as-issued function** — `evaluate_as_issued` (consumes the anchoring positions,
+  resolves leaves as-of): one shared composer + one leaf resolver, reconciled to the reshape (leaf set, no
+  `policyPin`, revocation-as-lookup-SEL). **`evaluate_current` is removed (2026-07-16 — live-policy removal):**
+  live checks don't compose for a passive verifier, so there is no current-mode policy evaluation; who-may-present
+  is the challenge-the-issuee auth step and read-gating is a `readers` membership, neither a policy
+  (document-policy §C). `[locked-candidate]` *(F-L: was tagged `[needs-reconciliation]`; §C did the reconciliation
+  — synced 2026-06-21. The two-function model collapsed to one — 2026-07-16.)* **Mode named `as-issued` (L1,
+  2026-06-22):** `anchored` collided with the structural verb (`manifest.anchors`, "anchored by", "the anchoring
+  position"); `as-issued` names the issuance-time mode unambiguously. Function: `evaluate_as_issued`.

@@ -240,7 +240,7 @@ on the chains that root other chains' authority. The per-primitive anchor matrix
 **Authorization is structural**, per primitive:
 
 - **KEL** — the device's own key state (tier 1/2 above).
-- **IEL** — a roster of member KELs plus a **threshold vector** `{t_use, t_govern, t_authorize}`,
+- **IEL** — a roster of member KELs plus a **threshold vector** `{ use, authorize, govern }`,
   indexed by the event's kind (`t_govern` is mandatory; `t_use` / `t_authorize` are declared at
   inception or **locked out** for the chain's life —
   [`iel/events.md`](primitives/data/event-logs/iel/events.md)). Every IEL kind **prices itself**:
@@ -906,7 +906,9 @@ takeover-by-extend), silent to third parties on a dormant chain, and unrecoverab
 - **The KEL rotation reserve** (held apart from the signing key) lets a device heal a suspected
   signing-key leak by itself — every key change reveals it, single-signed, so a signing-key-only
   thief can append content but never a key change. Healing a _fully_ compromised device (both keys)
-  is the identity's job (evict via an `Evl`). A single-device deployment is first-class.
+  is the identity's job (evict via an `Evl`). A single-device deployment is first-class for this
+  self-heal; an authority-bearing identity runs three or more devices, so surviving members can
+  evict a fully-compromised one.
 - **IEL threshold composition** (high thresholds — a roster (`M`) larger than the threshold (`N`) it
   needs — redundancy across **distinct custody domains**) handles total device compromise: evict the
   device via an `Evl`; surviving members keep the threshold and the identity stays alive. Two
@@ -1411,8 +1413,10 @@ collision is unsettled.
 
 **The value can't hide a revocation.** A consumer's trust decision reads the **verdict**, never
 branch content: **any** non-single-tip state — `forked` _or_ `disputed` — grounds no new trust →
-fail-secure refuse. A `forked` issuer IEL can't advance past the fork, so a pending revocation (a
-`Rev` declaring `kills[]`) can't land on a confirmed tip; refusing on `forked` degrades an induced
+fail-secure refuse. While a chain reads `forked`, nothing above the fork is confirmed, so a pending
+revocation is invisible to a consumer until a burying seal — itself a `t_govern` act, a recovery
+`Rev`/`Evl` — lands and resolves it (a `Rev` **proceeds on `forked`**: it is `t_govern`, the sealing
+kind that buries the fork and confirms itself). Refusing on `forked` therefore degrades an induced
 fork to a _denial_, never a _grant_.
 
 The value is **change-sensitive** — it moves the instant a node's held state changes (a tip

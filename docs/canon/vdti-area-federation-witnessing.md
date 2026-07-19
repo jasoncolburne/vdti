@@ -41,7 +41,7 @@ adversarial pass.
   cold-4 B1). A federation authors **no `Ixn`**
   (no content) → **every federation event is a key change → record-both**; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so an honest conflict does **not** dispute — only a witness-colluded `{Wit, Wit}` (two accepted) is `disputed` → reincept [inv 13]; and **no `Ath`** (trust is
   per-federation, non-transitive). Lifecycle: incept (`Fcp`) → all governance (add/remove a witness, rotate) via `Wit` → `Trm`. Its threshold-vector
-  is **exactly `{t_govern}`** (+ Rule A for additions): no `Ixn`/`Ath` ⇒ no `t_use`/`t_authorize` (a threshold is declared iff its consuming kind is in the kind set — inv 12; a federation `Fcp` declaring either is malformed → rejected). *(There is no `t_recover` — no repair anywhere; tier ⊥ count (inv 11): the `Wit`'s **T2 tier** (each witness's KEL `Wit` refreshes the signing key + rotation reserve) is enforced **structurally** by the kind-strict KEL `Wit` ↔ IEL `Wit` anchor and gated by the **`t_govern`** count.)*
+  is **exactly `{ govern }`** (+ Rule A for additions): no `Ixn`/`Ath` ⇒ no `t_use`/`t_authorize` (a threshold is declared iff its consuming kind is in the kind set — inv 12; a federation `Fcp` declaring either is malformed → rejected). *(There is no `t_recover` — no repair anywhere; tier ⊥ count (inv 11): the `Wit`'s **T2 tier** (each witness's KEL `Wit` refreshes the signing key + rotation reserve) is enforced **structurally** by the kind-strict KEL `Wit` ↔ IEL `Wit` anchor and gated by the **`t_govern`** count.)*
   **The recoverability ceiling `≤ |roster| − 1` is HARD for the federation** (unlike a general identity, where it's
   advisory — G1 / inv 12): the federation is critical infra and must always be able to evict **one** compromised
   witness and recover without it, so `|roster| ≥ 4` is **structurally required** — the `signers ≥ 3` witness-config floor (§4) plus the federation's exclude-self pool (`signers ≤ |roster| − 1`) forces `|roster| ≥ signers + 1 ≥ 4`; **≥ 5 recommended** (§1c). No fragile 1–3-witness federation. *(Surviving
@@ -505,8 +505,9 @@ adversarial pass.
   fail-*open* direction (stale reads fresh, at-risk suppressed). **Because it is fail-open, a drifted clock silently
   defeats the entire dormant-forgery / backdate defense (§1f) — so NTP sync to within `CLOCK_TOLERANCE_BAND` is a *security control*,
   not best-effort, and belongs in every deployment's operating requirements.** This is on the consumer, not the framework (a
-  verifier can't be defended against its own wrong clock). When the federation is reachable, **`evaluate_current`**
-  (live challenge-response) is the **no-local-clock-trust** path.
+  verifier can't be defended against its own wrong clock). When the federation is reachable, a **live
+  challenge-response** to fresh witnessed state is the **no-local-clock-trust** path (a liveness check, not a
+  policy evaluation).
 - **Timestamp format:** **UTC, RFC3339, exactly 6 fractional digits (microseconds), fixed-width / zero-padded** so
   the manifest SAD canonicalizes byte-identically (JCS) — the same fixed-width rule whether the timestamp is inline or wrapped. The 6-place precision is for **deterministic serialization, not a
   claim of microsecond accuracy** — semantics stay coarse and skew-tolerant.
