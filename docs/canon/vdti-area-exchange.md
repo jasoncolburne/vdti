@@ -230,9 +230,13 @@ degenerate group of two.**
   proves only _"a group member"_; the signature proves _which_ member (ESSR's sender-unforgeability, restored
   for group mode). The lane is a **single-parent [authored DAG](vdti-area-authored-dag.md)**: `(epoch,
   timestamp)` is **non-decreasing** along `previous` (a backdated tip-append is malformed) and a **second child
-  of a message = a fork = self-signed equivocation** (evidence any reader surfaces, not a benign resend —
-  a crash-resend re-sends the same SAID; consequence coupled to `chat-membership` removal + the epoch turn).
-  **Off-chain by default**, optionally **anchored** for non-repudiation.
+  of a message = a fork = self-signed equivocation** (self-signed evidence; a crash-**resend** carries the _same_
+  SAID — a dedup — and a crash before persisting, re-authored with a fresh nonce, is a genuine honest sibling, so
+  whether a fork is misbehavior is the group's policy, not automatic; consequence coupled to `chat-membership`
+  removal + the epoch turn). A second **root** is **not** a fork (two roots share no parent, and two roots are not
+  self-proving) — the writer's single lane is enforced by its **grant-anchored root** (admission registers it; an
+  unanchored root is rejected), not by single-parenthood ([authored-DAG](vdti-area-authored-dag.md); PR#25 r2
+  W1/cold-P1). **Off-chain by default**, optionally **anchored** for non-repudiation.
 - **Message currency: auth against the writer's own IEL key-window; the epoch SEL bounds _when_ (Jason
   2026-07-15 "A2 is a good finding"; two-axis correction 2026-07-19).** Chat's **auth uses the same key-window
   as §3** — the signature verifies against the writer's signing key-state, valid per the **writer's own
@@ -244,11 +248,16 @@ degenerate group of two.**
   authored — the **epoch anchors the key-state selection**, so the chat message has **no** key-state pin and
   needs none. So the check composes two witnessed sources — the **IEL** says whether the signing key was valid,
   the **epoch SEL** says the message was authored within epoch _N_'s window — authentic iff the key was valid
-  (per its IEL interval) at a time inside that window. **Residual** shrinks to a **detectable act** (cold-F4): the lane's `(epoch, timestamp)` monotonicity
-  (the authored-DAG rule, below) kills tip-append backdating, so the standing capability — **every current member
-  with a never-rotated device**, not only a former member — is to **fork its own lane** to inject a node within
-  (its IEL window ∩ epoch _N_'s window); that fork is a self-signed equivocation any reader surfaces — confined,
-  never forward. The self-asserted timestamp never establishes currency; the two witnessed windows do.
+  (per its IEL interval) at a time inside that window. **Backdating decomposes (cold-F4 + PR#25 r2 W1/cold-P1/W2):**
+  the lane's `(epoch, timestamp)` monotonicity (the authored-DAG rule, below) kills tip-append backdating. A
+  **current** member backdating below its advanced tip must **fork its own lane** — a self-signed equivocation any
+  reader surfaces, confined, never forward. A **removed** member is **fully closed at the verifier**: a frozen-tip
+  forward-append into a retired epoch it held is cut by the `chat-membership` removal's **lane-tip `bound`**, and a
+  **fresh parentless root** is rejected because admission **anchored** the one honored lane (its history pinned to
+  `[anchored root … bound]`). The **residual** is a **dormant current** member (never removed, valid key)
+  forward-appending into an epoch it held but was silent for — the accepted backdate-within-a-held-window class,
+  own lane, timestamp advisory; the opt-in anchor strengthens it. The self-asserted timestamp never establishes
+  currency; the two witnessed windows do.
 
 **The ratchet is the primitive's.** Epochs advance on a membership change or a time cadence — that, with
 the forward-secrecy and switchover discipline, is the group-key primitive's ([`vdti-area-group-key.md`](vdti-area-group-key.md));
@@ -260,10 +269,13 @@ needs that a shared-document does not.
 instance of the [membership](vdti-area-membership.md) primitive — a **distinct** grant chain, **not** a view of
 the group-key wrap roster (the roster is member-materialized + blind to the store; chat composes **both** — the
 roster to distribute the epoch key, `chat-membership` to authorize a requester). Per-requester (fail-secure walk
-by default, O(1) content-addressed rescission lookup under a latency budget), never materializing the set;
-**removal rescinds the grant as the same act turns the epoch**. Retires round-3 F3 **and** the round-2
-"readers-grant" open. The lane's monotonicity + fork rule is the
-[authored-DAG](vdti-area-authored-dag.md) single-parent variant (round-3 F4). _(Offline catch-up, the 1:1 path,
+by default, O(1) content-addressed rescission lookup — keyed on the member's **grant instance**, not the bare
+prefix (PR#25 r2 W5) — under a latency budget), never materializing the set; **admission anchors the writer's lane
+root, and removal rescinds the grant + records the lane-tip `bound` as the same act turns the epoch** — bracketing
+the member's honored lane **`[anchored root … bound]`** (disjoint per membership period; a fresh unanchored root
+is rejected — PR#25 r2 W1/cold-P1). Retires round-3 F3 **and** the round-2
+"readers-grant" open. The lane's monotonicity + fork rule + anchored root is the
+[authored-DAG](vdti-area-authored-dag.md) single-parent variant (round-3 F4 + PR#25 r2 W1). _(Offline catch-up, the 1:1 path,
 and the anchoring policy resolved — decisions 1/2/3.)_ The roster storage, the epoch-SEL length bound / checkpoint
 cadence, the `SESSION_RATCHET_INTERVAL` value, and the never-raw epoch-key rule are the **primitive's** — see
 [`vdti-area-group-key.md`](vdti-area-group-key.md).

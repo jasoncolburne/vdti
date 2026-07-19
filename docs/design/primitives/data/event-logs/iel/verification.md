@@ -299,17 +299,19 @@ read-only component of the token, not an independent verified state). The seal t
   **seals**: it resolves against `roster()` and advances the seal, burying a content fork below it,
   so **any such act is a way out of a fork** (a forked identity **seals** its way back to
   **Active**); a **`Trm`** (also T2) buries the content but the chain goes **Terminated**. This is
-  sound because a fork is authored with a **T1** key and no T1 actor holds any **T2** quorum, so
-  allowing T2 to seal out only ever hands recovery to legitimate higher authority; it proceeds
-  wherever there is one authoritative roster (**Active or Forked**), while a **disputed** (no single
-  roster → reincept) or **terminated** identity cannot. **Burial is not eviction:** any T2 seal
-  buries the current content loser, but an **adversarial, re-forking** causer is neutralized only by
-  an `Evl` + `cut` (`t_govern`) that evicts it — an IEL seal rotates no key, so a benign gossip-lag
-  fork needs only a seal while an adversarial one needs the cut. **Grants are not overturned** —
-  `Ath` seals a grant permanently, `Dth` rescinds **forward**, never retroactively. The rule: **on a
-  fork, freeze T1 actions; seal your way out with any T2 act (evict with `Evl` + `cut` if the causer
-  re-forks).** **As-issued** authority reads the roster at the historical anchoring position
-  (single-tipped in the past) and is untouched by the current tip's state.
+  sound because what a seal-out **buries** is the **T1 content loser**: a content fork's competing
+  branches are T1-authored and no T1 actor holds any **T2** quorum, so allowing T2 to seal out only
+  ever hands recovery to legitimate higher authority (the sealed branch of a mixed `{Evl, content}`
+  fork is itself a legitimate T2 act, not a thing being overturned); it proceeds wherever there is
+  one authoritative roster (**Active or Forked**), while a **disputed** (no single roster →
+  reincept) or **terminated** identity cannot. **Burial is not eviction:** any T2 seal buries the
+  current content loser, but an **adversarial, re-forking** causer is neutralized only by an `Evl` +
+  `cut` (`t_govern`) that evicts it — an IEL seal rotates no key, so a benign gossip-lag fork needs
+  only a seal while an adversarial one needs the cut. **Grants are not overturned** — `Ath` seals a
+  grant permanently, `Dth` rescinds **forward**, never retroactively. The rule: **on a fork, freeze
+  T1 actions; seal your way out with any T2 act (evict with `Evl` + `cut` if the causer re-forks).**
+  **As-issued** authority reads the roster at the historical anchoring position (single-tipped in
+  the past) and is untouched by the current tip's state.
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three
 views of the one data-local walk:

@@ -45,7 +45,9 @@ seals a **membership delta** — `{ grants, rescinds }`:
 
 - **`grants`** — identities admitted, each a **blinded per-member commitment** `{ said, nonce, data }` (the same
   claim-gating construction [credentials](vdti-area-credentials.md) uses for per-predicate gating): the
-  commitment names the member without publishing who, so a chain onlooker learns a **count**, never a roster.
+  commitment names the member without publishing who, so a chain onlooker learns a **count**, never a roster. A
+  grant may also carry a **feature admission anchor** — for chat, the writer's **lane root** (the companion to the
+  `rescinds` `bound`; rescission section below).
 - **`rescinds`** — identities removed, each an entry **`{ target, bound? }`** — the **same shape as a `kills[]`
   entry** (event-shape) — a blinded `target` and an optional **grandfather `bound`** (below). A
   participant-identifying `bound` rides the **gated `bound` role** (read-gated); a non-identifying one rides
@@ -67,7 +69,10 @@ credential's revocation check uses:
   grant delta and not since rescinded → a member; in none → not. Sound because hiding a rescind would take a stale
   chain, which the freshness bar refuses.
 - **The O(1) happy path (fail-open opt-out).** A rescinded member has a **content-addressed rescission lookup** —
-  a tiny `{ inception, termination }` SEL derived from `{ group, the rescission topic, the member }` — whose
+  a tiny `{ inception, termination }` SEL derived from `{ group, the rescission topic, the member's grant
+  instance }` (the member's high-entropy blinded-claim `said`, **not** the bare prefix — a raw-prefix address would
+  be a confirm-a-guessed-removal oracle, reopening for removals exactly what the grant-side `nonce` closes for
+  admissions; keyed on the grant instance the address is no more guessable than the grant it locates) — whose
   **termination pins to the grant delta that rescinded it** (its `pin` is that delta event's `previous`, so the
   pin points straight at the delta carrying the rescind — a **checked locator**, [inv 5] discipline, never a
   self-asserted position). Fetch it: **found → rescinded**, no walk. The grant side is symmetric — a member's
@@ -111,14 +116,19 @@ rescission lookup) — reusing the `kills[]` grandfather-`bound` machinery. The 
 enforces, so a removed member's authority is cut at a **provable** point rather than only refused live by the
 (untrusted) store. What the `bound` points to is set by the composing feature:
 
-- **Chat — the bound is the member's lane tip.** A `chat-membership` rescission records `bound` = the removed
-  member's **last lane message** (its lane tip at removal). The verifier honors that member's lane **only up to
-  the bound** and rejects any message descending **past** it — so a removed member holding a **retired** epoch's
-  key cannot clean-tip-append new history into that epoch (the frozen-tip backfill: a `(epoch, timestamp)`
-  tip-append forward within a past epoch is monotone, hence not a fork, so nothing else surfaces it — the bound
-  is what closes it). The **epoch turn** (group-key) gives forward secrecy for **new** epochs; the **lane bound**
-  closes the **retired-epoch** backfill — the two together, not the store's deposit gate, bind it. The `bound` is
-  participant-identifying, so it rides the gated role.
+- **Chat — the lane is bracketed `[anchored root … bound]`.** Admission and removal set the two ends. **Admission
+  anchors the lane root** — the grant that admits the member registers its lane's root (the lane is created at
+  admission), so the verifier honors only the lane rooted there and rejects any **fresh parentless root** the
+  member mints later (a removed member cannot fabricate a second lane: the fork rule never fires across two roots,
+  and two roots are not self-proving, so the anchor is the distinguishing fact). **Removal records `bound`** = the
+  member's **last lane message** (its lane tip at removal); the verifier honors the lane **only up to the bound**
+  and rejects any message descending **past** it — closing the removed member's monotone forward-append into a
+  **retired** epoch it held (a `(epoch, timestamp)` tip-append forward within a past epoch is monotone, hence not
+  a fork, so nothing else surfaces it). The **epoch turn** (group-key) gives forward secrecy for **new** epochs;
+  the **anchor + bound** pin the member's honored history to `[root … bound]` for that membership period — the
+  three together, not the store's deposit gate, bind it. Membership periods are **disjoint anchored lanes** (a
+  re-added member's grant anchors a **new** root, never a continuation past the old bound). Both the anchor and
+  the `bound` are participant-identifying, so they ride the gated role.
 - **Shared document — the bound is a period / version boundary.** Content the member authored (or was entitled
   to) **before** the bound stays honored; only its reach **past** the bound is cut, so a removed editor's earlier
   versions do not retroactively vanish. The `bound` is blinded when it would identify a participant (gated role),
@@ -149,9 +159,10 @@ own roster / key-epoch names), not the primitive's. Two instances exist:
 
 - **`chat-membership`** (exchange feature, [`vdti-area-exchange.md`](vdti-area-exchange.md) §7a) — the set a
   chat's store checks to gate deposit and drain. Bounded **in practice** (the chat is a keyed group, so group-key
-  already caps it), but checked the same one-at-a-time way; rescission records a **lane-tip `bound`** (the
-  verifier cuts the removed member's lane there) plus an **immediate epoch turn** for forward secrecy.
-  **Landed this PR.**
+  already caps it), but checked the same one-at-a-time way; admission anchors the writer's **lane root** and
+  rescission records a **lane-tip `bound`** (the verifier honors the lane only `[root … bound]`, cutting past the
+  bound and rejecting any unanchored root) plus an **immediate epoch turn** for forward secrecy; membership
+  periods are **disjoint anchored lanes** (re-add anchors a new root). **Landed this PR.**
 - **`document-membership`** (shared-documents feature — **forthcoming**) — the set a shared document's store
   checks. Genuinely **unbounded** (an open readership), **grandfather**-rescinded. See "Drift → land" — the
   rename + wiring is owed to the shared-documents encode, where the **read-vs-write split** is decided.
@@ -186,9 +197,14 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
 
 - **DONE (2026-07-19).** Design-doc twin `../design/primitives/protocols/membership.md` written (greenfield);
   this canon note.
+- **DONE (2026-07-19, PR#25 r2 W1/cold-P1 + W5 fold).** The chat instance brackets a member's honored lane
+  **`[anchored root … bound]`**: admission anchors the writer's lane root (closing the fresh-root backdate — a
+  second parentless root is unanchored → rejected), rescission records the lane-tip `bound` (closing the
+  forward-append), membership periods are disjoint anchored lanes. The O(1) rescission lookup is keyed on the
+  member's **high-entropy grant instance**, not the bare prefix (W5 — else a confirm-a-guessed-removal oracle).
 - **Owed (this PR — the exchange encode).** The [group-key](vdti-area-group-key.md) cross-ref (its wrap roster is
   the cap; membership is the separate unbounded authorization); the **`chat-membership`** instance in
-  `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, a lane-tip `bound` rescission), replacing the
+  `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, an `[anchored root … bound]` lane bracket), replacing the
   round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers` is the read-authorization
   **pointer into** a membership set (a `readers` value is a membership-set prefix — already stated at
   `custody.md`).

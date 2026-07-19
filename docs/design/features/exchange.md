@@ -215,7 +215,10 @@ degenerate group of two** — the same machinery, no separate two-party construc
   timestamp, so a tip-append cannot be backdated (a stamp earlier than the tip's is malformed,
   rejected on the same footing as a broken signature). Because each message has exactly one
   `previous`, a **second child of any message is a fork = equivocation** — the writer signed two
-  conflicting successors to one point in its own lane. Each message's **public SAID** commits its
+  conflicting successors to one point in its own lane. A second **root**, by contrast, is not a fork
+  — two roots share no parent — so a writer's single lane is enforced by its **grant-anchored root**
+  (the `chat-membership` grant that admits the writer registers its lane root), not by
+  single-parenthood: an unanchored root is rejected. Each message's **public SAID** commits its
   (encrypted) content — a high-entropy `nonce` keeps that SAID unguessable, so a guessable body
   can't be confirmed against it — so a writer that ciphers two different payloads produces two
   provably-same-writer SAIDs sharing one `previous`: an **undeniable same-writer fork** (a
@@ -240,20 +243,32 @@ degenerate group of two** — the same machinery, no separate two-party construc
   _within_ that witnessed bound, never outside it. So the check composes two witnessed sources: the
   **IEL** says whether the signing key was valid, the **epoch SEL** says the message was authored
   within epoch _N_'s window — authentic iff the key was valid (per its IEL interval) at a time
-  inside that window. Two backdate paths, both closed: a **current** member's backdating decreases
-  `(epoch, timestamp)` below its advanced tip, so it must **fork** its own lane — an undeniable
-  self-signed equivocation any reader surfaces on convergence (monotonicity, above); a **removed**
-  member's _frozen-tip_ forward-append into a **retired** epoch _is_ monotone (not a fork, so
-  nothing else would surface it) — but its **`chat-membership` removal records a lane-tip `bound`**
-  (the member's last message), so the **verifier** honors that member's lane only **up to the
-  bound** and **cuts** any message past it. The store's deposit gate is defense-in-depth; the bound
-  is what makes the cut **verifier-enforced**, not store-only. A self-asserted timestamp never
-  establishes currency; the two witnessed windows do.
+  inside that window. Backdating decomposes into cases the model closes and one it accounts for. A
+  **current** member backdating **below its advanced tip** must **fork** its own lane (a
+  `(epoch, timestamp)` decrease is malformed, so the only attach is a second child of an earlier
+  node) — an undeniable self-signed equivocation any reader surfaces on convergence (monotonicity,
+  above). A **removed** member has two moves, both closed at the **verifier**: a **frozen-tip
+  forward-append** into a **retired** epoch it held _is_ monotone (not a fork), but its
+  `chat-membership` removal recorded a **lane-tip `bound`** (its last message), so the verifier
+  honors that lane only **up to the bound** and **cuts** any message past it; and a **fresh
+  parentless root** (a second lane the fork rule never fires on, since two roots share no parent) is
+  **unanchored** — its admission grant anchored the one lane the verifier honors, so a root minted
+  after removal is rejected. The two brackets pin a removed member's honored history to
+  `[anchored root … bound]`. **The one accepted residual:** a **current**, non-removed member that
+  went **dormant** can forward-append monotonically into an epoch it held but was silent for — no
+  bound exists (it was never removed) and its key was valid, so this reads as legitimate late
+  history; it is confined to its own lane and its own held epochs, the chat instance of the accepted
+  backdate-within-a-held-window class (mail's captured-then-rotated residual), and the opt-in anchor
+  strengthens it for parties that need better. The store's deposit gate is defense-in-depth; the
+  anchor and bound are what make the cuts **verifier-enforced**, not store-only. A self-asserted
+  timestamp never establishes currency; the two witnessed windows do.
 - **Catch-up is the union of your membership periods.** A member decrypts exactly the epochs during
   which it was a member — membership can be intermittent, and it reads **every period it was in**,
-  none it was not. Catch-up after being offline is walking the key-epoch SEL from last-seen to
-  current and unwrapping the epochs it was a member for; an epoch after a removal stays sealed to it
-  (forward secrecy).
+  none it was not. **Each membership period is a disjoint anchored lane:** a re-added member's grant
+  anchors a **new** lane root rather than continuing its old lane past the removal bound, so a
+  reader sees its distinct stints, each bracketed `[root … bound]`. Catch-up after being offline is
+  walking the key-epoch SEL from last-seen to current and unwrapping the epochs it was a member for;
+  an epoch after a removal stays sealed to it (forward secrecy).
 - **Store authorization is the `chat-membership` set — a per-requester membership check.** A chat
   message is sender-less, so the store cannot gate its upload or fetch on "the sender" the way mail
   does. Instead chat composes a [membership](../primitives/protocols/membership.md) instance —
@@ -264,13 +279,14 @@ degenerate group of two** — the same machinery, no separate two-party construc
   wrap roster is materialized _by members_ (with the read gate) to key each epoch and is **blind to
   the store**, so the store cannot authorize against it — chat composes **both**, the roster to
   distribute the epoch key and `chat-membership` to authorize a requester, the way any keyed group
-  does. A **member removal rescinds the `chat-membership` grant** — with a **lane-tip `bound`** (the
-  member's last message) the verifier enforces — as the same act turns the epoch, so a removed
-  member can no longer deposit or drain, nor backfill its lane past the bound. A downloader
-  enumerates nothing (the grant is participant-blind); the store, handed a self-identifying
-  requester, only ever confirms that one — so a non-member can neither deposit a chat blob nor drain
-  one, and learning that a requester who showed up holds a grant is the mechanism working, not a
-  leak.
+  does. A **member removal rescinds the `chat-membership` grant** — recording a **lane-tip `bound`**
+  (the member's last message) the verifier enforces — as the same act turns the epoch, so a removed
+  member can no longer deposit or drain, nor backfill its lane past the bound, nor mint a **fresh
+  lane** (its admission grant anchored the one lane the verifier honors, so a second parentless root
+  is unanchored → rejected — see currency, above). A downloader enumerates nothing (the grant is
+  participant-blind); the store, handed a self-identifying requester, only ever confirms that one —
+  so a non-member can neither deposit a chat blob nor drain one, and learning that a requester who
+  showed up holds a grant is the mechanism working, not a leak.
 - **Delivery and retention are group-scoped.** A chat message's blob is one ciphertext readable by
   every member, scoped by `availability.replicas` to the **group's nodes** (the members' inbox
   hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
@@ -310,7 +326,9 @@ Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
   [membership](../primitives/protocols/membership.md) instance: SEL topic
   `vdti/exchange/v1/topics/chat-membership` (the grant chain the store checks per-requester) and its
   grant value `vdti/sel/v1/grants/chat-membership` (the `{ grants, rescinds }` delta grant-doc;
-  exact field layout forthcoming). Rescission is **immediate** — coupled to the epoch turn.
+  exact field layout forthcoming). A `grants` entry anchors the admitted writer's **lane root**; a
+  `rescinds` entry records the removed writer's lane-tip **`bound`** — together they bracket the
+  writer's honored lane `[root … bound]`, and a removal also turns the epoch for forward secrecy.
 - **Mail-payload inner shape**: `vdti/exchange/v1/schemas/mail-payload` — the ESSR inner payload a
   mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
   `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and

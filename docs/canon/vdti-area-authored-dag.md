@@ -44,7 +44,7 @@ receipts.
 
 ## The variants — the fork rule is the only difference
 
-- **Single-parent — a lane (chat).** Exactly one `previous` per node; a member's nodes are a single chain. A
+- **Single-parent — a lane (chat).** Exactly one `previous` per node. A
   **second child of a node is a fork** — the writer signed two conflicting successors to one point in its own
   history = self-proving **equivocation**. Each node's **content-addressed SAID** commits its content and carries
   the writer's signature, so the two siblings are provably the same writer's conflicting successors —
@@ -53,7 +53,13 @@ receipts.
   persisting the record, re-authored with a fresh nonce, is a genuine honest sibling. **Surfacing** it needs both siblings to reach a common honest reader: a witnessed node (a doc
   version) has the receipt beacon; an **unwitnessed** chat node rides propagation, so an eclipse / split delivery
   only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
-  consequence is the group's policy (for chat, coupled to membership removal + the epoch turn).
+  consequence is the group's policy (for chat, coupled to membership removal + the epoch turn). **A writer's
+  nodes forming a _single_ chain is a feature-enforced rule, not a single-parent property (PR#25 r2 W1/cold-P1):**
+  single-parenthood alone yields a **forest** — a second parentless **root** is a disjoint lane the fork rule
+  never fires on (two roots share no parent), and two roots are **not self-proving** the way a shared-parent fork
+  is (nothing intrinsic marks which is the writer's real one). So the composing feature **anchors the lane root**
+  — the `chat-membership` grant that admits the writer registers it, and a verifier honors only the lane rooted
+  there; an unanchored root is **rejected** data-locally ([membership](vdti-area-membership.md)).
 - **Multi-parent — a version graph (shared documents).** A node may name **several** `ancestors`; **branch and
   merge are legitimate** (concurrent editing diverges, a later version reconciles by naming both parents). Two
   successors carry **no** equivocation charge — divergence is the point, merge is the resolution. Monotonicity
@@ -64,10 +70,14 @@ receipts.
 - **Backdating shrinks to a detectable act — for a writer whose tip has advanced (round-3 F4 + whole-design
   cold-P1).** When the writer's tip is **past** the target, monotonicity forces a backdate to **fork its own
   lane** — a self-signed equivocation any reader surfaces (evidence-bearing, not silent). A **frozen-tip** writer
-  (removed from the group, still holding a retired key) can instead forward-append **monotonically** into the
-  frozen range — not a fork, so the DAG alone won't surface it; **the composing feature's removal `bound` closes
-  it** (a chat `chat-membership` rescission records a **lane-tip `bound`** the verifier cuts past —
-  [membership](vdti-area-membership.md)). The DAG gives monotonicity; the feature gives the removal bound.
+  (removed from the group, still holding a retired key) has two moves the DAG won't surface, both the feature's to
+  close: a **monotone forward-append** into the frozen range is cut by the removal **`bound`** (the lane tip at
+  removal — a chat `chat-membership` rescission records it, the verifier cuts past), and a **fresh parentless
+  root** is rejected by the **anchored root** (admission registers the writer's lane root; an unanchored one is not
+  honored — above). The two brackets pin a removed writer's honored history to `[anchored root … bound]` (PR#25 r2
+  W1/cold-P1). The DAG gives monotonicity; the feature gives the root anchor + the removal bound. A **current**
+  writer merely gone dormant can still forward-append into an epoch it held but was silent for — no bound, valid
+  key — the accepted backdate-within-a-held-window residual, own lane ([membership](vdti-area-membership.md)).
 - **The lane-fork ambiguity is closed for honest readers, too.** Before F4 two messages sharing one `previous`
   had **no stated semantics**; single-parent says "that is equivocation," so an honest reader assembling the
   group view has a rule.
@@ -96,6 +106,13 @@ variants"). Monotonicity was Jason's earlier suggestion, confirmed here as the F
 ## Drift → land
 
 - **DONE (2026-07-19).** Design-doc twin written (greenfield); this canon note.
+- **DONE (2026-07-19, PR#25 r2 W1/cold-P1 fold).** The single-parent lane's **one-lane-per-writer** property is
+  enforced by an **anchored root** (the admitting `chat-membership` grant registers the writer's lane root; an
+  unanchored root is rejected), not derived from single-parenthood (which yields a forest — two roots are not
+  self-proving). A removed writer's honored history is bracketed **`[anchored root … bound]`** (the anchor closes
+  the fresh-root backdate; the existing removal `bound` closes the forward-append), with membership periods as
+  disjoint anchored lanes (re-add anchors a new root). Landed across design + canon (authored-dag, membership,
+  exchange, shapes, `vdti-area-exchange.md` §7a, inv 21, residuals).
 - **Owed (this PR — the exchange encode).** State the **single-parent** chat lane in `vdti-area-exchange.md` §7a
   + `exchange.md`: the `(epoch, timestamp)` monotonicity rule + the fork-is-equivocation rule (coupled to
   `chat-membership` removal + the epoch turn), replacing round-3 F4's understated residual. The chat message SAD

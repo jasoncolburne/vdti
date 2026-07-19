@@ -49,21 +49,33 @@ self-proving act** rather than a silent one.
 
 ### Single-parent — a lane (chat)
 
-Each node names **exactly one** predecessor, so a member's nodes form a single **chain** (its lane).
-A **second child of any node is a fork**: the writer signed two conflicting successors to the same
-point in its own history — self-proving **equivocation**. A reader that sees two signed children of
-one node holds **undeniable evidence** of a **same-writer fork**: each node's **content-addressed
-SAID** commits its content and carries the writer's signature, so the two are provably the same
-writer's successors — no ordering ambiguity, no way to pass a fork off as one node. Whether the fork
-is **misbehavior** is the group's policy, not automatic: a crash-**resend** of a minted node carries
-the _same_ SAID (a dedup, not a sibling), but a writer that crashes before persisting its record and
-re-authors the text draws a **fresh** mandatory nonce → a genuine same-text sibling, an **honest**
-fork. The undeniability holds either way; the consequence is the policy's call. **Surfacing** it
-needs the two siblings to reach a common honest reader: on a **witnessed** node (a document version
-— anchored, below) the receipt beacon forces that; on an **unwitnessed** node (a chat lane) it rides
-propagation, so an eclipse or a split delivery only **defers** detection — the standard
-_detection-is-eventual_ residual, never a way to hide the fork permanently. The group's policy
-decides the consequence (for chat, coupled to removal + the epoch turn).
+Each node names **exactly one** predecessor. A **second child of any node is a fork**: the writer
+signed two conflicting successors to the same point in its own history — self-proving
+**equivocation**. A reader that sees two signed children of one node holds **undeniable evidence**
+of a **same-writer fork**: each node's **content-addressed SAID** commits its content and carries
+the writer's signature, so the two are provably the same writer's successors — no ordering
+ambiguity, no way to pass a fork off as one node. Whether the fork is **misbehavior** is the group's
+policy, not automatic: a crash-**resend** of a minted node carries the _same_ SAID (a dedup, not a
+sibling), but a writer that crashes before persisting its record and re-authors the text draws a
+**fresh** mandatory nonce → a genuine same-text sibling, an **honest** fork. The undeniability holds
+either way; the consequence is the policy's call. **Surfacing** it needs the two siblings to reach a
+common honest reader: on a **witnessed** node (a document version — anchored, below) the receipt
+beacon forces that; on an **unwitnessed** node (a chat lane) it rides propagation, so an eclipse or
+a split delivery only **defers** detection — the standard _detection-is-eventual_ residual, never a
+way to hide the fork permanently. The group's policy decides the consequence (for chat, coupled to
+removal + the epoch turn).
+
+**One lane per writer is enforced, not derived — the root is anchored.** Single-parent linking alone
+yields a **forest**: a writer can mint a second parentless **root** (a disjoint lane), and the fork
+rule never fires on it — two roots share no parent, so neither is a "second child" of the other. And
+unlike a fork, two roots are **not self-proving**: a fork is undeniable from the two siblings and
+their shared parent alone, but two roots are just two validly-signed lanes, with nothing intrinsic
+marking which is the writer's real one. So the composing feature **anchors the root** — a chat
+lane's root is registered by the `chat-membership` grant that admits the writer
+([membership](membership.md)), so the lane is created at admission and begins at an anchored point —
+and a verifier honors only the lane rooted there; an **unanchored root is rejected** data-locally.
+That is what makes "one lane per writer" a rule rather than a hope, and it is what closes a removed
+member's fresh-root backdate (below).
 
 ### Multi-parent — a version graph (shared documents)
 
@@ -84,12 +96,19 @@ divergence is.
 
 - **Backdating shrinks to a detectable act — for a writer whose tip has advanced.** When the
   writer's tip is **past** the target point, monotonicity forces a backdate to **fork its own lane**
-  — a self-signed equivocation any reader surfaces (evidence-bearing, not silent). But a writer
-  whose tip is **frozen** — removed from the group yet still holding a retired key — can
-  forward-append **monotonically** into the frozen range: not a fork, so the DAG alone won't surface
-  it. **The composing feature's removal `bound` closes this** — a chat `chat-membership` rescission
-  records a **lane-tip `bound`** the verifier honors, cutting any message past it
-  ([membership](membership.md)). The DAG gives monotonicity; the feature gives the removal bound.
+  — a self-signed equivocation any reader surfaces (evidence-bearing, not silent). A writer whose
+  tip is **frozen** — removed from the group yet still holding a retired key — has two moves the DAG
+  alone won't surface, both closed by the composing feature. A **monotone forward-append** into the
+  frozen range (not a fork) is cut by the feature's removal **`bound`** — a chat `chat-membership`
+  rescission records a **lane-tip `bound`** (the member's lane tip at removal) the verifier honors,
+  cutting any message past it. A **fresh parentless root** (a second lane, which the second-child
+  fork rule never fires on) is rejected because the feature **anchors** each lane's root (above) —
+  an unanchored root is not honored. The two brackets — the **anchored root** on the way in, the
+  **`bound`** on the way out — pin a removed writer's honored history to exactly `[root … bound]`
+  ([membership](membership.md)). The DAG gives monotonicity; the feature gives the root anchor and
+  the removal bound. (A **current**, non-removed writer that merely went dormant can still
+  forward-append into an epoch it held but was silent for — no bound, valid key — the accepted
+  backdate-within-a-held-window residual, confined to its own lane.)
 - **Node witnessing is the feature's, not the DAG's.** A document version is **anchored** on its
   editor's identity (custody direct-anchor) and so is witnessed; a chat message is a
   store-and-forward blob and is **not** individually witnessed — its fork detection rests on
