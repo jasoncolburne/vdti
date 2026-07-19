@@ -113,6 +113,12 @@ re-publishing at a fresh lineage.
 - **A receive key's address is discoverable.** Because the address is deterministic, an onlooker
   holding a candidate identity prefix can confirm a key exists at it — the price of being reachable
   without a registry. It confirms a known guess; it does not enumerate.
+- **The inbox-node hints are themselves targeting metadata.** Publishing "this identity reads its
+  mail on these nodes" is a discovery fact anyone resolving the directory can read, so it also tells
+  an observer **where** to watch or pressure to see a correspondent's traffic. That is the cost of
+  resolving a recipient's mailbox without gossiping the communication graph federation-wide; the
+  hints name storage **location**, never key material, and an identity can list several nodes so no
+  single one is the whole picture.
 
 ## Cross-references
 

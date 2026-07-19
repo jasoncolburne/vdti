@@ -8,7 +8,7 @@ first cut** (immutable `authors[]` + a per-author V0-content leg + folds + ancho
 all retired); the review-hardened insights (claimed-vs-consent crediting, the size caps, the
 residuals, the T1/T2 posture) **carry, re-homed**. The three prior review rounds reviewed the _first
 cut_ — **this cut's fresh dual-pass is folded (2026-07-04).** Lands at
-`docs/design/features/shared-documents/documents.md`.
+`docs/design/features/shared-documents.md`.
 **Invariants:** [inv 4] manifest roles / the `Rev`/`Dth` manifest total rule / anchor-monotonicity,
 [inv 5] as-of = the anchoring position, [inv 8] the multi-source freshness bar (loss-of-trust reads),
 [inv 10] negative-check-as-lookup, [inv 12] IEL self-pricing (grant tier), [inv 13] rescission `bound`
@@ -378,7 +378,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 | policy     | authorizing condition (as-issued)                | none except the `readers` read gate                       |
 | content    | frozen (single version)                          | evolves (the version DAG)                                 |
 | kill       | revocation `Trm` (`Rev`)                | per-participant period-bound; **freeze** = bound-all + `Trm`-gov |
-| home       | `primitives/policy/documents.md`                 | `features/shared-documents/documents.md`                  |
+| home       | `primitives/policy/documents.md`                 | `features/shared-documents.md`                  |
 
 Shared substrate: documents are **attributed SADs** (`owner`+`pin` direct-anchor), located by their
 `pin`, in a DAG; membership reuses the §5 grandfather-`bound` mechanism. They specialize
@@ -515,7 +515,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
 
 ## 8. Drift → land
 
-- Write `docs/design/features/shared-documents/documents.md` fresh from this note (greenfield voice;
+- Write `docs/design/features/shared-documents.md` fresh from this note (greenfield voice;
   credentials as the _contrast_). Forward-ref from `primitives/policy/documents.md` + the SEL
   primitive.
 - Depends on the landed custody `owner`+`pin` direct-anchor model (inv 16 note) and the §5

@@ -988,22 +988,36 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     category error that invites confidentiality creep into the control story. *Src:* Jason 2026-07-18.
     `[locked-candidate]`
 
-21. **A pinned key-state authenticates only if it is the signer's *current* witnessed state — else time-bind it
-    another way (sender-key currency; Jason 2026-07-18).** Authenticating a party by a signature verified against
-    the key-state its message **pins** (a `senderPin`) is sound only if that pinned state is the signer's
-    **current** establishment state, read against the **witnessed** KEL (multi-source, inv 8). A
-    **captured-then-rotated** key — a stolen old key signing under its since-abandoned key-state — reads stale and
-    is **refused**, so a rotation *recovers* messaging and the threat collapses to the ordinary
-    signing-key-compromise limit (inv 13). A verifier **requirement**, not new machinery — a chain read the
-    infrastructure already provides. Two constructions bind the time another way where "current-now" is too strict
-    or unavailable: **(a)** a message MAY be **anchored** — its SAID committed on an `Ixn` the current signing key
-    authors at the current position, which a stale key cannot forge and any verifier reads on the witnessed chain
-    (provable liveness; a per-message opt-in for non-repudiable messages); **(b)** a **long-lived group message**
-    binds not to current-now but to its **witnessed epoch window** — it decrypts only under that epoch's per-sender
-    subkey, and the epoch is a witnessed SEL event carrying a federation-clock window, so a since-rotated key is
-    current only for the epochs it actually spanned (the group-key epoch model). A self-asserted timestamp never
-    establishes currency — it only orders messages within a bound the chain already fixes. *Src:* Jason
-    2026-07-18. `[locked-candidate]`
+21. **A signature verified against a pinned key-state authenticates only within that key-state's *witnessed
+    validity window* — the same clock-window discipline receipts and epochs use (sender-key currency; Jason
+    2026-07-18, reworked to the window bound 2026-07-19).** A party authenticated by a signature verified against
+    the key-state its message **pins** (a `senderPin`) is honored iff the message's **timestamp falls inside
+    `senderPin`'s witnessed validity window** — from the establishing rotation to the one that superseded it, each
+    a witnessed event the federation clock times (inv 14) — read against the **witnessed** KEL (multi-source,
+    inv 8). A still-current key has an **open** window (a live message passes); an honest message sent **before** a
+    later rotation falls in the now-closed window and is **accepted** — so a rotation no longer strands in-flight
+    mail. This **supersedes** the earlier rigid "must be the *current* tip," which refused honest pre-rotation
+    mail. It is the *same* mechanism a witness receipt (`τ ∈` the signer's key-window, federation §1f) and a
+    **group epoch** already use — a verifier **requirement**, not new machinery, and **data-only** (no
+    store/inbox-node trust; supersedes an accept-time-check idea). **Residual (bounded, not prevented):** a
+    **captured-then-rotated** key can still be backdated **within** its now-closed window, but is **stuck there** —
+    it can never read as **current** (that needs the new key), so a rotation recovers messaging forward; this is
+    the ordinary signing-key-compromise limit (inv 13) and the *same* residual the group epoch and the federation
+    clock's harvested-old-key defense accept (inv 14). A self-asserted timestamp **never** establishes currency —
+    it only orders messages *within* the witness-fixed window, which is the trust anchor. **One opt-in
+    strengthening, for an end-verifiable / third-party send-time:** **(a)** a message MAY be **anchored** — its
+    SAID committed on an `Ixn` the current signing key authors, which a stale key cannot forge and any verifier
+    reads on the witnessed chain (provable liveness; a per-message opt-in for non-repudiable messages, **batched
+    like issuance** — several simultaneous messages share one `Ixn`, ≤ `MAXIMUM_MANIFEST_LIST`, not a chain event
+    apiece; no "one per `Ixn`" rule, no batching subsystem). **(b)** a **group message** uses the *same*
+    key-window for **auth** — the writer's own witnessed IEL/KEL window, exactly as above — and adds the
+    **epoch** as a *separate* axis (the **encryption** key, **not** the auth window): it decrypts only under that
+    epoch's per-sender subkey, and the epoch is a witnessed SEL event whose federation-clock window **bounds
+    when** the message was authored. So the check composes two witnessed sources — the **IEL** says whether the
+    signing key was valid, the **epoch SEL** says the message was authored within epoch _N_'s window — authentic
+    iff the key was valid (per its IEL window) at a time inside that window; a since-rotated key backdates only
+    within (its IEL window ∩ the epoch window it held), never forward (the group-key epoch model). *Src:* Jason
+    2026-07-18/19. `[locked-candidate]`
 
 ## Document-layer evaluation (confirmed — see document-policy §C)
 - **The evaluation model is a single as-issued function** — `evaluate_as_issued` (consumes the anchoring positions,

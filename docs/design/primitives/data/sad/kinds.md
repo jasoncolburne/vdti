@@ -100,17 +100,21 @@ else**:
 - **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
   values a `Gnt` seals (`vdti/sel/v1/grants/*`), the **framework SADs a verifier resolves to
   evaluate** — a **policy** expression (`vdti/policy/v1/*`), an authorizing **`issuers`** list, a
-  credential's **`terms`** — and content that is public by design (a public credential body, or an
-  application content kind the app has registered). A verifier walking a chain has to resolve the
-  role SADs an event commits to, so these have to be reachable by SAID. **Kind is only the first
-  gate.** A served SAD that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed
-  back only to a requester that gate admits, and one delivered member-to-member rather than
-  published (its `availability`) is never in the store to serve at all. So a _public_ grant value —
-  a directory receive key — is served to anyone. A _member-private_ one is not: a
-  `groupkey-epoch-key` wrap is **member-delivered** (never handed to the store — it names its
-  recipient in the clear), and a read-gated shared-document grant is served only to a reader its
-  `readers` gate admits. Serving the grant family by SAID therefore never enumerates who a private
-  grant was sealed to.
+  credential's **`terms`** — and content SADs (a public credential body, the **file wrapper**
+  `vdti/sad/v1/schemas/file`, or an application content kind the app has registered), each gated by
+  its own custody `readers`. A verifier walking a chain has to resolve the role SADs an event
+  commits to, so these have to be reachable by SAID. **Kind is only the first gate.** A served SAD
+  that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed back only to a
+  requester that gate admits, and one delivered member-to-member rather than published (its
+  `availability`) is never in the store to serve at all. So a _public_ grant value — a directory
+  receive key — is served to anyone. A _member-private_ one is not: a `groupkey-epoch-key` wrap is
+  **member-delivered** (**never published for fetch-by-SAID** — it names its recipient in the clear;
+  it moves over recipient-scoped mail, not the public object store), and a read-gated
+  shared-document grant is served only to a reader its `readers` gate admits. Serving the grant
+  family by SAID therefore never enumerates who a private grant was sealed to. A **content-addressed
+  blob** — the bulk bytes a `file` wrapper or an ESSR envelope names by **digest** — is **not**
+  served by this rule at all: it is a bare object fetched **by digest** through its `availability` /
+  serve-time request path, never by SAID.
 - **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
   event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
   gets back the same "not present" answer a SAID that never existed would.

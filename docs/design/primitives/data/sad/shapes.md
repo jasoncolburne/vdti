@@ -203,25 +203,27 @@ fields — including the `nodeHints` exchange delivers against — are fixed her
 The **envelope** (`vdti/essr/v1/schemas/envelope`) — the signed cleartext; its signature rides
 adjacent ([`../../protocols/essr.md`](../../protocols/essr.md)):
 
-| Field           | Type   | Meaning                                                                                           |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| `said`          | SAID   | The envelope SAID — commits every field below; the signature is over it.                          |
-| `kind`          | string | `vdti/essr/v1/schemas/envelope`.                                                                  |
-| `sender`        | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).                          |
-| `senderPin`     | SAID   | The sender's establishment event current at signing — the verifying state.                        |
-| `recipient`     | prefix | The recipient's IEL prefix (signed — the recipient binding).                                      |
-| `kemCiphertext` | bytes  | The key-encapsulation to the recipient's receive key — small, inline (derives the key).           |
-| `payloadDigest` | digest | Commitment to the sealed inner (the encrypted payload) — a content-addressed blob, not the bytes. |
-| `payloadSize`   | u64    | The encrypted payload's byte length.                                                              |
-| `nonce`         | bytes  | The sealing nonce (fresh random per message).                                                     |
+| Field           | Type   | Meaning                                                                                                               |
+| --------------- | ------ | --------------------------------------------------------------------------------------------------------------------- |
+| `said`          | SAID   | The envelope SAID — commits every field below; the signature is over it.                                              |
+| `kind`          | string | `vdti/essr/v1/schemas/envelope`.                                                                                      |
+| `sender`        | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).                                              |
+| `senderPin`     | SAID   | The sender's establishment event current at signing — the verifying state.                                            |
+| `recipient`     | prefix | The recipient's IEL prefix (signed — the recipient binding).                                                          |
+| `kemCiphertext` | bytes  | The key-encapsulation to the recipient's receive key — small, inline (derives the key).                               |
+| `payloadDigest` | digest | Commitment to the sealed inner (the encrypted payload) — a content-addressed blob, not the bytes (integrity-bearing). |
+| `payloadSize`   | u64    | The encrypted payload's byte length — advisory (allocation / pre-fetch bound), not integrity.                         |
+| `nonce`         | bytes  | The sealing nonce (fresh random per message).                                                                         |
 
 The **inner** (`vdti/essr/v1/schemas/inner`, sealed) is `{ said, kind, sender, payload }` — the
 sender prefix (the binding that rides inside the sealed content) and the opaque payload; a message
 timestamp or protocol label rides _inside_ `payload`, not as an envelope field. The **sealed inner
 (the ciphertext) is not carried in the envelope** — it rides as a content-addressed blob named by
-the envelope's `payloadDigest` (+ `payloadSize`), fetched by digest and checked before decryption.
-The **message** (`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the
-envelope SAD plus the sender's signature over `envelope.said`.
+the envelope's `payloadDigest` (+ `payloadSize`), fetched by digest and checked before decryption:
+the **digest is integrity-bearing** (a recomputed-digest mismatch is the only tamper signal), the
+**size advisory** (an allocation / pre-fetch bound, never treated as tamper-evidence). The
+**message** (`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the envelope
+SAD plus the sender's signature over `envelope.said`.
 
 ### IPEX — `vdti/ipex/v1/*`
 
@@ -311,18 +313,21 @@ messages (`apply` / `offer` / …) are **IPEX**'s (above).
 
 The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on the writer's lane:
 
-| Field           | Type      | Meaning                                                                         |
-| --------------- | --------- | ------------------------------------------------------------------------------- |
-| `said`          | SAID      | The message SAID; the writer signs it.                                          |
-| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                             |
-| `previous`      | SAID      | The writer's **own** prior message on this lane; absent at lane start.          |
-| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).   |
-| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob.                          |
-| `payloadSize`   | u64       | The body's byte length.                                                         |
-| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency). |
+| Field           | Type      | Meaning                                                                                                                                                |
+| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `said`          | SAID      | The message SAID; the writer signs it.                                                                                                                 |
+| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                                                                                                    |
+| `previous`      | SAID      | The writer's **own** prior message on this lane; absent at lane start.                                                                                 |
+| `writer`        | prefix?   | The writing device's **owning identity** — present **iff `previous` is absent** (roots the lane at its first message; inherited via `previous` after). |
+| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).                                                                          |
+| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                             |
+| `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                         |
+| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                        |
 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
-from the lane, decrypts, and verifies the writer's signature.
+from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no
+`previous`) carries `writer` to root the lane; every later message inherits it, so the field never
+duplicates what the lane already says.
 
 ### Policy — `vdti/policy/v1/{group}/*`
 
