@@ -34,7 +34,7 @@ per-candidate walk** — is
 [`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk).) _(A
 delegate `bound` is not participant-identifying, so it is public; a doc-membership rescission's
 `bound` **is** participant-identifying and instead rides the SEL `Trm`'s gated `bound` role — see
-[`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md).)_
+[`../../../../features/shared-documents.md`](../../../../features/shared-documents.md).)_
 
 The check reads the derived lookup-SEL **first** (O(1) content-addressed, **present → rescinded**);
 on a miss it is **fail-secure by default** — walk the delegator's fresh IEL and forward-match the

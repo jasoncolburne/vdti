@@ -153,17 +153,17 @@ bounding per-event verifier work to `O(MAXIMUM_MANIFEST_LIST)`.
 
 **Role vocabulary:**
 
-| Role        | Carried by                                                                 | Commits to                                                                             |
-| ----------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs (the general "we commit to this" role)                              |
-| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                | the roster **delta** / threshold SAD SAID                                              |
-| `delegates` | IEL `Ath`                                                                  | delegate **prefixes** (act for the delegator)                                          |
-| `grant`     | SEL `Gnt`                                                                  | the grant-doc SAD SAID                                                                 |
-| `payload`   | SEL `Ixn`                                                                  | the payload SAD SAIDs the `Ixn` records (single-owner data)                            |
-| `kills`     | IEL `Rev` / `Dth`                                                          | the revocation / rescission declaration `[{ target, bound? }]`                         |
-| `bound`     | SEL `Trm`                                                                  | the gated rescind-doc — a doc-member rescission's participant-blind grandfather cutoff |
-| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                          | the witness-config SAD SAID                                                            |
-| `clock`     | federation `Fcp` / `Wit` / `Trm`                                           | the federation-clock timestamp (inline, non-SAID)                                      |
+| Role        | Carried by                                                                 | Commits to                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs (the general "we commit to this" role)                                                                         |
+| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                | the roster **delta** / threshold SAD SAID                                                                                         |
+| `delegates` | IEL `Ath`                                                                  | delegate **prefixes** (act for the delegator)                                                                                     |
+| `grant`     | SEL `Gnt`                                                                  | the grant-doc SAD SAID                                                                                                            |
+| `payload`   | SEL `Ixn`                                                                  | the payload SAD SAIDs the `Ixn` records (single-owner data)                                                                       |
+| `kills`     | IEL `Rev` / `Dth`                                                          | the revocation / rescission declaration `[{ target, bound? }]`                                                                    |
+| `bound`     | SEL `Trm`                                                                  | the gated rescind-doc — a feature rescission's participant-blind cutoff (doc-member grandfather / chat-membership per-lane bound) |
+| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                          | the witness-config SAD SAID                                                                                                       |
+| `clock`     | federation `Fcp` / `Wit` / `Trm`                                           | the federation-clock timestamp (inline, non-SAID)                                                                                 |
 
 The roles that carry discrimination or shape rules, in prose:
 
@@ -190,13 +190,13 @@ The roles that carry discrimination or shape rules, in prose:
   to the IEL** — placement (kind-strict to the tier-2 `Rev` / `Dth`) is the only structural rule;
   the IEL never dereferences a target or interprets a bound (all revocation / grandfather logic is
   the feature layer's).
-- **`bound`** carries a doc-member rescission's participant-blind grandfather cutoff — a gated
-  rescind-doc committed by the SEL `Trm`. It is the **gated custody mode** of the same grandfather
-  `bound`: a delegate rescission, not participant-identifying, rides the **inline-public
-  `kills[].bound` field**; a doc-member rescission, participant-identifying by SAID-matching, rides
-  this **gated role** (behind the read gate), so the public structure leaks no member. One concept,
-  two custody modes — the shared name is intentional. Like `grant`, it is a feature-layer SAD, not a
-  directly-consumed governance role.
+- **`bound`** carries a feature rescission's participant-blind cutoff — a gated rescind-doc
+  committed by the SEL `Trm`. It is the **gated custody mode** of the same `bound` concept: a
+  delegate rescission, not participant-identifying, rides the **inline-public `kills[].bound`
+  field**; a participant-identifying rescission — a doc-member grandfather cutoff, or a
+  chat-membership **per-lane bound list** — rides this **gated role** (behind the read gate), so the
+  public structure leaks no member. One concept, two custody modes — the shared name is intentional.
+  Like `grant`, it is a feature-layer SAD, not a directly-consumed governance role.
 - **`witnesses`** is mandatory iff federated at inception and present-iff-changed on a `Wit`; its
   `threshold` sits above a **witnessing floor** (`threshold > signers/2`), and it gates a user IEL's
   content events at their own position
@@ -349,7 +349,7 @@ federation doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../subst
   anchor. Non-terminal — it seals a kill on a _target_, not its host chain, so a `{Rev, content}`
   fork stays recoverable.
 - ᵈ **`Dth`** — its `kills[]` entry carries the rescission `bound` (a delegate's public, a
-  doc-member's gated); non-terminal like `Rev`.
+  doc-member's or chat-membership's gated); non-terminal like `Rev`.
 
 A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker — `Fcp` / `Wit` / `Trm`
 only (`Wit` is its governance kind — witness rotation and/or a roster delta — replacing the user
@@ -399,10 +399,9 @@ buried by a seal-advancer (`Gnt` / `Trm` / `Sea`) that advances the seal past th
 owner-IEL anchor **severs** the SEL — the portion after the earliest dead anchor is un-verifiable,
 with no repair. Credential **revocation and status** are a **feature** layered on the SEL primitive
 (issuance itself is the issuer's IEL anchor, not an SEL) —
-[`features/credentials/credentials.md`](../../../features/credentials/credentials.md); shared
-documents are another
-([`features/shared-documents/documents.md`](../../../features/shared-documents/documents.md),
-forthcoming), and value-bearing **receive keys** ride the SEL as a shared-core primitive (the
+[`features/credentials.md`](../../../features/credentials.md); shared documents are another
+([`features/shared-documents.md`](../../../features/shared-documents.md), forthcoming), and
+value-bearing **receive keys** ride the SEL as a shared-core primitive (the
 [receive-key directory](../../protocols/receive-key-directory.md)).
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two
@@ -501,9 +500,9 @@ carries no other first event (issue-and-sit), otherwise the first event itself (
 is its `Trm`, a value lookup's its `Gnt`). A **`Pin`** is the **pin-only re-pin at any serial** (a
 later content-less re-pin is a `Pin`, never a payload-less `Ixn`); an `Ixn` re-pins as it records
 its required payload. A `Trm`'s manifest is `opt` — the **`bound`** role, a feature-layer gated
-rescind-doc committing a doc-member rescission's participant-blind grandfather cutoff (the gated
-custody mode of the grandfather `bound`; a delegate's rides the inline-public `kills[].bound`
-field). The exact SEL shapes are SEL doctrine — [`sel/`](sel/).
+rescind-doc committing a feature rescission's participant-blind cutoff (a doc-member grandfather, or
+a chat-membership per-lane bound; the gated custody mode — a delegate's rides the inline-public
+`kills[].bound` field). The exact SEL shapes are SEL doctrine — [`sel/`](sel/).
 
 ## Anchoring — committing up, flooring down
 

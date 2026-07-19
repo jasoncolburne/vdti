@@ -25,7 +25,7 @@ canonical** wherever they differ.
 - **credential (cred)** — a bounded, revocable claim an issuer makes about a subject (targeted to an
   `issuee`, or bearer); a **direct-anchored SAD** (the issuer anchors its issuance commitment on its
   own IEL), revoked by a `kills[]` declaration.
-  ([`features/credentials/credentials.md`](features/credentials/credentials.md))
+  ([`features/credentials.md`](features/credentials.md))
 - **document** — a standalone SAD carrying application content plus its authorization conditions.
   ([`documents.md`](primitives/policy/documents.md))
 - **policy** — the authorization language that lives on a document (leaves + composers), never on a
@@ -181,6 +181,42 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   fresh prefix and rebind, since no divergent branch can be chosen. Recovery is forward — never a
   repair of the old prefix.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+
+### Protocol primitives and messaging
+
+- **ESSR** — the sealed authenticated envelope: encrypt-then-sign with the **sender bound inside the
+  ciphertext** and the **recipient bound in the signed cleartext** (its four guarantees). The 1:1
+  seal both mail and group-key wraps invoke.
+  ([`primitives/protocols/essr.md`](primitives/protocols/essr.md))
+- **IPEX** — the disclosure / issuance exchange: the `apply` / `offer` / `agree` / `grant` / `admit`
+  / `spurn` thread, with the anchor + compaction proofs and a single-round-trip freshness envelope.
+  ([`primitives/protocols/ipex.md`](primitives/protocols/ipex.md))
+- **exchange (feature)** — sealed store-and-forward messaging in two modes over one spine: one-off
+  **ESSR mail** and the ratcheting **chat** session. `mail` and `chat` are UIs over it.
+  ([`features/exchange.md`](features/exchange.md))
+- **receive-key directory** — a party's published device receive (ML-KEM) keys, a value-bearing
+  lookup SEL a sender resolves from the party's IEL prefix; the fan-out target for a sealed send.
+  ([`primitives/protocols/receive-key-directory.md`](primitives/protocols/receive-key-directory.md))
+- **group-key / epoch / wrap** — the ratcheting shared symmetric key over a **bounded** member
+  roster; an **epoch** is one fresh, independent key generation (turning on a membership change or a
+  time cadence); a **wrap** is the epoch key sealed (ESSR) to one member device. (Distinct from the
+  KEL "epoch," a key-rotation era.)
+  ([`primitives/protocols/group-key.md`](primitives/protocols/group-key.md))
+- **membership** — an **unbounded, never-enumerated, per-requester** gated set of identities (the
+  store-authorization primitive); checked one identity at a time (fail-secure walk / O(1) rescission
+  lookup). `chat-membership` is the chat instance.
+  ([`primitives/protocols/membership.md`](primitives/protocols/membership.md))
+- **authored DAG / lane** — a per-writer content graph: a chat **lane** is a writer's own
+  `previous`-linked chain (the single-parent variant — the lane _is_ the writer, no sender field); a
+  document version graph is the multi-parent variant. Monotone along a path, with a variant fork
+  rule. ([`primitives/protocols/authored-dag.md`](primitives/protocols/authored-dag.md))
+- **serve-time gate** — the store's live-signed freshness check on a fetch (an unseen nonce + a
+  timestamp within the clock tolerance band), bounding store-side harvesting of the sealed bytes.
+  ([`features/exchange.md`](features/exchange.md))
+- **sender-key currency** — honoring a signature only within its pinned key-state's **witnessed
+  validity interval**, bounded by the sender's own establishment events' witnessed times (the
+  threshold-crossing receipt τ) on both the IEL-establishment and device-KEL axes.
+  ([`features/exchange.md`](features/exchange.md))
 
 ## Concepts
 

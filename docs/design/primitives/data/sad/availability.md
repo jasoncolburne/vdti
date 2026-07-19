@@ -30,11 +30,20 @@ Each sub-field is independently optional and covers one operational axis:
   never-existed SAID would.
 - **`once`** — one-shot delivery. Whether retrieval is destructive. A `once` SAD is removed from
   storage after the first successful read; subsequent fetches by the same or any other consumer
-  fail.
+  fail. So `once` composes poorly with a **blob shared across a fan-out**: if one ciphertext blob is
+  meant for a recipient's several devices (or a group's members), the first reader consumes it and
+  the rest fail. `once` fits a blob with a **single** consumer — per-device ESSR gives each device
+  its own ciphertext, where `once` is exactly right — not a shared one.
 
 The three sub-fields compose freely — a SAD MAY declare any combination (e.g., replica-scoped
 replication + bounded TTL + non-destructive read; or default replication + no TTL + one-shot
 delivery).
+
+When a SAD names bulk bytes as a **content-addressed blob** rather than inlining them
+([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)), the blob is
+the bytes this `availability` governs: the `replicas` scope, `ttl`, and `once` semantics apply to
+the referenced blob, not only the SAD wrapper. Scoping a `file` SAD's `replicas` to a recipient's
+storage nodes therefore places the blob there and nowhere else.
 
 ## Scope
 

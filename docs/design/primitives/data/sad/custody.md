@@ -38,12 +38,13 @@ The write-binding sub-fields (`owner` / `pin`) move together; `readers` is indep
 - **`readers`** — the **prefix** of a **read-authorization SEL** that names who may read the object,
   or `None` for publicly readable content. Read access is a **membership** check at fetch time: the
   requester's signed read request is resolved to an identity, and that identity must be a current
-  member of the `readers` set. Membership is an unbounded, per-participant lookup — resolved one
-  requester at a time by the SEL's grant / rescission machinery, never materialized as a set; it is
-  **not** a policy expression, and there is no live multi-party evaluation. A SEL is named by
-  **prefix**, not a SAID, for the same reason `owner` is — that is what lets a verifier locate and
-  walk it. Because the set names **identities**, not raw devices, it tracks the named identity's
-  current key state automatically: a device the owner has rotated out no longer reads.
+  member of the `readers` set. Membership is the unbounded, per-requester
+  [membership](../../protocols/membership.md) primitive — resolved one requester at a time by its
+  grant / rescission machinery, never materialized as a set; it is **not** a policy expression, and
+  there is no live multi-party evaluation. A SEL is named by **prefix**, not a SAID, for the same
+  reason `owner` is — that is what lets a verifier locate and walk it. Because the set names
+  **identities**, not raw devices, it tracks the named identity's current key state automatically: a
+  device the owner has rotated out no longer reads.
 
 The `custody` struct is inline on the SAD wrapper — it has no `said` field, so per the Recognition
 rule in

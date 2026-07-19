@@ -175,6 +175,15 @@ roster is re-checked against the bounds above (a stranding / hostage cut is reje
 simultaneous `threshold` drop or reincept). The timing rationale is in
 [`merge.md` §Eviction](merge.md#eviction--a-cut-evl-buries-and-evicts-atomically).
 
+A key-state (roster + thresholds) an establishment event installs — an `Icp`, an `Evl`, or a
+governance `Wit` — has an **establishment interval** for sender-key currency: from the **witnessed
+time** of the event that installs it to that of the next establishment event that supersedes it (an
+eviction `cut` closes the pre-eviction interval, even though it never touches an evicted device's
+own KEL). This is the IEL axis a message's currency check reads, intersected with the signing
+device's KEL key-window; the witnessed times are checked in-bounds + non-decreasing and reported on
+the verification token
+([witnessing §An-event's-witnessed-time](../../../../substrate/federation/witnessing.md#an-events-witnessed-time)).
+
 ### `Ath` — authorize a party to act (tier 2, `t_authorize`)
 
 The unified authorization anchor, carrying **two manifest roles, both permitted at once**
@@ -192,7 +201,7 @@ walked back forward by a `Dth`, never buried or overturned. An `Ath` whose `dele
 delegator's own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)` (the
 policy layer's delegation leaf — [`policy.md`](../../../policy/policy.md)). The document-layer grant
 mechanics live in
-[`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
+[`../../../../features/shared-documents.md`](../../../../features/shared-documents.md)
 _(forthcoming)_.
 
 ### `Rev` / `Dth` — the kill-anchors (tier 2)
@@ -203,9 +212,9 @@ differ by domain and count:
 
 - **`Rev` (revoke, `t_govern`)** — kills an **owned** artifact: a credential's revocation, or an
   app-SEL closure. `anchors` names revocation lookup-SEL `Trm`s.
-- **`Dth` (deauthorize, `t_authorize`)** — kills a **granted authorization** (delegation or
-  doc-membership): the polarity-inverse of `Ath`. `anchors` names rescission lookup-SEL `Trm`s, and
-  its `kills[]` entry carries the rescission `bound`.
+- **`Dth` (deauthorize, `t_authorize`)** — kills a **granted authorization** (delegation,
+  doc-membership, or chat-membership): the polarity-inverse of `Ath`. `anchors` names rescission
+  lookup-SEL `Trm`s, and its `kills[]` entry carries the rescission `bound`.
 
 Both carry **no roster delta** (they cannot mutate establishment state) and both **force a `Rot`**
 on each approving member — a permanent kill needs a ≥ tier-2 KEL anchor, and the distinction from
@@ -239,13 +248,16 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
   ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not** the
   lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.
-- **`bound`** (rescission only) — the grandfather cutoff, the last honored event on the rescinded
-  party's chain. One concept, two custody modes. A **delegate**'s `bound` is not
-  participant-identifying, so it rides **publicly** in the `kills[].bound` field (un-withholdable on
-  the witnessed IEL). A **doc-member**'s `bound` **is** participant-identifying, so `kills[]`
-  carries only the blind `target` and the `bound` rides the **SEL `Trm`'s gated `bound` role** (a
-  rescind-doc behind the read gate) — see [`delegation.md`](delegation.md) and
-  [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md).
+- **`bound`** (rescission only) — the cutoff, the last honored event on the rescinded party's chain
+  (a doc-member **grandfather** cutoff, or a chat-membership **per-lane bound**). One concept, two
+  custody modes. A **delegate**'s `bound` is not participant-identifying, so it rides **publicly**
+  in the `kills[].bound` field (un-withholdable on the witnessed IEL). A participant-identifying
+  `bound` — a **doc-member** or **chat-membership** rescission — has `kills[]` carry only the blind
+  `target`, and the `bound` rides the **SEL `Trm`'s gated `bound` role** (a rescind-doc behind the
+  read gate) — see [`delegation.md`](delegation.md),
+  [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md), and
+  [`../../../protocols/membership.md`](../../../protocols/membership.md) (the chat-membership
+  per-lane bound).
 
 The check reads the derived lookup-SEL **first** (an O(1) content-addressed read, **present →
 killed**); on a miss it is **fail-secure by default** — compute the `target` and walk the owner's
@@ -500,7 +512,7 @@ cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — where a credential's issuance /
   revocation actions are interpreted (the feature layer; the IEL states only the kill-anchor
   structure).
-- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md)
-  — the doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
+- [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md) — the
+  doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing and the federation `Wit` governance mechanics.

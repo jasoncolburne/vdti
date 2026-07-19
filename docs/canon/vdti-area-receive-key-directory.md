@@ -31,6 +31,13 @@ sealed-send core wraps to each — see the group case in [`vdti-area-group-key.m
   data)` — `owner` = the identity IEL prefix, topic = `vdti/directory/v1/topics/receive-key`. A receive key is
   meant to be **found**, so it is **not** nonce-blinded; any sender holding the recipient's prefix computes it
   (the cost is the lookup-prefix residual). `lineage` (area-sel §1f) handles reincept after a forced-dead key.
+- **Inbox-node hints — where the identity reads its mail (a discovery fact).** Alongside the receive keys, the
+  identity publishes a set of **inbox-node hints**: the storage nodes it reads its mail from. A sender sets a
+  mail message's `availability.replicas` to those hints, so the sealed content lives **only** on the recipient's
+  own nodes and the recipient polls **its own** — recipient-scoped delivery, no federation-wide gossip of the
+  communication graph (area-exchange §5). The hints publish _where_ (a discovery fact); transport moves the
+  bytes. **Residual — the hints are themselves targeting metadata** (they say where a correspondent's mail
+  lives); listing several nodes keeps no single one the whole picture.
 - **`data` = a device KEL prefix _or_ an opaque alias — a flat set, one entry per device.** The publishing
   identity's IEL has a roster of member KELs (devices); setting `data` = a **member KEL prefix** yields a
   per-device receive key that discloses the device, setting `data` = an **opaque alias** yields the same

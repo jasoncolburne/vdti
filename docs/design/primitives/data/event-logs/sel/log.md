@@ -117,10 +117,12 @@ discoverable:
 
 - A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
   inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
-  already holds, then fetches by that prefix. Two shapes: a **kill lookup** `{Icp, Trm}` (a
-  revocation or rescission locus — the read strategy the fail-secure kill check consumes) and a
-  **value lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key — §The seal and
-  its advancers).
+  already holds, then fetches by that prefix. Three shapes: a **kill lookup** `{Icp, Trm}` (a
+  revocation or rescission locus — the read strategy the fail-secure kill check consumes), a **value
+  lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key — §The seal and its
+  advancers), and a **delegating-link lookup** `{Icp, Pin}` (the positive twin of the rescission
+  lookup, re-derived to confirm a delegation's authorizing path —
+  [`../iel/delegation.md`](../iel/delegation.md)).
 - A **content SEL** is one a verifier is **handed** rather than recomputing. It records data over
   time (`Icp` → serial-1 event → further `Ixn`s).
 
@@ -226,7 +228,7 @@ The three advancers differ by what else they do:
   not be swappable by a bare signing key. Rotating the value stacks another `Gnt` (the live sealed
   tip is served); the value-bearing instances are their **owner's** — a feature (a
   document-governance grant —
-  [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
+  [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
   forthcoming) or a shared-core primitive (the receive-key directory's encryption receive-key, group
   keying's epoch-key wrap). A `Gnt` is non-terminal and is walked back only by a later rescission,
   never overturned.
@@ -292,19 +294,19 @@ recomputable), so the first pin rides the SEL's **serial-1 event**, never the `I
 A SEL event may carry only these roles; one carrying any role outside its kind's vocabulary is
 malformed and rejected (read kind-first):
 
-| Role      | Carried by | Commits to                                                                  |
-| --------- | ---------- | --------------------------------------------------------------------------- |
-| `payload` | `Ixn`      | the payload SAD SAID(s) this `Ixn` records (single-owner data)              |
-| `grant`   | `Gnt`      | the grant-value SAD this `Gnt` seals (a `vdti/sel/v1/grants/*` kind)        |
-| `bound`   | `Trm`      | opt — a doc-member rescission's gated, participant-blind grandfather cutoff |
+| Role      | Carried by | Commits to                                                                                                                   |
+| --------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `payload` | `Ixn`      | the payload SAD SAID(s) this `Ixn` records (single-owner data)                                                               |
+| `grant`   | `Gnt`      | the grant-value SAD this `Gnt` seals (a `vdti/sel/v1/grants/*` kind)                                                         |
+| `bound`   | `Trm`      | opt — a feature rescission's gated, participant-blind cutoff (a doc-member grandfather, or a chat-membership per-lane bound) |
 
 The `Icp` (recomputable), the floor `Pin` (a pure re-pin), and the neutral `Sea` carry **no
 manifest**; a `Trm`'s termination validity is carried by its anchoring `Rev` / `Dth`, and its
 manifest is **opt** — when present it carries the **`bound`** role, a feature-layer gated
-rescind-doc holding a doc-member rescission's participant-blind grandfather cutoff (the gated
-custody mode of the grandfather `bound`; a delegate's rides the inline-public `kills[].bound`
-field). The `owner` / `topic` / `data` / `lineage` derivation inputs and the down-`pin` stay
-**top-level structural**. See
+rescind-doc holding a feature rescission's participant-blind cutoff — a doc-member grandfather, or a
+chat-membership **per-lane bound list** (the gated custody mode; a delegate's rides the
+inline-public `kills[].bound` field). The `owner` / `topic` / `data` / `lineage` derivation inputs
+and the down-`pin` stay **top-level structural**. See
 [`events.md` §The manifest](events.md#the-manifest--roles-a-sel-event-carries) for the per-kind
 detail.
 
@@ -364,6 +366,6 @@ threshold of member KEL signatures, every one re-checked from the data. The cros
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing: the witnessing floor, first-seen, and disputed detection the SEL
   inherits.
-- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
-  [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the
-  value-bearing `Gnt` consumers (both forthcoming).
+- [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
+  [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
+  consumers (shared-documents forthcoming).

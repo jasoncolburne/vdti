@@ -190,25 +190,33 @@ primitives below rather than extending them.
 36. [`primitives/protocols/group-key.md`](primitives/protocols/group-key.md) — the ratcheting shared
     key a group encrypts under: per-device fan-out, epochs, and the ratchet, with chat and shared
     documents as its consumers.
+37. [`primitives/protocols/membership.md`](primitives/protocols/membership.md) — the unbounded,
+    per-requester gated set that authorizes one identity at a time (a chat's store gate, a shared
+    document's read/write gate), never materialized as a roster.
+38. [`primitives/protocols/authored-dag.md`](primitives/protocols/authored-dag.md) — the per-writer
+    content graph a chat lane and a document version graph are: attribution by lane, monotone order,
+    and a single-parent (fork = equivocation) / multi-parent (branch + merge) variant.
 
 ## 7 — The feature layer
 
-Features compose the primitives into what an application ships. The first is credentials; shared
-documents and secure messaging follow.
+Features compose the primitives into what an application ships. The first two are credentials and
+secure messaging (the `exchange` feature); shared documents follows.
 
-37. [`features/credentials/credentials.md`](features/credentials/credentials.md) — issuing a
-    credential and, the core case, a relying party accepting a presented one: the anchor and
-    compaction as its proofs, the two questions (validly-issued, ownership), IPEX presentation,
-    targeted-vs-bearer, blinded claim-gating, revocation, edges, terms-of-use, bulk issuance, and
-    the migration-first registrar.
+39. [`features/credentials.md`](features/credentials.md) — issuing a credential and, the core case,
+    a relying party accepting a presented one: the anchor and compaction as its proofs, the two
+    questions (validly-issued, ownership), IPEX presentation, targeted-vs-bearer, blinded
+    claim-gating, revocation, edges, terms-of-use, bulk issuance, and the migration-first registrar.
+40. [`features/exchange.md`](features/exchange.md) — sealed store-and-forward messaging: the two
+    modes (one-off ESSR mail and the ratcheting chat session), digest-named payloads, sender-key
+    currency, recipient-scoped delivery + the serve-time gate, the `chat-membership` store gate, and
+    the per-sender-lane authored DAG.
 
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `features/` — shared documents (its full prose beyond the diagram stub) and secure messaging (the
-  `exchange` feature — its identifiers, paths, and grant kinds all read `exchange`);
-  [`features/shared-documents/documents.md`](features/shared-documents/documents.md) is a diagram
-  stub carrying its diagrams ahead of the prose.
+- `features/` — shared documents (its full prose beyond the diagram stub);
+  [`features/shared-documents.md`](features/shared-documents.md) is a diagram stub carrying its
+  diagrams ahead of the prose.
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
   scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).

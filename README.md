@@ -28,7 +28,7 @@ Then three **features** escalate for the genuinely hard problems — and they co
 - **Credentials** — delegated, revocable authority. One identity vouches for another, verifiably.
 
 Most of what you would build is just data with custody. Reach for a feature only for the hard thing
-it owns; combine features for the rich apps — a group chat is exchange + shared documents, a
+it owns; combine features for the rich apps — a group chat is exchange's session mode, a
 supply-chain recall is credentials.
 
 **→ See [`USES.md`](USES.md) for the full catalogue — dozens of applications and exactly how each

@@ -125,7 +125,7 @@ the reserve. A **value lookup SEL** is established `{Icp, Gnt}` at tier 2, and *
 stacks another `Gnt`** (the walk serves the live sealed tip, so a retired value is never served).
 What a grant value _means_ — a document-governance grant, an encryption receive-key — is its
 **owner's**: a feature
-([`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
+([`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
 forthcoming) or a **shared-core primitive** (the receive-key directory owns the encryption
 receive-key grant, group keying its epoch-key wrap); this primitive states only the
 seal-a-typed-value structure.
@@ -149,9 +149,11 @@ IEL's **`kills[]` declaration** naming the killed locus (the IEL side —
 commits:** a credential revocation carries no `bound` (revocation is binary); a delegate rescission
 carries the grandfather `bound` publicly in the owner IEL `Dth`'s `kills[]` field; a document-member
 rescission's `bound` is participant-identifying, so it rides a gated rescind-doc committed by that
-`Trm`'s **`bound` role** and the `kills[]` entry carries only a blind target. The read strategy that
-consumes this structure — the fail-secure `kills[]` walk and its fail-open lookup — is the feature
-layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
+`Trm`'s **`bound` role** and the `kills[]` entry carries only a blind target; a chat-membership
+rescission's `bound` is participant-identifying the same way and rides the same gated role — a
+**per-lane list** (one bound per writing device lane), the chat instance of that gated cutoff. The
+read strategy that consumes this structure — the fail-secure `kills[]` walk and its fail-open lookup
+— is the feature layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
 
 ### `Sea` — the neutral re-seal (tier 2, `t_govern`)
 
@@ -180,6 +182,10 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
 - A **value lookup** is `{Icp, Gnt}` — its v1 the `Gnt` that seals the value. Rotating the value
   stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value re-incepts
   at the next lineage).
+- A **delegating-link lookup** is `{Icp, Pin}` — the positive twin of the rescission lookup,
+  re-derived to confirm a delegation's authorizing path; its serial-1 is a `Pin` whose pinned
+  position names the authorizing `Ath`
+  ([`../iel/delegation.md`](../iel/delegation.md#the-positive-delegating-link)).
 
 ## The content and lineage fields
 
@@ -251,11 +257,11 @@ A SEL event commits to what sits above it through a **`manifest`** — the SAID 
 A manifest carrying any role outside its kind's vocabulary is malformed and rejected (read
 kind-first):
 
-| Role      | Carried by | Commits to                                                                       |
-| --------- | ---------- | -------------------------------------------------------------------------------- |
-| `payload` | `Ixn`      | the payload SAD SAID(s) the `Ixn` records (**required** — always ≥ 1)            |
-| `grant`   | `Gnt`      | the grant-value SAD the `Gnt` seals (a `vdti/sel/v1/grants/*` kind)              |
-| `bound`   | `Trm`      | opt — the gated rescind-doc (a doc-member rescission's blind grandfather cutoff) |
+| Role      | Carried by | Commits to                                                                                                                       |
+| --------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `payload` | `Ixn`      | the payload SAD SAID(s) the `Ixn` records (**required** — always ≥ 1)                                                            |
+| `grant`   | `Gnt`      | the grant-value SAD the `Gnt` seals (a `vdti/sel/v1/grants/*` kind)                                                              |
+| `bound`   | `Trm`      | opt — the gated rescind-doc (a feature rescission's blind cutoff: a doc-member grandfather, or a chat-membership per-lane bound) |
 
 The `payload` role is **directly consumed** with no downstream type-check, so the kind → role
 allowlist is its only protection — an `Icp` / `Pin` / `Sea` carrying a manifest at all is malformed,
@@ -263,11 +269,12 @@ and an `Ixn` **without** one is malformed too (the role is never absent — a pu
 The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath`), so
 unlike `payload` it is not directly trusted. A `Trm`'s termination validity is carried by its
 anchoring `Rev` / `Dth`; its manifest is **opt**, and when present carries the **`bound`** role — a
-feature-layer gated rescind-doc holding a doc-member rescission's participant-blind grandfather
-cutoff. This is the **gated custody mode** of the grandfather `bound` (a delegate rescission's rides
-the inline-public `kills[].bound` field on the owner IEL); like `grant`, it is a feature-layer SAD,
-not a directly-consumed role. The derivation inputs (`owner` / `topic` / `data` / `lineage`) and
-every event's down-`pin` are **top-level structural**.
+feature-layer gated rescind-doc holding a feature rescission's participant-blind cutoff (a
+doc-member grandfather, or a chat-membership per-lane bound list). This is the **gated custody
+mode** of the `bound` (a delegate rescission's rides the inline-public `kills[].bound` field on the
+owner IEL); like `grant`, it is a feature-layer SAD, not a directly-consumed role. The derivation
+inputs (`owner` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level
+structural**.
 
 ## The kind-strict cross-layer anchor matrix
 
@@ -354,6 +361,6 @@ sealed branches → Disputed, exactly as any two sealed events would be.
   [§Negative checks are positive lookups](../../../../protocol-doctrine.md#negative-checks-are-positive-lookups).
 - [`../../../policy/documents.md`](../../../policy/documents.md) — where a credential's revocation
   or a rescission is interpreted (the feature layer; the SEL states only the kill structure).
-- [`../../../../features/shared-documents/documents.md`](../../../../features/shared-documents/documents.md),
-  [`../../../../features/exchange/exchange.md`](../../../../features/exchange/exchange.md) — the
-  value-bearing `Gnt` consumers (both forthcoming).
+- [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
+  [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
+  consumers (shared-documents forthcoming).

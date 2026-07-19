@@ -9,10 +9,9 @@ the **receiver** rides in the clear.
 It is **thin**. ESSR holds no key material, reads no chain, and does not inspect the payload it
 seals. Turning a prefix into a key, checking whether a sender's key is still current, delivering the
 message, hiding who is talking to whom, keying a group — none of those are ESSR. They belong to the
-[exchange](../../features/exchange/exchange.md) _(forthcoming)_ feature or to whoever calls ESSR.
-That narrowness is what lets [credentials](../../features/credentials/credentials.md) and the
-[presentation exchange](ipex.md) seal a message at the edge without dragging a feature's machinery
-along.
+[exchange](../../features/exchange.md) feature or to whoever calls ESSR. That narrowness is what
+lets [credentials](../../features/credentials.md) and the [presentation exchange](ipex.md) seal a
+message at the edge without dragging a feature's machinery along.
 
 ## What ESSR guarantees
 
@@ -82,8 +81,9 @@ envelope = {
   sender,             // the sender's IEL prefix — cleartext: locates the chain, routes, fetches the verify key
   senderPin,          // SAID of the sender's IEL key-state position at signing — the roster + t_use threshold that verifies the signature
   recipient,          // the recipient's IEL prefix — bound by the signature; the transport also routes on it
-  kemCiphertext,      // key-encapsulation to the recipient's receive key
-  encryptedPayload,   // the sealed inner, under the key derived from the encapsulated secret
+  kemCiphertext,      // key-encapsulation to the recipient's receive key — small, inline (derives the sealing key)
+  payloadDigest,      // commitment to the sealed inner (the encrypted payload) — a content-addressed blob, never the bytes
+  payloadSize,        // the encrypted payload's byte length
   nonce,              // sealing nonce — fresh random; a per-message key means single use
 }
 ```
@@ -100,20 +100,24 @@ message = {
 ```
 
 **To seal:** encapsulate to the recipient's receive key → a shared secret → derive a sealing key
-(domain-separation context `vdti/essr/v1/protocols/kdf`) → seal `inner` under a fresh nonce →
-assemble `envelope` and compute its `said` → sign that `said`.
+(domain-separation context `vdti/essr/v1/protocols/kdf`) → seal `inner` under a fresh nonce → the
+envelope commits that sealed inner by **`payloadDigest`** (+ `payloadSize`), the caller holding
+those bytes as a content-addressed blob → assemble `envelope` and compute its `said` → sign that
+`said`.
 
 **To open:** **recompute `envelope.said` from the envelope fields and reject on any mismatch** — the
 ordinary SAD check, and what makes the signature (which is over `said`) bind every field → verify
 the signature over `said` against the sender's `t_use` key-state, resolved by the caller from
 `sender` + `senderPin` (ESSR does no lookup — see the boundary) → **assert `recipient` is the
-opener's own prefix** → decapsulate → derive the sealing key → open the inner → **assert
+opener's own prefix** → decapsulate → derive the sealing key → **take the sealed-inner bytes the
+caller fetched by `payloadDigest` and check their digest matches** → open the inner → **assert
 `inner.sender == envelope.sender`**.
 
 Only `envelope.said` is signed, so only its recompute gates trust. `inner.said` and `message.said`
-are ordinary self-addresses, present by the universal [SAD](../data/sad/sad.md) rule — the inner's
-bytes are protected by the sealing tag and the message by the envelope signature, so neither is
-separately load-bearing.
+are ordinary self-addresses, present by the universal [SAD](../data/sad/sad.md) rule — the sealed
+inner rides as a **content-addressed blob** the signed envelope commits by `payloadDigest`, so its
+bytes are protected by the sealing tag **and** the envelope signature, and the message by the
+envelope signature; none is separately load-bearing.
 
 **The sender signs with a quorum.** A `sender` is an IEL prefix — an identity that is a threshold
 over its member devices, not a single key — so the signature is the sender's `t_use` quorum (signing
@@ -212,5 +216,5 @@ and states the design here in VDTI's own terms.
   prefix to its device receive keys, the keys this envelope encapsulates to.
 - [`group-key.md`](group-key.md) — the group-key primitive, which composes this one-to-one seal to
   distribute an epoch key to a whole group's devices.
-- [`../../features/exchange/exchange.md`](../../features/exchange/exchange.md) _(forthcoming)_ —
-  delivery, the serve-time gate, and identity hiding, all built on this primitive.
+- [`../../features/exchange.md`](../../features/exchange.md) — delivery, the serve-time gate, and
+  identity hiding, all built on this primitive.

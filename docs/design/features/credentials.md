@@ -7,9 +7,9 @@ the primitives below it and adds **no new chain machinery**: a credential is a p
 issued by anchoring it and presented by disclosing it.
 
 The presentation is a disclosure, so credentials builds on the
-[presentation exchange](../../primitives/protocols/ipex.md) (IPEX) — and only on it.
-Confidentiality, when a disclosure must be private, stacks underneath at the transport edge without
-credentials knowing; see [Composing the protocols](#composing-the-protocols).
+[presentation exchange](../primitives/protocols/ipex.md) (IPEX) — and only on it. Confidentiality,
+when a disclosure must be private, stacks underneath at the transport edge without credentials
+knowing; see [Composing the protocols](#composing-the-protocols).
 
 ## The credential
 
@@ -128,20 +128,21 @@ conjunction:
   `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
   stronger-liveness mode). Proving ownership is a live **`t_use` action**, so it is **frozen on any
   divergence**: a forked, disputed, or **terminated** issuee grounds no ownership and is refused — a
-  fork freezes actions until governance resolves it (only `t_govern` recovery proceeds on a fork), a
-  dispute is unreconcilable, and a retired identity is done. Bearer credentials skip this.
+  fork freezes actions until any **T2 sealed act** seals it out (`iel/verification.md` — not only
+  `t_govern`), a dispute is unreconcilable, and a retired identity is done. Bearer credentials skip
+  this.
 - **Not expired** — advisory; the caller decides.
 
 ## Presentation
 
-Issuance and presentation are both **[IPEX](../../primitives/protocols/ipex.md)** disclosures (from
-a discloser to a disclosee; issuance is the case where the discloser is the issuer). The credential
-is long-lived — its freshness is the anchor, revocation, and the advisory `expires`. A
-**presentation** is made fresh per use by the IPEX `grant` envelope, which carries
-`{ audience, nonce, created }` and is signed by the **issuee's current-tip `t_use` quorum**. That
-one signature does double duty: it proves **ownership** (the required signer is the credential's
-committed `issuee`, so control of the issuee's keys is the "who may present" answer) **and** binds
-the disclosure to its audience, nonce, and time so it cannot be replayed.
+Issuance and presentation are both **[IPEX](../primitives/protocols/ipex.md)** disclosures (from a
+discloser to a disclosee; issuance is the case where the discloser is the issuer). The credential is
+long-lived — its freshness is the anchor, revocation, and the advisory `expires`. A **presentation**
+is made fresh per use by the IPEX `grant` envelope, which carries `{ audience, nonce, created }` and
+is signed by the **issuee's current-tip `t_use` quorum**. That one signature does double duty: it
+proves **ownership** (the required signer is the credential's committed `issuee`, so control of the
+issuee's keys is the "who may present" answer) **and** binds the disclosure to its audience, nonce,
+and time so it cannot be replayed.
 
 - **Copy-replay of a targeted credential is closed within a single `grant`.** Replay to the same
   verifier hits the nonce dedup; replay elsewhere fails the audience binding; presenting someone
@@ -346,8 +347,8 @@ and the revoke-old/issue-new recovery path.
 
 The presentation flow uses a secure transport, but **credentials must not be transport-aware.**
 
-- **Credentials depends on [IPEX](../../primitives/protocols/ipex.md), never on the
-  [sealed envelope](../../primitives/protocols/essr.md).** IPEX gives integrity and attribution and
+- **Credentials depends on [IPEX](../primitives/protocols/ipex.md), never on the
+  [sealed envelope](../primitives/protocols/essr.md).** IPEX gives integrity and attribution and
   does not itself require the seal. A **private** disclosure runs IPEX-inside-a-seal, chosen where
   the exchange is wired up, not baked into credentials — confidentiality stacks without credentials
   knowing.
@@ -366,11 +367,11 @@ The presentation flow uses a secure transport, but **credentials must not be tra
 
 ## Cross-references
 
-- [`../../primitives/protocols/ipex.md`](../../primitives/protocols/ipex.md) — the disclosure
-  exchange issuance and presentation are, and the freshness envelope a presentation rides.
-- [`../../primitives/protocols/essr.md`](../../primitives/protocols/essr.md) — the seal a private
+- [`../primitives/protocols/ipex.md`](../primitives/protocols/ipex.md) — the disclosure exchange
+  issuance and presentation are, and the freshness envelope a presentation rides.
+- [`../primitives/protocols/essr.md`](../primitives/protocols/essr.md) — the seal a private
   disclosure stacks under at the edge.
-- [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md) — the authorization
-  language a relying party's issuer condition (`id` / `del`) is written in.
-- [`../../primitives/data/sad/compaction.md`](../../primitives/data/sad/compaction.md) — the
-  recursive SAID commitment that makes graduated disclosure verifiable against one anchor.
+- [`../primitives/policy/policy.md`](../primitives/policy/policy.md) — the authorization language a
+  relying party's issuer condition (`id` / `del`) is written in.
+- [`../primitives/data/sad/compaction.md`](../primitives/data/sad/compaction.md) — the recursive
+  SAID commitment that makes graduated disclosure verifiable against one anchor.

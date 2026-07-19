@@ -135,8 +135,8 @@ A relying party **grants** iff **all** hold:
 - **Ownership (current)** — the presenter satisfies the `issuee` IEL's `t_use` over the verifier's
   fresh, audience-bound challenge (realized as the `grant` signature, §Presentation), a live **`t_use` action**, so
   **frozen on any divergence** (`iel/verification.md`): a forked, disputed, or **terminated** issuee
-  grounds no ownership and is refused (fail-secure) — a fork freezes actions until governance recovers
-  it (only `t_govern` proceeds on a fork), a dispute is unreconcilable, a retired identity is done. Bearer credentials skip this.
+  grounds no ownership and is refused (fail-secure) — a fork freezes actions until any **T2 sealed act** seals it
+  out (`iel/verification.md` — not only `t_govern`), a dispute is unreconcilable, a retired identity is done. Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides (an `is_expired()` helper surfaces it).
 
 ## Presentation — IPEX, single round trip

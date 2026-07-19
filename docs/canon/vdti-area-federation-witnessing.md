@@ -223,7 +223,7 @@ adversarial pass.
   **deferred-pending, non-propagating, droppable** (a spent-preimage or partition race — no witness fault). The
   `disputed` verdict is unchanged and rides the **data-local walk over *accepted* branches** (inv 13/17 — receipts
   attribute, they do not decide; an unwitnessed sibling a node merely holds is not an accepted branch). On a
-  content-only divergence the resolving burying seal-advancer (a `Rot`/`Evl`) is that **one** witnessed sealing event;
+  content-only divergence the resolving burying seal-advancer (any T2 seal-advancer) is that **one** witnessed sealing event;
   a *second* witnessed seal-advancer is the proving pair `{Rot, Rot}` (or `{Evl, Evl}`) → `disputed`, now necessarily
   collusion. So **divergence detection is now sealed-only** (content is prevented upstream). **Residual** content-fork
   evidence (the witness-compromise residual) is still retention-bounded at **≥ 2 per position** (the content analog of
@@ -263,7 +263,7 @@ adversarial pass.
   hold *anyway*, so first-seen already declines), and it puts cross-context historical verification in the
   witnessing hot path. The straddle is a recoverable content fork (freeze → one burying seal); the honest fix is
   the per-context marker scoping above, not more witness machinery.
-- **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the burying seal-advancer** (a `Rot`/`Evl`)
+- **Dead-event gate (garbage reduction, 2026-07-01):** a witness that **already holds the burying seal-advancer** (any T2 seal-advancer — a `Rot`, `Evl`, `Ath`, `Rev`/`Dth`, or `Wit`)
   that condemned a fork **declines to witness** dead **content** events on a **dead** branch — one whose ancestry passes
   below the burying seal or through a below-seal fork. **A below-seal sealed event is declined too** — the witness **mirrors the seal-cap** (a parent below the tracked seal is inert, content _or_ sealed; revised 2026-07-11): it never reaches threshold, so it is neither dispute evidence nor able to retreat the clean seal. **The sealed leg is load-bearing — the backdate defense:** a below-seal sealed straggler must **not** be witnessed, or a total-key-compromise adversary could mint a fabricated historical fork years after the fact; the only reachable dispute is a **seal-vs-seal collision at the last (live) seal** (two accepted seals there, a provable witness double-sign). **The gate generalizes — you can't seal a buried chain (dead-on-ascent, Jason 2026-07-11):** a lineage is dead from its **first-seen loss** at any position, not only below a burying seal. A selected witness that first-seen-accepted the winner at a fork **declines every descendant of the loser — content _or_ a `Rot`/`Evl` seal forged on it** — so a buried branch never gathers the majority a seal needs; a seal does not revive it. This is what **collapses a dispute to the fork** (inv 13): two branches both **accepted** at a seal share their lineage to a fork where **both** siblings are accepted — a same-position double-sign — so no **cross-position** dispute forms. **The content leg is an efficiency gate, not load-bearing:** deadness ascends
   (inv 13 — an event whose parent is dead is dead), so a dead event that a lagging witness signs before it holds the
@@ -642,6 +642,39 @@ adversarial pass.
   SEL is witnessed now, area-sel §1c) — VDTI relies on `cred.said` never entering a receipt for cred privacy
   (a SEL receipt carries only an unguessable lookup-SEL prefix), not on hiding the prefix (KERI AIDs are
   public).
+
+### 1h. An event's witnessed time — the receipt-derived finality timestamp (2026-07-19, for sender-key currency)
+
+Distinct from the federation **clock** (§1f), which is a governance-authored value on federation events bounding
+**witness** key-windows: **an event's witnessed time** is the `τ` of the receipt that brought it to `threshold`
+— order its valid receipts by `τ`, take the `threshold`-th smallest, the instant it became **witnessed-in-full**.
+A single value every verifier holding the **same receipts** computes identically — though not unconditionally
+per-verifier deterministic (with `signers > threshold`, a verifier handed only the latest `threshold` receipts
+computes a **later** crossing; accumulating receipts moves it only earlier; a receipt-curating eclipse can inflate
+a boundary by at most the honest receipt spread, and every consequence stays inside an accepted class — a later
+closing boundary widens the accepted backdate sliver, a later opening boundary fails secure, sub-`threshold`
+withholding is query-scoped + freshness-barred; PR#25 r3 cold-P3-2). It exists because ordinary events (a
+user's rotation, a group-key epoch) have no `clock` of their own, yet sender-key currency ([inv 21]) needs a
+per-event finality time to bound each key-state's validity interval — and the clock, ticking only at federation
+governance events (~yearly, §1f), quantizes (round-3 P0). Its properties:
+
+- **The security-critical direction can't be inflated.** A witnessed event already earned ≥ `threshold`
+  **durable** honest receipts at its true time; an adversary can neither delete them nor move the
+  `threshold`-th-smallest `τ` later by adding late receipts — so read multi-source ([inv 8]), the upper boundary
+  a stale key would need inflated is **pinned in the past**. Pushing it **earlier** needs `threshold`-many
+  witnesses (a full compromise) and only shrinks a past interval or lets the newer key backdate. Each `τ` is
+  capped at `now + CLOCK_TOLERANCE_BAND` and window-bounded. This is byzantine-robust where a per-witness /
+  newest-`τ` reduction is not.
+- **Not self-ordering → checked and reported.** Witnessed times are **distinct per event** (resolving the clock's
+  quantization at any cadence) but two events witnessed within a tolerance band can come out **inverted**. So a
+  consumer **checks** the establishment / epoch times it reads are **in-bounds** (`≤ now + CLOCK_TOLERANCE_BAND`)
+  and **non-decreasing along the chain**, and **reports on its verification token** — a structural violation
+  **bails** (fail-secure), an in-bounds-but-out-of-order pair is **reported**, never silently treated as a valid
+  empty interval. The same compute-check-report discipline every chain-validity property rides.
+
+Consumed by: sender-key currency's **key-state validity intervals** (an IEL establishment interval + a device KEL
+key-window — inv 21, area-exchange §3) and a **group-key epoch's window** (area-exchange §7a). The design-doc
+statement is `substrate/federation/witnessing.md §An-event's-witnessed-time`.
 
 ## 2. Mined from kels-216 — patterns that carry (confirm in land)
 - **Receipts indexed by `(prefix, serial)`**, *not* event SAID — structural; this is what lets **competing receipts

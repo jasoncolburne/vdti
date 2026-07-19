@@ -3,8 +3,8 @@
 _Forthcoming._ The full shared-documents feature lands here — a document several parties co-author,
 whose membership and sharing evolve under a creator, fully end-verifiable. It composes the SAD + SEL
 primitives with the document layer
-([`../../primitives/policy/documents.md`](../../primitives/policy/documents.md)); credentials are
-the contrast (issuer/issuee, fixed membership). This stub carries the structure diagram ahead of the
+([`../primitives/policy/documents.md`](../primitives/policy/documents.md)); credentials are the
+contrast (issuer/issuee, fixed membership). This stub carries the structure diagram ahead of the
 prose.
 
 ## The construct

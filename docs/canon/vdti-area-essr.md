@@ -93,8 +93,9 @@ envelope = {
   sender,           // the sender's IEL prefix — cleartext: locates the chain, routes, fetches the verify key
   senderPin,        // SAID of the sender's establishment event current at signing — which key-state verifies the signature
   recipient,        // the recipient's IEL prefix — bound by the signature (anti-KCI); the transport also routes on it
-  kemCiphertext,    // lattice-KEM encapsulation to the recipient's receive key
-  encryptedPayload, // AEAD( inner ) under the key derived from the KEM shared secret
+  kemCiphertext,    // lattice-KEM encapsulation to the recipient's receive key — small, inline
+  payloadDigest,    // commitment to the sealed inner (the encrypted payload) — a content-addressed blob, never the bytes (integrity-bearing)
+  payloadSize,      // the encrypted payload's byte length — advisory (allocation / pre-fetch bound), not integrity
   nonce,            // AEAD nonce — fresh random; a per-message key ⇒ single use
 }
 ```

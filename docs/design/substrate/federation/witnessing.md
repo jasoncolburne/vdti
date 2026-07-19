@@ -319,6 +319,61 @@ Resubmission is idempotent (dedup by SAID), so resubmitting any event doubles as
 resubmitting a _stale-pin_ event never fixes it (the pin is baked into its SAID) — the fix is
 rebind, then submit a new event.
 
+## An event's witnessed time
+
+A witnessed event gathers receipts, each carrying its witness's asserted time `τ` inside the signed
+payload (above). The event's **witnessed time** is the `τ` of the receipt that brought it to
+`threshold` — order the event's valid receipts by `τ` and take the `threshold`-th smallest: the
+instant at which `threshold`-many witnesses had attested at or before it, i.e. **when the event
+became witnessed-in-full**. It is a single value every verifier holding the **same receipts**
+computes identically, distinct from any one witness's `τ` — though not unconditionally per-verifier
+deterministic: with `signers > threshold`, a verifier handed only the **latest** `threshold` valid
+receipts computes a **later** crossing than one holding the earliest, and accumulating receipts
+moves it only **earlier** (monotone downward). A receipt-curating adversary (eclipse-class — it must
+control which receipts your sources hand you) can inflate a computed boundary by at most the
+**honest receipt spread** (the slack witnesses' in-window `τ`s, gossip-latency scale), and the
+consequences stay inside accepted classes: a later **closing** boundary only widens the
+already-accepted backdate-into-closed-interval sliver, a later **opening** boundary refuses honest
+edge messages (fail-secure), and full withholding below `threshold` is closed by query-scoping plus
+the freshness bar.
+
+It is **robust against a byzantine minority**, which a per-witness or "newest `τ`" reduction is not,
+and the security-critical direction is the strongest: the crossing **cannot be pushed later**. A
+witnessed event has already earned **≥ `threshold` durable honest receipts** at its true time (that
+is what made it witnessed-in-full); an adversary can neither delete them nor move the
+`threshold`-th-smallest `τ` later by **adding** late receipts (adding larger values leaves the
+bottom-`threshold` unchanged). So read against the multi-source freshness bar, the upper boundary a
+stale key would need inflated is **pinned in the past** by those durable receipts. Pushing the
+crossing **earlier** needs `threshold`-many receipts below the honest cluster — a full witness
+compromise (`threshold` witnesses, the catastrophic residual) — and even then only shrinks a past
+interval (fail-secure) or lets the **newer** key backdate, never lets a stale key read current. Each
+`τ` is independently capped at `now + CLOCK_TOLERANCE_BAND` and valid only inside its signer's
+key-window, so a rogue future- or past-dated `τ` is discarded before it can skew the crossing. The
+witnessed time is therefore a consensus timestamp for **when an event became final**, carried by the
+same receipts the currency gate already trusts threshold-many-strong.
+
+This is **distinct from the federation clock**. The clock (a governance-authored `clock` role) times
+**federation governance events** and bounds **witness** key-windows — which cannot be
+receipt-derived without circularity, since a receipt counts only if its `τ` sits inside the signer's
+window. An ordinary event (a user's rotation, a group-key epoch) has no such circularity — its
+authors are not its witnesses — so its finality time is read from its **own** receipts. Because the
+witnessed time comes from the event's own receipts rather than the federation clock (which advances
+only at federation governance events, roughly yearly), it gives **per-event granularity** — a user
+rotating monthly, an epoch turning hourly, each gets its **own** boundary — resolving the
+quantization a governance-cadence clock would impose.
+
+Witnessed times are **not self-ordering**, though: two establishment events witnessed within a
+tolerance band can come out inverted. So a currency consumer **checks** the establishment times it
+reads are **in-bounds** (`≤ now + CLOCK_TOLERANCE_BAND`) and **non-decreasing along the chain** and
+**reports the result on its verification token** — a structural violation **bails** (fail-secure),
+an in-bounds-but-out-of-order pair is **reported and the message whose interval that inversion makes
+untrustworthy is refused** (the informative-token model, §The token reports its own completeness),
+never silently treated as a valid empty interval. This is the same compute-check-report discipline
+every chain-validity property rides. Consumers use the witnessed time as the time boundary wherever
+a witnessed event needs one: the **key-state validity intervals** a message's sender-key currency
+reads ([`../../features/exchange.md`](../../features/exchange.md)) and a **group-key epoch's
+window**.
+
 ## Query-scoping and the audit flag
 
 Events reach the nodes that need them over the federation's gossip mesh — roster-wide push-gossip

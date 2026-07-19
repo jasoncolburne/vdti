@@ -31,14 +31,17 @@ store-and-forward transport.
 ## The pieces
 
 - **The member roster — a bounded, enumerable, gated set.** The epoch key has to be wrapped to each
-  member, so the group must be able to **list** its members — unlike a shared document's access
-  list, which is deliberately unbounded and never materialized. So the roster is **bounded** and
-  **enumerable**, but still **gated**: member entries ride read-gated opaque references, so members
-  can materialize the set to build the wraps while onlookers see only opaque anchors, never who is
-  in the group. Membership changes are a **governance** act, so a stolen signing key can neither add
-  nor remove a member, and a removed member cannot re-admit itself. Members are **people**
-  (identities), and a person's device keys live in that person's own receive-key directory, so the
-  group never controls a member's key.
+  member, so the group must be able to **list** its members — unlike a [membership](membership.md)
+  set (the per-requester authorization primitive), which is deliberately unbounded and never
+  materialized. This roster is **not** the membership set: a keyed group composes **both** — this
+  bounded roster to distribute the key, and a membership instance to authorize a requester — because
+  wrapping a key forces enumeration where authorizing one requester does not. So the roster is
+  **bounded** and **enumerable**, but still **gated**: member entries ride read-gated opaque
+  references, so members can materialize the set to build the wraps while onlookers see only opaque
+  anchors, never who is in the group. Membership changes are a **tier-2, reserve-backed** act
+  (`Gnt ← Ath`, `t_authorize`), so a stolen signing key can neither add nor remove a member, and a
+  removed member cannot re-admit itself. Members are **people** (identities), and a person's device
+  keys live in that person's own receive-key directory, so the group never controls a member's key.
 - **The key-epoch log — one fresh key per epoch.** A single-owner log — owned by the group's
   **governing identity** (as is the roster) — advances one independent symmetric key per epoch; each
   epoch's event references the per-device wraps for that epoch, and a device opens its own with its
@@ -55,10 +58,14 @@ store-and-forward transport.
   - **A membership change** — an add or a remove seals a **fresh** epoch to the new set. A removal
     gives **forward secrecy** (the removed member cannot open new epochs); a joiner **cannot read
     past epochs** (their keys were never wrapped to it, and epochs are independent). A removal
-    installs the new epoch at once, and a message under the **retired** epoch is rejected past the
-    removal, so a lagging sender cannot keep a just-removed member readable. The one residual: a
-    message a lagging sender emits under the retired epoch **before** it sees the removal is still
-    readable by the removed member — bounded by how fast senders observe the change.
+    installs the new epoch at once, and a retired-epoch message **stamped outside that epoch's
+    witnessed window** (as current, past the removal) is rejected by the sender-key-currency
+    epoch-window check ([exchange](../../features/exchange.md)), so a lagging sender cannot pass a
+    just-removed member off as currently readable — while **in-window** late history a member
+    authored while it legitimately held the epoch is the accepted backdate-within-a-held-window
+    residual, not this rejection. The further residual: a message a lagging sender emits under the
+    retired epoch **before** it sees the removal is still readable by the removed member — bounded
+    by how fast senders observe the change.
   - **A time cadence** — after a set interval, the epoch turns even with stable membership, so a
     compromised epoch key exposes only that window.
 - **Checkpoints keep verification bounded.** A long-lived group accrues a great many epoch events on
@@ -109,9 +116,10 @@ own signature**.
 The two consumers build the rest their own way:
 
 - **Group chat** — messages are **per-writer lanes** (each device's messages its own linked chain,
-  merged into the group view): the lane _is_ the writer, so no sender field is carried. A receiver
-  reads which lane a message sits on, derives that lane's subkey to open it, and verifies the
-  writer's signature. The epoch key proves only "a group member"; the signature proves _which_.
+  merged into the group view): the lane _is_ the writer, so no sender field is carried mid-lane (the
+  consuming feature roots a lane at its anchored join marker). A receiver reads which lane a message
+  sits on, derives that lane's subkey to open it, and verifies the writer's signature. The epoch key
+  proves only "a group member"; the signature proves _which_.
 - **Shared-document content** — a per-document content key is wrapped under the epoch key, and
   members open and decrypt the document.
 
@@ -126,6 +134,8 @@ The two consumers build the rest their own way:
   feature's.
 - **Who is admitted or removed, under what authority** — a governance act the feature or app drives;
   the primitive consumes the resulting roster.
+- **Authorizing a single requester** — the unbounded, per-requester [membership](membership.md)
+  check a keyed feature also composes; this primitive only wraps the key to the bounded roster.
 - **The one-to-one degenerate case, and re-obtaining missed past-epoch history** — consumer
   concerns.
 
@@ -142,6 +152,8 @@ The two consumers build the rest their own way:
 ## Cross-references
 
 - [`essr.md`](essr.md) — the one-to-one seal each wrap is built from.
+- [`membership.md`](membership.md) — the separate, unbounded per-requester authorization a keyed
+  group also composes; this roster is the bounded cap, not that set.
 - [`receive-key-directory.md`](receive-key-directory.md) — the device receive keys the fan-out wraps
   to.
 - [`../data/event-logs/sel/log.md`](../data/event-logs/sel/log.md) — the single-owner logs the
