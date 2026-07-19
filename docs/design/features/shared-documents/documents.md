@@ -34,8 +34,8 @@ flowchart BT
   gGnt["governance SEL: Gnt"]:::sel
   G["grant-doc G (gated)"]:::doc
   Resc["rescission SEL: {Icp, Trm}"]:::sel
-  eA ---|pin| vA1
-  eB ---|pin| vB1
+  eA -.-|pin| vA1
+  eB -.-|pin| vB1
   vA1 ---|ancestors| vM
   V0 ---|ancestors| vA1
   vB1 ---|ancestors| vM
