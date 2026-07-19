@@ -38,10 +38,10 @@ store-and-forward transport.
   wrapping a key forces enumeration where authorizing one requester does not. So the roster is
   **bounded** and **enumerable**, but still **gated**: member entries ride read-gated opaque
   references, so members can materialize the set to build the wraps while onlookers see only opaque
-  anchors, never who is in the group. Membership changes are a **governance** act, so a stolen
-  signing key can neither add nor remove a member, and a removed member cannot re-admit itself.
-  Members are **people** (identities), and a person's device keys live in that person's own
-  receive-key directory, so the group never controls a member's key.
+  anchors, never who is in the group. Membership changes are a **tier-2, reserve-backed** act
+  (`Gnt ← Ath`, `t_authorize`), so a stolen signing key can neither add nor remove a member, and a
+  removed member cannot re-admit itself. Members are **people** (identities), and a person's device
+  keys live in that person's own receive-key directory, so the group never controls a member's key.
 - **The key-epoch log — one fresh key per epoch.** A single-owner log — owned by the group's
   **governing identity** (as is the roster) — advances one independent symmetric key per epoch; each
   epoch's event references the per-device wraps for that epoch, and a device opens its own with its

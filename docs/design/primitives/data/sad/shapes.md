@@ -314,31 +314,31 @@ messages (`apply` / `offer` / …) are **IPEX**'s (above).
 
 The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on the writer's lane:
 
-| Field           | Type      | Meaning                                                                                                                                                                                                 |
-| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `said`          | SAID      | The message SAID; the writer signs it.                                                                                                                                                                  |
-| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                                                                                                                                                     |
-| `previous`      | SAID      | The writer's **own** prior message on this lane; absent at lane start.                                                                                                                                  |
-| `writer`        | prefix?   | The writing **device's KEL prefix** — present **iff `previous` is absent** (roots the lane: which subkey + verify key; inherited via `previous` after). Attribution is to the device's owning identity. |
-| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).                                                                                                                           |
-| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                                                                              |
-| `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                          |
-| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                                                                         |
-| `nonce`         | bytes     | High-entropy — makes `said` unguessable, so a **guessable** message body can't be confirmed against the public SAID (a known-plaintext oracle on the symmetric-encrypted chat content). Mandatory.      |
+| Field           | Type      | Meaning                                                                                                                                                                                                                                            |
+| --------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`          | SAID      | The message SAID; the writer signs it.                                                                                                                                                                                                             |
+| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                                                                                                                                                                                                |
+| `previous`      | SAID      | The writer's **own** prior node on this lane — the join **marker** at lane start, else a prior message. A message always chains; it never roots a lane (the body-less marker does, carrying the device prefix, attributed to its owning identity). |
+| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).                                                                                                                                                                      |
+| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                                                                                                                         |
+| `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                                                                     |
+| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                                                                                                                    |
+| `nonce`         | bytes     | High-entropy — makes `said` unguessable, so a **guessable** message body can't be confirmed against the public SAID (a known-plaintext oracle on the symmetric-encrypted chat content). Mandatory.                                                 |
 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
-from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no
-`previous`) carries `writer` to root the lane; every later message inherits it, so the field never
-duplicates what the lane already says. That **root is anchored** by a `chat-membership` grant-chain
-act (a body-less join marker the writing device mints), so each writing **device** has exactly one
-honored lane per membership period — an unanchored root is rejected
-([membership](../../protocols/membership.md) / [exchange](../../../features/exchange.md)). The lane
-is a **single-parent [authored DAG](../../protocols/authored-dag.md)**: `(epoch, timestamp)` is
-**non-decreasing** along `previous` (a backdated tip-append is malformed), and a **second child of a
-message is a fork = equivocation** (self-signed evidence; a crash-**resend** carries the same SAID —
-a dedup — so whether a fork is misbehavior is the group's policy, not automatic). The writer's
-signature over `said` rides **adjacent** (the universal rule — a SAD carries no signature over its
-own SAID), so there is no signature field.
+from the lane, decrypts, and verifies the writer's signature. A lane **roots at a body-less join
+marker** the writing device mints — a distinct SAD carrying the device prefix and no body (its shape
+is forthcoming, below) — and every message chains from it via `previous` and **inherits** the
+writer, so no message carries a `writer` field. That marker is **anchored** by a `chat-membership`
+grant-chain act, so each writing **device** has exactly one honored lane per membership period — an
+unanchored root is rejected ([membership](../../protocols/membership.md) /
+[exchange](../../../features/exchange.md)). The lane is a **single-parent
+[authored DAG](../../protocols/authored-dag.md)**: `(epoch, timestamp)` is **non-decreasing** along
+`previous` (a backdated tip-append is malformed), and a **second child of a message is a fork =
+equivocation** (self-signed evidence; a crash-**resend** carries the same SAID — a dedup — so
+whether a fork is misbehavior is the group's policy, not automatic). The writer's signature over
+`said` rides **adjacent** (the universal rule — a SAD carries no signature over its own SAID), so
+there is no signature field.
 
 ### Policy — `vdti/policy/v1/{group}/*`
 

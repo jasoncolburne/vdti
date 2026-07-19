@@ -92,10 +92,11 @@ The bytes are uploaded through the store's **payload endpoint**, authorized by t
   (`CLOCK_TOLERANCE_BAND` — so an NTP-conforming client is never falsely rejected; the unseen-nonce
   cache, not a sub-band window, closes replay) and the nonce is unseen (a small, bounded replay
   cache), and verifies the signature **authorizes the requester to write for this message**: for an
-  ESSR/mail message that is the **sender** named in the envelope, under its current key; for a
-  sender-less **chat** message it is a **current group member** (the participant-blind
-  `chat-membership` check, resolved one requester at a time). Then it stores the blob, scoped to the
-  message's `availability`.
+  ESSR/mail message that is the **sender** named in the envelope, authenticating under its
+  **current** key (an identity-level upload gate — not a second currency check; the message's own
+  sender-key-currency check is `senderPin`-pinned and separate); for a sender-less **chat** message
+  it is a **current group member** (the participant-blind `chat-membership` check, resolved one
+  requester at a time). Then it stores the blob, scoped to the message's `availability`.
 - On upload the signature **authenticates the uploader** (rate-limiting who may write), and replay
   protection stays light because the write is **content-addressed and idempotent** — a replay
   re-stores identical bytes and changes nothing.
@@ -134,22 +135,25 @@ right now," which would strand honest mail sent before a routine rotation.
   falls in the interval its key-state was current for **and is not future-dated**
   (`timestamp ≤ now + the clock tolerance band`). A still-current key-state has an **open**
   interval, so a live message passes; an honest message sent before a later rotation still falls in
-  its now-closed interval and is **accepted**, so a rotation no longer strands in-flight mail.
-  Because each boundary is an event's **own** witnessed time — not the federation clock, which ticks
-  only at federation governance events — it has **per-event granularity** at any rotation cadence,
-  resolving the quantization a governance clock would impose. Witnessed times are **not**
-  self-ordering, so the recipient **checks** the establishment times are in-bounds and
-  non-decreasing along the chain and **reports** on its verification token — a structural violation
-  bails (fail-secure), an in-bounds-but-out-of-order pair is reported **and the message whose
-  interval that inversion makes untrustworthy is refused**, never a silent empty interval. A chain
-  read the infrastructure already provides — **data-only**, leaning on no node's word.
-- **A divergent sender chain freezes the read, like any live `t_use` consumer.** Reading the
-  sender's key-state is a live authority check, so it obeys the fork-gate. On a **Disputed** sender
-  (≥ 2 competing sealed spines) the establishment interval has no single answer, so the check
-  **refuses** (fail-secure); on a **content fork** (the sealed spine is single, key-state untouched)
-  the closed-interval acceptance of already-witnessed history soundly proceeds. IPEX and credentials
-  state the same gate at their presentation checks; for **chat**, the writer's own chains are read
-  the same way.
+  its now-closed interval and is **accepted**, so a rotation never strands in-flight mail. Because
+  each boundary is an event's **own** witnessed time — not the federation clock, which ticks only at
+  federation governance events — it has **per-event granularity** at any rotation cadence, resolving
+  the quantization a governance clock would impose. Witnessed times are **not** self-ordering, so
+  the recipient **checks** the establishment times are in-bounds and non-decreasing along the chain
+  and **reports** on its verification token — a structural violation bails (fail-secure), an
+  in-bounds-but-out-of-order pair is reported **and the message whose interval that inversion makes
+  untrustworthy is refused**, never a silent empty interval. A chain read the infrastructure already
+  provides — **data-only**, leaning on no node's word.
+- **A divergent sender chain freezes a _current_ read, like any live `t_use` consumer.** A message
+  claiming the sender's **current (open) interval** is the sender exercising **live** `t_use`
+  authority, which the fork-gate freezes on **any** divergence — **Forked or Disputed → refuse**
+  (fail-secure), pending a T2 seal-out, exactly as IPEX and credentials freeze a live presentation.
+  What still reads is **already-witnessed, closed-interval** history: it is **as-issued**, read at
+  its historical anchoring position (single-tipped in the past), so a message sent **before** the
+  divergence stays acceptable regardless of the current tip's state — on a **Disputed** sender too,
+  whose spines share their history **below the last clean seal** (refusing its current claims is the
+  live-authority freeze, not "no single answer"). For **chat**, the writer's own chains are read the
+  same way.
 - **What it bounds, and what it doesn't.** A **captured-then-rotated** key — a stolen old key
   signing under its since-abandoned key-state — can still be backdated **within** the now-closed
   interval it was valid for, but it is **stuck there**: that interval lies in the past, and a
@@ -208,14 +212,15 @@ degenerate group of two** — the same machinery, no separate two-party construc
   shared document attributes each version to its writer. **The lane is the writer:** a receiver
   reads which lane a message sits on, derives that lane's per-writer subkey (group-key's
   nonce-safety discipline) to decrypt, and verifies the signature against that device's key.
-  Mid-lane that is why **no sender field is carried** — it would only duplicate the lane. But a
-  lane's **first** message has no `previous` to root it, so a message names its **writer iff
-  `previous` is absent**: a lane-start message identifies the writing device, and every later
-  message inherits it through `previous`. Confidentiality rides the subkey; **authenticity rides the
-  writer's own signature over the message's fully-compacted SAID** — the system-wide rule that a
-  signature is over the compacted SAID, so any faithful disclosure verifies against it — and the
-  message is attributed to that device's **owning identity**, not merely the device. The epoch key
-  proves only "a member"; the signature proves **which** member.
+  Mid-lane that is why **no sender field is carried** — it would only duplicate the lane. A lane
+  **roots at a body-less join marker** the writing device mints (a distinct SAD, not a message — it
+  names the writing **device's** prefix and carries no body); every message chains from it via
+  `previous` and **inherits** the writer, so no message carries a writer field either.
+  Confidentiality rides the subkey; **authenticity rides the writer's own signature over the
+  message's fully-compacted SAID** — the system-wide rule that a signature is over the compacted
+  SAID, so any faithful disclosure verifies against it — and the message is attributed to that
+  device's **owning identity**, not merely the device. The epoch key proves only "a member"; the
+  signature proves **which** member.
 - **The lane is a single-parent [authored DAG](../primitives/protocols/authored-dag.md) — ordered
   and fork-evident.** Along a lane the ordering key `(epoch, timestamp)` is **non-decreasing**: a
   message may not sit in an earlier epoch than the message it follows, nor carry an earlier

@@ -42,7 +42,10 @@ same fail-secure / fail-open split a credential's revocation check uses:
   freshness bar already refuses. For this to stay the **default**, the non-member store must be able
   to **run** it — and it can, because the requester **discloses its own `{ nonce, data }`** in the
   live-signed request (the same disclosure a credential holder makes): the store recomputes the
-  member's blinded-claim `said` and matches it on the grant chain. So the commitment stays
+  member's blinded-claim `said` and matches it on the grant chain — **and checks the disclosed
+  `data` names the identity the request's live signature resolves to** (a disclosure naming any
+  other identity is refused, so a leaked `{ nonce, data }` is **not** a bearer token — it leaks only
+  status-checkability, the accepted confirm-a-known-subject class). So the commitment stays
   **unguessable to an outsider** (the high-entropy `nonce` — no confirm-a-guessed-prefix oracle) yet
   **store-checkable** (the requester carries its own secret, the way a credential disclosure does).
   What the walk must **not** rest on is a secret the requester does **not** hold — that would make
@@ -94,20 +97,27 @@ What it points to is the feature's:
   the lane rooted at the anchored marker and rejects any **fresh parentless root** a device mints
   outside it — a removed member cannot fabricate a second lane, because the fork rule never fires
   across two roots (they share no parent) and two roots are not self-proving, so the anchor is the
-  fact that distinguishes the real one. Anchoring **must** be the governing grant-chain act, never a
-  member self-attestation: a removed member still controls its own devices, so a self-anchor would
-  reopen the fresh-lane hole. **Removal records a `bound`** per anchored device lane = that device's
-  **last message** (or the **anchored marker itself** if the device wrote nothing past it); the
-  verifier honors the lane **only up to the bound** and cuts any message **past** it — closing the
-  removed member's monotone forward-append into a **retired** epoch it held. For chat the `bound` is
-  **required** on every rescind, and a missing or unresolvable `bound` reads **fail-secure** (honor
-  the anchored marker only, nothing past it). The **epoch turning** gives forward secrecy for
-  **new** epochs; the **anchor + bound** pin each device's honored history to `[root … bound]` — the
-  three together, not the store's deposit check, bind it. A **crash at the root** does not brick the
-  lane: the marker is minted before the anchoring act (re-mint freely until anchored) and, once
-  anchored, re-fetchable by the SAID the grant chain records. **Membership periods are disjoint
-  anchored lanes:** a re-added member's device anchors a **new** marker, so its later stint is a
-  fresh lane with its own bracket, never a continuation past the old bound.
+  fact that distinguishes the real one — and **two** anchored markers for one device within one
+  membership period is itself malformed (the verifier honors **neither**, fail-secure), so even a
+  colluding governing identity cannot mint two clean parallel lanes for a writer. Anchoring **must**
+  be the governing grant-chain act, never a member self-attestation: a removed member still controls
+  its own devices, so a self-anchor would reopen the fresh-lane hole. **Removal records a `bound`**
+  per anchored device lane = that device's **last message** (or the **anchored marker itself** if
+  the device wrote nothing past it — a member with several writing devices carries one bound per
+  lane, the singular `rescinds` `bound?` generalizing to a per-lane list on the rescission `Trm`'s
+  `bound` role, and the grant-chain entry and that `Trm` role must **agree**, the `Trm`'s the cut
+  the verifier enforces); the verifier honors the lane **only up to the bound** and cuts any message
+  **past** it — closing the removed member's monotone forward-append into a **retired** epoch it
+  held. For chat the `bound` is **required** on every rescind, and a missing or unresolvable `bound`
+  reads **fail-secure** (honor the anchored marker only, nothing past it). The **epoch turning**
+  gives forward secrecy for **new** epochs; the **anchor + bound** pin each device's honored history
+  to `[root … bound]` — the three together, not the store's deposit check, bind it. A **crash at the
+  root** does not brick the lane: the marker is minted before the anchoring act (re-mint freely
+  until anchored) and, once anchored, re-fetchable by the SAID the grant chain records (its bytes
+  are **retained** on the group's nodes and served under the same `chat-membership` gate as any lane
+  message). **Membership periods are disjoint anchored lanes:** a re-added member's device anchors a
+  **new** marker, so its later stint is a fresh lane with its own bracket, never a continuation past
+  the old bound.
 - **Grandfathered** — content the member authored (or was entitled to) **before** the bound stays
   honored, only its reach past the bound is cut. A shared document uses this so a removed editor's
   earlier versions do not retroactively vanish.

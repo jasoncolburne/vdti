@@ -277,8 +277,10 @@ controls its own devices). **Removal rescinds the grant + records a per-device-l
 `Trm`'s `bound` role as the same act turns the epoch** — bracketing each writing device's honored lane
 **`[anchored root … bound]`** (disjoint per membership period; a fresh unanchored root is rejected; a
 missing/unresolvable `bound` reads fail-secure — PR#25 r2 W1/cold-P1 + r3 cold-P1). A **divergent** sender/writer
-chain freezes the read like any live `t_use` consumer — **Disputed → refuse**, a content fork proceeds on the
-single sealed spine (PR#25 r3 cold-P2-2). Retires round-3 F3 **and** the round-2
+chain freezes a **current** read like any live `t_use` consumer — **Forked or Disputed → refuse** a current
+(open-interval) claim (the sender's live `t_use` is frozen on any divergence); already-witnessed **closed-interval**
+history is **as-issued** and still reads (single-tipped in the past — even on a Disputed sender below its last
+clean seal, so the refusal is the live-authority freeze, not "no single answer") — PR#25 r3 cold-P2-2 + r4 Y1. Retires round-3 F3 **and** the round-2
 "readers-grant" open. The lane's monotonicity + fork rule + anchored root is the
 [authored-DAG](vdti-area-authored-dag.md) single-parent variant (round-3 F4 + PR#25 r2 W1). _(Offline catch-up, the 1:1 path,
 and the anchoring policy resolved — decisions 1/2/3.)_ The roster storage, the epoch-SEL length bound / checkpoint

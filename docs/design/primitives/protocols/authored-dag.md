@@ -24,12 +24,13 @@ since-retired one.
 
 A node carries **no "sender" field**. Attribution rides the **lane** (single-parent) or **branch**
 (multi-parent): the writer is named **only where a path roots**, and every later node **inherits**
-it through the backward link. A chat message roots its lane by naming the writing device where its
-`previous` is absent; a document version roots on the editor its custody names. A reader following
-the links to a node's root learns the writer, derives whatever per-writer material it needs (a chat
-lane's decryption subkey), and verifies the node's signature against that writer's key. Naming the
-writer once, at the root, is deliberate: it never lets a mid-graph node **claim** a different author
-than the path it descends from, and it never duplicates what the structure already says.
+it through the backward link. A chat lane roots at a body-less **join marker** that names the
+writing device (its `previous` absent); a document version roots on the editor its custody names. A
+reader following the links to a node's root learns the writer, derives whatever per-writer material
+it needs (a chat lane's decryption subkey), and verifies the node's signature against that writer's
+key. Naming the writer once, at the root, is deliberate: it never lets a mid-graph node **claim** a
+different author than the path it descends from, and it never duplicates what the structure already
+says.
 
 ## Order — monotonicity along an authored path
 

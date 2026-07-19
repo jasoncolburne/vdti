@@ -93,7 +93,10 @@ else), and **non-enumerating** (no operation asks "who are all the members").
 is only the *default* if the **non-member store can actually run it**. It can: the requester **discloses its own
 `{ nonce, data }`** in the live-signed request (the same disclosure a credential holder makes) — and the store
 **recomputes the member's blinded-claim `said`** and matches it on the grant chain, a **pin** locating the
-grant / rescission on disagreement ([inv 5]). So the commitment stays **unguessable to an outsider** (the high-entropy
+grant / rescission on disagreement ([inv 5]). The store also **checks the disclosed `data` names the identity the
+request's live signature resolves to** (a disclosure naming any other identity is refused), so a leaked
+`{ nonce, data }` is **not** a bearer token — it downgrades only to confirm-a-known-subject status-checkability
+(PR#25 r4 cold-P2-3). So the commitment stays **unguessable to an outsider** (the high-entropy
 `nonce` — no confirm-a-guessed-prefix oracle, so it **satisfies** the offline-oracle residual rather than
 downgrading to confirm-a-known-subject) yet **store-checkable** (the requester carries its own secret, like a
 credential presentation). What the walk must **not** rest on is a secret the requester does **not** hold — that
@@ -129,15 +132,21 @@ enforces, so a removed member's authority is cut at a **provable** point rather 
   the governing grant-chain act, never a member self-attestation (a removed member still controls its own devices —
   a self-anchor would reopen the fresh-lane hole). The verifier honors only the lane rooted at the anchored marker
   and rejects any **fresh parentless root** minted outside it (the fork rule never fires across two roots, and two
-  roots are not self-proving, so the anchor is the distinguishing fact; PR#25 r3 cold-P1). **Removal records a
+  roots are not self-proving, so the anchor is the distinguishing fact; PR#25 r3 cold-P1). **Two** anchored
+  markers for one device in one membership period is itself malformed (honor **neither**, fail-secure — even a
+  colluding governor cannot mint two clean parallel lanes; PR#25 r4 cold-P2-1). **Removal records a
   `bound`** per anchored device lane = that device's **last message** (or the **anchored marker itself** if it
   wrote nothing past it — chat requires the `bound` on every rescind, and a missing/unresolvable `bound` reads
-  fail-secure, honoring the marker only); the verifier honors the lane **only up to the bound** and rejects any
+  fail-secure, honoring the marker only; a member with several writing devices carries one bound **per lane**, the
+  singular `rescinds` `bound?` generalizing to a per-lane list on the `Trm`'s `bound` role, and the grant-chain
+  entry and that `Trm` role must **agree** — the `Trm`'s the cut the verifier enforces, PR#25 r4 cold-P2-4); the
+  verifier honors the lane **only up to the bound** and rejects any
   message **past** it — closing the removed member's monotone forward-append into a **retired** epoch it held. The
   **epoch turn** (group-key) gives forward secrecy for **new** epochs; the **anchor + bound** pin each device's
   honored history to `[root … bound]` — the three together, not the store's deposit gate, bind it. A **crash at
   the root** does not brick the lane (the marker is minted before the anchoring act, re-mintable until anchored,
-  and re-fetchable by the SAID the grant chain records). Membership periods are **disjoint anchored lanes** (a
+  and re-fetchable by the SAID the grant chain records — its bytes retained on the group's nodes, served under the
+  same `chat-membership` gate as any lane message). Membership periods are **disjoint anchored lanes** (a
   re-added device anchors a **new** marker, never a continuation past the old bound). Both the anchor and the
   `bound` are participant-identifying, so they ride the gated role.
 - **Shared document — the bound is a period / version boundary.** Content the member authored (or was entitled

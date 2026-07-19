@@ -212,9 +212,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   rule. ([`primitives/protocols/authored-dag.md`](primitives/protocols/authored-dag.md))
 - **serve-time gate** — the store's live-signed freshness check on a fetch (an unseen nonce + a
   timestamp within the clock tolerance band), bounding store-side harvesting of the sealed bytes.
+  ([`features/exchange.md`](features/exchange.md))
 - **sender-key currency** — honoring a signature only within its pinned key-state's **witnessed
   validity interval**, bounded by the sender's own establishment events' witnessed times (the
   threshold-crossing receipt τ) on both the IEL-establishment and device-KEL axes.
+  ([`features/exchange.md`](features/exchange.md))
 
 ## Concepts
 

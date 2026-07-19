@@ -31,7 +31,7 @@ receipts.
 - **Append-only backward links.** A node names its **predecessor(s)** — never successors — so the graph grows
   append-only and a writer commits only to existing nodes.
 - **Attribution is the lane/branch, not a field.** No `sender` field: the writer is named **only where a path
-  roots** (a chat lane's first message carries the writing device's KEL prefix; a document version's editor is
+  roots** (a chat lane's body-less join marker carries the writing device's KEL prefix, and every message inherits it via `previous`; a document version's editor is
   its custody `owner`) and **inherited** along the backward link. A mid-graph node can never claim an author
   other than the path it descends from.
 - **Authority is the signature under a current key-state.** Each node carries the writer's signature over its
