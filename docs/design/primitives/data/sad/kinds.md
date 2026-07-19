@@ -91,17 +91,19 @@ store keeps the two apart with a list of the kinds it will serve, and **turns aw
 else**:
 
 - **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
-  values a `Gnt` seals (`vdti/sel/v1/grants/*`), and content that is public by design (a public
-  credential body, or an application content kind the app has registered). A verifier walking a
-  chain has to resolve the role SADs an event commits to, so these have to be reachable by SAID.
-  **Kind is only the first gate.** A served SAD that carries a custody `readers` gate
-  ([`custody.md`](custody.md)) is handed back only to a requester that gate admits, and one
-  delivered member-to-member rather than published (its `availability`) is never in the store to
-  serve at all. So a _public_ grant value — a directory receive key — is served to anyone. A
-  _member-private_ one is not: a `groupkey-epoch-key` wrap is **member-delivered** (never handed to
-  the store — it names its recipient in the clear), and a read-gated shared-document grant is served
-  only to a reader its `readers` gate admits. Serving the grant family by SAID therefore never
-  enumerates who a private grant was sealed to.
+  values a `Gnt` seals (`vdti/sel/v1/grants/*`), the **framework SADs a verifier resolves to
+  evaluate** — a **policy** expression (`vdti/policy/v1/*`), an authorizing **`issuers`** list, a
+  credential's **`terms`** — and content that is public by design (a public credential body, or an
+  application content kind the app has registered). A verifier walking a chain has to resolve the
+  role SADs an event commits to, so these have to be reachable by SAID. **Kind is only the first
+  gate.** A served SAD that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed
+  back only to a requester that gate admits, and one delivered member-to-member rather than
+  published (its `availability`) is never in the store to serve at all. So a _public_ grant value —
+  a directory receive key — is served to anyone. A _member-private_ one is not: a
+  `groupkey-epoch-key` wrap is **member-delivered** (never handed to the store — it names its
+  recipient in the clear), and a read-gated shared-document grant is served only to a reader its
+  `readers` gate admits. Serving the grant family by SAID therefore never enumerates who a private
+  grant was sealed to.
 - **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
   event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
   gets back the same "not present" answer a SAID that never existed would.
@@ -131,7 +133,7 @@ forthcoming), on the retrieval boundary [`availability.md`](availability.md) des
 - [`shapes.md`](shapes.md) — the field shape of each SAD kind (the companion to this catalogue).
 - [`sad.md`](sad.md) — the SAD layer: what a SAD is, the `kind`-required rule.
 - [`custody.md`](custody.md) — the per-object `readers` read gate that composes with the
-  served-by-SAID list below.
+  served-by-SAID list above.
 - [`said.md`](said.md) — the two-pass digest that turns a SAD's canonical content into a SAID.
 - [`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md) — the derivation tags and
   SEL topics that share this convention.

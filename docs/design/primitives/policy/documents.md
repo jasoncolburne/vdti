@@ -64,16 +64,16 @@ the position at `issuerPin`'s serial + 1: a **checked locator** (the `Ixn` there
 `previous == issuerPin` and the commitment), and **provably the earliest** possible anchor — an
 earlier one would need a hash cycle, since the commitment embeds `cred.said` which embeds
 `issuerPin`. So a later re-anchor is **never consulted** — no scan reads `anchors[]` per event
-(which would open a manifest per event, the one thing the top-level-cues-only walk forbids). The
-pinned position is the fixed range start for the revocation walk, alongside the fresh tip
+(which would open a manifest per event — the cost the canonical walk is built to avoid). The pinned
+position is the fixed range start for the revocation walk, alongside the fresh tip
 ([`evaluation.md`](evaluation.md)).
 
 A document that is instead **looked up by a derived address** rather than presented — a
 multi-identity **attestation SEL** (below), or any looked-up attested SAD — is located through the
 serial-1 `Pin` (its `v1`) of its anchoring SEL. That `Pin` names a position but is **checked, not
 trusted**: the verifier enforces `Pin.pin ==` the anchoring `Ixn`'s `previous`, so a served `Pin`
-can't resolve under a stale roster (the custody SEL-anchor mechanism,
-[`../data/sad/custody.md`](../data/sad/custody.md)).
+can't resolve under a stale roster (a SEL down-pin, checked the same way —
+[`../data/event-logs/sel/log.md`](../data/event-logs/sel/log.md)).
 
 ### Non-circular
 

@@ -69,8 +69,10 @@ Both are existing primitives, reused unchanged.
   fresh SAID). That anchor is the validity proof, strictly stronger than a detached issuer
   signature: it is **witnessed** (the federation attests it), **positioned** (a point in the
   issuer's chain, so it is time-ordered and revocable in place), and read **as-of that position**
-  (the verifier confirms the located event's kind is `Ixn` — surfaced by the walk token — and its
-  `previous == issuerPin`). No registry object and no lookup record: the credential is immutable and
+  (the verifier confirms the located event's kind is `Ixn` — surfaced by the walk token — its
+  `previous == issuerPin`, and that the issuance commitment
+  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is a member of its
+  `manifest.anchors[]`). No registry object and no lookup record: the credential is immutable and
   holder-presented, so it needs none. The anchoring event transitively commits the issuer's key
   state and its whole authority chain.
 - **Proof of disclosure is compaction.** A SAD's SAID is a hash over its content with nested SADs
@@ -262,10 +264,12 @@ terms** — acceptance by reference: the `admit` commits the terms by SAID, bind
 _these_ terms, though it cannot by itself prove which disclosure form the disclosee was shown.
 **Acceptance requires sight structurally:** `terms` is a nested sub-SAD, so a conforming accept of a
 terms-bearing credential **expands and reads it before granting or admitting** — a compacted-`terms`
-presentation is refused at accept, so the accepting party is bound only to terms it has seen. In the
-minimal push that acceptance arrives only **with** the `admit`: a disclosee that takes the `grant`
-and never admits holds the disclosure with no signed acceptance on record — the discloser's exposure
-for choosing the push over the negotiated flow. Because the terms are on the credential, an onward
+presentation is refused at accept. In the negotiated flow the acceptance is the `agree`, which
+**precedes** the `grant`, so the `offer` carries `terms` expanded — the disclosee agrees to terms it
+has already read. Either way the accepting party is bound only to terms it has seen. In the minimal
+push that acceptance arrives only **with** the `admit`: a disclosee that takes the `grant` and never
+admits holds the disclosure with no signed acceptance on record — the discloser's exposure for
+choosing the push over the negotiated flow. Because the terms are on the credential, an onward
 re-disclosure **inherits** them structurally, and the signed acceptances build a custody chain.
 Enforcement is **commitment and accountability**, not prevention: revealed bytes cannot be
 un-revealed, but the signed acceptance is non-repudiable evidence of a breach. One-off per-exchange

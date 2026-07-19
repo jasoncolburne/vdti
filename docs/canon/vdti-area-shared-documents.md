@@ -13,7 +13,7 @@ cut_ — **this cut's fresh dual-pass is folded (2026-07-04).** Lands at
 [inv 5] as-of = the anchoring position, [inv 8] the multi-source freshness bar (loss-of-trust reads),
 [inv 10] negative-check-as-lookup, [inv 12] IEL self-pricing (grant tier), [inv 13] rescission `bound`
 / grandfather boundary / deadness-ascends, [inv 15] inception + attribution, [inv 16] addressing by
-prefix + the custody `owner`+`topic`+SEL-anchor note (2026-07-03). Feature-layer precedent:
+prefix + the custody `owner`+`pin` direct-anchor note (2026-07-18). Feature-layer precedent:
 `document-policy §F` (the to-tip freshness step is mandatory for any trust-granting acceptance).
 
 ## Sources
@@ -117,7 +117,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   warm F1 — the earlier "unguessable to a witness" claim was false):**
   - **participant-blind** — the member prefix is **never** a derivation input; the input is `hash(G |
     said_b)`, and `said_b = said({nonce_b, prefix_b})` is unguessable via `nonce_b`. So a witness (which
-    _does_ hold member prefixes — the version-SEL v1 anchors on the editor's IEL, §5) **cannot
+    _does_ hold member prefixes — a version's direct anchor sits on the editor's IEL, §5) **cannot
     brute-force candidate members** to confirm one. This is the property the review found load-bearing.
   - **grant-blind** — a witness **holds `G` and `G_x`** (both public — the grant-doc SAID and the
     governance `Ixn` SAID it witnesses), so "a witness can't derive it" was false as first written; but
@@ -142,13 +142,12 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 - **Version — a primitive attributed SAD (the custody primitive, not a bespoke shape — Q2/F5).**
   `custody { owner = the editor's IEL prefix, pin = the version's anchoring-`Ixn` locator, readers = the current read gate }` — and
   because custody lives **only** on standalone SADs (`custody.md`: chain events carry no custody slot), a
-  version _is_ a custody-attributed standalone SAD, so the primitive fixes its shape: owner-rooted by its
-  `derive(owner, DOC_TOPIC, version_said)` SEL (`data = version_said`), a short **`{Icp, Pin}`** SEL
-  whose **`Pin` (the serial-1 v1) is anchored** by the editor's IEL `Ixn` at position `V_x` — the
-  version's **as-of** (append-only). _(The `Icp` is never anchored — it rides `v1.previous`, inv 15; the
-  `Pin` is the anchored v1, not a redundant floor. No `{Icp, Ixn}` content-on-a-log variant — that
-  couldn't carry `custody`; no `{Icp, Trm}` seal variant — nothing consumes a version SEL past v1, and a
-  `Trm` would move the as-of onto a `Rev` position, defeating the cheap-`t_use` authorship.)_
+  version _is_ a custody-attributed standalone SAD, so the primitive fixes its shape: **directly anchored**
+  on the editor's IEL. The editor authors an `Ixn` at position `V_x` whose `manifest.anchors[]` commits the
+  version's issuance commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{version_said}')`; the custody
+  `pin` (= that `Ixn`'s `previous`) locates `V_x` — the version's **as-of** (append-only). _(No per-version
+  SEL: the direct anchor carries both attribution and position, at cheap `t_use` cost, and the
+  `version_said` is blinded on the public IEL by the commitment hash — §5.)_
   The version SAD carries: a high-entropy **`nonce`** (private docs — so `version_said` is unguessable on
   public structure, §5), the **doc prefix** (doc-scoping + governance lookup, direct — no `ancestors[]`
   walk to root), the **authorizing grant `G_x`** (the period this version claims — reveals nothing new,
@@ -236,21 +235,23 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 
 - **SEL-chain fork** (two events at one SEL serial) — **prevented by the SEL's own witnessing** (first-seen
   at its `(prefix, serial)`, inheriting the owner IEL's federation — witnessed-SEL redesign, area-sel §1c;
-  the FIRST-CUT "forbidden by the cross-layer divergence model" rested on the retired theorem). So each
-  version SEL and the governance SEL are **linear on a witnessed chain** — a fork needs witness collusion,
-  reads Forked (fail-secure), and is buried by a SEL `Sea` (area-sel §1d).
+  the FIRST-CUT "forbidden by the cross-layer divergence model" rested on the retired theorem). So the
+  governance and rescission SELs are **linear on a witnessed chain** — a fork needs witness collusion,
+  reads Forked (fail-secure), and is buried by a SEL `Sea` (area-sel §1d); a **version** carries no SEL,
+  so version anti-equivocation rests on the editor's own witnessed IEL (where its direct anchor lives).
 - **Version fork** (two versions naming the same `ancestors` parent) — **allowed/presented**; the DAG
-  branches at the document layer over linear SELs. Acyclic by SAID (a cycle = a Blake3 preimage
-  cycle).
+  branches at the document layer over the editors' linear witnessed IELs. Acyclic by SAID (a cycle = a
+  Blake3 preimage cycle).
 - **A editor's IEL divergence is handled by two composed rules, not one (cold F2 / warm F3).** A
   divergent editor's IEL **reads suspect** — _not_ "is compromised" (the data can't diagnose intent; a
   benign two-device race is a recoverable content fork, resolved first-seen — area-iel §5) — and a version
   anchored above that IEL's seal reads suspect until the IEL resolves (the seal-boundary rule, inv 13).
-  - **The anchor edge severs the SEL (witnessed-SEL redesign, area-sel §1e).** If the IEL resolves with the
-    version's v1 anchored in a **dead** (non-canonical) member event, the version SEL is **severed** at that
-    anchor — dead + un-verifiable from there (no repair to re-root; the surviving IEL branch is a different
-    author). _(The FIRST-CUT "dies by cross-layer deadness-descends via the cross-layer theorem" is
-    superseded — the theorem is retired; inherited IEL deadness severs the SEL, area-sel §1e.)_
+  - **A dead anchor un-attributes the version (witnessed-SEL redesign, area-sel §1e).** If the IEL resolves
+    with the version's anchoring `Ixn` on a **dead** (non-canonical) member branch, the version fails
+    attribution on the canonical walk — its direct anchor is unreachable, so it reads unattributed (no repair
+    to re-root; the surviving IEL branch is a different author). _(The FIRST-CUT "dies by cross-layer
+    deadness-descends via the cross-layer theorem" is superseded — the theorem is retired; inherited IEL
+    deadness un-attributes the version, area-sel §1e.)_
   - **DAG descent is _this feature's own_ rule, derived as a placement consequence — not inv 13/17.**
     `ancestors[]` is a feature-layer, **multi-parent** edge; deadness-ascends is defined only over
     `previous`-linkage and the IEL→SEL anchor edge, so claiming the primitives provide descent down the
@@ -320,9 +321,11 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 - **Attribution is opt-in-visible; privacy via the read gate.** A version carries `owner` (provable
   authorship) but read-gated — so `owner` is exposed only to authorized readers. Revealing authorship
   is the deliberate cost of _proving_ it; the private default hides it behind `readers`.
-- **The co-authorship + membership graphs close for a private doc.** A version SEL `Icp` carries
-  `data = version_said` (a nonce'd, gated reference), and the version→V0 linkage rides read-gated
-  `ancestors[]` — so a witness sees `(member, version_said)` pairs but **cannot group them by document**
+- **The co-authorship + membership graphs close for a private doc.** A version's anchoring IEL `Ixn`
+  commits `hash('vdti/iel/v1/actions/commitment:{owner}:{version_said}')` (an **opaque, blinded**
+  reference), and the version→V0 linkage rides read-gated
+  `ancestors[]` — so a witness sees `(member, opaque commitment)` entries but **cannot recover
+  `version_said` or group them by document**
   for a **private** doc; the strong on-chain co-authorship graph is **closed** (a public doc's graph is
   readable anyway). The **membership graph closes** because the rescission key is `hash(G | said_b)` —
   **participant-blind** (no member prefix as input) **and grant-blind** (a witness can't compute it without
@@ -330,11 +333,12 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   Given the grant records are read-gated for a private doc, a witness sees only **`creator ↔ doc`**
   (unavoidable — the governance SEL derives from `doc_prefix`) plus grant/rescission **volume-timing**.
 - **The stated residual, completed (cold F9 / warm F9).** For a mesh witness the residual is
-  `creator ↔ doc` **plus**: (a) **per-participant `DOC_TOPIC` volume-timing** — the `(member, version_said)`
-  pairs above, and the **topic** itself (a version SEL `Icp` is recomputable content carrying
-  `(owner, topic, data)`, so a witness learns _"member X authors shared-doc versions"_, unlinkable
-  to a doc absent an oracle); (b) **cross-participant timing correlation** of version-SEL activity (co-editing
-  clusters — the same inv-16 volume-timing class); (c) grant/rescission volume-timing. It is **never
+  `creator ↔ doc` **plus**: (a) **per-participant version-anchor volume-timing** — the editor's IEL
+  `Ixn`s carrying opaque version commitments (generic IEL-anchor activity; the direct anchor **removes**
+  the version-SEL topic leak the SEL model carried — no `(owner, topic, data)` recomputable content, so a
+  witness no longer learns _"member X authors shared-doc versions"_); (b) **cross-participant timing
+  correlation** of version-anchor activity (co-editing clusters — the same inv-16 volume-timing class);
+  (c) grant/rescission volume-timing. It is **never
   _who_ the members are** — the same inv-16 residual class accepted everywhere else, not the graph.
 - **Every gated doc on public structure needs its own `readers` gate AND a high-entropy nonce (warm F2 —
   the offline confirmation-oracle, a MAJOR the review found missable).** A parent's `readers` gate does
@@ -349,13 +353,14 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   feature layer; V0 already has its nonce by design). App-builder responsibility; the framework provides
   the per-SAD `readers` gate + the nonce slot.
 - **Content off-node — submit the SELs, hold the content (the sovereignty mode).** A participant may
-  submit only the **SEL chains** (version, governance, rescission — pure opaque structure, witnessed)
+  submit only the **governance + rescission SEL chains** (pure opaque structure, witnessed) and the
+  **version anchors** on the editor's own IEL (opaque commitments)
   and **never land any content SAD** (versions, grant/rescind docs) on the node; the content is held
   on-device and shared peer-to-peer (exchange/mail, §9). This composes because **the node's role is
   chain-only** — chain validity + witnessing are content-independent (inv 17), and every feature check
   (membership window, DAG placement, the honored predicate) is **participant-side**, run by whoever
   holds the content. So the node hosts a fully opaque chain and **nothing content-readable** (the
-  governance `Icp`'s `data = doc_prefix` and the version-SEL `(owner, DOC_TOPIC, version_said)` are
+  governance `Icp`'s `data = doc_prefix` and the version anchors' opaque commitments are
   structural — cold N1). Two tiers, a per-doc choice: **content off-node** (max privacy; participants
   bear availability) or **content on-node but gated** (`readers` + nonce'd SADs — node availability,
   the mesh-correlation residual). **Feature invariant: no node operation may require a content SAD**
@@ -375,8 +380,8 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 | kill       | revocation `Trm` (`Rev`)                | per-participant period-bound; **freeze** = bound-all + `Trm`-gov |
 | home       | `primitives/policy/documents.md`                 | `features/shared-documents/documents.md`                  |
 
-Shared substrate: documents are **attributed SADs** (`owner`+`topic`+SEL-anchor), located by
-`derive`, in a DAG; membership reuses the §5 grandfather-`bound` mechanism. They specialize
+Shared substrate: documents are **attributed SADs** (`owner`+`pin` direct-anchor), located by their
+`pin`, in a DAG; membership reuses the §5 grandfather-`bound` mechanism. They specialize
 differently and are **not** merged.
 
 ## 7. Resolutions + what actually stays open
@@ -444,12 +449,12 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   a validly-authored version.
 - **Reserved names + SAD schemas — DEFINED (2026-07-04, with Jason).** Convention
   `vdti/<concept>/v1/<category>/<thing>` (from the KEL kinds + `.terminology-forbidden`); concept **`doc`**.
-  - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/version` (owner = an editor,
-    data = `version_said`), `vdti/doc/v1/topics/governance` (owner = creator, data = `prefix`) — the
+  - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/governance` (owner = creator,
+    data = `prefix`) — the
     **edit**-governance SEL, `vdti/doc/v1/topics/read-governance` (owner = creator, data = `prefix`) — the
     **read**-governance SEL (structurally carries only `readers`), `vdti/doc/v1/topics/rescission`
     (owner = creator, data = `hash(G | said_b)`) — shared by both governance SELs (`G` disambiguates).
-    _(The `DOC_TOPIC` / `DOC_GOV_TOPIC` / `DOC_READ_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_
+    _(The `DOC_GOV_TOPIC` / `DOC_READ_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_
     Each grant `Gnt` is anchored by **`Ath`**, and the `rescission` (a SEL `Trm`) by **`Dth`** (add the
     rows at encode).
   - **Doc SADs** (`vdti/doc/v1/schemas/*`; every SAD carries `kind`; **`custody` is inline** — no `said`,
@@ -513,7 +518,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
 - Write `docs/design/features/shared-documents/documents.md` fresh from this note (greenfield voice;
   credentials as the _contrast_). Forward-ref from `primitives/policy/documents.md` + the SEL
   primitive.
-- Depends on the landed custody `owner`+`topic`+SEL-anchor model (inv 16 note) and the §5
+- Depends on the landed custody `owner`+`pin` direct-anchor model (inv 16 note) and the §5
   rescission-`bound` mechanism.
 - **Encode-voice (cold N3 / warm N3):** the §5 first-cut-relative framing and the `cold Fn`/`warm Fn`
   citations throughout are working-note bookkeeping — restate every property in **absolute** greenfield

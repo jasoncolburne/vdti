@@ -237,7 +237,7 @@ IelVerification:
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
     last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event that landed cleanly on the linear run (not a competing sibling)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
-    anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and credential issuance commitments found anchored on the canonical branch
+    anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and custody-anchored SAD issuance commitments (a credential is one use) found anchored on the canonical branch
     delegates_of: ...                      # per-candidate delegation-walk results (bounded scalar state)
     kills_matched: ...                     # kills[] forward-match results for the loci the caller registered
     structurally_valid: bool               # the structural-validity result (threshold anchoring, linkage, roster bounds)

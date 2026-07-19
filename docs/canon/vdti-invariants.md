@@ -147,7 +147,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      **Kill-semantics → kill-anchor kind (the total rule, S5/D):** a `Trm` is anchored by **`Dth`** (`t_authorize`)
      **iff** it is an **authorization-rescission** — a lookup-SEL that closes a granted authorization: a
      **delegation**-rescission or a **doc-membership** rescission — and by **`Rev`** (`t_govern`) **otherwise**. So a
-     **cred revocation** and a shared-doc-leg (a version-SEL closure) `Trm` are `Rev`-sealed; the rescission
+     **cred revocation** and a shared-doc-leg (a doc governance / freeze closure) `Trm` are `Rev`-sealed; the rescission
      lookup-SELs are `Dth`-sealed; and an **arbitrary app-topic** SEL's `Trm` defaults to `Rev` (never the cheaper
      `Dth` when `t_authorize < t_govern`). *(The revocation/rescission lookup-SELs use **distinct topics per kind** —
      `CRED_REVOCATION_TOPIC` (Rev) / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC` (Dth), **never a shared `KILL_TOPIC`** —
@@ -236,7 +236,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    **checked locator** (the `Ixn` there must carry `previous == issuerPin` **and** the commitment), and **provably the
    earliest** possible anchor — an earlier one would need a hash cycle, the commitment embedding `cred.said` which
    embeds `issuerPin = said(E_pin)`, and every event at-or-below `E_pin` feeds `said(E_pin)` via the `previous` chain.
-   So a later re-anchor is **never consulted** — no scan reads `anchors[]` per event (the top-level-cues-only walk
+   So a later re-anchor is **never consulted** — no scan reads `anchors[]` per event (the canonical walk
    opens no manifest per event); the pinned position is the fixed range start for the revocation walk, alongside the
    fresh tip. The chain still **accepts** a re-anchoring `Ixn` as structurally valid; it just never bears on the
    pinned as-of. *(Cred-only — delegate/doc-member targets are grant-epoch-scoped, so a re-grant makes a *fresh*
@@ -749,12 +749,15 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     (and over a long enough horizon *any* key breaks, so the backdate is real, not hypothetical). This is the exact
     self-asserted-pin forgery inv 5 already closed for documents. **Resolution (direct-anchor rework, Jason 2026-07-18) — an
     `owner`-bearing SAD is attributed by a direct append-only anchor on the owner's IEL:** the owner authors an
-    `Ixn` whose `manifest.anchors[]` commits the SAD's `said` — a `t_use` content act only the owner's quorum can
-    author, witnessed. That anchor **is** the write authorization. Custody carries **`owner`** (the writer IEL
+    `Ixn` whose `manifest.anchors[]` commits the SAD's issuance commitment
+    `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` (a blinded hash — the `said` never appears raw on the
+    public IEL) — a `t_use` content act only the owner's quorum can author, witnessed. That anchor **is** the write authorization. Custody carries **`owner`** (the writer IEL
     prefix) **+ `pin`** — the SAID of that anchoring `Ixn`'s `previous`, a **checked locator** (`pin ==
     anchor.previous`) finding the `Ixn` at `pin + 1`, one manifest, no scan. **`owner ⟹ pin`** (an `owner`-bearing
     SAD with no `pin` cannot be verified and is rejected — it reads ambiguous). A **credential** is the named
-    instance (its `issuer` + `issuerPin` are `owner` + `pin`). The SAD's own `kind` names its type, so custody needs
+    instance (its `issuer` + `issuerPin` are `owner` + `pin`, and its issuance commitment
+    `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is the generic custody commitment with
+    `owner` = `issuer`, `said` = `cred.said`). The SAD's own `kind` names its type, so custody needs
     **no `topic`**. **`pin` is a checked locator, not the dropped self-asserted *authority* pin** — as-of authority
     stays the anchoring position (inv 5 — backdate-proof: forging it needs a fresh IEL `Ixn` at the owner's *current*
     tip, which a rotated-out key can't author and can't insert in the past → the threat reduces to
@@ -769,7 +772,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     read by the **positive walk** (walk from `lineage: 0`, advance past a dead lineage, stop at the lowest live
     one); a **monotone** lookup omits it (absent-is-absent; `content` never carries it). **Structural, split by layer:** the SAD structural pass enforces only the **presence** rule (`owner ⟹ pin`; an
     `owner`-bearing SAD with no `pin` is rejected), and a consumer **verifies the anchor independently** —
-    `verify_anchored_sad` locates the `Ixn` at `pin + 1`, confirms `said ∈ manifest.anchors[]`, and that the `Ixn`
+    `verify_anchored_sad` locates the `Ixn` at `pin + 1`, confirms it is an `Ixn` carrying the issuance commitment
+    `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` in `manifest.anchors[]`, and that it
     is a valid owner-authored event (the store is untrusted — end-verifiability; a generic `verify_sad` delegates to
     it whenever the SAD is owned). **Field rule: `owner` present ⟺ `pin` present** (an anonymous write carries
     neither). Because the SAD's SAID commits `owner` and `pin`, the pair `(owner, pin)` is tamper-evidently bound to

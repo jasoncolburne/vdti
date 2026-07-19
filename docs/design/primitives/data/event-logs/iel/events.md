@@ -42,8 +42,7 @@ an act on a _downstream target_, not on the host IEL, so `{Rev, content}` stays 
 `{Wit, Wit}`, or ≥ 2 **accepted** sealed branches. The **tier** column names the KEL capability an
 adversary must forge to author the matching member participation — see
 [§Two-tier capability model](#two-tier-capability-model). The **Kind string** column is the kind's
-versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's custody
-`topic`.
+versioned schema identifier (`vdti/iel/v1/events/…`), unrelated to a standalone SAD's own `kind`.
 
 ## Two-kind inception
 

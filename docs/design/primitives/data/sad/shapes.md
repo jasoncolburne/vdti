@@ -253,7 +253,7 @@ A **version** SAD (custody-attributed, chained into the version DAG):
 | ----------- | ---------- | -------------------------------------------------- |
 | `said`      | SAID       | The version's SAID.                                |
 | `kind`      | string     | `vdti/doc/v1/schemas/*`.                           |
-| `custody`   | struct     | `{ owner: the editor's IEL, topic, readers }`.     |
+| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers }`.       |
 | `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.     |
 | `nonce`     | bytes      | High-entropy — makes the version SAID unguessable. |
 
@@ -273,14 +273,14 @@ at the exchange encode. The sealed one-to-one envelope is its own protocol primi
 
 A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../policy/policy.md)):
 
-| Form                     | Kind     | Meaning                                                                       |
-| ------------------------ | -------- | ----------------------------------------------------------------------------- |
-| `id(prefix)`             | leaf     | An identity.                                                                  |
-| `del(prefix, N)`         | leaf     | A live delegate of an identity, within `N` hops (`del(X)` = `del(X, 1)`).     |
-| `pol(said)`              | leaf     | Another policy, by its SAID (the reference graph is acyclic).                 |
-| `thr(M, [expr, …])`      | composer | At least `M` of the listed sub-policies.                                      |
-| `wgt(M, [(expr, w), …])` | composer | Sub-policies carry weights; satisfied when the satisfied weights total `≥ M`. |
-| `and(expr, …)`           | composer | Every listed sub-policy, each over an independent pool (`≥ 2` sub-policies).  |
+| Form                     | Kind     | Meaning                                                                                      |
+| ------------------------ | -------- | -------------------------------------------------------------------------------------------- |
+| `id(prefix)`             | leaf     | An identity.                                                                                 |
+| `del(prefix, N)`         | leaf     | A live delegate of an identity, within `N` hops (`del(X)` = `del(X, 1)`).                    |
+| `pol(said)`              | leaf     | Another policy, by its SAID (the reference graph is acyclic).                                |
+| `thr(M, [expr, …])`      | composer | At least `M` of the listed sub-policies.                                                     |
+| `wgt(M, [(expr, w), …])` | composer | Sub-policies carry weights; satisfied when the satisfied weights total `≥ M`.                |
+| `and(expr, …)`           | composer | Every listed sub-policy (`≥ 2`); pools independent only when the author makes them disjoint. |
 
 ## Forthcoming shapes
 

@@ -23,7 +23,7 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
 - `docs/canon/vdti-area-iel.md` (the structural mold — the SEL is now a witnessed chain in the IEL's
   shape), `docs/canon/vdti-area-federation-witnessing.md` §1e (the witnessing floor / first-seen / disputed
   detection the SEL now inherits) — **§1g Decision 1 is REVISED by this note** (the SEL _is_ witnessed now).
-- `docs/canon/vdti-area-shared-documents.md` (doc / governance / version SELs), `…-delegation.md`,
+- `docs/canon/vdti-area-shared-documents.md` (governance / rescission SELs), `…-delegation.md`,
   `…-document-policy.md` §F (the kill lookup SELs).
 
 ## 1. The current SEL model

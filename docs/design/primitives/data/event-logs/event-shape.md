@@ -224,8 +224,8 @@ downstream type-check, so the allowlist is their sole protection (a `kills` on a
 malformed → rejected, closing declare-a-revoke-at-`t_use`). The back-checked role `anchors` is
 additionally caught when each referenced event is validated against its required kind — the anchor
 matrix is **kind-strict** both directions: an IEL `Rev`'s or `Dth`'s anchors resolve **only** to SEL
-`Trm`s, an IEL `Ixn`'s only to content SEL v1s or a credential's issuance commitment, and neither
-the reverse.
+`Trm`s, an IEL `Ixn`'s only to content SEL v1s or a custody-anchored SAD's issuance commitment (a
+credential is one use), and neither the reverse.
 
 ## Cross-cutting fields
 
@@ -622,8 +622,10 @@ A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anc
 the issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are
 all hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy
 via the body `nonce`) while a public credential's is correctly public. The custody rule: an
-`owner`-bearing SAD is **directly anchored** on the owner's IEL, located by its `pin`; SELs are the
-separate primitive for mutable / evolving state ([`../sad/custody.md`](../sad/custody.md)).
+`owner`-bearing SAD is **directly anchored** on the owner's IEL — its `Ixn` commits the issuance
+commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` (the credential is one use),
+located by its `pin`; SELs are the separate primitive for mutable / evolving state
+([`../sad/custody.md`](../sad/custody.md)).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
 computed prefix doesn't match its declared `prefix`.
