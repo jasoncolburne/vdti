@@ -95,22 +95,28 @@ divergence is.
 
 ## What this leaves standing (and to whom)
 
-- **Backdating shrinks to a detectable act — for a writer whose tip has advanced.** When the
-  writer's tip is **past** the target point, monotonicity forces a backdate to **fork its own lane**
-  — a self-signed equivocation any reader surfaces (evidence-bearing, not silent). A writer whose
-  tip is **frozen** — removed from the group yet still holding a retired key — has two moves the DAG
-  alone won't surface, both closed by the composing feature. A **monotone forward-append** into the
-  frozen range (not a fork) is cut by the feature's removal **`bound`** — a chat `chat-membership`
-  rescission records a **lane-tip `bound`** (the member's lane tip at removal) the verifier honors,
-  cutting any message past it. A **fresh parentless root** (a second lane, which the second-child
-  fork rule never fires on) is rejected because the feature **anchors** each lane's root (above) —
-  an unanchored root is not honored. The two brackets — the **anchored root** on the way in, the
-  **`bound`** on the way out — pin a removed writer's honored history to exactly `[root … bound]`
-  (to the anchored root alone if it wrote nothing past it) ([membership](membership.md)). The DAG
-  gives monotonicity; the feature gives the root anchor and the removal bound. (A **current**,
-  non-removed writer that merely went dormant can still forward-append into an epoch it held but was
-  silent for — no bound, valid key — the accepted backdate-within-a-held-window residual, confined
-  to its own lane.)
+- **Backdating shrinks to a detectable act; a removed writer's reach shrinks to an interval.** When
+  a **current** writer's tip is **past** the target point, monotonicity forces a backdate to **fork
+  its own lane** — a self-signed equivocation. On a live lane the DAG **detects** the fork
+  (self-proving); _which_ branch counts is **reported, and the group's policy decides**, because no
+  on-chain fact picks a winner (detection is immediate on a witnessed node,
+  eventual-but-not-hideable on an unwitnessed chat lane). A **removed** writer — still holding a
+  retired key — is closed **structurally** instead, because its removal left an **on-chain fact**: a
+  chat `chat-membership` rescission records a **lane-tip `bound`** (the device's tip at removal) on
+  the governing identity's **witnessed** grant chain, so every verifier holds it durably. The
+  device's honored history is then exactly the `previous`-chain from the `bound` back to the
+  **anchored root** — `[root … bound]` — and **any node it signs off that chain is not honored**: a
+  **forward-append past the bound** (a descendant), a **fork below the bound** (a sibling of a node
+  on the chain), and a **fresh parentless root** (a disjoint lane the root anchor already rejects)
+  all fall outside the interval. That is a **local interval check against the durable `bound`**, not
+  fork detection — the verifier never has to see the offending sibling to exclude it, so it neither
+  waits on propagation nor defers to policy. The two brackets — the **anchored root** on the way in,
+  the witnessed **`bound`** on the way out — pin the interval (to the anchored root alone if the
+  device wrote nothing past it) ([membership](membership.md)). The DAG gives monotonicity and fork
+  _detection_; the feature gives the root anchor and the removal bound that _resolve_ it. (A
+  **current**, non-removed writer that merely went dormant can still forward-append into an epoch it
+  held but was silent for — no bound, valid key — the accepted backdate-within-a-held-window
+  residual, confined to its own lane.)
 - **Node witnessing is the feature's, not the DAG's.** A document version is **anchored** on its
   editor's identity (custody direct-anchor) and so is witnessed; a chat message is a
   store-and-forward blob and is **not** individually witnessed — its fork detection rests on

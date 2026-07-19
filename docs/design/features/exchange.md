@@ -260,17 +260,19 @@ degenerate group of two** — the same machinery, no separate two-party construc
   **current** member backdating **below its advanced tip** must **fork** its own lane (a
   `(epoch, timestamp)` decrease is malformed, so the only attach is a second child of an earlier
   node) — an undeniable self-signed equivocation any reader surfaces on convergence (monotonicity,
-  above). A **removed** member has two moves, both closed at the **verifier**: a **frozen-tip
-  forward-append** into a **retired** epoch it held _is_ monotone (not a fork), but its
-  `chat-membership` removal recorded a **lane-tip `bound`** (its last message), so the verifier
-  honors that lane only **up to the bound** and **cuts** any message past it; and a **fresh
-  parentless root** (a second lane the fork rule never fires on, since two roots share no parent) is
-  **unanchored** — its admission grant anchored the one lane the verifier honors, so a root minted
-  after removal is rejected. The two brackets pin a removed member's honored history to
-  `[anchored root … bound]`. **The one accepted residual:** a **current**, non-removed member that
-  went **dormant** can forward-append monotonically into an epoch it held but was silent for — no
-  bound exists (it was never removed) and its key was valid, so this reads as legitimate late
-  history; it is confined to its own lane and its own held epochs, the chat instance of the accepted
+  above). on a live lane the DAG **detects** the fork, but the group's policy decides which branch
+  counts. A **removed** member is closed **structurally** at the **verifier**, because its removal
+  left an on-chain fact: its `chat-membership` rescission recorded a **lane-tip `bound`** (its last
+  message) on the **witnessed** grant chain, so the verifier honors exactly the `bound`'s
+  **ancestor-chain** — `[anchored root … bound]` — and honors **no** node off it: a **frozen-tip
+  forward-append** into a retired epoch (a descendant of the bound), a **fork below the bound** (a
+  sibling of an on-chain node), and a **fresh parentless root** (unanchored — its admission grant
+  anchored the one lane the verifier honors) all fall outside the interval. That is a **local
+  interval check against the durable `bound`**, not fork detection — no propagation wait, no policy
+  call. **The one accepted residual:** a **current**, non-removed member that went **dormant** can
+  forward-append monotonically into an epoch it held but was silent for — no bound exists (it was
+  never removed) and its key was valid, so this reads as legitimate late history; it is confined to
+  its own lane and its own held epochs, the chat instance of the accepted
   backdate-within-a-held-window class (mail's captured-then-rotated residual), and the opt-in anchor
   strengthens it for parties that need better. The store's deposit gate is defense-in-depth; the
   anchor and bound are what make the cuts **verifier-enforced**, not store-only. A self-asserted

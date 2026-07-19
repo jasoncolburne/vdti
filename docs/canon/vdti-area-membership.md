@@ -140,8 +140,11 @@ enforces, so a removed member's authority is cut at a **provable** point rather 
   fail-secure, honoring the marker only; a member with several writing devices carries one bound **per lane**, the
   singular `rescinds` `bound?` generalizing to a per-lane list on the `Trm`'s `bound` role, and the grant-chain
   entry and that `Trm` role must **agree** — the `Trm`'s the cut the verifier enforces, PR#25 r4 cold-P2-4); the
-  verifier honors the lane **only up to the bound** and rejects any
-  message **past** it — closing the removed member's monotone forward-append into a **retired** epoch it held. The
+  verifier honors exactly the `bound`'s **ancestor-chain** (the `previous`-path from the `bound` back to the
+  anchored marker) and honors **no** node off it — a **forward-append past the bound** (a descendant) or a **fork
+  below the bound** (a sibling of an on-chain node) alike falls outside `[root … bound]`, a local interval check
+  against the durable on-chain `bound` (not fork detection; PR#25 r5 cold-P1) — closing both the removed member's
+  monotone forward-append and a fork below the bound into a **retired** epoch it held. The
   **epoch turn** (group-key) gives forward secrecy for **new** epochs; the **anchor + bound** pin each device's
   honored history to `[root … bound]` — the three together, not the store's deposit gate, bind it. A **crash at
   the root** does not brick the lane (the marker is minted before the anchoring act, re-mintable until anchored,
@@ -181,8 +184,8 @@ own roster / key-epoch names), not the primitive's. Two instances exist:
   chat's store checks to gate deposit and drain. Bounded **in practice** (the chat is a keyed group, so group-key
   already caps it), but checked the same one-at-a-time way; the check is per **identity** (any device reads), while
   each writing **device** anchors its own lane on-demand (a body-less join marker) and rescission records a
-  per-lane **`bound`** (the verifier honors each lane only `[root … bound]`, cutting past the bound and rejecting
-  any unanchored root) plus an **immediate epoch turn** for forward secrecy; each device's membership period is a
+  per-lane **`bound`** (the verifier honors each lane only its `bound`'s ancestor-chain `[root … bound]` —
+  off-chain and unanchored nodes rejected alike) plus an **immediate epoch turn** for forward secrecy; each device's membership period is a
   **disjoint anchored lane** (re-add anchors a new marker). **Landed this PR.**
 - **`document-membership`** (shared-documents feature — **forthcoming**) — the set a shared document's store
   checks. Genuinely **unbounded** (an open readership), **grandfather**-rescinded. See "Drift → land" — the

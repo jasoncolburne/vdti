@@ -106,12 +106,17 @@ What it points to is the feature's:
   the device wrote nothing past it — a member with several writing devices carries one bound per
   lane, the singular `rescinds` `bound?` generalizing to a per-lane list on the rescission `Trm`'s
   `bound` role, and the grant-chain entry and that `Trm` role must **agree**, the `Trm`'s the cut
-  the verifier enforces); the verifier honors the lane **only up to the bound** and cuts any message
-  **past** it — closing the removed member's monotone forward-append into a **retired** epoch it
-  held. For chat the `bound` is **required** on every rescind, and a missing or unresolvable `bound`
-  reads **fail-secure** (honor the anchored marker only, nothing past it). The **epoch turning**
-  gives forward secrecy for **new** epochs; the **anchor + bound** pin each device's honored history
-  to `[root … bound]` — the three together, not the store's deposit check, bind it. A **crash at the
+  the verifier enforces); the verifier honors exactly the `bound`'s **ancestor-chain** — the
+  `previous`-path from the `bound` back to the anchored marker — and honors **no** node off it: a
+  **forward-append past the bound** (a descendant) or a **fork below the bound** (a sibling of an
+  on-chain node) alike falls outside `[root … bound]`. This is a **local interval check against the
+  durable on-chain `bound`**, not fork detection — the verifier never has to see the offending
+  sibling, so it neither waits on propagation nor defers to policy; it closes both the removed
+  member's monotone forward-append and a fork below the bound into a **retired** epoch it held. For
+  chat the `bound` is **required** on every rescind, and a missing or unresolvable `bound` reads
+  **fail-secure** (honor the anchored marker only, nothing past it). The **epoch turning** gives
+  forward secrecy for **new** epochs; the **anchor + bound** pin each device's honored history to
+  `[root … bound]` — the three together, not the store's deposit check, bind it. A **crash at the
   root** does not brick the lane: the marker is minted before the anchoring act (re-mint freely
   until anchored) and, once anchored, re-fetchable by the SAID the grant chain records (its bytes
   are **retained** on the group's nodes and served under the same `chat-membership` gate as any lane

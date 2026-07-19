@@ -251,10 +251,12 @@ degenerate group of two.**
   (per its IEL interval) at a time inside that window. **Backdating decomposes (cold-F4 + PR#25 r2 W1/cold-P1/W2):**
   the lane's `(epoch, timestamp)` monotonicity (the authored-DAG rule, below) kills tip-append backdating. A
   **current** member backdating below its advanced tip must **fork its own lane** — a self-signed equivocation any
-  reader surfaces, confined, never forward. A **removed** member is **fully closed at the verifier**: a frozen-tip
-  forward-append into a retired epoch it held is cut by the `chat-membership` removal's **lane-tip `bound`**, and a
-  **fresh parentless root** is rejected because a grant-chain act **anchored** each writing device's lane (its history pinned to
-  `[anchored root … bound]`). The **residual** is a **dormant current** member (never removed, valid key)
+  reader surfaces, confined, never forward. A **removed** member is **fully closed at the verifier**: its `chat-membership`
+  removal recorded a **lane-tip `bound`** on the **witnessed** grant chain, so honored history is exactly the
+  `bound`'s ancestor-chain `[anchored root … bound]` and **any node off it is not honored** — a frozen-tip
+  forward-append past the bound (a descendant), a **fork below the bound** (a sibling of an on-chain node), and a
+  **fresh parentless root** (unanchored — a grant-chain act anchored the one lane the verifier honors) alike (a
+  local interval check against the durable `bound`, not fork detection; PR#25 r5 cold-P1). The **residual** is a **dormant current** member (never removed, valid key)
   forward-appending into an epoch it held but was silent for — the accepted backdate-within-a-held-window class,
   own lane, timestamp advisory; the opt-in anchor strengthens it. The self-asserted timestamp never establishes
   currency; the two witnessed windows do.

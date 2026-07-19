@@ -117,8 +117,8 @@ The two consumers build the rest their own way:
 
 - **Group chat** — messages are **per-writer lanes** (each device's messages its own linked chain,
   merged into the group view): the lane _is_ the writer, so no sender field is carried mid-lane (the
-  consuming feature roots a lane at its first message). A receiver reads which lane a message sits
-  on, derives that lane's subkey to open it, and verifies the writer's signature. The epoch key
+  consuming feature roots a lane at its anchored join marker). A receiver reads which lane a message
+  sits on, derives that lane's subkey to open it, and verifies the writer's signature. The epoch key
   proves only "a group member"; the signature proves _which_.
 - **Shared-document content** — a per-document content key is wrapped under the epoch key, and
   members open and decrypt the document.

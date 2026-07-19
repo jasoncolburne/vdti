@@ -68,17 +68,22 @@ receipts.
 
 ## What this leaves standing
 
-- **Backdating shrinks to a detectable act — for a writer whose tip has advanced (round-3 F4 + whole-design
-  cold-P1).** When the writer's tip is **past** the target, monotonicity forces a backdate to **fork its own
-  lane** — a self-signed equivocation any reader surfaces (evidence-bearing, not silent). A **frozen-tip** writer
-  (removed from the group, still holding a retired key) has two moves the DAG won't surface, both the feature's to
-  close: a **monotone forward-append** into the frozen range is cut by the removal **`bound`** (the lane tip at
-  removal — a chat `chat-membership` rescission records it, the verifier cuts past), and a **fresh parentless
-  root** is rejected by the **anchored root** (admission registers the writer's lane root; an unanchored one is not
-  honored — above). The two brackets pin a removed writer's honored history to `[anchored root … bound]` (PR#25 r2
-  W1/cold-P1). The DAG gives monotonicity; the feature gives the root anchor + the removal bound. A **current**
-  writer merely gone dormant can still forward-append into an epoch it held but was silent for — no bound, valid
-  key — the accepted backdate-within-a-held-window residual, own lane ([membership](vdti-area-membership.md)).
+- **Backdating shrinks to a detectable act; a removed writer's reach shrinks to an interval (round-3 F4 +
+  whole-design cold-P1 + PR#25 r5 cold-P1).** When a **current** writer's tip is **past** the target,
+  monotonicity forces a backdate to **fork its own lane** — a self-signed equivocation. On a live lane the DAG
+  **detects** the fork; _which_ branch counts is **reported, group policy decides** (no on-chain fact picks a
+  winner; detection immediate if witnessed, eventual-not-hideable on an unwitnessed chat lane). A **frozen-tip**
+  writer (removed, still holding a retired key) is closed **structurally**, because removal left an **on-chain
+  fact**: a chat `chat-membership` rescission records a **lane-tip `bound`** (the tip at removal) on the governing
+  identity's **witnessed** grant chain. Honored history is then exactly the `previous`-chain from the `bound` back
+  to the **anchored root** — `[anchored root … bound]` — and **any node off that chain is not honored**: a
+  **forward-append past the bound** (a descendant), a **fork below the bound** (a sibling of an on-chain node), and
+  a **fresh parentless root** (a disjoint lane the anchor already rejects) all fall outside the interval. It is a
+  **local interval check against the durable `bound`**, not fork detection — no propagation wait, no policy call
+  (PR#25 r2 W1/cold-P1 + r5 cold-P1). The DAG gives monotonicity + fork _detection_; the feature gives the anchor +
+  bound that _resolve_ the interval. A **current** writer merely gone dormant can still forward-append into an
+  epoch it held but was silent for — no bound, valid key — the accepted backdate-within-a-held-window residual, own
+  lane ([membership](vdti-area-membership.md)).
 - **The lane-fork ambiguity is closed for honest readers, too.** Before F4 two messages sharing one `previous`
   had **no stated semantics**; single-parent says "that is equivocation," so an honest reader assembling the
   group view has a rule.
@@ -114,11 +119,15 @@ variants"). Monotonicity was Jason's earlier suggestion, confirmed here as the F
   the fresh-root backdate; the existing removal `bound` closes the forward-append), with membership periods as
   disjoint anchored lanes (re-add anchors a new root). Landed across design + canon (authored-dag, membership,
   exchange, shapes, `vdti-area-exchange.md` §7a, inv 21, residuals).
-- **Owed (this PR — the exchange encode).** State the **single-parent** chat lane in `vdti-area-exchange.md` §7a
-  + `exchange.md`: the `(epoch, timestamp)` monotonicity rule + the fork-is-equivocation rule (coupled to
-  `chat-membership` removal + the epoch turn), replacing round-3 F4's understated residual. The chat message SAD
-  (`shapes.md`) already carries `previous` / `writer` / `epoch` / `timestamp` — no shape change, only the stated
-  rules.
+- **DONE (2026-07-19, PR#25 r4/r5).** The **single-parent** chat lane is stated in `vdti-area-exchange.md` §7a +
+  `exchange.md`: the `(epoch, timestamp)` monotonicity rule + the fork rule (detection structural, resolution
+  group-policy on a live lane; coupled to `chat-membership` removal + the epoch turn), replacing round-3 F4's
+  understated residual. The lane root was reconciled to a **body-less join marker** (a **distinct SAD**): the chat
+  message SAD (`shapes.md`) **dropped its `writer` row** (attribution rides the marker; every message carries
+  `previous` and inherits the writer), and the marker is a **new shape owed to the exchange encode**, which must
+  commit the **device prefix + group prefix + membership period / grant-instance** so it is structurally bound to
+  one group and single-use per period (PR#25 r5 cold-P2). The removed-writer close is the `bound`'s ancestor-chain
+  interval (above; PR#25 r5 cold-P1).
 - **⚠ Owed (the shared-documents PR — DO NOT DROP; deferred 2026-07-19 with the membership rename).** Wire the
   **multi-parent** version graph onto this primitive (the version SAD's `ancestors[]` is already the multi-parent
   DAG — `shapes.md`); state branch + merge + version-order monotonicity as this primitive's multi-parent variant
