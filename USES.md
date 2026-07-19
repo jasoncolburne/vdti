@@ -88,8 +88,9 @@ verification).
 
 - **Secure mail** — store-and-forward sealed messages. **Composes:** exchange. _(the `mail` example
   app)_
-- **One-to-one and group chat** — a seed keys every member; the message thread is a shared document.
-  **Composes:** exchange + shared documents. _(the `chat` example app)_
+- **One-to-one and group chat** — a seed keys every member; the message thread is exchange's own
+  per-sender-lane model over group-key. **Composes:** exchange (session mode). _(the `chat` example
+  app)_
 - **Notifications / pub-sub** — sealed, routed messages. **Composes:** exchange.
 - **Secure file transfer / drop-box delivery** — hand a record to one recipient. **Composes:**
   exchange.
@@ -158,7 +159,7 @@ The reference applications, built entirely from the same kit:
 | Application                                  | Composes                             |
 | -------------------------------------------- | ------------------------------------ |
 | `mail`                                       | exchange                             |
-| `chat`                                       | exchange + shared documents          |
+| `chat`                                       | exchange (session mode)              |
 | `bbs` (forum)                                | shared documents                     |
 | `edit` (collaborative docs)                  | exchange + shared documents          |
 | `health`                                     | exchange + credentials               |

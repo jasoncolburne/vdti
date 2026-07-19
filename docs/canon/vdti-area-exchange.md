@@ -110,19 +110,27 @@ discipline, the hardware-resident keys, and optional attestation are the directo
 
 ## 3. Sender-key currency — bind the signature to the witnessed key-state window; anchor for an end-verifiable send-time
 
-- **Default: bind to the `senderPin` key-state's witnessed validity window (reworked to the window bound,
-  Jason 2026-07-19).** ESSR's `open` extracts the sender's key at `senderPin` (a SAID, §1); the recipient reads
-  the sender's witnessed KEL/IEL (multi-source, inv 8), derives the window `senderPin`'s key-state was current
-  for — from its establishing rotation to the one that superseded it, each a witnessed event the federation
-  clock times (federation §1f) — and accepts iff the message's `timestamp` falls in it. A still-current key has
-  an **open** window (a live message passes); an honest message sent **before** a later rotation falls in the
-  now-closed window and is **accepted** — so a rotation no longer strands in-flight mail (this **supersedes**
-  the earlier rigid "must be the _current_ tip"). Same clock-window discipline a witness receipt (`τ ∈`
-  key-window) and a group epoch use; a verifier **requirement**, data-only, no new mechanism. **Residual
-  (bounded, not prevented):** a **captured-then-rotated** key can still be backdated **within** its closed
-  window but is stuck there — it can never read as **current**, so a rotation recovers messaging forward. The
-  ordinary signing-key-compromise limit (inv 13), the same residual the epoch and the federation clock accept.
-  A self-asserted timestamp only orders **within** the window; the witness-fixed boundaries are the trust
+- **Default: bind to the `senderPin` key-state's validity interval, bounded by the federation clock (reworked
+  2026-07-19; boundary derivation pinned 2026-07-19b).** ESSR's `open` extracts the sender's key at `senderPin`
+  (a SAID, §1); the recipient reads the sender's witnessed KEL/IEL (multi-source, inv 8) and reads, for each
+  rotation, the **federation-clock time of the federation position that rotation pins to** — a user rotation
+  carries no `clock`; it reads its time from its federation context (federation §1f), a **consensus,
+  governance-authored** value, **not** a per-witness receipt-τ reduction, so **no single witness can inflate a
+  boundary**. Those form a **monotonic sequence of consensus timestamps** `t1 < t2 < …`, and `open` accepts iff
+  the message's `timestamp` falls in the interval `senderPin`'s key-state was current for. A still-current key
+  has an **open** interval (a live message passes); an honest message sent **before** a later rotation falls in
+  the now-closed interval and is **accepted** — so a rotation no longer strands in-flight mail (this
+  **supersedes** the earlier rigid "must be the _current_ tip"). A per-witness receipt-τ reduction would be
+  **wrong** (newest-τ freshness is one-sided; a byzantine selected witness could inflate the **upper** boundary
+  and read a since-rotated key as current); the boundaries are the consensus clock, and its **tolerance band**
+  (federation §1f) absorbs an honest sender's near-boundary skew. A verifier **requirement**, data-only, no new
+  mechanism. **The send-time `timestamp` rides inside the sealed payload** (ESSR carries no cleartext timestamp
+  — area-essr §privacy), is **required** on a mail payload, checked **post-decrypt**, and **refuse-on-absent**
+  (fail-secure). **Residual (bounded, not prevented):** a **captured-then-rotated** key can still be backdated
+  **within** its closed interval but is stuck there — it can never read as **current**, so a rotation recovers
+  messaging forward. The ordinary signing-key-compromise limit (inv 13), the same residual the epoch and the
+  federation clock accept. A self-asserted timestamp only places the message **within** its past interval; the
+  consensus-clock boundaries are the trust
   anchor. (Aligns with [inv 21].)
 - **Optional: anchor the message for an _end-verifiable_ send-time (Jason 2026-07-12/19).** A message is a
   **kinded SAD** (with a **nonce** — the universal rule), so an end-verifiable send-time is just **anchoring
@@ -231,13 +239,15 @@ degenerate group of two.**
 - **Message currency: auth against the writer's own IEL key-window; the epoch SEL bounds _when_ (Jason
   2026-07-15 "A2 is a good finding"; two-axis correction 2026-07-19).** Chat's **auth uses the same key-window
   as §3** — the signature verifies against the writer's signing key-state, valid per the **writer's own
-  witnessed KEL/IEL** window (its establishing→superseding rotations, federation-clock-timed via those events'
-  receipts). The **epoch is a _separate_ axis** — the **encryption** key, **not** the auth window: a message
-  decrypts **only** under epoch _N_'s per-sender subkey (you must hold that epoch key to produce a readable
-  message), and epoch _N_ is a **witnessed** SEL event whose federation-clock window **bounds when** the message
-  was authored. So the check composes two witnessed sources — the **IEL** says whether the signing key was
-  valid, the **epoch SEL** says the message was authored within epoch _N_'s window — authentic iff the key was
-  valid (per its IEL window) at a time inside that window. **Residual** = the intersection: a former member
+  witnessed KEL/IEL** interval, each boundary the **consensus federation-clock value** of the federation position
+  the rotation pins to (§3 — **not** a per-witness receipt-τ reduction). The **epoch is a _separate_ axis** — the
+  **encryption** key, **not** the auth window: a message decrypts **only** under epoch _N_'s per-sender subkey
+  (you must hold that epoch key to produce a readable message), and epoch _N_ is a **witnessed** SEL event whose
+  federation-clock window (read the same way, via the position it pins to) **bounds when** the message was
+  authored — the **epoch anchors the key-state selection**, so the chat message has **no** key-state pin and
+  needs none. So the check composes two witnessed sources — the **IEL** says whether the signing key was valid,
+  the **epoch SEL** says the message was authored within epoch _N_'s window — authentic iff the key was valid
+  (per its IEL interval) at a time inside that window. **Residual** = the intersection: a former member
   holding both a device's era-valid signing key and epoch _N_'s key can backdate within (its IEL window ∩ epoch
   _N_'s window) — confined, never forward. The self-asserted timestamp never establishes currency; the two
   witnessed windows do.
@@ -248,10 +258,13 @@ chat only observes the current epoch. What chat adds over the primitive is the *
 nonce discipline, above) and the **per-message sender signatures** — the two properties a high-traffic chat
 needs that a shared-document does not.
 
-**Open items (§7a — the chat consumer's):** how an **offline** member catches up across missed epochs; the
-1:1 path; the message-anchoring policy (off-chain by default, optionally anchored). The roster storage, the
-epoch-SEL length bound / checkpoint cadence, the `SESSION_RATCHET_INTERVAL` value, and the never-raw
-epoch-key rule are the **primitive's** — see [`vdti-area-group-key.md`](vdti-area-group-key.md).
+**Open items (§7a — the chat consumer's):** whether the store's **per-requester membership grant** (the
+`readers` mechanism the store checks to authorize a deposit/fetch) is a per-requester **view of the wrap-roster
+membership log** or a **distinct** read/write-authorization SEL alongside it — removal rescinds whichever the
+store checks (Jason's eye, 2026-07-19). _(Offline catch-up, the 1:1 path, and the anchoring policy are
+**resolved** and encoded — decisions 1/2/3.)_ The roster storage, the epoch-SEL length bound / checkpoint
+cadence, the `SESSION_RATCHET_INTERVAL` value, and the never-raw epoch-key rule are the **primitive's** — see
+[`vdti-area-group-key.md`](vdti-area-group-key.md).
 
 ## 8. Reserved names + schemas (convention `vdti/<concept>/v1/<category>/<thing>`; concept **`exchange`**)
 

@@ -313,16 +313,16 @@ messages (`apply` / `offer` / …) are **IPEX**'s (above).
 
 The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on the writer's lane:
 
-| Field           | Type      | Meaning                                                                                                                                                |
-| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `said`          | SAID      | The message SAID; the writer signs it.                                                                                                                 |
-| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                                                                                                    |
-| `previous`      | SAID      | The writer's **own** prior message on this lane; absent at lane start.                                                                                 |
-| `writer`        | prefix?   | The writing device's **owning identity** — present **iff `previous` is absent** (roots the lane at its first message; inherited via `previous` after). |
-| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).                                                                          |
-| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                             |
-| `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                         |
-| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                        |
+| Field           | Type      | Meaning                                                                                                                                                                                                 |
+| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`          | SAID      | The message SAID; the writer signs it.                                                                                                                                                                  |
+| `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                                                                                                                                                     |
+| `previous`      | SAID      | The writer's **own** prior message on this lane; absent at lane start.                                                                                                                                  |
+| `writer`        | prefix?   | The writing **device's KEL prefix** — present **iff `previous` is absent** (roots the lane: which subkey + verify key; inherited via `previous` after). Attribution is to the device's owning identity. |
+| `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).                                                                                                                           |
+| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                                                                              |
+| `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                          |
+| `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                                                                         |
 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
 from the lane, decrypts, and verifies the writer's signature. A lane's **first** message (no
