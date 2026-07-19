@@ -16,10 +16,10 @@ witnessing is what every guarantee below rests on.
 
 ## Identities and devices
 
-An identity isn't a single key, and it isn't a group of people — it's **one person's identity**, an
-**IEL**: a threshold over the **devices that one person controls**. The smallest one is a single
-device (a _degenerate_ identity — what a witness spins up from one key just to send and receive
-messages). That's the valid floor.
+An identity isn't a single key, and it isn't a group of independent people — it's **one controller's
+identity** (a person, or an organization acting as one), an **IEL**: a threshold over the **devices
+that controller runs**. The smallest one is a single device (a _degenerate_ identity — what a
+witness spins up from one key just to send and receive messages). That's the valid floor.
 
 For a real identity you want **three or more devices.** That's where resilience comes from: if a
 device is lost or compromised, the survivors vote it out and carry the identity forward — which
@@ -30,11 +30,12 @@ You _could_ hold one device's rotation key somewhere separate, but it doesn't he
 your own recovery slower. More devices, not split-up keys.
 
 Two boundaries to be clear about. **The threshold is over _devices_, not people** — an IEL's roster
-is your own device set, and a device-threshold is not an identity-threshold. Multiple _people_ (a
-team, an org) aren't members of one IEL; that's the **policy** layer (below), which composes several
-identities. And these are _recommendations_, not walls the system enforces: nothing can stop two
-people from sharing a key or one device from hosting several identities — but the intended model is
-**one person ↔ one IEL ↔ their devices.**
+is your own device set, and a device-threshold is not an identity-threshold. Multiple _independent
+identities_ — a team of separate people, or several orgs — compose at the **policy** layer (below),
+not as members of one IEL; a single controller's device set (one person's, or one organization's) is
+one IEL. And these are _recommendations_, not walls the system enforces: nothing can stop two people
+from sharing a key or one device from hosting several identities — but the intended model is **one
+controller (a person, or an organization acting as one) ↔ one IEL ↔ its devices.**
 
 ## The two keys on a device
 

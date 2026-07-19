@@ -1413,8 +1413,10 @@ collision is unsettled.
 
 **The value can't hide a revocation.** A consumer's trust decision reads the **verdict**, never
 branch content: **any** non-single-tip state — `forked` _or_ `disputed` — grounds no new trust →
-fail-secure refuse. A `forked` issuer IEL can't advance past the fork, so a pending revocation (a
-`Rev` declaring `kills[]`) can't land on a confirmed tip; refusing on `forked` degrades an induced
+fail-secure refuse. While a chain reads `forked`, nothing above the fork is confirmed, so a pending
+revocation is invisible to a consumer until a burying seal — itself a `t_govern` act, a recovery
+`Rev`/`Evl` — lands and resolves it (a `Rev` **proceeds on `forked`**: it is `t_govern`, the sealing
+kind that buries the fork and confirms itself). Refusing on `forked` therefore degrades an induced
 fork to a _denial_, never a _grant_.
 
 The value is **change-sensitive** — it moves the instant a node's held state changes (a tip

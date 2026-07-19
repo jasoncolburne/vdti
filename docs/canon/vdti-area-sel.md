@@ -59,8 +59,8 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
   anchor is the validity proof — the holder **presents** the cred, it is **never looked up by address**.
   **Revocation** is a **`kills[]` declaration** on the issuer's **witnessed** IEL `Rev` (fail-secure by
   default, inv 8/10) + a content-addressed **lookup SEL** giving a fail-open fast path (§document-policy
-  §F). **Custody rule:** direct-anchor an immutable SAD that is _presented_; SEL-wrap anything _mutable_ or
-  _looked-up-by-address_ (inv 16).
+  §F). **Custody rule:** an `owner`-bearing SAD is **directly anchored** on the owner's IEL, located by its
+  `pin` (inv 16); SELs are the separate primitive for _mutable_ / _evolving_ state.
 
 ### 1b. Kinds — six (the `Sea` seal-advancer is new)
 

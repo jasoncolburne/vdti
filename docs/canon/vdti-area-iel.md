@@ -19,7 +19,7 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   `Rev`/`Dth`/`Ixn` are the chain's own vocabulary, so the IEL may key schema on them (`kills[]` is a field only
   `Rev`/`Dth` carry — a *schema* rule, kept); but `CRED_REVOCATION_TOPIC` and friends are **application vocabulary
   the chain treats as opaque bytes**. Everything decided *about* a topic — that a `CRED_REVOCATION_TOPIC` target
-  must sit in a `Rev` (R2), that a re-anchored issuance commitment is inert (R1) — lives at the **cred / delegate /
+  must sit in a `Rev` (R2), that a re-anchored issuance commitment is never consulted — the cred's `issuerPin` fixes the position (R1) — lives at the **cred / delegate /
   doc feature layer**, which reads the (structurally-valid) chain and enforces its own rules. So an application bug
   can never make a chain read invalid: the chain **accepts** the well-formed event; the feature layer decides what
   it *means*.

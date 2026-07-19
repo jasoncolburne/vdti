@@ -621,9 +621,9 @@ A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anc
 `Ixn` (the anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL —
 the issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are
 all hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy
-via the body `nonce`) while a public credential's is correctly public. The custody rule:
-**direct-anchor an immutable SAD that is presented; SEL-wrap anything mutable or
-looked-up-by-address** ([`../sad/custody.md`](../sad/custody.md)).
+via the body `nonce`) while a public credential's is correctly public. The custody rule: an
+`owner`-bearing SAD is **directly anchored** on the owner's IEL, located by its `pin`; SELs are the
+separate primitive for mutable / evolving state ([`../sad/custody.md`](../sad/custody.md)).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
 computed prefix doesn't match its declared `prefix`.

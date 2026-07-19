@@ -231,8 +231,8 @@ graduated disclosure (reveal the compact form, then expand); targeted / untarget
 
 - **Proof of issuance = the anchor, not a detached signature.** The spec proves issuance with the issuer's
   signature over the compact SAID (equivalent to signing a Merkle root over variants). vdti proves it with
-  the **anchor** on the issuer's witnessed chain — witnessed, positioned, revocable-in-place,
-  earliest-floored. The detached-signature issuance model is **dropped** (redundant with, and weaker than,
+  the **anchor** on the issuer's witnessed chain — witnessed, positioned, revocable-in-place, and
+  located by the credential's `issuerPin`. The detached-signature issuance model is **dropped** (redundant with, and weaker than,
   the anchor).
 - **Proof of disclosure = compaction (recursive SAID commitment), not a Merkle-tree over variants.** The
   spec frames graduated disclosure as a hash-tree of variants analogous to a Merkle tree. vdti's

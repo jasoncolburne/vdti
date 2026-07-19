@@ -36,8 +36,8 @@ canonical** wherever they differ.
   check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss — instead
   of walking. ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
-  `custody` field (`owner` + `topic` writer-binding, anchored in a SEL; `readers` read gate).
-  ([`custody.md`](primitives/data/sad/custody.md))
+  `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers`
+  read gate). ([`custody.md`](primitives/data/sad/custody.md))
 - **availability** — a standalone SAD's per-object replication scope, TTL, and one-shot delivery.
   ([`availability.md`](primitives/data/sad/availability.md))
 
@@ -273,7 +273,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   on the owner's fresh witnessed IEL — with **fail-open** (trust the miss) as the opt-out, never up.
   ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **as-of authority / pin-everything-to-current** — authority is judged by the append-only anchoring
-  position, never a self-asserted pin; every event pins its dependencies' current tips.
+  position, never a self-asserted _authority_ pin (a checked locator — a cred's `issuerPin`, a
+  custody SAD's `pin`, a SEL down-pin — only _finds_ the anchor); every event pins its dependencies'
+  current tips.
   ([`documents.md`](primitives/policy/documents.md#the-anchoring-position--fixing-the-issuer-context))
 - **as-issued** — the single document-evaluation mode: authority resolved as of the issuance
   (anchoring) position. There is no live current-mode policy evaluation — who-may-present is a

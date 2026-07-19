@@ -2,8 +2,11 @@
 
 Every SAD carries a **`kind`** — a versioned string naming its type, which drives structural
 validation, tier dispatch, the role vocabulary it may carry, and whether the store will serve it by
-SAID. This doc is the canonical enumeration of every SAD kind. Sibling identifier families share the
-same naming scheme and live in their own catalogues: **derivation tags and SEL topics**
+SAID; a kind's schema also names **which of its fields are nested sub-SADs** (the `SAD`-typed
+positions in [`shapes.md`](shapes.md)) — the data the signing discipline reads to tell a compacted
+sub-SAD from a scalar reference ([`said.md`](said.md)). This doc is the canonical enumeration of
+every SAD kind. Sibling identifier families share the same naming scheme and live in their own
+catalogues: **derivation tags and SEL topics**
 ([`../event-logs/tags-and-topics.md`](../event-logs/tags-and-topics.md)) and **gossip topics**
 ([`../../../substrate/federation/topics.md`](../../../substrate/federation/topics.md)).
 

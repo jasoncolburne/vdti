@@ -183,10 +183,14 @@ signer to the canonical bytes that produced it.
   the schema expects an expanded child is a position the signer has not seen. The helper **refuses
   to sign until the input is fully expanded at those positions**, and takes an explicit **override**
   for the deliberate case — committing to a SAD authored elsewhere by reference, vouching for it by
-  hash on purpose. An unknown-`kind` SAD cannot be schema-checked, so it is override-only. The
-  default is fail-secure and the opt-out is the signer's own, matching the framework's posture
-  elsewhere; a SAD's own author holds its full form by construction, so the gate only bites when
-  signing something handed over already compacted.
+  hash on purpose. An unknown-`kind` SAD cannot be schema-checked, so it is override-only. **Schema
+  is the only sound detector** — compaction is not self-announcing, so an expand-everything scan
+  would false-positive on scalar SAID references (a `previous`, a pin, an anchor) and false-negative
+  on positions it cannot fetch. The real predicate is **whether the signer's tooling has seen the
+  content**: a position passes when the tooling holds (or has verified) the full sub-SAD, not merely
+  when the input is expanded — so an author signing its own SAD, or a holder presenting one it
+  received (graduated disclosure), passes without an override; the gate bites only on content the
+  signer's tooling has never held. The default is fail-secure and the opt-out is the signer's own.
 
 ## Adversarial framing
 

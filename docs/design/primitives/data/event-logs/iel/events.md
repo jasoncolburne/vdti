@@ -21,7 +21,7 @@ IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `
 | Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                                                          |
-| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors SEL events, each SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                                               |
+| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors content SEL events, each content SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                               |
 | `Evl` | `vdti/iel/v1/events/evl` | sealed    | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster / threshold **delta** (`add` + `cut`); a `cut` `Evl` **evicts**. Anchors no kills, but **anchors a SEL `Sea`** (the burying-seal recovery, `Sea ← Evl`). **Seal-advancing.** |
 | `Ath` | `vdti/iel/v1/events/ath` | sealed    | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and / or `anchors` a SEL `Gnt` (act **as itself**). Sealed on arrival, non-terminal. **Seal-advancing.**                                        |
 | `Rev` | `vdti/iel/v1/events/rev` | sealed    | 2    | `t_govern`                                 | **Revoke** an owned artifact — a `kills[]` declaration + anchors the revocation-SEL `Trm`. Sealed on arrival, non-terminal. **Seal-advancing.**                                                          |
@@ -143,8 +143,8 @@ change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit 
 
 ### `Ixn` — content (tier 1)
 
-Anchors content SEL events, each SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`, never
-itself anchored), **and a credential's issuance commitment**
+Anchors content SEL events, each content SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`,
+never itself anchored), **and a credential's issuance commitment**
 `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
 may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
@@ -340,13 +340,13 @@ directions**:
 An IEL kind anchors **only** its matching SEL kind(s), and each SEL kind is valid **only** anchored
 by its matching IEL kind:
 
-| IEL kind | Anchors (SEL)                                                           | Tier-elevation floor |
-| -------- | ----------------------------------------------------------------------- | -------------------- |
-| `Ixn`    | content SEL events, each SEL's v1, and a credential issuance commitment | tier 1               |
-| `Evl`    | a SEL `Sea` (the neutral burying-seal recovery)                         | tier 2               |
-| `Ath`    | a SEL `Gnt` (doc-membership grant)                                      | tier 2               |
-| `Rev`    | a revocation-SEL `Trm`                                                  | tier 2               |
-| `Dth`    | a rescission-SEL `Trm`                                                  | tier 2               |
+| IEL kind | Anchors (SEL)                                                                   | Tier-elevation floor |
+| -------- | ------------------------------------------------------------------------------- | -------------------- |
+| `Ixn`    | content SEL events, each content SEL's v1, and a credential issuance commitment | tier 1               |
+| `Evl`    | a SEL `Sea` (the neutral burying-seal recovery)                                 | tier 2               |
+| `Ath`    | a SEL `Gnt` (doc-membership grant)                                              | tier 2               |
+| `Rev`    | a revocation-SEL `Trm`                                                          | tier 2               |
+| `Dth`    | a rescission-SEL `Trm`                                                          | tier 2               |
 
 ```mermaid
 flowchart LR

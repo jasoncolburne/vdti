@@ -288,8 +288,12 @@ terms-of-use SAD (e.g. "do not re-disclose") — at issuance, so the conditions 
 rather than being re-negotiated per presentation. A presentation then carries a **signed acceptance** of
 those terms: the terms travel committed in the presenting party's `grant` (no separate field), and the
 **disclosee** accepts them with its signed `admit` — chained to the `grant`, hence transitively over those
-terms — in the minimal push, or its `agree` in the negotiated flow. A non-repudiable record of who accepted
-what. In the minimal push the acceptance arrives only **with** the `admit`: a disclosee that takes the
+terms — in the minimal push, or its `agree` in the negotiated flow — a non-repudiable record that the
+disclosee **accepted a commitment covering those terms** (acceptance by reference: the `admit` commits the
+terms by SAID, binding the disclosee to _these_ terms, though it cannot alone prove which disclosure form
+was shown). **Acceptance requires sight structurally:** `terms` is a nested sub-SAD, so a conforming accept
+of a terms-bearing credential **expands and reads it before granting/admitting** — a compacted-`terms`
+presentation is refused at accept, so the accepting party is bound only to terms it has seen. In the minimal push the acceptance arrives only **with** the `admit`: a disclosee that takes the
 `grant` and never admits holds the disclosure with no signed acceptance on record — the discloser's exposure
 for the push; a discloser needing acceptance-first uses the negotiated flow, where `agree` precedes `grant`.
 

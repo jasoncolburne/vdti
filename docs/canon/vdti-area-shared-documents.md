@@ -34,9 +34,9 @@ membership is a _creator-governed, per-period access list_.** The creator govern
 **view** (the document `readers` gate), **comment** (`commenters[]`), **edit** (`editors[]`, who author
 versions) — the Google-Docs triad; commenting is reserved, its mechanism deferred (§7). Each version is
 a primitive attributed
-SAD — `custody { owner, topic, readers }`, owner-rooted by its own
-`derive(owner, DOC_TOPIC, version_said)` SEL exactly like any bare SAD, so authorship is **provable
-and non-repudiable** (only the editor's `t_use` produces it). **Membership is not delegation** — an
+SAD — `custody { owner, pin, readers }`, owner-rooted by a **direct anchor** on the editor's IEL
+(its `pin` locating the `Ixn` that commits `version_said`) exactly like any bare SAD, so authorship
+is **provable and non-repudiable** (only the editor's `t_use` produces it). **Membership is not delegation** — an
 editor acts as _itself_, never with the creator's authority — it is an **access list** the creator
 maintains on a doc-governance SEL: a **grant** opens a validity _period_ on the editor's own IEL
 (`from` = the editor's IEL tip at grant), and a **rescission** — a period-scoped lookup-SEL carrying
@@ -140,7 +140,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   (the grant is additive / walkable-forward, the rescind a monotone terminal kill), not threshold. (Undoes
   the earlier `@govern`, forced only because `delegate` was too specific — cold F8 / warm F7.)_
 - **Version — a primitive attributed SAD (the custody primitive, not a bespoke shape — Q2/F5).**
-  `custody { owner = the editor's IEL prefix, topic = DOC_TOPIC, readers = the current read gate }` — and
+  `custody { owner = the editor's IEL prefix, pin = the version's anchoring-`Ixn` locator, readers = the current read gate }` — and
   because custody lives **only** on standalone SADs (`custody.md`: chain events carry no custody slot), a
   version _is_ a custody-attributed standalone SAD, so the primitive fixes its shape: owner-rooted by its
   `derive(owner, DOC_TOPIC, version_said)` SEL (`data = version_said`), a short **`{Icp, Pin}`** SEL
@@ -455,7 +455,7 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   - **Doc SADs** (`vdti/doc/v1/schemas/*`; every SAD carries `kind`; **`custody` is inline** — no `said`,
     so it can't be compacted away, the SAD's authority travels with it):
     - `inception` (V0): `{ said, kind, prefix, creator, custody{ readers }, nonce? }`
-    - `version`: `{ said, kind, custody{ owner, topic, readers }, prefix, grant, ancestors[], content, nonce?, edited? }`
+    - `version`: `{ said, kind, custody{ owner, pin, readers }, prefix, grant, ancestors[], content, nonce?, edited? }`
     - `grant` — the edit-governance **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
       (the `grants/*` convention shared with exchange, ≤ 64 chars; the generalized seal-a-typed-value `Gnt`,
       area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readers }, editors, commenters }`, two

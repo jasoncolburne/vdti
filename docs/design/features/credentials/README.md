@@ -64,11 +64,15 @@ Both are existing primitives, reused unchanged.
   event. The credential carries an **`issuerPin`** — that anchoring event's `previous` — so a
   verifier goes straight to the anchor (at `issuerPin`'s serial + 1 on the canonical chain) and
   opens just that one event's manifest, rather than opening a manifest at every step of the walk.
-  That anchor is the validity proof, strictly stronger than a detached issuer signature: it is
-  **witnessed** (the federation attests it), **positioned** (a point in the issuer's chain, so it is
-  time-ordered and revocable in place), and read **as-of that position**. No registry object and no
-  lookup record: the credential is immutable and holder-presented, so it needs none. The anchoring
-  event transitively commits the issuer's key state and its whole authority chain.
+  The mint and the anchoring `Ixn` are one tip-atomic step — an intervening append would make
+  `previous ≠ issuerPin`, so the credential simply fails to verify and is re-minted (fresh pin,
+  fresh SAID). That anchor is the validity proof, strictly stronger than a detached issuer
+  signature: it is **witnessed** (the federation attests it), **positioned** (a point in the
+  issuer's chain, so it is time-ordered and revocable in place), and read **as-of that position**
+  (the verifier confirms the located event's kind is `Ixn` — surfaced by the walk token — and its
+  `previous == issuerPin`). No registry object and no lookup record: the credential is immutable and
+  holder-presented, so it needs none. The anchoring event transitively commits the issuer's key
+  state and its whole authority chain.
 - **Proof of disclosure is compaction.** A SAD's SAID is a hash over its content with nested SADs
   replaced by their own SAIDs, so a section is disclosed by revealing it and recomputing its SAID
   against the reference in its parent — no sibling-hash paths. Because the anchored SAID is over the
@@ -106,15 +110,17 @@ conjunction:
 - **Structural integrity** — the SAID recomputes and `claims` is a well-formed SAD of the expected
   kind.
 - **Validly issued** — the issuance is anchored at the position its `issuerPin` names and the issuer
-  condition resolves there; for a **delegated** issuer, the delegation path is **not rescinded**.
+  condition resolves there; for a **delegated** issuer, the delegation path is **not rescinded past
+  its grandfather bound** (a hop anchored before the bound stays honored).
 - **Issuer trusted** — the relying party trusts the `issuer` (its application decision).
 - **Fresh to the tip** — the issuer's chain is not forked, not disputed, and current, read against
   multi-source witnessed state. This is **mandatory**: an as-issued read alone is fooled by a forged
-  linear extension of a dormant chain, and only the to-tip check catches it. A no-single-tip or
-  stale chain grounds no new trust and is refused. A **terminated** issuer passes — its `Trm` is the
-  definitive, un-extendable tip, so pre-`Trm` issuance stays valid — but a `Trm` freezes the
-  issuer's logs, so its unrevoked credentials can no longer be killed: **revoke before terminating**
-  anything you may need to revoke.
+  linear extension of a dormant chain built on a **harvested, rotated-out key** — which the
+  freshness read catches via the witness key-window staleness flag; only the to-tip check surfaces
+  it. A no-single-tip or stale chain grounds no new trust and is refused. A **terminated** issuer
+  passes — its `Trm` is the definitive, un-extendable tip, so pre-`Trm` issuance stays valid — but a
+  `Trm` freezes the issuer's logs, so its unrevoked credentials can no longer be killed: **revoke
+  before terminating** anything you may need to revoke.
 - **Not revoked** — the fail-secure revocation walk ([Revocation](#revocation)).
 - **Owned** — the presenter satisfies the `issuee`'s `t_use`, bound to a fresh, audience-scoped
   `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
@@ -209,10 +215,11 @@ language**, by shaping the credential:
 ## Revocation
 
 A credential needs no revocation object unless it is ever revoked. To revoke, the issuer declares a
-**kill** on its own chain naming the credential's derived revocation target, alongside a small
-sealed lookup log (so the declaration does not leak the object's address). A non-issuer cannot
-declare it, and a witnessed kill cannot be rolled back — no forged revocation, no silent
-un-revocation.
+**kill** on its own chain naming the credential's derived revocation target —
+`hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')` — alongside a small sealed
+`{Icp, Trm}` lookup log at that derived address (so the declaration does not leak the object's
+address). A non-issuer cannot declare it, and a witnessed kill cannot be rolled back — no forged
+revocation, no silent un-revocation.
 
 - **Status is read fail-secure by default** — compute the target and walk the issuer's **fresh**
   chain from the issuance position to the tip, matching the target against each kill. Found →
@@ -250,14 +257,20 @@ then carries the terms and a **signed acceptance** of them: the presenting party
 discloses the terms-bearing credential, so the terms travel committed in it — no separate field —
 and the **disclosee** accepts them with its signed `admit` (chained to the `grant`, hence
 transitively over those terms) in the minimal push, or its `agree` in the negotiated flow. Either
-way there is a non-repudiable record of who accepted what. In the minimal push that acceptance
-arrives only **with** the `admit`: a disclosee that takes the `grant` and never admits holds the
-disclosure with no signed acceptance on record — the discloser's exposure for choosing the push over
-the negotiated flow. Because the terms are on the credential, an onward re-disclosure **inherits**
-them structurally, and the signed acceptances build a custody chain. Enforcement is **commitment and
-accountability**, not prevention: revealed bytes cannot be un-revealed, but the signed acceptance is
-non-repudiable evidence of a breach. One-off per-exchange conditions can still be negotiated in the
-exchange on top; the credential's own terms are the issuer's.
+way there is a non-repudiable record that the disclosee **accepted a commitment covering those
+terms** — acceptance by reference: the `admit` commits the terms by SAID, binding the disclosee to
+_these_ terms, though it cannot by itself prove which disclosure form the disclosee was shown.
+**Acceptance requires sight structurally:** `terms` is a nested sub-SAD, so a conforming accept of a
+terms-bearing credential **expands and reads it before granting or admitting** — a compacted-`terms`
+presentation is refused at accept, so the accepting party is bound only to terms it has seen. In the
+minimal push that acceptance arrives only **with** the `admit`: a disclosee that takes the `grant`
+and never admits holds the disclosure with no signed acceptance on record — the discloser's exposure
+for choosing the push over the negotiated flow. Because the terms are on the credential, an onward
+re-disclosure **inherits** them structurally, and the signed acceptances build a custody chain.
+Enforcement is **commitment and accountability**, not prevention: revealed bytes cannot be
+un-revealed, but the signed acceptance is non-repudiable evidence of a breach. One-off per-exchange
+conditions can still be negotiated in the exchange on top; the credential's own terms are the
+issuer's.
 
 ## Bulk issuance
 

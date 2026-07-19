@@ -193,10 +193,11 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
 **O(1) first, with a fail-secure fall-through**:
 
 - **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is recomputed
-  from `(owner, topic, data)`; fetch its `{Icp, Trm}`): **present → killed**. Tamper-evident and
-  authoritative — and `Trm.pin` (= the killing `Rev` / `Dth`'s `previous`) points straight at that
-  kill event, so a grandfather check reads the `bound` from its `kills[]` entry directly, with no
-  exhaustive `kills[]` scan of the chain.
+  from `(owner, topic, data)`; the `Icp` is recomputed locally, never served, and only the `Trm` (+
+  receipts) is fetched): **present → killed**. Tamper-evident and authoritative — and `Trm.pin` (=
+  the killing `Rev` / `Dth`'s `previous`) points straight at that kill event, so a grandfather check
+  reads the `bound` from its `kills[]` entry directly, with no exhaustive `kills[]` scan of the
+  chain.
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
   `target = hash('{tag}:{owner}:{data}')` (the target **mirrors the killed address**:
   **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
@@ -286,8 +287,9 @@ read-only component of the token, not an independent verified state). The seal t
   and nothing past it can meet any threshold — so it is a distinct resolution, **not** a size-0
   roster. This is the roster **twin of `effective_said`**: the roster-projection of the same walk.
 - `roster()` → the **single** membership when there is one — a `Roster` on a chain with one
-  authoritative (seal-bearing) roster (**Active**, or **Forked**, where a content fork leaves
-  key-state untouched), or **`Terminated`**. It **errors on `Disputed`** (≥ 2 competing key-state
+  authoritative (seal-bearing) roster (**Active**, or **Forked** — a content fork leaves key-state
+  untouched, and a witness-declined sealed straggler never counts, so the **last-sealed** roster
+  stays authoritative), or **`Terminated`**. It **errors on `Disputed`** (≥ 2 competing key-state
   rosters; the caller must name a tip via `roster(tip_said)`, and the error surfaces the competing
   tips). **Live authority is tiered by act.** A live **action** — a `t_use` ownership proof, or a
   `t_authorize` grant / deauthorize (`Ixn` / `Ath` / `Dth`) — is **frozen on any divergence**: it
@@ -377,7 +379,8 @@ divergence. (Against a **witnessed** sealed fork **at** the last (clean) seal th
 `disputed`, and permanence runs against the last **clean** seal; a below-seal sealed straggler is
 **dropped**, not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer
 composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
-`disputed` chain; an above-seal anchor on a `disputed` chain grounds no new trust.
+`disputed` chain — for as-issued finality and existing bindings; granting **new** current trust
+still gates on `region()` — while an above-seal anchor on a `disputed` chain grounds no new trust.
 
 ## Federation witnessing in verification
 

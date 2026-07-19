@@ -13,8 +13,10 @@ or primitive encode named in its source; the [Forthcoming shapes](#forthcoming-s
 collects them.
 
 Types read as: **SAID** / **prefix** — a 256-bit digest (a SAID addresses content, a prefix names a
-chain); **string**; **u64** — an unsigned integer; **bool**; **bytes**; **timestamp** — an RFC 3339
-time; **list⟨T⟩**.
+chain); **SAD** — a **nested sub-SAD** at that position (referenced by its SAID, but expandable
+content the signing discipline must have seen — distinct from a scalar **SAID** reference like a
+`previous`, a pin, or an anchor); **string**; **u64** — an unsigned integer; **bool**; **bytes**;
+**timestamp** — an RFC 3339 time; **list⟨T⟩**.
 
 ## The two shapes
 
@@ -40,9 +42,10 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
 
 `custody` and `availability` are inline structs, each sub-field independently optional:
 
-- **`custody { owner, topic, readers }`** — `owner` is the writer's IEL prefix, `topic` the SEL
-  namespace that locates the write's anchor (both-or-neither), `readers` the prefix of a
-  read-authorization SEL that gates reads (`None` → public).
+- **`custody { owner, pin, readers }`** — `owner` is the writer's IEL prefix and `pin` locates the
+  owner-IEL `Ixn` that anchored the write (both-or-neither; the SAD's own `kind` names its type, so
+  no separate `topic`), `readers` the prefix of a read-authorization SEL that gates reads (`None` →
+  public).
 - **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
   everywhere), `ttl` a retention bound, `once` a destructive-read flag.
 
@@ -187,17 +190,17 @@ Six message kinds `vdti/ipex/v1/schemas/{apply,offer,agree,grant,admit,spurn}`, 
 threaded by `previous` ([`../../protocols/ipex.md`](../../protocols/ipex.md)). Only the **`grant`**
 — the disclosure and its presentation-freshness envelope — carries content and a distinct shape:
 
-| Field       | Type      | Required | Meaning                                                                                                    |
-| ----------- | --------- | -------- | ---------------------------------------------------------------------------------------------------------- |
-| `said`      | SAID      | yes      | Commits every field below; the signature is over it.                                                       |
-| `kind`      | string    | yes      | `vdti/ipex/v1/schemas/grant`.                                                                              |
-| `previous`  | SAID      | no       | The `agree` this grant answers (absent for a minimal push).                                                |
-| `discloser` | prefix    | yes      | The discloser's IEL prefix — equals the SAD's committed issuee if targeted.                                |
-| `audience`  | prefix    | yes      | The verifier's IEL prefix — binds the disclosure to one recipient.                                         |
-| `nonce`     | bytes     | yes      | Per-presentation, high-entropy — the replay-dedup entropy.                                                 |
-| `created`   | timestamp | yes      | Bounds cache retention; never a trust input.                                                               |
-| `challenge` | bytes     | no       | Echoes the verifier's `apply` challenge (stronger-liveness mode).                                          |
-| `disclosed` | SAID      | yes      | The disclosed SAD by SAID — expanded inline at full disclosure, or the committed SAID at a graduated step. |
+| Field       | Type      | Required | Meaning                                                                                                     |
+| ----------- | --------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `said`      | SAID      | yes      | Commits every field below; the signature is over it.                                                        |
+| `kind`      | string    | yes      | `vdti/ipex/v1/schemas/grant`.                                                                               |
+| `previous`  | SAID      | no       | The `agree` this grant answers (absent for a minimal push).                                                 |
+| `discloser` | prefix    | yes      | The discloser's IEL prefix — equals the SAD's committed issuee if targeted.                                 |
+| `audience`  | prefix    | yes      | The verifier's IEL prefix — binds the disclosure to one recipient.                                          |
+| `nonce`     | bytes     | yes      | Per-presentation, high-entropy — the replay-dedup entropy.                                                  |
+| `created`   | timestamp | yes      | Bounds cache retention; never a trust input.                                                                |
+| `challenge` | bytes     | no       | Echoes the verifier's `apply` challenge (stronger-liveness mode).                                           |
+| `disclosed` | SAD       | yes      | The disclosed SAD (nested) — expanded inline at full disclosure, or the committed SAID at a graduated step. |
 
 The other five messages (`apply` / `offer` / `agree` / `admit` / `spurn`) are lightweight
 negotiation and acknowledgement SADs, each `{ said, kind, previous?, … }` signed by its sender;
@@ -219,8 +222,8 @@ is common to every type.
 | `issuer`    | prefix    | yes      | The issuer's IEL prefix.                                                        |
 | `issuerPin` | SAID      | yes      | The anchoring `Ixn`'s `previous` — locates the anchor at `previous.serial + 1`. |
 | `issuee`    | prefix    | no       | The issuee's IEL prefix; **absent → a bearer credential**.                      |
-| `claims`    | SAID      | yes      | A claims SAD (nested → partial disclosure).                                     |
-| `terms`     | SAID      | no       | An issuer-set terms-of-use SAD; travels with the credential.                    |
+| `claims`    | SAD       | yes      | A claims SAD (nested → partial disclosure).                                     |
+| `terms`     | SAD       | no       | An issuer-set terms-of-use SAD (nested); travels with the credential.           |
 | `issued`    | timestamp | yes      | Issuance time (advisory).                                                       |
 | `expires`   | timestamp | no       | Expiry (advisory).                                                              |
 | `nonce`     | bytes     | yes      | High-entropy — every credential has one; makes `said` unguessable.              |
