@@ -50,9 +50,10 @@ receipts.
   the writer's signature, so the two siblings are provably the same writer's conflicting successors —
   **undeniable** (a same-writer fork), no way to pass a fork off as one node. Whether it is **misbehavior** is the
   group's policy, not automatic: a crash-**resend** carries the *same* SAID (a dedup), but a crash before
-  persisting the record, re-authored with a fresh nonce, is a genuine honest sibling. **Surfacing** it needs both siblings to reach a common honest reader: a witnessed node (a doc
-  version) has the receipt beacon; an **unwitnessed** chat node rides propagation, so an eclipse / split delivery
-  only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
+  persisting the record, re-authored with a fresh nonce, is a genuine honest sibling. **Surfacing** it needs both siblings to reach a common honest reader: this **rides propagation, not
+  witnessing** — a chat lane is unwitnessed, and two version siblings anchor at distinct editor-IEL positions with
+  no shared witnessed `(prefix, serial)`, so no receipt beacon fires on the pair either — so an eclipse / split
+  delivery only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
   consequence is the group's policy (for chat, coupled to membership removal + the epoch turn). **A writer's
   nodes forming a _single_ chain is a feature-enforced rule, not a single-parent property (PR#25 r2 W1/cold-P1):**
   single-parenthood alone yields a **forest** — a second parentless **root** is a disjoint lane the fork rule
@@ -128,7 +129,8 @@ variants"). Monotonicity was Jason's earlier suggestion, confirmed here as the F
   commit the **device prefix + group prefix + membership period / grant-instance** so it is structurally bound to
   one group and single-use per period (PR#25 r5 cold-P2). The removed-writer close is the `bound`'s ancestor-chain
   interval (above; PR#25 r5 cold-P1).
-- **⚠ Owed (the shared-documents PR — DO NOT DROP; deferred 2026-07-19 with the membership rename).** Wire the
-  **multi-parent** version graph onto this primitive (the version SAD's `ancestors[]` is already the multi-parent
-  DAG — `shapes.md`); state branch + merge + version-order monotonicity as this primitive's multi-parent variant
-  at the shared-documents encode.
+- **DONE (2026-07-19, shared-documents encode).** Wired the **multi-parent** version graph onto this primitive:
+  the version SAD's `ancestors[]` is the multi-parent DAG, and branch + merge + version-order monotonicity are
+  stated as this primitive's multi-parent variant in `../design/features/shared-documents.md`. The honored window
+  `F_x ≤ V_x ≤ B_x` is the `document-edit-membership` check; DAG placement (a dead parent drops its descendants) is
+  this primitive's rule, derived as a placement consequence, not `previous`-linkage descent.

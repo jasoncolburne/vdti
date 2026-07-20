@@ -172,13 +172,13 @@ So a **keyed** feature composes **both** — group-key's bounded wrap roster (to
 membership instance (to authorize a requester) — while an **unkeyed** feature composes **only** membership. Two
 structures, opposite shapes; a feature that needs both uses both. **Chat** is capped (the group-key wrap roster +
 `chat-membership`), but the authorization check is still the same one-at-a-time membership lookup; **unprotected
-shared documents** are uncapped (`document-membership` only).
+shared documents** are uncapped (the three `document-*-membership` instances).
 
 ## Instances
 
 Features name their membership sets on the shared `vdti/{component}/v1/{category}/{name}` convention; the concrete
 SEL topic, grant-value kind, and rescission tag are **each instance's** to register (as group-key registers its
-own roster / key-epoch names), not the primitive's. Two instances exist:
+own roster / key-epoch names), not the primitive's. The instances that exist are:
 
 - **`chat-membership`** (exchange feature, [`vdti-area-exchange.md`](vdti-area-exchange.md) §7a) — the set a
   chat's store checks to gate deposit and drain. Bounded **in practice** (the chat is a keyed group, so group-key
@@ -187,11 +187,13 @@ own roster / key-epoch names), not the primitive's. Two instances exist:
   per-lane **`bound`** (the verifier honors each lane only its `bound`'s ancestor-chain `[root … bound]` —
   off-chain and unanchored nodes rejected alike) plus an **immediate epoch turn** for forward secrecy; each device's membership period is a
   **disjoint anchored lane** (re-add anchors a new marker). **Landed this PR.**
-- **`document-membership`** (shared-documents feature — **forthcoming**) — the set a shared document's store
-  checks. Genuinely **unbounded** (an open readership), **grandfather**-rescinded. See "Drift → land" — the
-  rename + wiring is owed to the shared-documents encode, where the **read-vs-write split** is decided.
+- **`document-edit-membership`** / **`document-comment-membership`** / **`document-read-membership`**
+  (shared-documents feature) — three plain instances, one per role, **max-capability** (implied hierarchy
+  edit ⊃ comment ⊃ read; capability = the most powerful role held; each checked **independently**, no
+  cross-group linkage; the read gate is the union of the three). Genuinely **unbounded** (an open readership),
+  **grandfather**-rescinded ([`vdti-area-shared-documents.md`](vdti-area-shared-documents.md)).
 
-The read-versus-write distinction and the exact per-instance shapes are the composing feature's; membership
+The per-role distinction and the exact per-instance shapes are the composing feature's; membership
 provides the one checked-set mechanism both sit on.
 
 ## The boundary — what membership is not
@@ -239,15 +241,16 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
 - **Owed (this PR — the exchange encode).** The [group-key](vdti-area-group-key.md) cross-ref (its wrap roster is
   the cap; membership is the separate unbounded authorization); the **`chat-membership`** instance in
   `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, an `[anchored root … bound]` lane bracket), replacing the
-  round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers` is the read-authorization
-  **pointer into** a membership set (a `readers` value is a membership-set prefix — already stated at
-  `custody.md`).
-- **⚠ Owed (the shared-documents PR — DO NOT DROP; deferred 2026-07-19, Jason "make sure it doesn't get
-  dropped").** Rename **`shared-document-governance` → `document-membership`** and its sibling
-  **`shared-document-read-governance`**, and wire shared-documents onto **membership** + the multi-parent
-  [authored-dag](vdti-area-authored-dag.md). Deferred out of the exchange PR because shared-docs is not otherwise
-  touched there (a naked cross-feature catalogue rename) **and** the rename hides a modeling call that belongs to
-  the shared-docs encode: a document has **two** sets — read and edit — and membership is per-set, so
-  `document-membership` **splits into a read-membership and a write-membership set**; decide the split against
-  real shared-docs design. Register `document-membership`'s concrete SEL topic / grant-value kind / rescission tag
-  in `kinds.md` + `tags-and-topics.md` at that encode.
+  round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers[]` is the read-authorization
+  **pointer** — a **strictly ascending (sorted, distinct) list** of membership-set prefixes, **union with any-match** (a shared document lists its
+  three `document-*-membership` SELs; a single-set gate is a one-element list; omitted → public) — already stated at
+  `custody.md`.
+- **DONE (2026-07-19 encode; roles revised to THREE instances 2026-07-20 in the PR#27 review).** Renamed
+  `shared-document-governance` → **`document-edit-membership`** + **`document-comment-membership`** and
+  `shared-document-read-governance` → **`document-read-membership`**, and wired shared-documents onto
+  **membership** (three plain instances, **max-capability**, implied hierarchy edit ⊃ comment ⊃ read — Jason's
+  call, superseding the earlier two-coupled-instances form; resolves the PR#27 F1 rescission-recording
+  contradiction + F6 author-must-be-editor) + the multi-parent [authored-dag](vdti-area-authored-dag.md). Design
+  doc `../design/features/shared-documents.md`; grant-value kinds + topics in `kinds.md` / `tags-and-topics.md` /
+  `shapes.md` (SEL topics `vdti/doc/v1/topics/edit-membership` / `.../comment-membership` / `.../read-membership`
+  + shared `.../rescission`).

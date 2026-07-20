@@ -40,14 +40,14 @@ Every SAD carries one of these. **The chain events:**
 
 **The commitment SADs events reference:**
 
-| Kind                            | What it is                                                                                                                                                                                 |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                                                                                                                             |
-| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                                                                                                                                 |
-| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                                                                                                                                  |
-| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                                                                                                                              |
-| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `directory-ml-kem-1024`, `directory-ml-kem-768`, `shared-document-governance`, `shared-document-read-governance`, `groupkey-epoch-key`, `chat-membership` |
-| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                                                               |
+| Kind                            | What it is                                                                                                                                                                                                       |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                                                                                                                                                   |
+| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                                                                                                                                                       |
+| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                                                                                                                                                        |
+| `vdti/event/v1/roles/pins`      | the participating member KEL event SAIDs (an IEL's down-pins)                                                                                                                                                    |
+| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `directory-ml-kem-1024`, `directory-ml-kem-768`, `document-edit-membership`, `document-comment-membership`, `document-read-membership`, `groupkey-epoch-key`, `chat-membership` |
+| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                                                                                     |
 
 The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their
@@ -77,13 +77,13 @@ label
 
 **The feature / application SADs:**
 
-| Kind                         | What it is                                                   |
-| ---------------------------- | ------------------------------------------------------------ |
-| `vdti/doc/v1/schemas/*`      | shared-document SADs (`comment`, …)                          |
-| `vdti/exchange/v1/schemas/*` | exchange SADs                                                |
-| `vdti/cred/v1/schemas/*`     | credential SADs — the `kind` names the type (app-registered) |
-| `vdti/cred/v1/claims/*`      | credential claim SADs (app-defined, blinded per predicate)   |
-| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain                          |
+| Kind                         | What it is                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `vdti/doc/v1/schemas/*`      | shared-document SADs (`inception` / `version` / `comment` / `comment-resolution` / …) |
+| `vdti/exchange/v1/schemas/*` | exchange SADs                                                                         |
+| `vdti/cred/v1/schemas/*`     | credential SADs — the `kind` names the type (app-registered)                          |
+| `vdti/cred/v1/claims/*`      | credential claim SADs (app-defined, blinded per predicate)                            |
+| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain                                                   |
 
 One further standalone kind is owed by a forthcoming encode: the **replica-set SAD** an
 `availability.replicas` field names ([`availability.md`](availability.md)) — its `kind` and layout

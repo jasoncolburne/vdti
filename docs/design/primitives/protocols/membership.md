@@ -133,21 +133,25 @@ The `bound` is blinded when it would otherwise identify a participant (riding be
 a non-identifying one rides in the open. Either way the removal is one `rescinds` entry plus, for
 the happy path, the member's content-addressed rescission lookup.
 
-## Two instances
+## The membership instances
 
 Features name their membership sets on the shared `vdti/{component}/v1/{category}/{name}`
-convention, and the two that exist are parallel:
+convention, and the instances that exist are parallel:
 
 - **`chat-membership`** — the set a chat's store checks to gate deposit and fetch. Bounded in
   practice (the chat is a keyed group, so group-key already caps it), but checked the same
   one-at-a-time way; the check is per **identity** (any device reads), while each writing **device**
   anchors its own lane on-demand and removal records a per-lane `bound`, so each device's membership
   period is a disjoint bracketed lane (above).
-- **`document-membership`** — the set a shared document's store checks to gate read and write.
-  Genuinely unbounded (an open readership), grandfather-rescinded.
+- **`document-edit-membership`** / **`document-comment-membership`** /
+  **`document-read-membership`** — a shared document composes **three** plain instances, one per
+  role, in an implied hierarchy (edit ⊃ comment ⊃ read); a member's capability is the most powerful
+  role it holds, and each group is checked **independently** (no cross-group linkage). Genuinely
+  unbounded (an open readership), grandfather-rescinded
+  ([shared documents](../../features/shared-documents.md)).
 
-The read-versus-write distinction, and the exact per-instance shapes, are the composing feature's;
-membership provides the one checked-set mechanism both sit on.
+The roles land as those **three instances**; the exact per-instance shapes are the composing
+feature's, and membership provides the one checked-set mechanism all sit on.
 
 ## The cap is keying's, not membership's
 

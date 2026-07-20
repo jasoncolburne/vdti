@@ -10,8 +10,11 @@ hashes over is documented in [`sad.md`](sad.md).
 
 ## Derivation
 
-SAID derivation differs slightly for chain inception events (which carry a `prefix` field) and for
-all other SADs. Both algorithms share the same fixed-value placeholder mechanism, the same JCS
+SAID derivation differs slightly for **prefix-deriving SADs** — the chain inception events, and the
+document constitution **V0** (a standalone prefix-deriving SAD) — and for all other SADs. Which
+class a SAD is in is decided by its **`kind`**, not by field-presence: a version SAD also carries a
+`prefix` field, but that is a _foreign_ reference to its document and derives single-hash like any
+other SAD. Both algorithms share the same fixed-value placeholder mechanism, the same JCS
 canonicalization, and the same Blake3-256 hash; they differ in which fields carry the placeholder
 and how many hashes are computed.
 
@@ -211,6 +214,14 @@ determinism of the derivation algorithm.
 - **Canonicalization is part of the security argument.** A non-deterministic serializer would let an
   adversary produce two byte sequences with the same logical content but different SAIDs. JCS
   removes that degree of freedom — the canonical bytes are a function of the logical content alone.
+  One residual: JCS fixes **object key** order but preserves **array element** order **and
+  multiplicity**, so a list field whose meaning is order-independent (a set — e.g. a custody
+  `readers` union) MUST be carried **strictly ascending** (its members sorted **and** distinct) by
+  the producer; otherwise two orderings, or a duplicate-bearing versus de-duplicated form, of the
+  same set yield different SAIDs. A verifier treats an out-of-order **or** duplicate-bearing such
+  list as **non-canonical** and rejects it, exactly as it rejects a non-compacted SAID (Rule 1) — so
+  the set has one SAID, not one per permutation or repeat. Order-bearing lists (a version's
+  `ancestors`) keep their order.
 
 For chain inception events the prefix is independently content-derived via the second algorithm in
 [§Derivation](#derivation) and carries the same adversarial properties as the SAID —
