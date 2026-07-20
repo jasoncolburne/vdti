@@ -33,7 +33,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    `vdti/<concept>/v1/<category>/<thing>`, **capped ≤ 64 chars** (a DoS bound — the verifier rejects a
    longer `kind`). **Grant-values** — what a `Gnt`'s `manifest.grant` names — are kinded under
    **`vdti/sel/v1/grants/*`**, owner-first (a feature or a stateful primitive) so grants sort by owner
-   (`directory-ml-kem-1024`, `document-membership`; area-sel §1b). `[locked]`
+   (`directory-ml-kem-1024`, `document-edit-membership`; area-sel §1b). `[locked]`
    **The principle (Jason, 2026-06-21):**
    - **Top-level structural = the event's *own* links:** `said`, `previous`, **`previousSeal`** (seal-advancing
      events only — the back-link to the prior seal that renders the spine; inv 17), **`pin`** (a SEL's down-pin to
@@ -98,7 +98,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      — B1 fail-secure rework; the gated-custody `bound` reads as a dedicated manifest role on the SEL `Trm` — WF1,
      2026-07-13 — the twin of the additive `grant` role, distinct from the inline `kills[].bound` field; renamed
      from "cut-off"/"terminator" 2026-06-26.)*
-   - `grant` — the gated grant-doc SAD `G` a **SEL `Gnt`** commits (the editors/commenters + their `from`
+   - `grant` — the gated grant-doc SAD `G` a **SEL `Gnt`** commits (the granted members + their `from`
      validity-period starts). The additive twin of the rescission `Trm`'s `bound`; back-checked (a `Gnt` is valid
      only anchored by an `Ath` — kind-strict), so unlike `payload` it is *not* a directly-consumed role.
    - `payload` — the payload SAD(s) a **SEL `Ixn`** records (single-owner data — e.g. an app/doc SEL amendment; a
@@ -827,7 +827,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     hash('{topic}:{owner}:{data}')` (distinct `topic` per kind; `data` = the grant-instance). You can only
     **confirm** a subject whose grant-instance you already hold (→ can compute its `target`); you **can't invert** a
     `target` back to a subject, so it is a bounded *confirm*, not a bulk-enumerate. A private cred / gated grant-doc
-    keeps its `target` uncomputable because its `data` (`cred.said` / `hash(G | said_b)`) stays secret — and the
+    keeps its `target` uncomputable because its `data` (`cred.said` / `hash(G : said_b)`) stays secret — and the
     `data` **never appears raw** on the public IEL (every public value is a hash of it, private-cred boundary
     consequence below), so this is **closed** for private subjects; a public cred's status is correctly public. So
     `issuer ↔ prefix` residual = **issuance stays muddied + confirm-a-known-subject on revocation** — the earlier

@@ -211,9 +211,9 @@ Features compose the primitives into what an application ships: credentials, sec
     currency, recipient-scoped delivery + the serve-time gate, the `chat-membership` store gate, and
     the per-sender-lane authored DAG.
 41. [`features/shared-documents.md`](features/shared-documents.md) — a document several parties
-    co-author, membership and sharing evolving under a creator: the V0 constitution, the two
-    `document-membership` instances (edit + read), the multi-parent version DAG, the honored-window
-    predicate, and group-key confidentiality.
+    co-author, membership and sharing evolving under a creator: the V0 constitution, the three
+    `document-*-membership` instances (edit / comment / read, max-capability), the multi-parent
+    version DAG, the honored-window predicate, and group-key confidentiality.
 
 ## Forthcoming
 

@@ -131,5 +131,5 @@ variants"). Monotonicity was Jason's earlier suggestion, confirmed here as the F
 - **DONE (2026-07-19, shared-documents encode).** Wired the **multi-parent** version graph onto this primitive:
   the version SAD's `ancestors[]` is the multi-parent DAG, and branch + merge + version-order monotonicity are
   stated as this primitive's multi-parent variant in `../design/features/shared-documents.md`. The honored window
-  `F_x ≤ V_x ≤ B_x` is the `document-membership` check; DAG placement (a dead parent drops its descendants) is
+  `F_x ≤ V_x ≤ B_x` is the `document-edit-membership` check; DAG placement (a dead parent drops its descendants) is
   this primitive's rule, derived as a placement consequence, not `previous`-linkage descent.

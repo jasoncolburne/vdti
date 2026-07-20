@@ -172,7 +172,7 @@ So a **keyed** feature composes **both** — group-key's bounded wrap roster (to
 membership instance (to authorize a requester) — while an **unkeyed** feature composes **only** membership. Two
 structures, opposite shapes; a feature that needs both uses both. **Chat** is capped (the group-key wrap roster +
 `chat-membership`), but the authorization check is still the same one-at-a-time membership lookup; **unprotected
-shared documents** are uncapped (`document-membership` only).
+shared documents** are uncapped (the three `document-*-membership` instances).
 
 ## Instances
 
@@ -187,11 +187,13 @@ own roster / key-epoch names), not the primitive's. Two instances exist:
   per-lane **`bound`** (the verifier honors each lane only its `bound`'s ancestor-chain `[root … bound]` —
   off-chain and unanchored nodes rejected alike) plus an **immediate epoch turn** for forward secrecy; each device's membership period is a
   **disjoint anchored lane** (re-add anchors a new marker). **Landed this PR.**
-- **`document-membership`** (shared-documents feature — **forthcoming**) — the set a shared document's store
-  checks. Genuinely **unbounded** (an open readership), **grandfather**-rescinded. See "Drift → land" — the
-  rename + wiring is owed to the shared-documents encode, where the **read-vs-write split** is decided.
+- **`document-edit-membership`** / **`document-comment-membership`** / **`document-read-membership`**
+  (shared-documents feature) — three plain instances, one per role, **max-capability** (implied hierarchy
+  edit ⊃ comment ⊃ read; capability = the most powerful role held; each checked **independently**, no
+  cross-group linkage; the read gate is the union of the three). Genuinely **unbounded** (an open readership),
+  **grandfather**-rescinded ([`vdti-area-shared-documents.md`](vdti-area-shared-documents.md)).
 
-The read-versus-write distinction and the exact per-instance shapes are the composing feature's; membership
+The per-role distinction and the exact per-instance shapes are the composing feature's; membership
 provides the one checked-set mechanism both sit on.
 
 ## The boundary — what membership is not
@@ -242,10 +244,12 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
   round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers` is the read-authorization
   **pointer into** a membership set (a `readers` value is a membership-set prefix — already stated at
   `custody.md`).
-- **DONE (2026-07-19, shared-documents encode).** Renamed `shared-document-governance` →
-  **`document-membership`** and `shared-document-read-governance` → **`document-read-membership`**, and wired
-  shared-documents onto **membership** + the multi-parent [authored-dag](vdti-area-authored-dag.md). The
-  read-vs-write split landed as **two instances** (Jason's call): `document-membership` (editors + commenters) +
-  `document-read-membership` (readers), each a plain instance reusing the same machinery. Design doc
-  `../design/features/shared-documents.md`; grant-value kinds + topics in `kinds.md` / `tags-and-topics.md` /
-  `shapes.md` (SEL topics `vdti/doc/v1/topics/membership` + `.../read-membership` + shared `.../rescission`).
+- **DONE (2026-07-19 encode; roles revised to THREE instances 2026-07-20 in the PR#27 review).** Renamed
+  `shared-document-governance` → **`document-edit-membership`** + **`document-comment-membership`** and
+  `shared-document-read-governance` → **`document-read-membership`**, and wired shared-documents onto
+  **membership** (three plain instances, **max-capability**, implied hierarchy edit ⊃ comment ⊃ read — Jason's
+  call, superseding the earlier two-coupled-instances form; resolves the PR#27 F1 rescission-recording
+  contradiction + F6 author-must-be-editor) + the multi-parent [authored-dag](vdti-area-authored-dag.md). Design
+  doc `../design/features/shared-documents.md`; grant-value kinds + topics in `kinds.md` / `tags-and-topics.md` /
+  `shapes.md` (SEL topics `vdti/doc/v1/topics/edit-membership` / `.../comment-membership` / `.../read-membership`
+  + shared `.../rescission`).

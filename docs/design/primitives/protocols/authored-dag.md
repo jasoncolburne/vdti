@@ -60,11 +60,13 @@ policy, not automatic: a crash-**resend** of a minted node carries the _same_ SA
 sibling), but a writer that crashes before persisting its record and re-authors the text draws a
 **fresh** mandatory nonce → a genuine same-text sibling, an **honest** fork. The undeniability holds
 either way; the consequence is the policy's call. **Surfacing** it needs the two siblings to reach a
-common honest reader: on a **witnessed** node (a document version — anchored, below) the receipt
-beacon forces that; on an **unwitnessed** node (a chat lane) it rides propagation, so an eclipse or
-a split delivery only **defers** detection — the standard _detection-is-eventual_ residual, never a
-way to hide the fork permanently. The group's policy decides the consequence (for chat, coupled to
-removal + the epoch turn).
+common honest reader — which rides **propagation**, not witnessing: a chat lane is unwitnessed, and
+two _version_ siblings anchor at distinct editor-IEL positions with no shared witnessed
+`(prefix, serial)`, so no receipt beacon fires on the pair either. An eclipse or a split delivery
+only **defers** detection — the standard _detection-is-eventual_ residual, never a way to hide the
+fork permanently. (A document's multi-parent forks are legitimate anyway — this is
+tips-completeness, availability-bounded, not an anti-equivocation gate.) The group's policy decides
+the consequence (for chat, coupled to removal + the epoch turn).
 
 **One lane per writer is enforced, not derived — the root is anchored.** Single-parent linking alone
 yields a **forest**: a writer can mint a second parentless **root** (a disjoint lane), and the fork

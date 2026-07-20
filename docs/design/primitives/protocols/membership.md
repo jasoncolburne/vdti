@@ -143,13 +143,15 @@ convention, and the two that exist are parallel:
   one-at-a-time way; the check is per **identity** (any device reads), while each writing **device**
   anchors its own lane on-demand and removal records a per-lane `bound`, so each device's membership
   period is a disjoint bracketed lane (above).
-- **`document-membership`** — the participation set of a shared document (editors + commenters), and
-  **`document-read-membership`** — its read gate (readers): a document composes **two** instances,
-  each a plain instance the creator governs, genuinely unbounded (an open readership),
-  grandfather-rescinded ([shared documents](../../features/shared-documents.md)).
+- **`document-edit-membership`** / **`document-comment-membership`** /
+  **`document-read-membership`** — a shared document composes **three** plain instances, one per
+  role, in an implied hierarchy (edit ⊃ comment ⊃ read); a member's capability is the most powerful
+  role it holds, and each group is checked **independently** (no cross-group linkage). Genuinely
+  unbounded (an open readership), grandfather-rescinded
+  ([shared documents](../../features/shared-documents.md)).
 
-The read-versus-write split lands as those **two instances**; the exact per-instance shapes are the
-composing feature's, and membership provides the one checked-set mechanism both sit on.
+The roles land as those **three instances**; the exact per-instance shapes are the composing
+feature's, and membership provides the one checked-set mechanism all sit on.
 
 ## The cap is keying's, not membership's
 

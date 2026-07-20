@@ -170,14 +170,15 @@ sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/rec
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                          | Carries                                                                                                                                                                                                                     | Status      |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `vdti/sel/v1/grants/directory-ml-kem-1024`    | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints.                                                                                                          | forthcoming |
-| `vdti/sel/v1/grants/directory-ml-kem-768`     | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                                                                                                                                 | forthcoming |
-| `vdti/sel/v1/grants/groupkey-epoch-key`       | A group epoch key, ESSR-wrapped once per member device.                                                                                                                                                                     | forthcoming |
-| `vdti/sel/v1/grants/document-membership`      | The `{ grants, rescinds }` membership-delta grant-doc (shared documents) — a `grants` entry opens an editor/commenter period; a `rescinds` entry records its grandfather `bound` on the rescission `Trm`'s `bound` role.    | forthcoming |
-| `vdti/sel/v1/grants/document-read-membership` | The read grant-doc — the `readers` role-list only.                                                                                                                                                                          | forthcoming |
-| `vdti/sel/v1/grants/chat-membership`          | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role. | forthcoming |
+| Kind                                             | Carries                                                                                                                                                                                                                         | Status      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `vdti/sel/v1/grants/directory-ml-kem-1024`       | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints.                                                                                                              | forthcoming |
+| `vdti/sel/v1/grants/directory-ml-kem-768`        | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                                                                                                                                     | forthcoming |
+| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device.                                                                                                                                                                         | forthcoming |
+| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (shared documents, **editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role. | forthcoming |
+| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**.                                                                                                                                                                                                 | forthcoming |
+| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**.                                                                                                                                                                                                    | forthcoming |
+| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role.     | forthcoming |
 
 Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
 encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the
@@ -281,32 +282,33 @@ the `said` against the commitment ([claim-gating](../../../features/credentials.
 
 The **V0 constitution** (derives the doc prefix):
 
-| Field     | Type   | Meaning                                                                                                  |
-| --------- | ------ | -------------------------------------------------------------------------------------------------------- |
-| `said`    | SAID   | V0's SAID.                                                                                               |
-| `kind`    | string | `vdti/doc/v1/schemas/inception`.                                                                         |
-| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                                               |
-| `prefix`  | prefix | The doc prefix — derived from V0's whole content (nonce'd → unguessable if private).                     |
-| `readers` | prefix | The initial read gate — the prefix of a read-authorization SEL, walked for membership (`None` → public). |
-| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                                              |
+| Field     | Type   | Meaning                                                                              |
+| --------- | ------ | ------------------------------------------------------------------------------------ |
+| `said`    | SAID   | V0's SAID.                                                                           |
+| `kind`    | string | `vdti/doc/v1/schemas/inception`.                                                     |
+| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                           |
+| `prefix`  | prefix | The doc prefix — derived from V0's whole content (nonce'd → unguessable if private). |
+| `custody` | struct | `{ readers }` — the initial read gate (the doc's union read check; `None` → public). |
+| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                          |
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
-| Field       | Type       | Meaning                                                           |
-| ----------- | ---------- | ----------------------------------------------------------------- |
-| `said`      | SAID       | The version's SAID.                                               |
-| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                    |
-| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers }`.                      |
-| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                    |
-| `prefix`    | prefix     | The doc prefix.                                                   |
-| `grant`     | SAID       | The authorizing `document-membership` grant — the claimed period. |
-| `content`   | SAD        | The version body.                                                 |
-| `edited`    | timestamp  | Advisory feature timestamp.                                       |
-| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable.                |
+| Field       | Type       | Meaning                                                       |
+| ----------- | ---------- | ------------------------------------------------------------- |
+| `said`      | SAID       | The version's SAID.                                           |
+| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                |
+| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers }`.                  |
+| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                |
+| `prefix`    | prefix     | The doc prefix.                                               |
+| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant. |
+| `content`   | SAD        | The version body.                                             |
+| `edited`    | timestamp  | Advisory feature timestamp.                                   |
+| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable.            |
 
-The **grant-doc** (`document-membership`, editors/commenters role-lists), the **read grant-doc**
-(`document-read-membership`, the `readers` role-list only), and the **gated rescind-doc** (a `bound`
-position sealing a membership period) are **forthcoming** — shapes at the shared-documents encode
+The **grant-doc** (the `{ grants, rescinds }` delta — one shape shared by the three instances
+`document-edit-membership` / `document-comment-membership` / `document-read-membership`, the kind
+naming the role) and the **gated rescind-doc** (the `Trm`'s `bound` role sealing a period cutoff)
+are **forthcoming** — shapes at the shared-documents encode
 ([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
 
 ### Exchange — `vdti/exchange/v1/*`
@@ -364,7 +366,7 @@ The kinds whose role is fixed but whose exact field layout is owed, with where e
 | Kind / SAD                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Lands at                                                     |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
 | Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                                                                                                                                                                                                                                                                                                                                          | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
-| Shared-document grant values (`document-membership`, `document-read-membership`) + grant-doc + read grant-doc + rescind-doc                                                                                                                                                                                                                                                                                                                                      | the shared-documents encode                                  |
+| Shared-document grant values (`document-edit-membership`, `document-comment-membership`, `document-read-membership`) + grant-doc + rescind-doc                                                                                                                                                                                                                                                                                                                   | the shared-documents encode                                  |
 | Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a grant-chain entry anchors a writing device's body-less lane-root marker; a `rescinds` entry records each device lane's `bound` on the rescission `Trm`'s `bound` role) + the body-less join-marker shape (commits the **device prefix + group prefix + membership period / grant-instance** — structurally bound to one group, single-use per period) | the exchange encode                                          |
 | Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals                                                                                                                                                                                                                                                                                                                           | the exchange encode                                          |
 | Replica-set SAD (the `availability.replicas` target)                                                                                                                                                                                                                                                                                                                                                                                                             | the vdtid encode                                             |

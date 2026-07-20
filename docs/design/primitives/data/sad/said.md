@@ -10,8 +10,11 @@ hashes over is documented in [`sad.md`](sad.md).
 
 ## Derivation
 
-SAID derivation differs slightly for chain inception events (which carry a `prefix` field) and for
-all other SADs. Both algorithms share the same fixed-value placeholder mechanism, the same JCS
+SAID derivation differs slightly for **prefix-deriving SADs** — the chain inception events, and the
+document constitution **V0** (a standalone prefix-deriving SAD) — and for all other SADs. Which
+class a SAD is in is decided by its **`kind`**, not by field-presence: a version SAD also carries a
+`prefix` field, but that is a _foreign_ reference to its document and derives single-hash like any
+other SAD. Both algorithms share the same fixed-value placeholder mechanism, the same JCS
 canonicalization, and the same Blake3-256 hash; they differ in which fields carry the placeholder
 and how many hashes are computed.
 
