@@ -135,7 +135,7 @@ flowchart TD
   tu --> ixn["Ixn"]:::fld
   ta --> ath["Ath · Dth"]:::fld
   tg --> gov["Evl · Rev · Wit · Trm"]:::fld
-  ta -.->|"authority slots: floor ≥ 2 (no lone authority) ·<br/>authorization floor > |roster|/2 (quorums overlap) ·<br/>ceiling ≤ |roster| − 1 (can evict / recover)"| bounds([bounds]):::note
+  ta -.->|"authority slots: floor ≥ 2 (no lone authority) ·<br/>authorization floor > |roster|/2 (quorums overlap) ·<br/>ceiling ≤ |roster| − 1 (hard at |roster| ≥ 3; can evict / recover)"| bounds([bounds]):::note
   tg -.-> bounds
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef good fill:#12442a,stroke:#2f9e44,color:#fff
@@ -437,7 +437,7 @@ flowchart BT
   m1 ==>|manifest.anchors| iel["IEL event — no signature of its own;<br/>authorized when a THRESHOLD of members'<br/>fresh participations anchor it"]:::iel
   m2 ==>|manifest.anchors| iel
   m3 ==>|manifest.anchors| iel
-  iel -.->|"pins DOWN: each member's prior KEL tip<br/>(participation.previous)"| pins([pins-SAD]):::note
+  iel -.-|"pins DOWN: each member's prior KEL tip<br/>(participation.previous)"| pins([pins-SAD]):::note
   classDef kel fill:#3b1717,stroke:#e03131,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef note fill:#20242a,stroke:#495057,color:#adb5bd

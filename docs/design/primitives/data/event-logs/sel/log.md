@@ -288,9 +288,9 @@ flowchart BT
   icp --> v1["SEL v1 (Pin / Ixn / Gnt / Trm)<br/>— carries the pin"]:::sel
   v1 --> e2["SEL Ixn"]:::sel
   e2 --> e3["SEL Ixn"]:::dead
-  v1 ==>|"anchored + pinned DOWN"| a1["owner IEL"]:::iel
-  e2 ==>|"anchored + pinned"| a2["owner IEL"]:::iel
-  e3 ==>|"anchored on a DEAD IEL branch<br/>→ SEVERED here (no repair)"| a3["owner IEL (buried)"]:::dead
+  a1["owner IEL"]:::iel ==>|"anchors (owner authorizes)"| v1
+  a2["owner IEL"]:::iel ==>|anchors| e2
+  a3["owner IEL (buried)"]:::dead ==>|"anchors — on a DEAD branch<br/>→ SEVERED here (no repair)"| e3
   classDef sel fill:#122a44,stroke:#1971c2,color:#fff
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
   classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd

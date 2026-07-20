@@ -295,6 +295,21 @@ the loser removes the member from the roster. The `cut` is priced the **outgoing
 against the bounds (a stranding / hostage cut is rejected, forcing a simultaneous `threshold` drop
 or reincept). The cut target is operator-chosen.
 
+```mermaid
+flowchart TD
+  fork["forked IEL (a member forked at v_d)"]:::mid
+  fork --> cut["<b>one cut Evl</b> on the winning branch<br/>(priced the OUTGOING t_govern)"]:::iel
+  cut --> b["buries the loser below the new seal<br/>(dead on ascent) → Active"]:::good
+  cut --> e["cuts the member from the roster<br/>(same event)"]:::good
+  b --> atomic["<b>atomic</b> — the member is gone the instant<br/>the fork resolves, so no re-fork window opens"]:::good
+  e --> atomic
+  cut -.->|"were it two events (bury, then evict), the<br/>still-rostered member would race a fresh fork"| bad["the re-fork loop atomicity prevents"]:::bad
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 A member KEL that goes terminal on its own (a reserve-theft takeover, with no on-chain fork to
 challenge) is likewise handled by the quorum: it is inert alone (it cannot reach `t_use` /
 `t_govern`), and the honest members evict it with an `Evl` `cut` (or `Dth` it if it was a delegate,

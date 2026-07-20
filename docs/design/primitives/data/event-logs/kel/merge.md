@@ -117,6 +117,7 @@ flowchart TD
   r4 -->|"linear extension"| ext["Extended → Active"]:::good
   r4 -->|"buries the content loser"| rec["Recovered → Active"]:::good
   r4 -->|"a Trm lands"| term["Terminated"]:::dead
+  r4 -.->|"would bury a sealed branch"| x4
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
   classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
   classDef good fill:#12442a,stroke:#2f9e44,color:#fff

@@ -62,7 +62,8 @@ flowchart LR
   Disputed["<b>Disputed</b><br/>≥ 2 accepted sealed branches<br/>(terminal → reincept)"]:::bad
   Terminated["<b>Terminated</b><br/>a clean Trm sealed the chain"]:::dead
   Active -->|"Ixn / Rot / Wit — linear extension"| Active
-  Active -->|"two distinct events at one serial"| Forked
+  Active -->|"two distinct events at one serial (≤ 1 sealed)"| Forked
+  Active -->|"two accepted sealed at one serial<br/>(sealed-vs-sealed race)"| Disputed
   Active -->|"Trm lands cleanly"| Terminated
   Forked -->|"burying seal-advancer (Rot / Wit) buries<br/>the content loser → Recovered"| Active
   Forked -->|"{Trm, content}: tier-rank, the Trm wins"| Terminated
