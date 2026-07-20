@@ -1,28 +1,34 @@
-# Documents — where policy lives
+# Documents — the anchored context a policy is matched against
 
 Part of the policy layer — see [`policy.md`](policy.md) for the language and the two authorization
 mechanisms.
 
-Policy lives on **documents**, never on a chain event. A document is a [SAD](../data/sad/sad.md): an
-application-defined payload (a credential, an attestation, a signed declaration) that carries,
-alongside its content, the policy that authorizes it. This doc states the generic shape every
-policy-bearing document shares — the authorizing condition it carries, and how its issuer context is
-fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
+A document is a [SAD](../data/sad/sad.md): an application-defined payload (a credential, an
+attestation, a signed declaration) that carries its content and the **anchored facts** a policy is
+evaluated against — who issued it, and the **anchoring position** that fixes its issuer context so
+it cannot name a more permissive past. **The document carries no policy of its own.** Whether to
+accept it is the **relying party's** decision, written in the policy language and matched at the
+application ([`policy.md`](policy.md)); policy lives at this document/application layer, never on a
+chain event. This doc states the generic shape every such document shares — the anchored issuer
+condition its acceptance turns on, and how anchoring fixes that context. The lifecycle of any
 specific document kind is a feature layered above this one: how a **credential** is issued and
 revoked (see [`../../features/credentials.md`](../../features/credentials.md)), or how a **shared
 document** several parties co-author evolves under a creator (see
 [`../../features/shared-documents.md`](../../features/shared-documents.md)) — the as-issued and the
 evolving realizations of the same document substrate.
 
-## A document's authorizing condition
+## The anchored issuer condition
 
-A policy-bearing document carries at most **one** policy reference (the SAID of a policy SAD —
-[`policy.md`](policy.md)): its **authorizing condition — who could issue it.** When a single
-identity issues the document, this condition is **structural**: the issuer's own IEL **`t_use`**
-threshold authorizes the issuance, and there is no policy expression to evaluate (the structural
-mechanism, [`policy.md`](policy.md), covers it). The condition becomes an explicit policy only when
-issuance **spans separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of
-three institutions) — there it is evaluated **as-issued** ([`evaluation.md`](evaluation.md)).
+Acceptance turns on **who issued the document** — judged from **anchored facts, not a policy the
+document carries.** The document carries **no policy reference**; the **relying party's** policy
+(`id` / `del` / `thr` / … — [`policy.md`](policy.md)) expresses which issuers it accepts, and the
+verifier evaluates it **as-issued** against the document's issuer context. When a single identity
+issues the document the common case needs no policy expression at all: the issuer's own IEL
+**`t_use`** threshold authorizes the issuance **structurally**, and the relying party's condition is
+just "the issuer is one I trust." A policy expression earns its keep when acceptance **spans
+separate identities** (for example `thr(2, [id(A), id(B), id(C)])` — any two of three institutions)
+or a **delegated** issuer (`del(root, N)`) — there the relying party's expression is evaluated
+**as-issued** ([`evaluation.md`](evaluation.md)) against the anchored attestations.
 
 **Who may _present_ the document is not a policy.** It is the uniform **challenge-the-issuee** step
 — the holder proves control of the issuee identity live (single-identity authentication) — handled
@@ -100,15 +106,15 @@ verified against the real anchor, never a _trusted_ value that points back at th
 
 ## Multi-identity authorization — independent attestations
 
-A document whose **authorizing** condition spans separate identities cannot collapse to a single
-joint identity (a threshold over devices is not a threshold over identities). The document instead
-names a custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each authorizing identity
-issues its own attestation independently**: each authors its own attestation SEL over the document,
+A document whose **acceptance** turns on separate identities cannot collapse to a single joint
+identity (a threshold over devices is not a threshold over identities). The document instead names a
+custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each authorizing identity issues
+its own attestation independently**: each authors its own attestation SEL over the document,
 self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by re-deriving its
-prefix. The authorizing policy (`thr` / `wgt` / `and` over `id()`) is satisfied by the **positive
-lookup** of each named issuer's attestation — there are **no per-party pins**, no scan, and no
-cross-issuer coordination: each issuer anchors on its own chain at its own pace, and the verifier
-reads each one's authorization **as-of its own anchoring position**.
+prefix. The **relying party's** authorizing policy (`thr` / `wgt` / `and` over `id()`) is satisfied
+by the **positive lookup** of each named issuer's attestation — there are **no per-party pins**, no
+scan, and no cross-issuer coordination: each issuer anchors on its own chain at its own pace, and
+the verifier reads each one's authorization **as-of its own anchoring position**.
 
 - An issuer that has **not** attested contributes no anchored position and is **not credited** — a
   malicious co-issuer cannot manufacture another's attestation, exactly as a single issuer cannot
@@ -167,6 +173,6 @@ Whether an outside observer can tell that an identity issued a particular docume
 how the document is located and disclosed, not of the policy layer. A document whose locating
 address is derivable from its public content is **discoverable**; one whose content carries a
 high-entropy nonce derives an unguessable address and stays **private** until its holder discloses
-it. Either way the policy that authorizes the document, and the anchoring that fixes its context,
-work identically. The addressing and privacy rules live with the SEL primitive and the credentials
+it. Either way the relying party's policy, and the anchoring that fixes the document's context, work
+identically. The addressing and privacy rules live with the SEL primitive and the credentials
 feature — [`../data/event-logs/sel/`](../data/event-logs/sel/).

@@ -6,9 +6,10 @@ VDTI has **two authorization mechanisms, kept separate**:
   structure — a device's own key (KEL), an identity's threshold over its member devices (IEL),
   single-owner ownership (SEL). The chain primitives carry **no policy** and evaluate no policy for
   their own events.
-- **Documents are authorized by policy.** A credential — or any other document — carries an
-  authorization condition written in a small composable **policy language**, matched at the
-  application.
+- **Documents are accepted against a policy the _relying party_ holds.** A credential — or any other
+  document — carries **no policy**; it carries anchored facts (who issued it, at what position, what
+  it claims). Whether to accept it is the application's decision, written in a small composable
+  **policy language** and **matched at the application** against those facts.
 
 This layer is that policy language plus how it is evaluated. It sits **above** the chain primitives:
 it consumes their verification (an identity's members and threshold as of a position, a delegation's
@@ -19,14 +20,16 @@ declares is the **verification-token** seam in [`evaluation.md`](evaluation.md).
 
 Keeping the two mechanisms apart is a security decision, not a convenience. A chain event that chose
 its own authorization policy would let the author point that policy at a stale, more permissive past
-— the backdate surface the structural rules exist to close. Authorization that a third party relies
-on — **who could issue a credential** — is exactly where a policy language earns its keep, and that
-lives on the document, never on the chain. (Who may _present_ a credential is a separate question,
-answered by a single-identity challenge to the issuee, not a policy —
-[`documents.md`](documents.md).)
+— the backdate surface the structural rules exist to close. A document that carried its own
+acceptance policy would be just as self-serving: an issuer would simply write "accept me," and every
+verifier would be bound by it. So the acceptance policy is the **relying party's**, never the
+document's — **who could issue a credential** is exactly the question a policy language answers,
+evaluated **as-issued** against the issuer context the document's anchoring fixes. (Who may
+_present_ a credential is a separate question, answered by a single-identity challenge to the
+issuee, not a policy — [`documents.md`](documents.md).)
 
 **Reading order for this layer:** this doc (the language and the two mechanisms) →
-[`documents.md`](documents.md) (where policy lives and how a document anchors its context) →
+[`documents.md`](documents.md) (the anchored issuer context a policy is matched against) →
 [`evaluation.md`](evaluation.md) (the as-issued evaluation — one composer, one leaf resolver — and
 the seam to the primitives).
 
@@ -34,8 +37,9 @@ the seam to the primitives).
 
 A policy is a [SAD](../data/sad/sad.md) whose content is a policy-language expression, identified by
 its [SAID](../data/sad/said.md). Two byte-identical policies derive the same SAID, so an identical
-authorization rule is one shared object the whole system can reference. A document names a policy by
-that SAID; the verifier fetches it, parses the expression, and evaluates it.
+authorization rule is one shared object the whole system can reference. A **relying party** names
+the policy it applies by that SAID; the verifier fetches it, parses the expression, and evaluates it
+against the document's anchored facts. The document names no policy of its own.
 
 ## The policy language
 
@@ -182,8 +186,8 @@ overlap_.
 
 ## Forward references
 
-- [`documents.md`](documents.md) — where a policy lives (a document's authorizing condition) and how
-  a document's issuer context is fixed by its anchoring position.
+- [`documents.md`](documents.md) — the anchored issuer context a relying party's policy is matched
+  against, and how a document's issuer context is fixed by its anchoring position.
 - [`evaluation.md`](evaluation.md) — the as-issued evaluation (one composer, one leaf resolver) and
   the verification-token interface this layer declares.
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — the IEL primitive: the identity an `id`

@@ -7,9 +7,12 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
 `[needs-reconciliation]` = real but must be reconciled to the reshape.
 
 ## Structure & control
-1. **Policy lives on documents, never on log primitives.** KEL/IEL/SEL carry no policy; policy lives on
-   cred/content documents, matched at the application. *Why:* removes the issuer-chosen-marker backdate surface
-   from the chain primitives entirely. *Src:* design-pass §1, §6. `[locked-candidate]`
+1. **Policy is not on the log primitives; acceptance is the relying party's, matched at the application.**
+   KEL/IEL/SEL carry no policy; a cred/content document carries **no policy either** — only anchored facts
+   (issuer, anchoring position, claims). The acceptance policy is the **relying party's**, matched at the
+   application and evaluated **as-issued** against those facts (an issuer can't dictate "accept me"). *Why:*
+   removes the issuer-chosen-marker backdate surface from the chain primitives, and keeps acceptance the
+   verifier's decision. *Src:* design-pass §1, §6; credentials note. `[locked-candidate]`
 2. **Single locus of control per primitive.** KEL = a device's keys; IEL = one identity (a threshold over member
    KELs); SEL = one owner's data log. No primitive composes a multi-party policy internally. *Src:* §1.
    `[locked-candidate]`

@@ -403,7 +403,7 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
 | ---------- | ------------------------------------------------ | --------------------------------------------------------- |
 | parties    | `issuer`(s) + an `issuee` — **asymmetric**       | a **creator** + **members** — governed, symmetric members |
 | membership | fixed at issuance                                | **creator-governed, evolving** (grant / bound / re-add)   |
-| policy     | authorizing condition (as-issued)                | none except the `readers` read gate                       |
+| policy     | relying party's issuer condition (as-issued)     | none except the `readers` read gate                       |
 | content    | frozen (single version)                          | evolves (the version DAG)                                 |
 | kill       | revocation `Trm` (`Rev`)                | per-participant period-bound; **freeze** = bound-all + `Trm`-gov |
 | home       | `primitives/policy/documents.md`                 | `features/shared-documents.md`                  |

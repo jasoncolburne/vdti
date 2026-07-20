@@ -152,8 +152,8 @@ current-mode function dissolves (above), a single evaluation function survives:
 
 **The credential shape, issuance (anchor + compaction), revocation, presentation, who-may-present, and
 claim-gating now live in [`vdti-area-credentials.md`](vdti-area-credentials.md)** (the credentials feature
-note). What remains here is the **document-layer** concern the policy engine owns: how any policy-bearing
-document fixes its issuer context, and how a **multi-identity** authorizing policy is satisfied.
+note). What remains here is the **document-layer** concern the policy engine owns: how any document
+fixes its issuer context, and how a **multi-identity** relying-party policy is satisfied against the anchored attestations.
 
 - **Issuer context = the anchoring position** (no body `pin`, dropped 2026-06-26). A document — a credential,
   or any policy-bearing SAD — fixes its issuer context by the **anchoring position**: the issuer IEL `Ixn` that
@@ -161,10 +161,11 @@ document fixes its issuer context, and how a **multi-identity** authorizing poli
   body value, so nothing can select a permissive past while the issuance anchors in the restrictive present
   (closes F1). The anchoring `Ixn` **transitively commits** the issuer IEL (roster / threshold) + the whole
   delegation chain via committed `delegating` links [inv 4]. [inv 5]
-- **Who-may-present is NOT a policy; the only document-layer policy is the authorizing condition.** A credential
+- **Who-may-present is NOT a policy; nor is the acceptance policy carried on the document.** A credential
   carries **no `policy` field** — ownership is the uniform challenge-the-issuee step (IPEX), not the policy layer
-  (details in `vdti-area-credentials.md`). The **only** surviving document-layer policy is a document's
-  *authorizing* condition (who could issue it): single-issuer is **structural** (the owner IEL threshold, R1);
+  (details in `vdti-area-credentials.md`). The acceptance policy — a document's *authorizing* condition (who
+  could issue it) — is the **relying party's**, matched at the application and evaluated **as-issued** against the
+  anchored issuer context: single-issuer is **structural** (the owner IEL threshold, R1);
   multi-identity is evaluated **as-issued** via independent attestations (below). Policies are **as-issued only**
   — live checks don't compose for a passive verifier (§C).
 - **Multi-identity authorization — an `issuers[]` SAD + independent attestations (Jason 2026-06-26).** A document
