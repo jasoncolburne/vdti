@@ -73,6 +73,10 @@ flowchart LR
 Only `grant` carries content and the freshness envelope; the rest are lightweight negotiation and
 acknowledgement, each signed by its sender over its own SAID. Blue is the disclosee's turn, green
 the discloser's; only the `grant` (highlighted) reveals content, and it is what the verifier gates.
+The gate node shows the core clauses; the negotiated path also requires `previous = agree`, an
+untargeted (bearer) SAD resolves the signer to the `discloser` rather than a committed issuee, and
+the signer check freezes on any divergence (a forked / disputed / terminated presenter cannot
+present).
 
 ## The two proofs
 

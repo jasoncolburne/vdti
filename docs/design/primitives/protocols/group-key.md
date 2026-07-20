@@ -78,7 +78,8 @@ flowchart LR
   e0(["epoch E₀ key"]):::key -->|"membership change<br/>or time cadence"| e1(["epoch E₁ key<br/>fresh, independent"]):::key
   e1 -->|"membership change<br/>or time cadence"| e2(["epoch E₂ …"]):::key
   e1 -.->|"wrap: one sealed send per current<br/>member device (survivors only)"| dev["member devices<br/>a removed device is never wrapped again"]:::good
-  e1 -.->|"seed → per-writer subkey"| bulk["bulk content encrypted once —<br/>messages / doc content, never wrapped"]:::fld
+  e1 -.->|"chat: seed → per-writer subkey"| chat["messages encrypted per writer<br/>(never wrapped)"]:::fld
+  e1 -.->|"docs: wraps a per-document content key"| docs["document content encrypted<br/>under that key"]:::fld
   classDef key fill:#3d2f12,stroke:#f08c00,color:#fff
   classDef good fill:#12442a,stroke:#2f9e44,color:#fff
   classDef fld fill:#20263a,stroke:#4263eb,color:#e9ecef
