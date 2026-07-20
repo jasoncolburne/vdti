@@ -58,7 +58,7 @@ flowchart LR
   subgraph iel["issuer's IEL — append-only"]
     asof["as-of context<br/>members · threshold · delegation"]:::iel --> anchor["anchoring Ixn<br/>manifest.anchors ∋ commitment"]:::iel
   end
-  anchor ==>|"authority judged here — append-only,<br/>no backdate; issuerPin finds, never trusts"| ok["validly issued?"]:::good
+  anchor ==>|"authority judged here — append-only,<br/>no backdate; issuerPin finds, never trusts"| ok["validly issued ✓"]:::good
   classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
   classDef iel fill:#12442a,stroke:#2f9e44,color:#fff
   classDef good fill:#12442a,stroke:#2f9e44,color:#fff

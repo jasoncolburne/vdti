@@ -117,20 +117,20 @@ within two hops_:
 
 ```mermaid
 flowchart TD
-  root["and — every branch, disjoint pools"]:::comp
-  root --> thr["thr(2, …) — any 2 of 3"]:::comp
-  root --> del["del(R, 2) — a live delegate of R,<br/>≤ 2 hops (positive rescission check)"]:::leaf
+  root["and — every branch<br/>(disjoint pools ⇒ distinct parties)"]:::comp
+  root --> thr["thr(2, …) — any 2 of 3;<br/>each id resolves that identity's t_use quorum"]:::comp
   thr --> a["id(A)"]:::leaf
   thr --> b["id(B)"]:::leaf
-  thr --> c["id(C) — each resolves X's t_use quorum"]:::leaf
-  root -.->|"evaluated as-issued — each leaf as of the document's<br/>anchoring position; no live / current-mode evaluation"| ai(["as-issued"]):::note
+  thr --> c["id(C)"]:::leaf
+  root --> del["del(R, 2) — a live delegate<br/>of R, within 2 hops"]:::leaf
   classDef comp fill:#3d2f12,stroke:#f08c00,color:#fff
   classDef leaf fill:#122a44,stroke:#1971c2,color:#fff
-  classDef note fill:#20242a,stroke:#495057,color:#adb5bd
 ```
 
-Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol`) blue; `pol(said)` nests
-another whole tree by SAID.
+Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol`) blue. `pol(said)` nests
+another whole tree by SAID; a `del` leaf's liveness is a **positive** rescission match (present →
+rescinded), never a scan. Every leaf resolves **as-issued** — as of the document's anchoring
+position; there is no live / current-mode evaluation.
 
 ## Composition rules
 
