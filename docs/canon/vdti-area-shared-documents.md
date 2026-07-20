@@ -490,11 +490,15 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
       = the member's IEL prefix; `said` = `said_b` (the rescission handle); `from` = `F`
     - `rescind` (the `Trm`'s gated `bound` role): `{ said, kind, custody{ readers }, <role>, bound, nonce }` —
       `bound` = `B`
-  - **Comments — reserved (schema only); design the NEXT step, not app-deferred.** `vdti/doc/v1/schemas/comment`
-    is reserved; a comment is a commenter-authored SAD **direct-anchored on the commenter's own IEL** (like a
-    version), so it needs **no SEL topic** — `topics/comment` is **dropped** (edit has no content topic either).
-    `commenters` is a live role (`document-comment-membership`); the comment *mechanism* (threads / resolve /
-    version-range refs) is the next design step.
+  - **Comments — DEFINED (2026-07-20).** Two direct-anchored SAD kinds, **no SEL topic** (a comment is found by
+    reference, like a version): `vdti/doc/v1/schemas/comment`
+    `{ said, kind, custody{ owner, pin, readers }, prefix, target, locator, content, parent?, supersedes?, nonce? }`
+    and `vdti/doc/v1/schemas/comment-resolution` `{ said, kind, custody, prefix, comment, resolved, nonce? }`.
+    `target` = the one version commented on; `locator` + `content` are **opaque, app-defined** (VDTI stays
+    **format-blind** — the `locator` is _where_ it attaches, pure app semantics); `parent` = threading;
+    `supersedes` = editing (VDTI checks **same author**); resolution appends (latest wins). **Auth = the
+    may-comment capability** (edit ∪ comment — any commenter/editor comments and resolves; a comment edit is
+    author-only). Matches Word / Google-Docs. `topics/comment` is **dropped**.
   - **Prefix-naming rule:** an unqualified **`prefix` = the chain/DAG the document is part of** (the doc's own
     prefix); every **external prefix is named by its role** (`editor`, `commenter`, `creator`, `custody.owner`)
     and documented as an IEL prefix — never a bare `prefix`, no `ielPrefix` qualifier. The read gate
@@ -529,10 +533,9 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   (fully-compacted) SAID**; references commit to it; a verifier re-derives it by compacting any form
   down — it must stay derivable from the data). A landed-doc correction to make at the next encode. See
   §8 + memory `project_vdti_said_form_dependent`; the `.working/` canon is grep-clean of the false claim.
-- **Comments mechanism** (resolve / thread / version-range refs) — the **next design step, not
-  app-deferred** (Jason 2026-07-20): a comment is a commenter-authored SAD direct-anchored on its own IEL
-  (like a version), so only `vdti/doc/v1/schemas/comment` is reserved; `topics/comment` is **dropped** (a
-  comment needs no SEL topic, as editing needs none).
+- **Comments mechanism — DONE (2026-07-20)** (see §7): the `comment` + `comment-resolution` direct-anchored
+  SAD kinds, opaque app-defined `locator` + `content`, `parent` threading, `supersedes` editing (author-only),
+  append-only resolution, may-comment auth. `topics/comment` dropped.
 
 ## 8. Drift → land
 

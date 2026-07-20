@@ -29,7 +29,7 @@ re-admits participants over time.
 The creator governs **three roles** — the collaboration triad:
 
 - **view** — who may read the document (the read gate),
-- **comment** — who may attach comments (reserved; the mechanism is deferred),
+- **comment** — who may attach comments (the `comment` mechanism, below),
 - **edit** — who may author versions.
 
 Each role is its own **membership set** the creator maintains, evolving independently —
@@ -458,15 +458,41 @@ honored `[from, bound]` membership periods, so "since when" is one notion, not t
 mechanics, the re-key cadence, and the epoch commitment are the primitive's; shared documents is a
 **consumer** of it (as is chat).
 
-## Comments — reserved
+## Comments
 
-The **comment** role is live in the model — `document-comment-membership` is one of the three
-instances, and a commenter may read (the implied hierarchy) — but the comment **mechanism** (how a
-comment threads, resolves, or references a version range) is **deferred**. A comment will be a
-commenter-authored **SAD direct-anchored on its own IEL** — the same shape a version is, so, like
-editing, it needs **no SEL topic** — naming the version(s) it annotates. Only the
-`vdti/doc/v1/schemas/comment` kind is reserved so far; its full shape is the **next design step** —
-this feature is not complete until commenting is specified.
+A **comment** is an annotation on a version, and it works the way Word and Google Docs condition
+people to expect — anyone who may comment can comment and resolve, you edit your own comments,
+comments thread as replies. VDTI defines the whole mechanism abstractly while staying **blind to the
+document format**: it never learns _how_ a comment attaches to a place in the content, because that
+is application-defined.
+
+A comment is a **direct-anchored SAD** — like a version, authored and anchored on the commenter's
+own IEL, so authorship is provable and the honored window gates it. It carries:
+
+- **`target`** — the one version SAID it comments on; VDTI verifies the reference resolves.
+- **`locator`** — an **opaque, application-defined** body: _where_ in the document the comment
+  attaches (a cell, a text range, a region, a vertex). VDTI never interprets it; the app reads it to
+  render. This opacity is what lets commenting be defined without knowing the document format.
+- **`content`** — an **opaque, application-defined** body: the comment itself.
+- **`parent`** (optional) — an earlier comment's SAID this replies to. Threading is a comment tree,
+  acyclic by SAID; VDTI verifies the reference, the app renders the thread.
+- **`supersedes`** (optional) — an earlier comment this **edits**: a revision is a new comment
+  naming the one it replaces, and VDTI checks the reviser is the **same author** (`owner` matches).
+  The current text is the tip of the supersedes chain — the edit _is_ the link, so there is no
+  "edited" flag.
+
+**Resolution is its own kind.** A comment is immutable, so resolving one is an **append**: a
+`comment-resolution` SAD naming the comment and a `resolved` boolean, direct-anchored like a
+comment. The current state is the **latest** resolution; re-opening is just another resolution.
+
+**Authorization is the may-comment capability** — an open bracket in `document-edit-membership`
+**or** `document-comment-membership` (edit ⊃ comment). Any commenter or editor may add a comment and
+may resolve or re-open any comment; a comment **edit** is restricted to its author. Nothing finer —
+that is the Word/Google-Docs model, and matching it keeps the mental model intact.
+
+Both kinds (`vdti/doc/v1/schemas/comment`, `vdti/doc/v1/schemas/comment-resolution`) are
+direct-anchored SADs and need **no SEL topic** — like a version, a comment is found by reference,
+not by walking a chain.
 
 ## Credentials versus shared documents
 
@@ -506,6 +532,27 @@ version = {
   content,                          // the version body
   nonce?,                           // high-entropy for a private doc
   edited?,                          // advisory feature timestamp
+}
+
+comment = {
+  said, kind,                       // vdti/doc/v1/schemas/comment
+  custody { owner, pin, readers },  // authored + anchored on the commenter's IEL; may-comment gated
+  prefix,                           // the doc
+  target,                           // the one version SAID this comments on
+  locator,                          // OPAQUE, app-defined — where it attaches
+  content,                          // OPAQUE, app-defined — the comment
+  parent?,                          // an earlier comment SAID it replies to (threading)
+  supersedes?,                      // an earlier comment it edits (VDTI checks same owner)
+  nonce?,
+}
+
+comment-resolution = {
+  said, kind,                       // vdti/doc/v1/schemas/comment-resolution
+  custody { owner, pin, readers },  // may-comment gated
+  prefix,                           // the doc
+  comment,                          // the comment SAID resolved / reopened
+  resolved,                         // bool — the latest resolution wins
+  nonce?,
 }
 ```
 

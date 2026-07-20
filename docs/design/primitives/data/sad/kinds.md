@@ -77,13 +77,13 @@ label
 
 **The feature / application SADs:**
 
-| Kind                         | What it is                                                   |
-| ---------------------------- | ------------------------------------------------------------ |
-| `vdti/doc/v1/schemas/*`      | shared-document SADs (`comment`, …)                          |
-| `vdti/exchange/v1/schemas/*` | exchange SADs                                                |
-| `vdti/cred/v1/schemas/*`     | credential SADs — the `kind` names the type (app-registered) |
-| `vdti/cred/v1/claims/*`      | credential claim SADs (app-defined, blinded per predicate)   |
-| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain                          |
+| Kind                         | What it is                                                                            |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| `vdti/doc/v1/schemas/*`      | shared-document SADs (`inception` / `version` / `comment` / `comment-resolution` / …) |
+| `vdti/exchange/v1/schemas/*` | exchange SADs                                                                         |
+| `vdti/cred/v1/schemas/*`     | credential SADs — the `kind` names the type (app-registered)                          |
+| `vdti/cred/v1/claims/*`      | credential claim SADs (app-defined, blinded per predicate)                            |
+| `vdti/policy/v1/{group}/*`   | policy documents, grouped by domain                                                   |
 
 One further standalone kind is owed by a forthcoming encode: the **replica-set SAD** an
 `availability.replicas` field names ([`availability.md`](availability.md)) — its `kind` and layout

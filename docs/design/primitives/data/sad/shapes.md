@@ -311,6 +311,13 @@ naming the role) and the **gated rescind-doc** (the `Trm`'s `bound` role sealing
 are **forthcoming** — shapes at the shared-documents encode
 ([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
 
+The **comment** kinds are direct-anchored SADs (no SEL topic, like a version):
+`vdti/doc/v1/schemas/comment` — `{ target, locator, content, parent?, supersedes? }`, its `locator`
+(where it attaches) and `content` **opaque + application-defined** so VDTI stays format-blind — and
+`vdti/doc/v1/schemas/comment-resolution` — `{ comment, resolved }`, append-only. Both gated by the
+**may-comment** capability (edit ∪ comment); an edit (`supersedes`) is author-only
+([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
+
 ### Exchange — `vdti/exchange/v1/*`
 
 Exchange defines one message SAD of its own — the **chat message**, on a per-sender lane. The
