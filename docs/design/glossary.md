@@ -5,6 +5,26 @@ parts — **Terms** (the named artifacts the system is built from) and **Concept
 that govern how they behave). The definitions here orient a new reader; the **linked doc is
 canonical** wherever they differ.
 
+## Start with these
+
+New to VDTI? Five terms unlock the rest — learn them first, in order. Each links to its full entry
+below.
+
+1. **[SAD](#terms)** — Self-Addressed Data: every content-bearing object is one, named by the hash
+   of its own content.
+2. **[SAID](#terms)** — the content-derived hash that names a SAD; recomputing it is how any
+   verifier checks the data while trusting no source.
+3. **[tier](#concepts)** — the capability required to forge an event: **Tier 1** (the signing key,
+   for content) or **Tier 2** (the rotation reserve, for every key change and every sealed act).
+4. **[seal / sealed branch](#chain-structure)** — a Tier-2 event ratchets the chain's trust boundary
+   forward; everything below the seal is locked, and a sealed branch can never be buried.
+5. **[effective-SAID](#concepts)** — the one "has trust-relevant state changed?" key: a single
+   confirmed tip yields its real SAID, a diverged chain a verdict-tagged synthetic (`forked` /
+   `disputed`).
+
+With those, the four **chain states** (Active / Forked / Disputed / Terminated) and the rest of the
+glossary read straight through.
+
 ## Terms
 
 ### Primitives and data

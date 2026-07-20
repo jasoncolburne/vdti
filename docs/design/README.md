@@ -11,8 +11,54 @@ alone, trusting no service, database, or peer. The reading order follows from th
 substrate first, then the doctrine that governs it, then the primitives that implement it, then the
 authorization and protocol layers that sit on top.
 
+## The layer stack
+
+VDTI is built bottom-up: each layer rests on the ones below it. The map below is the reading order
+as a picture — start at the bottom and build up.
+
+```mermaid
+flowchart BT
+  L0["<b>0 · Orientation</b> — start here<br/><i>system-thesis · glossary</i>"]:::orient
+  L1["<b>1 · Data substrate</b><br/><i>SAD · SAID · custody · availability · compaction</i>"]:::found
+  L2["<b>2 · Cross-cutting doctrine</b><br/><i>protocol-doctrine · residuals · monitoring</i>"]:::found
+  subgraph verified["the verified layer"]
+    L3["<b>3 · Event-log primitives</b><br/><i>event-shape · KEL · IEL · SEL</i>"]:::core
+    L4["<b>4 · Federation &amp; witnessing</b><br/><i>bootstrap · witnessing · topics · mesh-transport</i>"]:::core
+  end
+  L5["<b>5 · Document authorization</b><br/><i>policy · documents · evaluation</i>"]:::compose
+  L6["<b>6 · Protocol primitives</b><br/><i>essr · ipex · receive-key-directory · group-key · membership · authored-dag</i>"]:::compose
+  L7["<b>7 · Features</b><br/><i>credentials · exchange · shared-documents</i>"]:::compose
+  L8["apps · forthcoming"]:::future
+
+  L0 -.->|read first| L1
+  L1 --> L3
+  L2 -.->|cross-cuts every layer| L3
+  L4 -->|witnessing makes the logs sound| L3
+  L3 -->|a federation is a restricted IEL| L4
+  verified --> L5
+  verified --> L6
+  L5 --> L7
+  L6 --> L7
+  L7 --> L8
+
+  classDef orient fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+  classDef found fill:#10303a,stroke:#1098ad,color:#fff
+  classDef core fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef compose fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef future fill:#20242a,stroke:#495057,color:#868e96
+```
+
+Two edges are worth calling out. **Doctrine (2) cross-cuts** — its rules constrain every layer
+above, not only the one directly over it. And the **event-log primitives (3) and federation (4) are
+co-foundational**: a federation is itself a restricted IEL, so it is built _from_ the event-log
+primitives — yet federation witnessing is what makes those logs sound, since a fork cannot silently
+form on a witnessed chain. Everything above them — policy, the protocol primitives, and the features
+— rests on that **verified layer**. (Solid edges are "rests on"; dotted edges are orientation and
+the cross-cut.)
+
 ## Table of contents
 
+- [The layer stack](#the-layer-stack)
 - [0 — Orientation](#0--orientation)
 - [1 — The data substrate](#1--the-data-substrate)
 - [2 — Cross-cutting doctrine](#2--cross-cutting-doctrine)
