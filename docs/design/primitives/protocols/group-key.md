@@ -73,6 +73,20 @@ store-and-forward transport.
   key-epoch log every so often** (chained to its predecessor), so a cold verifier walks only a
   bounded tail.
 
+```mermaid
+flowchart LR
+  e0(["epoch E₀ key"]):::key -->|"membership change<br/>or time cadence"| e1(["epoch E₁ key<br/>fresh, independent"]):::key
+  e1 -->|"membership change<br/>or time cadence"| e2(["epoch E₂ …"]):::key
+  e1 -.->|"wrap: one sealed send per current<br/>member device (survivors only)"| dev["member devices<br/>a removed device is never wrapped again"]:::good
+  e1 -.->|"seed → per-writer subkey"| bulk["bulk content encrypted once —<br/>messages / doc content, never wrapped"]:::fld
+  classDef key fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef fld fill:#20263a,stroke:#4263eb,color:#e9ecef
+```
+
+Each epoch's key is **independent** (never derived from the last), so learning one reveals no other;
+a removal gives forward secrecy and a joiner cannot read past epochs.
+
 ## Hardware, compromise, and the two axes
 
 A wrap targets a device's receive key, and every such key is **held in hardware** — a secure element

@@ -47,8 +47,32 @@ respond. The exchange has three entry points:
   presentation baseline, a holder presenting to a verifier.
 - **Discloser-initiated:** `offer → agree → grant → admit`. The discloser starts by offering.
 
+```mermaid
+flowchart LR
+  e1(["full<br/>negotiated"]):::entry --> apply
+  e2(["discloser-<br/>initiated"]):::entry --> offer
+  e3(["minimal<br/>push"]):::entry --> grant
+  apply["<b>apply</b><br/>disclosee requests"]:::dee --> offer["<b>offer</b><br/>discloser offers"]:::der
+  offer --> agree["<b>agree</b><br/>disclosee accepts terms"]:::dee
+  agree --> grant["<b>grant</b> — the disclosure<br/>+ freshness envelope"]:::key
+  grant --> gate{"verifier gate — all must hold:<br/>said recompute · signer = committed issuee<br/>(if targeted) · audience = me · created in<br/>tolerance · nonce unseen · as-issued check"}:::q
+  gate -->|"all hold"| admit["<b>admit</b><br/>disclosee acks"]:::dee
+  gate -.->|"any fails"| spurn
+  apply -.-> spurn
+  offer -.-> spurn
+  agree -.-> spurn
+  spurn(["<b>spurn</b> — reject, any step"]):::stop
+  classDef entry fill:#20242a,stroke:#495057,color:#adb5bd
+  classDef dee fill:#122a44,stroke:#1971c2,color:#fff
+  classDef der fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef key fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef stop fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 Only `grant` carries content and the freshness envelope; the rest are lightweight negotiation and
-acknowledgement, each signed by its sender over its own SAID.
+acknowledgement, each signed by its sender over its own SAID. Blue is the disclosee's turn, green
+the discloser's; only the `grant` (highlighted) reveals content, and it is what the verifier gates.
 
 ## The two proofs
 

@@ -66,6 +66,24 @@ same fail-secure / fail-open split a credential's revocation check uses:
 
 Both modes check **one identity at a time**. Neither ever builds the set.
 
+```mermaid
+flowchart TD
+  q["is party X a current member?<br/>(one identity at a time — never the whole set)"]:::start
+  q --> mode{"check mode"}:::q
+  mode -->|"fail-secure walk (default)"| walk["known-search the group's grant chain:<br/>X's grant present AND not since rescinded?<br/>(X discloses its own {nonce, data})"]:::log
+  mode -->|"O(1) lookup (opt-out, latency budget)"| look["fetch X's content-addressed rescission<br/>lookup (keyed on X's grant instance)"]:::log
+  walk -->|"in a grant delta, no later rescind"| yes["<b>member</b>"]:::good
+  walk -->|"none found"| no["<b>not a member</b>"]:::bad
+  look -->|"found Trm"| no
+  look -->|"not found"| best["best-effort not-rescinded<br/>(a step DOWN from the walk, never up)"]:::mid
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef log fill:#122a44,stroke:#1971c2,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+```
+
 ## No cap, no enumeration
 
 The set is **unbounded** — a document may be readable by an open-ended audience — so it is **never

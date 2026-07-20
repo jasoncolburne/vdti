@@ -95,6 +95,34 @@ monotone order, signature-bound authority under a current key-state. A feature p
 content model needs — a lane where one legitimate successor is the rule, a version graph where
 divergence is.
 
+```mermaid
+flowchart TB
+  subgraph lane["single-parent — a chat lane (fork = equivocation)"]
+    r["<b>anchored root</b><br/>join marker"]:::mark --> a1["msg"]:::node
+    a1 --> a2["msg"]:::node
+    a2 --> a3["msg — <b>bound</b><br/>(removal cutoff)"]:::bound
+    a2 -.->|"2nd child = <b>fork</b><br/>self-proving equivocation"| fk["sibling"]:::bad
+    a3 -.->|"past bound / off [root … bound]:<br/><b>not honored</b>"| dead["dead"]:::dead
+  end
+  subgraph ver["multi-parent — a document version graph (branch + merge legit)"]
+    v0["v0"]:::node --> v1["v1"]:::node
+    v0 --> v2["v2"]:::node
+    v1 --> vm["<b>merge</b> — names v1 and v2"]:::good
+    v2 --> vm
+  end
+  classDef mark fill:#122a44,stroke:#1971c2,color:#fff
+  classDef node fill:#20263a,stroke:#4263eb,color:#e9ecef
+  classDef bound fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
+Both link backward and hold monotone order; the whole difference is the fork rule — on a lane a
+second child is undeniable equivocation, on a version graph it is the concurrency a later **merge**
+reconciles. The lane's honored history is exactly `[anchored root … bound]`; anything a removed
+writer signs off that interval is not honored.
+
 ## What this leaves standing (and to whom)
 
 - **Backdating shrinks to a detectable act; a removed writer's reach shrinks to an interval.** When
