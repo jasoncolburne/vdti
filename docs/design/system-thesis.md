@@ -226,7 +226,7 @@ Defense is **layered** — each layer catches what the one below it cannot:
 →
 [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
-### Federation convergence
+### Convergence is data-local; the federation propagates, it does not decide
 
 Detection is **data-local**: a node retains a competing branch as evidence and walks the retained
 branches to decide whether a fork is terminal — even sealed-vs-sealed races converge this way.
