@@ -11,6 +11,45 @@ alone, trusting no service, database, or peer. The reading order follows from th
 substrate first, then the doctrine that governs it, then the primitives that implement it, then the
 authorization and protocol layers that sit on top.
 
+## What you never have to worry about
+
+Building on VDTI is meant to feel different in a specific way: whole categories of bug do not exist
+in the world you are composing — not because you were careful, but because the substrate makes them
+unrepresentable. You wire the primitives together; the classes of error below are ones you never
+have to defend against.
+
+**No bad state to clean up** — _your data cannot rot._
+
+- **No bad data, no migrations.** Data verifies or it is rejected at the door. There is no corrupt
+  state that got persisted and now needs a repair script, no schema backfill, no "fix everything"
+  fire drill.
+- **No broken links.** A reference commits to exact content by hash, and anchors are append-only — a
+  link cannot dangle, break, or silently repoint. The whole referential-integrity category is gone.
+
+**Nothing to trust** — _you verify instead._
+
+- **No trust decisions.** Every object proves itself from its own bytes. A hostile server, a stale
+  cache, or a tampered database cannot fool a verifier — so "which copy is authoritative" and "can I
+  trust this source" are never questions you are asked.
+- **The data is the audit trail.** The chain is append-only and tamper-evident; there is no separate
+  log to keep in sync, and no way for what happened to disagree with what is recorded.
+
+**No split-brain to reconcile** — _distributed, without the distributed-systems tax._
+
+- **No silent divergence.** Conflicting writes are either prevented or surfaced explicitly as forked
+  or disputed — you never act on two disagreeing "current" values, and you never hand-write merge or
+  conflict-resolution logic.
+- **No clock to trust.** Ordering — which event came first — comes from position on the chain, not
+  wall-clock time, so clock skew, NTP drift, and lying timestamps cannot decide authority or order.
+
+**Authority cannot go stale** — _permission is correct across time._
+
+- **No point-in-time authorization bugs.** "Was this allowed when it happened?" is answered for you
+  by append-only position; nobody can backdate a permission, and you never hand-roll the check.
+- **Kills and rotations just propagate.** A revoked thing reads dead by default — and a withheld
+  revocation cannot hide behind a stale view; a rotated key or a swapped device never breaks
+  anything downstream, because you reference identities, not keys.
+
 ## The layer stack
 
 VDTI is built bottom-up: each layer rests on the ones below it. The map below is the reading order
@@ -58,6 +97,7 @@ up to the one that builds on it; dotted edges are orientation and the cross-cut.
 
 ## Table of contents
 
+- [What you never have to worry about](#what-you-never-have-to-worry-about)
 - [The layer stack](#the-layer-stack)
 - [0 — Orientation](#0--orientation)
 - [1 — The data substrate](#1--the-data-substrate)

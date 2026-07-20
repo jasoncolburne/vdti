@@ -50,8 +50,19 @@ Every app you compose inherits, by construction:
   **roster cut**. What forces a truck roll or a fleet re-provision elsewhere is a single in-band
   chain event here.
 
-Whole classes of bug stop being possible: "trust the server" auth bypasses, silent tampering, murky
-provenance, and "who had access when" forensic gaps.
+Whole classes of bug stop being possible — not by discipline, but because the substrate makes them
+unrepresentable:
+
+- **No bad state to clean up** — no corrupt data to migrate, no references that dangle or break.
+- **Nothing to trust** — every object verifies from its own bytes; no server, cache, or database to
+  believe, and no "which copy is authoritative."
+- **No split-brain to reconcile** — conflicts are prevented or surfaced, never silently merged; and
+  ordering comes from the chain, not a clock you have to trust.
+- **Authority never goes stale** — permission is judged at an append-only position no one can
+  backdate; revocations and key rotations just propagate.
+
+**→ The full breakdown is in the design docs'
+[`README.md`](docs/design/README.md#what-you-never-have-to-worry-about).**
 
 In contrast to systems like KERI (a Decentralized Key Management Infrastructure), where system-wide
 state must be inferred through out-of-band watcher infrastructure, VDTI lets any verifier determine
