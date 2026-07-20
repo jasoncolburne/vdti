@@ -38,6 +38,39 @@ commenters, on the `document-membership` set) and **sharing** (readers, on the
 each version as a primitive attributed SAD, then check it against the membership window and its
 place in the DAG.
 
+```mermaid
+flowchart BT
+  V0["V0 — constitution SAD<br/>(derives the doc prefix)"]:::doc
+  vA1["vA1"]:::doc
+  vB1["vB1"]:::doc
+  vM["vM — merge"]:::doc
+  eA["editor A IEL: Ixn (anchor)"]:::iel
+  eB["editor B IEL: Ixn (anchor)"]:::iel
+  gGnt["document-membership SEL: Gnt"]:::sel
+  G["grant-doc G (gated)<br/>editors + commenters"]:::doc
+  Resc["rescission {Icp, Trm}<br/>bound on the Trm's bound role"]:::sel
+  rGnt["document-read-membership SEL: Gnt"]:::sel
+  rG["read grant-doc (gated)<br/>readers"]:::doc
+  eA -.-|pin| vA1
+  V0 ---|ancestors| vA1
+  V0 ---|ancestors| vB1
+  vA1 ---|ancestors| vM
+  vB1 ---|ancestors| vM
+  eB -.-|pin| vB1
+  gGnt -.->|manifest.grant| G
+  gGnt -. rescind .-> Resc
+  rGnt -.->|manifest.grant| rG
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef iel fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
+The version DAG (orange) builds up from the V0 constitution; each version's custody `pin` (dotted)
+locates its editor-IEL anchor (green). The creator's two membership grant chains (blue) —
+`document-membership` (edit) and `document-read-membership` (read) — each seal a gated grant-doc and
+rescind through a `{Icp, Trm}` lookup. (Colour legend throughout: SEL blue, versions / gated docs
+orange, IEL green.)
+
 ## The constitution — V0
 
 V0 is the document's genesis SAD — the root of the version DAG and the source of the document's
@@ -167,12 +200,55 @@ placement rather than by a DAG edge: a dead parent is not in the built set, so i
 **unplaceable**, and on a merge **any** dead parent drops the child — the editor re-authors from a
 live version.
 
+```mermaid
+flowchart BT
+  V0["V0"]:::doc
+  vA1["vA1 · editor A"]:::doc
+  vA2["vA2 · editor A"]:::doc
+  vB1["vB1 · editor B"]:::doc
+  vM["vM · merge<br/>ancestors = {vA2, vB1}"]:::doc
+  vDead["vX · editor B, dead-anchor branch"]:::dead
+  vDrop["vY · ancestors = {vX}<br/>unplaceable — dead parent"]:::dead
+  V0 ---|ancestors| vA1
+  vA1 ---|ancestors| vA2
+  V0 ---|ancestors| vB1
+  vA2 ---|ancestors| vM
+  vB1 ---|ancestors| vM
+  vDead ---|ancestors| vDrop
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+```
+
+Two editors branch from V0 and a later version **merges** the tips (`ancestors` names both). The
+document state is the set of **tips** (here `vM`). A version anchored on a **dead** (non-canonical)
+branch of its editor's identity un-attributes, and its descendants are **unplaceable** (grey) — the
+editor re-authors from a live version.
+
 ## The honored predicate
 
 The load-bearing check. A version by editor X at position `V_x` is **honored iff** its pinned grant
 names a period with `from = F_x` and — letting `B_x` be that period's rescission bound, or open —
 **`F_x ≤ V_x ≤ B_x`**. `F_x`, `V_x`, and `B_x` are **all positions on X's own IEL**, so the test is
 **intra-chain, append-only, and clock-free** — no wall-clock, no self-asserted position.
+
+```mermaid
+flowchart LR
+  e0["…"]:::neutral
+  Fx["F_x<br/>grant opens the period"]:::mark
+  Vx["V_x<br/>version anchor<br/>honored — F_x ≤ V_x ≤ B_x"]:::ok
+  Bx["B_x<br/>rescission bound"]:::mark
+  Vp["V′<br/>post-removal anchor<br/>rejected — past B_x"]:::bad
+  e0 --> Fx --> Vx --> Bx --> Vp
+  classDef mark fill:#122a44,stroke:#1971c2,color:#fff
+  classDef ok fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef neutral fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+```
+
+All three positions sit on editor X's **own** append-only IEL — no clock. A version is honored iff
+its anchor `V_x` falls in `[F_x … B_x]` (blue = the creator's dial). X can only append **forward**,
+so a post-removal version lands past `B_x` and is rejected (red); and X cannot make an old, immutable
+event anchor a new version.
 
 This predicate **is the membership window check** — the `document-membership` grant's open period,
 evaluated on the editor's own chain. It composes with DAG placement: a version counts only if it is
