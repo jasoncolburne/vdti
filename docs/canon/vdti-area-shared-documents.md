@@ -27,7 +27,9 @@ derivation:
   primitive, in **three instances**, one per role — **`document-edit-membership`** /
   **`document-comment-membership`** / **`document-read-membership`** — each a plain instance, **max-capability**
   with an implied hierarchy edit ⊃ comment ⊃ read (a member's capability is the most powerful role it holds; each
-  group checked independently, no cross-group linkage; the read gate is the union of the three). **This
+  group checked independently, no cross-group linkage; the read gate is the union of the three, carried natively
+  as the SAD's sorted **`custody.readers[]`** list — union any-match, one entry per role, omitted → public
+  (PR#27 r2, superseding §5's single read-governance SEL)). **This
   SUPERSEDES §1–§5's two-set editors/commenters framing** (revised during the PR#27 review, 2026-07-20, to
   resolve the rescission-recording contradiction and the author-must-be-an-editor gap): each instance uses the
   primitive's own `{grants, rescinds}` delta + O(1) `{Icp,Trm}` lookup uniformly, so the doc rescission is not
@@ -139,13 +141,13 @@ bounds every member **and** `Trm`s the governance SEL (structural, hard — §1)
   Present → that period is closed at `B_b`; absent → open. A negative-check-as-lookup (inv 10): O(1),
   per-period. **The key is participant-blind AND grant-blind, computable, non-reversible (folds cold F1 /
   warm F1 — the earlier "unguessable to a witness" claim was false):**
-  - **participant-blind** — the member prefix is **never** a derivation input; the input is `hash(G |
+  - **participant-blind** — the member prefix is **never** a derivation input; the input is `hash(G :
     said_b)`, and `said_b = said({nonce_b, prefix_b})` is unguessable via `nonce_b`. So a witness (which
     _does_ hold member prefixes — a version's direct anchor sits on the editor's IEL, §5) **cannot
     brute-force candidate members** to confirm one. This is the property the review found load-bearing.
   - **grant-blind** — a witness **holds `G` and `G_x`** (both public — the grant-doc SAID and the
     governance `Ixn` SAID it witnesses), so "a witness can't derive it" was false as first written; but
-    it does **not** hold `said_b` (nonce'd, inside the gated grant-doc), so it **cannot compute `hash(G |
+    it does **not** hold `said_b` (nonce'd, inside the gated grant-doc), so it **cannot compute `hash(G :
     said_b)`** → can't even link the rescission to its grant. This **beats** a bare `{doc_prefix, G_x}`
     key, which a witness _could_ recompute for every `G_x` → leaking which grant each rescission closed.
   - **computable by a reader** — an authorized reader holds `G` (public) and `said_b` (from the gated
@@ -480,25 +482,28 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     anchored by **`Ath`**, and a `rescission` (a SEL `Trm`) by **`Dth`** (add the rows at encode).
   - **Doc SADs** (`vdti/doc/v1/schemas/*`; every SAD carries `kind`; **`custody` is inline** — no `said`,
     so it can't be compacted away, the SAD's authority travels with it):
-    - `inception` (V0): `{ said, kind, prefix, creator, custody{ readers }, nonce? }`
-    - `version`: `{ said, kind, custody{ owner, pin, readers }, prefix, grant, ancestors[], content, nonce?, edited? }`
+    - `inception` (V0): `{ said, kind, prefix, creator, custody{ readers[] }, nonce? }`
+    - `version`: `{ said, kind, custody{ owner, pin, readers[] }, prefix, grant, ancestors[], content, nonce?, edited? }`
     - `grant` — the `{ grants, rescinds }` delta a `Gnt` seals, **one shape for all three instances**, the kind
       naming the role (**`vdti/sel/v1/grants/document-edit-membership`** / **`…-comment-membership`** /
-      **`…-read-membership`**): `{ said, kind, custody{ readers }, grants, rescinds }` — `grants` a list of
+      **`…-read-membership`**): `{ said, kind, custody{ readers[] }, grants, rescinds }` — `grants` a list of
       nonce'd entries, `rescinds` a list of blinded targets
-    - `entry` (a grant's `grants` member): `{ said, kind, <role>, from, nonce, custody{ readers } }` — `<role>`
+    - `entry` (a grant's `grants` member): `{ said, kind, <role>, from, nonce, custody{ readers[] } }` — `<role>`
       = the member's IEL prefix; `said` = `said_b` (the rescission handle); `from` = `F`
-    - `rescind` (the `Trm`'s gated `bound` role): `{ said, kind, custody{ readers }, <role>, bound, nonce }` —
+    - `rescind` (the `Trm`'s gated `bound` role): `{ said, kind, custody{ readers[] }, <role>, bound, nonce }` —
       `bound` = `B`
   - **Comments — DEFINED (2026-07-20).** Two direct-anchored SAD kinds, **no SEL topic** (a comment is found by
     reference, like a version): `vdti/doc/v1/schemas/comment`
-    `{ said, kind, custody{ owner, pin, readers }, prefix, target, locator, content, parent?, supersedes?, nonce? }`
+    `{ said, kind, custody{ owner, pin, readers[] }, prefix, target, locator, content, parent?, supersedes?, nonce? }`
     and `vdti/doc/v1/schemas/comment-resolution` `{ said, kind, custody, prefix, comment, resolved, nonce? }`.
     `target` = the one version commented on; `locator` + `content` are **opaque, app-defined** (VDTI stays
     **format-blind** — the `locator` is _where_ it attaches, pure app semantics); `parent` = threading;
-    `supersedes` = editing (VDTI checks **same author**); resolution appends (latest wins). **Auth = the
+    `supersedes` = editing (VDTI checks **same author**); resolution appends — a single resolver's IEL orders its
+    own, but across resolvers the state is **presented + app-arbitrated** (no cross-chain "latest"). **Auth = the
     may-comment capability** (edit ∪ comment — any commenter/editor comments and resolves; a comment edit is
-    author-only). Matches Word / Google-Docs. `topics/comment` is **dropped**.
+    author-only); a comment/resolution is honored by the **same window as a version** — an open may-comment bracket
+    on the author's IEL, `F′ ≤ C_x ≤ B′`, backdate closed. Matches Word / Google-Docs. `topics/comment` is
+    **dropped**.
   - **Prefix-naming rule:** an unqualified **`prefix` = the chain/DAG the document is part of** (the doc's own
     prefix); every **external prefix is named by its role** (`editor`, `commenter`, `creator`, `custody.owner`)
     and documented as an IEL prefix — never a bare `prefix`, no `ielPrefix` qualifier. The read gate

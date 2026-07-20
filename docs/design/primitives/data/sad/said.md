@@ -214,6 +214,13 @@ determinism of the derivation algorithm.
 - **Canonicalization is part of the security argument.** A non-deterministic serializer would let an
   adversary produce two byte sequences with the same logical content but different SAIDs. JCS
   removes that degree of freedom — the canonical bytes are a function of the logical content alone.
+  One residual: JCS fixes **object key** order but preserves **array element** order, so a list
+  field whose meaning is order-independent (a set — e.g. a custody `readers[]` union) MUST be
+  carried in a **canonical element order** (its members sorted) by the producer; otherwise two
+  orderings of the same set yield different SAIDs. A verifier treats an out-of-order such list as
+  **non-canonical** and rejects it, exactly as it rejects a non-compacted SAID (Rule 1) — so the set
+  has one SAID, not one per permutation. Order-bearing lists (a version's `ancestors`) keep their
+  order.
 
 For chain inception events the prefix is independently content-derived via the second algorithm in
 [§Derivation](#derivation) and carries the same adversarial properties as the SAID —

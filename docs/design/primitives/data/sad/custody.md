@@ -20,10 +20,10 @@ threshold is the IEL primitive's — [`../event-logs/iel/`](../event-logs/iel/).
 `custody` is a top-level inline struct on the SAD wrapper:
 
 ```
-custody { owner, pin, readers }
+custody { owner, pin, readers[] }
 ```
 
-The write-binding sub-fields (`owner` / `pin`) move together; `readers` is independent:
+The write-binding sub-fields (`owner` / `pin`) move together; `readers[]` is independent:
 
 - **`owner`** — the writer's IEL **prefix**: which identity wrote the object. The identity is named
   by **prefix, never by a SAID**, because that is what lets a verifier fetch and walk the writer's
@@ -35,16 +35,24 @@ The write-binding sub-fields (`owner` / `pin`) move together; `readers` is indep
   check the anchor that authorizes the write (§Attribution). `owner` and `pin` **move together**
   (both present = an attested write; both absent = anonymous). The SAD's own `kind`
   ([`kinds.md`](kinds.md)) names its type — custody needs no separate namespace field.
-- **`readers`** — the **prefix** of a **read-authorization SEL** that names who may read the object,
-  or `None` for publicly readable content. Read access is a **membership** check at fetch time: the
-  requester's signed read request is resolved to an identity, and that identity must be a current
-  member of the `readers` set. Membership is the unbounded, per-requester
-  [membership](../../protocols/membership.md) primitive — resolved one requester at a time by its
-  grant / rescission machinery, never materialized as a set; it is **not** a policy expression, and
-  there is no live multi-party evaluation. A SEL is named by **prefix**, not a SAID, for the same
-  reason `owner` is — that is what lets a verifier locate and walk it. Because the set names
-  **identities**, not raw devices, it tracks the named identity's current key state automatically: a
-  device the owner has rotated out no longer reads.
+- **`readers[]`** — an optional **list of prefixes**, each a **read-authorization SEL** that names
+  who may read the object; the field is **omitted** for publicly readable content. A **present**
+  `readers` is a **non-empty** list — an empty list is **invalid** (omit the field instead), so
+  "public" has exactly one canonical representation and no `readers: []`-versus-absent producer
+  ambiguity. Read access is a **membership** check at fetch time: the requester's signed read
+  request is resolved to an identity, and that identity must be a current member of **any one** of
+  the listed sets — the gate is their **union** (any match admits). Each set is checked one at a
+  time by the unbounded, per-requester [membership](../../protocols/membership.md) primitive —
+  resolved one requester at a time by its grant / rescission machinery, never materialized as a set;
+  it is **not** a policy expression, and there is no live multi-party evaluation. A single set is
+  the common case (a one-element list); a union of independently-checked sets — a shared document's
+  edit ∪ comment ∪ read gate is the motivating one — is a list of several. A SEL is named by
+  **prefix**, not a SAID, for the same reason `owner` is — that is what lets a verifier locate and
+  walk it. Because a set names **identities**, not raw devices, it tracks the named identity's
+  current key state automatically: a device the owner has rotated out no longer reads. The list is
+  held in a **canonical order** (its prefixes sorted), because the canonical form fixes object key
+  order but **not** array element order ([`said.md`](said.md)), so an unsorted list would make the
+  parent SAID input-order-dependent.
 
 The `custody` struct is inline on the SAD wrapper — it has no `said` field, so per the Recognition
 rule in
@@ -112,18 +120,20 @@ kind that carries its writer-binding in body fields, like the credential, does *
 
 ## Asymmetric semantics
 
-The write side (`owner` + `pin`) and the read side (`readers`) are intentionally asymmetric:
+The write side (`owner` + `pin`) and the read side (`readers[]`) are intentionally asymmetric:
 
 - **Writes are single-identity-bound.** The writer-binding (`owner` + `pin`) names **one** identity,
   corroborated by a single direct anchor on its IEL (above). A SAD object has at most one writer
   attestation.
-- **Reads are membership-gated.** `readers` names the authorized read set as a **membership** — a
-  reference to a read-authorization SEL (or `None` for public). A SAD object can be readable to an
-  arbitrary set of identities that did not participate in the write, without those identities
-  forming a shared IEL; a requester is authorized iff it is a current member of that set, resolved
-  by the same participant-blind membership lookup the rest of the system uses — never a live
-  multi-party check. `readers` gates only the SAD that declares it — referenced sub-SADs do not
-  transitively inherit the parent's read protection. See
+- **Reads are membership-gated, and the gate is a union.** `readers` names the authorized read set
+  as a **list of memberships** — references to read-authorization SELs (the field omitted for
+  public; a present list is non-empty). A SAD object can be readable to an arbitrary set of
+  identities that did not participate in the write, without those identities forming a shared IEL; a
+  requester is authorized iff it is a current member of **any one** of the listed sets, each
+  resolved by the same participant-blind membership lookup the rest of the system uses — never a
+  live multi-party check, and never a materialized union (the sets stay independent, checked one at
+  a time until one admits). `readers[]` gates only the SAD that declares it — referenced sub-SADs do
+  not transitively inherit the parent's read protection. See
   [`compaction.md` §Privacy contract](compaction.md#privacy-contract) for how privacy propagates (or
   doesn't) across the SAD graph.
 

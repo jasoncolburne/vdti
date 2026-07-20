@@ -43,10 +43,11 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
 
 `custody` and `availability` are inline structs, each sub-field independently optional:
 
-- **`custody { owner, pin, readers }`** — `owner` is the writer's IEL prefix and `pin` locates the
+- **`custody { owner, pin, readers[] }`** — `owner` is the writer's IEL prefix and `pin` locates the
   owner-IEL `Ixn` that anchored the write (both-or-neither; the SAD's own `kind` names its type, so
-  no separate `topic`), `readers` the prefix of a read-authorization SEL that gates reads (`None` →
-  public).
+  no separate `topic`), `readers[]` an optional **sorted, non-empty list** of read-authorization SEL
+  prefixes gating reads — a requester in **any** listed set may read (omitted → public; one element
+  the common case, several a union like a shared document's edit ∪ comment ∪ read gate).
 - **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
   everywhere), `ttl` a retention bound, `once` a destructive-read flag.
 
@@ -282,28 +283,28 @@ the `said` against the commitment ([claim-gating](../../../features/credentials.
 
 The **V0 constitution** (derives the doc prefix):
 
-| Field     | Type   | Meaning                                                                              |
-| --------- | ------ | ------------------------------------------------------------------------------------ |
-| `said`    | SAID   | V0's SAID.                                                                           |
-| `kind`    | string | `vdti/doc/v1/schemas/inception`.                                                     |
-| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                           |
-| `prefix`  | prefix | The doc prefix — derived from V0's whole content (nonce'd → unguessable if private). |
-| `custody` | struct | `{ readers }` — the initial read gate (the doc's union read check; `None` → public). |
-| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                          |
+| Field     | Type   | Meaning                                                                                                                                    |
+| --------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `said`    | SAID   | V0's SAID.                                                                                                                                 |
+| `kind`    | string | `vdti/doc/v1/schemas/inception`.                                                                                                           |
+| `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                                                                                 |
+| `prefix`  | prefix | The doc prefix — derived from V0's whole content (nonce'd → unguessable if private).                                                       |
+| `custody` | struct | `{ readers[] }` — the initial read gate: the three `document-*-membership` SEL prefixes (edit ∪ comment ∪ read), sorted; omitted → public. |
+| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                                                                                |
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
-| Field       | Type       | Meaning                                                       |
-| ----------- | ---------- | ------------------------------------------------------------- |
-| `said`      | SAID       | The version's SAID.                                           |
-| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                |
-| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers }`.                  |
-| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                |
-| `prefix`    | prefix     | The doc prefix.                                               |
-| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant. |
-| `content`   | SAD        | The version body.                                             |
-| `edited`    | timestamp  | Advisory feature timestamp.                                   |
-| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable.            |
+| Field       | Type       | Meaning                                                                     |
+| ----------- | ---------- | --------------------------------------------------------------------------- |
+| `said`      | SAID       | The version's SAID.                                                         |
+| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                              |
+| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers[] }` — the sorted union read gate. |
+| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                              |
+| `prefix`    | prefix     | The doc prefix.                                                             |
+| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant.               |
+| `content`   | SAD        | The version body.                                                           |
+| `edited`    | timestamp  | Advisory feature timestamp.                                                 |
+| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable.                          |
 
 The **grant-doc** (the `{ grants, rescinds }` delta — one shape shared by the three instances
 `document-edit-membership` / `document-comment-membership` / `document-read-membership`, the kind
@@ -311,12 +312,37 @@ naming the role) and the **gated rescind-doc** (the `Trm`'s `bound` role sealing
 are **forthcoming** — shapes at the shared-documents encode
 ([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
 
-The **comment** kinds are direct-anchored SADs (no SEL topic, like a version):
-`vdti/doc/v1/schemas/comment` — `{ target, locator, content, parent?, supersedes? }`, its `locator`
-(where it attaches) and `content` **opaque + application-defined** so VDTI stays format-blind — and
-`vdti/doc/v1/schemas/comment-resolution` — `{ comment, resolved }`, append-only. Both gated by the
-**may-comment** capability (edit ∪ comment); an edit (`supersedes`) is author-only
+The **comment** kinds are direct-anchored SADs (no SEL topic, like a version), so both carry the
+same `custody { owner, pin, readers[] }` wrapper, `prefix`, and `nonce?` a version does; the
+may-comment capability (edit ∪ comment) gates them, and an edit (`supersedes`) is author-only
 ([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
+
+A **comment** (`vdti/doc/v1/schemas/comment`):
+
+| Field        | Type   | Meaning                                                                      |
+| ------------ | ------ | ---------------------------------------------------------------------------- |
+| `said`       | SAID   | The comment's SAID.                                                          |
+| `kind`       | string | `vdti/doc/v1/schemas/comment`.                                               |
+| `custody`    | struct | `{ owner: the commenter's IEL, pin, readers[] }` — may-comment gated.        |
+| `prefix`     | prefix | The doc prefix.                                                              |
+| `target`     | SAID   | The one version SAID this comments on.                                       |
+| `locator`    | opaque | **App-defined** — where in the content it attaches. VDTI stays format-blind. |
+| `content`    | opaque | **App-defined** — the comment body.                                          |
+| `parent`     | SAID   | Optional — an earlier comment it replies to (threading, acyclic by SAID).    |
+| `supersedes` | SAID   | Optional — an earlier comment it edits (VDTI checks same `owner`).           |
+| `nonce`      | bytes  | High-entropy — makes the SAID unguessable for a private doc.                 |
+
+A **comment-resolution** (`vdti/doc/v1/schemas/comment-resolution`, append-only):
+
+| Field      | Type   | Meaning                                                      |
+| ---------- | ------ | ------------------------------------------------------------ |
+| `said`     | SAID   | The resolution's SAID.                                       |
+| `kind`     | string | `vdti/doc/v1/schemas/comment-resolution`.                    |
+| `custody`  | struct | `{ owner, pin, readers[] }` — may-comment gated.             |
+| `prefix`   | prefix | The doc prefix.                                              |
+| `comment`  | SAID   | The comment SAID resolved / reopened.                        |
+| `resolved` | bool   | Resolved (`true`) or reopened (`false`).                     |
+| `nonce`    | bytes  | High-entropy — makes the SAID unguessable for a private doc. |
 
 ### Exchange — `vdti/exchange/v1/*`
 

@@ -178,7 +178,7 @@ shared documents** are uncapped (the three `document-*-membership` instances).
 
 Features name their membership sets on the shared `vdti/{component}/v1/{category}/{name}` convention; the concrete
 SEL topic, grant-value kind, and rescission tag are **each instance's** to register (as group-key registers its
-own roster / key-epoch names), not the primitive's. Two instances exist:
+own roster / key-epoch names), not the primitive's. The instances that exist are:
 
 - **`chat-membership`** (exchange feature, [`vdti-area-exchange.md`](vdti-area-exchange.md) §7a) — the set a
   chat's store checks to gate deposit and drain. Bounded **in practice** (the chat is a keyed group, so group-key
@@ -241,9 +241,10 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
 - **Owed (this PR — the exchange encode).** The [group-key](vdti-area-group-key.md) cross-ref (its wrap roster is
   the cap; membership is the separate unbounded authorization); the **`chat-membership`** instance in
   `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, an `[anchored root … bound]` lane bracket), replacing the
-  round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers` is the read-authorization
-  **pointer into** a membership set (a `readers` value is a membership-set prefix — already stated at
-  `custody.md`).
+  round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers[]` is the read-authorization
+  **pointer** — a **sorted list** of membership-set prefixes, **union with any-match** (a shared document lists its
+  three `document-*-membership` SELs; a single-set gate is a one-element list; omitted → public) — already stated at
+  `custody.md`.
 - **DONE (2026-07-19 encode; roles revised to THREE instances 2026-07-20 in the PR#27 review).** Renamed
   `shared-document-governance` → **`document-edit-membership`** + **`document-comment-membership`** and
   `shared-document-read-governance` → **`document-read-membership`**, and wired shared-documents onto

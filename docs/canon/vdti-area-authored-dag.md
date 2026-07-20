@@ -50,9 +50,10 @@ receipts.
   the writer's signature, so the two siblings are provably the same writer's conflicting successors —
   **undeniable** (a same-writer fork), no way to pass a fork off as one node. Whether it is **misbehavior** is the
   group's policy, not automatic: a crash-**resend** carries the *same* SAID (a dedup), but a crash before
-  persisting the record, re-authored with a fresh nonce, is a genuine honest sibling. **Surfacing** it needs both siblings to reach a common honest reader: a witnessed node (a doc
-  version) has the receipt beacon; an **unwitnessed** chat node rides propagation, so an eclipse / split delivery
-  only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
+  persisting the record, re-authored with a fresh nonce, is a genuine honest sibling. **Surfacing** it needs both siblings to reach a common honest reader: this **rides propagation, not
+  witnessing** — a chat lane is unwitnessed, and two version siblings anchor at distinct editor-IEL positions with
+  no shared witnessed `(prefix, serial)`, so no receipt beacon fires on the pair either — so an eclipse / split
+  delivery only **defers** detection (the standard detection-is-eventual residual), never hides the fork permanently. The
   consequence is the group's policy (for chat, coupled to membership removal + the epoch turn). **A writer's
   nodes forming a _single_ chain is a feature-enforced rule, not a single-parent property (PR#25 r2 W1/cold-P1):**
   single-parenthood alone yields a **forest** — a second parentless **root** is a disjoint lane the fork rule

@@ -133,10 +133,10 @@ The `bound` is blinded when it would otherwise identify a participant (riding be
 a non-identifying one rides in the open. Either way the removal is one `rescinds` entry plus, for
 the happy path, the member's content-addressed rescission lookup.
 
-## Two instances
+## The membership instances
 
 Features name their membership sets on the shared `vdti/{component}/v1/{category}/{name}`
-convention, and the two that exist are parallel:
+convention, and the instances that exist are parallel:
 
 - **`chat-membership`** — the set a chat's store checks to gate deposit and fetch. Bounded in
   practice (the chat is a keyed group, so group-key already caps it), but checked the same

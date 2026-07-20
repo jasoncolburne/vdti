@@ -86,7 +86,8 @@ V0 carries:
   may be a multi-device or threshold identity; co-equal separate-identity admins (a governance
   threshold over distinct identities) are a deliberate extension, not this feature.
 - **the reserved topics** — a holder derives the governance chains from the document prefix (below).
-- **`readers`** — the initial read gate (`None` = public).
+- **`readers[]`** — the initial read gate: the sorted union of the three `document-*-membership` SEL
+  prefixes (edit ∪ comment ∪ read); omitted = public.
 - **`nonce`** — high-entropy, so the prefix (hence every governance and version chain) is
   unguessable for a **private** document; a public document may omit it.
 
@@ -111,8 +112,11 @@ and read, a commenter may read, a reader is the base. A member's **capability is
 role it holds** (the union of the implied hierarchies): may-author = an open **editor** membership,
 may-comment = editor ∪ commenter, may-read = editor ∪ commenter ∪ reader. There is **no
 exclusivity** — a member may hold any combination, and a redundant membership resolves to the max
-(harmless). Each group is checked **independently**, so no check ever links a member across the
-three chains, and the closed-membership-graph privacy stays strict.
+(harmless). Each group is checked **independently** — a requester is tested against each chain on
+its own, never correlated across them — so no **onlooker** links a member across the three chains
+and the closed-membership-graph privacy stays strict. (An authorized reader evaluating the read-gate
+union tests a **self-identified** requester against each chain in turn, which is inherent access,
+not cross-chain linkage of the membership graph.)
 
 Each instance is a **grant chain** the creator owns, sealing `{ grants, rescinds }` deltas — the
 membership primitive's own model, uniform across all three:
@@ -174,8 +178,8 @@ grief; the rule gates crediting, not naming.
 
 The versions are an **[authored DAG](../primitives/protocols/authored-dag.md), multi-parent
 variant.** Each version is a primitive **custody-attributed SAD**, **directly anchored** on the
-author's IEL exactly like any bare SAD — its `custody { owner, pin, readers }` names the editor and
-locates the anchoring event. Authorship is therefore **provable and non-repudiable**: only the
+author's IEL exactly like any bare SAD — its `custody { owner, pin, readers[] }` names the editor
+and locates the anchoring event. Authorship is therefore **provable and non-repudiable**: only the
 editor's own `t_use` produces the anchor, so anchoring proves _authorship_, not mere endorsement.
 
 - **Attribution is the branch, not a field.** As the authored DAG prescribes, a version carries no
@@ -277,6 +281,17 @@ period (X's open **editor** bracket), evaluated on the editor's own chain; a cla
 read-grant authorizes no version. It composes with DAG placement: a version counts only if it is
 **both** honored (in an editor period) **and** placeable (live ancestors).
 
+**The grant must be sealed, not merely fetched.** `grant = said(G)` names a grant-doc by SAID, and
+grant-docs are served by SAID — so the honored check does **not** read `F_x` out of a `G` fetched by
+SAID and trust it. A rogue could compose any `{ kind: document-edit-membership, grants: [self] }`,
+compute `said(G)`, and cite it. `said(G)` is honored **only** when it resolves to a `Gnt` **sealed
+on the creator's `document-edit-membership` SEL** (the chain derived from the doc prefix) — the
+fail-secure member walk confirms exactly that seal. Unlike a credential's `issuerPin`, `grant`
+carries no position, so **locating** the sealing `Gnt` is the one-time O(chain) disjointness pass
+(below), not a per-version lookup; against its result the per-version check is the O(1) bracket
+test. Skip the seal-locate and the gate is a total bypass — so it is stated here, not left to
+inference.
+
 **Backdate is closed both ways.** X can only append **forward** on its own IEL, so a version
 authored after removal sits **past** `B_x`; and X **cannot** make an old, immutable IEL event anchor
 a new version. A removed or compromised editor therefore cannot backdate into a period it no longer
@@ -285,10 +300,12 @@ holds.
 - **Endpoints are the creator's dial — within the append-only floor.** `F_x` and `B_x` are
   creator-chosen referents into X's chain, the membership authority's lever. But no honorable
   version can predate its own grant: a version commits `said(G)`, and its anchor commitment embeds
-  the version SAID, so by hash-preimage order the anchor position is always **at or past X's tip
-  when `G` was minted**. The effective floor is therefore `max(F_x, X's tip at G's mint)` — a `F_x`
-  set below it admits nothing (fail-secure), so `F_x` does **disjointness bookkeeping**, not
-  backdate defense (which rests on X's append-only chain). A garbage `F_x` matches no version.
+  the version SAID, so by hash-preimage order the anchor sits **at or past whatever X's own IEL
+  frontier was when X could first know `said(G)`** — a version naming a grant X cannot yet know is
+  unconstructable. The effective floor is therefore `max(F_x, that frontier)`, a property of X's own
+  append-only chain (no cross-chain clock) — a `F_x` set below it admits nothing (fail-secure), so
+  `F_x` does **disjointness bookkeeping**, not backdate defense (which rests on X's append-only
+  chain). A garbage `F_x` matches no version.
 - **Open-by-absence reads fail-secure.** `B_x` absent → open is answered like any membership
   rescission: the removal is a `kills[]` declaration on the creator's **witnessed** IEL plus a
   `{ Icp, Trm }` lookup, with
@@ -373,15 +390,19 @@ period once the bad device is rotated out. No whole-document reincept.
 
 ## Sharing, custody, and privacy
 
-- **The read gate is the union of the three membership sets — a feature check, not the one-set
-  custody gate.** `readers` on a doc SAD is `None` = **public** or set = **gated**; but _who may
-  read_ is not a single `readers` set — it is **an open bracket in any of `document-edit-membership`
-  ∪ `document-comment-membership` ∪ `document-read-membership`** (the implied hierarchy — every
-  participant reads; a pure `reader` grant adds someone who only reads). The doc verifier holds the
-  three chains (derived from the doc prefix) and evaluates the union; an author trivially reads what
-  it authored (it holds its own plaintext). A read-gate change is a `document-read-membership`
-  grant, the same tier-2 machinery as an edit grant, rescinded participant-blind exactly the same
-  way.
+- **The read gate is the union of the three membership sets — and it is native to custody.** A doc
+  SAD's `custody.readers` is the **sorted list of the three `document-*-membership` SEL prefixes**
+  (edit ∪ comment ∪ read), so _who may read_ is **an open bracket in any of them** (the implied
+  hierarchy — every participant reads; a pure `reader` grant adds someone who only reads). Because
+  custody's read gate is already a **union with any-match**
+  ([`../primitives/data/sad/custody.md`](../primitives/data/sad/custody.md)), the three-chain union
+  **is** the custody gate — no separate feature check. Each listed set is checked **independently**
+  one at a time (the same fail-secure membership walk), so an on-node store can enforce the gate
+  directly (it holds the doc `prefix`, from which the three SEL prefixes derive) and a verifier
+  re-checks it authoritatively; the store gate and the read gate are the same set. An author
+  trivially reads what it authored (it holds its own plaintext). A read-gate change is a
+  `document-read-membership` grant, the same tier-2 machinery as an edit grant, rescinded
+  participant-blind exactly the same way. (A public document simply omits `readers`.)
 - **The read gate is read-set integrity, not confidentiality.** A co-author can always read and
   exfiltrate; the rule keeps the **canonical DAG's read-set uniform**, it does not hide bytes. For
   confidentiality, **encrypt** (the group-key primitive, below). A version declares the gate it was
@@ -396,11 +417,11 @@ period once the bad device is rotated out. No whole-document reincept.
   fetchable by SAID) **and** its own nonce (else its SAID is an **offline confirmation oracle**:
   compose candidate content, hash, compare the committed SAID — a member prefix plus a known grant
   is candidate-composable). A SAD is oracle-safe when its content is **uncomposable** — it carries
-  its own `nonce`, **or** it commits a nonce'd sub-SAD: a grant-doc and its role lists carry no
-  `nonce` of their own, but each entry does, so the list SAIDs — hence the grant-doc SAID — are
-  uncomposable. The store-side "denied looks like absent" cannot defend a SAID already public on the
-  chain; the entropy must be in the _input_. The framework provides the per-SAD gate and the nonce
-  slot; using them is the application's responsibility.
+  its own `nonce`, **or** it commits a nonce'd sub-SAD: a grant-doc carries no `nonce` of its own,
+  but each entry in its `grants` / `rescinds` lists does, so the entry SAIDs — hence the grant-doc
+  SAID — are uncomposable. The store-side "denied looks like absent" cannot defend a SAID already
+  public on the chain; the entropy must be in the _input_. The framework provides the per-SAD gate
+  and the nonce slot; using them is the application's responsibility.
 - **The co-authorship and membership graphs close for a private document.** A version's anchoring
   `Ixn` commits an opaque blinded reference and the version→V0 linkage is read-gated, so a witness
   sees `(member, opaque commitment)` entries but cannot recover a version SAID or group them by
@@ -483,12 +504,26 @@ own IEL, so authorship is provable and the honored window gates it. It carries:
 
 **Resolution is its own kind.** A comment is immutable, so resolving one is an **append**: a
 `comment-resolution` SAD naming the comment and a `resolved` boolean, direct-anchored like a
-comment. The current state is the **latest** resolution; re-opening is just another resolution.
+comment. On a **single** resolver's own IEL a later resolution supersedes its earlier one (that
+chain orders them). Across **different** resolvers there is no shared clock and no DAG, so a
+comment's resolution state is **presented, not decided** — the feature surfaces the resolutions and
+the application arbitrates what to show, the same presented-not-picked posture as divergent version
+tips and conflicting canonical tags. Resolution is UI state, not an authorization surface, so this
+matches the Word/Google-Docs mental model without asserting an order the data does not carry.
 
 **Authorization is the may-comment capability** — an open bracket in `document-edit-membership`
 **or** `document-comment-membership` (edit ⊃ comment). Any commenter or editor may add a comment and
 may resolve or re-open any comment; a comment **edit** is restricted to its author. Nothing finer —
 that is the Word/Google-Docs model, and matching it keeps the mental model intact.
+
+**The comment window mirrors the version predicate.** A comment (or resolution) anchored at position
+`C_x` on the author's own IEL is honored iff `C_x` falls in an open **may-comment** bracket on that
+IEL — `F' ≤ C_x ≤ B'`, the bracket chosen by max-capability (an editor's comment rides its
+**editor** bracket, a pure commenter's its **comment** bracket). All three positions sit on the
+author's own append-only chain, so backdate is closed both ways exactly as for a version: a removed
+commenter's new comment forward-appends **past** `B'`, and it cannot make an old immutable event
+anchor a new comment. Comments before the bound are **grandfathered** — they stay, just as removing
+comment access in Word/Google-Docs leaves prior comments in place.
 
 Both kinds (`vdti/doc/v1/schemas/comment`, `vdti/doc/v1/schemas/comment-resolution`) are
 direct-anchored SADs and need **no SEL topic** — like a version, a comment is found by reference,
@@ -519,13 +554,13 @@ inception (V0) = {
   said, kind,                       // vdti/doc/v1/schemas/inception
   prefix,                           // the doc prefix, derived from this SAD's whole content
   creator,                          // the creator's identity prefix
-  custody { readers },              // the initial read gate
+  custody { readers[] },            // the sorted edit ∪ comment ∪ read gate; omit = public
   nonce?,                           // high-entropy for a private doc
 }
 
 version = {
   said, kind,                       // vdti/doc/v1/schemas/version
-  custody { owner, pin, readers },  // owner = editor IEL prefix; pin locates V_x, the as-of
+  custody { owner, pin, readers[] },  // owner = editor IEL prefix; pin locates V_x, the as-of
   prefix,                           // the doc prefix
   grant,                            // said(G) — the authorizing document-edit-membership grant
   ancestors,                        // parent version SAID(s) — the multi-parent DAG
@@ -536,7 +571,7 @@ version = {
 
 comment = {
   said, kind,                       // vdti/doc/v1/schemas/comment
-  custody { owner, pin, readers },  // authored + anchored on the commenter's IEL; may-comment gated
+  custody { owner, pin, readers[] },  // authored + anchored on the commenter's IEL; may-comment gated
   prefix,                           // the doc
   target,                           // the one version SAID this comments on
   locator,                          // OPAQUE, app-defined — where it attaches
@@ -548,7 +583,7 @@ comment = {
 
 comment-resolution = {
   said, kind,                       // vdti/doc/v1/schemas/comment-resolution
-  custody { owner, pin, readers },  // may-comment gated
+  custody { owner, pin, readers[] },  // may-comment gated
   prefix,                           // the doc
   comment,                          // the comment SAID resolved / reopened
   resolved,                         // bool — the latest resolution wins
@@ -557,16 +592,16 @@ comment-resolution = {
 ```
 
 A **grant-doc** `G` — the `{ grants, rescinds }` delta a `Gnt` seals — is
-`{ said, kind, custody{ readers }, grants, rescinds }`: `grants` a list of nonce'd blinded
-commitments `{ said, kind, <role>, from, nonce, custody{ readers } }` (`<role>` = the member's IEL
+`{ said, kind, custody{ readers[] }, grants, rescinds }`: `grants` a list of nonce'd blinded
+commitments `{ said, kind, <role>, from, nonce, custody{ readers[] } }` (`<role>` = the member's IEL
 prefix, `said` = the rescission handle `said_b`), `rescinds` a list of blinded targets. **All three
 instances share this one shape**; the grant **kind** names the role. Each rescind also has a
 per-member **`{ Icp, Trm }` lookup** whose `Trm` carries the grandfather `bound` in a gated
-**rescind-doc** `{ said, kind, custody{ readers }, <role>, bound, nonce }` — the O(1) path the
+**rescind-doc** `{ said, kind, custody{ readers[] }, <role>, bound, nonce }` — the O(1) path the
 fail-secure walk's `rescinds` declaration must agree with. Reserved topics:
 `vdti/doc/v1/topics/edit-membership`, `.../comment-membership`, `.../read-membership`, and the
-shared removal locus `.../rescission` (the per-instance grant instance disambiguating which chain);
-grant values `vdti/sel/v1/grants/document-edit-membership`, `.../document-comment-membership`, and
+shared removal locus `.../rescission` (the grant instance disambiguating which chain); grant values
+`vdti/sel/v1/grants/document-edit-membership`, `.../document-comment-membership`, and
 `.../document-read-membership`.
 
 ## Boundary / residuals

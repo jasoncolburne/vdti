@@ -37,8 +37,9 @@ canonical** wherever they differ.
   check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss — instead
   of walking. ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
-  `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers`
-  read gate). ([`custody.md`](primitives/data/sad/custody.md))
+  `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers[]`
+  the read gate — a sorted list of read-authorization SEL prefixes, union any-match, omitted →
+  public). ([`custody.md`](primitives/data/sad/custody.md))
 - **availability** — a standalone SAD's per-object replication scope, TTL, and one-shot delivery.
   ([`availability.md`](primitives/data/sad/availability.md))
 
