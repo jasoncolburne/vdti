@@ -523,7 +523,11 @@ IEL — `F' ≤ C_x ≤ B'`, the bracket chosen by max-capability (an editor's c
 author's own append-only chain, so backdate is closed both ways exactly as for a version: a removed
 commenter's new comment forward-appends **past** `B'`, and it cannot make an old immutable event
 anchor a new comment. Comments before the bound are **grandfathered** — they stay, just as removing
-comment access in Word/Google-Docs leaves prior comments in place.
+comment access in Word/Google-Docs leaves prior comments in place. It mirrors the version
+predicate's **window**, not its **location**: a comment carries **no `grant` field**, so it cites
+nothing and there is no seal-locate — the may-comment bracket is found by the **fail-secure walk**
+of the author's edit ∪ comment grant chains (matching `owner`). The walk only ever finds
+creator-sealed grants, so there is no citation to bypass and no O(1) cited-grant path to assume.
 
 Both kinds (`vdti/doc/v1/schemas/comment`, `vdti/doc/v1/schemas/comment-resolution`) are
 direct-anchored SADs and need **no SEL topic** — like a version, a comment is found by reference,
@@ -586,7 +590,7 @@ comment-resolution = {
   custody { owner, pin, readers[] },  // may-comment gated
   prefix,                           // the doc
   comment,                          // the comment SAID resolved / reopened
-  resolved,                         // bool — the latest resolution wins
+  resolved,                         // bool — resolved/reopened; presented across resolvers, not ordered
   nonce?,
 }
 ```

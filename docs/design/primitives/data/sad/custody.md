@@ -23,7 +23,7 @@ threshold is the IEL primitive's — [`../event-logs/iel/`](../event-logs/iel/).
 custody { owner, pin, readers[] }
 ```
 
-The write-binding sub-fields (`owner` / `pin`) move together; `readers[]` is independent:
+The write-binding sub-fields (`owner` / `pin`) move together; `readers` is independent:
 
 - **`owner`** — the writer's IEL **prefix**: which identity wrote the object. The identity is named
   by **prefix, never by a SAID**, because that is what lets a verifier fetch and walk the writer's
@@ -50,9 +50,11 @@ The write-binding sub-fields (`owner` / `pin`) move together; `readers[]` is ind
   **prefix**, not a SAID, for the same reason `owner` is — that is what lets a verifier locate and
   walk it. Because a set names **identities**, not raw devices, it tracks the named identity's
   current key state automatically: a device the owner has rotated out no longer reads. The list is
-  held in a **canonical order** (its prefixes sorted), because the canonical form fixes object key
-  order but **not** array element order ([`said.md`](said.md)), so an unsorted list would make the
-  parent SAID input-order-dependent.
+  held in a **canonical order** — **strictly ascending** (its prefixes sorted **and** distinct) —
+  because the canonical form fixes object key order but **not** array element order or multiplicity
+  ([`said.md`](said.md)), so an unsorted or duplicate-bearing list would make the parent SAID vary
+  for one logical set; a verifier rejects either as non-canonical (a repeated prefix is a redundant
+  membership anyway — the union is unchanged).
 
 The `custody` struct is inline on the SAD wrapper — it has no `said` field, so per the Recognition
 rule in
@@ -120,7 +122,7 @@ kind that carries its writer-binding in body fields, like the credential, does *
 
 ## Asymmetric semantics
 
-The write side (`owner` + `pin`) and the read side (`readers[]`) are intentionally asymmetric:
+The write side (`owner` + `pin`) and the read side (`readers`) are intentionally asymmetric:
 
 - **Writes are single-identity-bound.** The writer-binding (`owner` + `pin`) names **one** identity,
   corroborated by a single direct anchor on its IEL (above). A SAD object has at most one writer
@@ -132,7 +134,7 @@ The write side (`owner` + `pin`) and the read side (`readers[]`) are intentional
   requester is authorized iff it is a current member of **any one** of the listed sets, each
   resolved by the same participant-blind membership lookup the rest of the system uses — never a
   live multi-party check, and never a materialized union (the sets stay independent, checked one at
-  a time until one admits). `readers[]` gates only the SAD that declares it — referenced sub-SADs do
+  a time until one admits). `readers` gates only the SAD that declares it — referenced sub-SADs do
   not transitively inherit the parent's read protection. See
   [`compaction.md` §Privacy contract](compaction.md#privacy-contract) for how privacy propagates (or
   doesn't) across the SAD graph.

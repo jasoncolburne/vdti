@@ -45,9 +45,10 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
 
 - **`custody { owner, pin, readers[] }`** — `owner` is the writer's IEL prefix and `pin` locates the
   owner-IEL `Ixn` that anchored the write (both-or-neither; the SAD's own `kind` names its type, so
-  no separate `topic`), `readers[]` an optional **sorted, non-empty list** of read-authorization SEL
-  prefixes gating reads — a requester in **any** listed set may read (omitted → public; one element
-  the common case, several a union like a shared document's edit ∪ comment ∪ read gate).
+  no separate `topic`), `readers[]` an optional **strictly ascending (sorted, distinct), non-empty
+  list** of read-authorization SEL prefixes gating reads — a requester in **any** listed set may
+  read (omitted → public; one element the common case, several a union like a shared document's edit
+  ∪ comment ∪ read gate).
 - **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
   everywhere), `ttl` a retention bound, `once` a destructive-read flag.
 

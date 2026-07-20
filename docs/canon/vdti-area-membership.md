@@ -242,7 +242,7 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
   the cap; membership is the separate unbounded authorization); the **`chat-membership`** instance in
   `vdti-area-exchange.md` §7a + `exchange.md` (per-requester store-auth, an `[anchored root … bound]` lane bracket), replacing the
   round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers[]` is the read-authorization
-  **pointer** — a **sorted list** of membership-set prefixes, **union with any-match** (a shared document lists its
+  **pointer** — a **strictly ascending (sorted, distinct) list** of membership-set prefixes, **union with any-match** (a shared document lists its
   three `document-*-membership` SELs; a single-set gate is a one-element list; omitted → public) — already stated at
   `custody.md`.
 - **DONE (2026-07-19 encode; roles revised to THREE instances 2026-07-20 in the PR#27 review).** Renamed

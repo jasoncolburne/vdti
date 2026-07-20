@@ -30,7 +30,9 @@ derivation:
   group checked independently, no cross-group linkage; the read gate is the union of the three, carried natively
   as the SAD's sorted **`custody.readers[]`** list — union any-match, one entry per role, omitted → public
   (PR#27 r2, superseding §5's single read-governance SEL)). **This
-  SUPERSEDES §1–§5's two-set editors/commenters framing** (revised during the PR#27 review, 2026-07-20, to
+  SUPERSEDES the two-set editors/commenters framing wherever it appears** — §1–§5, the model paragraph (§ intro
+  `editors[]`/`commenters[]`), and §7's "settled-shape (RESOLVED)" grant-doc bullet are all governed by the
+  three-instance `{grants, rescinds}` catalogue in §7 (revised during the PR#27 review, 2026-07-20, to
   resolve the rescission-recording contradiction and the author-must-be-an-editor gap): each instance uses the
   primitive's own `{grants, rescinds}` delta + O(1) `{Icp,Trm}` lookup uniformly, so the doc rescission is not
   bespoke, and "honored" is an open **editor** bracket. Grant-value kinds `shared-document-governance` →

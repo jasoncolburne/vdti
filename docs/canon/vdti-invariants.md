@@ -251,7 +251,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    2026-07-18):** an `owner`-bearing SAD is **directly anchored** on the owner's IEL — the owner authors an `Ixn`
    committing the SAD's `said`; the SAD's **`pin`** (a checked locator, `pin == anchor.previous`) finds it at
    `pin + 1`, and `owner ⟹ pin` (`custody { owner, pin, readers[] }` — the SAD's `kind` names its type, no `topic`;
-   `readers[]` a sorted list of read-authorization SEL prefixes, union any-match, omitted → public),
+   `readers[]` a strictly ascending (sorted, distinct) list of read-authorization SEL prefixes, union any-match, omitted → public),
    its as-of the append-only anchoring position. See inv 16. `[locked]`
 6. **No timestamps in the log primitives.** In KEL/IEL/SEL, ordering and "as-of" are expressed only by pins
    (which event) + the chain walk — never wall-clock time. **Feature layers (creds / documents) MAY use
