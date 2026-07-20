@@ -37,7 +37,7 @@ or "standalone SAD" where the distinction matters.
 ```mermaid
 flowchart TD
   sad["<b>SAD</b><br/>identity = its own content hash (said)"]:::start
-  sad -->|"has chain-linkage fields"| ce["<b>chain event</b><br/>+ prefix · previous · serial · manifest<br/><i>indivisible unit — no custody / availability slot</i>"]:::q
+  sad -->|"has chain-linkage fields"| ce["<b>chain event</b><br/>+ prefix · previous · serial · manifest / data<br/><i>indivisible unit — no custody / availability slot</i>"]:::q
   sad -->|"no chain-linkage fields"| st["<b>standalone SAD</b><br/>credential · policy · envelope · replica-set · file<br/><i>MAY carry custody + availability</i>"]:::doc
   ce --> ceS[("chain log —<br/>addressed by prefix,<br/>never served by SAID")]:::q
   st --> stS[("SAD object store —<br/>served by SAID")]:::doc
