@@ -72,6 +72,23 @@ consumer eclipsed to a malicious subset sees it after the heal —
 semantics and freshness rules are the verification doctrine's —
 [`../../protocol-doctrine.md`](../../protocol-doctrine.md).
 
+```mermaid
+flowchart TD
+  q["accept a document"]:::start
+  q --> asissued{"validly issued as of the<br/>anchoring position?<br/>(leaves resolved there)"}:::qq
+  asissued -->|no| reject["not valid"]:::bad
+  asissued -->|yes| final["as-issued valid ✓<br/>(final if at-or-below the last clean seal)"]:::good
+  final --> newtrust{"granting <b>new</b> current trust?"}:::qq
+  newtrust -->|"no — a below-seal anchor stays valid"| done["done — as-issued"]:::good
+  newtrust -->|yes| totip{"to-tip freshness: region trusted<br/>(not forked / disputed) AND fresh<br/>(multi-source / witnessed)?"}:::qq
+  totip -->|yes| trust["current trust ✓"]:::good
+  totip -->|"no — forked / disputed / stale /<br/>dormant-forged extension"| refuse["refuse — fail-secure"]:::bad
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef qq fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 ## The verification-token interface — the seam to the primitives
 
 The policy layer reads **no chain directly** and holds no live connection to a chain source. Instead

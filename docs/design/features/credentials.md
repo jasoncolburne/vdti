@@ -133,6 +133,24 @@ conjunction:
   this.
 - **Not expired** — advisory; the caller decides.
 
+```mermaid
+flowchart TD
+  acc["accept a presented credential —<br/>grant only if <b>all</b> hold (fail-secure conjunction)"]:::start
+  acc --> s1["structural integrity — SAID recomputes"]:::chk
+  s1 --> s2["validly issued — anchored at issuerPin; issuer condition<br/>resolves as-issued (delegate: unrescinded past bound)"]:::chk
+  s2 --> s3["issuer trusted — the relying party's decision"]:::chk
+  s3 --> s4["fresh to the tip — not forked / disputed, current,<br/>multi-source witnessed (a Trm issuer passes)"]:::chk
+  s4 --> s5["not revoked — fail-secure walk:<br/>target vs kills[] on the issuer's fresh chain"]:::chk
+  s5 --> s6["owned — issuee's t_use quorum bound to<br/>{audience, nonce, created}; frozen on divergence (bearer skips)"]:::chk
+  s6 --> s7["not expired — advisory, caller decides"]:::chk
+  s7 --> grant["accept ✓"]:::good
+  acc -.->|"any check fails"| deny["deny — fail-secure"]:::bad
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef chk fill:#20263a,stroke:#4263eb,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 ## Presentation
 
 Issuance and presentation are both **[IPEX](../primitives/protocols/ipex.md)** disclosures (from a
