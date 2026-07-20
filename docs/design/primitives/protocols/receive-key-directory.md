@@ -74,6 +74,21 @@ automatic discoverability, so it serves point-to-point sends rather than fan-out
 An identity's **own** device roster is resolvable by a correspondent this way. A **group's**
 membership, which stays hidden from onlookers, is a different thing and a different mechanism.
 
+```mermaid
+flowchart TB
+  id["identity — a set of devices"]:::id
+  id -->|"publish each device's receive key + inbox-node hints<br/>(reserve / T2 authority; keys held in hardware)"| dir[("receive-key directory<br/>lookup log @ prefix · topic · selector")]:::dir
+  dir ==>|"<b>fan-out</b> (default)<br/>resolve every roster device, one seal per key"| fan["reaches the whole identity —<br/>opens on any device"]:::good
+  dir ==>|"<b>single device</b> — resolve one selector"| sel{"selector"}:::q
+  sel -->|"device prefix<br/>(reveals which device)"| od["that device's key"]:::fld
+  sel -->|"opaque label<br/>(device stays hidden)"| ol["that device's key"]:::fld
+  classDef id fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef dir fill:#122a44,stroke:#1971c2,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef fld fill:#20263a,stroke:#4263eb,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
 ## Rotating and retiring a key
 
 Rotation stacks a fresh sealed grant onto the log; the lookup serves only the **live** entry, so a

@@ -52,6 +52,27 @@ the sender) at once. Neither the order nor where each identity sits is cosmetic.
   strip-and-re-sign; the second makes any substitution of the recipient's key detectable — the
   message must open under the intended recipient's key, or the signature is invalid.
 
+```mermaid
+flowchart TB
+  subgraph message["message → handed to transport"]
+    signature["<b>signature</b> — sender's t_use quorum over envelope.said"]:::sig
+    subgraph envelope["envelope — signed cleartext (said commits all below)"]
+      sndr["sender · senderPin — locate chain, fetch verify key"]:::fld
+      rcpt["<b>recipient</b> — bound in signed cleartext<br/>defeats recipient-key substitution"]:::bind
+      kem["kemCiphertext → recipient receive key"]:::fld
+      dig["payloadDigest · payloadSize"]:::fld
+    end
+  end
+  dig -.->|"commits the sealed inner (a blob, not the bytes)"| inner
+  subgraph inner["inner — sealed under a fresh per-message key"]
+    isndr["<b>sender</b> — bound in sealed content<br/>defeats strip-and-re-sign"]:::bind
+    pl["payload — opaque; ESSR never inspects"]:::fld
+  end
+  classDef sig fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef fld fill:#20263a,stroke:#4263eb,color:#e9ecef
+  classDef bind fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
 **One strengthening from naming parties by chain.** Because the sender and recipient are named by
 their IEL prefixes, with keys looked up from their logs, a dishonest recipient cannot substitute an
 arbitrary key — only a key that actually appears in its own chain, at worst a stale one. Naming

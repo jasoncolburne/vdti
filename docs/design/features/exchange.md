@@ -118,6 +118,22 @@ Opening a message authenticates its sender, and that check is only sound if the 
 against the **window it was actually valid for** — not blindly, and not with a rigid "is it the tip
 right now," which would strand honest mail sent before a routine rotation.
 
+```mermaid
+flowchart TD
+  msg["open a message — was the sender's signature<br/>current for its claimed timestamp?"]:::start
+  msg --> iel{"IEL establishment interval open at<br/>timestamp? (roster + t_use — an<br/>eviction / roster change closes it)"}:::qq
+  iel -->|no| rej["refuse — fail-secure"]:::bad
+  iel -->|yes| kel{"signing device's KEL window open<br/>at timestamp? (a harvested<br/>rotated-out key is closed here)"}:::qq
+  kel -->|no| rej
+  kel -->|"yes, and timestamp ≤ now + band"| ok["accept — the key-state was current then"]:::good
+  msg -.->|"each interval bounded by the sender's own witnessed<br/>establishment times (receipt τ at threshold); a current-tip<br/>divergence freezes a live read"| note(["per-event granularity"]):::note
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef qq fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef note fill:#20242a,stroke:#495057,color:#adb5bd
+```
+
 - **On open, place the message in the sender's witnessed key-state timeline — on both axes.** The
   envelope names the sender's **IEL key-state position** (`senderPin`), and the message carries a
   send-time `timestamp`. The recipient reads the sender's **witnessed** chains against a
@@ -199,6 +215,19 @@ the recipient find and fetch it:
   cap, a per-IP token bucket, a message TTL, and a short dedup window.
 - **Replay** is closed by the stable SAID: a recipient dedups by the message's SAID (the short dedup
   window guards only the transport layer).
+
+```mermaid
+flowchart LR
+  send["sender: seal (ESSR) +<br/>availability.replicas = recipient's inbox hints"]:::der
+  send -->|"deposit message SAD, then upload payload blob<br/>(payload endpoint: SAID + nonce + ts + sig)"| store[("recipient's inbox nodes")]:::store
+  store -->|"recipient polls its own nodes"| disc["discover"]:::dee
+  disc -->|"fetch blob — serve-time gate: a live sig proving control<br/>of the recipient prefix (any member device, IEL-roster check)"| open["open (ESSR) +<br/>sender-key currency"]:::dee
+  open -->|"acknowledge → origin node deletes"| done["done"]:::good
+  classDef der fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef store fill:#122a44,stroke:#1971c2,color:#fff
+  classDef dee fill:#20263a,stroke:#4263eb,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
 
 ## The session mode — chat
 

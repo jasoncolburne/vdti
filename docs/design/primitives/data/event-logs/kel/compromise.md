@@ -36,6 +36,19 @@ capability statement.
 | 1    | Current signing key.  | `Ixn`.                 | A forked content branch is buried by a recovery `Rot`; a linear takeover is rotated out. Content is buriable — what the rotation reserve defends: the **signing** key.                                                                 |
 | 2    | The rotation reserve. | `Rot` / `Wit` / `Trm`. | **None in-band.** A reserve holder just extends the chain with a rotation to their own key — a takeover-by-extend witnesses sign as an ordinary next event → **reincept** (the reserve defends the signing key, not the rotation key). |
 
+```mermaid
+flowchart TD
+  steal{"what did the attacker steal?"}:::q
+  steal -->|"the current signing key (Tier 1)"| t1["can forge: Ixn (content)"]:::mid
+  steal -->|"the rotation reserve (Tier 2)"| t2["can forge: Rot / Wit / Trm"]:::bad
+  t1 -->|"a recovery Rot at the root buries their run<br/>(deadness ascends) and rotates the key out"| rec["<b>fully recoverable</b> — the reserve<br/>defends the signing key"]:::good
+  t2 -->|"takeover-by-extend: they rotate to their own key,<br/>witnessed as an ordinary next event — no in-band fix"| rein["<b>reincept</b> (point of no return)<br/>defense is one layer up: IEL threshold<br/>redundancy evicts the KEL (an Evl cut)"]:::bad
+  classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
 The recovery `Rot` closes the **tier-1 (content) surface** — it buries an adversary's content
 branch, which is what the rotation reserve defends: the **signing** key, never the rotation key.
 Tier-2 has **no in-band recourse**: a reserve holder can just extend the chain with a rotation to

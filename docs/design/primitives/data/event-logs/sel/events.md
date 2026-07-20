@@ -193,21 +193,12 @@ The `content` / `lineage` field model is defined once at
 [`log.md` §The content and lineage fields](log.md#the-content-and-lineage-fields); this section
 states how the SEL **kinds** consume it.
 
-**`content: true`** discriminates a content SEL (tier-1 v1) from a lookup (tier-2 v1),
-verifier-enforced as a biconditional; because it rides the whole-content prefix, content and lookups
-derive to **different addresses** even when they share `(owner, topic, data)` — a content **squat**
-at a lookup address is impossible by construction.
-
-**`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup's prefix —
-the two-hash digest over its inception body (`owner`, `topic`, and optional `data` / `content`) — is
-a pure function of fixed inputs, so a killed or disputed value lookup **cannot re-incept by
-rerolling randomness** — the same inputs recompute the same dead address. `lineage` gives it a fresh
-one: the base is `lineage: 0`, a re-incept sets `lineage: 1`, `lineage: 2`, and so on, each a
-distinct whole-content and so a distinct prefix. It is carried **only** by a **re-establishable
-value** lookup; a **monotone** lookup (a kill, or a non-re-establishable value) omits it, and
-content omits it too (content uses `content: true`). A re-establishable value's **canonical instance
-is the lowest non-dead lineage**, found by a **positive walk**; a lineage above a live one is inert,
-so an equivocation attempt fails safe (only the owner anchors at the locus).
+In brief: **`content: true`** discriminates a content SEL (tier-1 v1) from a lookup (tier-2 v1), and
+**`lineage`** (lookups only — `0`, `1`, `2`, …, carried only by a re-establishable value) gives a
+killed value lookup a fresh prefix, its **canonical instance the lowest non-dead lineage** found by
+a positive walk. The full model — the verifier-enforced biconditional, the distinct
+content-vs-lookup addresses off the whole-content prefix, and why an equivocation above a live
+lineage fails safe — is `log.md`'s; below is only how the **kinds** consume it.
 
 A **value lookup** is **positive-walked** — its own live state is the sole authority for "what is
 the live value" (no owner-IEL fallback for that resolution), so a dispute is genuine ambiguity and a

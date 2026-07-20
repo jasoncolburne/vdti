@@ -58,6 +58,30 @@ infrastructure to infer system state.
 
 ## Federation convergence
 
+**In one line:** the witnessing floor **prevents a _same-kind_ fork** (two content, or two sealed)
+from forming on an honest quorum — that takes witness collusion, a provable double-sign. A **mixed**
+{sealed, content} fork still forms on an honest cross-node race, and resolves by tier: a burying
+seal buries the content loser (or a `Trm` retires the chain), while **two accepted sealed branches**
+are _disputed_ and terminal. This is the prevention view; its companion is the entity-side
+[resolution tree](protocol-doctrine.md#divergence-and-recovery) (how an existing fork resolves). The
+decision tree:
+
+```mermaid
+flowchart TD
+  A["two distinct events<br/>at one position"]:::start
+  A --> K{"same kind?<br/>(two content, or two sealed)"}:::q
+  K -->|"yes"| HQ{"co-witnessed on an<br/>honest quorum?"}:::q
+  HQ -->|"no — the floor (&gt; signers/2)<br/>declines the second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
+  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>at the last seal"}:::q
+  K -->|"no — mixed {sealed, content};<br/>forms on an honest cross-node race"| N
+  N -->|"≤ 1"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser<br/>(a Trm retires the chain instead)"]:::good
+  N -->|"≥ 2"| X["<b>Disputed → reincept</b><br/>two accepted seals — neither can<br/>bury the other; terminal"]:::bad
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
 - **Prevention for witnessed events; detection for the byzantine residual.** On a witnessed chain

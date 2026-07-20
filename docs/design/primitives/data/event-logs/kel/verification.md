@@ -284,6 +284,25 @@ are three views of the one data-local walk:
 terminated chain is final, not divergent); **termination rides the orthogonal `is_terminated()`
 accessor**, never a `region()` value.
 
+```mermaid
+flowchart LR
+  walk["one data-local walk<br/>(against the derived seal)"]:::start
+  walk --> active["<b>Active</b>"]:::good
+  walk --> forked["<b>Forked</b>"]:::mid
+  walk --> disputed["<b>Disputed</b>"]:::bad
+  walk --> term["<b>Terminated</b>"]:::dead
+  active -->|"region() = trusted"| a2["effective_said = real tip SAID"]:::fld
+  forked -->|"region() = forked"| f2["effective_said = forked synthetic"]:::fld
+  disputed -->|"region() = disputed"| d2["effective_said = disputed synthetic"]:::fld
+  term -->|"region() = trusted (is_terminated() carries termination)"| t2["effective_said = real Trm SAID"]:::fld
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+  classDef fld fill:#20263a,stroke:#4263eb,color:#e9ecef
+```
+
 ## Inline anchor checking
 
 The caller registers SAIDs of interest before the walk via `verifier.check_anchors(saids)`. As the

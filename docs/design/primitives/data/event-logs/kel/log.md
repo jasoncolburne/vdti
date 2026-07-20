@@ -55,6 +55,25 @@ state is computed — not a "reading" layered on a single divergent state.
 | **Disputed**   | A live fork with **≥ 2 accepted sealed branches** past it — terminal. No sealed branch can be buried (that would resurrect retired keys), so nothing resolves it and the prefix must **reincept**.                                                                                                                                                                                                                                                                                                | None (barring a partition) — witnesses decline any extension of a disputed chain. The only exit is reincept.                                                                                                                        |
 | **Terminated** | A terminal `Trm` landed cleanly. The `Trm` advances the seal to its own serial; the chain is sealed there.                                                                                                                                                                                                                                                                                                                                                                                        | None. A content sibling to the `Trm` is inert below its seal (`Sealed`); a sealed sibling is a second accepted sealed branch → **Disputed**; a submission chaining from the `Trm` is rejected by the kind-schema rule (`Terminal`). |
 
+```mermaid
+flowchart LR
+  Active["<b>Active</b><br/>linear; tip extends via previous"]:::good
+  Forked["<b>Forked</b><br/>≤ 1 sealed branch past the fork<br/>(origination frozen)"]:::mid
+  Disputed["<b>Disputed</b><br/>≥ 2 accepted sealed branches<br/>(terminal → reincept)"]:::bad
+  Terminated["<b>Terminated</b><br/>a clean Trm sealed the chain"]:::dead
+  Active -->|"Ixn / Rot / Wit — linear extension"| Active
+  Active -->|"two distinct events at one serial (≤ 1 sealed)"| Forked
+  Active -->|"two accepted sealed at one serial<br/>(sealed-vs-sealed race)"| Disputed
+  Active -->|"Trm lands cleanly"| Terminated
+  Forked -->|"burying seal-advancer (Rot / Wit) buries<br/>the content loser → Recovered"| Active
+  Forked -->|"{Trm, content}: tier-rank, the Trm wins"| Terminated
+  Forked -->|"a 2nd accepted sealed branch joins"| Disputed
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+```
+
 Recovery keeps the recovering party's own branch and buries the rest by position + ascent, returning
 the chain to Active — possible only when no buried branch carries a **sealed** event (see
 [`compromise.md`](compromise.md)). Two byte-identical events at one serial **are one event** — they

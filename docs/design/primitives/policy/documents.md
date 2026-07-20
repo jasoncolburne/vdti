@@ -51,6 +51,19 @@ fixed serial on the append-only chain, and it fixes the context two ways at once
   past — so the issuer cannot make the document appear authorized under a more permissive past while
   it actually anchors in the restrictive present.
 
+```mermaid
+flowchart LR
+  doc["document (SAD)<br/>issuerPin — a checked locator"]:::doc
+  doc -.->|"locates (issuerPin = anchor.previous)"| anchor
+  subgraph iel["issuer's IEL — append-only"]
+    asof["as-of context<br/>members · threshold · delegation"]:::iel --> anchor["anchoring Ixn<br/>manifest.anchors ∋ commitment"]:::iel
+  end
+  anchor ==>|"authority judged here — append-only,<br/>no backdate; issuerPin finds, never trusts"| ok["validly issued ✓"]:::good
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef iel fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
 So **authority-affecting resolution is judged by the anchoring position.** The _document_ carries no
 self-asserted value the issuer is _trusted_ on — the as-of is read from where it is anchored (a
 credential's `issuerPin` / a custody SAD's `pin` only _locates_ that anchor, checked, never trusted)

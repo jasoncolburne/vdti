@@ -126,6 +126,24 @@ carries additional bounds — see
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and
 [§The restricted federation IEL](#the-restricted-federation-iel).
 
+```mermaid
+flowchart TD
+  tv["threshold vector { use, authorize, govern }<br/>the COUNT axis — orthogonal to tier"]:::iel
+  tv --> tu["<b>t_use</b> ≥ 1<br/>(content · tier 1)"]:::good
+  tv --> ta["<b>t_authorize</b> (tier 2)"]:::mid
+  tv --> tg["<b>t_govern</b> (tier 2)"]:::mid
+  tu --> ixn["Ixn"]:::fld
+  ta --> ath["Ath · Dth"]:::fld
+  tg --> gov["Evl · Rev · Wit · Trm"]:::fld
+  ta -.->|"authority slots: floor ≥ 2 (no lone authority) ·<br/>authorization floor > |roster|/2 (quorums overlap) ·<br/>ceiling ≤ |roster| − 1 (hard at |roster| ≥ 3; can evict / recover)"| bounds([bounds]):::note
+  tg -.-> bounds
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef fld fill:#20263a,stroke:#4263eb,color:#e9ecef
+  classDef note fill:#20242a,stroke:#495057,color:#adb5bd
+```
+
 ### Threshold declaration at inception
 
 The **`Icp` declares the active threshold set** — exactly the authority kinds the IEL will ever use.
@@ -410,6 +428,20 @@ up):
 | content (`Ixn`)                                                                                                       | KEL `Ixn`                |
 | tier-2 inception / governance / kill / terminal (`Icp` / `Evl` / `Ath` / `Rev` / `Dth` / `Trm`; the federation `Fcp`) | KEL `Rot`                |
 | the federation binding (IEL `Wit`)                                                                                    | KEL `Wit`                |
+
+```mermaid
+flowchart BT
+  m1["member KEL: Ixn / Rot / Wit<br/>(fresh participation at own tip, kind-strict)"]:::kel
+  m2["member KEL: …"]:::kel
+  m3["member KEL: …"]:::kel
+  m1 ==>|manifest.anchors| iel["IEL event — no signature of its own;<br/>authorized when a THRESHOLD of members'<br/>fresh participations anchor it"]:::iel
+  m2 ==>|manifest.anchors| iel
+  m3 ==>|manifest.anchors| iel
+  iel -.-|"pins DOWN: each member's prior KEL tip<br/>(participation.previous)"| pins([pins-SAD]):::note
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef note fill:#20242a,stroke:#495057,color:#adb5bd
+```
 
 A rotated-out key cannot produce a fresh participation, which closes the rotated-out-member
 backdate. The IEL event records the **down-pins** — each participating member's **prior KEL tip**

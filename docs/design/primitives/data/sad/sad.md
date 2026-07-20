@@ -34,6 +34,21 @@ continuity via `previous`. A standalone SAD is independently addressable and car
 directly. The doctrine that follows uses "SAD" as the general term and specializes to "chain event"
 or "standalone SAD" where the distinction matters.
 
+```mermaid
+flowchart TD
+  sad["<b>SAD</b><br/>identity = its own content hash (said)"]:::start
+  sad -->|"has chain-linkage fields"| ce["<b>chain event</b><br/>+ prefix · previous · serial · manifest / data<br/><i>indivisible unit — no custody / availability slot</i>"]:::q
+  sad -->|"no chain-linkage fields"| st["<b>standalone SAD</b><br/>credential · policy · envelope · replica-set · file<br/><i>MAY carry custody + availability</i>"]:::doc
+  ce --> ceS[("chain log —<br/>addressed by prefix,<br/>never served by SAID")]:::q
+  st --> stS[("SAD object store —<br/>served by SAID")]:::doc
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#fff
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+```
+
+The split is what the store enforces: only standalone SADs are served by SAID, so an identity's
+opaque event commitments can never be inverted by a SAID lookup (§Events are never fetchable below).
+
 **Events are never fetchable by SAID from the SAD object store.** Chain events live in the chain
 log, addressed **by prefix**; only standalone SADs are stored in — and served by SAID from — the SAD
 object store, so its write path **classifies a submission by `kind` and rejects event kinds**. The
@@ -121,6 +136,25 @@ read it, where the bytes live and for how long — rides the **`file` SAD** that
 authorization the storage service enforces
 ([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md),
 forthcoming).
+
+The two reference mechanisms hang off one parent — **structured children by SAID**, **bulk bytes by
+digest** — and both are committed by the parent's SAID:
+
+```mermaid
+flowchart TD
+  p["<b>parent SAD</b><br/>said = hash(fully-compacted canonical bytes)"]:::doc
+  p -->|"commits child by SAID"| c1["child SAD · said"]:::doc
+  p -->|"commits child by SAID"| c2["child SAD · said"]:::doc
+  c1 -->|"commits by SAID"| g["grandchild SAD · said"]:::doc
+  p -->|"{ digest, size }"| blob[("content-addressed blob<br/>raw bytes · not a SAD<br/>addressed by digest")]:::blob
+  g -.->|"a changed leaf re-hashes every ancestor SAID"| p
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef blob fill:#20242a,stroke:#495057,color:#adb5bd
+```
+
+Structured children canonicalize and expand for disclosure; the opaque blob does not (it carries no
+`kind`, no `custody`, no nesting). Either way, substituting any node changes its SAID — or digest —
+and every ancestor SAID that commits it, so tamper-evidence is transitive through the whole graph.
 
 ## Adversarial framing
 

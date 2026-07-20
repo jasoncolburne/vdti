@@ -37,6 +37,23 @@ sub-majority config is rejected as **un-usable** — its `witnessed` signal woul
 per-position exclusivity, a consumer footgun — and every config additionally clears `signers ≥ 3`
 (real byzantine tolerance; no forced lone witness).
 
+```mermaid
+flowchart TD
+  pool["one position:<br/>signers selected witnesses<br/><b>floor: threshold &gt; signers / 2</b>"]:::iel
+  pool --> a["quorum for sibling A<br/>threshold receipts"]:::q
+  pool --> b["quorum for sibling B<br/>threshold receipts"]:::q
+  a --> ov["<b>any two threshold-quorums overlap</b><br/>shared ≥ 2·threshold − signers ≥ 1"]:::mid
+  b --> ov
+  ov -->|"the shared witness signs only<br/>the FIRST sibling it sees"| out["A and B cannot BOTH reach threshold<br/><b>content fork prevented · sealed fork detected</b>"]:::good
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#fff
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
+The floor is exactly the strict-majority threshold that forces the overlap: below it, two disjoint
+threshold-quorums could form and `witnessed` would stop meaning per-position exclusivity.
+
 **Per-layer.** A KEL, a user IEL, and the federation IEL each carry their **own** authoritative
 witness-config, independent of one another; a **SEL inherits** its owner IEL's (a single-owner log
 declares nothing of its own). A user IEL needs its own config because an IEL event is witnessed and

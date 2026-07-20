@@ -120,6 +120,22 @@ kind that carries its writer-binding in body fields, like the credential, does *
   untrusted — end-verifiability). A generic **`verify_sad`** delegates to it whenever the SAD is
   owned, so a caller never skips the anchor check.
 
+The `pin` sends the verifier straight to one event and one manifest — no per-event scan:
+
+```mermaid
+flowchart TD
+  sad["owner-bearing SAD<br/>(owner + pin + said)"]:::doc
+  sad -->|"pin locates it<br/>(anchor sits at pin's serial + 1)"| ix["owner IEL Ixn<br/>t_use content act, witnessed"]:::iel
+  ix --> chk{"open one manifest — all three?"}:::q
+  chk -->|"previous == pin<br/>· kind == Ixn<br/>· issuance commitment ∈ manifest.anchors[]"| ok["<b>attested write</b><br/>append-only ⇒ backdate-proof"]:::good
+  chk -->|"any check fails"| no["not attested — reject"]:::bad
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 ## Asymmetric semantics
 
 The write side (`owner` + `pin`) and the read side (`readers`) are intentionally asymmetric:
@@ -178,6 +194,22 @@ The two axes are independently optional, so a SAD object has four valid custody 
 (`owner` and `pin` move together — an attested write is **directly anchored** on the owner's IEL,
 with `pin` locating that anchor — so the left column is the writer-binding as a whole: `Some` =
 attested + anchored, `None` = anonymous.)
+
+The two axes are independent, so the four shapes fall out of two successive splits:
+
+```mermaid
+flowchart TD
+  s["standalone SAD<br/>two independent axes"]:::start
+  s -->|"anonymous write<br/>(owner, pin absent)"| an{"readers?"}:::q
+  s -->|"attested write<br/>(owner + pin, anchored on owner IEL)"| at{"readers?"}:::q
+  an -->|"absent → public"| p1["<b>public anonymous</b><br/>self-attesting content"]:::doc
+  an -->|"present → gated"| p2["<b>drop-box</b><br/>anon write, controlled read"]:::doc
+  at -->|"absent → public"| p3["<b>attested public</b><br/>signed cred / policy"]:::doc
+  at -->|"present → gated"| p4["<b>private message</b><br/>attested + controlled read"]:::doc
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#fff
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+```
 
 The combinations are doctrine, not just enumeration. They name distinct application patterns the
 protocol supports without per-pattern carve-outs:

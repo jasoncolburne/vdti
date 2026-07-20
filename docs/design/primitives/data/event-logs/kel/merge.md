@@ -103,6 +103,29 @@ The merge handler routes a submitted batch through four rule scopes in this **st
 The order is chosen so adversarial-input diagnostics correctly name the structural
 cause-of-rejection.
 
+```mermaid
+flowchart TD
+  ev["submitted event → merge_events"]:::start
+  ev --> r1{"1 · structural validation<br/>(SAID · fields · sig shape · linkage · no Trm parent)"}:::q
+  r1 -->|"bad shape / Trm parent"| x1["Invalid / Terminal"]:::bad
+  r1 -->|ok| r2{"2 · seal-cap<br/>(parent ≥ last seal)"}:::q
+  r2 -->|"inert below-seal straggler"| x2["Sealed (dropped)"]:::bad
+  r2 -->|ok| r3{"3 · fork-detect<br/>(competes at a serial?)"}:::q
+  r3 -->|"2nd content sibling"| x3["Ignored (witness declines)"]:::bad
+  r3 -->|"forms / joins a live fork"| x4["Forked (≤ 1 sealed) /<br/>Disputed (≥ 2 accepted sealed)"]:::mid
+  r3 -->|"clean, or a burying seal-advancer"| r4{"4 · kind-auth<br/>(sig · forward-key · cap ·<br/>no burying a sealed branch)"}:::q
+  r4 -->|"linear extension"| ext["Extended → Active"]:::good
+  r4 -->|"buries the content loser"| rec["Recovered → Active"]:::good
+  r4 -->|"a Trm lands"| term["Terminated"]:::dead
+  r4 -.->|"would bury a sealed branch"| x4
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+  classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+```
+
 ### 1. Structural validation
 
 Per-kind field rules (per [`events.md` §Key-state fields](events.md#key-state-fields) and the

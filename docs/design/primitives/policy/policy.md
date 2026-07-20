@@ -111,6 +111,27 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   draw from disjoint pools ([Composition rules](#composition-rules)); over overlapping pools one
   party can satisfy several branches.
 
+A policy expression is a tree — composers over leaves. For example
+`and( thr(2, [id(A), id(B), id(C)]), del(R, 2) )` — _any two of A/B/C **and** a live delegate of R
+within two hops_:
+
+```mermaid
+flowchart TD
+  root["and — every branch<br/>(disjoint pools ⇒ distinct parties)"]:::comp
+  root --> thr["thr(2, …) — any 2 of 3;<br/>each id resolves that identity's t_use quorum"]:::comp
+  thr --> a["id(A)"]:::leaf
+  thr --> b["id(B)"]:::leaf
+  thr --> c["id(C)"]:::leaf
+  root --> del["del(R, 2) — a live delegate<br/>of R, within 2 hops"]:::leaf
+  classDef comp fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef leaf fill:#122a44,stroke:#1971c2,color:#fff
+```
+
+Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol`) blue. `pol(said)` nests
+another whole tree by SAID; a `del` leaf's liveness is a **positive** rescission match (present →
+rescinded), never a scan. Every leaf resolves **as-issued** — as of the document's anchoring
+position; there is no live / current-mode evaluation.
+
 ## Composition rules
 
 These four rules govern how the composers count and combine, and are identical wherever a policy is
