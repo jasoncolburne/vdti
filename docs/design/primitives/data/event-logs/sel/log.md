@@ -110,6 +110,19 @@ A **monotone kill** (a cred revocation, a delegate / doc-member rescission) carr
 is load-bearing for a published value but a monotone kill is a single read is
 [`verification.md` §The lineage walk](verification.md#the-lineage-walk).
 
+```mermaid
+flowchart LR
+  q["resolve a re-establishable value lookup"]:::start
+  q --> l0{"lineage 0 dead?<br/>(lineaged kills[] target present)"}:::qq
+  l0 -->|no| c0["canonical = lineage 0"]:::good
+  l0 -->|yes| l1{"lineage 1 dead?"}:::qq
+  l1 -->|no| c1["canonical = lineage 1"]:::good
+  l1 -->|yes| ln["… positive walk up to the lowest non-dead<br/>lineage (cap MAXIMUM_SEL_LINEAGE)"]:::good
+  classDef start fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef qq fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+```
+
 ## Lookup SEL versus content SEL
 
 A SEL is classified by **whether a verifier can recompute its address**, not by whether its data is
@@ -268,6 +281,20 @@ up to the earliest dead-anchor point and severed (dead and un-verifiable) from t
 portion stays live; there is no continuation on the same chain. A SEL portion that **pre-exists**
 the IEL fork rides the shared pre-fork lineage and is not severed; a SEL with no anchor on a dead
 IEL branch is untouched.
+
+```mermaid
+flowchart BT
+  icp["SEL Icp<br/>(recomputable, no pin)"]:::sel
+  icp --> v1["SEL v1 (Pin / Ixn / Gnt / Trm)<br/>— carries the pin"]:::sel
+  v1 --> e2["SEL Ixn"]:::sel
+  e2 --> e3["SEL Ixn"]:::dead
+  v1 ==>|"anchored + pinned DOWN"| a1["owner IEL"]:::iel
+  e2 ==>|"anchored + pinned"| a2["owner IEL"]:::iel
+  e3 ==>|"anchored on a DEAD IEL branch<br/>→ SEVERED here (no repair)"| a3["owner IEL (buried)"]:::dead
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef dead fill:#2a2a2a,stroke:#868e96,color:#adb5bd
+```
 
 **Deadness takes precedence over the neutral advancer.** You never bury something already dead: a
 content fork with one severed branch auto-resolves to the live branch (the SEL shrinks to the shared

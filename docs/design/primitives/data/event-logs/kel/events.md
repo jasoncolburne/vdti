@@ -275,6 +275,16 @@ The verifier seeds the tracked `rotationHash` from the inception event and updat
 establishment event. Future revelations are checked against the tracked digest: at each `Rot` /
 `Wit` / `Trm`, the verifier checks `digest(publicKey) == prior.rotationHash`.
 
+```mermaid
+flowchart LR
+  icp["Icp<br/>publicKey k0<br/>rotationHash h(k1)"]:::kel
+  icp -->|"Ixn … (content, signs with k0)"| rot1["Rot<br/>publicKey k1<br/>rotationHash h(k2)"]:::kel
+  rot1 -->|"Ixn … (signs with k1)"| rot2["Rot<br/>publicKey k2<br/>rotationHash h(k3)"]:::kel
+  rot1 -.->|"each key change: check digest(publicKey) == prior.rotationHash —<br/>the revealed reserve becomes this epoch's signing key<br/>and commits the next reserve"| note(["single-stream pre-rotation:<br/>two live keys — current signing + next reserve"]):::note
+  classDef kel fill:#3b1717,stroke:#e03131,color:#fff
+  classDef note fill:#20242a,stroke:#495057,color:#adb5bd
+```
+
 ## Seal-advance cap
 
 KEL has one protocol-enforced cap (the seal-advance cap).
