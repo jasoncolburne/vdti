@@ -1,6 +1,6 @@
-# ⚠️ Design in progress ⚠️
-
 # VDTI — Verifiable Decentralized Trust Infrastructure
+
+# ⚠️ Core design is undergoing self-review ⚠️
 
 **Build apps where the data proves itself — and skip the trusted backend.**
 

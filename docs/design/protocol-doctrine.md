@@ -389,18 +389,20 @@ off from a branch reads stale until the beacon delivers it;
 **In one line:** a divergence freezes origination and resolves by **tier**, never by identity — a
 content-only fork is _recoverable_ (a burying seal-advancer buries the loser by position), a lone
 sealed branch you did not author forces _you_ to reincept, and two accepted sealed branches are
-_Disputed_ (terminal). The decision tree, with the rest of this section its proof:
+_Disputed_ (terminal). This is the entity-side resolution view; its companion is the federation-side
+[prevention tree](system-thesis.md#federation-convergence) (how a fork forms in the first place).
+The decision tree, with the rest of this section its proof:
 
 ```mermaid
 flowchart TD
   A["chain carries two distinct events at one<br/>serial → <b>freeze origination</b>"]:::start
-  A --> T{"retained branch's tip<br/>a terminal Trm?"}:::q
-  T -->|yes| TR["<b>Terminated</b> (tier-rank)<br/>the Trm outranks the content loser;<br/>no burying event authored"]:::good
-  T -->|no| N{"accepted sealed<br/>branches at the fork"}:::q
-  N -->|"0 — all Tier-1 content"| R["<b>Recoverable → Active</b><br/>burying seal-advancer at your last good<br/>event buries losers by position + ascent"]:::good
-  N -->|"1"| F{"on your<br/>retained branch?"}:::q
+  A --> N{"accepted sealed<br/>branches at the fork"}:::q
+  N -->|"0 — all Tier-1 content"| R["<b>Recoverable → Active</b><br/>a burying seal-advancer at your<br/>last good event buries the<br/>losers by position + ascent"]:::good
+  N -->|"1"| M{"the one sealed branch<br/>a terminal Trm?"}:::q
+  M -->|"yes — over content"| TR["<b>Terminated</b> (tier-rank)<br/>the Trm outranks the content loser;<br/>no burying event authored"]:::good
+  M -->|"no"| F{"on your<br/>retained branch?"}:::q
   F -->|yes| R
-  F -->|no| PR["<b>Reincept</b> (point of no return)<br/>you can't bury a sealed branch you did not<br/>author — only its author recovers"]:::bad
+  F -->|no| PR["<b>Reincept</b> (point of no return)<br/>you can't bury a sealed branch<br/>you did not author<br/>— only its author recovers<br/>(they rotated)"]:::bad
   N -->|"≥ 2"| DP["<b>Disputed → reincept</b><br/>no sealed branch buriable;<br/>terminal for everyone"]:::bad
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
   classDef q fill:#20263a,stroke:#868e96,color:#e9ecef

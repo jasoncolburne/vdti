@@ -50,11 +50,11 @@ flowchart BT
 
 Two edges are worth calling out. **Doctrine (2) cross-cuts** — its rules constrain every layer
 above, not only the one directly over it. And the **event-log primitives (3) and federation (4) are
-co-foundational**: a federation is itself a restricted IEL, so it is built _from_ the event-log
-primitives — yet federation witnessing is what makes those logs sound, since a fork cannot silently
-form on a witnessed chain. Everything above them — policy, the protocol primitives, and the features
-— rests on that **verified layer**. (Solid edges are "rests on"; dotted edges are orientation and
-the cross-cut.)
+co-foundational**: a federation is itself a restricted identity event log (IEL), so it is built
+_from_ the event-log primitives — yet federation witnessing is what makes those logs sound, since a
+fork cannot silently form on a witnessed chain. Everything above them — policy, the protocol
+primitives, and the features — rests on that **verified layer**. (Each solid edge runs from a layer
+up to the one that builds on it; dotted edges are orientation and the cross-cut.)
 
 ## Table of contents
 

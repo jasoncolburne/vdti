@@ -58,24 +58,27 @@ infrastructure to infer system state.
 
 ## Federation convergence
 
-**In one line:** on a witnessed chain a fork is _prevented_ from forming on an honest quorum; the
-byzantine residual (witness collusion) either _recovers_ — a burying seal buries a content loser —
-or, with two accepted sealed branches, is _disputed_ and terminal. The decision tree:
+**In one line:** the witnessing floor **prevents a _same-kind_ fork** (two content, or two sealed)
+from forming on an honest quorum — that takes witness collusion, a provable double-sign. A **mixed**
+{sealed, content} fork still forms on an honest cross-node race, and resolves by tier: a burying
+seal buries the content loser (or a `Trm` retires the chain), while **two accepted sealed branches**
+are _disputed_ and terminal. This is the prevention view; its companion is the entity-side
+[resolution tree](protocol-doctrine.md#divergence-and-recovery) (how an existing fork resolves). The
+decision tree:
 
 ```mermaid
 flowchart TD
-  A["two distinct same-kind events<br/>at one position"]:::start
-  A --> B{"co-witnessed on an<br/>honest quorum?"}:::q
-  B -->|"no — the floor (&gt; signers/2)<br/>declines a second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
-  B -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| C{"any competing branch<br/>sealed (Tier 2)?"}:::q
-  C -->|"no — all content (Tier 1)"| F["<b>Forked → Recovered</b><br/>a burying seal-advancer buries<br/>the content losers by position"]:::mid
-  C -->|yes| D{"accepted sealed branches<br/>at the last seal"}:::q
-  D -->|"≤ 1"| F2["<b>Forked</b><br/>recoverable by the sealed branch's<br/>author; a non-author reincepts"]:::mid
-  D -->|"≥ 2"| X["<b>Disputed → reincept</b><br/>no sealed branch can be buried;<br/>terminal for everyone"]:::bad
+  A["two distinct events<br/>at one position"]:::start
+  A --> K{"same kind?<br/>(two content, or two sealed)"}:::q
+  K -->|"yes"| HQ{"co-witnessed on an<br/>honest quorum?"}:::q
+  HQ -->|"no — the floor (&gt; signers/2)<br/>declines the second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
+  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>at the last seal"}:::q
+  K -->|"no — mixed {sealed, content};<br/>forms on an honest cross-node race"| N
+  N -->|"≤ 1"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser<br/>(a Trm retires the chain instead)"]:::good
+  N -->|"≥ 2"| X["<b>Disputed → reincept</b><br/>two accepted seals — neither can<br/>bury the other; terminal"]:::bad
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
   classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
   classDef good fill:#12442a,stroke:#2f9e44,color:#fff
-  classDef mid fill:#3d2f12,stroke:#f08c00,color:#fff
   classDef bad fill:#3d1218,stroke:#e03131,color:#fff
 ```
 
