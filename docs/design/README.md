@@ -156,11 +156,11 @@ Alongside these, three **identifier catalogues** define the naming conventions u
    land deeper once the event shapes are concrete.
 
 Alongside the doctrine, [`residuals.md`](residuals.md) is the honest-limits catalog — every risk the
-design does not fully eliminate, grouped and ranked by cost of exposure, each with the concrete
-attack, the mitigation, and what is lost. It is where a deployment learns what each trade costs and
-what the whole system leans on. [`monitoring.md`](monitoring.md) covers the owner-side detection
-layer for the silent compromises — comparing a prefix's effective SAID against what its key state
-expects.
+design does not fully eliminate, ranked by severity (bounded by the property at risk), each with the
+concrete attack, the mitigation, and what is lost. It is where a deployment learns what each trade
+costs and what the whole system leans on. [`monitoring.md`](monitoring.md) covers the owner-side
+detection layer for the silent compromises — comparing a prefix's effective SAID against what its
+key state expects.
 
 ## 3 — The event-log primitives
 
