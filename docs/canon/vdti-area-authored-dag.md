@@ -128,7 +128,8 @@ variants"). Monotonicity was Jason's earlier suggestion, confirmed here as the F
   commit the **device prefix + group prefix + membership period / grant-instance** so it is structurally bound to
   one group and single-use per period (PR#25 r5 cold-P2). The removed-writer close is the `bound`'s ancestor-chain
   interval (above; PR#25 r5 cold-P1).
-- **⚠ Owed (the shared-documents PR — DO NOT DROP; deferred 2026-07-19 with the membership rename).** Wire the
-  **multi-parent** version graph onto this primitive (the version SAD's `ancestors[]` is already the multi-parent
-  DAG — `shapes.md`); state branch + merge + version-order monotonicity as this primitive's multi-parent variant
-  at the shared-documents encode.
+- **DONE (2026-07-19, shared-documents encode).** Wired the **multi-parent** version graph onto this primitive:
+  the version SAD's `ancestors[]` is the multi-parent DAG, and branch + merge + version-order monotonicity are
+  stated as this primitive's multi-parent variant in `../design/features/shared-documents.md`. The honored window
+  `F_x ≤ V_x ≤ B_x` is the `document-membership` check; DAG placement (a dead parent drops its descendants) is
+  this primitive's rule, derived as a placement consequence, not `previous`-linkage descent.

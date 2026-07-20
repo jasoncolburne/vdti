@@ -8,9 +8,11 @@ application-defined payload (a credential, an attestation, a signed declaration)
 alongside its content, the policy that authorizes it. This doc states the generic shape every
 policy-bearing document shares — the authorizing condition it carries, and how its issuer context is
 fixed by its **anchoring position** so it cannot name a more permissive past. The lifecycle of any
-specific document kind (how a **credential** is issued and revoked, for instance) is a feature
-layered above this one — see [`../../features/credentials.md`](../../features/credentials.md) _(a
-feature)_.
+specific document kind is a feature layered above this one: how a **credential** is issued and
+revoked (see [`../../features/credentials.md`](../../features/credentials.md)), or how a **shared
+document** several parties co-author evolves under a creator (see
+[`../../features/shared-documents.md`](../../features/shared-documents.md)) — the as-issued and the
+evolving realizations of the same document substrate.
 
 ## A document's authorizing condition
 

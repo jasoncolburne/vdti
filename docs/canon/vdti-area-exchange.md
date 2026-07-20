@@ -352,7 +352,8 @@ the §5 metadata / traffic-analysis residual; **(e)** inbox spam (a send-access-
   chat lane is the single-parent [authored-DAG](vdti-area-authored-dag.md) with monotonicity +
   fork-is-equivocation (round-3 F4). Reserved `vdti/exchange/v1/topics/chat-membership` +
   `vdti/sel/v1/grants/chat-membership`; fixed the tags-and-topics SEL-vs-message-topic collision.
-- **⚠ Deferred (shared-documents PR — DO NOT DROP):** the `shared-document-governance` → `document-membership`
-  rename (+ its `shared-document-read-governance` sibling) and wiring shared-docs onto membership + the
-  multi-parent authored-DAG — see [`vdti-area-membership.md`](vdti-area-membership.md) and
+- **DONE (2026-07-19, shared-documents encode):** the `shared-document-governance` → `document-membership`
+  rename (+ `shared-document-read-governance` → `document-read-membership`) and the wiring of shared-docs
+  onto membership (**two instances**) + the multi-parent authored-DAG — see
+  [`vdti-area-membership.md`](vdti-area-membership.md) and
   [`vdti-area-authored-dag.md`](vdti-area-authored-dag.md) Drift → land.

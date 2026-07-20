@@ -199,8 +199,8 @@ primitives below rather than extending them.
 
 ## 7 — The feature layer
 
-Features compose the primitives into what an application ships. The first two are credentials and
-secure messaging (the `exchange` feature); shared documents follows.
+Features compose the primitives into what an application ships: credentials, secure messaging (the
+`exchange` feature), and shared documents.
 
 39. [`features/credentials.md`](features/credentials.md) — issuing a credential and, the core case,
     a relying party accepting a presented one: the anchor and compaction as its proofs, the two
@@ -210,13 +210,14 @@ secure messaging (the `exchange` feature); shared documents follows.
     modes (one-off ESSR mail and the ratcheting chat session), digest-named payloads, sender-key
     currency, recipient-scoped delivery + the serve-time gate, the `chat-membership` store gate, and
     the per-sender-lane authored DAG.
+41. [`features/shared-documents.md`](features/shared-documents.md) — a document several parties
+    co-author, membership and sharing evolving under a creator: the V0 constitution, the two
+    `document-membership` instances (edit + read), the multi-parent version DAG, the honored-window
+    predicate, and group-key confidentiality.
 
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `features/` — shared documents (its full prose beyond the diagram stub);
-  [`features/shared-documents.md`](features/shared-documents.md) is a diagram stub carrying its
-  diagrams ahead of the prose.
 - `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
   scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).

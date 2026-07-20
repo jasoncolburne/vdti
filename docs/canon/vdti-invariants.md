@@ -33,7 +33,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    `vdti/<concept>/v1/<category>/<thing>`, **capped ≤ 64 chars** (a DoS bound — the verifier rejects a
    longer `kind`). **Grant-values** — what a `Gnt`'s `manifest.grant` names — are kinded under
    **`vdti/sel/v1/grants/*`**, owner-first (a feature or a stateful primitive) so grants sort by owner
-   (`directory-ml-kem-1024`, `shared-document-governance`; area-sel §1b). `[locked]`
+   (`directory-ml-kem-1024`, `document-membership`; area-sel §1b). `[locked]`
    **The principle (Jason, 2026-06-21):**
    - **Top-level structural = the event's *own* links:** `said`, `previous`, **`previousSeal`** (seal-advancing
      events only — the back-link to the prior seal that renders the spine; inv 17), **`pin`** (a SEL's down-pin to

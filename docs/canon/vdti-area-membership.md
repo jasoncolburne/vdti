@@ -242,12 +242,10 @@ enumerating). **The cap is group-key's wrap roster, not membership** — a keyed
   round-2 "`readers`-grant" placeholder and retiring its recorded open. `custody.readers` is the read-authorization
   **pointer into** a membership set (a `readers` value is a membership-set prefix — already stated at
   `custody.md`).
-- **⚠ Owed (the shared-documents PR — DO NOT DROP; deferred 2026-07-19, Jason "make sure it doesn't get
-  dropped").** Rename **`shared-document-governance` → `document-membership`** and its sibling
-  **`shared-document-read-governance`**, and wire shared-documents onto **membership** + the multi-parent
-  [authored-dag](vdti-area-authored-dag.md). Deferred out of the exchange PR because shared-docs is not otherwise
-  touched there (a naked cross-feature catalogue rename) **and** the rename hides a modeling call that belongs to
-  the shared-docs encode: a document has **two** sets — read and edit — and membership is per-set, so
-  `document-membership` **splits into a read-membership and a write-membership set**; decide the split against
-  real shared-docs design. Register `document-membership`'s concrete SEL topic / grant-value kind / rescission tag
-  in `kinds.md` + `tags-and-topics.md` at that encode.
+- **DONE (2026-07-19, shared-documents encode).** Renamed `shared-document-governance` →
+  **`document-membership`** and `shared-document-read-governance` → **`document-read-membership`**, and wired
+  shared-documents onto **membership** + the multi-parent [authored-dag](vdti-area-authored-dag.md). The
+  read-vs-write split landed as **two instances** (Jason's call): `document-membership` (editors + commenters) +
+  `document-read-membership` (readers), each a plain instance reusing the same machinery. Design doc
+  `../design/features/shared-documents.md`; grant-value kinds + topics in `kinds.md` / `tags-and-topics.md` /
+  `shapes.md` (SEL topics `vdti/doc/v1/topics/membership` + `.../read-membership` + shared `.../rescission`).

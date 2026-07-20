@@ -16,6 +16,24 @@ cut_ — **this cut's fresh dual-pass is folded (2026-07-04).** Lands at
 prefix + the custody `owner`+`pin` direct-anchor note (2026-07-18). Feature-layer precedent:
 `document-policy §F` (the to-tip freshness step is mandatory for any trust-granting acceptance).
 
+## Re-homed onto the primitives (encode, 2026-07-19)
+
+This note is the settled feature model; the encode landed it as the greenfield design doc
+[`../design/features/shared-documents.md`](../design/features/shared-documents.md), **re-homed** onto the three
+primitives that postdate it — the bespoke machinery below is now **owned** by them, kept here as the feature's
+derivation:
+
+- **Membership** (§1 grant/rescind, §5 participant-blind keying) is the [membership](vdti-area-membership.md)
+  primitive, in **two instances**: **`document-membership`** (editors + commenters) +
+  **`document-read-membership`** (readers) — the read-vs-write split, resolved as two plain instances
+  (Jason 2026-07-19). Grant-value kinds **renamed** `shared-document-governance` → `document-membership`,
+  `shared-document-read-governance` → `document-read-membership`; SEL topics `governance` / `read-governance` →
+  `membership` / `read-membership`.
+- **The version DAG** (§1–§3) is the **multi-parent** variant of [authored-dag](vdti-area-authored-dag.md): the
+  honored window `F_x ≤ V_x ≤ B_x` is the membership check; DAG placement / dead-parent un-placement is that
+  primitive's rule.
+- **Private-content confidentiality** (§9) is the [group-key](vdti-area-group-key.md) primitive.
+
 ## Sources
 
 - This session's design conversation (the collapse onto attributed SADs; membership-as-access-list;
@@ -449,10 +467,10 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
   a validly-authored version.
 - **Reserved names + SAD schemas — DEFINED (2026-07-04, with Jason).** Convention
   `vdti/<concept>/v1/<category>/<thing>` (from the KEL kinds + `.terminology-forbidden`); concept **`doc`**.
-  - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/governance` (owner = creator,
+  - **SEL topics** (`derive(owner, topic, data)`): `vdti/doc/v1/topics/membership` (owner = creator,
     data = `prefix`) — the
-    **edit**-governance SEL, `vdti/doc/v1/topics/read-governance` (owner = creator, data = `prefix`) — the
-    **read**-governance SEL (structurally carries only `readers`), `vdti/doc/v1/topics/rescission`
+    **edit**-membership SEL, `vdti/doc/v1/topics/read-membership` (owner = creator, data = `prefix`) — the
+    **read**-membership SEL (structurally carries only `readers`), `vdti/doc/v1/topics/rescission`
     (owner = creator, data = `hash(G | said_b)`) — shared by both governance SELs (`G` disambiguates).
     _(The `DOC_GOV_TOPIC` / `DOC_READ_GOV_TOPIC` / `DOC_RSC_TOPIC` shorthands used in §1.)_
     Each grant `Gnt` is anchored by **`Ath`**, and the `rescission` (a SEL `Trm`) by **`Dth`** (add the
@@ -461,12 +479,12 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
     so it can't be compacted away, the SAD's authority travels with it):
     - `inception` (V0): `{ said, kind, prefix, creator, custody{ readers }, nonce? }`
     - `version`: `{ said, kind, custody{ owner, pin, readers }, prefix, grant, ancestors[], content, nonce?, edited? }`
-    - `grant` — the edit-governance **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/shared-document-governance`**
+    - `grant` — the edit-membership **grant-value** the `Gnt` seals: kind **`vdti/sel/v1/grants/document-membership`**
       (the `grants/*` convention shared with exchange, ≤ 64 chars; the generalized seal-a-typed-value `Gnt`,
       area-sel §1b / `vdti-area-exchange`) — `{ said, kind, custody{ readers }, editors, commenters }`, two
       role lists + the grant's own gate
-    - `read-grant` — the read-governance grant-value (the read-gov SEL's `Gnt`): kind
-      **`vdti/sel/v1/grants/shared-document-read-governance`** — `{ said, kind, custody{ readers }, readers }`,
+    - `read-grant` — the read-membership grant-value (the read SEL's `Gnt`): kind
+      **`vdti/sel/v1/grants/document-read-membership`** — `{ said, kind, custody{ readers }, readers }`,
       structurally **only** the `readers` role list (an `editors`/`commenters` delta → malformed)
     - `editors` / `commenters`: `{ said, kind, add:[ entry-SAID, … ] }` (the role lists)
     - `editor` / `commenter` / `reader`: `{ said, kind, <role>, from, nonce, custody{ readers } }` — `<role>`
@@ -515,9 +533,9 @@ and **resolved** below. Only one value and one landed-doc fix are left, at the b
 
 ## 8. Drift → land
 
-- Write `docs/design/features/shared-documents.md` fresh from this note (greenfield voice;
-  credentials as the _contrast_). Forward-ref from `primitives/policy/documents.md` + the SEL
-  primitive.
+- **DONE (2026-07-19).** Wrote `docs/design/features/shared-documents.md` fresh (greenfield;
+  credentials as the _contrast_; re-homed onto the three primitives — see the preamble). Forward-ref
+  from `primitives/policy/documents.md` + the SEL primitive.
 - Depends on the landed custody `owner`+`pin` direct-anchor model (inv 16 note) and the §5
   rescission-`bound` mechanism.
 - **Encode-voice (cold N3 / warm N3):** the §5 first-cut-relative framing and the `cold Fn`/`warm Fn`
