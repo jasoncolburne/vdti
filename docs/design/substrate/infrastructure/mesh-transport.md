@@ -47,6 +47,23 @@ A mesh link is an authenticated, encrypted session established once per connecti
   convention. The two directions never share a key.
 - **Scope.** The keys last the connection's lifetime. Nothing rides the mesh in the clear.
 
+```mermaid
+sequenceDiagram
+  participant I as Initiator
+  participant R as Responder
+  Note over I,R: 1 — Authenticate (ML-KEM key exchange)
+  I->>R: identity prefix + fresh ephemeral ML-KEM encapsulation key
+  R->>I: identity prefix + ML-KEM ciphertext (encapsulated to it)
+  Note over I,R: both hold the ML-KEM shared secret<br/>ephemeral key ⇒ forward secrecy
+  I->>R: ML-DSA signature over the handshake transcript
+  R->>I: ML-DSA signature over the handshake transcript
+  Note over I,R: each verifies the peer's signature vs its WITNESSED KEL<br/>stale / rotated key ⇒ refused
+  Note over I,R: 2 — Derive: blake3(shared secret) ⇒ two AES-256-GCM keys<br/>one per direction · context vdti/gossip/v1/protocols/kdf
+  Note over I,R: 3 — Nonce: each direction advances a monotonic 64-bit counter<br/>(key, nonce) can never recur ⇒ AES-GCM safe by construction
+  I-->>R: encrypted frames (initiator→responder key)
+  R-->>I: encrypted frames (responder→initiator key)
+```
+
 ## Nonce discipline — reuse is structural, not a convention
 
 Each direction advances a **monotonic 64-bit counter**, rendered into the 96-bit AES-GCM nonce and

@@ -53,6 +53,23 @@ form. A verifier handed an expanded SAD walks the embedded children (verifying e
 substitutes their SAIDs into the canonical form, and recomputes the same parent SAID. The two wire
 forms are interchangeable as far as SAID-level tamper-evidence is concerned.
 
+```mermaid
+flowchart TD
+  comp["<b>compacted</b><br/>children as SAIDs"]:::doc
+  part["<b>partial</b><br/>some children inline"]:::doc
+  exp["<b>expanded</b><br/>all children inline"]:::doc
+  comp -->|"already canonical"| canon["<b>fully-compacted canonical form</b>"]:::good
+  part -->|"compact down · verify each child (Rule 2)"| canon
+  exp -->|"compact down · verify each child (Rule 2)"| canon
+  canon --> said["one committed SAID<br/>(in previous · anchors · signatures · custody refs)"]:::id
+  classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef id fill:#2a2a2a,stroke:#888888,color:#fff
+```
+
+Every wire form is a spoke into the one canonical form; the SAID is defined over that form, not read
+off the wire bytes, so it holds still while sub-SADs compact and re-expand around it.
+
 ## Partial disclosure
 
 Compaction is the structural prerequisite for partial disclosure of nested content.
@@ -89,6 +106,20 @@ SAID, even though the parent gates read access to its own content.
 
 A sub-SAD inherits no protection from its parent's `readers` gate. To be private, it MUST declare
 its own `readers`. Otherwise it is publicly fetchable by SAID.
+
+```mermaid
+flowchart TD
+  parent["<b>parent SAD</b> — readers set (gated)"]:::good
+  parent -->|"references by SAID"| c1["sub-SAD — declares its own readers"]:::good
+  parent -->|"references by SAID"| c2["sub-SAD — no readers declared"]:::bad
+  c1 --> r1["fetch enforces the child's own gate"]:::good
+  c2 --> r2["<b>publicly fetchable by SAID</b> —<br/>the parent's gate does not reach the child"]:::bad
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
+The gate rides with the content it protects, not with the reference to it — so a private child under
+a private parent is two independent `readers` declarations, not one inherited from above.
 
 ### Expansion-time enforcement
 

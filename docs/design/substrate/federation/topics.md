@@ -28,6 +28,22 @@ Gossip runs at two scopes:
   every other node it is withheld, which is what keeps a non-witness holding only witnessed-in-full
   events ([`witnessing.md`](witnessing.md)).
 
+```mermaid
+flowchart TD
+  ev["event at a position"]:::iel
+  ev -->|"not yet witnessed"| sub["<b>selected-witness sub-gossip</b><br/>circulates only among the position's selected witnesses"]:::q
+  ev -->|"witnessed in full"| push["<b>roster-wide push-gossip</b><br/>pushed to every node + anti-entropy"]:::good
+  sub --> w["selected witnesses<br/>gather receipts to threshold"]:::sel
+  sub -.->|"withheld — a query returns it only<br/>to a selected witness for the position"| nonw["non-witness nodes<br/>see nothing sub-threshold"]:::bad
+  push --> all["every node holds it"]:::good
+  w -->|"reaches threshold"| push
+  classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef sel fill:#122a44,stroke:#1971c2,color:#fff
+  classDef q fill:#20263a,stroke:#868e96,color:#fff
+  classDef good fill:#12442a,stroke:#2f9e44,color:#fff
+  classDef bad fill:#3d1218,stroke:#e03131,color:#fff
+```
+
 ## The topics
 
 Pub-sub channels on the `vdti/gossip/v1/*` convention
