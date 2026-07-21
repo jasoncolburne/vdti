@@ -98,10 +98,14 @@ so the single gating witness for a position can be identified in advance.
 
 On a content-only divergence the resolving **burying seal-advancer** (a `Rot` / `Evl`) is exactly
 that first sealed sibling at the position, needing no separate rule; a _second_ competing
-seal-advancer is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. And a seal on a **dead
-lineage** — one that lost first-seen at any earlier position — is itself dead on ascent (you cannot
-seal a buried chain), so a dispute cannot form across positions; it collapses to two witnessed
-seal-siblings at one fork.
+seal-advancer at that same position is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. A
+seal on a **dead lineage** — one that lost first-seen at any earlier position — is itself dead on
+ascent (you cannot seal a buried chain) and never counts. A dispute **can** still span positions or
+federations: a content-led branch that seals faces a burying seal it protects itself from (two
+accepted seals at **different** serials), and two rebinds can declare **different** federations at
+one serial — both formed with **honest witnesses** (a mixed content/sealed fork is co-signable, and
+disjoint federations select disjoint witnesses), proven by an author reserve double-reveal rather
+than a witness double-sign.
 
 **A below-seal sealed event is declined — the witness mirrors the seal-cap.** The "structurally
 valid" test a selected witness applies before signing includes the **seal-cap** (the merge
@@ -114,11 +118,13 @@ fork years later. The witness decline is the **fast prevention layer** — it ho
 well-connected operation; the **guarantee** is the walk itself, because a below-seal sealed event is
 **dead on ascent** (its parent is already buried by a later seal — you cannot seal a buried chain),
 so even a partitioned or colluding witness set that _does_ sign one cannot overturn the live seal
-(the position is already spent). The **only** reachable dispute is therefore a seal-vs-seal
-collision **at the last (live) seal** (two accepted seals there, which takes a provable witness
-double-sign — the `2·threshold − signers` collusion, the determinism price). This signing decision
-reads the event **body** and the witness's held chain state to locate the current seal; it is a
-different operation from the bodyless **receipt-counting** below
+(the position is already spent). So a dispute is only ever reachable **at-or-past the live fork**,
+never backdated onto a spent position: a seal-vs-seal collision **at one serial** (two accepted
+seals there, which takes a provable witness double-sign — the `2·threshold − signers` collusion, the
+determinism price), or an honest-witness fork **across serials or federations** proven by author
+equivocation ([§Divergence and recovery](../../protocol-doctrine.md#divergence-and-recovery)). This
+signing decision reads the event **body** and the witness's held chain state to locate the current
+seal; it is a different operation from the bodyless **receipt-counting** below
 ([§Query-scoping](#query-scoping-and-the-audit-flag)), which only confirms a receipt came from a
 legitimately-selected witness — not whether to sign.
 
@@ -145,12 +151,16 @@ the federation's as-of roster:
 
 `select(prefix, serial, roster(F @ federationPin), signers)`
 
-Competing events at one `(prefix, serial)` therefore route to the **same** selected set, so the
-quorum-intersection the floor relies on is over one set. Selection keys on the **position** — never
-on the event's bytes or its own pin — so an adversary cannot mint sibling-specific witness sets. A
-receipt counts toward an event's `threshold` only if its signer is in the _selected_ set, not merely
-in the roster: the intersection guarantee is over the selection, so the counting predicate is
-selection-scoped.
+Competing events at one `(prefix, serial)` **that inherit the same pin** therefore route to the
+**same** selected set, so the quorum-intersection the floor relies on is over one set. Selection
+keys on the **position** and the **as-of roster** — never on the event's bytes — so an adversary
+cannot mint sibling-specific witness sets **within one federation**. The **exception is a rebind**:
+a rebind `Wit` **declares** its own `federationPin` and so selects over a **different** roster
+(§Rebinding), so two competing rebinds declaring different federations select **disjoint** sets —
+the one place two accepted siblings at one serial need **no** witness double-sign (each federation
+honestly signs its own), a dispute proven by author equivocation instead. A receipt counts toward an
+event's `threshold` only if its signer is in the _selected_ set, not merely in the roster: the
+intersection guarantee is over the selection, so the counting predicate is selection-scoped.
 
 `select` is a **cross-node protocol constant.** Every conforming node must compute the _identical_
 selected set — receipt-counting and the fork-cost arithmetic rest on it — so its algorithm is pinned
@@ -200,12 +210,13 @@ to — fully derivable, no new mechanism.
 witnesses **refuse to witness an event whose `federationPin`'s roster membership is not current**.
 This forces an active chain to advance its pin **lazily, on its next event of any kind** — a fresh
 `federationPin` is optional on every event, so no `Wit` is needed unless the chain is rebinding. The
-gate compares roster **membership**, so it fires on a **cut** (a witness removed), not on a pure
-rotation (same witnesses, new keys — the clock bounds key-time-validity, so a pre-rotation pin is
-safe). It is an **establishment-time** check (a beyond-band-stale pin can never _start_ gathering
-receipts); it **never voids** receipts already established under a then-current pin. There is **no
-grace window** — a since-cut witness earns zero countable receipts immediately, because any grace
-would re-admit the pre-cut roster and revive the exact backdate sliver the gate exists to stop.
+gate compares roster **membership**, so it fires on **any membership change — an add or a cut** —
+not on a pure rotation (same witnesses, new keys — the clock bounds key-time-validity, so a
+pre-rotation pin is safe). It is an **establishment-time** check (a beyond-band-stale pin can never
+_start_ gathering receipts); it **never voids** receipts already established under a then-current
+pin. There is **no grace window** — a since-cut witness earns zero countable receipts immediately,
+because any grace would re-admit the pre-cut roster and revive the exact backdate sliver the gate
+exists to stop.
 
 A stale in-flight event is not stranded. A submitter accepts its **own** structurally-valid,
 sub-threshold events as its local tip (you cannot extend a `Rot` you have not landed), making
@@ -480,13 +491,18 @@ KEL `Wit`, so the identity's binding records only what its members signed. Rebin
 **survives its federation**: if the federation dies or is compromised, the identity rebinds to a
 **new** federation and keeps its prefix alive. This is why a rebind `Wit`'s **declared** current
 binding **must** be accepted for selection (it selects over the new roster) — forcing it back onto
-the dead federation would strand the prefix. Trust is **per-federation and non-transitive**: a
-verifier independently trusts _each_ federation prefix the chain bound to, and each event is
-witnessed by whichever federation was current when it landed. Witnessing is therefore
-**range-based** — a contiguous run of events between rebinds shares one context — and the
-verification token reports the ranges (`[from, to) → F`), per range, not per event. A consumer
-**must not** assume "has a `Wit` ⇒ all events witnessed": an event in a run bound to a since-changed
-federation is witnessed by that run's federation, not today's.
+the dead federation would strand the prefix. The cost of that declared selection is a **reachable
+honest-witness dispute**: two rebinds at one serial declaring **different** federations select
+**disjoint** witness sets, so each is honestly first-seen-accepted by its own federation and both
+reach threshold with **no witness double-sign** — `disputed`, proven by the author's reserve
+double-reveal, resolved by reincept. Trust is **per-federation and non-transitive**: a verifier
+independently trusts _each_ federation prefix the chain bound to, and each event is witnessed by
+whichever federation was current when it landed — so **convergence is among verifiers sharing a
+trusted-federation set**, and a verifier trusting only one side of such a race reads only that side
+accepted. Witnessing is therefore **range-based** — a contiguous run of events between rebinds
+shares one context — and the verification token reports the ranges (`[from, to) → F`), per range,
+not per event. A consumer **must not** assume "has a `Wit` ⇒ all events witnessed": an event in a
+run bound to a since-changed federation is witnessed by that run's federation, not today's.
 
 ```mermaid
 flowchart BT

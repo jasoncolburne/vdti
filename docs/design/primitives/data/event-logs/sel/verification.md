@@ -135,8 +135,9 @@ SEL's own `(prefix, serial)`:
 - **A `{Trm, content}` divergence** reads **Terminated** by tier-rank — the sealed `Trm` wins, the
   content buries.
 - **Two or more accepted sealed branches** read **Disputed** — a data-local walk over the accepted
-  (that is, witnessed-at-threshold) sealed branches counts two, which requires provable witness
-  collusion. A witness-declined sealed sibling is not accepted and never counts.
+  (that is, witnessed-at-threshold) sealed branches counts two, which requires a provable
+  misbehavior (witness collusion at one serial, or owner equivocation across serials/federations). A
+  witness-declined sealed sibling is not accepted and never counts.
 
 An accepted sealed event is one witnessed at threshold **and** on a live lineage — a branch off a
 first-seen loss is dead on ascent and never counts. The witness beacon **propagates** the competing

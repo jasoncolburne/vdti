@@ -198,19 +198,25 @@ mechanics are the federation's, applied at the SEL's own position
 - **Sealed events (`Gnt` / `Trm` / `Sea`) are first-seen too, and retained for detection** — a
   witness signs the first sealed sibling and declines later ones, yet every branch is retained so
   the data-local walk sees two. A sealed branch is never buriable, so a **second accepted sealed
-  branch is Disputed** — it requires a strict majority of witnesses to double-sign, which is
-  provable collusion. A witness-**declined** sealed sibling reaches no threshold and is held
-  pending, forcing nothing.
+  branch is Disputed** — at one serial that requires a strict majority of witnesses to double-sign
+  (provable collusion); across serials or federations it forms with honest witnesses on owner
+  equivocation (two owner-anchored sealed branches). A witness-**declined** sealed sibling reaches
+  no threshold and is held pending, forcing nothing.
 
 **Anchoring and witnessing ride one batch, so witnessing also closes authorship-forgery.** A SEL
 event is committed only together with its owner-IEL anchor: it is event-kinded, so it cannot enter
 the plain SAD store, and an `Icp` is not valid without its anchored serial-1 event (§Inception). The
-batched anchor is an owner-signed IEL event the witness validates as part of its ordinary job, so
-**acceptance requires owner-authorization** — a non-owner produces no valid anchor, so nothing lands
-at any locus. Witnessing thus closes both threats: **equivocation** (first-seen at the SEL position)
-and **authorship-forgery** (the owner-signed anchor rides the batch). A verifier still re-derives
-the prefix and re-checks the anchor against the data it holds — trusting the data, not the witness —
-as its independent end-verifiability check
+batched anchor is an owner-signed IEL event the witness validates as part of its ordinary job —
+**including that the anchor is itself accepted** (witnessed at threshold on the owner IEL), so a SEL
+event never reaches acceptance ahead of its anchor. So **acceptance requires owner-authorization** —
+a non-owner produces no valid anchor, so nothing lands at any locus. And because a SEL **sealed**
+event's anchor is an IEL **sealed** event — never buried once accepted — an **accepted** SEL sealed
+branch always rests on an accepted anchor, so it is **never later severed** by a dead anchor
+([`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix)).
+Witnessing thus closes both threats: **equivocation** (first-seen at the SEL position) and
+**authorship-forgery** (the owner-signed anchor rides the batch). A verifier still re-derives the
+prefix and re-checks the anchor against the data it holds — trusting the data, not the witness — as
+its independent end-verifiability check
 ([`verification.md` §Owner-rooting](verification.md#owner-rooting--the-authentication-check)).
 
 **Witnesses see the SEL's structural fields — including a lookup SEL's prefix — as acceptable

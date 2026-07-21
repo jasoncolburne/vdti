@@ -138,10 +138,10 @@ The locked-portion bound, the seal-cap, and the recovery rotation together produ
 consumer guarantee: events at-or-below `last_seal_advancing_event` remain structurally verifiable
 indefinitely, regardless of subsequent divergence or a terminal `disputed` verdict above the seal.
 One qualifier: the permanence claims run against the last **clean** seal — the highest seal-advancer
-with no **witnessed** competing sibling at its own position (forward-anchored). Sealed events are
-never rewritten, and a **below-seal** sealed straggler is **dropped** (inert — not witnessable past
-the seal, the backdate defense), so it does **not** retreat the clean seal. Only a **witnessed**
-sealed fork **at the last seal** flips the reading to `disputed`
+below the chain's lowest live fork (the trust boundary is the divergence position, not the highest
+lone seal). Sealed events are never rewritten, and a **below-seal** sealed straggler is **dropped**
+(inert — not witnessable past the seal, the backdate defense), so it does **not** retreat the
+boundary. Only a **witnessed** sealed fork **past the fork** flips the reading to `disputed`
 ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), _Pre-seal
 verifiability_).
 
@@ -196,10 +196,13 @@ for them.
 
 ## The live-tip dispute is a killswitch, forced by structure
 
-A `disputed` verdict needs two **accepted** seals at one serial — a witness double-sign
-([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). Two facts
-about that state set the real attack surface and explain why the brick is a structural necessity,
-not a policy choice.
+A **live-tip** `disputed` verdict — the case this section is about — needs two **accepted** seals at
+one serial, a witness double-sign (a dispute can also form across serials or federations with honest
+witnesses, proven by an author reserve double-reveal — reserve equivocation, not the live-tip
+killswitch below;
+[§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). Two facts
+about the live-tip state set the real attack surface and explain why the brick is a structural
+necessity, not a policy choice.
 
 **Forging the second seal at the live tip needs the current signing key, not the reserve.** A seal
 at position `s` reveals this epoch's key — the one drawn from the reserve committed at `s−1` — and
@@ -285,14 +288,15 @@ closed by the layers composed above KEL:
   partition (the rival's receipts are then all colluders), sliding to **`2·threshold − signers`** as
   an attacker partitions the `signers − threshold` redundancy onto the rival (feeds it first-seen) —
   **`threshold − k`** for `k` partitioned witnesses. Either way it is a **provable double-sign at
-  the fork**. So a `disputed` reading requires that same-position collusion; reserve-tier compromise
-  **without** it resolves to a single canonical branch (the first-seen winner) with the other
-  **inert** — a takeover if the adversary won the race, a failed fork if the owner did, and either
-  way the owner detects loss-of-control and reincepts, never a network-visible dispute. (The
-  `{Rot, Rot}` reserve double-reveal is a separate, author-side proof of the theft, visible to any
-  node holding both siblings.) A competing **content** sibling, by contrast, is declined after the
-  first seen at a position — under the witnessing floor a content fork on a witnessed chain is
-  prevented, not merely detected; federation doctrine.
+  the fork**. So a **same-position** `{Rot, Rot}` `disputed` reading requires that collusion (across
+  positions or federations a dispute instead forms with honest witnesses, proven by the reserve
+  double-reveal); reserve-tier compromise **without** it resolves to a single canonical branch (the
+  first-seen winner) with the other **inert** — a takeover if the adversary won the race, a failed
+  fork if the owner did, and either way the owner detects loss-of-control and reincepts, never a
+  network-visible dispute. (The `{Rot, Rot}` reserve double-reveal is a separate, author-side proof
+  of the theft, visible to any node holding both siblings.) A competing **content** sibling, by
+  contrast, is declined after the first seen at a position — under the witnessing floor a content
+  fork on a witnessed chain is prevented, not merely detected; federation doctrine.
 
 The combined attack — reserve-tier compromise PLUS adversary-controlled federation partition — is
 the structurally unavoidable CAP failure mode. KEL guarantees the divergence is **detectable**

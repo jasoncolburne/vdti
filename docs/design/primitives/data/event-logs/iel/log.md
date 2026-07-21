@@ -159,7 +159,7 @@ The at-or-below-seal portion is permanently final — for the chain itself (no f
 it) and for consumers verifying anchors, credentials, and SEL bindings against it. An identity's
 roster and threshold as-of a below-seal position, a credential issued under that state, and a SEL
 bound there stay trust-evaluable indefinitely; the permanence claims run against the last **clean**
-seal (a **witnessed** sealed fork **at the last seal** flips the reading to `disputed` without
+seal (a **witnessed** sealed fork **past the fork** flips the reading to `disputed` without
 rewriting any sealed event; a below-seal sealed straggler is dropped, inert — backdate-safe). See
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) (_Pre-seal
 verifiability_) for the cross-primitive framing.

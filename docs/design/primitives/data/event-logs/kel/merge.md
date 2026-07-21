@@ -37,7 +37,7 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 
 **Transitions** — each is named for its action or the state the chain is in after the batch lands
 (`Extended` and `Recovered` both land **Active**). The Forked-versus-Disputed split is by the
-**accepted** sealed-branch count at the last seal (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch
+**accepted** sealed-branch count past the fork (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch
 count does not affect it.
 
 | Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                        |

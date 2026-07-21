@@ -150,7 +150,13 @@ evaluated (see [`evaluation.md`](evaluation.md)).
   one way — named directly, again through a nested policy, or eligible in two of a threshold's
   branches — is credited **once**, at its highest weight (Weight is per-identity-max, below). So a
   `thr`'s count is over its branches ("M of the N sub-policies"), but **no single identity is
-  counted toward more than one of the satisfied branches** — a signer fills at most one slot.
+  counted toward more than one of the satisfied branches** — a signer fills at most one slot. Where
+  those branches are themselves quorum sub-policies, this makes satisfaction **existential** —
+  satisfied iff **some** assignment of signers to branches reuses none (a set-packing check, not a
+  per-branch greedy pass, which can wrongly deny a satisfiable policy and on which two
+  differently-ordered evaluators would disagree). A conforming evaluator searches for a working
+  assignment, bounded by the verifier-wide work budget. This is not consensus-critical (policy
+  evaluation is each relying party's own), but a shared policy must evaluate identically everywhere.
 
 - **Weight is per-identity-max.** When an identity is reached through several weighted branches, it
   is credited **once, at its highest** weight — never summed across branches. One party cannot stack

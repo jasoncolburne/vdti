@@ -21,18 +21,22 @@ A SEL's reading composes two inputs that arise for entirely different reasons:
 
 - **Axis A — the SEL's own witnessed divergence.** Two distinct SEL events at one
   `(prefix, serial)`. A content fork forms only under witness compromise (first-seen prevents it
-  otherwise); a sealed fork with two accepted branches is provable witness collusion. Resolution is
-  **by tier**: content is buriable by a seal-advancer, a sealed branch is not.
+  otherwise); a sealed fork with two accepted branches is a provable misbehavior — witness collusion
+  at one serial, or owner equivocation (two owner-anchored sealed branches) across serials or
+  federations. Resolution is **by tier**: content is buriable by a seal-advancer, a sealed branch is
+  not.
 - **Axis B — inherited owner-IEL deadness.** A SEL event's owner-IEL anchor sits on a branch the
   owner IEL later buries. The dead anchor **severs** the SEL — dead and un-verifiable from the
   earliest dead anchor, with no repair.
 
 They compose by **deadness-precedence**: you never bury something already dead, so Axis B is
 resolved first. A severed branch drops out of every Axis-A verdict — it auto-resolves a content fork
-to the live branch, it downgrades a Disputed to the live branch, and on a `{Trm, content}` shape it
-drops the severed branch and leaves the survivor (the content → Active, or the `Trm` → Terminated).
-Axis A's machinery (a burying seal-advancer, the sealed-to-Disputed escalation) runs **only** on the
-all-live remainder.
+to the live branch, and on a `{Trm, content}` shape it drops the severed branch and leaves the
+survivor (the content → Active, or the `Trm` → Terminated). A **Disputed** SEL cannot be downgraded
+this way: its two sealed branches are **accepted**, and SEL acceptance gates on the owner-IEL anchor
+being accepted, so their (IEL sealed) anchors are themselves accepted and never buried — no
+severance reaches an accepted sealed branch. Axis A's machinery (a burying seal-advancer, the
+sealed-to-Disputed escalation) runs **only** on the all-live remainder.
 
 ## Invariants
 
@@ -41,9 +45,11 @@ claims hold _by construction_.
 
 1. **The SEL witnesses itself.** Content forks are prevented by first-seen at the SEL's own
    `(prefix, serial)` with the witnessing floor; a content fork that forms owns the whole quorum
-   intersection (a witness compromise). Sealed events are first-seen and retained, so two accepted
-   sealed branches are provable collusion. An owner cannot equivocate its SEL even under a linear
-   owner IEL.
+   intersection (a witness compromise). Sealed events are first-seen and retained; two accepted
+   sealed branches **at one position** are provable witness collusion, while **across positions** (a
+   content-led branch that seals) they are **owner equivocation** with honest witnesses. The SEL's
+   own first-seen prevents a **single-position** fork even under a linear owner IEL — the owner
+   cannot silently equivocate one SEL position without a witness compromise.
 2. **Only tier-1 content is buriable.** A seal-advancer (`Gnt` / `Trm` / `Sea`) buries a content
    loser by advancing the seal past it; a sealed branch is never buried or overturned.
 3. **A dead owner-IEL anchor severs the SEL** at the earliest dead anchor — dead and un-verifiable
@@ -56,13 +62,13 @@ claims hold _by construction_.
 
 ## SEL states (proof states)
 
-| State          | Description                                                                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**      | No events for this prefix on this node.                                                                                                           |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                |
-| **Forked**     | A live content fork (≤ 1 accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.            |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner re-incepts (a lookup SEL at a fresh lineage). |
-| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried.       |
+| State          | Description                                                                                                                                                                                                         |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**      | No events for this prefix on this node.                                                                                                                                                                             |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                                                                                  |
+| **Forked**     | A live content fork (≤ 1 accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.                                                                              |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — a provable misbehavior (witness collusion, or owner equivocation across serials/federations); terminal. The owner re-incepts (a lookup SEL at a fresh lineage). |
+| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried.                                                                         |
 
 **Severed** is not a state — it truncates the SEL to its last live-anchored event, after which the
 chain reads one of the four above (typically Active, or auto-resolved from a fork).
@@ -117,20 +123,20 @@ The SEL's characteristic matrix: for each combination of (the SEL's own divergen
 owner-IEL state beneath the losing anchor), what the SEL reads. Deadness-precedence resolves Axis B
 first.
 
-| SEL own state           | owner IEL beneath the losing / relevant anchor            | SEL reads                                                                                                                                                                                                                                          |
-| ----------------------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| linear                  | linear                                                    | **Active**                                                                                                                                                                                                                                         |
-| linear                  | a live-anchored event on a **dead** owner-IEL branch      | **Severed** at the earliest dead anchor → the pre-sever chain reads Active                                                                                                                                                                         |
-| content fork            | losing anchor on a **dead** owner-IEL branch              | **auto-resolves** — the severed loser drops, the SEL shrinks to the shared tip → **Active** (no `Sea` needed)                                                                                                                                      |
-| content fork            | losing anchor **live, at/above** the owner-IEL seal       | a **`Sea`** on the SEL is the normal path → **Active**; the owner IEL can instead deliberately fork and re-bury the losing anchor's branch (severance as a heavy side effect), not a symmetric free choice                                         |
-| content fork            | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**                                                                                                                                        |
-| `{Trm, content}`        | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                                                                                                                                                      |
-| `{Trm, content}`        | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | **unreachable by construction** — a `Trm`'s sealed `Rev`/`Dth` anchor is never buried alone (only content is buriable; a Disputed owner IEL kills both → the both-dead row). For completeness, were it severed the content would survive → Active. |
-| `{Trm, content}`        | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                                                                                                                                             |
-| `{Trm, content}`        | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                                                                                                                                                  |
-| `{Gnt \| Sea, content}` | live                                                      | the non-terminal seal-advancer buries the content → **Recovered → Active**; crossed with owner-IEL deadness it resolves like `{Trm, content}` but a surviving seal-advancer leaves the chain **Active** (not Terminated)                           |
-| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → re-incept (no severance available to downgrade it)                                                                                                                                                                                  |
-| ≥ 2 sealed branches     | one branch's anchor on a **dead** owner-IEL branch        | severance **downgrades** it — the severed branch is un-verifiable, not counted → drops to the live branch → recoverable                                                                                                                            |
+| SEL own state           | owner IEL beneath the losing / relevant anchor            | SEL reads                                                                                                                                                                                                                                                                                                                         |
+| ----------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| linear                  | linear                                                    | **Active**                                                                                                                                                                                                                                                                                                                        |
+| linear                  | a live-anchored event on a **dead** owner-IEL branch      | **Severed** at the earliest dead anchor → the pre-sever chain reads Active                                                                                                                                                                                                                                                        |
+| content fork            | losing anchor on a **dead** owner-IEL branch              | **auto-resolves** — the severed loser drops, the SEL shrinks to the shared tip → **Active** (no `Sea` needed)                                                                                                                                                                                                                     |
+| content fork            | losing anchor **live, at/above** the owner-IEL seal       | a **`Sea`** on the SEL is the normal path → **Active**; the owner IEL can instead deliberately fork and re-bury the losing anchor's branch (severance as a heavy side effect), not a symmetric free choice                                                                                                                        |
+| content fork            | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**                                                                                                                                                                                                                       |
+| `{Trm, content}`        | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                                                                                                                                                                                                                                     |
+| `{Trm, content}`        | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | **unreachable by construction** — a `Trm`'s sealed `Rev`/`Dth` anchor is never buried alone (only content is buriable; a Disputed owner IEL kills both → the both-dead row). For completeness, were it severed the content would survive → Active.                                                                                |
+| `{Trm, content}`        | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                                                                                                                                                                                                                            |
+| `{Trm, content}`        | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                                                                                                                                                                                                                                 |
+| `{Gnt \| Sea, content}` | live                                                      | the non-terminal seal-advancer buries the content → **Recovered → Active**; crossed with owner-IEL deadness it resolves like `{Trm, content}` but a surviving seal-advancer leaves the chain **Active** (not Terminated)                                                                                                          |
+| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → re-incept (no severance available to downgrade it)                                                                                                                                                                                                                                                                 |
+| ≥ 2 sealed branches     | one branch's anchor on a **dead** owner-IEL branch        | **unreachable by construction** — SEL acceptance gates on the owner-IEL anchor being accepted, and a SEL sealed branch's anchor is an IEL **sealed** event, never buried once accepted; so an accepted sealed branch's anchor never lands on a dead branch. Were it severed, the SEL would drop to the live branch → recoverable. |
 
 The load-bearing observation: **a content fork always resolves**, and _how_ keys on where the losing
 anchor sits — a dead branch gives severance for free (the common case, since owner-IEL divergences

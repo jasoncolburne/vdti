@@ -164,9 +164,9 @@ this segment are structurally immutable within the chain:
 
 The at-or-below-seal portion is permanently final — for the chain itself (no future event may target
 it) and for consumers verifying anchors, credentials, and SEL bindings against it; the permanence
-claims run against the last **clean** seal (a **witnessed** sealed fork **at the last seal** flips
-the reading to `disputed` without rewriting any sealed event; a below-seal sealed straggler is
-dropped, inert — backdate-safe). See
+claims run against the last **clean** seal (a **witnessed** sealed fork **past the fork** flips the
+reading to `disputed` without rewriting any sealed event; a below-seal sealed straggler is dropped,
+inert — backdate-safe). See
 [`compromise.md` §Pre-seal verifiability](compromise.md#pre-seal-verifiability) for the structural
 defense argument and
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) (_Pre-seal

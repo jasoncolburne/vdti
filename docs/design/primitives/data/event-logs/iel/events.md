@@ -456,6 +456,15 @@ The **added-member consent** rule: every added member consents to its own additi
 at tier 2 (KEL `Rot`s). The kind split (joiner `Ixn` versus approver `Rot`) keeps the joiner's
 consent out of `t_govern`.
 
+A device named in a roster it did not mean to join gains the naming identity **nothing over the
+member's own keys or chain** — roster membership is the _identity's_ governance, never authority
+over a member's devices. The member simply **refuses to participate** (never co-signs that
+identity's events) and **rotates**; the only way its key ever acts under a hostile identity is if
+the attacker **holds** that key — a device compromise, resolved by **rotate-and-continue** where
+control is regained, or **cut / reincept** where it is not (the remedy a device compromise already
+carries). The residual is **correlation only**: the member's prefix appears in that roster's delta,
+visible to anyone walking that identity's chain.
+
 ## The restricted federation IEL
 
 A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm` only. Its

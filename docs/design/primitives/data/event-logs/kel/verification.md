@@ -254,7 +254,7 @@ read-only component of the token, not an independent verified state). The seal t
   buried below it is inert), **forked** (a fork at-or-above the seal with at most one sealed branch
   — a content fork recovers via a burying seal-advancer; a lone sealed branch you did not author
   reads forked but forces **your** reincept), or **disputed** (two or more branches each carry an
-  **accepted** (witnessed-at-threshold) sealed event at the last seal — terminal, reincept).
+  **accepted** (witnessed-at-threshold) sealed event past the fork — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** — an unresolved fork
   — yields a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified
@@ -262,7 +262,7 @@ read-only component of the token, not an independent verified state). The seal t
   competing tips (that set is adversarially extensible → flood-unstable). A **settled content**
   branch (a content sibling buried below the seal) drops out — it is forensic, reached by a
   by-prefix flat fetch; a **below-seal** sealed straggler drops out too (dropped, inert —
-  backdate-safe). Only a **witnessed** sealed fork **at the last seal** keeps the chain in the
+  backdate-safe). Only a **witnessed** sealed fork **past the fork** keeps the chain in the
   synthetic (a spine fork → `disputed`). The value is set-independent yet carries the reading:
   whether a fork is `forked` or `disputed` is the `region()` walk verdict, which the synthetic
   recouples to. See
@@ -349,7 +349,7 @@ The verifier's terminal-state-determination rule:
 - A **live** fork — a divergence at or above the **derived seal**?
   - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal-advancer on
     the winning branch.
-  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches past the fork** →
     **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
@@ -390,9 +390,9 @@ carve-outs — see [`merge.md` §Kind-specific authorization](merge.md#4-kind-sp
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` is **permanently final** — it stays anchored on the
 canonical branch regardless of any later above-seal divergence. (Against a **witnessed** sealed fork
-**at** the last (clean) seal — a spine fork — the reading flips to `disputed`, and permanence runs
-against the last **clean** seal; a below-seal sealed straggler is **dropped**, not disputed, and
-sealed events are still never rewritten — see
+**past the fork** — a spine fork — the reading flips to `disputed`, and permanence runs against the
+last **clean** seal; a below-seal sealed straggler is **dropped**, not disputed, and sealed events
+are still never rewritten — see
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).) An anchor
 above the seal carries tier-1-only durable authority and becomes durable only once a later
 seal-advancing event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a
@@ -416,13 +416,13 @@ receipt counts alone do not satisfy `witnessed`.
 
 **The divergence signal splits by provenance.** When a node holds two or more sealed branches **each
 accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen loss is
-dead on ascent and never counts) — at the **last seal**, it reads **`disputed` directly from the
-data** — the walk decides. A sealed sibling it holds only as a **receipt** (not yet fetched), one
-**below threshold** (a witness-declined sibling), or one **below the seal** (a straggler) is **not**
-counted — it stays **`forked`** / deferred-pending, and a below-seal straggler is dropped
-(backdate-safe). For **content** the signal is different: a losing content sibling never reaches
-threshold under the floor, so the anomaly signal is a **sub-threshold competing receipt set** at a
-position — the node fetches the event and the data-local walk decides
+dead on ascent and never counts) — **past the fork**, it reads **`disputed` directly from the data**
+— the walk decides. A sealed sibling it holds only as a **receipt** (not yet fetched), one **below
+threshold** (a witness-declined sibling), or one **below the seal** (a straggler) is **not** counted
+— it stays **`forked`** / deferred-pending, and a below-seal straggler is dropped (backdate-safe).
+For **content** the signal is different: a losing content sibling never reaches threshold under the
+floor, so the anomaly signal is a **sub-threshold competing receipt set** at a position — the node
+fetches the event and the data-local walk decides
 ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) derives why).
 Single-rogue protection: a rogue who signs receipts on a fake `witnessed_said` cannot trigger a
 verdict — the fake event fails structural re-check, and honest witnesses do not sign for fakes; the

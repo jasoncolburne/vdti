@@ -204,7 +204,7 @@ Then the IEL (Identity Event Log) primitive, in order:
     sealed), sealed record-both, and eviction via a roster `cut`.
 19. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
     — the correctness-proof matrix: the content-versus-sealed divergence enumeration and the verdict
-    by witnessed-sealed-branch count (at the last seal).
+    by witnessed-sealed-branch count (past the fork).
 20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
     the delegate / rescind surface: the single-hop grant-and-rescission primitive.
 

@@ -259,7 +259,11 @@ and re-checked by consumers.
   of a read-gated SAD (e.g., from a misconfigured replica or a leaked cache) still cannot satisfy a
   downstream verifier that re-checks the requester's `readers` membership against the SAD's read
   authorization. Membership is checked on the read side, so a leaked byte stream does not
-  automatically grant authorized-read status.
+  automatically grant authorized-read status. This is **operational access control through the
+  store, not confidentiality**: it governs authorized-read _status_ (an integrity property), but
+  once the plaintext bytes escape they are readable — secrecy against a leaky replica or a hostile
+  holder requires **encryption**, not `readers` (the residuals catalog states the honest position —
+  confidentiality is operational, not cryptographic).
 - **Custody fields are committed by the parent SAID.** `owner`, `pin`, and `readers` are sub-fields
   of the top-level `custody` struct on the SAD wrapper, so they participate in the SAD's canonical
   serialization and the SAID derivation. An adversary cannot substitute a different `owner` or `pin`

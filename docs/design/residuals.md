@@ -184,6 +184,7 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 | Self-lane message backdate is prevented (removed), detectable (live fork), or accounted (dormant) | Recoverability | A **current** chat member backdating below its advanced tip must fork its own lane (`(epoch, timestamp)` monotonicity makes a tip-append malformed) — a self-signed equivocation, undeniable once both siblings reach a common member (an eclipse / split delivery only defers, never hides it). A **removed** member is fully closed at the verifier: honored history is exactly the `chat-membership` removal `bound`'s ancestor-chain `[anchored root … bound]`, so any node off it — a forward-append past the bound, a **fork below it**, or a **fresh parentless root** — is not honored (a local interval check against the durable on-chain `bound`, not fork detection). Residual = a **dormant current** member (never removed, valid key) can forward-append into an epoch it held but was silent for — the accepted backdate-within-a-held-window class, confined to its own lane; plus the equivocation-convergence window for the fork case |
 | Chat authenticity is one device's signature, not a `t_use` quorum                                 | Trust          | Mail authenticates with the sender's `t_use` quorum; a chat message is signed by a **single** writing device, attributed to its owning identity — so one compromised member device can author chat history in that identity's name, bounded by its KEL window, epoch membership, and its own lane. A strictly lower bar than mail's quorum, deliberate (a per-message quorum is impractical for a high-volume conversation)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Chat's home nodes see the writer set                                                              | Privacy        | A lane-root marker carries the writing device's KEL prefix in cleartext (the receiver needs it to pick the per-writer subkey), so the group's storage nodes passively learn who wrote and when — the chat instance of the communication-graph-at-home-nodes residual                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| A member's prefix is visible in its roster delta                                                  | Privacy        | Being added to an identity's roster names the member's prefix in that `Wit` / `Evl` `add`, so anyone walking that identity's chain learns the membership — a correlation exposure only; the roster grants the naming identity **no** authority over the member's keys, and a conscripted member rotates-and-refuses (or is cut)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 
@@ -253,16 +254,17 @@ what happens at and past that boundary.
 
 ### Signing-key theft + witness collusion → brick
 
-- **Attack** — A terminal dispute is two **accepted** sealed branches at one position; a sealed
-  branch is never buried, so it forces the identity to abandon the prefix and reincept. Forging the
-  rival seal needs the **current signing key**, not the reserve: a seal at a position reveals this
-  epoch's key and is signed by it, so by that instant the reserve is **spent** — a competing seal at
-  the same position reveals and signs with that same current key (the next reserve only authorizes
-  extending _forward_). Honest witnesses **decline** the late sibling (first-seen); its only
-  reachable effect is **with a colluding quorum** that accepts both. So it takes a **signing-key
-  theft _and_ a federation-trust breach**. (An attacker who instead won the first-seen race with the
-  still-secret next key — the reserve — gets a **takeover**, not a brick; that is the reserve-theft
-  entry.)
+- **Attack** — A terminal dispute here is two **accepted** sealed branches at one position (the
+  live-tip case; a dispute can also form across serials or federations with honest witnesses on
+  author equivocation); a sealed branch is never buried, so it forces the identity to abandon the
+  prefix and reincept. Forging the rival seal needs the **current signing key**, not the reserve: a
+  seal at a position reveals this epoch's key and is signed by it, so by that instant the reserve is
+  **spent** — a competing seal at the same position reveals and signs with that same current key
+  (the next reserve only authorizes extending _forward_). Honest witnesses **decline** the late
+  sibling (first-seen); its only reachable effect is **with a colluding quorum** that accepts both.
+  So it takes a **signing-key theft _and_ a federation-trust breach**. (An attacker who instead won
+  the first-seen race with the still-secret next key — the reserve — gets a **takeover**, not a
+  brick; that is the reserve-theft entry.)
 - **Mitigation** — Both legs are expensive: honest witnesses decline the late rival, so a second
   accepted seal needs a colluding quorum — `threshold` witnesses, down to the
   `2·threshold − signers` intersection only under a full partition (lifted by a hardened larger set;

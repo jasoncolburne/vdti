@@ -560,10 +560,11 @@ Only **content** is **buriable** — the content kind `Ixn`, and on the SEL the 
 **sealed** event (a rotation, an `Evl`, an `Ath` / `Rev` / `Dth`, a terminal) is **never** buried or
 overturned — reversing it would resurrect retired key material or un-do a sealed act. So a
 divergence resolves by **tier**: a content fork is recoverable (a burying seal-advancer buries the
-loser by position + ascent), while a fork with **≥ 2 accepted sealed branches** past it (at the last
-seal) is terminal — a **branch-level** condition any verifier reads **data-locally** by walking the
-retained branches (a below-seal sealed straggler is dropped, backdate-safe). The retention bounds,
-the burial-on-ascent mechanics, and the full recovery doctrine are the protocol doctrine's —
+loser by position + ascent), while a fork with **≥ 2 accepted sealed branches** past it (their seals
+need not share one serial) is terminal — a **branch-level** condition any verifier reads
+**data-locally** by walking the retained branches (a below-seal sealed straggler is dropped,
+backdate-safe). The retention bounds, the burial-on-ascent mechanics, and the full recovery doctrine
+are the protocol doctrine's —
 [§Divergence and recovery](../../../protocol-doctrine.md#divergence-and-recovery).
 
 What `event-shape` owns here is the field that makes this legible: the seal-advancing events form a

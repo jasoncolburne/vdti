@@ -49,8 +49,8 @@ already-revealed secret author a competing sealed sibling?**
   first sealed sibling and decline later ones, so a threshold chain cannot be forked by one stolen
   key (except a singleton / `t_use = 1`), and a second **accepted** sealed decision is proof the
   quorum was subverted or the witnesses colluded, surfaced loudly (a witness-declined sibling is
-  deferred-pending, forcing nothing). `{Evl, Evl}` (any two **accepted** sealed branches at the last
-  seal) → **≥ 2 witnessed sealed → Disputed → terminal → reincept**; `{Evl, content}` is
+  deferred-pending, forcing nothing). `{Evl, Evl}` (any two **accepted** sealed branches past the
+  fork) → **≥ 2 witnessed sealed → Disputed → terminal → reincept**; `{Evl, content}` is
   **recoverable** (the `Evl` branch survives, the content is buried).
 
 The **federation** IEL is the pure case — every event is sealed; a competing sealed sibling is
@@ -67,7 +67,7 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 
 **Transitions** — each is named for its action or the state the chain is in after the batch lands
 (`Extended` and `Recovered` both land **Active**). The Forked-versus-Disputed split is by the
-**accepted** sealed-branch count at the last seal (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch
+**accepted** sealed-branch count past the fork (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch
 count does not affect it.
 
 | Transition     | Verdict                                                                                                                  | Triggering condition                                                                                                                                                           |
