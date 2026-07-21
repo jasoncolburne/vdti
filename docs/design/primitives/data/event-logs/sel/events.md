@@ -97,9 +97,12 @@ Records the payload SAD(s) it commits (the `payload` role — **required**, alwa
 like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` — event-shape) and re-pins the SEL
 to the owner IEL's current tip (the top-level `pin`). Anchored by an owner-IEL `Ixn`, **at most one
 `Ixn` per SEL per owner-IEL `Ixn`** (counting content — a pure re-pin is a `Pin`, not a phantom
-`Ixn`). `Ixn` is the divergeable content kind; it does not advance the seal and is buriable until
-the SEL's next seal-advancer. An `Ixn` **always** carries content — a manifest-less `Ixn` is
-malformed; a re-pin with no content is a `Pin`.
+`Ixn`) — the SEL verifier **enforces** this by anchor-identity dedup: a second content `Ixn` that
+resolves to the same owner-IEL `Ixn` is rejected (§verification's per-event checks), distinct from
+the inert re-anchor guard on an already-attributed SEL serial. `Ixn` is the divergeable content
+kind; it does not advance the seal and is buriable until the SEL's next seal-advancer. An `Ixn`
+**always** carries content — a manifest-less `Ixn` is malformed; a re-pin with no content is a
+`Pin`.
 
 ### `Pin` — the pin-only re-pin (tier 1, `t_use`)
 
@@ -331,7 +334,8 @@ each branch and the canonical two-branch content fork plus the resolving burying
 SEL with no natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral
 advancer, the SEL analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at
 one position dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two
-sealed branches → Disputed, exactly as any two sealed events would be.
+**accepted** sealed branches → Disputed (a witness-declined second sibling stalls first-seen,
+forcing nothing), exactly as any two accepted sealed events would be.
 
 ## Cross-references
 

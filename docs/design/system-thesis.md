@@ -61,10 +61,8 @@ infrastructure to infer system state.
 **In one line:** the witnessing floor **prevents a _same-kind_ fork** (two content, or two sealed)
 from forming on an honest quorum — that takes witness collusion, a provable double-sign. A **mixed**
 {sealed, content} fork still forms on an honest cross-node race, and resolves by tier: a burying
-seal buries the content loser (or a `Trm` retires the chain) — **unless the content-led branch
-itself seals**, and then the **two accepted sealed branches** are _disputed_ and terminal with **no
-collusion** (author equivocation, not a witness double-sign, is the proof). This is the prevention
-view; its companion is the entity-side
+seal buries the content loser (or a `Trm` retires the chain), while **two accepted sealed branches**
+are _disputed_ and terminal. This is the prevention view; its companion is the entity-side
 [resolution tree](protocol-doctrine.md#divergence-and-recovery) (how an existing fork resolves). The
 decision tree:
 
@@ -74,7 +72,7 @@ flowchart TD
   A --> K{"same kind?<br/>(two content, or two sealed)"}:::q
   K -->|"yes"| HQ{"co-witnessed on an<br/>honest quorum?"}:::q
   HQ -->|"no — the floor (&gt; signers/2)<br/>declines the second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
-  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>past the fork"}:::q
+  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>at the last seal"}:::q
   K -->|"no — mixed {sealed, content};<br/>forms on an honest cross-node race"| N
   N -->|"≤ 1"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser<br/>(a Trm retires the chain instead)"]:::good
   N -->|"≥ 2"| X["<b>Disputed → reincept</b><br/>two accepted seals — neither can<br/>bury the other; terminal"]:::bad
@@ -94,12 +92,10 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   costs owning `2·threshold − signers` witnesses (the **fork-cost**), a provable double-sign. What
   prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
   being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
-  boundary forward, so two _witnessed_ sealed branches at one serial are a collusion proof →
-  `disputed`. That is the **same-serial** case; a dispute can also form with **honest witnesses** —
-  a content-led branch that seals, or two rebinds to different federations — where the proof is an
-  **author reserve double-reveal**, not a witness double-sign (a seal on a buried lineage is still
-  **dead on ascent** — you can't seal a buried chain — so no dispute is ever backdated below the
-  live fork).
+  boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
+  `disputed` (a seal on a buried lineage is **dead on ascent** — you can't seal a buried chain — so
+  two accepted branches can only fork at the competing seals themselves; the double-sign is at that
+  one position).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying
@@ -175,8 +171,9 @@ extend the chain even if the adversary still holds it.
 
 ### Divergence is resolved by tier; a divergent chain freezes further origination
 
-A **live** fork — two distinct events at one serial, at or above the seal — freezes further work and
-resolves by **tier**, never by identity:
+A **live** fork — two competing **content** events at one serial at or above the seal (two accepted
+**sealed** siblings are Disputed) — freezes further work and resolves by **tier**, never by
+identity:
 
 - **Freeze is origination, not the reading.** No new work lands on a live fork until it resolves —
   for a content fork, a **burying seal-advancer** on the winning branch (a `Rot` / `Wit` / `Trm` on

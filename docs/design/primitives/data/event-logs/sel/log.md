@@ -198,10 +198,9 @@ mechanics are the federation's, applied at the SEL's own position
 - **Sealed events (`Gnt` / `Trm` / `Sea`) are first-seen too, and retained for detection** — a
   witness signs the first sealed sibling and declines later ones, yet every branch is retained so
   the data-local walk sees two. A sealed branch is never buriable, so a **second accepted sealed
-  branch is Disputed** — at one serial that requires a strict majority of witnesses to double-sign
-  (provable collusion); across serials or federations it forms with honest witnesses on owner
-  equivocation (two owner-anchored sealed branches). A witness-**declined** sealed sibling reaches
-  no threshold and is held pending, forcing nothing.
+  branch is Disputed** — it requires a strict majority of witnesses to double-sign, which is
+  provable collusion. A witness-**declined** sealed sibling reaches no threshold and is held
+  pending, forcing nothing.
 
 **Anchoring and witnessing ride one batch, so witnessing also closes authorship-forgery.** A SEL
 event is committed only together with its owner-IEL anchor: it is event-kinded, so it cannot enter
@@ -305,11 +304,12 @@ flowchart BT
 **Deadness takes precedence over the neutral advancer.** You never bury something already dead: a
 content fork with one severed branch auto-resolves to the live branch (the SEL shrinks to the shared
 tip and the surviving author extends from there — no `Sea`); both branches dead means severed at the
-fork. Severance also **downgrades a Disputed**: if one of two accepted sealed branches is severed,
-it is un-verifiable and not counted, so the reading drops to the live branch and recovers. A
-Disputed under a **linear** owner IEL — where both anchors are locked-live and no severance is
-available — stays terminal and forces re-incept. The full enumeration is the correctness proof in
-[`reconciliation.md`](reconciliation.md).
+fork. Severance **cannot downgrade a Disputed**: its two sealed branches are **accepted**, and SEL
+acceptance gates on the owner-IEL anchor being accepted, so their (IEL sealed) anchors are never
+buried — no severance reaches an accepted sealed branch (see
+[`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix)).
+A Disputed always stays terminal and forces re-incept. The full enumeration is the correctness proof
+in [`reconciliation.md`](reconciliation.md).
 
 ## The down-pin and the manifest
 

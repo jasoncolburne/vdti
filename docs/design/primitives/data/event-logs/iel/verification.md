@@ -235,7 +235,7 @@ IelVerification:
     roster_at_tip: RosterState             # the accumulated live roster + threshold vector at the canonical tip (a delta accumulation, not a stored snapshot)
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event that landed cleanly on the linear run (not a competing sibling)
+    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event with no competing accepted sealed sibling (a content sibling is buried below it)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
     anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and custody-anchored SAD issuance commitments (a credential is one use) found anchored on the canonical branch
     delegates_of: ...                      # per-candidate delegation-walk results (bounded scalar state)
@@ -267,18 +267,20 @@ read-only component of the token, not an independent verified state). The seal t
   SELs freeze).
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** against the **derived
-  seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork at-or-above the
-  seal with at most one sealed branch — a content fork recovers via a burying seal; a lone sealed
-  branch you did not author reads forked but forces **your** reincept), or **disputed** (two or more
-  branches each carry an **accepted** (witnessed-at-threshold) sealed event past the fork —
-  terminal, reincept).
+  seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a content-only fork
+  at-or-above the seal — no accepted sealed branch — recovers via a burying seal that buries the
+  content → Active; a **single** accepted sealed branch buries the content and reads **trusted** — a
+  reserve-theft takeover you did not author is clean on-chain, caught by owner-vigilance and
+  answered by reincept out-of-band, not surfaced here), or **disputed** (two or more branches each
+  carry an **accepted** (witnessed-at-threshold) sealed event at the last seal — terminal,
+  reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
   and position, **not** a digest over the competing tips (that set is adversarially extensible →
   flood-unstable). A settled content branch drops out (forensic, reached by a by-prefix flat fetch);
   a **below-seal** sealed straggler drops out too (dropped, inert — backdate-safe). Only a
-  **witnessed** sealed fork **past the fork** keeps the chain in the synthetic (a spine fork →
+  **witnessed** sealed fork **at the last seal** keeps the chain in the synthetic (a spine fork →
   `disputed`). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `roster(tip_said)` → the **membership at a specific tip**: the roster + thresholds the verifier
@@ -355,9 +357,10 @@ independently, and surfaces `is_divergent()` and `region()`.
 ### Terminal-state determination rule
 
 - A **live** fork — a divergence at or above the **derived seal**?
-  - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal on the
-    winning branch.
-  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches past the fork** →
+  - **No accepted sealed branch** (a content-only fork) → **forked** (recoverable); a burying seal
+    buries the content → Active. A **single** accepted sealed branch buries the content →
+    **Active**, not forked.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
     **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
@@ -412,8 +415,8 @@ receipts deliver competing branches and freshness, never a verdict.
   a peer majority first-seen at its serial.
 - **The divergence signal splits by provenance.** When a node holds two or more sealed branches
   **each accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen
-  loss is dead on ascent and never counts) — **past the fork**, it reads **`disputed` directly** —
-  the walk decides. A sealed sibling held only as a **receipt** (not yet fetched), one **below
+  loss is dead on ascent and never counts) — at the **last seal**, it reads **`disputed` directly**
+  — the walk decides. A sealed sibling held only as a **receipt** (not yet fetched), one **below
   threshold** (witness-declined), or one **below the seal** (dropped, backdate-safe) is not counted
   — it stays **`forked`** / deferred-pending. For content, a losing sibling never reaches threshold
   under the position gate, so the signal is a sub-threshold competing receipt set — the node fetches

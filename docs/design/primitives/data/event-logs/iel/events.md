@@ -27,7 +27,7 @@ IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `
 | `Rev` | `vdti/iel/v1/events/rev` | sealed    | 2    | `t_govern`                                 | **Revoke** an owned artifact — a `kills[]` declaration + anchors the revocation-SEL `Trm`. Sealed on arrival, non-terminal. **Seal-advancing.**                                                          |
 | `Dth` | `vdti/iel/v1/events/dth` | sealed    | 2    | `t_authorize`                              | **Deauthorize** a grant — a `kills[]` declaration + anchors the rescission-SEL `Trm`; the polarity-inverse of `Ath`. Sealed on arrival, non-terminal. **Seal-advancing.**                                |
 | `Trm` | `vdti/iel/v1/events/trm` | terminal  | 2    | `t_govern`                                 | **Terminal** — retires the identity and freezes all its SELs. **Seal-advancing.**                                                                                                                        |
-| `Wit` | `vdti/iel/v1/events/wit` | sealed    | 2    | `t_govern`                                 | Federation **rebind** (user IEL) / federation **governance** (federation IEL); anchored by member KEL `Wit`s. `{Wit, Wit}` terminal. **Seal-advancing.**ᵃ                                                |
+| `Wit` | `vdti/iel/v1/events/wit` | sealed    | 2    | `t_govern`                                 | Federation **rebind** (user IEL) / federation **governance** (federation IEL); anchored by member KEL `Wit`s. `{Wit, Wit}` terminal (both **accepted**). **Seal-advancing.**ᵃ                            |
 | `Fcp` | `vdti/iel/v1/events/fcp` | inception | 2    | all founders consent                       | **Federation inception marker** _(federation IEL only)_ — the federation IEL's inception; anchored kind-strict by each founder's KEL `Rot`.                                                              |
 
 - ᵃ **`Wit`** is the **one** witness / federation kind — its facet is dispatched on the chain's root
@@ -238,8 +238,8 @@ Both carry **no roster delta** (they cannot mutate establishment state) and both
 on each approving member — a permanent kill needs a ≥ tier-2 KEL anchor, and the distinction from
 `Evl` is the absence of a roster delta, not the rotation. Both are **sealed but non-terminal**: they
 seal a kill on a target, not the host IEL, so `{Rev, content}` and `{Dth, content}` are recoverable.
-Distinct kills at one position are `{Rev, Rev}` → ≥ 2 sealed → terminal (identical kills dedupe by
-SAID).
+Distinct kills at one position are `{Rev, Rev}` → ≥ 2 **accepted** sealed → terminal (both witnessed
+at threshold; an honest race first-seen-declines the second — identical kills dedupe by SAID).
 
 ### `kills[]` — the fail-secure revocation declaration
 
@@ -527,9 +527,10 @@ A busy issuer that fills the window **re-seals with a roster-less `Evl`** — a 
 omits `roster` (the seal advance via `previousSeal` is the change, not an empty delta). It is valid
 (no added members → no consent needed; `t_govern` of the unchanged roster), content-addressed like
 any event, so two identical re-seals at one position dedupe (idempotent) while a re-seal `Evl`
-versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal. Validation must accept a
-roster-less re-seal `Evl`. `Trm` advances the seal but is terminal, so it is not a mid-chain
-cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
+versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal **when both are accepted**
+(an honest race first-seen-declines the second). Validation must accept a roster-less re-seal `Evl`.
+`Trm` advances the seal but is terminal, so it is not a mid-chain cap-satisfier. See
+[`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 
 ## Cross-references
 

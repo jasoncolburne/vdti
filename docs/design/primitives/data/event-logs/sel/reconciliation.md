@@ -21,10 +21,8 @@ A SEL's reading composes two inputs that arise for entirely different reasons:
 
 - **Axis A — the SEL's own witnessed divergence.** Two distinct SEL events at one
   `(prefix, serial)`. A content fork forms only under witness compromise (first-seen prevents it
-  otherwise); a sealed fork with two accepted branches is a provable misbehavior — witness collusion
-  at one serial, or owner equivocation (two owner-anchored sealed branches) across serials or
-  federations. Resolution is **by tier**: content is buriable by a seal-advancer, a sealed branch is
-  not.
+  otherwise); a sealed fork with two accepted branches is provable witness collusion. Resolution is
+  **by tier**: content is buriable by a seal-advancer, a sealed branch is not.
 - **Axis B — inherited owner-IEL deadness.** A SEL event's owner-IEL anchor sits on a branch the
   owner IEL later buries. The dead anchor **severs** the SEL — dead and un-verifiable from the
   earliest dead anchor, with no repair.
@@ -45,30 +43,30 @@ claims hold _by construction_.
 
 1. **The SEL witnesses itself.** Content forks are prevented by first-seen at the SEL's own
    `(prefix, serial)` with the witnessing floor; a content fork that forms owns the whole quorum
-   intersection (a witness compromise). Sealed events are first-seen and retained; two accepted
-   sealed branches **at one position** are provable witness collusion, while **across positions** (a
-   content-led branch that seals) they are **owner equivocation** with honest witnesses. The SEL's
-   own first-seen prevents a **single-position** fork even under a linear owner IEL — the owner
-   cannot silently equivocate one SEL position without a witness compromise.
+   intersection (a witness compromise). Sealed events are first-seen and retained. A linear owner
+   IEL **cannot prevent** a SEL fork (the IEL is blind to it — the SEL witnesses itself); the SEL's
+   own first-seen is what **closes** the equivocation, so two **accepted** sealed branches are
+   provable collusion.
 2. **Only tier-1 content is buriable.** A seal-advancer (`Gnt` / `Trm` / `Sea`) buries a content
    loser by advancing the seal past it; a sealed branch is never buried or overturned.
 3. **A dead owner-IEL anchor severs the SEL** at the earliest dead anchor — dead and un-verifiable
    from there, no repair. Severed is a truncation, not a fifth state.
-4. **The verdict is by accepted-sealed-branch count.** At most one accepted sealed branch past a
-   fork → **Forked** (recoverable); two or more → **Disputed** → re-incept.
+4. **The verdict is by accepted-sealed-branch count.** No accepted sealed branch (a content-only
+   fork) → **Forked** (recoverable); a single accepted sealed branch buries the content →
+   **Active**; two or more → **Disputed** → re-incept.
 5. **Authorization is the owner IEL's threshold, delivered by the anchor.** A SEL event's count is
    drawn from the owner IEL's threshold vector and carried by the anchoring IEL event; a SEL hosts
    no roster of its own.
 
 ## SEL states (proof states)
 
-| State          | Description                                                                                                                                                                                                         |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**      | No events for this prefix on this node.                                                                                                                                                                             |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                                                                                  |
-| **Forked**     | A live content fork (≤ 1 accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.                                                                              |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — a provable misbehavior (witness collusion, or owner equivocation across serials/federations); terminal. The owner re-incepts (a lookup SEL at a fresh lineage). |
-| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried.                                                                         |
+| State          | Description                                                                                                                                       |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**      | No events for this prefix on this node.                                                                                                           |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                |
+| **Forked**     | A live **content** fork (no accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.         |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner re-incepts (a lookup SEL at a fresh lineage). |
+| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried.       |
 
 **Severed** is not a state — it truncates the SEL to its last live-anchored event, after which the
 chain reads one of the four above (typically Active, or auto-resolved from a fork).
@@ -89,11 +87,11 @@ submission on an Active chain is in one of three attach-positions.
 
 ### Position 2 — adjacent to the last seal (competes with the seal)
 
-| new event     | outcome                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------- |
-| `Ixn` / `Pin` | `Forked` — a content sibling of a seal; a witness compromise formed it (first-seen would have declined it)    |
-| `Gnt` / `Sea` | `Disputed` — a second accepted sealed branch (provable collusion); a witness-declined sibling is held pending |
-| `Trm`         | `Disputed` — a second accepted sealed branch                                                                  |
+| new event     | outcome                                                                                                                                                                 |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn` / `Pin` | chain stays `Active` — a content sibling of a seal is **buried** below it (dead on ascent); first-seen declines it, a colluded one is buried anyway — never a live fork |
+| `Gnt` / `Sea` | `Disputed` — a second accepted sealed branch (provable collusion); a witness-declined sibling is held pending                                                           |
+| `Trm`         | `Disputed` — a second accepted sealed branch                                                                                                                            |
 
 ### Position 3 — on the content run past the last seal
 

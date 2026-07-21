@@ -221,8 +221,8 @@ framework's acknowledged points of no return, shared in kind with any pre-rotati
   [monitoring](monitoring.md); the owner **buries** it by sealing their own branch with a rotation,
   which the attacker, lacking the reserve, cannot counter. Burying the branch kills the forged
   content **and any issuances anchored on it, by deadness-ascent** — no separate revocation is
-  needed. Requiring at least two signers for content means a single compromised device can't author
-  alone.
+  needed. Requiring at least two signers for content — **where configured** (`t_use ≥ 2`;
+  `t_use = 1` is legal at any roster size) — means a single compromised device can't author alone.
 - **Lost** — A transient window before burial in which a relying party may act on the forged content
   and then needs forward notice it was buried. **Not** permanent — permanence needs the reserve,
   which is the takeover above.
@@ -254,17 +254,16 @@ what happens at and past that boundary.
 
 ### Signing-key theft + witness collusion → brick
 
-- **Attack** — A terminal dispute here is two **accepted** sealed branches at one position (the
-  live-tip case; a dispute can also form across serials or federations with honest witnesses on
-  author equivocation); a sealed branch is never buried, so it forces the identity to abandon the
-  prefix and reincept. Forging the rival seal needs the **current signing key**, not the reserve: a
-  seal at a position reveals this epoch's key and is signed by it, so by that instant the reserve is
-  **spent** — a competing seal at the same position reveals and signs with that same current key
-  (the next reserve only authorizes extending _forward_). Honest witnesses **decline** the late
-  sibling (first-seen); its only reachable effect is **with a colluding quorum** that accepts both.
-  So it takes a **signing-key theft _and_ a federation-trust breach**. (An attacker who instead won
-  the first-seen race with the still-secret next key — the reserve — gets a **takeover**, not a
-  brick; that is the reserve-theft entry.)
+- **Attack** — A terminal dispute is two **accepted** sealed branches at one position; a sealed
+  branch is never buried, so it forces the identity to abandon the prefix and reincept. Forging the
+  rival seal needs the **current signing key**, not the reserve: a seal at a position reveals this
+  epoch's key and is signed by it, so by that instant the reserve is **spent** — a competing seal at
+  the same position reveals and signs with that same current key (the next reserve only authorizes
+  extending _forward_). Honest witnesses **decline** the late sibling (first-seen); its only
+  reachable effect is **with a colluding quorum** that accepts both. So it takes a **signing-key
+  theft _and_ a federation-trust breach**. (An attacker who instead won the first-seen race with the
+  still-secret next key — the reserve — gets a **takeover**, not a brick; that is the reserve-theft
+  entry.)
 - **Mitigation** — Both legs are expensive: honest witnesses decline the late rival, so a second
   accepted seal needs a colluding quorum — `threshold` witnesses, down to the
   `2·threshold − signers` intersection only under a full partition (lifted by a hardened larger set;

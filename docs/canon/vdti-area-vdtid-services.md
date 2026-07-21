@@ -129,7 +129,7 @@ can't lean on. A **synthetic is set-independent → flood-stable**, still **trig
 content branches by position** (masking is harmless — the value still moves on tip-advance and verdict-transition),
 **Disputed reincepts** (outcome invariant to the set), and **attribution walks the stored events, not the digest.**
 
-**The verdict rides the synthetic (they converge).** A data-local walk reads `forked` (≤ 1 sealed branch past the
+**The verdict rides the synthetic (they converge).** A data-local walk reads `forked` (a content-only fork — no accepted sealed branch past the
 fork — reconcilable) or `disputed` (≥ 2 sealed — terminal, reincept), inv 13/17, with the seal **derived** from the
 held events (the highest cleanly-linear seal-advancer). The synthetic **carries** that reading. **Both the value and
 the verdict are pure functions of the held event set** — no arrival-order dependence (the F2/H1 fix; a divergent
@@ -161,7 +161,7 @@ propagate and are never dropped, so all nodes converge to the **same held state 
 real SAID, or a set-independent synthetic); the un-witnessed adversarial flood is declined by witnesses and
 droppable, so it never perturbs the value. **Per-node state is one of four — {Active, Forked, Disputed,
 Terminated}** — each **DERIVED by a data-local walk** over the held events (never a stored flag; the beacon
-propagates the branches, it does not decide): `Forked` (≤ 1 sealed branch past the fork — recoverable) and
+propagates the branches, it does not decide): `Forked` (a content-only fork — no accepted sealed branch past the fork, recoverable) and
 `Disputed` (≥ 2 sealed — terminal) are first-class states, not a verdict layered on one `Divergent` state. **This
 value is the universal "has state changed?" comparison** behind token-reuse, deferred-deps drain, anti-entropy, and
 divergence.

@@ -186,13 +186,13 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 - **Active / Forked / Disputed / Terminated** — the four per-node chain states, each **derived** by
   a data-local walk over the events a node holds, never a stored flag. **Active**: a linear, live
-  chain. **Forked**: a live fork with ≤ 1 sealed branch past it — recoverable by a burying
-  seal-advancer on the winning branch. **Disputed**: a fork with ≥ 2 **accepted** sealed branches
-  past the fork — terminal (reincept); a below-seal sealed straggler is dropped (backdate-safe).
-  **Terminated**: killed by a `Trm`. Forked and Disputed are **distinct, detectable states** — the
-  walk that tells them apart (≤ 1 vs ≥ 2 accepted sealed past the fork) is how the state is
-  computed, not a "reading" layered on one divergent state.
-  ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+  chain. **Forked**: a live content-only fork (no accepted sealed branch) — recoverable by a burying
+  seal-advancer on the winning branch; a lone accepted sealed branch buries the content and reads
+  Active. **Disputed**: a fork with ≥ 2 **accepted** sealed branches at the last seal — terminal
+  (reincept); a below-seal sealed straggler is dropped (backdate-safe). **Terminated**: killed by a
+  `Trm`. Forked and Disputed are **distinct, detectable states** — the walk that tells them apart (≤
+  1 vs ≥ 2 accepted sealed at the last seal) is how the state is computed, not a "reading" layered
+  on one divergent state. ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **`Terminated` vs `Terminal` vs `Trm`** — three near-homographs, one letter apart, with distinct
   meanings: **`Terminated`** is the fourth chain **state** (a chain ended by a `Trm`);
   **`Terminal`** is the merge **rejection** for an event chaining _from_ a `Trm` (which admits no
@@ -257,8 +257,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   position wins and later ones are declined, so a content fork never goes live.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **record-both** — the merge policy for tier-2 sealed events: competing **witnessed** sealed
-  branches are both retained as evidence, so a sealed fork past the fork surfaces as Disputed rather
-  than being silently dropped (a below-seal straggler is dropped, backdate-safe).
+  branches are both retained as evidence, so a sealed fork at the last seal surfaces as Disputed
+  rather than being silently dropped (a below-seal straggler is dropped, backdate-safe).
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **deferred-pending** — a structurally-valid event held but **not yet accepted**: it has not
   reached threshold receipts (a witness-declined sibling, or a fresh submission still gathering
@@ -274,8 +274,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **divergence and recovery** — divergence is permanent and visible; recovery is a burying
   seal-advancer that buries the losing branch by position + ascent, scoped to tier-1 content.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
-- **the seal is the trust boundary** — everything at-or-below the last **clean** seal (below any
-  live fork) is final; a divergence above it grounds new trust only once cleanly sealed past.
+- **the seal is the trust boundary** — everything at-or-below the last seal is final; a divergence
+  above it grounds new trust only once cleanly sealed past.
   ([`system-thesis.md`](system-thesis.md#forks-are-seal-bounded))
 - **resolution by tier, not identity** — chain data can't tell operator from adversary, so a
   divergence resolves on tier (which branch is sealed), never on presumed legitimacy.
@@ -294,10 +294,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **witnessed vs accepted** — **witnessed**: a selected witness signed a first-seen receipt.
   **accepted**: witnessed **at threshold** (a `confirmed tip`). The Active / `Disputed` boundary and
   the effective-SAID read against **accepted**, never merely witnessed — `Disputed` needs ≥ 2
-  **accepted** sealed branches (proven by a witness double-sign, or an author reserve double-reveal
-  where witnesses are honest), and a below-seal or sub-threshold sealed event is
-  witnessed-but-not-accepted → dropped, never `Disputed`.
-  ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
+  **accepted** sealed branches (which is why it takes collusion / a provable double-sign), and a
+  below-seal or sub-threshold sealed event is witnessed-but-not-accepted → dropped, never
+  `Disputed`. ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **keep-all-data / data-local detection** — nodes retain competing branches as evidence, so any
   verifier detects a fork or dispute from the data alone.
   ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))

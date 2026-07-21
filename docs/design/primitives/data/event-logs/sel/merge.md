@@ -8,8 +8,9 @@ signal on a verification token; the merge layer composes that signal with chain-
 routing to admit or reject batches.
 
 Two things distinguish SEL merge from IEL merge. First, the SEL is its **own** witnessed chain — a
-selected witness first-sees at the SEL's own `(prefix, serial)`, so an owner cannot equivocate its
-SEL even under a linear owner IEL
+linear owner IEL **cannot prevent** a SEL fork (the IEL is blind to it, so an owner can author two
+competing SEL events), and the SEL's own first-seen at its `(prefix, serial)` is what **closes** the
+equivocation — two accepted sealed branches then require witness collusion
 ([`log.md` §The SEL is its own witnessed chain](log.md#the-sel-is-its-own-witnessed-chain)). Second,
 a SEL has a **second, inherited** state input: when the owner IEL buries a branch that a SEL event
 anchored, the SEL is **severed** there — dead and un-verifiable from that point, with no repair.
@@ -125,18 +126,19 @@ Deadness comes first: a SEL event on a dead anchor is never routed as a live for
 
 The submitted event's parent must sit at-or-after the last seal-advancer
 (`parent_serial ≥ seal_serial`). A submission whose parent is in the locked portion and would change
-nothing is rejected `Sealed`; one that would **form or join a live fork** at the seal's own serial
-is a `Forked` / `Disputed` transition instead (retained evidence). The seal-cap is
-**unconditional**: every event class is subject to it, including a burying seal-advancer whose
-`previous` targets the locked portion.
+nothing is rejected `Sealed`; one at the seal's own serial resolves by tier instead — a content
+sibling is buried → Active, a second accepted sealed sibling → `Disputed` (retained evidence). The
+seal-cap is **unconditional**: every event class is subject to it, including a burying seal-advancer
+whose `previous` targets the locked portion.
 
 ### 4. Fork-detect
 
 The event's `(parent_said, serial)` is checked against the chain's existing events at that serial:
 
-- **Seal-advancer (`Gnt` / `Trm` / `Sea`) whose landing would create or join a divergence** — not
-  admitted as a canonical extension; retained as non-canonical evidence. The chain moves to `Forked`
-  (the fork's first sealed branch) or `Disputed` (its second).
+- **Seal-advancer (`Gnt` / `Trm` / `Sea`) whose landing would create or join a divergence** —
+  retained as evidence. Siblinging **content**, it is a burying seal-advancer: it buries the content
+  and the chain re-reads **Active** → `Recovered`. Siblinging an **already-accepted sealed** branch,
+  it is the **second** → `Disputed`.
 - **Content event (`Ixn` / `Pin`)** — admitted. If a competing event already sits at the same
   serial, a fork forms; a second content sibling on a witnessed chain is `Ignored`, and the residual
   is `Forked`. If no event sits at the candidate's serial, the event extends linearly (`Extended`).
@@ -208,10 +210,10 @@ pre-sever portion stays live.
 - A content fork with one **severed** branch auto-resolves to the live branch — the SEL shrinks to
   the shared tip and the surviving author extends from there, **no `Sea`**. Both branches severed →
   severed at the fork.
-- A **Disputed is downgraded** by severance: if one of two accepted sealed branches is severed, it
-  is un-verifiable and not counted, so the reading drops to the live branch and recovers. A Disputed
-  under a **linear** owner IEL — both anchors locked-live, no severance available — stays terminal →
-  re-incept.
+- A **Disputed is never downgraded** by severance: its two sealed branches are **accepted**, and SEL
+  acceptance gates on the owner-IEL anchor being accepted, so their (IEL sealed) anchors are never
+  buried — no severance reaches an accepted sealed branch (§Matrix 2 in
+  [`reconciliation.md`](reconciliation.md)). A Disputed stays terminal → re-incept.
 - A **`{Trm, content}` fork** with a severed branch keeps the survivor — a severed content leaves
   the `Trm` standing (**Terminated**).
 

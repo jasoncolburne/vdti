@@ -111,11 +111,13 @@ event, and everything grown on it is dead on ascent), naming no root.
 
 ### Anchors
 
-The `anchors` role is a flat, ordered list of **IEL event SAIDs** — a KEL **always** anchors IEL
-events, **never** a SEL event or a raw SAD (an SEL event is anchored only by its owner IEL; a
-document reaches the chain only through its SEL). Like every inline manifest list it is capped at
-`MAXIMUM_MANIFEST_LIST = 128` entries, the verifier rejecting an over-length list in structural
-validation
+The `anchors` role is a flat list of **IEL event SAIDs**, held **strictly ascending** (sorted and
+distinct — order-independent, the sorted-set rule in [`../../sad/said.md`](../../sad/said.md), so
+two producers batching the same anchors mint one event, not a spurious fork) — a KEL **always**
+anchors IEL events, **never** a SEL event or a raw SAD (an SEL event is anchored only by its owner
+IEL; a document reaches the chain only through its SEL). Like every inline manifest list it is
+capped at `MAXIMUM_MANIFEST_LIST = 128` entries, the verifier rejecting an over-length list in
+structural validation
 ([`../event-shape.md` §The manifest](../event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role)).
 Which KEL kind anchors which IEL kind is the kind-strict cross-primitive anchor matrix
 ([§Tiers](../../../../protocol-doctrine.md#tiers)). Two properties motivate the bare-SAID list

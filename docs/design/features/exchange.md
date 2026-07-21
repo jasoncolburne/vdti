@@ -282,32 +282,38 @@ degenerate group of two** — the same machinery, no separate two-party construc
   authored. The chat message carries **no key-state pin** and needs none, because the **witnessed
   epoch anchors the time**: the verifier resolves the writer's key-state among those valid **within
   epoch _N_'s window** and checks the signature, so the self-asserted `timestamp` only selects
-  _within_ that witnessed bound, never outside it (a future-dated stamp beyond the epoch window
-  reads outside it and is refused — so chat needs no separate `timestamp ≤ now + band` bound like
-  mail's). So the check composes two witnessed sources: the **IEL** says whether the signing key was
-  valid, the **epoch SEL** says the message was authored within epoch _N_'s window — authentic iff
-  the key was valid (per its IEL interval) at a time inside that window. Backdating decomposes into
-  cases the model closes and one it accounts for. A **current** member backdating **below its
-  advanced tip** must **fork** its own lane (a `(epoch, timestamp)` decrease is malformed, so the
-  only attach is a second child of an earlier node) — an undeniable self-signed equivocation any
-  reader surfaces on convergence (monotonicity, above). On a live lane the DAG **detects** the fork,
-  but the group's policy decides which branch counts. A **removed** member is closed
-  **structurally** at the **verifier**, because its removal left an on-chain fact: its
-  `chat-membership` rescission recorded a **lane-tip `bound`** (its last message) on the
-  **witnessed** grant chain, so the verifier honors exactly the `bound`'s **ancestor-chain** —
-  `[anchored root … bound]` — and honors **no** node off it: a **frozen-tip forward-append** into a
-  retired epoch (a descendant of the bound), a **fork below the bound** (a sibling of an on-chain
-  node), and a **fresh parentless root** (unanchored — its admission grant anchored the one lane the
-  verifier honors) all fall outside the interval. That is a **local interval check against the
-  durable `bound`**, not fork detection — no propagation wait, no policy call. **The one accepted
-  residual:** a **current**, non-removed member that went **dormant** can forward-append
-  monotonically into an epoch it held but was silent for — no bound exists (it was never removed)
-  and its key was valid, so this reads as legitimate late history; it is confined to its own lane
-  and its own held epochs, the chat instance of the accepted backdate-within-a-held-window class
-  (mail's captured-then-rotated residual), and the opt-in anchor strengthens it for parties that
-  need better. The store's deposit gate is defense-in-depth; the anchor and bound are what make the
-  cuts **verifier-enforced**, not store-only. A self-asserted timestamp never establishes currency;
-  the two witnessed windows do.
+  _within_ that witnessed bound, never outside it (a future-dated stamp beyond a **closed** epoch's
+  window reads outside it and is refused — so a closed epoch needs no separate
+  `timestamp ≤ now + band` bound like mail's). So the check composes two witnessed sources: the
+  **IEL** says whether the signing key was valid, the **epoch SEL** says the message was authored
+  within epoch _N_'s window — authentic iff the key was valid (per its IEL interval) at a time
+  inside that window. The **open (current)** epoch is the one gap: it has no upper boundary yet, so
+  a message future-dated within it is not refused until the next epoch's witnessed time lands below
+  its stamp — its validity is then non-monotone (accepted while the epoch is open, retroactively
+  outside the window once it closes). This is an accepted, **self-harming** residual: monotonicity
+  forces the writer's own later messages past the inflated stamp or forks its lane, and other lanes
+  are unaffected; a deployment wanting monotone open-epoch validity adds mail's future-side
+  `timestamp ≤ now + band` bound. Backdating decomposes into cases the model closes and one it
+  accounts for. A **current** member backdating **below its advanced tip** must **fork** its own
+  lane (a `(epoch, timestamp)` decrease is malformed, so the only attach is a second child of an
+  earlier node) — an undeniable self-signed equivocation any reader surfaces on convergence
+  (monotonicity, above). On a live lane the DAG **detects** the fork, but the group's policy decides
+  which branch counts. A **removed** member is closed **structurally** at the **verifier**, because
+  its removal left an on-chain fact: its `chat-membership` rescission recorded a **lane-tip
+  `bound`** (its last message) on the **witnessed** grant chain, so the verifier honors exactly the
+  `bound`'s **ancestor-chain** — `[anchored root … bound]` — and honors **no** node off it: a
+  **frozen-tip forward-append** into a retired epoch (a descendant of the bound), a **fork below the
+  bound** (a sibling of an on-chain node), and a **fresh parentless root** (unanchored — its
+  admission grant anchored the one lane the verifier honors) all fall outside the interval. That is
+  a **local interval check against the durable `bound`**, not fork detection — no propagation wait,
+  no policy call. **The one accepted residual:** a **current**, non-removed member that went
+  **dormant** can forward-append monotonically into an epoch it held but was silent for — no bound
+  exists (it was never removed) and its key was valid, so this reads as legitimate late history; it
+  is confined to its own lane and its own held epochs, the chat instance of the accepted
+  backdate-within-a-held-window class (mail's captured-then-rotated residual), and the opt-in anchor
+  strengthens it for parties that need better. The store's deposit gate is defense-in-depth; the
+  anchor and bound are what make the cuts **verifier-enforced**, not store-only. A self-asserted
+  timestamp never establishes currency; the two witnessed windows do.
 - **Catch-up is the union of your membership periods.** A member decrypts exactly the epochs during
   which it was a member — membership can be intermittent, and it reads **every period it was in**,
   none it was not. **Each membership period is a disjoint anchored lane:** a re-added member's grant

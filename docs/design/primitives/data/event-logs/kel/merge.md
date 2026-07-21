@@ -37,16 +37,17 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 
 **Transitions** — each is named for its action or the state the chain is in after the batch lands
 (`Extended` and `Recovered` both land **Active**). The Forked-versus-Disputed split is by the
-**accepted** sealed-branch count past the fork (≤ 1 → Forked, ≥ 2 → Disputed); the content-branch
-count does not affect it.
+**accepted** sealed-branch count at the last seal (0 → Forked; a single accepted sealed branch
+buries the content → `Recovered`/Active; ≥ 2 → Disputed); the content-branch count does not affect
+it.
 
-| Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                        |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Extended**   | Linear extension → **Active**; new tip established; content does not advance the seal, all other events do.                       | Events chain cleanly from the current tip (or from inception on an Empty chain).                                                                            |
-| **Recovered**  | A burying seal-advancer resolved a fork → **Active**: it extends the winning branch and advances the seal past the content loser. | A `Rot` / `Wit` extends a fork's winning-branch tip (or, on a linear chain, buries the run past its attach point) — the content loser drops below the seal. |
-| **Terminated** | A `Trm` admitted → **Terminated**.                                                                                                | A `Trm` lands as a linear extension, or buries a content loser below its own seal.                                                                          |
-| **Forked**     | A **recoverable** fork (≤ 1 sealed branch past it) → the chain is **Forked**, origination frozen.                                 | A content event forks at an earlier serial, or a sealed event forms the fork's first sealed branch, or a content event lands on an already-forked chain.    |
-| **Disputed**   | An **irrecoverable** fork (≥ 2 accepted sealed branches past it) → the chain is **Disputed** (terminal, reincept).                | A second accepted sealed branch joins a fork that already carries one, or a burying seal-advancer would bury a competing sealed branch.                     |
+| Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                                                                                                               |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Extended**   | Linear extension → **Active**; new tip established; content does not advance the seal, all other events do.                       | Events chain cleanly from the current tip (or from inception on an Empty chain).                                                                                                                                                                   |
+| **Recovered**  | A burying seal-advancer resolved a fork → **Active**: it extends the winning branch and advances the seal past the content loser. | A `Rot` / `Wit` extends a fork's winning-branch tip **or attaches at the divergence ancestor `v_{d-1}`** (the ancestor-extending shape) — or, on a linear chain, buries the run past its attach point; the content loser drops below the new seal. |
+| **Terminated** | A `Trm` admitted → **Terminated**.                                                                                                | A `Trm` lands as a linear extension, or buries a content loser below its own seal.                                                                                                                                                                 |
+| **Forked**     | A **recoverable content-only** fork (no accepted sealed branch past it) → the chain is **Forked**, origination frozen.            | A content event forks at an earlier serial, or a content event lands on an already-forked chain. A sealed event landing as the first sealed branch **buries** the content → `Recovered`, not Forked.                                               |
+| **Disputed**   | An **irrecoverable** fork (≥ 2 accepted sealed branches past it) → the chain is **Disputed** (terminal, reincept).                | A second accepted sealed branch joins a fork that already carries one, or a burying seal-advancer would bury a competing sealed branch.                                                                                                            |
 
 **Rejections** — nothing lands; the chain is unchanged (retention of the rejected event as evidence
 is a separate, witnessing-gated matter — below).
@@ -154,9 +155,9 @@ regardless of chain state. The verifier walks each event and checks:
 
 The submitted event's parent must sit at-or-after `last_seal_advancing_event` in chain order
 (`parent_serial ≥ seal_serial`). A submission whose parent is in the locked portion and would change
-nothing is rejected `Sealed`; one that would **form or join a live fork** at the seal's own serial
-is a `Forked` / `Disputed` transition instead (retained evidence). This is the structural rule that
-enforces current-state-only authority — see
+nothing is rejected `Sealed`; one at the seal's own serial resolves by tier instead — a content
+sibling is buried → Active, a second accepted sealed sibling → `Disputed` (retained evidence). This
+is the structural rule that enforces current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
 [`log.md` §The locked portion](log.md#the-locked-portion).
 
@@ -182,10 +183,11 @@ The kind-schema rule is load-bearing — the seal-cap does not subsume `Trm`-ter
 
 The event's `(parent_said, serial)` is checked against the chain's existing events at that serial:
 
-- **Sealed event whose landing would create or join a divergence** — not admitted as a canonical
-  extension; retained as non-canonical evidence per
-  [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery). The chain
-  moves to `Forked` (the fork's first sealed branch) or `Disputed` (its second).
+- **Sealed event whose landing would create or join a divergence** — retained per
+  [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery). One
+  siblinging **content** is a burying seal-advancer: it buries the content and the chain re-reads
+  **Active** → `Recovered`. One siblinging an **already-accepted sealed** branch is the **second** →
+  `Disputed`.
 - **Content event** (`Ixn`) — admitted. If a competing event already exists at the same serial, a
   fork forms; a second content sibling on a witnessed chain is `Ignored`, and the residual is
   `Forked`. If no existing event sits at the candidate's serial, the event extends as a linear-chain
@@ -318,10 +320,10 @@ submitted event's `previous`. The verifier walks from the branch point; the merg
 
 - If a seal-advancing event has already landed between the branch point and the chain's current
   state, and the incoming event is inert below it → `Sealed`.
-- If the batch contains a sealed event (`Rot` / `Wit` / `Trm`) with `previous = v_{d-1}.said` → not
-  admitted as a canonical extension; the chain moves to `Forked` (the fork's first sealed branch) or
-  `Disputed` (if the fork already carries one). A burying seal-advancer extending the winning branch
-  buries the content loser → `Recovered`.
+- If the batch contains a sealed event (`Rot` / `Wit` / `Trm`) with `previous = v_{d-1}.said` → it
+  lands at `v_d` as a **burying seal-advancer** (the ancestor-extending shape): it buries the
+  **content** siblings at `v_d` → the chain re-reads **Active** → `Recovered`; if it siblings an
+  **already-accepted sealed** branch, it is the **second** → `Disputed`.
 - Otherwise → the first conflicting content event is inserted as the fork event; outcome `Forked`.
 
 ## How a burying seal-advancer resolves a content fork

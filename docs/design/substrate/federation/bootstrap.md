@@ -163,10 +163,10 @@ A verifier validates a received genesis against the configured prefix as follows
 - **The `Fcp` is well-formed as a federation inception** — the restricted kind set is in force, the
   threshold vector is exactly `{ govern }`, `|roster| ≥ 4`, and the witness-config clears its floors
   ([`witnessing.md`](witnessing.md)).
-- **A `t_govern` threshold of the founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2
-  → tier 2)** — the anchoring authors are roster founders (no outsiders), so the ordinary inception
-  threshold is met by the roster itself; a genesis below `t_govern` is sub-threshold and reads
-  fail-secure, no special rule.
+- **All founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2 → tier 2)** — every
+  founder anchors, so no founder lands in the founding roster without consenting to it, and the
+  founders' `Rot`s satisfy the inception threshold; a partial genesis (any founder's `Rot` absent)
+  is sub-threshold and reads fail-secure, no special rule.
 - **The `Fcp` carries a `manifest.clock`** seeding the timeline's lower bound.
 
 A genesis that clears these is trusted as the federation's serial-0 root. Nothing about it rests on

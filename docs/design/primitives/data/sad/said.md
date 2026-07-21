@@ -56,9 +56,11 @@ hashes:
    **only** `said` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256.
    Base64 encode and qualify. Write the result into the SAD's `said` field.
 
-The two hashes see different canonical bytes, so on the inception event `prefix ≠ said`. The prefix
-is the stable chain identifier — copied forward on every subsequent event of the chain. The SAID is
-the per-event content hash that turns over each event.
+The two hashes see different canonical bytes, so on the inception event `prefix ≠ said` **with
+overwhelming probability** — a match would need a Blake3-256 collision — and, load-bearing, neither
+value is computable from the other, so the inception's event SAID never doubles as the chain's
+lookup key. The prefix is the stable chain identifier — copied forward on every subsequent event of
+the chain. The SAID is the per-event content hash that turns over each event.
 
 ```mermaid
 flowchart LR
@@ -72,8 +74,9 @@ flowchart LR
 
 Two Blake3-256 hashes over the same canonical content. The **prefix** hash blanks both `said` and
 `prefix` to the fixed-length placeholder; the **said** hash uses the real `prefix` and blanks only
-`said`. Different bytes → **`prefix ≠ said`** (correlation resistance), and the placeholder's fixed
-byte-length lets a SAID name its own SAD without circularity.
+`said`. Different bytes → **`prefix ≠ said`** (correlation resistance — overwhelming probability,
+not a certainty), and the placeholder's fixed byte-length lets a SAID name its own SAD without
+circularity.
 
 **Why two hashes, not one — correlation resistance.** A single hash would set the inception event's
 SAID equal to the prefix — and the prefix is the chain's lookup key, while a SAID is an opaque
@@ -143,6 +146,12 @@ value of its `said` field. The recognition rule is schema-free — generic walke
 per-payload schemas — and naturally surfaces submission errors: an inline nested object carrying a
 `said` field is not in canonical form, its byte-hash does not match the declared SAID, and the
 storage service rejects via the existing SAID-match check without a new code path.
+
+**Consequence for application payloads.** Because `said` is reserved at **every** nesting level, an
+application that embeds free-form JSON containing a `said` key has that object treated as a sub-SAD
+position — it will not verify as a SAD, so the parent becomes permanently unverifiable. App-defined
+opaque content therefore rides as **bytes / a content-addressed blob** (`{digest, size}`), or under
+a kind-named schema the SAD declares — never as free-form JSON that might carry a `said` key.
 
 **Rule 2 — Inline embedding requires verification before substitution.** When a sub-SAD is embedded
 inline, the verifier MUST verify the embedded child's declared SAID against the child's own bytes —

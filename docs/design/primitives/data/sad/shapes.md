@@ -121,13 +121,13 @@ federation IEL
 Carried by an IEL `Icp` (the initial roster + threshold vector), an `Evl` (a delta), and a
 federation `Fcp` / `Wit`:
 
-| Field            | Type                         | Meaning                                                                                          |
-| ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `said`           | SAID                         | The delta SAD's SAID.                                                                            |
-| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                    |
-| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                   |
-| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                        |
-| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), governance, authorization (tier 2). |
+| Field            | Type                         | Meaning                                                                                               |
+| ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `said`           | SAID                         | The delta SAD's SAID.                                                                                 |
+| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                         |
+| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                        |
+| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                             |
+| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2). |
 
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the
@@ -137,11 +137,11 @@ a **single** prefix (one witness KEL added at a time), not a list.
 
 ### `vdti/event/v1/roles/pins` — the participating member KEL SAIDs
 
-| Field  | Type       | Meaning                                                                |
-| ------ | ---------- | ---------------------------------------------------------------------- |
-| `said` | SAID       | The pins SAD's SAID.                                                   |
-| `kind` | string     | `vdti/event/v1/roles/pins`.                                            |
-| `pins` | list⟨SAID⟩ | Each participating member's KEL event SAID (an IEL event's down-pins). |
+| Field  | Type       | Meaning                                                                                                                                                          |
+| ------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said` | SAID       | The pins SAD's SAID.                                                                                                                                             |
+| `kind` | string     | `vdti/event/v1/roles/pins`.                                                                                                                                      |
+| `pins` | list⟨SAID⟩ | Each participating member's **prior KEL tip** (`participation.previous`; the anchoring KEL event sits one past it, so no SAID cycle) — an IEL event's down-pins. |
 
 The remaining roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` — are
 carried **inline** in the manifest SAD, so they have no SAD of their own ([`kinds.md`](kinds.md));
@@ -154,18 +154,18 @@ value — §Grant values below). Their value shapes are
 A receipt is itself a SAD; its witness signature rides **adjacent**, never in the body (a SAD cannot
 sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/receipts/{kel,iel,sel}`.
 
-| Field            | Type      | Meaning                                                           |
-| ---------------- | --------- | ----------------------------------------------------------------- |
-| `said`           | SAID      | The receipt's own SAID.                                           |
-| `kind`           | string    | `vdti/witness/v1/receipts/{kel,iel,sel}`.                         |
-| `threshold`      | u64       | The witness-config threshold in effect at the witnessed position. |
-| `signers`        | u64       | The selection size in effect at that position.                    |
-| `federationPin`  | SAID      | The chain's federation binding there — resolves the as-of roster. |
-| `chain_prefix`   | prefix    | The witnessed chain's prefix.                                     |
-| `event_said`     | SAID      | The one committing SAID of the witnessed event.                   |
-| `event_serial`   | u64       | Its serial.                                                       |
-| `timestamp`      | timestamp | The witness's asserted time (inside the signed payload).          |
-| `witness_prefix` | prefix    | The signing witness's KEL prefix.                                 |
+| Field           | Type      | Meaning                                                           |
+| --------------- | --------- | ----------------------------------------------------------------- |
+| `said`          | SAID      | The receipt's own SAID.                                           |
+| `kind`          | string    | `vdti/witness/v1/receipts/{kel,iel,sel}`.                         |
+| `threshold`     | u64       | The witness-config threshold in effect at the witnessed position. |
+| `signers`       | u64       | The selection size in effect at that position.                    |
+| `federationPin` | SAID      | The chain's federation binding there — resolves the as-of roster. |
+| `chainPrefix`   | prefix    | The witnessed chain's prefix.                                     |
+| `eventSaid`     | SAID      | The one committing SAID of the witnessed event.                   |
+| `eventSerial`   | u64       | Its serial.                                                       |
+| `timestamp`     | timestamp | The witness's asserted time (inside the signed payload).          |
+| `witnessPrefix` | prefix    | The signing witness's KEL prefix.                                 |
 
 ## Grant values — what a SEL `Gnt` seals
 

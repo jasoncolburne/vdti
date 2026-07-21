@@ -71,9 +71,11 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   locked events are structurally immutable within their own chain: a recovery cannot bury them, and
   within-chain historical authorizations are not retroactively unsatisfiable. The sealed event
   ratchets the lock forward. On a chain carrying a fork, the locked portion is still read against
-  the tracked seal — the most recent seal-advancing event that landed cleanly on the linear chain; a
-  seal-advancing event on a competing branch never becomes the lock (it is a sealed fork, and the
-  divergence rules read it — see [§Divergence and recovery](#divergence-and-recovery)).
+  the tracked seal — the most recent seal-advancing event with no competing accepted **sealed**
+  sibling (a content sibling is buried below it, not a competitor); a seal-advancing event that is
+  one of two competing **accepted sealed** branches never becomes the lock (that is a Disputed
+  sealed fork, and the divergence rules read it — see
+  [§Divergence and recovery](#divergence-and-recovery)).
 - **Chain states** (per-node — a chain is in exactly one of **four**, each **computed from the
   events a node holds by a data-local walk**, never a stored flag):
 
@@ -92,28 +94,25 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     **accepted** key-state branch you did not author can never be buried (the reserve-theft
     takeover, below; a seal forged on a _dead_ lineage is a different thing — dead on ascent,
     dropped).
-  - **Disputed** — an **irrecoverable** fork: **≥ 2 accepted sealed branches past the fork**. An
+  - **Disputed** — an **irrecoverable** fork: **two accepted seals racing to the same serial**. An
     **accepted sealed branch** is one whose seal is **witnessed at threshold** _and_ whose **lineage
     is accepted** — a branch built on a first-seen loss is **dead on ascent** (you can't seal a
-    buried chain) and never counts. Working the cases (the fork is at one serial `d`; the branches'
-    seals need not be): a fork with a **single** sealed branch is **recoverable** — its seal buries
-    the content competitor (`{seal, content}`); a **content-vs-content** fork whose branches seal at
-    **different** serials is **also recoverable** — one content root lost first-seen (only one
-    content sibling per position), so it is dead on ascent and its later seal is dropped while the
-    surviving seal buries it. What is **irrecoverable** is **two accepted sealed branches neither
-    can bury** — a sealed branch is never overturned (burying a rotation resurrects a retired key) —
-    which arises **three ways, told apart by the data**: **(a)** two sealed siblings at **one
-    serial** under **one federation**, both accepted only via a **witness double-sign** (honest
-    first-seen accepts one); **(b)** a **content-led branch that seals** (`Ixn@d … Rot@d+j`) meeting
-    a **burying seal** that cannot drop it — two accepted seals at **different** serials, formed
-    with **every witness honest** (the fork at `d` is a mixed content/sealed pair honest witnesses
-    co-sign), proven by an **author reserve double-reveal**; **(c)** two **rebinds** at one serial
-    declaring **different** federations — **disjoint** witness sets, again every witness honest,
-    again an author-side proof. In every case no single chain can be chosen and the prefix must
-    **reincept** — terminal for _everyone_. This is a **branch-level** determination — acceptance is
-    a **per-lineage** fact, computed by **any verifier as a data-local walk over the retained
-    branches**, not read off a single serial's event count in isolation: a node retains a competing
-    branch as non-canonical evidence rather than discarding it (see
+    buried chain) and never counts. Working the cases (a fork on one chain forks _prior_ to its
+    seals): a fork with a **single** seal is **recoverable** — the seal buries the content
+    competitor (`{seal, content}`); a content fork whose branches seal at **different** serials is
+    **also recoverable** — the **earlier** seal buries the other branch **from the fork** (its
+    losing fork-sibling locks below the seal, the rest **dead on ascent** — otherwise the fork would
+    persist below the seal), so that branch's later seal lands on a buried chain and is dropped. The
+    **only** irrecoverable case is **two seals at the same serial**: siblings at one position,
+    neither can bury the other, so both stand — which takes a **witness double-sign** at that seal
+    position (honest first-seen accepts only one) — **or**, when the two seals are **rebinds naming
+    different federations**, disjoint witness sets that each honestly sign their own (no shared
+    witness to double-sign; the proof is then the author's reserve double-reveal). No sealed branch
+    can be buried (burying a rotation would resurrect a retired key), so no single chain can be
+    chosen and the prefix must **reincept** — terminal for _everyone_. This is a **branch-level**
+    determination — acceptance is a **per-lineage** fact, computed by **any verifier as a data-local
+    walk over the retained branches**, not read off a single serial's event count in isolation: a
+    node retains a competing branch as non-canonical evidence rather than discarding it (see
     [§Divergence and recovery](#divergence-and-recovery)), so a node holding both sealed branches
     reads Disputed directly, and a node holding only one assembles the others — the witness beacon
     enumerates the competing branch SAIDs, the node fetches and walks them. The federation
@@ -296,14 +295,15 @@ issuer-chosen-policy backdate surface from the chain entirely.
 The structural mechanism that enforces current-state-only authority is the chain's **seal**.
 
 Each primitive tracks `last_seal_advancing_event` — the SAID of the chain's most recent
-seal-advancing event that landed cleanly on the linear chain. A new event's parent must sit
-at-or-after the seal (`parent_serial ≥ seal_serial`); a submission whose parent sits in the locked
-portion is **rejected as a canonical extension**. Whether that rejected fork is **retained as
-non-canonical evidence** is a separate, witnessing-gated decision — a losing **content** sibling on
-a witnessed chain never forms (so there is nothing to retain), while a sealed branch is kept, so the
-proof that a divergence occurred survives wherever a fork actually forms (see
-[§Divergence and recovery](#divergence-and-recovery)). This guarantees the authorization context
-resolved at the event's parent is the chain's currently-tracked state, not a stale one.
+seal-advancing event with no competing accepted sealed sibling (a content sibling is buried below
+it). A new event's parent must sit at-or-after the seal (`parent_serial ≥ seal_serial`); a
+submission whose parent sits in the locked portion is **rejected as a canonical extension**. Whether
+that rejected fork is **retained as non-canonical evidence** is a separate, witnessing-gated
+decision — a losing **content** sibling on a witnessed chain never forms (so there is nothing to
+retain), while a sealed branch is kept, so the proof that a divergence occurred survives wherever a
+fork actually forms (see [§Divergence and recovery](#divergence-and-recovery)). This guarantees the
+authorization context resolved at the event's parent is the chain's currently-tracked state, not a
+stale one.
 
 **Sealed** means any non-content kind — everything at tier 2 ([§Tiers](#tiers)); **content** (`Ixn`,
 plus the SEL's floor `Pin`) is tier 1. Every **non-inception** sealing kind advances the seal, and
@@ -418,41 +418,42 @@ flowchart TD
 A chain **diverges** the instant it carries two **distinct** events at one serial. Distinct means
 different-SAID: SAIDs are content-addressable, so two byte-identical events **are** one event (the
 submit path accepts an already-present event idempotently, never as a second branch). So dedupe is
-by **byte-identical SAID'd content**: an **idempotent resubmit**, or two **independent authorings
-that commit the same bytes** (same intent, no `nonce` — e.g. a roster-less re-seal `Evl`, a benign
-merge `iel/log` relies on). Two authorings that commit **different** bytes — the usual case, each
-with its own down-pins and chain position — are **distinct** and **collide** at one serial, resolved
-by the machinery below, never silently merged. (Signatures live adjacent to the event, outside the
-SAID'd bytes — [event-shape](primitives/data/event-logs/event-shape.md) — so dedupe is by content,
-independent of who signed it.)
+by **byte-identical SAID'd content**: an **idempotent resubmit** — the **same** authoring's bytes
+redelivered (a gossip retry, the benign merge `iel/log` relies on). Two **independent** authorings
+never dedupe: an IEL / SEL event carries `pins` (participating members' prior KEL tips) and a KEL
+event its own adjacent content, so two ceremonies commit **different** bytes even for the same
+intent — a roster-less re-seal `Evl` from two ceremonies has different `pins`. Such authorings —
+each with its own down-pins and chain position — are **distinct** and **collide** at one serial,
+resolved by the machinery below, never silently merged. (Signatures live adjacent to the event,
+outside the SAID'd bytes — [event-shape](primitives/data/event-logs/event-shape.md) — so dedupe is
+by content, independent of who signed it.)
 
 **A live divergence freezes further origination; the reading is a pure walk.** A node's **reading**
 of a chain — Active / Forked / Disputed — is a **pure function of the events it holds**: the walk
-derives the seal from those events (the most recent seal-advancing event that landed cleanly on a
-linear run) and reads the fork against it, counting the **sealed** branches past it, so two nodes
-holding the same events read the same state whatever order the events arrived in. What **freezes**
-is **origination**: while a node holds a fork **at or above the derived seal**, it **grows the fork
-no further** — it originates no new event that would **extend a contested branch**. The only event
-it authors onto such a chain is the one that **resolves** a content fork: a **burying seal-advancer
-on the winning branch** — a `Rot` / `Wit` / `Trm` on the KEL, a sealing event on the IEL (any
-non-terminal seal-advancer, typically the `Evl`, or the `cut` `Evl` when it also evicts) — that
-seals past the loser. That resolving move is **not** an exception to the freeze: it attaches at the
-**winning** branch and seals past the loser, it does not extend the contested position (you cannot
-fork the past, so a below-seal content loser is inert). Freezing is an **origination posture**, not
-a stored flag and not the reading: a node that comes to hold a burying seal-advancer re-reads the
-chain **Active**, exactly as a node that sealed before it ever saw the loser. One carve-out on the
-resolving move: a fork whose single sealed branch is a **terminal `Trm`** (an identity/SEL
-terminate) resolves by **tier-rank** with no burying event (below) — the terminal admits no
-successor, so it wins outright over the buriable content. A `Rev`/`Dth` is **not** terminal (it
-kills a _target_, not its host chain), so `{Rev|Dth, content}` recovers like `{Evl, content}`. (A
-below-seal **content** straggler that arrives after the chain already sealed past its serial is dead
-on ascent — kept as evidence or dropped per the retention bound below — never a freeze: the
-canonical branch is already sealed past it. A below-seal **sealed** straggler is **dropped** (inert)
-— the witness mirrors the seal-cap, so it cannot be witnessed past the seal and it does not retreat
-the clean seal (the backdate defense); a sealed dispute forms **at-or-past the fork** — commonly two
-witnessed seals at the last seal, but also across serials or across federations (below) — never
-below the seal; see pre-seal verifiability, below.) Freezing origination on divergence is the
-founding insight of the event-log primitives.
+derives the seal from those events (the most recent seal-advancing event with no competing accepted
+sealed sibling — a content sibling is buried below it) and reads the fork against it, counting the
+**sealed** branches past it, so two nodes holding the same events read the same state whatever order
+the events arrived in. What **freezes** is **origination**: while a node holds a fork **at or above
+the derived seal**, it **grows the fork no further** — it originates no new event that would
+**extend a contested branch**. The only event it authors onto such a chain is the one that
+**resolves** a content fork: a **burying seal-advancer on the winning branch** — a `Rot` / `Wit` /
+`Trm` on the KEL, a sealing event on the IEL (any non-terminal seal-advancer, typically the `Evl`,
+or the `cut` `Evl` when it also evicts) — that seals past the loser. That resolving move is **not**
+an exception to the freeze: it attaches at the **winning** branch and seals past the loser, it does
+not extend the contested position (you cannot fork the past, so a below-seal content loser is
+inert). Freezing is an **origination posture**, not a stored flag and not the reading: a node that
+comes to hold a burying seal-advancer re-reads the chain **Active**, exactly as a node that sealed
+before it ever saw the loser. One carve-out on the resolving move: a fork whose single sealed branch
+is a **terminal `Trm`** (an identity/SEL terminate) resolves by **tier-rank** with no burying event
+(below) — the terminal admits no successor, so it wins outright over the buriable content. A
+`Rev`/`Dth` is **not** terminal (it kills a _target_, not its host chain), so `{Rev|Dth, content}`
+recovers like `{Evl, content}`. (A below-seal **content** straggler that arrives after the chain
+already sealed past its serial is dead on ascent — kept as evidence or dropped per the retention
+bound below — never a freeze: the canonical branch is already sealed past it. A below-seal
+**sealed** straggler is **dropped** (inert) — the witness mirrors the seal-cap, so it cannot be
+witnessed past the seal and it does not retreat the clean seal (the backdate defense); a sealed
+dispute forms only at the **last seal**, from two witnessed seals there; see pre-seal verifiability,
+below.) Freezing origination on divergence is the founding insight of the event-log primitives.
 
 Every KEL, IEL, and SEL is **federation-witnessed** — there is no direct mode; a SEL is its own
 witnessed chain at its own `(prefix, serial)`, inheriting its owner IEL's federation (below). On a
@@ -551,29 +552,28 @@ the branches; it does not pronounce the verdict. A `{Rot, Rot}` collision is mor
 rotation-reserve compromise** — two valid rotations both reveal the one rotation reserve preimage in
 force at `v_{d-1}`, which an honest, correctly-implemented holder never does; `{Evl, Evl}` is
 terminal for the same branch-level reason but is **not** a single-reserve-compromise proof — its two
-sealing events reveal _different_ preimages; two **accepted** `{Evl, Evl}` branches **at one
-serial** require witness collusion (a provable double-sign), while across serials or federations
-they form with honest witnesses on author equivocation instead — either way **not** an honest
-partition (the witnessing floor plus one-sealing-per-position decline the second sibling — content
-and sealing serialization is a liveness/waste discipline, not a safety requirement). So **reincept**
-is what a party does when **no valid recovery exists for it**: either the chain is **Disputed** —
-**≥ 2 accepted competing sealed branches** (`{Rot, Rot}`, `{Evl, Evl}`, any pair), so no retention
-is clean and _no one_ can recover — or it reads **Forked** but the sole sealed branch is one this
-party did **not** author (the point of no return above; only that branch's author can
+sealing events reveal _different_ preimages; two **accepted** `{Evl, Evl}` branches require witness
+collusion (a provable double-sign) or a genuine distinct-branch fork, and **do not** arise from an
+honest partition (the witnessing floor plus one-sealing-per-position decline the second sibling —
+content and sealing serialization is a liveness/waste discipline, not a safety requirement). So
+**reincept** is what a party does when **no valid recovery exists for it**: either the chain is
+**Disputed** — **≥ 2 accepted competing sealed branches** (`{Rot, Rot}`, `{Evl, Evl}`, any pair), so
+no retention is clean and _no one_ can recover — or it reads **Forked** but the sole sealed branch
+is one this party did **not** author (the point of no return above; only that branch's author can
 retain-and-recover). The Disputed case a one-branch holder detects once the beacon delivers the
 second branch.
 
-**The misbehavior proof is a computed property of the token, not a fixed attribution.** A dispute
-always carries a **provable** cryptographic misbehavior, and a verifier reads **which** off the
-retained receipts and events: a **witness double-sign** (one signer's receipts over two competing
-siblings at one position — the same-serial, same-federation race) **or** an **author reserve
-double-reveal** (two competing seals revealing one reserve preimage — the different-serial and
-different-federation cases, where every witness is honest). So the doctrine does **not** assert one
-blanket cause; a predicate over the token computes it. Two properties hold: the verdict is
-**`disputed` regardless** of which proof (fail-secure — the attribution never gates reincept), and a
-`confirmed_*` predicate means _proven from the evidence held_, never _proven absent_ — an unproven
-dispute is still `disputed`. The proof only decides **forensics**: a witness double-sign names
-colluders to evict; author equivocation names no witness, so the recourse is reincept and move on.
+**The misbehavior proof is computed from the token, not asserted as a rule.** A dispute always
+carries a **provable** cryptographic misbehavior, but the doctrine does not fix _which_ — a verifier
+reads it off the retained receipts and events. `confirmed_witness_double_sign(token)` holds when one
+signer's receipts cover **both** competing siblings at one position (the same-serial,
+same-federation race); `confirmed_reserve_double_reveal(token)` holds when the two seals reveal
+**one** reserve preimage (`{Rot, Rot}`, and the cross-federation rebind). A **cross-federation
+rebind** is the case where the two witness sets are **disjoint**, so no witness double-signs and
+only the reserve double-reveal proves it. When neither is confirmable from held evidence, the
+verdict is still **Disputed** and the cause is **reported unconfirmed** — the attribution never
+gates reincept (fail-secure). The proof decides only **forensics**: a confirmed witness double-sign
+names colluders to evict; a reserve double-reveal names the author (reincept and move on).
 
 Two distinct `Rot`s at one serial — the Disputed case — look like:
 
@@ -626,7 +626,7 @@ dead content is simply non-canonical — nobody re-issues it). At most **one** b
 resolves a content-only divergence; a _second_, competing seal-advancer is a `{Rot, Rot}` /
 `{Evl, Evl}` divergence — two **accepted** sealed branches → Disputed. An un-buried **sealed**
 (non-content) branch is the other tier entirely: it is never buriable, so ≥ 2 **accepted** sealed
-branches **past the fork** → **Disputed** (you can't overturn a witnessed rotation). A
+branches **at the last seal** → **Disputed** (you can't overturn a witnessed rotation). A
 **below-seal** sealed straggler, by contrast, is **dropped** (inert — not witnessable past the seal;
 it does not retreat the clean seal, the backdate defense).
 
@@ -764,23 +764,24 @@ the chain reads **Terminated** at the `Trm`. Tier-rank keeps it clean without a 
 
 **Cross-node races converge data-locally.** Two nodes can each accept a competing event extending
 `v_{d-1}` via independent clean linear landings; gossip then delivers each to the other node, where
-the late arrival **lands as a competing event at serial `d`** — a fork. A seal-advancer among the
-siblings does **not** win by arriving first: a seal-advancing event that is **itself one of the
-competing siblings at `d`** never becomes the tracked seal (it is a sealed fork branch —
-[§Terminology](#terminology)), so the tracked seal stays below `d` and the fork is **live**. (This
-is distinct from a seal-advancer that extends one branch **above** the fork: that one advances the
-seal and buries a content loser, resolving the fork — the burying case above.) Both arrival orders
-therefore converge to the same reading (identical events, identical state — the reading is the
-walk's, not the arrival order's). What it resolves to follows the tier rules above: **≤ 1 sealed
-branch is Forked** — a burying seal-advancer extends the winning branch and buries the rest, so a
-mixed `{Rot, Ixn}` recovers by extending the `Rot`; **≥ 2 accepted sealed branches are Disputed**.
-So each node ends up holding both branches and **detects the divergence by a data-local walk**. The
-beacon's divergent witness receipts (see [§Federation convergence](#federation-convergence))
-propagate the competing branch SAIDs to a node that has not yet received the events, but the verdict
-is the node's own. This is the deliberate trade-off: relaxing the seal bound to admit a competing
-sealed event as a _canonical_ extension at a sealed serial would re-open the stale-authority
-kill-switch surface, so the bound stays unconditional — the chain does not extend onto the competing
-branch, it only retains it as the evidence a data-local detection needs.
+the late arrival **lands as a competing event at serial `d`** — a fork. The tier of the siblings
+decides the reading, not their arrival order. A **content-versus-content** pair is a **live fork**
+(Forked) until a burying seal-advancer lands. A **seal-advancer siblinging a content event buries
+it** — the content's parent sits below the new seal, so it is dead on ascent — and that
+seal-advancer **becomes the tracked seal**: the chain reads **Active**, the same one-event
+resolution whether the seal arrived first or second (identical to a seal extending a branch
+**above** the fork — the burying case above). Only **two accepted sealed siblings** stay unresolved
+→ **Disputed**. Both arrival orders therefore converge to the same reading (identical events,
+identical state — the reading is the walk's, not the arrival order's): a **content-only** fork (no
+sealed branch) reads Forked until its burying seal lands, a fork **carrying** that seal reads
+Active, and **≥ 2 accepted sealed branches are Disputed**. So each node ends up holding both
+branches and **detects the divergence by a data-local walk**. The beacon's divergent witness
+receipts (see [§Federation convergence](#federation-convergence)) propagate the competing branch
+SAIDs to a node that has not yet received the events, but the verdict is the node's own. This is the
+deliberate trade-off: relaxing the seal bound to admit a competing sealed event as a _canonical_
+extension at a sealed serial would re-open the stale-authority kill-switch surface, so the bound
+stays unconditional — the chain does not extend onto the competing branch, it only retains it as the
+evidence a data-local detection needs.
 
 **Retention is bounded — keep-all-data is not keep-everything.** **Buried** is a _status_ (a losing
 event is non-canonical, permanently), not a storage guarantee: a node need only **retain** a bounded
@@ -820,34 +821,30 @@ SAID when a single **confirmed** tip is held, or a **type-tagged synthetic recou
 verdict** (`forked` / `disputed`) when no single tip is — see
 [§Effective-SAID comparison](#effective-said-comparison).
 
-**Pre-seal verifiability.** A seal is **clean** iff it lies **below every live fork** the chain
-carries; the **last clean seal** — the highest clean seal — sits just below the chain's **lowest
-fork position**, which is the **trust boundary**. On an undiverged chain there is no fork and the
-boundary is simply `last_seal_advancing_event`, the tracked seal. A competing **accepted** sealed
-branch anywhere past the fork holds the boundary **below the fork** — a branch's own seal does
-**not** "read clean" merely because its serial carries no sibling; the boundary tracks the
-divergence, never the highest lone seal. Everything at-or-below the boundary is final in the sense
-that matters — **immutable** (no event rewrites it, and a below-seal submission is
-seal-cap-rejected) and **canonical** (no divergence targets it) — and consumers verify against it
-indefinitely. **A below-seal sealed straggler does not move the boundary:** it is **dropped**
-(inert) — it does **not** retreat it. That retreat was the **backdate** hole (it let a
-total-key-compromise adversary drag a dispute onto a buried position); anchoring the boundary at the
-fork closes it. So the below-seal portion is final against later divergence of **both** tiers —
+**Pre-seal verifiability.** A seal is **clean** iff it carries no competing witnessed sibling **at
+its own position**; the **last clean seal** is the chain's **highest** such seal-advancing event —
+found **forward**, not by walking its lineage backward. On the common chain it is simply
+`last_seal_advancing_event`, the tracked seal. Everything at-or-below the **last clean seal** is
+final in the sense that matters — **immutable** (no event rewrites it, and a below-seal submission
+is seal-cap-rejected) and **canonical** (no divergence targets it) — and consumers verify against it
+indefinitely. **A below-seal sealed straggler does not move this boundary:** it is **dropped**
+(inert) — it does **not** retreat the clean seal. That retreat was the **backdate** hole (it let a
+total-key-compromise adversary drag a dispute onto a buried position); forward-anchoring the clean
+seal closes it. So the below-seal portion is final against later divergence of **both** tiers —
 content losers close below the seal, and a sealed straggler is dropped. Anchors hosted at-or-below
-the boundary stay anchored; documents issued under that state stay verifiable; audit queries on that
-portion return truthful answers. Sealed events are never _rewritten_ (immutability is
-unconditional). What flips the reading to Disputed is a **witnessed sealed fork past the fork** —
-never a below-seal straggler, and never a fork **below** the seal (a content loser is **dead on
-ascent** — you cannot seal a buried chain, so a dead lineage's descendants are declined). That fork
-is **commonly** two competing seals at the last seal — a sealed-vs-sealed race, needing a provable
-witness double-sign — but it is **not only** that: a content-led branch that seals can face a
-burying seal it protects itself from (two accepted seals at **different** serials), and two rebinds
-can declare **different** federations at one serial; both form with **every witness honest**, proven
-instead by an **author reserve double-reveal**
-([§Divergence and recovery](#divergence-and-recovery)). Either way the boundary stays at the fork,
-below both seals. Above-boundary events carry tier-1-only auth — structurally indistinguishable from
-signing-key-only adversary capture — and become durable only when a later seal-advancing event lands
-cleanly past them. The clean seal is the boundary the protocol can defend.
+the last clean seal stay anchored; documents issued under that state stay verifiable; audit queries
+on that portion return truthful answers. Sealed events are never _rewritten_ (immutability is
+unconditional), and the only thing that flips the reading to Disputed is a **witnessed** sealed fork
+**at the last seal** — two seals there, needing a provable witness double-sign (or, for a
+cross-federation rebind, a reserve double-reveal over disjoint witness sets) — never a below-seal
+straggler, and never a fork **below** the seal: a content fork's loser is **dead on ascent** (you
+cannot seal a buried chain — honest witnesses, having accepted the winner at the fork, decline a
+dead lineage's descendants), so two branches both accepted at a seal can only fork at their
+competing seals themselves. Every dispute collapses to two witnessed seal-siblings at **one
+position** — the fork is the last seal. Above-seal events carry tier-1-only auth — structurally
+indistinguishable from signing-key-only adversary capture — and become durable only when a later
+seal-advancing event lands cleanly past them. The clean seal is the boundary the protocol can
+defend.
 
 A **Forked** divergence resolves by a burying seal that seals its surviving branch, so that branch's
 above-seal anchors become durable; a **Disputed** divergence never seals, so its post-seal window
@@ -1132,27 +1129,24 @@ witnesses sign — reaches threshold once it reaches any one honest selected wit
 sealed sibling is witness-**declined**: it stays permanently sub-threshold (deferred-pending,
 droppable) — exactly like a losing **content** sibling under the floor. And a seal on a **dead
 lineage** — one that lost first-seen at any earlier position — is itself **dead on ascent** (you
-can't seal a buried chain), so it never counts. A dispute can still span **positions** (a
-content-led branch that seals, facing a burying seal that cannot drop it — the two seals at
-different serials) or **federations** (two rebinds declaring different federations at one serial —
-disjoint witness sets), both formed with **every witness honest** and proven by an **author reserve
-double-reveal** ([§Divergence and recovery](#divergence-and-recovery)). How a node acts on the
-signal splits by **provenance**: when it **holds two or more sealed branches that each reached
-threshold** (accepted) **past the fork**, it reads **disputed** directly from the data — the walk
-decides, no re-tally; a sealed event it holds only as a **receipt** (not yet fetched) or **below
-threshold** is **deferred-pending** — it waits for the witness threshold, and a below-threshold
-sibling (a rogue's receipt on a fake event, or a spent-preimage sibling), or a **below-seal**
-straggler, is **inert / dropped** (the verifier independently re-checks validity; the database
-cannot be trusted; a below-seal straggler cannot retreat the clean seal — backdate-safe). For
-**content** the signal is a **sub-threshold competing receipt set** at a position — a losing content
-sibling never reaches threshold. A **selected witness** (which holds the sub-threshold sibling on
-the sub-gossip mesh) fetches it and its data-local walk reads _forked_; a **non-witness** holds only
-witnessed-in-full events (query-scoping, below), so the losing sibling never reaches it — the
-content fork is **prevented** and reads **Active**. Only the data-local walk tells a node it is
-_disputed_ (never a receipt count alone). This makes divergence **locally determinable** on every
-node, without watcher infrastructure. **All inter-node mesh traffic is encrypted** (ML-KEM-1024 +
-AES-256-GCM) — the receipts and the events they propagate alike — and the mesh is the federation
-roster, so mesh contents stay within the federation.
+can't seal a buried chain), so a dispute cannot form across positions; it collapses to two witnessed
+seal-siblings at the fork. How a node acts on the signal splits by **provenance**: when it **holds
+two or more sealed branches that each reached threshold** (accepted) **at the last seal**, it reads
+**disputed** directly from the data — the walk decides, no re-tally; a sealed event it holds only as
+a **receipt** (not yet fetched) or **below threshold** is **deferred-pending** — it waits for the
+witness threshold, and a below-threshold sibling (a rogue's receipt on a fake event, or a
+spent-preimage sibling), or a **below-seal** straggler, is **inert / dropped** (the verifier
+independently re-checks validity; the database cannot be trusted; a below-seal straggler cannot
+retreat the clean seal — backdate-safe). For **content** the signal is a **sub-threshold competing
+receipt set** at a position — a losing content sibling never reaches threshold. A **selected
+witness** (which holds the sub-threshold sibling on the sub-gossip mesh) fetches it and its
+data-local walk reads _forked_; a **non-witness** holds only witnessed-in-full events
+(query-scoping, below), so the losing sibling never reaches it — the content fork is **prevented**
+and reads **Active**. Only the data-local walk tells a node it is _disputed_ (never a receipt count
+alone). This makes divergence **locally determinable** on every node, without watcher
+infrastructure. **All inter-node mesh traffic is encrypted** (ML-KEM-1024 + AES-256-GCM) — the
+receipts and the events they propagate alike — and the mesh is the federation roster, so mesh
+contents stay within the federation.
 
 **Query-scoping and the audit flag.** A **not-yet-witnessed** (sub-threshold) event lives on the
 selected witnesses' sub-gossip mesh while it gathers receipts, and is returned by a query **only to
@@ -1449,18 +1443,18 @@ verdict-transition), a `disputed` chain reincepts (outcome invariant to the set)
 walks the stored events, not the value.
 
 **The verdict rides the synthetic — they converge.** A data-local walk over the retained branches
-reads `forked` (≤ 1 sealed branch past the fork — recoverable, pending its burying seal; only
-content produces a recoverable fork, so a federation IEL, which carries no content, never reads
-`forked`) or `disputed` (≥ 2 accepted sealed branches — terminal, reincept), with the seal
+reads `forked` (a content-only fork — no accepted sealed branch — recoverable, pending its burying
+seal; only content produces a recoverable fork, so a federation IEL, which carries no content, never
+reads `forked`) or `disputed` (≥ 2 accepted sealed branches — terminal, reincept), with the seal
 **derived** from the held events. Both the **value** and the **verdict** are pure functions of the
 held set — no arrival-order dependence — so two nodes holding the same events compute the same value
 **and** read the same verdict. A **settled** branch (a content sibling buried below the seal, a
 recovered fork) drops both back to the canonical tip: the value returns to the real tip SAID and the
-verdict to Active, in lockstep, on every node. A **witnessed** sealed fork **past the fork** never
-settles — two accepted sealed branches keep the chain at a `disputed` synthetic, which is how a
-dispute propagates. A **below-seal** sealed straggler, by contrast, **is** dropped (inert — it can't
-retreat the boundary), so it does not disturb a single confirmed tip; only a live fork carrying ≥ 2
-accepted sealed branches is unsettled.
+verdict to Active, in lockstep, on every node. A **witnessed** sealed fork **at the last seal**
+never settles — two seals there keep the chain at a `disputed` synthetic, which is how a dispute
+propagates. A **below-seal** sealed straggler, by contrast, **is** dropped (inert — it can't retreat
+the clean seal), so it does not disturb a single confirmed tip; only a live-tip seal-vs-seal
+collision is unsettled.
 
 **The value can't hide a revocation.** A consumer's trust decision reads the **verdict**, never
 branch content: **any** non-single-tip state — `forked` _or_ `disputed` — grounds no new trust →

@@ -77,10 +77,10 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   takeover, **not** a recoverable fork.
 - **Forked vs Disputed are distinct, derived states** [inv 13]. A fork is read by counting the **sealed** branches
   past it (a sealed event = a seal-advancing key change; the content count is irrelevant — all content is buriable):
-  - **Forked** = **≤ 1 sealed branch** past the fork — **recoverable *if* that surviving sealed tip is the owner's
-    recovery `Rot`** (a burying rotation at the root). A *hostile* sealed tip at a forked position is the
-    reserve-theft takeover (terminal/silent, owner-vigilance only) — an owner's counter-`Rot` then makes it two
-    sealed branches → **disputed** (cold C1).
+  - **Forked** = a **content-only** fork (no accepted sealed branch past the fork) — **recoverable**: a burying
+    `Rot` at the root buries the content → **Active**. A **single** accepted sealed branch buries the content and
+    reads **Active** — whether the owner's recovery `Rot` or a *hostile* reserve-theft takeover (clean on-chain,
+    silent, owner-vigilance only; an owner's counter-`Rot` then makes it two sealed branches → **disputed**, cold C1).
   - **Disputed** = **≥ 2 accepted sealed branches** past the fork → **terminal → reincept** (you can't un-change a key; a below-seal sealed straggler is dropped, backdate-safe). A
     `{Rot, Rot}` disputed is moreover a **confirmed reserve compromise** — two valid rotations reveal the *one*
     reserve preimage at `v_{d-1}`.
@@ -104,7 +104,7 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   outcome: the honest members recognize a rotation they didn't authorize → evict at the IEL / `Dth` if delegated /
   reincept. [inv 8, 12, 13]
 - **Four-state per-node machine: Active / Forked / Disputed / Terminated** (**no per-node `Cnt` state**). A live
-  fork is **two distinct states**, not one: **Forked** (≤ 1 sealed branch past it — recoverable) and **Disputed**
+  fork is **two distinct states**, not one: **Forked** (a content-only fork — no accepted sealed branch, recoverable) and **Disputed**
   (≥ 2 — terminal), **each DERIVED by a data-local walk** over the branches a node holds (the walk finds ≥ 2 each
   carrying a **sealed** event past the fork → Disputed, else Forked — inv 13/17). The walk is *how the state is
   computed* — never a stored flag, never a federation-pushed verdict (the witness beacon **propagates** the branches,
@@ -120,8 +120,10 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   changes nothing, `parent.serial < seal_serial` — is rejected at merge as **`Sealed`** (the merge-rejection name;
   renamed from `SiblingLocked`/`ParentLocked` at the four-state / merge-outcome formalization). Not every below-seal
   parent is `Sealed`: a parent *at* the seal (`parent_serial == seal_serial`) **extends** cleanly, and a **sibling at
-  the seal's own serial** (parent `v_{seal−1}`, `parent_serial == seal_serial − 1`) forms a **live fork** (Forked /
-  Disputed), retained — not `Sealed`. So the seal-cap bounds content extended **from** the seal; `Sealed` is the
+  the seal's own serial** (parent `v_{seal−1}`, `parent_serial == seal_serial − 1`) is retained — not `Sealed`: a
+  **content** sibling is **buried** below the seal (dead on ascent → the chain reads **Active**, order-independent —
+  the reading is a pure walk of the held set), while a **sealed** sibling is a second seal at that serial →
+  **Disputed** only if it too is accepted. So the seal-cap bounds content extended **from** the seal; `Sealed` is the
   **inert** below-seal parent — not a "locked parent," and not a sibling to the seal. **Cap-satisfying seal-advancers = `{Rot, Wit}`** (`Trm` also advances the seal — `previousSeal`, on the
   spine — but is terminal, so not a mid-chain cap-satisfier) — `Rot` is the default cap-satisfier, auto-inserted when
   an `Ixn` would exceed the cap. The bound makes recovery cross-node-validatable.

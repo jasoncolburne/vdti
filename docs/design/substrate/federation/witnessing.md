@@ -98,14 +98,12 @@ so the single gating witness for a position can be identified in advance.
 
 On a content-only divergence the resolving **burying seal-advancer** (a `Rot` / `Evl`) is exactly
 that first sealed sibling at the position, needing no separate rule; a _second_ competing
-seal-advancer at that same position is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. A
-seal on a **dead lineage** — one that lost first-seen at any earlier position — is itself dead on
-ascent (you cannot seal a buried chain) and never counts. A dispute **can** still span positions or
-federations: a content-led branch that seals faces a burying seal it protects itself from (two
-accepted seals at **different** serials), and two rebinds can declare **different** federations at
-one serial — both formed with **honest witnesses** (a mixed content/sealed fork is co-signable, and
-disjoint federations select disjoint witnesses), proven by an author reserve double-reveal rather
-than a witness double-sign.
+seal-advancer is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. And a seal on a **dead
+lineage** — one that lost first-seen at any earlier position — is itself dead on ascent (you cannot
+seal a buried chain), so a dispute cannot form across positions; it collapses to two witnessed
+seal-siblings at one fork. The one honest-witness exception is two **rebinds** naming **different
+federations** at that serial — disjoint witness sets, so each federation honestly signs its own (an
+author-equivocation dispute, not collusion).
 
 **A below-seal sealed event is declined — the witness mirrors the seal-cap.** The "structurally
 valid" test a selected witness applies before signing includes the **seal-cap** (the merge
@@ -118,13 +116,12 @@ fork years later. The witness decline is the **fast prevention layer** — it ho
 well-connected operation; the **guarantee** is the walk itself, because a below-seal sealed event is
 **dead on ascent** (its parent is already buried by a later seal — you cannot seal a buried chain),
 so even a partitioned or colluding witness set that _does_ sign one cannot overturn the live seal
-(the position is already spent). So a dispute is only ever reachable **at-or-past the live fork**,
-never backdated onto a spent position: a seal-vs-seal collision **at one serial** (two accepted
-seals there, which takes a provable witness double-sign — the `2·threshold − signers` collusion, the
-determinism price), or an honest-witness fork **across serials or federations** proven by author
-equivocation ([§Divergence and recovery](../../protocol-doctrine.md#divergence-and-recovery)). This
-signing decision reads the event **body** and the witness's held chain state to locate the current
-seal; it is a different operation from the bodyless **receipt-counting** below
+(the position is already spent). The **only** reachable dispute is therefore a seal-vs-seal
+collision **at the last (live) seal** (two accepted seals there, which takes a provable witness
+double-sign — the `2·threshold − signers` collusion, the determinism price; **or**, for two rebinds
+naming different federations at that seal, honest witnesses on disjoint sets — author equivocation).
+This signing decision reads the event **body** and the witness's held chain state to locate the
+current seal; it is a different operation from the bodyless **receipt-counting** below
 ([§Query-scoping](#query-scoping-and-the-audit-flag)), which only confirms a receipt came from a
 legitimately-selected witness — not whether to sign.
 
