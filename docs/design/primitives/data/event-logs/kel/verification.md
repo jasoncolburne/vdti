@@ -468,9 +468,9 @@ from the layer that owns it.
 ### Trust composition through the config-pinned federation prefix set
 
 For each event the verifier walks the chain's current federation context back to the federation
-IEL's inception. If the federation's prefix is in the trusted set (compile-time-baked + runtime
-override), the federation is trusted for that event. Multi-federation chains (KELs that have
-transferred federations via `Wit` events) require each federation in the chain's history to be
+IEL's inception. If the federation's prefix is in the trusted set (runtime-configured, empty by
+default — fail-secure), the federation is trusted for that event. Multi-federation chains (KELs that
+have transferred federations via `Wit` events) require each federation in the chain's history to be
 independently trusted — no transitive trust. See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
 and

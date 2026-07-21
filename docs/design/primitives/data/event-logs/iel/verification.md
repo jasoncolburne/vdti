@@ -432,9 +432,9 @@ federation field (it _is_ the federation, never self-bound — the `federationPi
 not apply to it; its freshness is its clock). A **SEL** inherits its owner IEL's binding. The token
 surfaces `federation_context_per_event` so a cross-chain verifier resolves each event to its
 federation for witnessing while reading the binding from the layer that owns it. Trust composes
-through the config-pinned federation prefix set (compile-time-baked + runtime override) — a
-federation is trusted iff its prefix is in that set; multi-federation chains require each federation
-independently trusted (no transitive trust). See
+through the config-pinned federation prefix set (runtime-configured, empty by default — fail-secure)
+— a federation is trusted iff its prefix is in that set; multi-federation chains require each
+federation independently trusted (no transitive trust). See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 
 ## Streaming

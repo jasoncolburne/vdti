@@ -80,7 +80,7 @@ No prior federation or gossip mesh exists yet, so the ceremony is point-to-point
    anchors are locally present, then redistributes the full bundle to peers; nodes set `FEDERATION_IEL_PREFIX`
    and restart; the gossip mesh forms; subsequent sync flows through normal anti-entropy.
 
-**Trust root:** every node is configured (compile-time default + runtime override) with the
+**Trust root:** every node is configured (runtime-configured, empty by default — fail-secure) with the
 `FEDERATION_IEL_PREFIX` it trusts; the verifier validates the received chain against that expected prefix. The
 prefix derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding commitment to
 the exact founder set (matching it would require a Blake3 preimage). Tamper-protection for the root comes from

@@ -102,7 +102,7 @@ is the sole unwitnessed step, and only because it is the configured trust root.
 ## The trust root is the configured federation set
 
 A consumer trusts a federation **if and only if its prefix is in the set the consumer is configured
-to trust** — a compile-time default with a runtime override. The library takes this
+to trust** — provided at runtime by the application, empty by default. The library takes this
 trusted-federation set from the application; an **unconfigured** library trusts **nothing**, and its
 verification token reports that it cannot confirm any federation, so every downstream decision fails
 secure. There is no built-in default federation.

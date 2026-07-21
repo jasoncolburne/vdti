@@ -1030,7 +1030,7 @@ most **one** unsynced witness, which alone cannot reach a majority `threshold` a
 co-selectees that decline by first-seen — so the benign two-fresh-witnesses straddle (two full
 quorums under disjoint contexts) collapses into the priced witness-compromise residual (a fresh
 sibling needs a byzantine synced co-signer). Its trust root is a **config-pinned federation prefix**
-(a compile-time default with a runtime override) — the prefix derives from the whole inception
+(runtime-configured, empty by default — fail-secure) — the prefix derives from the whole inception
 content `(roster, threshold, nonce)`, so it is a binding commitment to the exact founder set. There
 is **no self-witnessing carve-out** — the `Fcp` is a structural marker the verifier dispatches on,
 not a trust shortcut: authorization is ordinary member-anchoring (the founders' `Rot`s anchor the
@@ -1389,9 +1389,9 @@ it (the most-recent `Icp` / `Wit`); a user **IEL records its own** authoritative
 composition — witnessed-anchor resolution resolves each anchor down to its KEL event, while the
 federation **binding** is read from the layer that owns it (above). A consumer refuses to bind under
 a divergent position or insufficient attestation, and grounds trust in the **config-pinned
-federation prefix set** (compile-time-baked + runtime override) — for a chain that transferred
-federations via `Wit`, each federation in its history must be independently in the trusted set (no
-transitive trust). The full witnessing rules are the federation doctrine
+federation prefix set** (runtime-configured, empty by default — fail-secure) — for a chain that
+transferred federations via `Wit`, each federation in its history must be independently in the
+trusted set (no transitive trust). The full witnessing rules are the federation doctrine
 ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md)).
 
 ### Effective-SAID comparison
