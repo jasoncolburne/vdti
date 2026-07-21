@@ -476,9 +476,9 @@ serial, cross-node convergence runs **data-locally** under acceptance gating:
   behind the advanced seal, never admitted as a canonical extension. The nodes converge **Active**
   (or **Terminated**); the declined party **re-issues**.
 - Only under **witness collusion** do both siblings reach threshold: each node then holds two
-  **accepted** sealed branches past the fork and **reads `Disputed` by a data-local walk** — a
-  provable double-sign. The witness beacon propagates the competing branch SAIDs to a node that
-  lacks them, but the verdict is the node's own.
+  **accepted** sealed branches (per branch, wherever their seals sit) and **reads `Disputed` by a
+  data-local walk** — a provable double-sign. The witness beacon propagates the competing branch
+  SAIDs to a node that lacks them, but the verdict is the node's own.
 
 The merge layer enforces local invariants strictly; convergence is the data-local walk, not a
 federation verdict. See [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix),

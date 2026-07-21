@@ -72,7 +72,7 @@ flowchart TD
   A --> K{"same kind?<br/>(two content, or two sealed)"}:::q
   K -->|"yes"| HQ{"co-witnessed on an<br/>honest quorum?"}:::q
   HQ -->|"no — the floor (&gt; signers/2)<br/>declines the second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
-  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>at the last seal"}:::q
+  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>(per branch, wherever their seals sit)"}:::q
   K -->|"no — mixed {sealed, content};<br/>forms on an honest cross-node race"| N
   N -->|"0 — content-only fork"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser"]:::good
   N -->|"1 — the seal buries the content"| AC["<b>Active</b><br/>the single accepted sealed branch buries<br/>the content sibling (a Trm retires instead)"]:::good
@@ -93,10 +93,11 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   costs owning `2·threshold − signers` witnesses (the **fork-cost**), a provable double-sign. What
   prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
   being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
-  boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
-  `disputed` (a seal on a buried lineage is **dead on ascent** — you can't seal a buried chain — so
-  two accepted branches can only fork at the competing seals themselves; the double-sign is at that
-  one position).
+  boundary forward, so **two or more _witnessed_ accepted sealed branches** (per branch, wherever
+  their seals sit) prove a dispute → `disputed` (a seal on a **first-seen-dead** lineage is **dead
+  on ascent** — you can't seal a buried chain — so in the honest case only one branch seals →
+  Active; a dispute takes two accepted-lineage branches, proven by a witness double-sign or, across
+  disjoint federations, a reserve double-reveal).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying

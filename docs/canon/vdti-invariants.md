@@ -495,7 +495,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     **signing** key (a T1/content compromise), **not** the **rotation** key — a hostile `Rot` (reserve theft) is the
     point of no return.
     **The disputed / data-local view (node-agnostic):** the recovery check above is *party-relative*; the symmetric,
-    node-agnostic condition is **branch-level** — **≥ 2 branches each carrying an accepted *sealed* event past the fork** is
+    node-agnostic condition is **branch-level** — **≥ 2 branches each carrying an accepted *sealed* event, per branch wherever their seals sit** is
     **disputed**, terminal for *everyone* (any party retains only its own branch, so a second accepted sealed branch always
     lands in *some* party's competing set). It is **data-local**: any verifier walks it from the retained branches — a
     node **retains** a competing branch as non-canonical evidence (keep-all-data, not discarded at the seal-cap), and
@@ -852,7 +852,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       for `previous`, yielding authority + a **terminal-divergence** view (a spine fork = two **witnessed** competing seals at the last seal = terminal) but **not recoverable content forks or content completeness** (that needs the flat
       walk). Served as body-carrying reads — `/folded` (spine) and `/flat` (full) — the prefix in the body, not the address (inv 16).
     - **Detection lives on the flat chain (the guarantee); the spine is a convenience pre-check.** Terminal = **≥ 2
-      branches each carrying an accepted sealed event past the fork** (inv 13) — a **data-local** walk over **retained**
+      branches each carrying an accepted sealed event, per branch wherever their seals sit** (inv 13) — a **data-local** walk over **retained**
       branches (keep-all-data: a node retains a competing branch as non-canonical evidence rather than dropping it at
       the seal-cap). Skip-a-seal detection is the **flat walk's** (walking `previous` traverses the run; a skipped seal
       appears in it as a seal-advancing event, since a real seal carries its own `previousSeal`) plus **spine-fork

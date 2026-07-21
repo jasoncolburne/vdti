@@ -196,10 +196,12 @@ for them.
 
 ## The live-tip dispute is a killswitch, forced by structure
 
-A `disputed` verdict needs two **accepted** seals at one serial — a witness double-sign
-([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). Two facts
-about that state set the real attack surface and explain why the brick is a structural necessity,
-not a policy choice.
+A live-tip `disputed` verdict (the brick) needs two **accepted** seals at **the live tip's
+position** — a witness double-sign
+([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). (The general
+`disputed` state is **≥ 2 accepted sealed branches** counted per branch, wherever their seals sit;
+the brick is its same-position live-tip case.) Two facts about that state set the real attack
+surface and explain why the brick is a structural necessity, not a policy choice.
 
 **Forging the second seal at the live tip needs the current signing key, not the reserve.** A seal
 at position `s` reveals this epoch's key — the one drawn from the reserve committed at `s−1` — and

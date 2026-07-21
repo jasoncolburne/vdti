@@ -240,7 +240,7 @@ SelVerification:
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = the SEL's own divergence)
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
     severed_at: Option<SAID>                # the last live-anchored event when a dead owner-IEL anchor truncates the chain
-    last_seal_advancing_event: Option<SAID>  # the derived seal: the most recent Gnt / Trm / Sea with no competing accepted sealed sibling (a content sibling is buried below it)
+    last_seal_advancing_event: Option<SAID>  # the derived seal: the most recent Gnt / Trm / Sea with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it)
     owner_anchor_per_event: ...            # per-event owner-IEL anchor (kind + liveness)
     payload_saids: BTreeSet<SAID>          # payload SAD SAIDs recorded on the canonical branch
     grant_value: Option<SAID>               # a value lookup's live grant-value (the live sealed tip)

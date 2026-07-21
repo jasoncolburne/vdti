@@ -221,7 +221,7 @@ KelVerification:
     root_facet: RootFacet                        # Fcp-rooted (federation-witness infra) vs Icp-rooted (user); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Wit/Trm with no competing accepted sealed sibling (a content sibling is buried below it) — the reading is computed against it, from the held events, never arrival order
+    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Wit/Trm with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it; a fork with >= 2 accepted sealed branches has no clean seal above the divergence) — computed from the held events, never arrival order
     federation_context_per_event: ...            # per-event federation binding (for chains that have re-bound)
     anchored_saids: BTreeSet<SAID>               # registered SAIDs found anchored on the canonical branch
     queried_saids: BTreeSet<SAID>                # caller-registered SAIDs of interest
@@ -393,9 +393,10 @@ carve-outs — see [`merge.md` §Kind-specific authorization](merge.md#4-kind-sp
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` is **permanently final** — it stays anchored on the
 canonical branch regardless of any later above-seal divergence. (Against a **witnessed** sealed fork
-**at** the last (clean) seal — a spine fork — the reading flips to `disputed`, and permanence runs
-against the last **clean** seal; a below-seal sealed straggler is **dropped**, not disputed, and
-sealed events are still never rewritten — see
+— **two or more accepted sealed branches**, wherever their seals sit — the reading flips to
+`disputed` and the clean seal retreats to the divergence ancestor, so permanence runs against that
+retreated clean seal; a below-seal sealed straggler is **dropped**, not disputed, and sealed events
+are still never rewritten — see
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).) An anchor
 above the seal carries tier-1-only durable authority and becomes durable only once a later
 seal-advancing event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a

@@ -392,8 +392,9 @@ outcomes. **Absent collusion (the honest race):**
   fetches and walks the evidence.
 
 **Under witness collusion (the residual):** both siblings reach threshold at position `d`, each node
-holds two **accepted** sealed branches past the fork, and reads **Disputed** by a data-local walk —
-the collusion is a provable double-sign, surfaced for forensics/eviction.
+holds two **accepted** sealed branches (counted per branch, wherever their seals sit), and reads
+**Disputed** by a data-local walk — the collusion is a provable double-sign, surfaced for
+forensics/eviction.
 
 ### Worked race: `Trm` versus `Rot` / `Trm` at `v_d`
 
@@ -517,11 +518,11 @@ the `sel/` + `iel/` anchor-validation doctrine, forward-referenced below.)
 ### Safety — the guards
 
 - **No buried rotation.** A would-be-buried subtree is walked; a **witnessed** sealed event in it
-  means ≥ 2 witnessed sealed branches past the fork → **Disputed**, not buried (validated, not
-  trusted). So burial can never dead-mark a witnessed rotation to un-rotate it. The closer,
-  detectable by either walk (spine or flat): every sealed KEL event is a **seal-advancer**, so a
-  **witnessed** competing seal at the last seal is a **spine fork** → **Disputed** (a below-seal or
-  witness-declined straggler is dropped / deferred, not counted).
+  means ≥ 2 witnessed sealed branches (per branch, wherever their seals sit) → **Disputed**, not
+  buried (validated, not trusted). So burial can never dead-mark a witnessed rotation to un-rotate
+  it. The closer, detectable by either walk (spine or flat): every sealed KEL event is a
+  **seal-advancer**, so a **witnessed** competing seal at the last seal is a **spine fork** →
+  **Disputed** (a below-seal or witness-declined straggler is dropped / deferred, not counted).
 - **No stale-authority revival.** Burial reaches no _live_ state — it **marks a subtree dead** (by
   position + ascent), never extends or revives an event. There is **no below-seal write operation**,
   so the seal-cap stays unconditional.

@@ -84,8 +84,8 @@ witness's misbehavior. So a competing sealed sibling reaches `threshold` only if
 `2·threshold − signers` selected witnesses **double-sign** — a **both-witnessed** sealed pair is
 itself proof the witnesses colluded (a provable double-sign → eviction), while a
 **witness-declined** sealed sibling stays permanently sub-threshold (deferred-pending, droppable — a
-spent preimage or a partition race, no witness fault). Two _accepted_ sealed branches past a fork
-are the definition of **disputed**.
+spent preimage or a partition race, no witness fault). Two or more _accepted_ sealed branches
+(counted per branch, wherever their seals sit) are the definition of **disputed**.
 
 **Fork-cost `= 2·threshold − signers`** is therefore the price of manufacturing a fork on a
 witnessed chain: the number of selected witnesses an attacker must own _and expose_. It is a tunable
@@ -100,10 +100,12 @@ On a content-only divergence the resolving **burying seal-advancer** (a `Rot` / 
 that first sealed sibling at the position, needing no separate rule; a _second_ competing
 seal-advancer is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. And a seal on a **dead
 lineage** — one that lost first-seen at any earlier position — is itself dead on ascent (you cannot
-seal a buried chain), so a dispute cannot form across positions; it collapses to two witnessed
-seal-siblings at one fork. The one honest-witness exception is two **rebinds** naming **different
-federations** at that serial — disjoint witness sets, so each federation honestly signs its own (an
-author-equivocation dispute, not collusion).
+seal a buried chain), so it never counts. In the **honest** case only one branch's lineage survives
+first-seen → its seal is the single sealed branch (Active); a dispute takes **two accepted-lineage
+branches**, whose seals may sit **at the fork or at different serials above it** — counted per
+branch. The one honest-witness exception is two **rebinds** naming **different federations** at that
+serial — disjoint witness sets, so each federation honestly signs its own (an author-equivocation
+dispute, not collusion).
 
 **A below-seal sealed event is declined — the witness mirrors the seal-cap.** The "structurally
 valid" test a selected witness applies before signing includes the **seal-cap** (the merge

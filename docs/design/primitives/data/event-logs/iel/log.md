@@ -84,9 +84,9 @@ freeze-and-recover rule is the protocol doctrine's —
 
 ### Forked versus Disputed — the sealed-branch count
 
-Which state a live fork is in turns on **tier**, read from the data by counting the **sealed**
-branches past the fork. The IEL is a mixed chain, so the count discriminates content from sealed
-directly:
+Which state a live fork is in turns on **tier**, read from the data by counting the **sealed
+branches** — per branch, wherever each branch's seal sits. The IEL is a mixed chain, so the count
+discriminates content from sealed directly:
 
 - **Content (`Ixn`) is buriable.** A content conflict is **recoverable**: the next sealing event on
   the surviving branch buries the loser below the new seal, dead on ascent. Two competing content
@@ -98,13 +98,17 @@ directly:
   `{Evl, content}` (one accepted sealed branch) reads **Active** — the `Evl` buries the content
   sibling. `{Evl, Evl}` (two accepted sealed branches) is **Disputed → terminal → reincept**.
 
-So the verdict turns on the number of accepted sealed branches past the fork: **zero → Forked** (a
+So the verdict turns on the number of **accepted sealed branches** — counted **per branch**,
+wherever each seal sits (a _sealed branch_ = a diverged branch whose lineage is accepted, i.e. it
+never lost first-seen, carrying an accepted seal at the divergence or above): **zero → Forked** (a
 content-only fork, recoverable), **exactly one → Active** (the sealed branch buries the content
 sibling; a terminal `Trm` reads Terminated instead), **two or more → Disputed**. A single sealed
 branch you did not author (a quorum takeover) is still your point of no return — reincept — but read
-node-agnostically it reads **Active** (a clean sealed tip); an owner's counter-seal then makes it
-two → Disputed. The witness beacon **propagates** the branches; the data-local walk **decides** the
-verdict. See
+node-agnostically it reads **Active** (a clean sealed tip). An owner's **same-federation**
+counter-seal is a late sibling → **first-seen-declined** → forces nothing; the recourse is
+**reincept**. (A **cross-federation** rebind can force **Disputed** with no collusion — the owner
+still knows the reserve — but that recovers nothing, and reincept is the recourse either way.) The
+witness beacon **propagates** the branches; the data-local walk **decides** the verdict. See
 [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison) for how the
 reading rides the effective SAID.
 

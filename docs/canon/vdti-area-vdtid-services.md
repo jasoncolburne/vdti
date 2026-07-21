@@ -161,7 +161,7 @@ propagate and are never dropped, so all nodes converge to the **same held state 
 real SAID, or a set-independent synthetic); the un-witnessed adversarial flood is declined by witnesses and
 droppable, so it never perturbs the value. **Per-node state is one of four — {Active, Forked, Disputed,
 Terminated}** — each **DERIVED by a data-local walk** over the held events (never a stored flag; the beacon
-propagates the branches, it does not decide): `Forked` (a content-only fork — no accepted sealed branch past the fork, recoverable) and
+propagates the branches, it does not decide): `Forked` (a content-only fork — no accepted sealed branch, recoverable) and
 `Disputed` (≥ 2 sealed — terminal) are first-class states, not a verdict layered on one `Divergent` state. **This
 value is the universal "has state changed?" comparison** behind token-reuse, deferred-deps drain, anti-entropy, and
 divergence.

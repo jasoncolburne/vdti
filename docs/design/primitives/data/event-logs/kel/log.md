@@ -64,7 +64,7 @@ flowchart LR
   Terminated["<b>Terminated</b><br/>a clean Trm sealed the chain"]:::dead
   Active -->|"Ixn / Rot / Wit — linear extension"| Active
   Active -->|"two competing content events at one serial (0 sealed)"| Forked
-  Active -->|"two accepted sealed at one serial<br/>(sealed-vs-sealed race)"| Disputed
+  Active -->|"two accepted sealed branches<br/>(sealed-vs-sealed race)"| Disputed
   Active -->|"Trm lands cleanly"| Terminated
   Forked -->|"burying seal-advancer (Rot / Wit) buries<br/>the content loser → Recovered"| Active
   Forked -->|"{Trm, content}: tier-rank, the Trm wins"| Terminated
@@ -84,21 +84,23 @@ rule is the protocol doctrine's —
 
 ### Forked versus Disputed — a data-local walk
 
-Which state a live fork is in turns on **tier**, read from the data by counting the **sealed**
-branches past the fork (the content count is irrelevant — all content is buriable):
+Which state a live fork is in turns on **tier**, read from the data by counting the **sealed
+branches** — per branch, wherever each branch's seal sits (the content count is irrelevant — all
+content is buriable):
 
-- **Forked** — **no branch carries an accepted sealed event** past the fork (a content-only fork; a
-  **single** accepted sealed branch buries the content and reads **Active** instead — a resolved
-  fork, not a live one). A content fork is buried by a seal-advancer (a `Rot`) on the recovering
-  party's branch; every competing content branch closes below the new seal, dead on ascent. While
-  the fork stands the state is `Forked`; the effective SAID is a type-tagged synthetic recoupled to
-  the verdict, qualified by prefix and position (below).
-- **Disputed** — **two or more branches each carry an accepted sealed event** past the fork. No
-  sealed branch can be buried (a sealed event is never overturned — that would resurrect retired
-  keys), so no single chain can be chosen and the prefix must **reincept**. The state is `Disputed`
-  — the same synthetic effective SAID; the verdict is the walk's, never encoded in the value. A
-  `{Rot, Rot}` disputed is moreover a **confirmed rotation-reserve compromise** — two valid
-  rotations reveal the one reserve preimage in force at `v_{d-1}`.
+- **Forked** — **no branch carries an accepted seal** at the divergence or above (a content-only
+  fork; a **single** accepted sealed branch buries the content and reads **Active** instead — a
+  resolved fork, not a live one). A content fork is buried by a seal-advancer (a `Rot`) on the
+  recovering party's branch; every competing content branch closes below the new seal, dead on
+  ascent. While the fork stands the state is `Forked`; the effective SAID is a type-tagged synthetic
+  recoupled to the verdict, qualified by prefix and position (below).
+- **Disputed** — **two or more branches each carry an accepted seal** (at the divergence or above,
+  counted per branch — wherever the seals sit). No sealed branch can be buried (a sealed event is
+  never overturned — that would resurrect retired keys), so no single chain can be chosen and the
+  prefix must **reincept**. The state is `Disputed` — the same synthetic effective SAID; the verdict
+  is the walk's, never encoded in the value. A `{Rot, Rot}` disputed is moreover a **confirmed
+  rotation-reserve compromise** — two valid rotations reveal the one reserve preimage in force at
+  `v_{d-1}`.
 
 Which reading holds is a **branch-level fact any verifier computes data-locally** by walking the
 **retained** branches — a node retains a competing branch as non-canonical evidence rather than
@@ -114,9 +116,9 @@ the branches; it does **not** decide the verdict. See
 The KEL verifier surfaces one forward-only watermark on its
 [`KelVerification`](verification.md#kelverification-token) token, computed from the chain's events.
 
-| Concept                     | Advances on           | Used for                                                                                                                                                                                                                                                                                                                                                                               |
-| --------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `last_seal_advancing_event` | `Rot` / `Wit` / `Trm` | Seal-cap — a new event's parent must sit at-or-after this serial (below is the locked portion; the seal event itself is a legal parent). The **derived seal**: the most recent seal-advancing event with no competing accepted **sealed** sibling (a content sibling is buried below it, not a competitor); the reading computes against it from the events held, never arrival order. |
+| Concept                     | Advances on           | Used for                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_seal_advancing_event` | `Rot` / `Wit` / `Trm` | Seal-cap — a new event's parent must sit at-or-after this serial (below is the locked portion; the seal event itself is a legal parent). The **derived seal**: the most recent seal-advancing event with no competing accepted **sealed branch** from the divergence onward (a content sibling is buried below it, not a competitor; a fork with ≥ 2 accepted sealed branches has no clean seal above the divergence); the reading computes against it from the events held, never arrival order. |
 
 `Trm` advances the seal to its own serial, where it is terminal — it opens no new window, since no
 successor may land. Once a rotation lands, the reserve preimage it revealed is **spent** — it is the
@@ -166,9 +168,10 @@ this segment are structurally immutable within the chain:
 
 The at-or-below-seal portion is permanently final — for the chain itself (no future event may target
 it) and for consumers verifying anchors, credentials, and SEL bindings against it; the permanence
-claims run against the last **clean** seal (a **witnessed** sealed fork **at the last seal** flips
-the reading to `disputed` without rewriting any sealed event; a below-seal sealed straggler is
-dropped, inert — backdate-safe). See
+claims run against the last **clean** seal (a **witnessed** sealed fork — **two or more accepted
+sealed branches**, wherever their seals sit — flips the reading to `disputed` without rewriting any
+sealed event and retreats the clean seal to the divergence ancestor; a below-seal sealed straggler
+is dropped, inert — backdate-safe). See
 [`compromise.md` §Pre-seal verifiability](compromise.md#pre-seal-verifiability) for the structural
 defense argument and
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) (_Pre-seal

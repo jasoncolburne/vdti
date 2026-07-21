@@ -45,12 +45,13 @@ every conforming node computes byte-identical output. The input is specified as 
 fixed text encoding: the canonical form is text today (so the bytes are its UTF-8), but speccing
 bytes keeps the derivation stable if the canonical encoding later moves to binary. In the `forked` /
 `disputed` synthetic, `{position}` is the **SAID of the fork point**: the verification token's
-`divergence_ancestor` for `forked`, its `last_seal_advancing_event` for `disputed`. The synthetic is
-content-independent — never a digest over the competing tips — so it is flood-stable. Its **encoded
-token carries a distinct type qualifier** — a `states/*` state code, not a SAID's digest code — so a
-synthetic and a real tip SAID differ **structurally** (a qualifier mismatch), and the inequality
-that fires anti-entropy is never a probabilistic hash collision; the exact qualified byte form is
-pinned by the encoding library.
+`divergence_ancestor` for **both** `forked` and `disputed` (the divergence, not the seal positions,
+so every node computes the same value wherever the two seals sit; for a nested fork it is the
+earliest divergence carrying ≥ 2 sealed branches). The synthetic is content-independent — never a
+digest over the competing tips — so it is flood-stable. Its **encoded token carries a distinct type
+qualifier** — a `states/*` state code, not a SAID's digest code — so a synthetic and a real tip SAID
+differ **structurally** (a qualifier mismatch), and the inequality that fires anti-entropy is never
+a probabilistic hash collision; the exact qualified byte form is pinned by the encoding library.
 
 ## SEL topics — a SEL inception field
 

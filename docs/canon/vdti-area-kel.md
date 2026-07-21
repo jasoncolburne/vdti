@@ -80,8 +80,8 @@ Audited against the first-seen model (`.working/vdti-model-plain-english.md` / `
   - **Forked** = a **content-only** fork (no accepted sealed branch past the fork) — **recoverable**: a burying
     `Rot` at the root buries the content → **Active**. A **single** accepted sealed branch buries the content and
     reads **Active** — whether the owner's recovery `Rot` or a *hostile* reserve-theft takeover (clean on-chain,
-    silent, owner-vigilance only; an owner's counter-`Rot` then makes it two sealed branches → **disputed**, cold C1).
-  - **Disputed** = **≥ 2 accepted sealed branches** past the fork → **terminal → reincept** (you can't un-change a key; a below-seal sealed straggler is dropped, backdate-safe). A
+    silent, owner-vigilance only; the owner's **same-federation** counter-`Rot` is first-seen-declined and forces nothing — recourse is **reincept** — though a **cross-federation** rebind can force `disputed` with no collusion (the owner still knows the reserve), which denies the thief a clean chain but recovers nothing; cold C1, reconciled 2026-07-21).
+  - **Disputed** = **≥ 2 accepted sealed branches** (counted per branch, wherever their seals sit) → **terminal → reincept** (you can't un-change a key; a below-seal sealed straggler is dropped, backdate-safe). A
     `{Rot, Rot}` disputed is moreover a **confirmed reserve compromise** — two valid rotations reveal the *one*
     reserve preimage at `v_{d-1}`.
 - **Cross-tier co-sign + the per-serial bound.** A witness's slot at one serial is **`{≤ 1 content, ≤ 1 sealed}`**

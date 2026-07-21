@@ -235,7 +235,7 @@ IelVerification:
     roster_at_tip: RosterState             # the accumulated live roster + threshold vector at the canonical tip (a delta accumulation, not a stored snapshot)
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = divergent)
     divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event with no competing accepted sealed sibling (a content sibling is buried below it)
+    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it; >= 2 accepted sealed branches -> no clean seal above the divergence)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
     anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and custody-anchored SAD issuance commitments (a credential is one use) found anchored on the canonical branch
     delegates_of: ...                      # per-candidate delegation-walk results (bounded scalar state)
@@ -272,16 +272,16 @@ read-only component of the token, not an independent verified state). The seal t
   content → Active; a **single** accepted sealed branch buries the content and reads **trusted** — a
   reserve-theft takeover you did not author is clean on-chain, caught by owner-vigilance and
   answered by reincept out-of-band, not surfaced here), or **disputed** (two or more branches each
-  carry an **accepted** (witnessed-at-threshold) sealed event at the last seal — terminal,
-  reincept).
+  carry an **accepted** (witnessed-at-threshold) sealed event — per branch, wherever the seal sits —
+  terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
   and position, **not** a digest over the competing tips (that set is adversarially extensible →
   flood-unstable). A settled content branch drops out (forensic, reached by a by-prefix flat fetch);
   a **below-seal** sealed straggler drops out too (dropped, inert — backdate-safe). Only a
-  **witnessed** sealed fork **at the last seal** keeps the chain in the synthetic (a spine fork →
-  `disputed`). See
+  **witnessed** sealed fork — **≥ 2 accepted sealed branches**, wherever their seals sit — keeps the
+  chain in the synthetic (`disputed`). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `roster(tip_said)` → the **membership at a specific tip**: the roster + thresholds the verifier
   forked per branch (above), or **`Terminated`** when that tip is a `Trm`. Termination is an
@@ -360,8 +360,8 @@ independently, and surfaces `is_divergent()` and `region()`.
   - **No accepted sealed branch** (a content-only fork) → **forked** (recoverable); a burying seal
     buries the content → Active. A **single** accepted sealed branch buries the content →
     **Active**, not forked.
-  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
-    **disputed**; reincept.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches** (per branch, wherever their
+    seals sit) → **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
@@ -389,12 +389,13 @@ reads `structurally_valid` to gate against it.
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` — a credential issued under a below-seal roster state, a SEL
 bound at a below-seal `Ixn` — is **permanently final**, regardless of any later above-seal
-divergence. (Against a **witnessed** sealed fork **at** the last (clean) seal the reading flips to
-`disputed`, and permanence runs against the last **clean** seal; a below-seal sealed straggler is
-**dropped**, not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer
-composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
-`disputed` chain — for as-issued finality and existing bindings; granting **new** current trust
-still gates on `region()` — while an above-seal anchor on a `disputed` chain grounds no new trust.
+divergence. (Against a **witnessed** sealed fork — **≥ 2 accepted sealed branches**, wherever their
+seals sit — the reading flips to `disputed` and the clean seal retreats to the divergence ancestor,
+so permanence runs against that retreated clean seal; a below-seal sealed straggler is **dropped**,
+not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer composes the
+anchor's seal position with `region()`: a below-seal anchor is honored even on a `disputed` chain —
+for as-issued finality and existing bindings; granting **new** current trust still gates on
+`region()` — while an above-seal anchor on a `disputed` chain grounds no new trust.
 
 ## Federation witnessing in verification
 
