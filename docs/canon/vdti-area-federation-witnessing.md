@@ -415,7 +415,7 @@ adversarial pass.
   Merge integrates every structurally-valid event (keep-all-data) + the seal-cap and computes the reading as a
   **pure walk** (the seal derived from the held events); it does **not** stick-freeze the *reading* — that made it
   arrival-order-dependent. The **shape-validity gate** — reject a seal-advancer that would bury a *sealed*
-  branch, or a self-burial (a burying seal-advancer siblinging its own retained chain) — runs at the
+  branch — runs at the
   **acceptance-to-trusted-state** point: a **selected witness** applies it before signing
   (decline → the shape never reaches `threshold`); a **non-witness** gates on `threshold` (above). Every chain is
   federation-witnessed — there is no direct-mode self-gate. "Frozen" survives only

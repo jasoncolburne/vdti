@@ -235,7 +235,7 @@ differ by domain and count:
   lookup-SEL `Trm`s, and its `kills[]` entry carries the rescission `bound`.
 
 Both carry **no roster delta** (they cannot mutate establishment state) and both **force a `Rot`**
-on each approving member — a permanent kill needs a ≥ tier-2 KEL anchor, and the distinction from
+on each approving member — a permanent kill needs a tier-2 KEL anchor, and the distinction from
 `Evl` is the absence of a roster delta, not the rotation. Both are **sealed but non-terminal**: they
 seal a kill on a target, not the host IEL, so `{Rev, content}` and `{Dth, content}` are recoverable.
 Distinct kills at one position are `{Rev, Rev}` → ≥ 2 **accepted** sealed → terminal (both witnessed

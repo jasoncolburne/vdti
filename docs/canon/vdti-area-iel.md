@@ -145,9 +145,12 @@ core. Load-bearing claims marked for the adversarial pass; nothing here is locke
   (an `Evl` `cut`) / `Dth` if delegated / reincept.
 - **Divergence resolution turns on the sealed-branch count, node-agnostic** [inv 13]. The verdict rides **M**, the
   number of **sealed** branches past the fork (the content count N is irrelevant — all content is buriable):
-  **M ≤ 1 = Forked** (recoverable — a content fork the burying seal resolves), **M ≥ 2 = Disputed → terminal →
-  reincept**. A single sealed branch you didn't author (a takeover) is still *your* point of no return (reincept), but
-  node-agnostically it reads Forked until a second sealed branch lands. The beacon propagates the branches; the
+  **M = 0 = Forked** (a content-only fork — recoverable, a burying seal resolves it), **M = 1 = Active** (the single
+  accepted sealed branch buries the content sibling — the content can't land if the seal is first, and the seal
+  buries it if the seal is second, so it reads Active either way; a terminal `Trm` reads Terminated), **M ≥ 2 =
+  Disputed → terminal → reincept**. A single sealed branch you didn't author (a takeover) is still *your* point of
+  no return (reincept), but node-agnostically it reads **Active** — a clean sealed tip, indistinguishable from your
+  own recovery; an owner's counter-seal then makes it two sealed branches → Disputed. The beacon propagates the branches; the
   data-local walk decides. [inv 13]
 - **IEL distrust is forward-only (locked 2026-06-22)** [inv 12, 13]. An IEL event is trusted iff a **threshold** of members anchored it (fresh participation, inv 5), so a **rogue member KEL is inert alone** — it can't reach `t_use`/`t_govern`, so the quorum's "don't trust this" *is* **non-participation** (stop co-anchoring) **+ a `Evl` eviction**; you don't *also* anchor the rogue's attempts, and satisfaction is never met. A **retroactive** per-event distrust declaration is **forbidden** — a quorum that could retroactively un-trust its own history would hold the **backdate kill-switch** vdti closes. Trust is decided at participation time; an event the quorum co-signed (even alongside a since-compromised member) **stands**, and remediation is **forward** (revoke what it granted, evict the member). A member KEL un-resolvable at the KEL layer (clean adversarial multi-rotation — no divergence to challenge) **does not propagate** to the identity: the IEL evicts it and leans on the quorum. **No cut-member cap** (the member's own seal bounds its past; the SAID-pin bound survives only for delegate-rescission — inv 14 / delegation §5).
 - **Seal-cap on the content window — REQUIRED, like KEL/SEL (2026-06-22)** [inv 13]. The IEL bounds the run of

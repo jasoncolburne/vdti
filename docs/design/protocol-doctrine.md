@@ -41,6 +41,7 @@ the structural rules that realize those properties.
 
 - [Verification tokens as proof of verification](#verification-tokens-as-proof-of-verification)
 - [Walk semantics](#walk-semantics)
+- [Caching and continuation](#caching-and-continuation)
 - [Structural problems error; everything else is reported](#structural-problems-error-everything-else-is-reported)
 - [Negative checks are positive lookups](#negative-checks-are-positive-lookups)
 - [Merge verification and advisory locking](#merge-verification-and-advisory-locking)
@@ -80,20 +81,21 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   events a node holds by a data-local walk**, never a stored flag):
 
   - **Active** — a single confirmed tip; accepts linear extension.
-  - **Forked** — a **live, recoverable** fork: two **distinct** events at one serial, with **≤ 1
-    sealed branch** past it. While the fork is live (at or above the derived seal) the chain
-    **freezes further origination** — it originates no new work onto the live fork; the one move
-    that resolves it is a **burying seal-advancer on the winning branch** (a `Rot` / `Wit` / `Trm`
-    on the KEL; a sealing event on the IEL — any seal-advancer on the winning branch, typically the
-    `Evl` or the `cut` `Evl`; a `Trm` buries then terminates), which extends the winning branch and
-    advances the seal past a **content** loser (the loser dies below the new seal, dead on ascent).
-    A content fork is recoverable because all content is buriable. The **reading** is the pure walk
-    over the events held, not a frozen flag: a node that comes to hold a burying seal-advancer
-    re-reads the chain **Active**, order-independently. A lone sealed branch a party did **not**
-    author reads Forked node-agnostically, yet still forces **that** party's reincept — an
-    **accepted** key-state branch you did not author can never be buried (the reserve-theft
-    takeover, below; a seal forged on a _dead_ lineage is a different thing — dead on ascent,
-    dropped).
+  - **Forked** — a **live, recoverable** fork: two **distinct content** events at one serial, with
+    **no accepted sealed branch** past it. While the fork is live (at or above the derived seal) the
+    chain **freezes further origination** — it originates no new work onto the live fork; the one
+    move that resolves it is a **burying seal-advancer on the winning branch** (a `Rot` / `Wit` /
+    `Trm` on the KEL; a sealing event on the IEL — any seal-advancer on the winning branch,
+    typically the `Evl` or the `cut` `Evl`; a `Trm` buries then terminates), which extends the
+    winning branch and advances the seal past a **content** loser (the loser dies below the new
+    seal, dead on ascent). A content fork is recoverable because all content is buriable. The
+    **reading** is the pure walk over the events held, not a frozen flag: a node that comes to hold
+    a burying seal-advancer re-reads the chain **Active**, order-independently. A **single**
+    accepted sealed branch buries the content sibling and reads **Active** node-agnostically — the
+    content can't land if the seal is first, and the seal buries it if the seal is second — yet a
+    takeover you did **not** author still forces **that** party's reincept: an **accepted**
+    key-state branch you did not author can never be buried (the reserve-theft takeover, below; a
+    seal forged on a _dead_ lineage is a different thing — dead on ascent, dropped).
   - **Disputed** — an **irrecoverable** fork: **two accepted seals racing to the same serial**. An
     **accepted sealed branch** is one whose seal is **witnessed at threshold** _and_ whose **lineage
     is accepted** — a branch built on a first-seen loss is **dead on ascent** (you can't seal a
@@ -265,10 +267,11 @@ inception). The full statement and derivations are the IEL primitive's
 the invariants:
 
 - `t_use ≥ 1` — exempt from the authorization floor (content is first-seen / recoverable).
-- The authority slots (`t_govern` / `t_authorize`) carry a **security floor `≥ 2`** (no single
-  member exercises authority) and a **recoverability ceiling `≤ |roster| − 1`** (evict/recover
-  without one member — advisory at `|roster| = 2`, hard at `|roster| ≥ 3`, where a threshold equal
-  to `|roster|` is a gratuitous hostage config and is rejected).
+- The authority slots (`t_govern` / `t_authorize`) carry a **security floor `≥ 2`** (for
+  `|roster| ≥ 2`; no single member exercises authority — a singleton sets all thresholds to 1,
+  below) and a **recoverability ceiling `≤ |roster| − 1`** (evict/recover without one member —
+  advisory at `|roster| = 2`, hard at `|roster| ≥ 3`, where a threshold equal to `|roster|` is a
+  gratuitous hostage config and is rejected).
 - An **authorization floor `> |roster|/2`** — a strict majority signs every governance / grant, so
   any two authorizing quorums overlap and a sealed fork always names a double-dealer.
 - The roster is **never emptied** (`|roster| + |add| − |cut| ≥ 1`; a set — `add ∉` it, `cut ⊆` it,
@@ -465,14 +468,13 @@ seal-advancer is the exit), and **sealed** races — where the floor plus one-se
 decline the second sealed sibling (exactly as for content), so a _witnessed_ sealed fork requires
 witness collusion.
 
-The **shape-validity gate** — reject a seal-advancer that would bury a **sealed** branch, or a
-self-burial (a burying seal-advancer siblinging its own retained chain) — runs wherever an event is
-admitted to **trusted** state. The **witness** applies it before signing: a shape it declines never
-reaches threshold, and a non-witness admits nothing below threshold. Merge otherwise integrates
-every structurally valid event (keep-all-data) plus the seal-cap and lets the walk read the state;
-it does not stick a divergence into the reading. Content-fork **prevention** is the witnessed layer;
-the residual is a witness compromise, where a content fork forms, reads Forked (fail-secure), and
-recovers by a burying seal-advancer.
+The **shape-validity gate** — reject a seal-advancer that would bury a **sealed** branch — runs
+wherever an event is admitted to **trusted** state. The **witness** applies it before signing: a
+shape it declines never reaches threshold, and a non-witness admits nothing below threshold. Merge
+otherwise integrates every structurally valid event (keep-all-data) plus the seal-cap and lets the
+walk read the state; it does not stick a divergence into the reading. Content-fork **prevention** is
+the witnessed layer; the residual is a witness compromise, where a content fork forms, reads Forked
+(fail-secure), and recovers by a burying seal-advancer.
 
 **Divergence is resolved by tier, not by identity.** Chain data cannot tell the rightful operator
 from an adversary — both branches were structurally authorized when they landed — so resolution
@@ -558,10 +560,10 @@ honest partition (the witnessing floor plus one-sealing-per-position decline the
 content and sealing serialization is a liveness/waste discipline, not a safety requirement). So
 **reincept** is what a party does when **no valid recovery exists for it**: either the chain is
 **Disputed** — **≥ 2 accepted competing sealed branches** (`{Rot, Rot}`, `{Evl, Evl}`, any pair), so
-no retention is clean and _no one_ can recover — or it reads **Forked** but the sole sealed branch
-is one this party did **not** author (the point of no return above; only that branch's author can
-retain-and-recover). The Disputed case a one-branch holder detects once the beacon delivers the
-second branch.
+no retention is clean and _no one_ can recover — or the sole accepted sealed branch is one this
+party did **not** author: the chain reads **Active** node-agnostically (a clean sealed tip), but for
+this party it is the point of no return above — only that branch's author can retain-and-recover.
+The Disputed case a one-branch holder detects once the beacon delivers the second branch.
 
 **The misbehavior proof is computed from the token, not asserted as a rule.** A dispute always
 carries a **provable** cryptographic misbehavior, but the doctrine does not fix _which_ — a verifier
@@ -704,13 +706,8 @@ keep them apart:
 `fork` role and no root-condemnation; the losing content closes below the seal (its first event
 seal-capped) with its growth dead on ascent, committed by nothing. The verifier **independently**
 computes the competing set from the branches it holds (the beacon enumerates the rest) — validated,
-not trusted — so no branch escapes by being unnamed. Two shape guards run at admission:
+not trusted — so no branch escapes by being unnamed. One shape guard runs at admission:
 
-- **No self-burial.** A burying seal-advancer that siblings its own retained chain — burying content
-  it authored below its own attach point — is **rejected**. The verifier knows the retained chain
-  (it walks the seal's `previous` back), so a seal that would bury a subtree including the canonical
-  chain is refused; each event has one `previous`, so a genuinely off-chain loser's subtree is
-  disjoint from the retained chain.
 - **No buried rotation.** A burying seal is valid only where every competing branch it drops is
   **content-only**: the verifier walks the branches it holds, and a **witnessed (accepted)** sealed
   event in any of them means ≥ 2 accepted sealed branches at or beyond the divergent serial →
@@ -722,9 +719,8 @@ not trusted — so no branch escapes by being unnamed. Two shape guards run at a
   branch is **retained as a competing sealed branch and counted** — retain-and-count is the only
   convergent semantics, because this rejection is **branch-dependent** (a node that dropped it would
   read the prefix differently from one that counted it). By contrast a burying seal that fails hard
-  auth or self-burial is **dropped, never counted** — those rejections are deterministic from data
-  every node holds uniformly, so every node drops identically and junk submissions cannot
-  terminalize a prefix.
+  auth is **dropped, never counted** — those rejections are deterministic from data every node holds
+  uniformly, so every node drops identically and junk submissions cannot terminalize a prefix.
 
 Burial reaches no _live_ state — it marks a subtree dead, never extends or revives an event. There
 is **no below-seal burial operation**, and the seal-cap stays unconditional. A race whose retained
@@ -1425,8 +1421,8 @@ handling. It is a **pure function of the events a node holds**, and it takes one
 
 - **A single confirmed tip** (Active or Terminated — a settled/recovered fork reads Active) — **that
   tip's real SAID** (a terminated chain's is its `Trm`).
-- **No single tip** (an unresolved fork — a live content fork, or ≥ 1 sealed branch past it) — a
-  **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by
+- **No single tip** (an unresolved fork — a live content fork, or ≥ 2 accepted sealed branches past
+  it) — a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by
   **prefix + position** and **structurally distinct from any real SAID** (a distinct type tag, so a
   linear state and a forked one cannot collide — the inequality that fires anti-entropy is
   _structural_, never a probabilistic hash collision). **There is no digest over the competing

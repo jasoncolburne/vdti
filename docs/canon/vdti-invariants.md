@@ -511,7 +511,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     **competing sealed branch it did not author** (a key-state branch you didn't author is un-buriable → the point of
     no return; the party that *did* author it recovers by **retaining** it). This is **broader than `disputed`** —
     `disputed` (≥ 2 witnessed sealed branches, node-agnostic) forces reincept on *everyone*, while a *single* sealed branch you
-    didn't author reads `forked` yet still forces *your* reincept.
+    didn't author reads **Active** (a clean sealed tip, node-agnostic) yet still forces *your* reincept.
     *(The `../kels` diagnosis: kels classified `Rot` as **non-sealed**, so a `{Rot, *}` fork was "recoverable"
     and a recovery could *overturn* the forked `Rot` (its divergence-ancestor-extending shape) — un-rotating,
     resurrecting the retired key: **the backdating attack vdti exists to fix**. vdti treats `Rot` as a **sealed
@@ -890,8 +890,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       2026-07-11); a node still **accepts/retains up to two *witnessed*** sealed branches per position — two
       *accepted* prove `disputed` (the data-local walk), a witness-declined sibling is deferred-pending/droppable — federation §1e). Dead events are **propagated + retained** but never
       canonical. A **sealed** fork **at the last seal** is **never buried** (≥ 2 **witnessed** sealed → `disputed` — can't bury a
-      rotation); a **below-seal** sealed straggler is **dropped** (inert — backdate-safe, revised 2026-07-11); a self-burial (a burying seal-advancer siblinging the retained chain, known from `previous`) is
-      **rejected**. **The effective-SAID** is a **single confirmed tip → its real SAID**; a **no-single-tip** chain →
+      rotation); a **below-seal** sealed straggler is **dropped** (inert — backdate-safe, revised 2026-07-11). **The effective-SAID** is a **single confirmed tip → its real SAID**; a **no-single-tip** chain →
       a type-tagged **synthetic** recoupled to the verdict (`forked` / `disputed`), qualified by prefix + position —
       **not** a digest over the competing tips (that set is adversarially extensible → flood-unstable; §2a /
       area-vdtid-services §1e).

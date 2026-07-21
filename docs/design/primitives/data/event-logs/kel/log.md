@@ -87,11 +87,12 @@ rule is the protocol doctrine's —
 Which state a live fork is in turns on **tier**, read from the data by counting the **sealed**
 branches past the fork (the content count is irrelevant — all content is buriable):
 
-- **Forked** — at most one branch carries a sealed event past the fork. A content fork is buried by
-  a seal-advancer (a `Rot`) on the recovering party's branch; every competing content branch closes
-  below the new seal, dead on ascent. While the fork stands the state is `Forked`; the effective
-  SAID is a type-tagged synthetic recoupled to the verdict, qualified by prefix and position
-  (below).
+- **Forked** — **no branch carries an accepted sealed event** past the fork (a content-only fork; a
+  **single** accepted sealed branch buries the content and reads **Active** instead — a resolved
+  fork, not a live one). A content fork is buried by a seal-advancer (a `Rot`) on the recovering
+  party's branch; every competing content branch closes below the new seal, dead on ascent. While
+  the fork stands the state is `Forked`; the effective SAID is a type-tagged synthetic recoupled to
+  the verdict, qualified by prefix and position (below).
 - **Disputed** — **two or more branches each carry an accepted sealed event** past the fork. No
   sealed branch can be buried (a sealed event is never overturned — that would resurrect retired
   keys), so no single chain can be chosen and the prefix must **reincept**. The state is `Disputed`

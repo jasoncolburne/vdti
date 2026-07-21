@@ -112,7 +112,8 @@ roles that resolve to their **own** SAD are catalogued here.
 | `threshold` | u64    | Valid receipts a consumer requires before it trusts an event. |
 | `signers`   | u64    | Witnesses selected per event; `signers ≥ threshold`.          |
 
-Bounded `signers/2 < threshold ≤ signers ≤ |roster|`, with a tighter recoverability cap on the
+Bounded `signers/2 < threshold ≤ signers ≤ |roster|` (here `|roster|` is the **federation's**
+witness roster, not the identity's own member roster), with a tighter recoverability cap on the
 federation IEL
 ([`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md)).
 

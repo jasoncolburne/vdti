@@ -365,9 +365,9 @@ independently, and surfaces `is_divergent()` and `region()`.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
-A `{Rev, content}` or `{Evl, content}` fork is one sealed branch → **forked**, recoverable (the
-sealed branch survives, the content buries). A `{Evl, Evl}` (or any two sealed branches — the
-federation IEL's every conflict) → **disputed**.
+A `{Rev, content}` or `{Evl, content}` fork is one accepted sealed branch → **Active** (the sealed
+branch buries the content sibling; a `{Trm, content}` reads **Terminated**). A `{Evl, Evl}` (or any
+two accepted sealed branches — the federation IEL's every conflict) → **disputed**.
 
 ### Verifier reports; the merge layer gates
 

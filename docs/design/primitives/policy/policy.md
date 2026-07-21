@@ -156,7 +156,10 @@ evaluated (see [`evaluation.md`](evaluation.md)).
   per-branch greedy pass, which can wrongly deny a satisfiable policy and on which two
   differently-ordered evaluators would disagree). A conforming evaluator searches for a working
   assignment, bounded by the verifier-wide work budget. This is not consensus-critical (policy
-  evaluation is each relying party's own), but a shared policy must evaluate identically everywhere.
+  evaluation is each relying party's own); the search is defined so a shared policy **never wrongly
+  permits** — a verifier that exhausts its budget before finding a satisfying assignment **denies**
+  (fail-secure), so two verifiers with different budgets can differ only at the margin, and only
+  toward denial, never toward a wrongful accept.
 
 - **Weight is per-identity-max.** When an identity is reached through several weighted branches, it
   is credited **once, at its highest** weight — never summed across branches. One party cannot stack

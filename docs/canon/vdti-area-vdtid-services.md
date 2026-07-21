@@ -111,7 +111,7 @@ The effective SAID answers "**has my trust-relevant held state changed / do two 
 
 - **A single confirmed tip** (a linear active window, or a fork already settled below the seal — Active / Recovered /
   Terminated) → **that tip's real SAID** (a terminated chain's is its `Trm`).
-- **No single tip** (an unresolved fork — a live content fork, or ≥ 1 **sealed** branch past it) → a **type-tagged
+- **No single tip** (an unresolved fork — a live content fork, or **≥ 2 accepted sealed** branches past it) → a **type-tagged
   `synthetic` marker recoupled to the verdict** (`forked` / `disputed`), qualified by **prefix + position**, and
   **structurally distinct from any real SAID** (a distinct type tag — so the "single-tip SAID ≠ synthetic"
   inequality that fires anti-entropy is *structural*, never a probabilistic collision; the encoder must not reduce it

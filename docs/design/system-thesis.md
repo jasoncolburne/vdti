@@ -74,7 +74,8 @@ flowchart TD
   HQ -->|"no — the floor (&gt; signers/2)<br/>declines the second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
   HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>at the last seal"}:::q
   K -->|"no — mixed {sealed, content};<br/>forms on an honest cross-node race"| N
-  N -->|"≤ 1"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser<br/>(a Trm retires the chain instead)"]:::good
+  N -->|"0 — content-only fork"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser"]:::good
+  N -->|"1 — the seal buries the content"| AC["<b>Active</b><br/>the single accepted sealed branch buries<br/>the content sibling (a Trm retires instead)"]:::good
   N -->|"≥ 2"| X["<b>Disputed → reincept</b><br/>two accepted seals — neither can<br/>bury the other; terminal"]:::bad
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
   classDef q fill:#20263a,stroke:#868e96,color:#e9ecef

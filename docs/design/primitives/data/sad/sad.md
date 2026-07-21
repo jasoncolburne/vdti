@@ -72,14 +72,14 @@ Every SAD carries:
   drives structural validation, tier dispatch, the role vocabulary the SAD may carry, and whether
   the store serves it by SAID; a SAD with no `kind` cannot be sorted and is refused. The catalogue
   is [`kinds.md`](kinds.md).
-- For **chain inception events** (the prefix-deriving SADs): a `prefix` field in addition to `said`.
-  The inception event derives the two values via two separate hashes, in order — first `prefix`
-  (with both `said` and `prefix` set to the fixed-value placeholder), then `said` (with `prefix`
-  populated with its just-derived real value, and only `said` set to the placeholder). On the
-  inception event, `prefix` and `said` are different values. Subsequent events on the chain inherit
-  `prefix` from the inception event and derive only `said`; the inherited prefix is part of the
-  canonical bytes the `said` hash sees. See [`said.md` §Derivation](said.md#derivation) for the
-  algorithms.
+- For **chain inception events** and the shared-document constitution `V0` (the prefix-deriving
+  SADs): a `prefix` field in addition to `said`. Such a prefix-deriving SAD derives the two values
+  via two separate hashes, in order — first `prefix` (with both `said` and `prefix` set to the
+  fixed-value placeholder), then `said` (with `prefix` populated with its just-derived real value,
+  and only `said` set to the placeholder). On the inception event, `prefix` and `said` are different
+  values. Subsequent events on the chain inherit `prefix` from the inception event and derive only
+  `said`; the inherited prefix is part of the canonical bytes the `said` hash sees. See
+  [`said.md` §Derivation](said.md#derivation) for the algorithms.
 
 What content the prefix commits to is **per-primitive** — always the whole inception SAD (the KEL's
 key state; the IEL's `roster`, threshold vector, and `nonce`; the SEL's `owner` / `topic` / `data`),

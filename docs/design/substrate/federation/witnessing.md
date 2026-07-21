@@ -137,7 +137,7 @@ pure tie.
 
 **The predicate is tier-scoped.** An honest witness legitimately holds
 `{≤ 1 content} ∪ {≤ 1 sealed}` at a position — the cross-tier co-sign the split-stall exit needs is
-not misbehavior. Only a second receipt over two distinct _content_ `event_said`s, or a second
+not misbehavior. Only a second receipt over two distinct _content_ `eventSaid`s, or a second
 distinct _sealed_ sibling, at one position is proof of misbehavior. That clean attribution is what
 the fork-cost pricing rests on.
 
@@ -304,11 +304,11 @@ adjacent attestation data). Its body:
   threshold,       // witness-config threshold in effect at this position
   signers,         // witness-config selection size in effect at this position
   federationPin,   // the chain's federation binding at this position → resolves roster(F @ federationPin)
-  chain_prefix,    // the witnessed chain's prefix
-  event_said,      // the one committing SAID of the witnessed event
-  event_serial,    // its serial
+  chainPrefix,     // the witnessed chain's prefix
+  eventSaid,       // the one committing SAID of the witnessed event
+  eventSerial,     // its serial
   timestamp,       // the witness's asserted time τ (inside the signed payload)
-  witness_prefix   // the signing witness's KEL prefix
+  witnessPrefix    // the signing witness's KEL prefix
 }
 ```
 
@@ -318,14 +318,14 @@ The design choices in the shape are load-bearing:
   would be rewritable to "now" and the clock's key-window check would be moot.
 - **It binds the full as-of-position selection context `{ federationPin, threshold, signers }`.** A
   mesh witness can then resolve `roster(F @ federationPin)` from its own federation IEL and validate
-  `witness_prefix ∈ select(chain_prefix, event_serial, roster, signers)` **without the chain body**
-  — sound, cheap detection, with fakes dropped at the mesh edge. The context is **stateful** (the
+  `witnessPrefix ∈ select(chain_prefix, event_serial, roster, signers)` **without the chain body** —
+  sound, cheap detection, with fakes dropped at the mesh edge. The context is **stateful** (the
   value in effect at this event's position, not a chain constant), and the checks are **equality**
   against the chain-authoritative committed config, never the self-asserted receipt field: a receipt
   whose `threshold` mismatches the committed witness-config SAD in effect at the position is invalid
   **even if higher**. A stale-config witness (lagging a governance `Wit`) emits a non-matching
   receipt that is discarded — a liveness cost around config changes, not a safety hole.
-- **A batch is witnessed by its one committing SAID** (`event_said`, committed by chain linkage or
+- **A batch is witnessed by its one committing SAID** (`eventSaid`, committed by chain linkage or
   the anchoring event's `anchors[]`), never an enumerated list — single-SAID keeps receipts small
   and floodable.
 

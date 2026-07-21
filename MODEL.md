@@ -55,56 +55,52 @@ evict, freezing you into reinception. Three is the floor, and that's why you bin
 ## The core rule: conflicts
 
 Normally there's one event per step in a chain. Sometimes two show up claiming the same step — a
-**conflict**. What to do about the second one is the heart of the design. It turns on two questions,
-asked in order — but first, one distinction that trips people up:
+**conflict**. What happens next is the heart of the design, and it turns on a single question — but
+first, one distinction that trips people up:
 
 **Witnesses aren't "the group."** Witnesses are the servers that attest to _every_ event; they're
 the ones _applying_ these rules. Where "the group" matters below, it means the identity's **own keys
 that had to agree** to author the event — a user's own devices, or the federation's own members —
 never the witnesses.
 
-**Question 1 — is it ordinary activity, or a key change?**
+**The question — is the conflict over ordinary activity, or over a key change?**
 
-- **Ordinary activity** → witnesses take the first they see and drop the copies. Always. A conflict
-  here is recoverable (the next key change buries the loser), so it never alarms.
-- **A key change** → could be terminal (you can't un-change a key), so ask Question 2.
+- **Ordinary activity (content)** → **recoverable.** Witnesses take the first version they see and
+  decline the rest, so a second only gets backed if an attacker corrupts enough witnesses to force
+  it — and even then the next key change **buries** the loser and the chain reads clean again. An
+  ordinary conflict never has to alarm.
+- **A key change (sealed)** → **possibly terminal.** You can't un-change a key. Witnesses take the
+  first here too — the first-seen rule is the same for key changes as for ordinary activity — so a
+  _second_ key change gets backed only when an attacker corrupts enough witnesses to force it,
+  leaving their double-signature in the data as proof. When two key changes are both backed, the
+  chain is **Disputed**: unrecoverable, and you start over under a new identifier.
 
-**Question 2 (key changes only) — could one key have signed the competing version, or did it take
-several of the identity's keys agreeing?**
+That's the whole line: **content is recoverable; a key change can be terminal.** It does **not**
+matter whether _one_ key or a whole _group_ authorized the key change — two backed key changes are
+terminal either way. A single device rotating its own key and a federation changing its roster are
+handled the same at the conflict: first-seen, and terminal if a second is forced through.
 
-- **One key could** → take the first, drop the copy. This is **a device rotating its own key** (a
-  KEL rotation) — and also a **solo identity's governance**, since its roster is one key, so one key
-  authorizes a roster change. The trap: the key a device signs with today is the same secret that
-  made its most recent key change, so a stolen signing key could forge a second version — and a
-  stolen key must stay _recoverable_, not terminal. (Inert anyway: the stolen key can only forge
-  _after_ the real change revealed it, by which point the witnesses have already sealed that
-  position.)
-- **It took several** → keep both, raise the alarm. This is **a roster change on a multi-device
-  identity** (several devices must agree — `t_govern ≥ 2`) or **anything the federation does**. No
-  single stolen key can fake it, so a second version is proof the group was subverted — exactly what
-  you want surfaced.
+**So what is the "one key versus a group" distinction for?** It is what a dispute _proves_ afterward
+— the forensics, not the rule. Two backed device rotations (`{rotate, rotate}`) prove the attacker
+held that device's signing key _and_ colluded with witnesses. Two backed group acts
+(`{roster-change, roster-change}`) prove the attacker subverted the group's quorum _and_ colluded
+with witnesses. Same outcome — Disputed, reincept — but the proof tells you _who_ to evict versus
+_who_ to walk away from.
 
-**Both kinds of identity live on both sides.** A multi-device personal identity uses "take the
-first" for its devices' own key changes and "raise the alarm" for its group decisions. The
-**federation is the pure case** — no ordinary activity, every decision a group decision, so _every_
-federation conflict is an alarm.
+**The federation is the pure case** — no ordinary activity, every decision a key-level group act —
+so _every_ federation conflict is a potential dispute, never a recoverable one.
 
-The one-line test: **could a single stolen key have faked this conflict, or would it take a group
-betrayal?** Faked → throw the fake away and recover. Group betrayal → surface it loudly.
-
-(From a single witness's seat it's simpler still: it checks its own history and won't sign twice at
-one step. We only plan for a second getting backed because we can't assume every witness is honest —
-and a corrupted one that does leaves its signature on both as the evidence.)
+(From a single honest witness's seat it's simpler still: it checks its own history and won't sign
+twice at one step. We only plan for a second getting backed because we can't assume every witness is
+honest — and a corrupted one that signs twice leaves its signature on both as the evidence.)
 
 ## What "disputed" means
 
 **Disputed** is when a conflict is visible to everyone in the data — both versions have enough
-backing to be trusted. Same word on every kind of chain, and it arises two ways: on a **group
-decision** the design _records both_ on purpose (the "raise the alarm" rule), so a subverted group
-surfaces at once; on anything else honest witnesses take only the first, so a second version reaches
-backing only if an attacker _corrupts enough witnesses_ to force it — and forcing it leaves their
-double-signatures in the data as proof. Either way, what you _do_ about it depends on which kind of
-event conflicted:
+backing to be trusted. Same word on every kind of chain. Honest witnesses take only the first
+version at any step — key changes included — so a second reaching backing means an attacker
+_corrupted enough witnesses_ to force it, leaving their double-signatures in the data as proof. What
+you _do_ about it depends on which kind of event conflicted:
 
 - **Two pieces of ordinary activity** → recoverable. Your next key change keeps the real line and
   drops the other.

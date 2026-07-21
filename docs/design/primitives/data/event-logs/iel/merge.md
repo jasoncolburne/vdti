@@ -10,7 +10,7 @@ chain-state-dependent routing to admit or reject batches.
 The merge layer integrates every structurally valid event (keep-all-data) and reads the chain's
 state as a **pure walk** over the events held: a live fork freezes further **origination**, never
 the reading, so two nodes holding the same events read the same state. Its structural checks — the
-seal-cap, no-burying-a-sealed-branch, no self-burial — are the **shape-validity gate**: every IEL is
+seal-cap, no-burying-a-sealed-branch — are the **shape-validity gate**: every IEL is
 federation-witnessed, so a selected witness mirrors them before signing, and a shape it declines
 never reaches threshold (see
 [`../../../../protocol-doctrine.md` §Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
@@ -194,7 +194,7 @@ against the threshold vector, kind-strict:
 - **`kills` placement** — kind-strict to `Rev` / `Dth`; the target is opaque (never dereferenced at
   merge).
 
-### 5. No burying a sealed branch; no self-burial
+### 5. No burying a sealed branch
 
 A burying seal that extends a fork's winning branch buries the competing **content** below its new
 seal. If a competing branch it would bury carries a **witnessed (accepted)** sealed event, the
@@ -202,9 +202,7 @@ burial is **rejected** — a sealed branch is never buried (that would resurrect
 decision) — the fork is ≥ 2 accepted sealed → `Disputed` (reincept), and the burying event is itself
 retained as a competing sealed branch and counted (retain-and-count — dropping it would split the
 reading permanently across nodes). Sealed branches are always retained (keep-all-data), so an
-unnamed sealed sibling is caught, never sealed past. A burying seal that would sibling **its own**
-retained chain (its `previous` is known from the walkback) is rejected as a **self-burial** — a node
-buries only competing branches, never the branch it keeps.
+unnamed sealed sibling is caught, never sealed past.
 
 Authorization failure here is HARD: an event whose anchors do not reach threshold, or whose
 anchoring signature does not verify, is rejected and the new events never land. The verifier reports

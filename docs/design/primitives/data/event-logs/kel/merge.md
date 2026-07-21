@@ -8,8 +8,8 @@ that signal with chain-state-dependent routing to admit or reject batches.
 The merge layer integrates every structurally valid event (keep-all-data) and reads the chain's
 state as a **pure walk** over the events held: a live fork freezes further **origination**, never
 the reading, so two nodes holding the same events read the same state. Its structural checks — the
-seal-cap, no-burying-a-sealed-branch, no self-burial — are the **shape-validity gate**: every chain
-is federation-witnessed, so a selected witness mirrors them before signing, and a shape it declines
+seal-cap, no-burying-a-sealed-branch — are the **shape-validity gate**: every chain is
+federation-witnessed, so a selected witness mirrors them before signing, and a shape it declines
 never reaches threshold (see
 [`../../../../protocol-doctrine.md` §Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 
@@ -113,7 +113,7 @@ flowchart TD
   r2 -->|"inert below-seal straggler"| x2["Sealed (dropped)"]:::bad
   r2 -->|ok| r3{"3 · fork-detect<br/>(competes at a serial?)"}:::q
   r3 -->|"2nd content sibling"| x3["Ignored (witness declines)"]:::bad
-  r3 -->|"forms / joins a live fork"| x4["Forked (≤ 1 sealed) /<br/>Disputed (≥ 2 accepted sealed)"]:::mid
+  r3 -->|"forms / joins a live fork"| x4["Forked (content-only) /<br/>Disputed (≥ 2 accepted sealed)"]:::mid
   r3 -->|"clean, or a burying seal-advancer"| r4{"4 · kind-auth<br/>(sig · forward-key · cap ·<br/>no burying a sealed branch)"}:::q
   r4 -->|"linear extension"| ext["Extended → Active"]:::good
   r4 -->|"buries the content loser"| rec["Recovered → Active"]:::good

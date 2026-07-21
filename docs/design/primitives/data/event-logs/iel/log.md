@@ -95,14 +95,16 @@ directly:
   stolen key (**except a singleton / `t_use = 1` roster, where one member acts alone**), so a
   **second _accepted_ sealed branch is proof the quorum was subverted or the witnesses colluded** —
   surfaced loudly (a witness-declined sibling is deferred-pending, forcing nothing).
-  `{Evl, content}` (one sealed branch) is recoverable; the `Evl` branch survives and the content is
-  buried. `{Evl, Evl}` (two accepted sealed branches) is **Disputed → terminal → reincept**.
+  `{Evl, content}` (one accepted sealed branch) reads **Active** — the `Evl` buries the content
+  sibling. `{Evl, Evl}` (two accepted sealed branches) is **Disputed → terminal → reincept**.
 
-So the verdict turns on the number of accepted sealed branches past the fork: **one or fewer →
-Forked** (recoverable), **two or more → Disputed**. A single sealed branch you did not author (a
-quorum takeover) is still your point of no return — reincept — but read node-agnostically it stays
-Forked until a second accepted sealed branch lands. The witness beacon **propagates** the branches;
-the data-local walk **decides** the verdict. See
+So the verdict turns on the number of accepted sealed branches past the fork: **zero → Forked** (a
+content-only fork, recoverable), **exactly one → Active** (the sealed branch buries the content
+sibling; a terminal `Trm` reads Terminated instead), **two or more → Disputed**. A single sealed
+branch you did not author (a quorum takeover) is still your point of no return — reincept — but read
+node-agnostically it reads **Active** (a clean sealed tip); an owner's counter-seal then makes it
+two → Disputed. The witness beacon **propagates** the branches; the data-local walk **decides** the
+verdict. See
 [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison) for how the
 reading rides the effective SAID.
 
