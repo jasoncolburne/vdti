@@ -323,14 +323,15 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   reveals the matching capability; no higher-tier stand-in.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **fork-cost / witnessing floor** — a strict witness majority (`threshold > signers/2`) makes two
-  conflicting **same-kind** siblings (content or sealed) un-co-witnessable, preventing the fork.
+  conflicting **same-tier** siblings (content or sealed) un-co-witnessable, preventing the fork.
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **position gate** — first-seen witnessing at a chain's own `(prefix, serial)` — the **universal**
-  fork-prevention primitive, applied to **every event, content _and_ sealed**. On a keyless IEL it
-  is stated explicitly (the witnessing floor `> signers/2` at its own position), so two disjoint
-  member sub-quorums cannot both land an event at one IEL serial; a KEL gets it for free (its own
-  key is witnessed at the KEL position directly); the federation IEL realizes it via exclude-self
-  peer-witnessing.
+  fork-prevention primitive: one first-seen sibling **per tier** (one content, one sealed) per
+  position, so the cross-tier co-sign the split-stall exit needs stays permitted (witnessing
+  §First-seen). On a keyless IEL it is stated explicitly (the witnessing floor `> signers/2` at its
+  own position), so two disjoint member sub-quorums cannot both land an event at one IEL serial; a
+  KEL gets it for free (its own key is witnessed at the KEL position directly); the federation IEL
+  realizes it via exclude-self peer-witnessing.
   ([`merge.md`](primitives/data/event-logs/iel/merge.md#the-content-versus-sealed-split))
 - **negative checks are fail-secure declarations** — "is X revoked / rescinded?" is a positive
   lookup, never a scan-for-absence. A check reads the derived lookup-SEL first (O(1), present →

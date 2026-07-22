@@ -749,5 +749,5 @@ to a one-branch holder. The seal-cap stays unconditional.
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#effective-said-comparison) —
   effective-SAID comparison (cross-primitive).
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
-  — federation witnessing: the kind-scoped witnessing ladder, the witnessing floor, the beacon,
+  — federation witnessing: the tier-scoped witnessing ladder, the witnessing floor, the beacon,
   divergent witness receipts.

@@ -320,5 +320,5 @@ observable in the data layer. See
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
   — limit of the doctrine; layered defense; adversary patience; cascade-reincept honesty.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
-  — federation witnessing: the kind-scoped witnessing ladder, the witnessing floor, the beacon,
+  — federation witnessing: the tier-scoped witnessing ladder, the witnessing floor, the beacon,
   divergent witness receipts.

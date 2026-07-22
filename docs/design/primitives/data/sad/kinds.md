@@ -133,11 +133,13 @@ else**:
 - **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
   values a `Gnt` seals (`vdti/sel/v1/grants/*`), the **framework SADs a verifier resolves to
   evaluate** — a **policy** expression (`vdti/policy/v1/*`), an authorizing **`issuers`** list, a
-  credential's **`terms`** — and content SADs (a public credential body, the **file wrapper**
-  `vdti/sad/v1/schemas/file`, or an application content kind the app has registered), each gated by
-  its own custody `readers`. A verifier walking a chain has to resolve the role SADs an event
-  commits to, so these have to be reachable by SAID. **Kind is only the first gate.** A served SAD
-  that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed back only to a
+  credential's **`terms`**, and — when its forthcoming kind lands — the **replica-set SAD** that
+  `availability.replicas` names (the store itself resolves it, so it must be servable or replication
+  silently narrows to the fail-secure skip) — and content SADs (a public credential body, the **file
+  wrapper** `vdti/sad/v1/schemas/file`, or an application content kind the app has registered), each
+  gated by its own custody `readers`. A verifier walking a chain has to resolve the role SADs an
+  event commits to, so these have to be reachable by SAID. **Kind is only the first gate.** A served
+  SAD that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed back only to a
   requester that gate admits, and one delivered member-to-member rather than published (its
   `availability`) is never in the store to serve at all. So a _public_ grant value — a directory
   receive key — is served to anyone. A _member-private_ one is not: a `groupkey-epoch-key` wrap is

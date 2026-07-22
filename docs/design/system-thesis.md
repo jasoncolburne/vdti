@@ -58,7 +58,7 @@ infrastructure to infer system state.
 
 ## Federation convergence
 
-**In one line:** the witnessing floor **prevents a _same-kind_ fork** (two content, or two sealed)
+**In one line:** the witnessing floor **prevents a _same-tier_ fork** (two content, or two sealed)
 from forming on an honest quorum — that takes witness collusion, a provable double-sign. A **mixed**
 {sealed, content} fork still forms on an honest cross-node race, and resolves by tier: a burying
 seal buries the content loser (or a `Trm` retires the chain), while **two accepted sealed branches**
@@ -86,19 +86,19 @@ flowchart TD
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
 - **Prevention for witnessed events; detection for the byzantine residual.** On a witnessed chain
-  the witness-config's **witnessing floor** (`threshold > signers/2`), plus **one-per-position
-  witnessing (content _and_ sealed — the position gate is universal)**, means two competing
-  **same-kind** events at a position (two content, or two sealed) can never both be witnessed on an
-  honest quorum — so a fork, content **or** sealed, is **prevented** from forming. Manufacturing one
-  costs owning `2·threshold − signers` witnesses (the **fork-cost**), a provable double-sign. What
-  prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
-  being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
-  boundary forward, so **two or more _witnessed_ accepted sealed branches** (per branch, wherever
-  their seals sit) prove a dispute → `disputed` (a seal on a **first-seen-dead** lineage is **dead
-  on ascent** — you can't seal a buried chain — so in the honest case only one branch seals →
-  Active; a dispute takes two accepted-lineage branches, proven by a witness double-sign or, across
-  disjoint federations, an author-side proof — a reserve double-reveal or a member's
-  double-anchoring).
+  the witness-config's **witnessing floor** (`threshold > signers/2`), plus
+  **one-per-tier-per-position witnessing (content _and_ sealed each first-seen — the position gate
+  is universal)**, means two competing **same-tier** events at a position (two content, or two
+  sealed) can never both be witnessed on an honest quorum — so a fork, content **or** sealed, is
+  **prevented** from forming. Manufacturing one costs owning `2·threshold − signers` witnesses (the
+  **fork-cost**), a provable double-sign. What prevention does not cover is **detected**: the
+  byzantine (witness-collusion) residual — a **seal** being a tier-2 event (a rotation, or a
+  governance / kill act) that ratchets the chain's trust boundary forward, so **two or more
+  _witnessed_ accepted sealed branches** (per branch, wherever their seals sit) prove a dispute →
+  `disputed` (a seal on a **first-seen-dead** lineage is **dead on ascent** — you can't seal a
+  buried chain — so in the honest case only one branch seals → Active; a dispute takes two
+  accepted-lineage branches, proven by a witness double-sign or, across disjoint federations, an
+  author-side proof — a reserve double-reveal or a member's double-anchoring).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying

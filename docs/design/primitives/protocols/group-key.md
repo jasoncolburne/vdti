@@ -65,7 +65,16 @@ store-and-forward transport.
     authored while it legitimately held the epoch is the accepted backdate-within-a-held-window
     residual, not this rejection. The further residual: a message a lagging sender emits under the
     retired epoch **before** it sees the removal is still readable by the removed member — bounded
-    by how fast senders observe the change.
+    by how fast senders observe the change. Because the wrap roster and the authorizing membership
+    instance are **two structures** (§The pieces), a removal must reach both — and no authoring-side
+    rule ties the two acts together (the chain layer cannot pair them; an anchor is opaque to it).
+    What keeps them in lockstep is a **derivation rule**: an epoch's wrap set is the roster **minus
+    every member the membership instance has rescinded**, both read as of the epoch's own anchoring
+    position — data-local, checkable by any member, so an epoch wrapped to a rescinded member is a
+    **visible violation**, never silent drift — and a consumer reads a member as **removed the
+    instant either structure records it**. A partial or lagging state therefore costs availability,
+    or a bounded window of fetching ciphertext the member can no longer decrypt — never a key.
+    Authoring both changes together is good hygiene that shrinks the window; nothing depends on it.
   - **A time cadence** — after a set interval, the epoch turns even with stable membership, so a
     compromised epoch key exposes only that window.
 - **Checkpoints keep verification bounded.** A long-lived group accrues a great many epoch events on

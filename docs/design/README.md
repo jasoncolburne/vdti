@@ -200,8 +200,8 @@ Then the IEL (Identity Event Log) primitive, in order:
     — the verifier walk: threshold anchoring, roster accumulation by delta, root-facet dispatch, and
     the `kills[]` forward-match.
 18. [`primitives/data/event-logs/iel/merge.md`](primitives/data/event-logs/iel/merge.md) — the write
-    path: events first-seen at their own position (the universal position gate — content _and_
-    sealed), sealed record-both, and eviction via a roster `cut`.
+    path: events first-seen **per tier** at their own position (the universal position gate — one
+    content, one sealed), sealed record-both, and eviction via a roster `cut`.
 19. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
     — the correctness-proof matrix: the content-versus-sealed divergence enumeration and the verdict
     by witnessed-sealed-branch count (at the last seal).

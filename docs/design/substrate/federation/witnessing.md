@@ -72,7 +72,7 @@ federated inception that omits it is malformed and rejected, fail-secure.
 
 ## First-seen: prevention for content, detection for sealed
 
-A selected witness signs at most one sibling **per kind, per position**, and the two rungs compose
+A selected witness signs at most one sibling **per tier, per position**, and the two rungs compose
 into the whole guarantee.
 
 **Content is prevented.** A selected witness signs the **first** structurally-valid content event (a

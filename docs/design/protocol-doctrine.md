@@ -98,7 +98,7 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     seal forged on a _dead_ lineage is a different thing — dead on ascent, dropped).
   - **Disputed** — an **irrecoverable** fork: **two or more accepted sealed branches**. The count is
     **per branch, not per serial**. A **sealed branch** is a diverged branch whose **lineage is
-    accepted** — at no position on it did a competing same-kind sibling **reach threshold** while
+    accepted** — at no position on it did a competing same-tier sibling **reach threshold** while
     this branch's event did not (a branch built on a first-seen loss is **dead on ascent** — you
     can't seal a buried chain — and never counts) — **and** which carries an **accepted seal at the
     divergence serial or above** (its divergent event may itself be the seal). **Where the two seals
@@ -107,7 +107,7 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     honest cases out of Disputed is the **accepted-lineage** test, never a same-serial restriction:
     at an honest fork only one branch's lineage stays accepted (the other lost first-seen), so its
     seal is the **single** sealed branch and buries the content loser → **Active**. Two accepted
-    sealed branches take a **witness double-sign** — the floor accepts only one same-kind sibling
+    sealed branches take a **witness double-sign** — the floor accepts only one same-tier sibling
     per position, so either the two seals collide at one serial, or the content fork beneath them
     was itself double-signed and each branch then sealed; either way it is collusion — **or** two
     **rebinds naming different federations** (disjoint witness sets each honestly sign their own —
@@ -819,7 +819,7 @@ branches** a reader needs to read `Disputed` — two are the proof, so a node ac
 need not accept a third (the merge layer's "up to two witnessed sealed branches",
 [`kel/merge.md`](primitives/data/event-logs/kel/merge.md#merge-outcomes)). Deterministic witness
 co-location fixes the witness _set_, not arrival order, and the witnessing floor lets at most one
-content sibling per position ever go live (the kind-scoped witnessing counts — one content sibling,
+content sibling per position ever go live (the tier-scoped witnessing counts — one content sibling,
 one sealed — are [§Federation convergence](#federation-convergence)'s), so arrival order decides
 only _which_, never whether a fork forms.
 
@@ -1107,7 +1107,7 @@ rejected as un-usable — its `witnessed` signal would no longer mean per-positi
 config clears the `signers ≥ 3` witness-pool floor, so there is no lone-witness degenerate). Witness
 selection is deterministic by position, so any two threshold-quorums at one `(prefix, serial)` share
 at least `2·threshold − signers ≥ 1` witnesses — and an honest witness signs at most **one content
-sibling per position** (the kind-scoped witnessing counts below) — so **two competing content events
+sibling per position** (the tier-scoped witnessing counts below) — so **two competing content events
 can never both be witnessed**: a content fork on a witnessed chain is **prevented from forming**,
 not merely detected. Manufacturing one costs owning the whole quorum intersection — the **fork-cost
 `2·threshold − signers`**, a priced, tunable security parameter, not a free consequence of the
@@ -1132,7 +1132,7 @@ already-propagated old quorum — an entrance to the partition/eclipse family, n
 race. In the residual, the machinery of [§Divergence and recovery](#divergence-and-recovery) runs
 unchanged.
 
-**Witnessing is kind-scoped — the ladder (one rung per kind: one content sibling, one sealed, per
+**Witnessing is tier-scoped — the ladder (one rung per tier: one content sibling, one sealed, per
 position); the data decides** (witnesses are reporters, not deciders): a selected witness signs the
 **first** structurally-valid **content** event it sees at a `(prefix, serial)` and **declines any
 later content sibling** there (first-seen, one per serial); it signs the **first**
@@ -1152,7 +1152,7 @@ event among themselves, so the **first-seen** sealed sibling at a position — t
 witnesses sign — reaches threshold once it reaches any one honest selected witness. A **later**
 sealed sibling is witness-**declined**: it stays permanently sub-threshold (deferred-pending,
 droppable) — exactly like a losing **content** sibling under the floor. And a seal on a **dead
-lineage** — one that **lost first-seen** at an earlier position (a competing same-kind sibling there
+lineage** — one that **lost first-seen** at an earlier position (a competing same-tier sibling there
 reached threshold) **or whose attach point fell below an accepted seal** — is itself **dead on
 ascent** (you can't seal a buried chain), so it never counts: in the **honest** case only one
 branch's lineage survives first-seen, so its seal is the **single** sealed branch → Active. A

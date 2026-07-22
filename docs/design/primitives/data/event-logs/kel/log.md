@@ -304,7 +304,7 @@ the recovery-side composition with the two-tier compromise model is in
 - [`../sel/`](../sel/) — SEL primitive. KEL events root the authority that SEL acts resolve down to,
   through the owner IEL.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
-  — federation witnessing doctrine: the kind-scoped witnessing ladder, the witnessing floor, the
+  — federation witnessing doctrine: the tier-scoped witnessing ladder, the witnessing floor, the
   beacon, divergent witness receipts, acceptance gating.
 - [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) —
   federation bootstrap: the dependency-ordered ceremony that brings `Fcp` / `Rot` and the federation

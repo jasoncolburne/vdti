@@ -334,8 +334,13 @@ degenerate group of two** — the same machinery, no separate two-party construc
   does. The store check is per **identity** (any of a member's devices proves it, so all its devices
   read), while **writing** is per **device** — each writing device anchors its own lane on-demand. A
   **member removal rescinds the `chat-membership` grant** — recording a **`bound`** for each of the
-  member's anchored device lanes (that device's last message) the verifier enforces — as the same
-  act turns the epoch, so a removed member can no longer deposit or drain, nor backfill any lane
+  member's anchored device lanes (that device's last message) the verifier enforces — and turns the
+  epoch to the survivors. The two structures cannot drift into a leaked key: an epoch's **wrap set
+  is derived from both** — the wrap roster **minus every member `chat-membership` has rescinded**,
+  as of the epoch's anchoring position ([group-key](../primitives/protocols/group-key.md)) — and the
+  store reads a member as **removed the instant either structure records it**, so a partial or
+  lagging state costs availability (or a brief window of fetching ciphertext it can no longer
+  decrypt), never a key. So a removed member can no longer deposit or drain, nor backfill any lane
   past its bound, nor mint a **fresh lane** (a writing device's lane root is anchored by a
   grant-chain act, so a second parentless root is unanchored → rejected — see currency, above). A
   downloader enumerates nothing (the grant is participant-blind); the store, handed a

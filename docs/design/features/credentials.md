@@ -74,7 +74,11 @@ Both are existing primitives, reused unchanged.
   `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is a member of its
   `manifest.anchors[]`). No registry object and no lookup record: the credential is immutable and
   holder-presented, so it needs none. The anchoring event transitively commits the issuer's key
-  state and its whole authority chain.
+  state and its whole authority chain. The anchoring `Ixn` is tier-1 content — **buriable until the
+  issuer's next seal** (the exposure is the current unsealed run): a fork-recovery that buries its
+  branch orphans the proof, and the credential is **re-minted** (fresh pin, fresh SAID) — the priced
+  residual
+  ([residuals §Burying rotation orphans a dependent anchor](../residuals.md#burying-rotation-orphans-a-dependent-anchor)).
 - **Proof of disclosure is compaction.** A SAD's SAID is a hash over its content with nested SADs
   replaced by their own SAIDs, so a section is disclosed by revealing it and recomputing its SAID
   against the reference in its parent — no sibling-hash paths. Because the anchored SAID is over the
