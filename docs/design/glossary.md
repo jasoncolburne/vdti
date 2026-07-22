@@ -70,7 +70,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 | Kind  | Meaning                                                                                                                                                                                                                                                                                                                                                                                              |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | Founder / federation inception — a pre-federation founder KEL root, and the federation IEL's inception marker. Roots the spine; advances no seal.                                                                                                                                                                                                                                                    |
+| `Fcp` | Federation-infrastructure inception — a witness KEL root (genesis, or an added witness), and the federation IEL's inception marker. Roots the spine; advances no seal.                                                                                                                                                                                                                               |
 | `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root). Roots the spine; advances no seal.                                                                                                                                                                                                                                                                    |
 | `Ixn` | Interaction — content; anchors higher-layer SAIDs. The divergeable content kind — Tier 1, buriable (first-seen; on the SEL the `Pin` re-pin is tier-1 too). A SEL `Ixn` **always** carries payload (required) — a pure re-pin is a `Pin`.                                                                                                                                                            |
 | `Rot` | Rotation (KEL) — reveals the next signing key, commits the next reserve; signed with the reserve. Tier 2, seal-advancing.                                                                                                                                                                                                                                                                            |
@@ -86,6 +86,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 ### Chain structure
 
+- **identity bond** — every chain serves exactly one identity, declared by its **serial-1 event**
+  anchoring that identity's establishment act; permanent, and checked at roster admission (a
+  re-added member is a fresh chain). A federation roster admits only `Fcp`-rooted chains, a user
+  roster only `Icp`-rooted.
+  ([`kel/events.md`](primitives/data/event-logs/kel/events.md#the-identity-bond))
 - **seal / seal-advancing event** — a sealed (tier-2) event that advances the chain's trust
   boundary; carries `previousSeal`. ([`system-thesis.md`](system-thesis.md#forks-are-seal-bounded))
 - **locked portion** — the part of a chain before its most recent sealed event; structurally

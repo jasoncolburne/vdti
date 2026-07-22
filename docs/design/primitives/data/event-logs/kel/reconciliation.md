@@ -230,6 +230,9 @@ The merge engine handles batches atomically:
   federation IEL `Fcp` and the cross-attestation receipts. See
   [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md)
   for the bootstrap protocol.
+- **`[Fcp, Ixn]` plus the admitting federation `Wit`** — the joining-witness bundle,
+  dependency-ordered the same way (the consent `Ixn` anchors the admitting `Wit`; a partial join is
+  sub-threshold and reads fail-secure until the `Wit` accepts).
 
 ## Matrix 2: Source → sink transfer (gossip sync)
 

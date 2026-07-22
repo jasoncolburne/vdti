@@ -105,6 +105,14 @@ receipt redundancy (`fork-cost = threshold − slack`, `slack = signers − thre
 never silently accepted: deterministic selection makes a thin intersection a precomputable target,
 so the single gating witness for a position can be identified in advance.
 
+The precomputability is general, not a property of the thin config: selection is deterministic and
+public, so an attacker able to **choose or await** the attacked position computes the selection for
+upcoming serials and strikes where its owned witnesses are already selected. Provisioning should
+therefore read the price as fork-cost compromised witnesses **anywhere in the roster**, with waiting
+time standing in for per-position luck. What determinism still denies is _minting_: selection is a
+function of position and roster only, never the event's bytes, so an attacker can predict a set but
+cannot craft an event that draws a favorable one.
+
 On a content-only divergence the resolving **burying seal-advancer** (a `Rot` / `Evl`) is exactly
 that first sealed sibling at the position, needing no separate rule; a _second_ competing
 seal-advancer is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. And a seal on a **dead
@@ -465,9 +473,10 @@ is malformed and rejected; a chain cannot incept un-federated, and there is no "
 from a later `Wit`, early range unwitnessed" allowance. A loss-of-trust decision — asking whether a
 `Trm` or a divergence closed a chain — that cannot **multi-source-confirm** (any eclipse or
 single-source) **refuses**, never proceeds with a flag. The genesis of a federation is _not_ a
-direct-mode exception: its `Fcp` is unwitnessed only because it is the configured trust root
-([`bootstrap.md`](bootstrap.md)), and the residual where a content fork can still form is a
-**witness compromise**, not an un-witnessed chain.
+direct-mode exception, nor is a joining witness's inception: the unwitnessed steps are
+federation-infrastructure inceptions — genesis rooted in the configured trust pin
+([`bootstrap.md`](bootstrap.md)), a joiner rooted in the witnessed admitting `Wit` — and the
+residual where a content fork can still form is a **witness compromise**, not an un-witnessed chain.
 
 **Detection is eventual, not at-decision-time.** Every detection guarantee assumes the consumer can
 reach enough honest witnesses / converged gossip to see the competing branch. A consumer eclipsed to
@@ -502,15 +511,16 @@ binding **must** be accepted for selection (it selects over the new roster) — 
 the dead federation would strand the prefix. The cost of that declared selection is a **reachable
 honest-witness dispute**: two rebinds at one serial declaring **different** federations select
 **disjoint** witness sets, so each is honestly first-seen-accepted by its own federation and both
-reach threshold with **no witness double-sign** — `disputed`, proven by the author's reserve
-double-reveal, resolved by reincept. Trust is **per-federation and non-transitive**: a verifier
-independently trusts _each_ federation prefix the chain bound to, and each event is witnessed by
-whichever federation was current when it landed — so **convergence is among verifiers sharing a
-trusted-federation set**, and a verifier trusting only one side of such a race reads only that side
-accepted. Witnessing is therefore **range-based** — a contiguous run of events between rebinds
-shares one context — and the verification token reports the ranges (`[from, to) → F`), per range,
-not per event. A consumer **must not** assume "has a `Wit` ⇒ all events witnessed": an event in a
-run bound to a since-changed federation is witnessed by that run's federation, not today's.
+reach threshold with **no witness double-sign** — `disputed`, proven author-side (a reserve
+double-reveal, or a member's double-anchoring of both rebinds), resolved by reincept. Trust is
+**per-federation and non-transitive**: a verifier independently trusts _each_ federation prefix the
+chain bound to, and each event is witnessed by whichever federation was current when it landed — so
+**convergence is among verifiers sharing a trusted-federation set**, and a verifier trusting only
+one side of such a race reads only that side accepted. Witnessing is therefore **range-based** — a
+contiguous run of events between rebinds shares one context — and the verification token reports the
+ranges (`[from, to) → F`), per range, not per event. A consumer **must not** assume "has a `Wit` ⇒
+all events witnessed": an event in a run bound to a since-changed federation is witnessed by that
+run's federation, not today's.
 
 ```mermaid
 flowchart BT
@@ -541,14 +551,14 @@ orchestrated protocol.
 ## Roster governance
 
 A federation's roster changes ride the `Wit`'s **roster delta** — never a full snapshot. A `Wit`
-carries `{ add: Prefix, cut: Prefix[], …thresholds }`: **`add` is a single prefix** (one witness
-added per `Wit`, the `Fcp` inception alone standing up the founding roster wholesale), while **`cut`
-is a list** (cuts remove synced witnesses, so emergency multi-eviction is unaffected —
-evict-and-replace is `cut: [..], add: one`). One-at-a-time adds are both an operational match
-(standing up a witness is deliberate infrastructure, never bulk) and a structural closure: a
-transition introduces at most one unsynced witness, which alone cannot reach a majority against
-synced co-selectees that decline it first-seen, so the benign two-fresh-witnesses straddle collapses
-into the priced witness-compromise residual.
+carries `{ add: Prefix[], cut: Prefix[], …thresholds }`: **`add` carries exactly one prefix on a
+`Wit`** (one witness added per `Wit`, the `Fcp` inception alone standing up the founding roster
+wholesale), while **`cut` is unrestricted in count** (cuts remove synced witnesses, so emergency
+multi-eviction is unaffected — evict-and-replace is `cut: [..], add: one`). One-at-a-time adds are
+both an operational match (standing up a witness is deliberate infrastructure, never bulk) and a
+structural closure: a transition introduces at most one unsynced witness, which alone cannot reach a
+majority against synced co-selectees that decline it first-seen, so the benign two-fresh-witnesses
+straddle collapses into the priced witness-compromise residual.
 
 The current roster is reconstructed by **accumulating add/cut while walking**, capped at a **hard
 live set of `MAXIMUM_ROSTER_SIZE`** (over-cap → reject as a DoS; operators run `≥ 5`, so
@@ -570,7 +580,9 @@ produces receipts the federation does not honor, and an observed off-ceremony ro
 cut/eviction signal. Adding a joining witness pairs its consenting KEL `Ixn` (joining, not rotating)
 with the pre-add witnesses' KEL `Wit`s, which alone satisfy `t_govern` — the count is gated on
 **pre-add roster membership**, so a colluding new witness cannot manufacture a `t_govern` vote by
-authoring its own `Wit`.
+authoring its own `Wit`. The consenting `Ixn` is the joiner's chain's **serial-1 event** — a fresh
+`Fcp`-rooted chain incepted for the federation, its identity bond anchoring this admitting `Wit`
+([the identity bond](../../primitives/data/event-logs/kel/events.md#the-identity-bond)).
 
 ## The recoverability cap and exclude-self
 

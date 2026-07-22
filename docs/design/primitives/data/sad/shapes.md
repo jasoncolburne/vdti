@@ -135,8 +135,9 @@ federation `Fcp` / `Wit`:
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the
 threshold bounds are re-checked on the post-delta config
-([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add` is
-a **single** prefix (one witness KEL added at a time), not a list.
+([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add`
+must carry **exactly one** prefix (one witness KEL added at a time) — the type stays `list⟨prefix⟩`;
+the one-at-a-time rule is a cardinality check on the federation facet, not a second shape.
 
 ### `vdti/event/v1/roles/pins` — the participating member KEL SAIDs
 

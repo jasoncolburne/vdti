@@ -111,16 +111,17 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
     per position, so either the two seals collide at one serial, or the content fork beneath them
     was itself double-signed and each branch then sealed; either way it is collusion — **or** two
     **rebinds naming different federations** (disjoint witness sets each honestly sign their own —
-    no shared witness to double-sign; the proof is then the author's **reserve double-reveal**). No
-    sealed branch can be buried (burying a rotation would resurrect a retired key), so no single
-    chain can be chosen and the prefix must **reincept** — terminal for _everyone_. This is a
-    **branch-level** determination — acceptance is a **per-lineage** fact, computed by **any
-    verifier as a data-local walk over the retained branches**, not read off a single serial's event
-    count in isolation: a node retains a competing branch as non-canonical evidence rather than
-    discarding it (see [§Divergence and recovery](#divergence-and-recovery)), so a node holding both
-    sealed branches reads Disputed directly, and a node holding only one assembles the others — the
-    witness beacon enumerates the competing branch SAIDs, the node fetches and walks them. The
-    federation **propagates** the branches; it does **not** decide the verdict.
+    no shared witness to double-sign; the proof is then author-side — a **reserve double-reveal**,
+    or a member's **double-anchoring** of both siblings). No sealed branch can be buried (burying a
+    rotation would resurrect a retired key), so no single chain can be chosen and the prefix must
+    **reincept** — terminal for _everyone_. This is a **branch-level** determination — acceptance is
+    a **per-lineage** fact, computed by **any verifier as a data-local walk over the retained
+    branches**, not read off a single serial's event count in isolation: a node retains a competing
+    branch as non-canonical evidence rather than discarding it (see
+    [§Divergence and recovery](#divergence-and-recovery)), so a node holding both sealed branches
+    reads Disputed directly, and a node holding only one assembles the others — the witness beacon
+    enumerates the competing branch SAIDs, the node fetches and walks them. The federation
+    **propagates** the branches; it does **not** decide the verdict.
   - **Terminated** — a terminal `Trm` has landed cleanly (or won a `{Trm, content}` fork on
     tier-rank). Fully terminal: accepts no submission. A `{Trm, content}` fork resolves here — the
     terminal `Trm` is the single sealed branch and wins on tier-rank over the buriable content, the
@@ -567,19 +568,29 @@ accepted competing sealed branches** (`{Rot, Rot}`, `{Evl, Evl}`, any pair), so 
 clean and _no one_ can recover — or the sole accepted sealed branch is one this party did **not**
 author: the chain reads **Active** node-agnostically (a clean sealed tip), but for this party it is
 the point of no return above — only that branch's author can retain-and-recover. The Disputed case a
-one-branch holder detects once the beacon delivers the second branch.
+one-branch holder detects once the beacon delivers the second branch. Reincepting an **identity**
+also means fresh member device chains: each chain's identity bond names the dead prefix, so members
+return on newly-incepted chains — a clean break, since the compromise that forced the dispute may
+have touched member devices.
 
 **The misbehavior proof is computed from the token, not asserted as a rule.** A dispute always
 carries a **provable** cryptographic misbehavior, but the doctrine does not fix _which_ — a verifier
 reads it off the retained receipts and events. `confirmed_witness_double_sign(token)` holds when one
 signer's receipts cover **both** competing siblings at one position (the same-serial,
 same-federation race); `confirmed_reserve_double_reveal(token)` holds when the two seals reveal
-**one** reserve preimage (`{Rot, Rot}`, and the cross-federation rebind). A **cross-federation
-rebind** is the case where the two witness sets are **disjoint**, so no witness double-signs and
-only the reserve double-reveal proves it. When neither is confirmable from held evidence, the
-verdict is still **Disputed** and the cause is **reported unconfirmed** — the attribution never
-gates reincept (fail-secure). The proof decides only **forensics**: a confirmed witness double-sign
-names colluders to evict; a reserve double-reveal names the author (reincept and move on).
+**one** reserve preimage (`{Rot, Rot}`; a rebind race when both siblings anchor from one device
+position); `confirmed_member_double_anchoring(token)` holds when one member's device chain carries
+two chained participations anchoring **both** competing siblings at one identity position (each a
+fresh, legitimate event on its own linear chain — the quorum-overlap **double-dealer**: authorizing
+quorums are strict majorities, so two accepted sealed branches always share at least one member, and
+that member either revealed one reserve twice or anchored both siblings in sequence). A
+**cross-federation rebind** is the case where the two witness sets are **disjoint**, so no witness
+double-signs and the proof is author-side — a reserve double-reveal, or a member's double-anchoring.
+When none is confirmable from held evidence, the verdict is still **Disputed** and the cause is
+**reported unconfirmed** — the attribution never gates reincept (fail-secure). The proof decides
+only **forensics**: a confirmed witness double-sign names colluders to evict; a reserve
+double-reveal or a member double-anchoring names the author-side double-dealer (reincept and move
+on).
 
 Two distinct `Rot`s at one serial — the Disputed case — look like:
 
@@ -842,17 +853,17 @@ documents issued under that state stay verifiable; audit queries on that portion
 answers. Sealed events are never _rewritten_ (immutability is unconditional), and the only thing
 that flips the reading to Disputed is a **witnessed** sealed fork — **two or more accepted sealed
 branches** (at the fork or at different serials above it), needing a provable witness double-sign
-(or, for a cross-federation rebind, a reserve double-reveal over disjoint witness sets) — never a
-below-seal straggler. In the **honest** case a content fork's loser is **dead on ascent** (you
-cannot seal a buried chain — its lineage **lost first-seen**, so honest witnesses decline its
-descendants), so only **one** branch's seal is accepted → Active; a dispute takes **two
-accepted-lineage branches**, which requires the double-sign (or disjoint federations), and the count
-is **per branch** wherever the seals sit. When a second accepted seal surfaces, the reading flips
-**Active → Disputed** and the finality boundary retreats to `v_{d-1}` — the **fail-secure**
-direction (finality retreats on more data, never extends). Above-seal events carry tier-1-only auth
-— structurally indistinguishable from signing-key-only adversary capture — and become durable only
-when a later seal-advancing event lands cleanly past them. The clean seal is the boundary the
-protocol can defend.
+(or, for a cross-federation rebind, an author-side reserve double-reveal or member double-anchoring
+over disjoint witness sets) — never a below-seal straggler. In the **honest** case a content fork's
+loser is **dead on ascent** (you cannot seal a buried chain — its lineage **lost first-seen**, so
+honest witnesses decline its descendants), so only **one** branch's seal is accepted → Active; a
+dispute takes **two accepted-lineage branches**, which requires the double-sign (or disjoint
+federations), and the count is **per branch** wherever the seals sit. When a second accepted seal
+surfaces, the reading flips **Active → Disputed** and the finality boundary retreats to `v_{d-1}` —
+the **fail-secure** direction (finality retreats on more data, never extends). Above-seal events
+carry tier-1-only auth — structurally indistinguishable from signing-key-only adversary capture —
+and become durable only when a later seal-advancing event lands cleanly past them. The clean seal is
+the boundary the protocol can defend.
 
 A **Forked** divergence resolves by a burying seal that seals its surviving branch, so that branch's
 above-seal anchors become durable; a **Disputed** divergence never seals, so its post-seal window
@@ -1051,19 +1062,20 @@ first-seen-declined under an honest partition (one sibling accepted, the other d
 **witness-colluded two-accepted** race is **Disputed**, terminal — which is why a federation runs a
 hard recoverability ceiling and `|roster| ≥ 4` with serialized sealing; no delegation, since trust
 is per-federation and non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose
-**`add` is a single prefix** — one witness added per `Wit`, the `Fcp` inception alone standing up
-the founding roster wholesale (`cut` stays a list: cuts remove synced witnesses, so emergency
-multi-eviction is unaffected — evict-and-replace is `cut: [..], add: one`). Standing up a witness is
-deliberate infrastructure, never bulk — and structurally, a governance transition then introduces at
-most **one** unsynced witness, which alone cannot reach a majority `threshold` against synced
-co-selectees that decline by first-seen — so the benign two-fresh-witnesses straddle (two full
-quorums under disjoint contexts) collapses into the priced witness-compromise residual (a fresh
-sibling needs a byzantine synced co-signer). Its trust root is a **config-pinned federation prefix**
-(runtime-configured, empty by default — fail-secure) — the prefix derives from the whole inception
-content `(roster, threshold, nonce)`, so it is a binding commitment to the exact founder set. There
-is **no self-witnessing carve-out** — the `Fcp` is a structural marker the verifier dispatches on,
-not a trust shortcut: authorization is ordinary member-anchoring (the founders' `Rot`s anchor the
-federation `Fcp`), trust roots in the config-pin, and everything post-genesis is witnessed normally.
+**`add` carries exactly one prefix per `Wit`** — one witness added at a time, the `Fcp` inception
+alone standing up the founding roster wholesale (`cut` is unrestricted in count: cuts remove synced
+witnesses, so emergency multi-eviction is unaffected — evict-and-replace is `cut: [..], add: one`).
+Standing up a witness is deliberate infrastructure, never bulk — and structurally, a governance
+transition then introduces at most **one** unsynced witness, which alone cannot reach a majority
+`threshold` against synced co-selectees that decline by first-seen — so the benign
+two-fresh-witnesses straddle (two full quorums under disjoint contexts) collapses into the priced
+witness-compromise residual (a fresh sibling needs a byzantine synced co-signer). Its trust root is
+a **config-pinned federation prefix** (runtime-configured, empty by default — fail-secure) — the
+prefix derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding
+commitment to the exact founder set. There is **no self-witnessing carve-out** — the `Fcp` is a
+structural marker the verifier dispatches on, not a trust shortcut: authorization is ordinary
+member-anchoring (the founders' `Rot`s anchor the federation `Fcp`), trust roots in the config-pin,
+and everything post-genesis is witnessed normally.
 
 The convergence model has three components:
 

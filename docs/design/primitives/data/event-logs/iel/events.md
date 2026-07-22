@@ -110,6 +110,10 @@ inception):
 - **An authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
   overlap and a sealed fork always names a double-dealer (closing the disjoint-quorum attribution
   loss).
+- **Every admitted member carries the identity bond.** A member prefix must be a fresh chain whose
+  serial-1 event anchors this identity's establishment act — its inception, or the admitting evolve
+  ([the identity bond](../kel/events.md#the-identity-bond)); a user roster admits only `Icp`-rooted
+  chains (an `Fcp`-rooted chain is federation infrastructure).
 - **The roster is hard-capped at `MAXIMUM_ROSTER_SIZE` (= 32)** — a DoS backstop; the verifier
   rebuilds the roster in memory as it walks, and any delta pushing the live set past
   `MAXIMUM_ROSTER_SIZE` is rejected (all IELs, including the federation).
@@ -322,7 +326,11 @@ malformed → rejected (trust still roots in the config-pin). A user `Wit` **mus
 `Wit` — it rides any body event — and a pure key rotation is a member's KEL `Rot`, so a `Wit` that
 changes neither is a no-op → rejected. Initial binding rides the `Icp` (which always carries the
 federation); a later `Wit` **rebinds**. Trust is **per-federation and non-transitive** — each event
-is witnessed by whichever federation was current when it landed.
+is witnessed by whichever federation was current when it landed. The field-match binds **the act,
+not the roster's steady state**: between rebinds a member still on the old federation lawfully lags
+until it rebinds (the migration overlap), and each layer's events are witnessed under its own
+binding — the identity bond guarantees no member chain serves another identity, so the lag is the
+only mismatch that can arise.
 
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no
@@ -460,7 +468,11 @@ tips plus, on a roster-add, the joiner's `Ixn.previous`. See
 The **added-member consent** rule: every added member consents to its own addition at tier 1 (a KEL
 `Ixn`, counted toward consent-of-added, **never** toward `t_govern`); the continuing quorum approves
 at tier 2 (KEL `Rot`s). The kind split (joiner `Ixn` versus approver `Rot`) keeps the joiner's
-consent out of `t_govern`.
+consent out of `t_govern`. The consent is the joiner's chain's **serial-1 event** — an added member
+is a fresh chain incepted for this identity, and admission validates its **identity bond**: the
+prefix's serial-1 must anchor this identity's inception or this admitting act
+([the identity bond](../kel/events.md#the-identity-bond)). A previously-admitted chain fails that
+check (its serial-1 names a prior admitting act), so re-adding a member means a fresh chain.
 
 A device named in a roster it did not mean to join gains the naming identity **nothing over the
 member's own keys or chain** — roster membership is the _identity's_ governance, never authority

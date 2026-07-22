@@ -33,9 +33,11 @@ Two boundaries to be clear about. **The threshold is over _devices_, not people*
 is your own device set, and a device-threshold is not an identity-threshold. Multiple _independent
 identities_ — a team of separate people, or several orgs — compose at the **policy** layer (below),
 not as members of one IEL; a single controller's device set (one person's, or one organization's) is
-one IEL. And these are _recommendations_, not walls the system enforces: nothing can stop two people
-from sharing a key or one device from hosting several identities — but the intended model is **one
-controller (a person, or an organization acting as one) ↔ one IEL ↔ its devices.**
+one IEL. Two rules of different strengths here: nothing can stop two people from sharing a key —
+that stays a recommendation — but a **key history** serves exactly one identity (its first act
+declares which, and joining a roster checks it), so a device hosting several identities runs a
+separate key history for each. The intended model is **one controller (a person, or an organization
+acting as one) ↔ one IEL ↔ its devices.**
 
 ## The two keys on a device
 

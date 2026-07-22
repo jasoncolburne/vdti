@@ -50,7 +50,7 @@ acceptance also requires the owner to have authorized it):
   reserve, and a **second accepted sealed branch** is proof the witnesses colluded, surfaced loudly.
   Two accepted sealed branches → **Disputed → re-incept**; a sealed branch beside content is
   **recoverable** (the sealed branch survives and the content buries). A witness-declined sealed
-  sibling is held pending, forcing nothing.
+  sibling is held deferred-pending, forcing nothing.
 
 The witnessing mechanics — the floor, first-seen-per-position, the beacon — are the federation's
 ([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md));
@@ -82,10 +82,10 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 | **Invalid**  | Structurally inapplicable to the chain state.                       | Structural-validation failure — inception on a non-empty chain, a non-inception on an Empty one, a role outside the kind's allowlist, a manifest on an `Icp` / `Pin` / `Sea`, a wrong-kind anchor. |
 | **Ignored**  | A well-formed event the witnesses decline.                          | Fork prevention — a second content sibling, or a second sealed sibling, at a position; or a new event on a Disputed / Terminated chain (barring a partition).                                      |
 
-A structurally-valid submission not yet at threshold is held **pending** — retained and gossiped for
-witnessing, not advancing the tip or seal, not counted toward a verdict — and re-enters routing once
-accepted, or becomes `Ignored` if declined as a later sibling. No node advances to a sub-threshold
-event, its own fresh submission included.
+A structurally-valid submission not yet at threshold is held **deferred-pending** — retained and
+gossiped for witnessing, not advancing the tip or seal, not counted toward a verdict — and re-enters
+routing once accepted, or becomes `Ignored` if declined as a later sibling. No node advances to a
+sub-threshold event, its own fresh submission included.
 
 ## Routing order
 

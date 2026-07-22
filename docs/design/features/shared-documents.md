@@ -85,11 +85,13 @@ V0 carries:
 - **`creator`** — the creator's identity prefix, which governs membership and sharing. The creator
   may be a multi-device or threshold identity; co-equal separate-identity admins (a governance
   threshold over distinct identities) are a deliberate extension, not this feature.
-- **the reserved topics** — a holder derives the governance chains from the document prefix (below).
 - **`readers[]`** — the initial read gate: the sorted union of the three `document-*-membership` SEL
   prefixes (edit ∪ comment ∪ read); omitted = public.
 - **`nonce`** — high-entropy, so the prefix (hence every governance and version chain) is
   unguessable for a **private** document; a public document may omit it.
+
+The governance chains ride no V0 field — a holder derives them from the document prefix plus the
+protocol's reserved topics (below).
 
 V0 is **anonymous-write** — the shared constitution carries no `owner`, so its legitimacy is social,
 established out of band. A competing V0′ is always mintable; nothing structural privileges one

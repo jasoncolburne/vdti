@@ -175,8 +175,9 @@ The roles that carry discrimination or shape rules, in prose:
   SEL `Trm` (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal
   recovery).
 - **`roster`** is a **delta**, never a snapshot (`{ add, cut, changed thresholds }`): `add` is a
-  list on the user kinds and a **single** prefix on a federation `Wit`; a `cut` `Evl` carries a
-  **required non-empty `cut`** + optional `threshold`, **never** an `add`.
+  list on every kind — on a federation `Wit` it must carry **exactly one** element (one witness
+  added at a time); a `cut` `Evl` carries a **required non-empty `cut`** + optional `threshold`,
+  **never** an `add`.
 - **`delegates`** is a positive inclusion list; the same `Ath` may also carry `anchors` (a `Gnt`) —
   the two roles are independent.
 - **`grant`** names the grant-doc: the `editors` / `commenters` and their `from` validity-period
@@ -301,36 +302,39 @@ capability, no higher-tier stand-in) — is the protocol doctrine's —
 
 ### KEL — 5 kinds (+ the founder `Fcp` inception variant)
 
-| Kind  | Tier | Sig    | Role                                                                                                                |
-| ----- | ---- | ------ | ------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | 1    | single | Founder **pre-federation** inception (self-attested; its v=1 `Rot` anchors the federation `Fcp`).                   |
-| `Icp` | 1    | single | Standard inception — **federation-bound** (there is no direct mode).                                                |
-| `Ixn` | 1    | single | Content; anchors higher-layer SAIDs (`anchors`, ≥ 1). **The divergeable content kind** (first-seen, buriable).      |
-| `Rot` | 2    | single | Rotation — reveals the next signing key, commits the next reserve; signed with the reserve. **Seal-advancing.**     |
-| `Wit` | 2    | single | Federation (re)bind (user KEL) / federation **governance** (witness KEL); **is** the rotation. **Seal-advancing.**ᵃ |
-| `Trm` | 2    | single | **Terminal.**                                                                                                       |
+| Kind  | Tier | Sig    | Role                                                                                                                                                                                                                 |
+| ----- | ---- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp` | 1    | single | **Federation-infrastructure** inception (self-attested; its v=1 anchors the federation act it serves — the genesis `Rot` anchoring the federation `Fcp`, or a joiner's consent `Ixn` anchoring the admitting `Wit`). |
+| `Icp` | 1    | single | Standard inception — **federation-bound** (there is no direct mode).                                                                                                                                                 |
+| `Ixn` | 1    | single | Content; anchors higher-layer SAIDs (`anchors`, ≥ 1). **The divergeable content kind** (first-seen, buriable).                                                                                                       |
+| `Rot` | 2    | single | Rotation — reveals the next signing key, commits the next reserve; signed with the reserve. **Seal-advancing.**                                                                                                      |
+| `Wit` | 2    | single | Federation (re)bind (user KEL) / federation **governance** (witness KEL); **is** the rotation. **Seal-advancing.**ᵃ                                                                                                  |
+| `Trm` | 2    | single | **Terminal.**                                                                                                                                                                                                        |
 
 - ᵃ **`Wit`** — the one witness/federation kind: on a user (`Icp`-rooted) KEL it changes
   `federation` and/or `witnesses` and anchors the user IEL `Wit`; on an `Fcp`-rooted witness KEL it
   is federation governance (anchors the federation IEL `Wit`, never self-bound). It **is** the
   rotation (refreshes the signing key + reserve).
 
-A KEL has **one inception root**: either a founder **`Fcp → Rot`** pair (a pre-federation founder
-anchoring the federation IEL `Fcp` it helps incept) **or** a standalone **`Icp`** (joining an
-existing federation) — **never** `Fcp → Icp`. A pre-federation `Fcp` is **self-attested**, carries
-**no `witnesses`** (there is no federation yet to witness it — which keeps the federation IEL's own
-bootstrap non-circular), and **cannot stand alone**: its v=1 is a **`Rot`** that anchors the
-federation IEL's **`Fcp`** marker (kind-strict, tier-2 → tier-2) as a **dependency-ordered pair**
-(`Fcp` v=0 → `Rot` v=1). **Recovery is a plain `Rot`** — rotate at the first compromised position;
-the thief's run below dies on ascent (§Divergence is scoped to content). The full ceremony is KEL +
-federation doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../substrate/federation/).
+A KEL has **one inception root**: a genesis witness's **`Fcp → Rot`** pair (anchoring the federation
+IEL `Fcp` it helps incept), an added witness's **`Fcp → Ixn`** pair (the joining consent anchoring
+the admitting governance `Wit`), **or** a standalone **`Icp`** (a user device) — **never**
+`Fcp → Icp`. An `Fcp` is **self-attested**, carries **no `witnesses`** and no federation binding (at
+genesis there is no federation yet to witness it — which keeps the federation IEL's own bootstrap
+non-circular; a joiner's pair is unwitnessed the same way, its trust rooted in the **witnessed**
+admitting `Wit`), and **cannot stand alone**: its v=1 anchors the federation establishment act the
+chain serves — the genesis **`Rot`** anchoring the federation IEL's **`Fcp`** marker (kind-strict,
+tier-2 → tier-2) as a **dependency-ordered pair** (`Fcp` v=0 → `Rot` v=1), or the joiner's consent
+**`Ixn`**. **Recovery is a plain `Rot`** — rotate at the first compromised position; the thief's run
+below dies on ascent (§Divergence is scoped to content). The full ceremony is KEL + federation
+doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../substrate/federation/).
 
 ### IEL — 8 kinds (+ the federation `Fcp` marker)
 
 | Kind  | Tier | Count                                      | Role                                                                                                                                                                                                                                                       |
 | ----- | ---- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | 2    | all initial members consent                | Inception — pins the initial roster + threshold vector, federation binding, and `witnesses`. A **federation IEL** incepts the `Fcp` marker instead (below).                                                                                                |
-| `Ixn` | 1    | `t_use`                                    | Content; anchors content SEL events, each SEL's serial-1 **v1**, **and a credential's issuance commitment** (an immutable SAD, no credential-SEL), batched. **The divergeable content kind** (first-seen, buriable).                                       |
+| `Ixn` | 1    | `t_use`                                    | Content; anchors content SEL events, each content SEL's serial-1 **v1**, **and a credential's issuance commitment** (an immutable SAD, no credential-SEL), batched. **The divergeable content kind** (first-seen, buriable).                               |
 | `Evl` | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster/threshold **delta** (`roster`); a `cut` `Evl` **evicts** (buries a fork and evicts in one sealing event); no kills.ᵃ                                                                                                           |
 | `Ath` | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and/or `anchors` a SEL `Gnt` (act **as itself**). **Sealed on arrival, seal-advancing.**ᵇ                                                                                                         |
 | `Rev` | 2    | `t_govern`                                 | **Revoke** — kill-anchor for an **owned** artifact (anchors a SEL `Trm` + a `kills[]` declaration). **Sealed on arrival; non-terminal.**ᶜ                                                                                                                  |
@@ -340,9 +344,11 @@ federation doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../subst
 | `Fcp` | 2    | all founders consent                       | **Federation inception marker** _(federation IEL only)_ — the federation IEL's `Icp`; anchored kind-strict by each founder's KEL `Rot` (T2 ↔ T2). See the restricted-IEL note below.                                                                      |
 
 - ᵃ **`Evl`** — the `roster` delta is `add` + `cut`; added members consent at tier 1 via their own
-  KEL anchor, the binding authorization tier 2 from the continuing quorum; anchors no kills (those
-  ride `Rev` / `Dth`). Evicting a compromised / divergence-causing member is a `cut` `Evl` — one
-  sealing event buries the fork **and** evicts, atomically (there is no separate repair event).
+  KEL anchor — a fresh chain's serial-1 event, the identity bond
+  ([`kel/events.md`](kel/events.md#the-identity-bond)) — the binding authorization tier 2 from the
+  continuing quorum; anchors no kills (those ride `Rev` / `Dth`). Evicting a compromised /
+  divergence-causing member is a `cut` `Evl` — one sealing event buries the fork **and** evicts,
+  atomically (there is no separate repair event).
 - ᵇ **`Ath`** — `delegates` is a positive inclusion list of delegate prefixes; `anchors` is
   kind-strict (names **only** `Gnt`s). Both roles are permitted at once.
 - ᶜ **`Rev`** — carries no roster delta; the forced `Rot` gives the permanent act a ≥ tier-2 KEL
@@ -518,21 +524,23 @@ back down to its authority's current tip:
   inception, and the IEL / federation `Trm`); the federation binding (the IEL `Wit`) ← `Wit`. No
   higher-tier stand-in. A rotated-out key cannot produce one, which closes the rotated-out-member
   backdate.
-- An **IEL** event anchors the **SEL** events it authorizes — an `Ixn` for content and each SEL's
-  serial-1 **v1** (the `Icp` rides `v1.previous`, never itself anchored) **and** a credential's
-  **issuance commitment** (a flat hash, not a SEL event); a `Rev` / `Dth` for the SEL `Trm`s they
-  seal (`Rev` a credential revocation, `Dth` a rescission); an `Ath` for a SEL `Gnt` — each via
-  `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL kind,
-  and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the owner IEL
-  tip via its `pin`, carried on its serial-1 event — a bare `Pin` when inception batches no other
-  first event, otherwise the first event itself (the `Icp` stays pin-free for recomputability). The
-  as-of authority is the **anchoring position** — the committing IEL event, append-only — so it
-  cannot select a more permissive past ([`../../policy/documents.md`](../../policy/documents.md)).
+- An **IEL** event anchors the **SEL** events it authorizes — an `Ixn` for content and each content
+  SEL's serial-1 **v1** (the `Icp` rides `v1.previous`, never itself anchored) **and** a
+  credential's **issuance commitment** (a flat hash, not a SEL event); a `Rev` / `Dth` for the SEL
+  `Trm`s they seal (`Rev` a credential revocation, `Dth` a rescission); an `Ath` for a SEL `Gnt` —
+  each via `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL
+  kind, and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the
+  owner IEL tip via its `pin`, carried on its serial-1 event — a bare `Pin` when inception batches
+  no other first event, otherwise the first event itself (the `Icp` stays pin-free for
+  recomputability). The as-of authority is the **anchoring position** — the committing IEL event,
+  append-only — so it cannot select a more permissive past
+  ([`../../policy/documents.md`](../../policy/documents.md)).
 
 A device swap makes this concrete: replacing device X with Y is an IEL `Evl` carrying a roster delta
 (`cut X, add Y`). The continuing `t_govern` members (W, Z) each author a KEL `Rot` that anchors the
 `Evl` — a tier-2 governance act, each revealing a rotation reserve — while the joining device Y
-consents via a KEL `Ixn` (counted toward consent-of-added, never toward `t_govern`):
+consents via a KEL `Ixn` (counted toward consent-of-added, never toward `t_govern`). Y is a fresh
+chain incepted for this identity, so its consent `Ixn` is its serial-1 event — the identity bond:
 
 ```mermaid
 flowchart BT
@@ -687,8 +695,8 @@ revocation lookup SEL's `Icp` is never anchored — the IEL `Rev` anchors its `T
 - **Three-letter kind codes**, consistent across log types: `Fcp` / `Icp` / `Ixn` / `Rot` / `Wit` /
   `Trm` (KEL); `Icp` / `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Trm` / `Wit` (IEL, + the federation
   `Fcp` marker); `Icp` / `Pin` / `Ixn` / `Gnt` / `Trm` / `Sea` (SEL).
-- **Inception** is `Icp` on every log — except a founder pre-federation KEL and a federation IEL,
-  which root at **`Fcp`**; the log type disambiguates structural differences.
+- **Inception** is `Icp` on every log — except a federation-infrastructure KEL (a witness device)
+  and a federation IEL, which root at **`Fcp`**; the log type disambiguates structural differences.
 - **`Trm`** (terminal) appears on all three logs; **`Ixn`** (content) on all three. When a doc needs
   to disambiguate the shared `Trm` across layers it qualifies it (`KEL-Trm` / `IEL-Trm` /
   `SEL-Trm`).

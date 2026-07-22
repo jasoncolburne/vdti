@@ -268,8 +268,8 @@ of atomicity for the merge handler.
   order so all nodes process the same batch identically. The `said` tiebreaker is for determinism
   only and carries no semantic meaning.
 
-The verifier's `max_pages` cap (default 64 pages ≈ 8K events; configurable via env var) caps
-resource use even on adversarial chains.
+The verifier's `max_pages` cap (default 64 pages ≈ 8K events; configurable) caps resource use even
+on adversarial chains.
 
 ## The two facets — user and federation
 

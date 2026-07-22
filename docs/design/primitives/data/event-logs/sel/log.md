@@ -200,7 +200,7 @@ mechanics are the federation's, applied at the SEL's own position
   the data-local walk sees two. A sealed branch is never buriable, so a **second accepted sealed
   branch is Disputed** — it requires a strict majority of witnesses to double-sign, which is
   provable collusion. A witness-**declined** sealed sibling reaches no threshold and is held
-  pending, forcing nothing.
+  deferred-pending, forcing nothing.
 
 **Anchoring and witnessing ride one batch, so witnessing also closes authorship-forgery.** A SEL
 event is committed only together with its owner-IEL anchor: it is event-kinded, so it cannot enter

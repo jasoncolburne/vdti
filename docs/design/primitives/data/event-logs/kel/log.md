@@ -34,9 +34,9 @@ so two distinct inception events cannot share a prefix without a Blake3-256 coll
 events inherit the inception's `prefix` and derive only `said`.
 
 KEL inception is dispatched by **kind** at v=0 — see
-[`events.md` §Two-kind inception](events.md#two-kind-inception). The kind determines whether the
-chain is pre-federation (`Fcp`) or federation-bound from inception (`Icp`). The verifier dispatches
-structural behavior on the kind; consumer trust composes through the
+[`events.md` §Two-kind inception](events.md#two-kind-inception). The kind determines the chain's
+service class — federation infrastructure (`Fcp`) or a federation-bound user device (`Icp`). The
+verifier dispatches structural behavior on the kind; consumer trust composes through the
 [config-pinned federation prefix set](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 
 ## Per-node chain states
@@ -233,8 +233,8 @@ of atomicity for the merge handler.
 
 The page model lets every operation be bounded-resource. The hot page — the retained branch plus the
 burying seal-advancer — fits in one page (per the seal-advance cap derivation above). The verifier's
-`max_pages` cap (default 64 pages ≈ 8K events; configurable via env var) caps resource use even on
-adversarial chains.
+`max_pages` cap (default 64 pages ≈ 8K events; configurable) caps resource use even on adversarial
+chains.
 
 ## Chain-lifecycle paths (per-node)
 

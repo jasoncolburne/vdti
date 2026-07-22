@@ -96,10 +96,10 @@ KEL inception is one of two kinds — `Fcp`, `Icp` (see
 [`events.md` §Two-kind inception](events.md#two-kind-inception)). At v=0, the verifier dispatches on
 kind:
 
-| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                                |
-| -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Fcp`          | absent                         | Pre-federation — no `federation`, no witnessing; the v=1 `Rot` anchors the federation IEL `Fcp` (founder bootstrap), entering the federation-bound lifecycle.                                    |
-| `Icp`          | `federation` + `federationPin` | **Federation-bound** (required — there is no direct mode): reads `federation` / `federationPin` as context (recorded per event); witnessing per `witnesses`. An `Icp` omitting them is rejected. |
+| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                                                                                                                        |
+| -------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp`          | absent                         | Federation infrastructure — no `federation`, no witnessing at inception; the v=1 anchors the federation act the chain serves (the genesis `Rot` anchoring the federation IEL `Fcp`, or a joiner's consent `Ixn` anchoring the admitting `Wit`), entering the federation-bound lifecycle. |
+| `Icp`          | `federation` + `federationPin` | **Federation-bound** (required — there is no direct mode): reads `federation` / `federationPin` as context (recorded per event); witnessing per `witnesses`. An `Icp` omitting them is rejected.                                                                                         |
 
 The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the
 carve-out from chain data alone rather than consulting consumer configuration. Consumer trust
@@ -520,7 +520,7 @@ page rather than loading the full chain into memory.
 `completed_verification(loader, prefix, page_size, max_pages, anchors)` pages through a
 `PageLoader`, calling `truncate_incomplete_generation()` at page boundaries to handle divergent
 generations that span pages. Returns a trusted `KelVerification` token. The `max_pages` parameter
-prevents resource exhaustion (default 64 pages ≈ 8K events; configurable via env var).
+prevents resource exhaustion (default 64 pages ≈ 8K events; configurable).
 
 ### PageLoader
 

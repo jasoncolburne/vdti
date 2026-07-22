@@ -96,8 +96,10 @@ federation, so the read fails secure. There is no all-or-nothing transaction to 
 dependency order.
 
 Everything **after** genesis — every `Wit` that adds or cuts a witness or rotates the roster's keys
-— is witnessed normally by the now-existing federation ([`witnessing.md`](witnessing.md)). Genesis
-is the sole unwitnessed step, and only because it is the configured trust root.
+— is witnessed normally by the now-existing federation ([`witnessing.md`](witnessing.md)). The
+unwitnessed steps are the federation-infrastructure inceptions: genesis, rooted in the configured
+trust pin, and a joining witness's own inception pair, rooted in the **witnessed** governance `Wit`
+that admits it — in both shapes, nothing trust-bearing rides the unwitnessed pair alone.
 
 ## The trust root is the configured federation set
 

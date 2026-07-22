@@ -90,7 +90,7 @@ submission on an Active chain is in one of three attach-positions.
 | new event     | outcome                                                                                                                                                                 |
 | ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Ixn` / `Pin` | chain stays `Active` — a content sibling of a seal is **buried** below it (dead on ascent); first-seen declines it, a colluded one is buried anyway — never a live fork |
-| `Gnt` / `Sea` | `Disputed` — a second accepted sealed branch (provable collusion); a witness-declined sibling is held pending                                                           |
+| `Gnt` / `Sea` | `Disputed` — a second accepted sealed branch (provable collusion); a witness-declined sibling is held deferred-pending                                                  |
 | `Trm`         | `Disputed` — a second accepted sealed branch                                                                                                                            |
 
 ### Position 3 — on the content run past the last seal

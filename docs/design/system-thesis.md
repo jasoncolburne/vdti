@@ -97,7 +97,8 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   their seals sit) prove a dispute → `disputed` (a seal on a **first-seen-dead** lineage is **dead
   on ascent** — you can't seal a buried chain — so in the honest case only one branch seals →
   Active; a dispute takes two accepted-lineage branches, proven by a witness double-sign or, across
-  disjoint federations, a reserve double-reveal).
+  disjoint federations, an author-side proof — a reserve double-reveal or a member's
+  double-anchoring).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying

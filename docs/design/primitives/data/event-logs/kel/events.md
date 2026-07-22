@@ -13,14 +13,14 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 
 ## Event taxonomy
 
-| Kind  | Kind string              | Class     | Tier | Purpose                                                                                                                                                   |
-| ----- | ------------------------ | --------- | ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | `vdti/kel/v1/events/fcp` | inception | 1    | Founder pre-federation inception (no federation exists yet).                                                                                              |
-| `Icp` | `vdti/kel/v1/events/icp` | inception | 1    | Standard inception (member or end-user KEL) — federation-bound (there is no direct mode).                                                                 |
-| `Ixn` | `vdti/kel/v1/events/ixn` | content   | 1    | Interaction — hosts tier-1 anchors; changes no keys, no seal. **The divergeable content kind** (first-seen, buriable).                                    |
-| `Rot` | `vdti/kel/v1/events/rot` | sealed    | 2    | Rotation — reveals the next signing key, commits the next reserve; may host tier-2 anchors. **Seal-advancing.** Recovery is a plain `Rot`.                |
-| `Wit` | `vdti/kel/v1/events/wit` | sealed    | 2    | Federation **rebind** (user KEL — changes `federation` / `witnesses`) / federation **governance** (witness KEL — rotation + `clock`). **Seal-advancing.** |
-| `Trm` | `vdti/kel/v1/events/trm` | terminal  | 2    | Terminate — ends the chain on a clean linear landing. **Seal-advancing.**                                                                                 |
+| Kind  | Kind string              | Class     | Tier | Purpose                                                                                                                                                                                                                  |
+| ----- | ------------------------ | --------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Fcp` | `vdti/kel/v1/events/fcp` | inception | 1    | Federation-infrastructure inception (genesis, or an added witness — never self-bound).                                                                                                                                   |
+| `Icp` | `vdti/kel/v1/events/icp` | inception | 1    | Standard inception (member or end-user KEL) — federation-bound (there is no direct mode).                                                                                                                                |
+| `Ixn` | `vdti/kel/v1/events/ixn` | content   | 1    | Interaction — hosts tier-1 anchors; changes no keys, no seal. **The divergeable content kind** (first-seen, buriable).                                                                                                   |
+| `Rot` | `vdti/kel/v1/events/rot` | sealed    | 2    | Rotation — reveals the next signing key, commits the next reserve; may host tier-2 anchors. **Seal-advancing.** Recovery is a plain `Rot`.                                                                               |
+| `Wit` | `vdti/kel/v1/events/wit` | sealed    | 2    | Federation **rebind** (user KEL — changes `federation` / `witnesses`) / federation **governance** (witness KEL — a rotation anchoring the federation's governance event, which carries the `clock`). **Seal-advancing.** |
+| `Trm` | `vdti/kel/v1/events/trm` | terminal  | 2    | Terminate — ends the chain on a clean linear landing. **Seal-advancing.**                                                                                                                                                |
 
 The **class** column names the event's role under the
 [divergence-and-recovery rules](../../../../protocol-doctrine.md#divergence-and-recovery): only
@@ -34,28 +34,62 @@ versioned schema identifier (`vdti/kel/v1/events/…`).
 ## Two-kind inception
 
 KEL inception is one of two structurally distinct kinds dispatched by the kind discriminator at v=0.
-The kind determines whether the chain is pre-federation or federation-bound, and what witnessing
-applies. KEL is concerned with key state only; delegation is an identity-layer concern handled at
-the IEL primitive (see [`../iel/`](../iel/)), not a KEL inception kind.
+The kind determines the chain's service class — federation infrastructure or user device — and what
+witnessing applies. KEL is concerned with key state only; delegation is an identity-layer concern
+handled at the IEL primitive (see [`../iel/`](../iel/)), not a KEL inception kind.
 
-| Kind  | When used                                                    | Federation binding             | Witnesses                  | Eligible as federation member          |
-| ----- | ------------------------------------------------------------ | ------------------------------ | -------------------------- | -------------------------------------- |
-| `Fcp` | Founder pre-federation inception (no federation exists yet). | absent                         | forbidden                  | yes — via the bootstrap batch (below). |
-| `Icp` | Standard inception (member or end-user KEL).                 | `federation` + `federationPin` | the `witnesses` role (req) | yes.                                   |
+| Kind  | When used                                                           | Federation binding             | Witnesses                  | Eligible as federation member                                                                         |
+| ----- | ------------------------------------------------------------------- | ------------------------------ | -------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `Fcp` | Federation-infrastructure inception (genesis, or an added witness). | absent                         | forbidden                  | yes — the only eligible root: genesis via the bootstrap batch, added via the joining consent (below). |
+| `Icp` | Standard inception (member or end-user KEL).                        | `federation` + `federationPin` | the `witnesses` role (req) | no — a federation roster admits only `Fcp`-rooted chains.                                             |
 
 The verifier dispatches at v=0 on kind:
 
-- `Fcp` → pre-federation chain. It carries no `federation` binding and no `witnesses`, and cannot
-  stand alone — its v=1 `Rot` anchors the federation IEL's `Fcp` marker (kind-strict, tier-2 →
-  tier-2) in the same dependency-ordered bootstrap bundle. The founder is bound to the federation by
-  being named in the roster it founds — never self-bound. That federation IEL `Fcp` (the
-  `Fcp`-rooted inception marker) is brought into existence in that same bundle (see
+- `Fcp` → federation-infrastructure chain (a witness device). It carries no `federation` binding and
+  no `witnesses` — a witness is bound by roster membership, never self-bound, and its events are
+  peer-witnessed under the federation's config, never a per-chain one — and it cannot stand alone:
+  its v=1 anchors the federation establishment act it serves. At **genesis** that is the `Rot`
+  anchoring the federation IEL's `Fcp` marker (kind-strict, tier-2 → tier-2) in the same
+  dependency-ordered bootstrap bundle — that federation IEL `Fcp` (the `Fcp`-rooted inception
+  marker) is brought into existence in that same bundle (see
   [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md)).
+  An **added witness** opens with its consent `Ixn` anchoring the admitting governance `Wit` instead
+  — unwitnessed exactly as genesis is, trust rooted in the witnessed admitting act.
 - `Icp` → federation-bound from inception. `federation` (the federation IEL prefix) and
   `federationPin` (the as-of federation position) declare the binding, and the `witnesses` manifest
   role declares the chain's witnessing policy — **all required**. Every identity is
   federation-witnessed: an `Icp` that omits `federation` is **malformed → rejected** (there is no
   direct mode).
+
+## The identity bond
+
+Every chain is born into the service of exactly one identity, and declares it at **serial 1**: the
+serial-1 event anchors that identity's establishment act, and the bond is permanent — a chain never
+re-bonds. The four openings are acts the design already has:
+
+- a **genesis witness** — `Fcp`, then the `Rot` anchoring the federation's inception marker;
+- an **added witness** — `Fcp`, then the consent `Ixn` anchoring the admitting governance `Wit`;
+- an **initial roster member** — `Icp`, then the `Rot` anchoring the identity's inception;
+- an **added member** — `Icp`, then the consent `Ixn` anchoring the admitting evolve.
+
+Two checks enforce it, both on chain data at the gating moment. The KEL verifier requires serial 1
+to anchor exactly one identity-establishment act — that identity is the chain's, for life. And
+roster-delta validation admits a prefix only if its serial-1 bond names **this** identity (its
+inception, or this admitting act). A previously-admitted chain of the same identity fails too — its
+serial-1 names a _prior_ admitting act — so re-adding a member means a fresh chain, the same
+replace-don't-resume posture the rest of the design follows. The root kind and the bond always agree
+— a federation roster admits only `Fcp`-rooted chains, a user roster only `Icp`-rooted — so the
+inception root is a trustworthy key for the two `Wit` facets below.
+
+What the bond buys: a device chain can never serve, or be counted toward, a second identity — so
+membership in two identities through one chain is unconstructable, and between acts the only lawful
+federation-binding mismatch is the migration lag (members still on the old federation until they
+each rebind). One chain per identity also means no cross-identity correlation through a shared
+device chain. Chains and identities are deliberately cheap: an application gets its own identities,
+an identity its own chains — shorter chains verify faster, and the correlation resistance comes from
+construction, not policy. When an identity reincepts, its members return on fresh chains (each old
+bond names the dead prefix) — a clean break, since the compromise that forced the dispute may have
+touched member devices.
 
 ## Key-state fields
 
@@ -160,7 +194,7 @@ rebind. Forward-only is **emergent**, not a structural check: ordering two feder
 _cross-chain_ walk (the KEL verifier is self-contained — it never orders positions on another
 chain), so a stale/backward pin lands chain-valid but **un-witnessed** (the currency gate refuses a
 non-current roster; the clock refuses closed-window keys) and is cleared by pinning forward. `Fcp`
-carries neither (pre-federation).
+carries neither (federation-infrastructure — bound by roster membership, never self-bound).
 
 A `Wit` event **rebinds** federation context (the must-change rule and the two facets are below). A
 same-federation **re-pin** (advancing `federationPin` within the same federation) is **not** a `Wit`
@@ -185,6 +219,9 @@ optional on top), so the rotation + clock advance **is** the change — it has *
 predicate. The deep federation-governance mechanics — self-attestation, the recoverability cap, the
 federation clock — are federation doctrine
 ([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)).
+The root is a trustworthy facet key because the identity bond forces it to agree with the served
+identity: a federation roster admits only `Fcp`-rooted chains, a user roster only `Icp`-rooted
+([the identity bond](#the-identity-bond)).
 
 ## Authorization and signature shapes
 
@@ -337,7 +374,7 @@ The `said` tiebreaker is for determinism only and has no semantic meaning.
 
 ## Typical chain shapes
 
-### Pre-federation founder bootstrap
+### Federation-infrastructure inception shapes
 
 ```
 s0  kind=fcp  publicKey=k0,  rotationHash=h(k1)
@@ -346,13 +383,18 @@ s1  kind=rot  publicKey=k1,  rotationHash=h(k2),
               ← reveals k1; signed by k1 (tier-2); anchors the federation IEL Fcp
 ```
 
-The `Fcp` inception is pre-federation (no `federation`, no `witnesses`, no witnessing). The v=1
-`Rot` anchors the federation IEL's `Fcp` marker (kind-strict, tier-2 → tier-2) and is the first
-seal, so it carries `previousSeal = fcp.said` (the spine root). The founder is bound to the
-federation by being named in the roster it founds — never self-bound — so it carries no `federation`
-/ `federationPin`. That federation IEL `Fcp` is brought into existence in the same
-dependency-ordered bootstrap bundle — see
+The `Fcp` inception is unwitnessed and carries no `federation`, no `witnesses` — at genesis because
+no federation exists yet to witness it. The v=1 `Rot` anchors the federation IEL's `Fcp` marker
+(kind-strict, tier-2 → tier-2) and is the first seal, so it carries `previousSeal = fcp.said` (the
+spine root). The founder is bound to the federation by being named in the roster it founds — never
+self-bound — so it carries no `federation` / `federationPin`. That federation IEL `Fcp` is brought
+into existence in the same dependency-ordered bootstrap bundle — see
 [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md).
+
+An **added witness** opens the same way with a different serial-1 act: `Fcp` at s=0, then its
+consent `Ixn` anchoring the admitting governance `Wit` (tier-1 — the joining-not-rotating consent).
+The pair is unwitnessed exactly as genesis is, its trust rooted in the **witnessed** admitting
+`Wit`; nothing trust-bearing rides the unwitnessed pair alone.
 
 ### Standard inception
 
