@@ -1110,9 +1110,12 @@ at least `2·threshold − signers ≥ 1` witnesses — and an honest witness si
 sibling per position** (the tier-scoped witnessing counts below) — so **two competing content events
 can never both be witnessed**: a content fork on a witnessed chain is **prevented from forming**,
 not merely detected. Manufacturing one costs owning the whole quorum intersection — the **fork-cost
-`2·threshold − signers`**, a priced, tunable security parameter, not a free consequence of the
-network (the dial trades one-for-one against receipt redundancy: `fork-cost = threshold − slack`
-where `slack = signers − threshold`, so at `threshold = signers` fork resistance is maximal but one
+`2·threshold − signers`** — the attacker's **best case, under total partition**; absent delivery
+control the rival is carried by a full `threshold` of colluders (the sliding price is
+[residuals §Fork-cost](residuals.md#fork-cost--threshold-colluders-dropping-to-2threshold--signers-under-partition))
+— a priced, tunable security parameter, not a free consequence of the network (the dial trades
+one-for-one against receipt redundancy: `fork-cost = threshold − slack` where
+`slack = signers − threshold`, so at `threshold = signers` fork resistance is maximal but one
 unreachable witness stalls the position). Paying fork-cost also means exposure: two receipts by one
 witness over two distinct **content** `witnessed_said`s at one position (or a second distinct sealed
 sibling — sealed is one-per-position too) are cryptographic proof of misbehavior — forensics, then

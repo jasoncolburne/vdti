@@ -92,13 +92,13 @@ End-verifiability rests on the **data**, with the federation as a propagation ai
   is universal)**, means two competing **same-tier** events at a position (two content, or two
   sealed) can never both be witnessed on an honest quorum — so a fork, content **or** sealed, is
   **prevented** from forming. Manufacturing one costs owning `2·threshold − signers` witnesses (the
-  **fork-cost**), a provable double-sign. What prevention does not cover is **detected**: the
-  byzantine (witness-collusion) residual — a **seal** being a tier-2 event (a rotation, or a
-  governance / kill act) that ratchets the chain's trust boundary forward, so **two or more
-  _witnessed_ accepted sealed branches** (per branch, wherever their seals sit) prove a dispute →
-  `disputed` (a seal on a **first-seen-dead** lineage is **dead on ascent** — you can't seal a
-  buried chain — so in the honest case only one branch seals → Active; a dispute takes two
-  accepted-lineage branches, proven by a witness double-sign or, across disjoint federations, an
+  **fork-cost** floor, under total partition), a provable double-sign. What prevention does not
+  cover is **detected**: the byzantine (witness-collusion) residual — a **seal** being a tier-2
+  event (a rotation, or a governance / kill act) that ratchets the chain's trust boundary forward,
+  so **two or more _witnessed_ accepted sealed branches** (per branch, wherever their seals sit)
+  prove a dispute → `disputed` (a seal on a **first-seen-dead** lineage is **dead on ascent** — you
+  can't seal a buried chain — so in the honest case only one branch seals → Active; a dispute takes
+  two accepted-lineage branches, proven by a witness double-sign or, across disjoint federations, an
   author-side proof — a reserve double-reveal or a member's double-anchoring).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same

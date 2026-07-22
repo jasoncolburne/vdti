@@ -195,8 +195,9 @@ take on a new artifact after the fact. Two things fall out, and they're the whol
 - **An artifact can't go wrong on its own.** To write a competing artifact event, an attacker who
   stole the owner's key has to author a _fresh_ identity event to anchor it — there's no way to hang
   new artifact content off an old, already-sealed identity point. So the attack always shows up as
-  activity on the _identity_, at or after the point of compromise — never as a lone artifact fork
-  the identity doesn't already reflect.
+  activity on the _identity_, at or after the point of compromise — and the artifact's own log is
+  **witnessed at its own positions**, so a same-position artifact fork is declined there just as on
+  any chain (the anchor alone couldn't see one).
 - **And it heals for free.** Because that malicious anchor sits at or above the compromise, the
   owner's recovery — a single key change at the first bad point — buries it, and every artifact
   event the anchor named dies with it: deadness spreads downward and crosses the anchor. No separate

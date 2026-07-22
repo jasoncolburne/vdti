@@ -96,10 +96,13 @@ itself proof the witnesses colluded (a provable double-sign → eviction), while
 spent preimage or a partition race, no witness fault). Two or more _accepted_ sealed branches
 (counted per branch, wherever their seals sit) are the definition of **disputed**.
 
-**Fork-cost `= 2·threshold − signers`** is therefore the price of manufacturing a fork on a
-witnessed chain: the number of selected witnesses an attacker must own _and expose_. It is a tunable
-security parameter, not a free consequence of the network — the dial trades one-for-one against
-receipt redundancy (`fork-cost = threshold − slack`, `slack = signers − threshold`), so at
+**Fork-cost `= 2·threshold − signers`** is therefore the **floor** price of manufacturing a fork on
+a witnessed chain — the attacker's best case, under total partition; absent delivery control the
+rival is carried by a full `threshold` of colluders
+([residuals §Fork-cost](../../residuals.md#fork-cost--threshold-colluders-dropping-to-2threshold--signers-under-partition))
+— the number of selected witnesses an attacker must own _and expose_. It is a tunable security
+parameter, not a free consequence of the network — the dial trades one-for-one against receipt
+redundancy (`fork-cost = threshold − slack`, `slack = signers − threshold`), so at
 `threshold = signers` fork resistance is maximal but one unreachable witness stalls the position. A
 **fork-cost-1** config (`signers = 2·threshold − 1`, the minimal majority) is warned at config time,
 never silently accepted: deterministic selection makes a thin intersection a precomputable target,
@@ -512,15 +515,22 @@ the dead federation would strand the prefix. The cost of that declared selection
 honest-witness dispute**: two rebinds at one serial declaring **different** federations select
 **disjoint** witness sets, so each is honestly first-seen-accepted by its own federation and both
 reach threshold with **no witness double-sign** — `disputed`, proven author-side (a reserve
-double-reveal, or a member's double-anchoring of both rebinds), resolved by reincept. Trust is
-**per-federation and non-transitive**: a verifier independently trusts _each_ federation prefix the
-chain bound to, and each event is witnessed by whichever federation was current when it landed — so
-**convergence is among verifiers sharing a trusted-federation set**, and a verifier trusting only
-one side of such a race reads only that side accepted. Witnessing is therefore **range-based** — a
-contiguous run of events between rebinds shares one context — and the verification token reports the
-ranges (`[from, to) → F`), per range, not per event. A consumer **must not** assume "has a `Wit` ⇒
-all events witnessed": an event in a run bound to a since-changed federation is witnessed by that
-run's federation, not today's.
+double-reveal, or a member's double-anchoring of both rebinds), resolved by reincept. **Retry a
+stalled rebind by chaining, never as a sibling.** An owner whose rebind stalls (the named federation
+unreachable, the event sub-threshold) authors the retry **on top of** the stalled one — its own
+sub-threshold event is its local tip, and acceptance of the later rebind commits the stalled one as
+ancestry
+([acceptance commits ancestry](../../primitives/data/event-logs/kel/verification.md#acceptance-requires-threshold--for-every-node)).
+A **sibling** retry at the same serial naming another federation is the race above — self-inflicted:
+the author-side dispute (a reserve double-reveal, or the members' double-anchoring), a disputed
+prefix. Trust is **per-federation and non-transitive**: a verifier independently trusts _each_
+federation prefix the chain bound to, and each event is witnessed by whichever federation was
+current when it landed — so **convergence is among verifiers sharing a trusted-federation set**, and
+a verifier trusting only one side of such a race reads only that side accepted. Witnessing is
+therefore **range-based** — a contiguous run of events between rebinds shares one context — and the
+verification token reports the ranges (`[from, to) → F`), per range, not per event. A consumer
+**must not** assume "has a `Wit` ⇒ all events witnessed": an event in a run bound to a since-changed
+federation is witnessed by that run's federation, not today's.
 
 ```mermaid
 flowchart BT
@@ -586,11 +596,21 @@ authoring its own `Wit`. The consenting `Ixn` is the joiner's chain's **serial-1
 
 ## The recoverability cap and exclude-self
 
+**Who receipts a federation IEL event.** There is no separate receipt on the federation IEL event
+itself: an IEL event has no key of its own, so its witnessing **is** the witnessing of its
+**anchoring member-KEL events**. Each member's anchoring KEL event is receipted by the **other**
+member witnesses — exclude-self, over the pool `|roster| − 1`; the authoring witness never receipts
+its own — and first-seen is keyed at the **federation IEL position**: a peer that has receipted an
+anchoring participation for one sibling at a federation `(prefix, serial)` declines a participation
+for any competing sibling there. Two counts gate acceptance, at two levels: the event carries its
+**required count of participations** (`t_govern` for a governance `Wit`), and **each participation**
+is witnessed at the witness-config **`threshold`** — at the minimum federation, three participations
+each carrying two peer receipts. A declined competing sibling's participations stay sub-threshold —
+the position gate, realized through the anchors.
+
 Because a federation is critical infrastructure, its recoverability ceiling is **hard**: it must
-always be able to evict one compromised witness and get the cut trusted. The federation realizes its
-fork-prevention position gate through **exclude-self peer-witnessing** — its member witness-KELs
-witness _each other's_ KEL events, a witness never receipting its own, over the pool `|roster| − 1`.
-So for federation member events the config is bounded
+always be able to evict one compromised witness and get the cut trusted. So for federation member
+events the config is bounded
 
 `signers/2 < threshold ≤ min(|roster| − 2, signers − 1)` and `threshold ≤ signers ≤ |roster| − 1`,
 
