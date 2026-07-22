@@ -195,8 +195,8 @@ rather than policy-bound. See
 ```
 verify_signature(signed_event, public_key):
     # SAID is Blake3-256 of canonical content; signing the SAID bytes is
-    # equivalent to signing the content but more efficient (and stable
-    # under extension — see ../../sad/said.md §Signing surface).
+    # equivalent to signing the content but more efficient (the signing
+    # surface is schema-agnostic — see ../../sad/said.md §Signing surface).
     data = signed_event.event.said.as_bytes()
 
     signature = parse_signature(signed_event.signature)
@@ -594,8 +594,8 @@ spanning two pages re-fetches at the next page rather than being processed half-
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
   — federation witnessing in verification.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
-- [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; stability
-  under extension.
+- [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; the
+  schema-agnostic signing surface.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing mechanics.
 - [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) —

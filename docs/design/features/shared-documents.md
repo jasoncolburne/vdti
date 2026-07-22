@@ -121,9 +121,10 @@ not cross-chain linkage of the membership graph.)
 Each instance is a **grant chain** the creator owns, sealing `{ grants, rescinds }` deltas — the
 membership primitive's own model, uniform across all three:
 
-- A **grant** admits a member — a **blinded commitment** (`{ said, nonce, data }`, the claim
-  construction the membership primitive reuses) — and **opens the member's bracket** in that group:
-  a **validity period** on the member's own IEL, `from` = the member's IEL position at grant time.
+- A **grant** admits a member — a **blinded commitment** (a nonce-blinded SAD carrying its own
+  `kind`, the claim construction the membership primitive reuses; the concrete shape is in
+  [§Shapes](#shapes)) — and **opens the member's bracket** in that group: a **validity period** on
+  the member's own IEL, `from` = the member's IEL position at grant time.
 - A **rescission** **closes the bracket** and records a **grandfather `bound`** — the period's
   closing position on the member's IEL. For an editor the bound grandfathers the versions before it;
   for a commenter or reader (who author no versions) it simply closes the bracket.

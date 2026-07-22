@@ -95,7 +95,8 @@ The structural guarantees follow from the SAID commitment and from where enforce
   be resolved (fetch failure, parse error), replication MUST default to skip rather than to
   broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's
   author declared.
-- **Forbidden on chain events is enforced structurally.** Chain-event kind-schemas have no slot for
-  `availability`, so a chain-event submission carrying inline `availability` is rejected by the
-  structural-validation pass at the merge layer (see
+- **Forbidden on chain events is enforced structurally.** A chain-event kind declares no
+  `availability` field, so the exhaustive-schema rule
+  ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) rejects it: the structural-validation
+  pass at the merge layer drops any chain-event submission carrying inline `availability` (see
   [`../../../protocol-doctrine.md` §Merge verification](../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).

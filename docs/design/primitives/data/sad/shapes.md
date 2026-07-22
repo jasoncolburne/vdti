@@ -17,15 +17,17 @@ chain); **digest** — a 256-bit content-address of a raw opaque **blob** (Blake
 distinct from a **SAID**, which addresses a canonical SAD); **SAD** — a **nested sub-SAD** at that
 position (referenced by its SAID, but expandable content the signing discipline must have seen —
 distinct from a scalar **SAID** reference like a `previous`, a pin, or an anchor); **string**;
-**u64** — an unsigned integer; **bool**; **bytes**; **timestamp** — an RFC 3339 time; **list⟨T⟩**.
+**u64** — a non-negative JSON-number integer in the double-safe range ±(2⁵³−1)
+([`said.md`](said.md)); **bool**; **bytes**; **timestamp** — an RFC 3339 time; **list⟨T⟩**.
 
 ## The two shapes
 
 A SAD is one of two shapes ([`sad.md` §Structural shapes](sad.md#structural-shapes)):
 
 - A **chain event** — a SAD with chain-linkage fields (`prefix`, `previous`, `serial`) that lives on
-  a KEL / IEL / SEL and replicates as an indivisible unit. Its schema has **no** slot for `custody`
-  or `availability`.
+  a KEL / IEL / SEL and replicates as an indivisible unit. Its kind declares no `custody` or
+  `availability` field — the exhaustive-schema rule
+  ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) rejects either on a chain event.
 - A **standalone SAD** — everything else (a receipt, a config, a credential, a policy, an exchange
   envelope, the content payloads an event anchors). It is stored in the SAD object store and served
   by SAID, and MAY carry `custody` and `availability` on its wrapper.
@@ -276,11 +278,14 @@ below is common to every type.
 | `nonce`     | bytes     | yes      | High-entropy — every credential has one; makes `said` unguessable.              |
 
 The `claims` field is the SAID of a **claims SAD** (`vdti/cred/v1/claims/*`, application-defined).
-Each gated predicate it carries is a **uniformly-shaped blinded claim** — `{ said, nonce, data }`:
-the per-claim `said` is what the credential commits, a high-entropy `nonce` blinds it so a compacted
-claim leaks neither presence nor value, and `data` is the application-shaped value (a boolean
-bracket like `ageOver18`, a field). Disclosing a claim reveals its `{ nonce, data }` and recomputes
-the `said` against the commitment ([claim-gating](../../../features/credentials.md#claim-gating)).
+Each gated predicate it carries is a **uniformly-shaped blinded claim** —
+`{ said, kind, nonce, data }`: the per-claim `said` is what the credential commits; its `kind` is a
+**type-generic** blinded kind (`vdti/cred/v1/claims/blinded-{string,number,boolean,object,array}`,
+naming the JSON type of `data`, never the predicate — it rides _inside_ the blinded `said`); a
+high-entropy `nonce` blinds it so a compacted claim leaks neither presence nor value; and `data` is
+the application-shaped value (a boolean bracket like `ageOver18`, a field). Disclosing a claim
+reveals its `{ kind, nonce, data }` and recomputes the `said` against the commitment
+([claim-gating](../../../features/credentials.md#claim-gating)).
 
 ### Shared documents — `vdti/doc/v1/schemas/*`
 
@@ -297,17 +302,17 @@ The **V0 constitution** (derives the doc prefix):
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
-| Field       | Type       | Meaning                                                                     |
-| ----------- | ---------- | --------------------------------------------------------------------------- |
-| `said`      | SAID       | The version's SAID.                                                         |
-| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                              |
-| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers[] }` — the sorted union read gate. |
-| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                              |
-| `prefix`    | prefix     | The doc prefix.                                                             |
-| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant.               |
-| `content`   | SAD        | The version body.                                                           |
-| `edited`    | timestamp  | Advisory feature timestamp.                                                 |
-| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable.                          |
+| Field       | Type       | Meaning                                                                                    |
+| ----------- | ---------- | ------------------------------------------------------------------------------------------ |
+| `said`      | SAID       | The version's SAID.                                                                        |
+| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                                             |
+| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers[] }` — the sorted union read gate.                |
+| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                                             |
+| `prefix`    | prefix     | The doc prefix.                                                                            |
+| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant.                              |
+| `content`   | SAD        | The version body.                                                                          |
+| `edited`    | timestamp  | Advisory feature timestamp.                                                                |
+| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable for a private doc (omitted when public). |
 
 The **grant-doc** (the `{ grants, rescinds }` delta — one shape shared by the three instances
 `document-edit-membership` / `document-comment-membership` / `document-read-membership`, the kind

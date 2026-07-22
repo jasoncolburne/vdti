@@ -108,13 +108,13 @@ so the single gating witness for a position can be identified in advance.
 On a content-only divergence the resolving **burying seal-advancer** (a `Rot` / `Evl`) is exactly
 that first sealed sibling at the position, needing no separate rule; a _second_ competing
 seal-advancer is the proving pair `{Rot, Rot}` / `{Evl, Evl}` → disputed. And a seal on a **dead
-lineage** — one that lost first-seen at any earlier position — is itself dead on ascent (you cannot
-seal a buried chain), so it never counts. In the **honest** case only one branch's lineage survives
-first-seen → its seal is the single sealed branch (Active); a dispute takes **two accepted-lineage
-branches**, whose seals may sit **at the fork or at different serials above it** — counted per
-branch. The one honest-witness exception is two **rebinds** naming **different federations** at that
-serial — disjoint witness sets, so each federation honestly signs its own (an author-equivocation
-dispute, not collusion).
+lineage** — one that lost first-seen at any earlier position, or whose attach point fell below an
+accepted seal — is itself dead on ascent (you cannot seal a buried chain), so it never counts. In
+the **honest** case only one branch's lineage survives first-seen → its seal is the single sealed
+branch (Active); a dispute takes **two accepted-lineage branches**, whose seals may sit **at the
+fork or at different serials above it** — counted per branch. The one honest-witness exception is
+two **rebinds** naming **different federations** at that serial — disjoint witness sets, so each
+federation honestly signs its own (an author-equivocation dispute, not collusion).
 
 **A below-seal sealed event is declined — the witness mirrors the seal-cap.** The "structurally
 valid" test a selected witness applies before signing includes the **seal-cap** (the merge

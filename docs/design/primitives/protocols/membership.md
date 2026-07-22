@@ -15,12 +15,13 @@ because it never enumerates.
 A group's membership lives on a **grant chain** the group's governing identity owns. Each event on
 it seals a **membership delta** — `{ grants, rescinds }`:
 
-- **`grants`** — identities admitted, each as a **blinded per-member commitment** (the same
-  `{ said, nonce, data }` claim construction [credentials](../../features/credentials.md) use for
-  per-predicate gating): the commitment names the member without publishing who, so an onlooker
-  reading the chain learns a count, never a roster. A grant-chain event may also carry a **feature
-  lane anchor** — for chat, a writing **device's lane root** (below), anchored on-demand — the
-  companion to the `rescinds` `bound`.
+- **`grants`** — identities admitted, each as a **blinded per-member commitment** — the same
+  **nonce-blinded claim construction** [credentials](../../features/credentials.md) use for
+  per-predicate gating (a SAD carrying its own `kind`, blinded by a `nonce`; each membership
+  instance registers its **own** entry kind, shown in that feature's shapes): the commitment names
+  the member without publishing who, so an onlooker reading the chain learns a count, never a
+  roster. A grant-chain event may also carry a **feature lane anchor** — for chat, a writing
+  **device's lane root** (below), anchored on-demand — the companion to the `rescinds` `bound`.
 - **`rescinds`** — identities removed, each a **blinded `target`** (derived from the member's grant
   instance — the same no-guessing rationale as the O(1) address; a raw-prefix target would leak
   removal-status to a guessing onlooker on the chain), optionally carrying a **grandfather
@@ -40,16 +41,17 @@ same fail-secure / fail-open split a credential's revocation check uses:
   against the multi-source-fresh chain. In some grant delta and not since rescinded → a member; in
   none → not. This is the sound reading: hiding a rescind would take a stale chain, which the
   freshness bar already refuses. For this to stay the **default**, the non-member store must be able
-  to **run** it — and it can, because the requester **discloses its own `{ nonce, data }`** in the
-  live-signed request (the same disclosure a credential holder makes): the store recomputes the
-  member's blinded-claim `said` and matches it on the grant chain — **and checks the disclosed
-  `data` names the identity the request's live signature resolves to** (a disclosure naming any
-  other identity is refused, so a leaked `{ nonce, data }` is **not** a bearer token — it leaks only
-  status-checkability, the accepted confirm-a-known-subject class). So the commitment stays
-  **unguessable to an outsider** (the high-entropy `nonce` — no confirm-a-guessed-prefix oracle) yet
-  **store-checkable** (the requester carries its own secret, the way a credential disclosure does).
-  What the walk must **not** rest on is a secret the requester does **not** hold — that would make
-  it non-performable and silently force the fail-open path.
+  to **run** it — and it can, because the requester **discloses its own entry's content** (the
+  `nonce` included) in the live-signed request (the same disclosure a credential holder makes): the
+  store recomputes the member's blinded-claim `said` and matches it on the grant chain — **and
+  checks the disclosed `data` names the identity the request's live signature resolves to** (a
+  disclosure naming any other identity is refused, so a leaked disclosure is **not** a bearer token
+  — it leaks only status-checkability, the accepted confirm-a-known-subject class). So the
+  commitment stays **unguessable to an outsider** (the high-entropy `nonce` — no
+  confirm-a-guessed-prefix oracle) yet **store-checkable** (the requester carries its own secret,
+  the way a credential disclosure does). What the walk must **not** rest on is a secret the
+  requester does **not** hold — that would make it non-performable and silently force the fail-open
+  path.
 - **The O(1) happy path (opt-out).** A rescinded member has a **content-addressed rescission
   lookup** — a tiny `{ inception, termination }` log derived from
   `{ group, the rescission topic, the member's grant instance }` (the member's **high-entropy
@@ -70,7 +72,7 @@ Both modes check **one identity at a time**. Neither ever builds the set.
 flowchart TD
   q["is party X a current member?<br/>(one identity at a time — never the whole set)"]:::start
   q --> mode{"check mode"}:::q
-  mode -->|"fail-secure walk (default)"| walk["known-search the group's grant chain:<br/>X's grant present AND not since rescinded?<br/>(X discloses its own {nonce, data})"]:::log
+  mode -->|"fail-secure walk (default)"| walk["known-search the group's grant chain:<br/>X's grant present AND not since rescinded?<br/>(X discloses its own entry)"]:::log
   mode -->|"O(1) lookup (opt-out, latency budget)"| look["fetch X's content-addressed rescission<br/>lookup (keyed on X's grant instance)"]:::log
   walk -->|"in a grant delta, no later rescind"| yes["<b>member</b>"]:::good
   walk -->|"none found"| no["<b>not a member</b>"]:::bad

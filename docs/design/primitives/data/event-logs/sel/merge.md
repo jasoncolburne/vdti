@@ -187,9 +187,10 @@ no losing-branch commitment:
    ascent (an event whose parent is dead is dead). Move it into non-canonical retained storage, then
    land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries an **accepted** sealed event, the
-   burial is rejected — a sealed branch is never buried — the fork is `Disputed` (two accepted
-   sealed branches), and the burying event is itself retained as a competing sealed branch and
-   counted.
+   burial is rejected — a sealed branch is never buried — and the burying event is **held**; **once
+   it is itself accepted** it stands as a second competing sealed branch — the fork is ≥ 2 accepted
+   sealed → `Disputed`. A witness-declined attempt stays deferred-pending and is dropped, and the
+   chain stays on the standing seal (Active, or Terminated when it is a `Trm`).
 
 A plain content SEL with no natural `Gnt` or `Trm` uses a **`Sea`** for step 1 — the neutral
 advancer, anchored by an owner-IEL `Evl`. A `Sea` whose `Evl` carries a `cut` also evicts the

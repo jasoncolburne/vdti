@@ -207,10 +207,12 @@ needs `citizen ∧ age ≥ 18`. This is solved **without zero-knowledge proofs a
 language**, by shaping the credential:
 
 - **The issuer pre-computes useful predicates as individually-blinded claims** — each a nested SAD
-  `{ said, nonce, data }`, e.g. `ageOver18`, `ageOver21`, `citizen`, alongside `birthdate` (the
-  recompute source). The per-claim `nonce` blinds each SAID, so a compacted claim leaks nothing.
-- **Disclose only what is asked.** The holder reveals the `{ nonce, data }` for the exact claim the
-  verifier needs and the verifier recomputes its SAID against the credential's commitment;
+  `{ said, kind, nonce, data }` (the `kind` a **type-generic** blinded kind,
+  `vdti/cred/v1/claims/blinded-{type}`, naming `data`'s JSON type — not the predicate), e.g.
+  `ageOver18`, `ageOver21`, `citizen`, alongside `birthdate` (the recompute source). The per-claim
+  `nonce` blinds each SAID, and the `kind` rides inside it, so a compacted claim leaks nothing.
+- **Disclose only what is asked.** The holder reveals the `{ kind, nonce, data }` for the exact
+  claim the verifier needs and the verifier recomputes its SAID against the credential's commitment;
   everything else stays blinded. Proving `age ≥ 18` never reveals the birthdate, because the issuer
   already computed the boolean.
 - **The verifier's check collapses to a boolean** — _is this claim disclosed, true, and provably

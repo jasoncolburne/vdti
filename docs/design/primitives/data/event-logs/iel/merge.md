@@ -199,10 +199,12 @@ against the threshold vector, kind-strict:
 A burying seal that extends a fork's winning branch buries the competing **content** below its new
 seal. If a competing branch it would bury carries a **witnessed (accepted)** sealed event, the
 burial is **rejected** — a sealed branch is never buried (that would resurrect a retired sealing
-decision) — the fork is ≥ 2 accepted sealed → `Disputed` (reincept), and the burying event is itself
-retained as a competing sealed branch and counted (retain-and-count — dropping it would split the
-reading permanently across nodes). Sealed branches are always retained (keep-all-data), so an
-unnamed sealed sibling is caught, never sealed past.
+decision) — and the burying event is **held**; **once it is itself accepted** it stands as a second
+competing sealed branch — the fork is ≥ 2 accepted sealed → `Disputed` (reincept). A
+witness-declined attempt stays deferred-pending and is dropped (retain-and-count — dropping an
+accepted competing branch would split the reading permanently across nodes); the chain stays on the
+standing seal (Active, or Terminated when it is a `Trm`). Sealed branches are always retained
+(keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
 
 Authorization failure here is HARD: an event whose anchors do not reach threshold, or whose
 anchoring signature does not verify, is rejected and the new events never land. The verifier reports
@@ -264,12 +266,13 @@ commitment, no content-only guard walk. The mechanics are pure position + ascent
    ascent (an event whose parent is dead is dead). Move it into non-canonical retained storage; then
    land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries a **witnessed (accepted)** sealed
-   event, the burial is rejected — the fork is `Disputed` (≥ 2 accepted sealed), and the burying
-   event is itself retained as a competing sealed branch and counted; a sealed straggler that isn't
-   accepted — witness-declined, below-seal, or **dead on ascent** (its fork-sibling is buried by
-   this very seal, so its own later seal lands on the buried chain) — is **dropped**, not counted,
-   and does not block the burial. Sealed branches are always retained, so an unnamed sealed sibling
-   is caught, never sealed past.
+   event, the burial is rejected, and the burying event is **held**; **once it is itself accepted**
+   it stands as a second competing sealed branch — the fork is ≥ 2 accepted sealed → `Disputed`. A
+   sealed straggler that isn't accepted — witness-declined, below-seal, or **dead on ascent** (its
+   fork-sibling is buried by this very seal, so its own later seal lands on the buried chain) — is
+   **dropped**, not counted, and does not block the burial; the chain then stays on the standing
+   seal (Active, or Terminated when it is a `Trm`). Sealed branches are always retained, so an
+   unnamed sealed sibling is caught, never sealed past.
 
 The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
 burying event; the competing content loser is validated from retained storage and need not co-reside

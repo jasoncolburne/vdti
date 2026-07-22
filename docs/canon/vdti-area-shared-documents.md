@@ -124,8 +124,9 @@ bounds every member **and** `Trm`s the **membership SELs** (all three; structura
     `t_authorize`) anchored by the creator's IEL **`Ath`**; the `Gnt`'s `manifest` names a **gated grant-doc**
     `G` — the common membership **`{ grants, rescinds }` delta**, submitted as **compacted chunks**
     (canonical/fully-compacted form committed; `project_vdti_compacted_only_submission`). Each `grants` entry
-    is a **blinded commitment** `{ said, nonce, data }` (the membership primitive's claim construction)
-    opening the member's validity period on the member's own IEL, `from` = the member's IEL position at grant
+    is a **blinded commitment** carrying its own `kind` (the membership primitive's claim construction; the
+    concrete shape is §Shapes' `{ said, kind, <role>, from, nonce, custody{readers} }` — not credentials'
+    `blinded-{type}`), opening the member's validity period on the member's own IEL, `from` = the member's IEL position at grant
     time. The **`nonce` (high-entropy) makes each entry SAID `said_b` unguessable** on public structure — a
     participant-blind commitment (a low-entropy entry would be a brute-force oracle — §5). The **`Gnt` event's
     SAID `G_x`** (public on the SEL) **identifies the validity period**; multiple grants = multiple periods

@@ -964,6 +964,39 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     self-announcing, so a schema is the only sound detector: an expand-everything scan false-positives on
     scalar SAID references (`previous`, anchors) and false-negatives on positions it cannot fetch.
 
+    **Exhaustive schema — reject undeclared fields (rider on [inv 19]; the third canonical-form gate —
+    Jason 2026-07-22).** A SAD carries **only** the fields its own `kind` declares; structural validation
+    **rejects** any field the kind's schema does not specify (presence within the declared set stays the
+    per-kind required / optional / forbidden rule — "only," not "all"). This is the **third gate**
+    protecting the canonical form, with the compact-down form ([inv 19]) and the strictly-ascending set
+    order (said.md) — a **validation gate that protects** one-SAID-per-logical-content, **not** an input
+    the canonicalizer consults (the recognition rule stays schema-free). Without it the same content pads
+    into arbitrarily many valid junk-SADs (distinct SAIDs), breaking every recomputer of a SAID — a
+    **dedupe-equivalent inception** as attested-shared state, a derived **lookup/directory address**. The
+    rule is **per-kind** — a field is legal iff the SAD's **own** kind declares it, never a global name
+    pool (an app registers its own kinds freely) — and generalizes the **kind → role allowlist** (a
+    manifest role outside its kind's vocabulary is malformed — inv 12 / event-shape). Consequences: no
+    undeclared payload smuggled into a typed structure (an author's own risk, **not** a tamper-evidence
+    break — padding an already-committed SAD changes its SAID); and a **chain event carries no
+    `custody`/`availability`** (its kind declares none — the sad.md / custody.md / availability.md "no
+    slot" claims are this rule). **Evolution = a new versioned `kind`** (the `v1` segment): a changed
+    field set mints a new version, met by an older verifier as unknown-kind → **fail-secure reject**.
+    *Src:* Jason 2026-07-22 — closes the round-5 2.1 "schema-evolution undefined" gap; the blinded-claim
+    `{ said, nonce, data }` accordingly gains its `kind` (credentials: `vdti/cred/v1/claims/blinded-{type}`).
+    `[locked-candidate]`
+
+    **JSON numbers are double-safe integers (rider on [inv 19]; forced by the RFC 8785 pin — Jason
+    2026-07-22).** RFC 8785 canonicalizes numbers as IEEE-754 doubles, so **every JSON number in a SAD is
+    an integer in ±(2⁵³−1)** (the double-safe range); a number outside that range, or with a fractional
+    part, is **malformed → rejected**. Larger integers and decimals are carried as **strings** by the
+    kind's schema. So a `u64`-labeled field (serial, size, threshold, …) is a non-negative integer in that
+    range, **not** a usable 64-bit width — past `2⁵³` the authored value would not survive the
+    canonicalization round-trip and a native-integer implementation would disagree with a double-pipeline
+    one (SAID divergence). Integers-only (no double-exact fractions either) matches the design's existing
+    no-float-type posture and closes the float-canonicalization footgun for app data. *Src:* Jason
+    2026-07-22 — surfaced during the round-5 fold; the canon was silent, this states what the RFC 8785 pin
+    already forces. `[locked-candidate]`
+
 ## Keys, devices & compromise
 
 20. **A compromised device is a confidentiality loss, never a control loss (Jason 2026-07-18).** A device is a

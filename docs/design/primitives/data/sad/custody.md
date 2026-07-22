@@ -276,9 +276,10 @@ and re-checked by consumers.
   serialization and the SAID derivation. An adversary cannot substitute a different `owner` or `pin`
   (e.g., to re-attribute the write, or point the locator at a different anchor) without changing the
   SAD's SAID — and the new SAID would not match any reference that names the original.
-- **Forbidden on chain events is enforced structurally.** Chain-event kind-schemas have no slot for
-  `custody`, so the merge layer's structural-validation pass rejects any submission carrying an
-  inline `custody` struct on a chain event
+- **Forbidden on chain events is enforced structurally.** A chain-event kind declares no `custody`
+  field, so the exhaustive-schema rule ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned))
+  rejects it: the merge layer's structural-validation pass drops any submission carrying an inline
+  `custody` struct on a chain event
   ([`../../../protocol-doctrine.md` §Merge verification](../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 - **Anonymous writes are not unauthorized writes.** An absent writer-binding (`owner` and `pin` both
   `None`) declares "no writer attestation" — not "no authorization." A storage service deployment

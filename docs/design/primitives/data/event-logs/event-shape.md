@@ -450,17 +450,17 @@ KEL + federation doctrine — [`kel/`](kel/),
 
 ### IEL
 
-| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                             |
-| ----- | ----- | ---- | ---------- | ------------- | ------------ | ------------------------------------------------------------------------------------ |
-| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory iff federated; a federation `Fcp` adds `clock`) |
-| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`)                                                                      |
-| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                |
-| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`)                                                   |
-| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                             |
-| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                             |
-| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                         |
-| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                |
-| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker             |
+| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                |
+| ----- | ----- | ---- | ---------- | ------------- | ------------ | --------------------------------------------------------------------------------------- |
+| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`) |
+| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`)                                                                         |
+| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                   |
+| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`)                                                      |
+| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |
+| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |
+| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                            |
+| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                   |
+| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                |
 
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **required** (there is no direct mode) and `witnesses` is **mandatory**; on a `Wit` all three

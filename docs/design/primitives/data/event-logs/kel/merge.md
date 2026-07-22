@@ -212,11 +212,13 @@ For events admitted past rule 3, kind-specific authorization fires:
 - **No burying a sealed branch.** A burying seal-advancer that extends a fork's winning branch
   buries the competing **content** below its new seal. If a competing branch it would bury carries a
   **witnessed (accepted)** sealed event, the burial is rejected (a sealed branch is never buried
-  ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), rule 1)) —
-  the fork is ≥ 2 **accepted** sealed → `Disputed` (reincept), and the burying event is itself
-  retained as a competing sealed branch and counted. This is what keeps a rotation from being buried
-  below a seal: the reserve defends the signing key, not the rotation key. Sealed branches are
-  always retained (keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
+  ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery), rule 1)),
+  and the burying event is **held**; **once it is itself accepted** it stands as a second competing
+  sealed branch — the fork is ≥ 2 **accepted** sealed → `Disputed` (reincept). A witness-declined
+  attempt stays deferred-pending and is dropped, and the chain stays on the standing seal (Active,
+  or Terminated when that seal is a `Trm`). This is what keeps a rotation from being buried below a
+  seal: the reserve defends the signing key, not the rotation key. Sealed branches are always
+  retained (keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
 - **`Wit` change-requirement (user facet)** — a **user** (`Icp`-rooted) `Wit` is a **rebind**: it
   must change at least one of (`federation`, `witnesses`). A no-op is `Invalid`; a same-federation
   re-pin (only `federationPin`) is **not** a `Wit` — it rides any body event. A
@@ -300,11 +302,13 @@ events held:
   (`previous = v_{d-1}`, when the submitter kept nothing at or beyond `d`). It advances the seal; if
   the losing branches are content, they drop below the new seal, inert, and the chain **re-reads
   Active** → outcome `Recovered`. If a competing branch it would bury carries a **witnessed
-  (accepted)** sealed event, the burial is rejected (a sealed branch is never buried) → the fork is
-  ≥ 2 accepted sealed → `Disputed`, and the burying event is retained as a competing sealed branch
-  and counted (a witness-declined or below-seal sealed straggler is **dropped**, not counted — it
-  does not block the burial). A terminal `Trm` on the winning tip buries the content loser below its
-  own seal and terminates → `Terminated`.
+  (accepted)** sealed event, the burial is rejected (a sealed branch is never buried), and the
+  burying event is **held**; **once it is itself accepted** it stands as a second competing sealed
+  branch → the fork is ≥ 2 accepted sealed → `Disputed`. A witness-declined or below-seal sealed
+  straggler — the would-be-buried branch or the burying attempt — is **dropped**, not counted, so it
+  does not block the burial and the chain stays on the standing seal (Active, or Terminated when it
+  is a `Trm`). A terminal `Trm` on the winning tip buries the content loser below its own seal and
+  terminates → `Terminated`.
 - Batch contains a sealed event that lands as a **second** sealed branch — a competing sibling
   (`previous = v_{d-1}.said`) on a fork that **already** carries a sealed branch, or a burying
   seal-advancer whose burial was rejected above → not admitted as a canonical extension; the chain
@@ -342,13 +346,15 @@ content-only guard walk. The mechanics are pure position + ascent:
    ascent (an event whose parent is dead is dead). Move it out of the canonical live chain into
    non-canonical retained storage; then land the winning-branch new events.
 4. **Guard the sealed case.** If a would-be-buried branch carries a **witnessed (accepted)** sealed
-   event, the burial is rejected — the fork is `Disputed` (≥ 2 accepted sealed), and the burying
-   event is itself retained as a competing sealed branch and counted (retain-and-count — dropping it
-   would split the reading permanently across nodes); a sealed straggler that isn't accepted —
-   witness-declined, below-seal, or **dead on ascent** (its fork-sibling is buried by this very
-   seal, so its own later seal lands on the buried chain) — is **dropped**, not counted, and does
-   not block the burial. Sealed branches are always retained (keep-all-data), so an unnamed sealed
-   sibling is caught, never sealed past — the reserve defends the signing key, not the rotation key.
+   event, the burial is rejected, and the burying event is **held**; **once it is itself accepted**
+   it stands as a second competing sealed branch — the fork is ≥ 2 accepted sealed → `Disputed`
+   (retain-and-count — dropping an accepted competing branch would split the reading permanently
+   across nodes). A sealed straggler that isn't accepted — witness-declined, below-seal, or **dead
+   on ascent** (its fork-sibling is buried by this very seal, so its own later seal lands on the
+   buried chain) — is **dropped**, not counted, and does not block the burial; the chain then stays
+   on the standing seal (Active, or Terminated when it is a `Trm`). Sealed branches are always
+   retained (keep-all-data), so an unnamed sealed sibling is caught, never sealed past — the reserve
+   defends the signing key, not the rotation key.
 
 The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
 burying event; the competing content loser is validated from retained storage and need not co-reside
@@ -375,9 +381,10 @@ blanket freeze:
   nobody re-issues it). One burying seal-advancer resolves the whole current content fork; a
   competing seal-advancer is a second sealed branch → `Disputed`.
 - **An un-covered sealed (non-content) branch makes the fork terminal (`Disputed`).** A sealed
-  branch is never buriable: the burial is rejected, the fork is ≥ 2 sealed → `Disputed` (reincept),
-  and the burying event is retained as a competing sealed branch and counted (retain-and-count —
-  [§Kind-specific authorization](#4-kind-specific-authorization)).
+  branch is never buriable: the burial is rejected, and the burying event is **held**; **once it is
+  itself accepted** it stands as a second competing sealed branch → the fork is ≥ 2 accepted sealed
+  → `Disputed` (reincept); a witness-declined attempt stays deferred-pending and is dropped
+  (retain-and-count — [§Kind-specific authorization](#4-kind-specific-authorization)).
 
 The completeness question — every combination of losing-branch tier and delivery timing terminating
 correctly, with all honest nodes converging on one reading — is proven in

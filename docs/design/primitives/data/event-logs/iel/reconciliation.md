@@ -262,9 +262,9 @@ unrecovered divergent cases reach the partitioning path:
 
 - **Unrecovered content fork (`Ixn`-`Ixn`)** — the longer chain first as non-divergent appends; only
   the fork event from the shorter chain is sent, routed through the overlap path → Forked.
-- **A retained sealed branch** (a `{Evl, Evl}` or a burying seal the guard rejected, counted as the
-  second accepted sealed branch of a Disputed fork) is evidence and **must** propagate — dropping it
-  would split the reading across nodes.
+- **A retained sealed branch** (a `{Evl, Evl}` or a burying seal the guard rejected **and that was
+  itself accepted**, counted as the second accepted sealed branch of a Disputed fork) is evidence
+  and **must** propagate — dropping it would split the reading across nodes.
 
 ### Effective-SAID convergence
 
@@ -425,11 +425,11 @@ Under eventual beacon delivery and `< threshold` byzantine, every honest node's 
 to the true competing set. **All-content** → every node reads the winning chain as canonical, the
 effective SAID the real winning tip; converges to Active. **One sealed branch** → Active once the
 culprit is neutralized (the `cut` `Evl` evicts it) and beacon-confirmed; a non-author's attempt to
-bury the author's **witnessed** sealed branch is rejected (the guard); the competing seal is
-witnessed at its own position, its burial-effect void, so two witnessed sealed branches terminalize
-the prefix → **Disputed** (a witness-declined or below-seal straggler is dropped, not counted). **≥
-2 witnessed sealed branches (wherever their seals sit)** → **Disputed** everywhere; the effective
-SAID is the verdict-recoupled synthetic.
+bury the author's **accepted** sealed branch is rejected (the guard); the competing seal is accepted
+at its own position, its burial-effect void, so two accepted sealed branches terminalize the prefix
+→ **Disputed** (a witness-declined or below-seal straggler is dropped, not counted). **≥ 2 accepted
+sealed branches (wherever their seals sit)** → **Disputed** everywhere; the effective SAID is the
+verdict-recoupled synthetic.
 
 The forked chain is depth-capped at `MAXIMUM_UNSEALED_RUN` past the last seal per lineage — one
 burying seal closes the whole current content fork, and the `cut` `Evl` then closes the culprit's

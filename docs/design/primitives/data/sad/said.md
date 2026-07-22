@@ -23,6 +23,13 @@ MUST conform to RFC 8785's key ordering, number representation, and escape rules
 a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only under a single
 canonicalization spec, and the design pins that spec here.
 
+RFC 8785 canonicalizes numbers as IEEE-754 doubles, so **every JSON number in a SAD is an integer in
+±(2⁵³−1)** (the double-safe range); a number outside that range, or with a fractional part, is
+**malformed and rejected**. A value that does not fit — a larger integer, a decimal — is carried as
+a **string** by the kind's schema (so `u64`-labeled fields are non-negative integers in that range,
+not a usable 64-bit width). This keeps a number's authored value re-derivable and its SAID
+deterministic across implementations.
+
 Base64-encoding and qualifying the Blake3-256 digest produces a fixed-length text token. The
 qualifier carries the algorithm code in its leading characters, so any consumer can re-derive
 without out-of-band agreement on the hash function.
@@ -177,11 +184,9 @@ Signatures throughout VDTI are produced over the SAID bytes, not over the SAD's 
 The SAID is the cryptographic commitment to the content; signing the SAID transitively commits the
 signer to the canonical bytes that produced it.
 
-- **Stable signing surface under extension.** When a SAD's schema gains new fields under extension
-  discipline (see
-  [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md#extension-discipline)), the SAID
-  computation absorbs the new fields into the digest. The signing surface is still the SAID, even
-  though the underlying canonical-byte stream changed shape.
+- **The signing surface is schema-agnostic.** A signature is over the SAID, never the serialized
+  bytes, so signing and verification never depend on a kind's field set: whatever fields the
+  canonical form carries, the digest absorbs.
 - **Unambiguous signature subject.** Signatures over serialized payloads are ambiguous about which
   canonicalization the verifier should reapply; signatures over a SAID are unambiguous — the SAID
   names exactly one content. A verifier checks the signature against the SAID, then independently
@@ -231,6 +236,12 @@ determinism of the derivation algorithm.
   list as **non-canonical** and rejects it, exactly as it rejects a non-compacted SAID (Rule 1) — so
   the set has one SAID, not one per permutation or repeat. Order-bearing lists (a version's
   `ancestors`) keep their order.
+
+A third gate closes the remaining degree of freedom — **undeclared fields**. A SAD carries only the
+fields its kind defines, so the same content cannot be padded into arbitrarily many valid SADs. Like
+the ascending-set rule it is a validation gate that **protects** this canonical form rather than an
+input the canonicalizer consults; it lives with the kind model in
+[`kinds.md`](kinds.md#schema--exhaustive-and-versioned).
 
 For chain inception events the prefix is independently content-derived via the second algorithm in
 [§Derivation](#derivation) and carries the same adversarial properties as the SAID —

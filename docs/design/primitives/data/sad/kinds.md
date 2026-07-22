@@ -28,6 +28,32 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
 A `*` below marks a family whose members are listed inline or defined by a feature. There is
 **never** a fifth segment: grouping is carried by descriptive names, not extra path depth.
 
+## Schema — exhaustive and versioned
+
+A SAD carries **only** the fields its own kind defines; structural validation **rejects** any field
+the kind's schema does not specify. (Which of those fields must be present is the per-kind required
+/ optional / forbidden rule — "only," not "all.")
+
+This is what keeps a SAID a canonical name. A logical content has one SAID only because its field
+set is fixed by its kind: if a SAD could carry undeclared fields, the same content would serialize
+as arbitrarily many junk-padded variants — each a distinct valid SAD — and the parties that
+recompute a SAID (a dedupe-equivalent inception treated as attested-shared state; a lookup or
+directory address derived from its inputs) could no longer rely on one form naming one thing. So
+exhaustiveness is the third rule governing the canonical form, alongside the compact-down form and
+the strictly-ascending set order ([`said.md`](said.md)) — a **validation gate that protects** the
+canonical form, not a step in computing it (the recognition rule stays schema-free). It generalizes
+the kind → role allowlist the event logs already run: a manifest carrying a role outside its kind's
+vocabulary is malformed, and so is any SAD carrying a field its kind does not declare. Two
+consequences follow — no undeclared payload can be smuggled into a typed structure, and a chain
+event cannot carry a `custody` or `availability` field, because a chain-event kind declares none
+(those belong to the standalone-SAD wrappers).
+
+The rule is **per kind**, never a global registry of permissible names: a field is legal on a SAD
+when the SAD's **own** kind defines it, so an application registers its own kinds with their own
+field sets freely. And a kind's field set is fixed for its version — the `v1` segment. Changing the
+fields means minting a new versioned kind; an older verifier meets the new version as an unknown
+kind and **fail-secure rejects** it, never silently accepting a shape it does not understand.
+
 ## SAD kinds — the `kind` field
 
 Every SAD carries one of these. **The chain events:**
@@ -77,15 +103,15 @@ label
 
 **The feature / application SADs:**
 
-| Kind                           | What it is                                                                                                                                                                                                       |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/doc/v1/schemas/*`        | shared-document SADs (`inception` / `version` / `comment` / `comment-resolution` / …)                                                                                                                            |
-| `vdti/exchange/v1/schemas/*`   | exchange SADs                                                                                                                                                                                                    |
-| `vdti/cred/v1/schemas/*`       | credential SADs — the `kind` names the type (app-registered; the framework reserves `terms` and `issuers`, next two rows)                                                                                        |
-| `vdti/cred/v1/schemas/terms`   | an **issuer-set terms-of-use** SAD — committed at issuance, nested in the credential, expanded and read on accept ([`shapes.md`](shapes.md))                                                                     |
-| `vdti/cred/v1/schemas/issuers` | a **multi-identity authorization** list `{ issuers: [prefix, …] }` — a credential's acceptance policy resolves it to confirm each named issuer signed ([`../../policy/documents.md`](../../policy/documents.md)) |
-| `vdti/cred/v1/claims/*`        | credential claim SADs (app-defined, blinded per predicate)                                                                                                                                                       |
-| `vdti/policy/v1/{group}/*`     | policy documents, grouped by domain                                                                                                                                                                              |
+| Kind                           | What it is                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/doc/v1/schemas/*`        | shared-document SADs (`inception` / `version` / `comment` / `comment-resolution` / …)                                                                                                                                                                                                                                       |
+| `vdti/exchange/v1/schemas/*`   | exchange SADs                                                                                                                                                                                                                                                                                                               |
+| `vdti/cred/v1/schemas/*`       | credential SADs — the `kind` names the type (app-registered; the framework reserves `terms` and `issuers`, next two rows)                                                                                                                                                                                                   |
+| `vdti/cred/v1/schemas/terms`   | an **issuer-set terms-of-use** SAD — committed at issuance, nested in the credential, expanded and read on accept ([`shapes.md`](shapes.md))                                                                                                                                                                                |
+| `vdti/cred/v1/schemas/issuers` | a **multi-identity authorization** list `{ issuers: [prefix, …] }` — a credential's acceptance policy resolves it to confirm each named issuer signed ([`../../policy/documents.md`](../../policy/documents.md))                                                                                                            |
+| `vdti/cred/v1/claims/*`        | credential claim SADs — the app-registered **claims container**; the framework reserves the **type-generic blinded-claim** entry kinds `blinded-{string,number,boolean,object,array}` (each `{ said, kind, nonce, data }`; `kind` names `data`'s JSON type, meaning rides `data`, and is committed into the blinded `said`) |
+| `vdti/policy/v1/{group}/*`     | policy documents, grouped by domain                                                                                                                                                                                                                                                                                         |
 
 A few further kinds are owed by forthcoming encodes: the **replica-set SAD** an
 `availability.replicas` field names ([`availability.md`](availability.md)) — its `kind` and layout

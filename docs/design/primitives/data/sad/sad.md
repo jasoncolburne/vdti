@@ -21,8 +21,9 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   (parent SAID) + `serial` (monotonic position) + kind-specific fields, including SAD references
   that point to what an event commits to (a KEL or IEL event's role-grouped `manifest`, a lookup SEL
   inception's `data`). Chain events live on a KEL, IEL, or SEL chain and replicate as indivisible
-  units. Their kind-specific schemas have no slots for custody or availability fields, so those
-  fields cannot appear on a chain event.
+  units. Their kind-specific schemas declare no custody or availability fields, so — under the
+  exhaustive-schema rule ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) — those fields
+  are rejected on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
   replica sets, file payloads, and the content payloads SEL events anchor. Stored in the SAD object
   store and retrieved by SAID. MAY carry per-object authority via a top-level

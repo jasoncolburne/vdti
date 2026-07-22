@@ -720,11 +720,13 @@ not trusted — so no branch escapes by being unnamed. One shape guard runs at a
   it — sealed branches are always retained (keep-all-data), and every sealed KEL event is a
   seal-advancer, so a buried rotation is a competing seal → a spine fork → Disputed independent of
   any walk bound. A reserve-revealing seal authored against a fork that turns out to hold a sealed
-  branch is **retained as a competing sealed branch and counted** — retain-and-count is the only
-  convergent semantics, because this rejection is **branch-dependent** (a node that dropped it would
-  read the prefix differently from one that counted it). By contrast a burying seal that fails hard
-  auth is **dropped, never counted** — those rejections are deterministic from data every node holds
-  uniformly, so every node drops identically and junk submissions cannot terminalize a prefix.
+  branch is, **once accepted**, **retained as a competing sealed branch and counted** —
+  retain-and-count is the only convergent semantics **for an accepted competing seal**, because that
+  rejection is **branch-dependent** (a node that dropped it would read the prefix differently from
+  one that counted it). By contrast a burying seal that is **witness-declined or fails hard auth**
+  is **dropped, never counted** (a declined attempt stays deferred-pending) — those rejections are
+  deterministic from data every node holds uniformly, so every node drops identically and junk
+  submissions cannot terminalize a prefix.
 
 Burial reaches no _live_ state — it marks a subtree dead, never extends or revives an event. There
 is **no below-seal burial operation**, and the seal-cap stays unconditional. A race whose retained
@@ -1135,30 +1137,31 @@ witnesses sign — reaches threshold once it reaches any one honest selected wit
 sealed sibling is witness-**declined**: it stays permanently sub-threshold (deferred-pending,
 droppable) — exactly like a losing **content** sibling under the floor. And a seal on a **dead
 lineage** — one that **lost first-seen** at an earlier position (a competing same-kind sibling there
-reached threshold) — is itself **dead on ascent** (you can't seal a buried chain), so it never
-counts: in the **honest** case only one branch's lineage survives first-seen, so its seal is the
-**single** sealed branch → Active. A dispute takes **two accepted-lineage branches** — a double-sign
-at the fork, or disjoint federations — whose seals may sit **at the fork or at different serials
-above it**; the count is **per branch**, not per position. How a node acts on the signal splits by
-**provenance**: when it **holds two or more sealed branches that each reached threshold** (accepted)
-**at the last seal**, it reads **disputed** directly from the data — the walk decides, no re-tally;
-a sealed event it holds only as a **receipt** (not yet fetched) or **below threshold** is
-**deferred-pending** — it waits for the witness threshold, and a below-threshold sibling (a rogue's
-receipt on a fake event, or a spent-preimage sibling), or a **below-seal** straggler, is **inert /
-dropped** (the verifier independently re-checks validity; the database cannot be trusted; a
-below-seal straggler cannot retreat the clean seal — backdate-safe). For **content** the signal is a
-**sub-threshold competing receipt set** at a position — a losing content sibling never reaches
-threshold. A **selected witness** (which holds the sub-threshold sibling on the sub-gossip mesh)
-sees it as a **minority-dissent forensic signal**, **not** a verdict: its data-local walk still
-reads **Active**, because a **declined, sub-threshold** sibling is **never counted** (the Active /
-Forked / Disputed reading is over **accepted** events only). A **non-witness** holds only
-witnessed-in-full events (query-scoping, below), so the losing sibling never reaches it. Either way
-the content fork is **prevented** and reads **Active**; **Forked** takes **two accepted content
-siblings** — a witness compromise. Only the data-local walk over accepted events tells a node it is
-_forked_ or _disputed_ (never a receipt count alone). This makes divergence **locally determinable**
-on every node, without watcher infrastructure. **All inter-node mesh traffic is encrypted**
-(ML-KEM-1024 + AES-256-GCM) — the receipts and the events they propagate alike — and the mesh is the
-federation roster, so mesh contents stay within the federation.
+reached threshold) **or whose attach point fell below an accepted seal** — is itself **dead on
+ascent** (you can't seal a buried chain), so it never counts: in the **honest** case only one
+branch's lineage survives first-seen, so its seal is the **single** sealed branch → Active. A
+dispute takes **two accepted-lineage branches** — a double-sign at the fork, or disjoint federations
+— whose seals may sit **at the fork or at different serials above it**; the count is **per branch**,
+not per position. How a node acts on the signal splits by **provenance**: when it **holds two or
+more sealed branches that each reached threshold** (accepted) **at the last seal**, it reads
+**disputed** directly from the data — the walk decides, no re-tally; a sealed event it holds only as
+a **receipt** (not yet fetched) or **below threshold** is **deferred-pending** — it waits for the
+witness threshold, and a below-threshold sibling (a rogue's receipt on a fake event, or a
+spent-preimage sibling), or a **below-seal** straggler, is **inert / dropped** (the verifier
+independently re-checks validity; the database cannot be trusted; a below-seal straggler cannot
+retreat the clean seal — backdate-safe). For **content** the signal is a **sub-threshold competing
+receipt set** at a position — a losing content sibling never reaches threshold. A **selected
+witness** (which holds the sub-threshold sibling on the sub-gossip mesh) sees it as a
+**minority-dissent forensic signal**, **not** a verdict: its data-local walk still reads **Active**,
+because a **declined, sub-threshold** sibling is **never counted** (the Active / Forked / Disputed
+reading is over **accepted** events only). A **non-witness** holds only witnessed-in-full events
+(query-scoping, below), so the losing sibling never reaches it. Either way the content fork is
+**prevented** and reads **Active**; **Forked** takes **two accepted content siblings** — a witness
+compromise. Only the data-local walk over accepted events tells a node it is _forked_ or _disputed_
+(never a receipt count alone). This makes divergence **locally determinable** on every node, without
+watcher infrastructure. **All inter-node mesh traffic is encrypted** (ML-KEM-1024 + AES-256-GCM) —
+the receipts and the events they propagate alike — and the mesh is the federation roster, so mesh
+contents stay within the federation.
 
 **Query-scoping and the audit flag.** A **not-yet-witnessed** (sub-threshold) event lives on the
 selected witnesses' sub-gossip mesh while it gathers receipts, and is returned by a query **only to

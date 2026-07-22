@@ -43,9 +43,11 @@ membership's (below).
 A group's membership lives on a **grant chain** — a single-owner SEL its **governing identity** owns. Each event
 seals a **membership delta** — `{ grants, rescinds }`:
 
-- **`grants`** — identities admitted, each a **blinded per-member commitment** `{ said, nonce, data }` (the same
-  claim-gating construction [credentials](vdti-area-credentials.md) uses for per-predicate gating): the
-  commitment names the member without publishing who, so a chain onlooker learns a **count**, never a roster. A
+- **`grants`** — identities admitted, each a **blinded per-member commitment** — the same nonce-blinded
+  claim-gating construction [credentials](vdti-area-credentials.md) uses for per-predicate gating (a SAD
+  carrying its own `kind`, blinded by a `nonce`; each membership instance registers its **own** entry
+  kind — not credentials' `blinded-{type}`): the commitment names the member without publishing who, so
+  a chain onlooker learns a **count**, never a roster. A
   grant-chain event may also carry a **feature lane anchor** — for chat, a writing **device's** lane root, anchored
   on-demand (the companion to the `rescinds` `bound`; rescission section below).
 - **`rescinds`** — identities removed, each an entry **`{ target, bound? }`** — the **same shape as a `kills[]`
@@ -91,11 +93,11 @@ else), and **non-enumerating** (no operation asks "who are all the members").
 
 **The walk must be store-performable — the requester discloses its own grant, pins locate.** The fail-secure walk
 is only the *default* if the **non-member store can actually run it**. It can: the requester **discloses its own
-`{ nonce, data }`** in the live-signed request (the same disclosure a credential holder makes) — and the store
+entry's content** (the `nonce` included) in the live-signed request (the same disclosure a credential holder makes) — and the store
 **recomputes the member's blinded-claim `said`** and matches it on the grant chain, a **pin** locating the
 grant / rescission on disagreement ([inv 5]). The store also **checks the disclosed `data` names the identity the
 request's live signature resolves to** (a disclosure naming any other identity is refused), so a leaked
-`{ nonce, data }` is **not** a bearer token — it downgrades only to confirm-a-known-subject status-checkability
+disclosure is **not** a bearer token — it downgrades only to confirm-a-known-subject status-checkability
 (PR#25 r4 cold-P2-3). So the commitment stays **unguessable to an outsider** (the high-entropy
 `nonce` — no confirm-a-guessed-prefix oracle, so it **satisfies** the offline-oracle residual rather than
 downgrading to confirm-a-known-subject) yet **store-checkable** (the requester carries its own secret, like a
@@ -210,7 +212,7 @@ provides the one checked-set mechanism both sit on.
 ## Divergence / sources
 
 Not lifted from kels — a **vdti-native** consolidation. The realizing shape is the credentials accept path
-(blinded `{ said, nonce, data }` commitments + fail-secure walk / fail-open lookup — `vdti-area-credentials.md`,
+(blinded kind-bearing commitments + fail-secure walk / fail-open lookup — `vdti-area-credentials.md`,
 2026-07-16/17) and the shared-documents grant/rescind machinery (per-participant, participant-blind, grant-docs —
 `vdti-area-shared-documents.md`); this note promotes the shared shape to a primitive so the chat store-auth gate
 (round-3 F3) has a home and shared-docs is a **variant** rather than a rebuild. The **flip-flop resolution**

@@ -319,9 +319,10 @@ normal operation, only unrecovered divergent cases reach the partitioning path.
 - **Unrecovered (`Ixn`-`Ixn` fork)** — longer chain first as non-divergent appends; only the fork
   event from the shorter chain is sent. Receiver routes the fork event through the overlap path →
   Forked state.
-- **A retained sealed branch** (a burying seal-advancer the content-only guard rejected, counted as
-  the second accepted sealed branch of a **Disputed** fork) is evidence and **must** propagate, like
-  any other retained sealed branch — dropping it would split the reading across nodes.
+- **A retained sealed branch** (a burying seal-advancer the content-only guard rejected **and that
+  was itself accepted**, counted as the second accepted sealed branch of a **Disputed** fork) is
+  evidence and **must** propagate, like any other retained sealed branch — dropping it would split
+  the reading across nodes.
 
 ### Effective-SAID convergence
 
@@ -561,19 +562,19 @@ to the true competing set. Then:
   node. **Converges to Active.** No follow-up burial, no reincept.
 - **One sealed branch, kept by its author** → Active once the culprit's minting capability is
   neutralized (the recovery `Rot` rotates it out — vacuous for a benign fork) and beacon-confirmed
-  (barring eclipse). A non-author's attempt to bury the author's **witnessed** sealed branch is
-  **rejected (the no-buried-rotation guard); the competing seal is witnessed at its own position,
-  its burial-effect void, so two witnessed sealed branches → Disputed** — retain-and-count is the
-  convergent semantics for **witnessed** branches (a witness-declined or below-seal straggler, by
-  contrast, is dropped, not counted — backdate-safe). So a burial against a fork that holds a
-  **witnessed** sealed branch at the last seal **permanently terminalizes the prefix** →
-  **Disputed** — the fail-secure outcome of a witnessed sealed event landing into a contested
+  (barring eclipse). A non-author's attempt to bury the author's **accepted** sealed branch is
+  **rejected (the no-buried-rotation guard); the competing seal is accepted at its own position, its
+  burial-effect void, so two accepted sealed branches → Disputed** — retain-and-count is the
+  convergent semantics for **accepted** branches (a witness-declined or below-seal straggler, by
+  contrast, is dropped, not counted — backdate-safe). So a burial against a fork that holds an
+  **accepted** sealed branch at or above the last clean seal **permanently terminalizes the prefix**
+  → **Disputed** — the fail-secure outcome of an accepted sealed event landing into a contested
   window.
-- **≥ 2 witnessed sealed at the last seal** → **Disputed** everywhere (a node that holds two
-  branches **each witnessed at threshold** reads it directly; a node holding only receipts fetches
-  the branches first; a **below-seal** sealed straggler is dropped, not counted — backdate-safe);
-  the effective SAID is the **verdict-recoupled synthetic** (all nodes converge on it once the
-  branches propagate).
+- **≥ 2 accepted sealed at or above the last clean seal** → **Disputed** everywhere (a node that
+  holds two branches **each witnessed at threshold** reads it directly; a node holding only receipts
+  fetches the branches first; a **below-seal** sealed straggler is dropped, not counted —
+  backdate-safe); the effective SAID is the **verdict-recoupled synthetic** (all nodes converge on
+  it once the branches propagate).
 
 ### Termination
 

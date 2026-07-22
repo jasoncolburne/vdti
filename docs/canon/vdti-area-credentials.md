@@ -200,9 +200,12 @@ A relying party often needs to gate on **individual claim values**, not just the
 and **without a predicate language** by shaping the credential:
 
 - **The issuer pre-computes useful predicates as individually-blinded claims**, each a nested SAD
-  `{ said, nonce, data }` — e.g. `ageOver18`, `ageOver21`, `ageOver65`, `citizen`, plus `birthdate`
-  (the recompute source). The per-claim `nonce` blinds the SAID, so a compacted claim leaks nothing.
-- **Disclose only what is asked.** The holder reveals `{ nonce, data }` for the exact claim the verifier
+  `{ said, kind, nonce, data }` (the `kind` a **type-generic** blinded kind,
+  `vdti/cred/v1/claims/blinded-{string,number,boolean,object,array}`, naming `data`'s JSON type — not
+  the predicate — and committed into the blinded `said`) — e.g. `ageOver18`, `ageOver21`, `ageOver65`,
+  `citizen`, plus `birthdate` (the recompute source). The per-claim `nonce` blinds the SAID and the
+  `kind` rides inside it, so a compacted claim leaks nothing.
+- **Disclose only what is asked.** The holder reveals `{ kind, nonce, data }` for the exact claim the verifier
   needs (say `ageOver18`) and the verifier recomputes its SAID against the credential's commitment
   (proof-of-disclosure) on top of the anchor (proof-of-issuance) — everything else stays blinded.
   Privacy without a range proof: the issuer already computed the boolean, so proving `age ≥ 18` never

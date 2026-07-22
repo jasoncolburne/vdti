@@ -26,6 +26,11 @@ A SEL uses exactly six kinds; any other kind code is malformed.
 | `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, monotone, terminal-on-divergence.                                                                                                                                                           |
 | `Sea` | `vdti/sel/v1/events/sea` | sealed    | 2    | `t_govern`                                    | The **neutral re-seal** — buries a content fork on a SEL that has no natural `Gnt` or `Trm` to advance the seal. Sealed on arrival, seal-advancing, non-terminal.                                                                             |
 
+The `Icp` row's **Tier / Count is nominal**: the `Icp` is unsigned and proves nothing alone (below),
+so `tier 1 / t_use` prices only _submitting_ it. A lookup SEL's **establishment** is priced by its
+**v1's anchor** — a kill lookup's `Rev` / `Dth` (`t_govern` / `t_authorize`) or a value lookup's
+`Ath` (`t_authorize`), tier 2.
+
 The **class** column names the event's role under the
 [divergence-and-recovery rules](../../../../protocol-doctrine.md#divergence-and-recovery): only
 **content** (`Ixn` and the floor `Pin`) is buriable. `Gnt` / `Trm` / `Sea` are **sealed** — never
