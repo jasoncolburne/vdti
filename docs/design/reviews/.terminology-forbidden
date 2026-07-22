@@ -1,23 +1,18 @@
-# docs/canon/.terminology-forbidden — the CANON tracks the full decision history,
-# so it legitimately quotes superseded vocabulary. A deeper .terminology-forbidden
-# REPLACES the shallower one for its subtree (scripts/lint-terminology.sh), so this
-# governs docs/canon/. It is the parent docs/.terminology-forbidden MINUS the patterns
-# the canon quotes as history (generated 2026-07-04, copy-and-remove-what-trips); the
-# still-live forbids that are NOT canon-history stay in force (kels namespace, dead
-# service/tool names, policy-DSL call-forms, the never-shipped Aut, retired decommission).
+# Mirrors docs/.terminology-forbidden for the frozen review records (deeper
+# files REPLACE shallower per scripts/lint-terminology.sh, so the docs/
+# patterns must be copied here to stay in force for reviews/). Keep in sync
+# with docs/ when its patterns change — EXCEPT the identifier-string bans
+# listed at the end of this header, which reviews/ deliberately omits:
+# review files are frozen records that quote retired identifiers verbatim.
 #
-# Mirrors the root .terminology-forbidden (deeper files REPLACE shallower
-# per scripts/lint-terminology.sh, so root patterns must be copied here to
-# stay in force for docs/). The docs-only additions live below the root
-# block. Keep in sync with the root file when root patterns change; add
-# docs-only patterns under §Doc-only below.
-#
-# Scope note: this file is docs/-scoped (not root) so the .working/
-# catalogues that legitimately quote superseded vocabulary don't
-# false-positive; root scope continues to govern them.
+# Omitted from this mirror (quoted verbatim by frozen reviews):
+#   vdti/(iel|sel)/v1/actions/  — the retired actions/ derivation segment
+#     (renamed by role to tags/ + topics/, 2026-07-22).
 
 # === Removed primitives (post-kels#214 simplification) ===
 # Cnt removed; per-node Contested removed; upgrade rule removed.
+\bCnt\b
+\bis_contested\b
 \bupgrade[ _]rule\b
 
 # === Removed identifiers (post-kels#218 federation trust model) ===
@@ -32,6 +27,7 @@
 
 # === Renamed services (kels consolidation) ===
 # sadstore + kels-service consolidated into vdtid; gossip-service → witnessd.
+\bsadstore\b
 \bkels-service\b
 \bgossip-service\b
 \bkels-sadstore\b
@@ -51,11 +47,15 @@ kels/sad/
 # §Doc-only — superseded event kinds
 # ============================================================================
 # These kels-era / pre-reshape tokens must not regress into docs. Whole-token
-# word boundaries only — Upd / Sea are substring-dangerous (recovery, SeaweedFS,
-# …). NOTE: Rec is NOT forbidden — the log-primitive reshape uses it as the KEL
-# repair kind ("recover"); the superseded reshape tokens are in the block below.
+# word boundaries only — Upd / Dip are substring-dangerous. NOTE: Rec is NOW
+# forbidden too — the first-seen pivot dropped the KEL repair kind (there is no
+# repair event; recovery is a plain Rot). Rec / Ror / Rpr / Fld and the two-tier
+# tokens live in the first-seen block at end-of-file.
 
-# === kels-era event kinds (Dip folded into Icp + delegating; Upd/Sea retired) ===
+# === kels-era event kinds (Dip folded into Icp + delegating; Upd retired) ===
+# (Sea is NOT banned — revived as the SEL neutral re-seal kind, area-sel.)
+\bUpd\b
+\bDip\b
 
 # === Renamed policy fields ===
 # authPolicy context-mapped to governance / authentication / operation;
@@ -77,6 +77,8 @@ kels/sad/
 # Call-form (trailing "(") so the uppercase IEL/KEL/SEL primitives and the
 # kel/ // iel/ doc paths are NOT matched.
 \bEndorse\(
+\bDelegate\(
+\bidentity\(
 \bthreshold\(
 \bWeighted\b
 \bPolicy\(
@@ -98,6 +100,7 @@ kels/sad/
 # forbidden in the reshape block below.) \bielEvent\b does not match custody's
 # ownerIelEvent (case differs at the boundary).
 \bielEvent\b
+\bielPrefix\b
 \bpolicyBinding\b
 [bB]inding[ -]SAD
 
@@ -117,32 +120,34 @@ kels/sad/
 #   KEL federationBinding → federation (prefix) + federationPin (SAID);
 #   policy-DSL leaves dev() / grp() dropped (identity composition is thr / wgt /
 #     and over id()). Call-form ("(") so device/develop/group are not matched.
-#     Only \bdev\( is banned here: the canon quotes grp( as dropped history
-#     (vdti-keri-acdc-comparison.md — "the reshape dropped foreign-`grp`"), and
-#     this file is the parent MINUS canon-quoted patterns, so \bgrp\( is omitted.
 \bGov\b
 \bEst\b
+\bRsc\b
+\bpolicyPin\b
+\bfederationBinding\b
 \bdev\(
+\bgrp\(
 # The 3-function policy evaluator (gate / anchored / current) collapsed to two
 # modes (as-issued / current) sharing one composer; all the old function names —
 # including the earlier evaluate_single_policy — are retired. The interim
 # 2-function name evaluate_anchored was renamed to evaluate_as_issued (the mode
 # is "as-issued"; "anchored" stays the structural verb — manifest anchors, the
 # anchoring position — so only the evaluate_ form is forbidden):
+\bevaluate_gate_policy\b
+\bevaluate_anchored_policy\b
+\bevaluate_current_policy\b
 \bevaluate_single_policy\b
 \bevaluate_anchored\b
 
 # ============================================================================
-# §Doc-only — seal-cap rejection error name (Sealed — four-state/merge-outcome pass)
+# §Doc-only — seal-cap rejection error name (Sealed, not ParentLocked)
 # ============================================================================
-# The seal-cap rejection is Sealed (an INERT below-seal parent that changes
-# nothing: parent.serial < seal_serial) — renamed from SiblingLocked (and earlier
-# ParentLocked) at the four-state / formalized-merge-outcome pass. Not every
-# below-seal parent is Sealed: a parent AT the seal (parent_serial == seal_serial)
-# extends cleanly, and a sibling at the seal's own serial (parent v_{seal-1},
-# parent_serial == seal_serial - 1) forms a live fork (Forked / Disputed),
-# retained — not Sealed. The cap bounds content extended FROM the seal; Sealed is
-# the inert below-seal parent — not a "locked parent," and not a sibling to the seal.
+# The seal-cap rejection is `Sealed` (first-seen single-word merge outcome).
+# There is no ParentLocked error: a parent AT the seal is extendable
+# (parent_serial == seal_serial passes the cap), so "parent locked" is not a
+# rejection condition. The interim name SiblingLocked is retired too — banned in
+# the first-seen block at end-of-file.
+\bParentLocked\b
 
 # ============================================================================
 # §Doc-only — KEL reshape: data-local detection + the manifest/spine model
@@ -152,19 +157,21 @@ kels/sad/
 # retained branches; the witness beacon propagates, never decides), so the
 # federation-decides framing and its vocabulary are retired:
 #   federation-irreconcilable  — the federation does not pronounce a verdict;
-#     a fork with >= 2 sealed branches reads "disputed" by a data-local walk;
+#     a fork with >= 2 privileged branches reads "disputed" by a data-local walk;
 #   effective-SAID synthetics divergent:{prefix} / irreconcilable:{prefix} — the
-#     truly-dead kels synthetics stay banned. vdti's first-seen effective-SAID is:
-#     a single confirmed tip → its real SAID; NO single tip → a type-tagged
+#     truly-dead kels synthetics (kels lacked guaranteed convergence and faked
+#     agreement with a branch-agnostic value). vdti's first-seen effective-SAID
+#     reads: a single confirmed tip → its real SAID; NO single tip → a type-tagged
 #     `synthetic` marker recoupled to the verdict (forked: / disputed:), qualified
-#     by prefix + position, NOT a digest over the competing tips (adversarially
-#     extensible → flood-unstable, deleted). So the verdict-recoupled colon forms
-#     forked: / disputed: are LIVE (the synthetic value on a no-single-tip chain);
-#     bare "divergent" / "irreconcilable" and the "forked"/"disputed" verdict words
-#     stay live too — only the kels divergent: / irreconcilable: colon forms are dead;
+#     by prefix + position — NOT a digest over the competing tips (adversarially
+#     extensible → flood-unstable). That first-seen synthetic is the CANON model,
+#     now landed in docs/design (phase-2 reconcile): the verdict-recoupled
+#     forked: / disputed: colon forms are LIVE at docs/ scope — their bans were
+#     lifted here once the synthetic landed in design. The kels divergent: /
+#     irreconcilable: colon forms stay dead everywhere;
 #   policy_satisfied  — the verifier token reports the structural-validity
-#     result, not a policy signal (authorization is structural; the acceptance
-#     policy is the relying party's, at the document/application layer);
+#     result, not a policy signal (authorization is structural; policy lives on
+#     documents);
 #   RecoveryRecord  — a repair commits a losing branch's root as the `fork`
 #     manifest role, not a separate audit-row type;
 #   witnessParams / witnessThreshold / witnessSelectionSize  — the witness
@@ -175,6 +182,8 @@ irreconcilable:\{prefix\}
 \bpolicy_satisfied\b
 \bRecoveryRecord\b
 \bwitnessParams\b
+\bwitnessThreshold\b
+\bwitnessSelectionSize\b
 
 # ============================================================================
 # §Doc-only — Fed→Wit + folded→folds remodel
@@ -188,6 +197,8 @@ irreconcilable:\{prefix\}
 # the role name and its dotted accessors regress, so forbid the role/accessor
 # forms (`folded`, folded.forks, folded.canonical), never the bare verb.
 # \bFed\b does not match "federation" (word boundary fails at the trailing e).
+\bFed\b
+`folded`
 folded\.forks
 folded\.canonical
 
@@ -204,6 +215,8 @@ folded\.canonical
 # apparatus regress.
 archived[- ]branch tips?
 `forks` tips
+\bsecond repair\b
+re-freez
 re-frozen
 
 # ============================================================================
@@ -216,6 +229,8 @@ re-frozen
 # "the chain forks", "the seal never forks") and the section title "Forks are
 # seal-bounded" stay live — only the list-role name and its accessor /
 # inline-list / plural-root collocations regress.
+`forks`
+forks\[\]
 \.forks\b
 losing[- ]branch roots
 roots committed
@@ -255,8 +270,47 @@ rescinds\[\]
 # \bDec\b does not match "December" (boundary fails at the trailing e); dates use
 # ISO 8601. \bDel\b / \bKil\b / \bAut\b are whole-token (Delegate(/kill/Author
 # fail the boundary).
+\bDel\b
+\bKil\b
+\bDec\b
 \bAut\b
+\bt_delegate\b
 [Dd]ecommission
+
+# ============================================================================
+# §Doc-only — first-seen pivot: two-tier collapse + no repair (2026-07-08)
+# ============================================================================
+# The first-seen pivot collapsed the KEL to two tiers and removed the whole
+# repair / recovery-key apparatus. Recovery is now a plain burying Rot (KEL) or
+# a governance seal / cut-Evl (IEL) — there is no repair EVENT and no recovery
+# KEY. The dead kinds and tier tokens must not regress into docs/design:
+#   Ror (proactive rotate-recovery), Rec (KEL repair — reveals the recovery
+#     key), Rpr (IEL/SEL repair), Fld (SEL re-seal) — all dropped;
+#   the recovery reserve: field names recoveryKey / recoveryHash and the count
+#     t_recover are gone (the prose "recovery key" survives ONLY in negations —
+#     "no recovery key" — so ban the camelCase field forms + t_recover, never
+#     the spaced prose);
+#   the third tier: "three-tier" and T3 are dead (two tiers — T1 signing key /
+#     T2 rotation reserve);
+#   privileged → sealed (the non-content event class is "sealed", never
+#     "privileged"; guards docs/design only — docs/canon/ has its own deeper file);
+#   the interim merge-outcome names SiblingLocked / KelTerminated are retired —
+#     the first-seen single-word outcomes are Sealed / Terminal / Invalid /
+#     Ignored (Rejected is NOT banned — indistinguishable from the verb).
+# \bRec\b is whole-token (recovery / record / recompute fail the boundary);
+# \bT3\b is distinctive; \bRor\b / \bRpr\b / \bFld\b are whole-token.
+\bRor\b
+\bRec\b
+\bRpr\b
+\bFld\b
+\bt_recover\b
+\brecoveryKey\b
+\brecoveryHash\b
+three-tier
+\bT3\b
+\bprivileged\b
+\bSiblingLocked\b
+\bKelTerminated\b
 
 # ============================================================================
 # §Doc-only — floor terminology disambiguation (2026-07-10)
@@ -264,17 +318,12 @@ rescinds\[\]
 # "majority floor" named two distinct thresholds over distinct sets and misled a
 # review pass. Split into names that say which threshold over which set:
 #   witnessing floor    — threshold > signers/2 (over the witness signers) —
-#     content-fork prevention (KEL + IEL);
+#     makes two content siblings un-co-witnessable (content-fork prevention; KEL
+#     + IEL);
 #   authorization floor — t_govern / t_authorize > |roster|/2 (over the roster
 #     members) — any two authorizing quorums overlap (IEL only; t_use exempt);
 #   position gate       — the IEL applying the witnessing floor at its own
 #     (prefix, serial). (Kept — already correct, never renamed.)
-# The bare term must not return; the new names carry no "majority" substring.
+# The bare term must not return; the new names carry no "majority" substring, so
+# the ban is clean.
 majority floor
-
-# ============================================================================
-# §actions/ derivation-string segment retired (2026-07-22)
-# ============================================================================
-# Role-named namespace: tags/ (hash-tag strings) + topics/ (SEL topics);
-# revocation split into tags/revocation + topics/revocation. actions/ is dead.
-vdti/(iel|sel)/v1/actions/

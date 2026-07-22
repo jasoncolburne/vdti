@@ -44,8 +44,8 @@ A document carries no self-asserted **authority** pin — no value the issuer is
 issuer context is fixed by the **anchoring position**: the issuer commits the document to its IEL by
 authoring an **anchoring event** — an IEL `Ixn` whose `manifest.anchors` names the document. For a
 **credential** — a direct-anchored SAD, never a SEL — that is the issuance `Ixn` naming the
-**issuance commitment** `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`, and that
-anchor **is** the validity proof
+**issuance commitment** `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')`, and that anchor
+**is** the validity proof
 ([`../data/event-logs/event-shape.md`](../data/event-logs/event-shape.md)). That event sits at a
 fixed serial on the append-only chain, and it fixes the context two ways at once:
 
@@ -112,7 +112,7 @@ custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each au
 its own attestation independently**: each authors its own attestation SEL over the document,
 self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by re-deriving its
 prefix. The attestation SEL is a **discoverable content SEL** with its derivation fully pinned: its
-`Icp` carries `owner` = the attesting identity's prefix, `topic` = `vdti/sel/v1/actions/attestation`
+`Icp` carries `owner` = the attesting identity's prefix, `topic` = `vdti/sel/v1/topics/attestation`
 ([`../data/event-logs/tags-and-topics.md`](../data/event-logs/tags-and-topics.md)), `data` = the
 attested SAD's **`said`** (never a prefix), and `content: true` — with no `lineage` and no nonce, so
 any relying party recomputes the same address (a private document's nonce'd `said` keeps the address
@@ -148,7 +148,7 @@ are `(D1, …, E)`, `(D2, …, D1)`, `(X, …, D2)`. Well-formedness: non-empty,
 ≤ `MAXIMUM_DELEGATION_DEPTH`. `del(X, N)` is satisfied iff the path's **last entry `== X`**, its
 **length `≤ N`**, and **every hop verifies**; `del(X, 1)` is the same shape —
 `delegationPath = [X]`. Each hop's delegating link is the content-addressed prefix recomputed from
-`(delegator, vdti/sel/v1/actions/delegation, delegate)` (delegator = owner, delegate = data — the
+`(delegator, vdti/sel/v1/topics/delegation, delegate)` (delegator = owner, delegate = data — the
 same scheme as a rescission lookup,
 [`../data/event-logs/iel/delegation.md`](../data/event-logs/iel/delegation.md)), **committed on the
 delegator's (owner's) own identity** (owner-rooted — only the owner anchors at a derived locus). The

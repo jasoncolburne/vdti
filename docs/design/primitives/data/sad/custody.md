@@ -81,9 +81,9 @@ hypothetical.
 So a write attribution is **corroborated by an append-only anchor**, not self-asserted. **An
 `owner`-bearing SAD is anchored directly on the owner's IEL:** the owner authors an `Ixn` on its own
 IEL whose `manifest.anchors[]` commits the SAD's **issuance commitment**
-`hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` — a blinded hash, so the SAD's own `said`
-never appears raw on the public IEL. The blind is **not a secret**, though: anyone who already holds
-— or can **guess** — the `said` recomputes the same commitment and confirms the anchor (that is how
+`hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` — a blinded hash, so the SAD's own `said` never
+appears raw on the public IEL. The blind is **not a secret**, though: anyone who already holds — or
+can **guess** — the `said` recomputes the same commitment and confirms the anchor (that is how
 attribution is verified). So the blinding is only as strong as the `said` is **unguessable**, which
 the general custody rule does not itself require — a low-entropy, enumerable SAD would let an
 observer confirm by dictionary that the owner anchored it. Unguessability is a **feature-layer**
@@ -91,7 +91,7 @@ discipline: the credential, file, chat, and private-document kinds each carry a 
 high-entropy `nonce` for exactly this reason. That `Ixn` — a tier-1 (`t_use`) content act only the
 owner's `t_use` quorum can author, witnessed, at an append-only position — **is** the write
 authorization: it records, non-repudiably, that the owner wrote this SAD. A **credential** is the
-named instance: its commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is this
+named instance: its commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` is this
 formula with `owner` = `issuer` and `said` = `cred.said` — the same mechanism under the generic
 custody names. A kind that carries its writer-binding in body fields, like the credential, does
 **not** also populate `custody.owner`/`pin` — the body fields are that instance, and acceptance
@@ -100,7 +100,7 @@ reads them.
 - **The `pin` locates the anchor.** `pin` is the SAID of that anchoring `Ixn`'s `previous`, so the
   `Ixn` sits at `pin`'s serial + 1 on the owner's canonical IEL. A verifier goes straight there and
   opens **one** manifest to confirm `previous == pin`, the event's kind is `Ixn`, and the issuance
-  commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` ∈ `manifest.anchors[]`, never
+  commitment `hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` ∈ `manifest.anchors[]`, never
   scanning a manifest per event. The `pin` is a **checked locator**, never trusted — it only _finds_
   the anchor; the anchor authorizes the write. Non-circular: `pin` (= `previous`) exists before the
   SAD's `said` commits it, and the owner then authors the `Ixn` at the next position. The mint and
@@ -122,7 +122,7 @@ reads them.
 - **Enforcement splits by layer.** The SAD structural pass enforces only the **presence** rule
   (`owner` ⟹ `pin`; an `owner`-bearing SAD with no `pin` is rejected). Whether the event at
   `pin + 1` actually exists, is an `Ixn`, carries the issuance commitment
-  `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` in `manifest.anchors[]`, and is a valid
+  `hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` in `manifest.anchors[]`, and is a valid
   owner-authored event is verified by **`verify_anchored_sad`**, a consumer helper (the store is
   untrusted — end-verifiability). A generic **`verify_sad`** delegates to it whenever the SAD is
   owned, so a caller never skips the anchor check.
@@ -257,7 +257,7 @@ and re-checked by consumers.
 
 - **Writer-binding forgery requires IEL-level compromise.** Attributing a write to identity X
   requires an **`Ixn` on X's IEL** committing the SAD's issuance commitment
-  (`hash('vdti/iel/v1/actions/commitment:{owner}:{said}')`) in `manifest.anchors[]` (located by the
+  (`hash('vdti/iel/v1/tags/commitment:{owner}:{said}')`) in `manifest.anchors[]` (located by the
   SAD's `pin`) — a `t_use` content act at X's **current** tip. An adversary who does not control X
   cannot author that anchor — and a broken **old** key cannot either, nor insert one in the past —
   so a write can be neither forged under X's name nor backdated

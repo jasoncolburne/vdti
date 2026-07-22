@@ -189,7 +189,7 @@ flowchart TD
   silently void the currency check. (A chat message carries its `timestamp` as a SAD field.)
 - **Optionally, anchor a message for an end-verifiable send-time.** For a high-value, non-repudiable
   message, the sender commits the message's **issuance commitment** — the blinded
-  `hash('vdti/iel/v1/actions/commitment:{sender}:{message.said}')` every owner-anchored SAD uses, so
+  `hash('vdti/iel/v1/tags/commitment:{sender}:{message.said}')` every owner-anchored SAD uses, so
   the raw message SAID never appears on the public chain — on an `Ixn` at its current position. A
   stale key cannot forge it, and any verifier (not only the recipient) reads the anchor on the
   sender's witnessed chain and **recomputes the commitment from the message to match**, proving the
@@ -352,7 +352,7 @@ degenerate group of two** — the same machinery, no separate two-party construc
   hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
   "recipient." Unlike a mail deposit, which the recipient acks-and-deletes, a chat blob is
   **retained** across the catch-up window so a member offline for a while can still read the epochs
-  it was in on return — bounded by the key-epoch log's checkpoint re-inception (the point past which
+  it was in on return — bounded by the key-epoch log's checkpoint reinception (the point past which
   a cold reader need not walk).
 - **Anchoring is opt-in.** A message is signed for authenticity by default and anchored only when
   the app or user flags it for non-repudiation (as above).

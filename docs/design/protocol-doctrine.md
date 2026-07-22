@@ -924,16 +924,17 @@ Inception tier follows what the inception establishes:
   state-establishment.
 - **SEL `Icp`** — tier 1. It establishes single-owner data, not governance. It carries **no `pin`**
   (it must stay recomputable for lookup) and is **never itself anchored** — the SEL's **serial-1
-  event (its v1)** is what an IEL `Ixn` anchors, and the `Icp` rides `v1.previous`. That v1 is a
-  bare **`Pin`** when inception carries no other first event (issue-and-sit), otherwise the first
-  event itself. A **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes the
-  prefix from (a grant-instance), and its rescission / revocation kill is a terminal `Trm` sealed by
-  an IEL `Dth` (rescission) or `Rev` (revocation).
+  event (its v1)** is what the owner IEL anchors — with the **matching kind** (an `Ixn` for content;
+  an `Ath` / `Rev` / `Dth` for a lookup's `Gnt` / `Trm`) — and the `Icp` rides `v1.previous`. That
+  v1 is a bare **`Pin`** when inception carries no other first event (issue-and-sit), otherwise the
+  first event itself. A **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes
+  the prefix from (a grant-instance), and its rescission / revocation kill is a terminal `Trm`
+  sealed by an IEL `Dth` (rescission) or `Rev` (revocation).
 
 A **credential is not a SEL** — it is a **direct-anchored SAD**: the issuer anchors its issuance
-commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` on its own IEL via an
-`Ixn`, and that anchor **is** the validity proof (the cred is immutable and presented by the holder,
-never looked up by address — [§Negative checks](#negative-checks-are-positive-lookups)).
+commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` on its own IEL via an `Ixn`,
+and that anchor **is** the validity proof (the cred is immutable and presented by the holder, never
+looked up by address — [§Negative checks](#negative-checks-are-positive-lookups)).
 
 A compromised tier-1 signing key can already issue content in your name, so letting it also create a
 SEL adds no blast radius — tier-1 inception is sound. Issuing a credential is tier 1 because a

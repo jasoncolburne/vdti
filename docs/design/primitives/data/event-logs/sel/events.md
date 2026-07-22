@@ -151,7 +151,7 @@ The kill-anchor's `manifest.anchors` names the `Trm`, and the `Rev` / `Dth` also
 IEL's **`kills[]` declaration** naming the killed locus (the IEL side —
 [`../iel/events.md` §Kills](../iel/events.md#kills--the-fail-secure-revocation-declaration)). A
 `Trm` is **monotone** — no delayed or unsealed form and no un-kill; restoring a killed thing is a
-**fresh grant at a fresh locus** (a lookup SEL re-incepts at a fresh lineage), never a retraction.
+**fresh grant at a fresh locus** (a lookup SEL reincepts at a fresh lineage), never a retraction.
 
 **`bound` placement is per-feature — the primitive says only that a kill commits whatever its anchor
 commits:** a credential revocation carries no `bound` (revocation is binary); a delegate rescission
@@ -188,8 +188,8 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
   ([`../iel/events.md` §Kills](../iel/events.md#kills--the-fail-secure-revocation-declaration) is
   authoritative on the IEL-side target and bound).
 - A **value lookup** is `{Icp, Gnt}` — its v1 the `Gnt` that seals the value. Rotating the value
-  stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value re-incepts
-  at the next lineage).
+  stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value reincepts at
+  the next lineage).
 - A **delegating-link lookup** is a **monotone `{Icp, Gnt}` value lookup** whose `Gnt` seals a
   `vdti/sel/v1/grants/delegation` marker committing a blinded reference to the delegate — the
   positive twin of the rescission lookup, re-derived to confirm a delegation's authorizing path. The

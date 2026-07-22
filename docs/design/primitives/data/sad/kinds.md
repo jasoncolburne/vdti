@@ -19,7 +19,7 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
   `gossip`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
-  `schemas` / `claims` / `protocols` / `actions` / `states` / `topics`. This is the common set; a
+  `schemas` / `claims` / `protocols` / `tags` / `states` / `topics`. This is the common set; a
   component may name its own family where these do not fit — policy groups by domain
   (`vdti/policy/v1/{group}/*`), and the gossip catalogue channels by log (plus a `witness` channel
   for receipts).

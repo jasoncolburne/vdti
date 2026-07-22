@@ -326,3 +326,16 @@ three-tier
 # The bare term must not return; the new names carry no "majority" substring, so
 # the ban is clean.
 majority floor
+
+# ============================================================================
+# §Doc-only — actions/ derivation-string segment retired (2026-07-22)
+# ============================================================================
+# The primitive derivation strings are namespaced by ROLE: tags/ (the tag in
+# hash('{tag}:...') — commitment / revocation / rescission) and topics/ (a SEL
+# inception's topic — revocation / delegation / attestation). The old actions/
+# segment cut across the catalogue's two categories and is retired; revocation
+# split into tags/revocation + topics/revocation (nothing compares the strings —
+# the two derivations share only the user data). Frozen review files quote the
+# old strings verbatim — docs/design/reviews/ carries its own file WITHOUT this
+# ban (keep that file in sync when docs/ patterns change).
+vdti/(iel|sel)/v1/actions/

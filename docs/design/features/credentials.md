@@ -72,7 +72,7 @@ Both are existing primitives, reused unchanged.
   issuer's chain, so it is time-ordered and revocable in place), and read **as-of that position**
   (the verifier confirms the located event's kind is `Ixn` — surfaced by the walk token — its
   `previous == issuerPin`, and that the issuance commitment
-  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is a member of its
+  `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` is a member of its
   `manifest.anchors[]`). No registry object and no lookup record: the credential is immutable and
   holder-presented, so it needs none. The anchoring event transitively commits the issuer's key
   state and its whole authority chain. The anchoring `Ixn` is tier-1 content — **buriable until the
@@ -249,10 +249,11 @@ language**, by shaping the credential:
 
 A credential needs no revocation object unless it is ever revoked. To revoke, the issuer declares a
 **kill** on its own chain naming the credential's derived revocation target —
-`hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')` — alongside a small sealed
-`{Icp, Trm}` lookup log at that derived address (so the declaration does not leak the object's
-address). A non-issuer cannot declare it, and a witnessed kill cannot be rolled back — no forged
-revocation, no silent un-revocation.
+`hash('vdti/sel/v1/tags/revocation:{issuer}:{cred.said}')` — alongside a small sealed `{Icp, Trm}`
+lookup log at the credential's **separately derived lookup address** (its own chain-prefix
+derivation under `topics/revocation`, over the same issuer + credential inputs — so the public
+declaration does not leak the lookup's address). A non-issuer cannot declare it, and a witnessed
+kill cannot be rolled back — no forged revocation, no silent un-revocation.
 
 - **Status is read fail-secure by default** — compute the target and walk the issuer's **fresh**
   chain from the issuance position to the tip, matching the target against each kill. Found →

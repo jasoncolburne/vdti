@@ -246,11 +246,11 @@ rescission `Trm`s); if the SAD store answered a **fetch-by-SAID for an event bod
 revocations, using vdti's own store as the inversion oracle. **The fix:** the `vdtid` SAD-store write path **detects
 an event by `kind` and rejects it** — nothing legitimate needs an event body in the SAD store (events live in the
 chain log, prefix-addressed — inv 16), so a fetch-by-SAID **physically cannot return an event**. *(A **credential**
-is anchored as the **issuance commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`** — an immutable SAD,
+is anchored as the **issuance commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')`** — an immutable SAD,
 **not** an event; the content/event `kind` split lets a **public** cred's body be fetched by SAID (intended) while a
 **private** cred's body is unpublished. The private-cred privacy interaction is **closed** (inv 16): `cred.said`
 appears **nowhere raw** on the public IEL — the issuance commitment, the revocation kill-target
-`hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')`, and the lookup SEL's prefix/said are all hashes of the
+`hash('vdti/sel/v1/tags/revocation:{issuer}:{cred.said}')`, and the lookup SEL's prefix/said are all hashes of the
 high-entropy preimage, so a passive observer can compute none of them.)* Bypass-robust: stripping
 the `kind` changes the content → changes the SAID → misses the attacker's harvested *real* event SAID. **`kind` is
 required on SAD data** (a clean per-kind store policy — allow content kinds, reject event kinds; the authoritative

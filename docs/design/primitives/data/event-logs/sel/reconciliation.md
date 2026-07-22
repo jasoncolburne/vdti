@@ -55,7 +55,7 @@ claims hold _by construction_.
    from there, no repair. Severed is a truncation, not a fifth state.
 4. **The verdict is by accepted-sealed-branch count.** No accepted sealed branch (a content-only
    fork) → **Forked** (recoverable); a single accepted sealed branch buries the content →
-   **Active**; two or more → **Disputed** → re-incept.
+   **Active**; two or more → **Disputed** → reincept.
 5. **Authorization is the owner IEL's threshold, delivered by the anchor.** A SEL event's count is
    drawn from the owner IEL's threshold vector and carried by the anchoring IEL event; a SEL hosts
    no roster of its own.
@@ -67,7 +67,7 @@ claims hold _by construction_.
 | **Empty**      | No events for this prefix on this node.                                                                                                                |
 | **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                     |
 | **Forked**     | A live **content** fork (no accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.              |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner re-incepts (a lookup SEL at a fresh lineage).      |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner reincepts (a lookup SEL at a fresh lineage).       |
 | **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried (`Buried`). |
 
 **Severed** is not a state — it truncates the SEL to its last live-anchored event, after which the
@@ -112,7 +112,7 @@ submission on an Active chain is in one of three attach-positions.
   `Recovered`, Active) or a `Trm` on the winning tip (→ `Terminated`). A second accepted sealed
   branch → `Disputed`. A plain content SEL uses a `Sea` (the neutral advancer) when it has no
   natural `Gnt` / `Trm`.
-- **Disputed** — terminal; a new submission is `Ignored`. The exit is re-incept (a lookup SEL at a
+- **Disputed** — terminal; a new submission is `Ignored`. The exit is reincept (a lookup SEL at a
   fresh lineage).
 - **Terminated** — a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling →
   `Disputed`; a content sibling → buried below the `Trm`'s seal (`Buried`).
@@ -135,7 +135,7 @@ first.
 | `{Trm, content}`        | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                                                                                                                                                                                                                            |
 | `{Trm, content}`        | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                                                                                                                                                                                                                                 |
 | `{Gnt \| Sea, content}` | live                                                      | the non-terminal seal-advancer buries the content → **Recovered → Active**; crossed with owner-IEL deadness it resolves like `{Trm, content}` but a surviving seal-advancer leaves the chain **Active** (not Terminated)                                                                                                          |
-| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → re-incept (no severance available to downgrade it)                                                                                                                                                                                                                                                                 |
+| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → reincept (no severance available to downgrade it)                                                                                                                                                                                                                                                                  |
 | ≥ 2 sealed branches     | one branch's anchor on a **dead** owner-IEL branch        | **unreachable by construction** — SEL acceptance gates on the owner-IEL anchor being accepted, and a SEL sealed branch's anchor is an IEL **sealed** event, never buried once accepted; so an accepted sealed branch's anchor never lands on a dead branch. Were it severed, the SEL would drop to the live branch → recoverable. |
 
 The load-bearing observation: **a content fork always resolves**, and _how_ keys on where the losing
@@ -163,7 +163,7 @@ verifiable shape.
 Severance is a **truncation**: it shrinks the SEL and the remaining chain reads one of the four live
 states. There is no continuation on the same chain — the severed portion was the dead-branch
 author's work, un-rescuable by re-pointing at the surviving owner-IEL branch (a different author).
-Recovery of a severed lookup SEL is a **re-incept at a fresh lineage** (§Re-incepting a lookup SEL).
+Recovery of a severed lookup SEL is a **reincept at a fresh lineage** (§Reincepting a lookup SEL).
 
 ## A signing-key compromise is fully buriable
 
@@ -176,22 +176,22 @@ content**.
 So the fork it authors is closed by a **burying seal-advancer** the owner authors with the reserve —
 a `Sea` on the SEL (or a natural `Gnt` / `Trm`), or, where the losing anchor is on a dead owner-IEL
 branch, severance for free. If the compromise also raced the owner IEL's content, one owner rotation
-buries that owner-IEL tail and the SEL events on it die by severance. **No re-incept** is needed for
+buries that owner-IEL tail and the SEL events on it die by severance. **No reincept** is needed for
 a signing-key compromise; the reserve defends the seal. A compromise that reaches the **reserve** (a
-sealed branch the owner did not author) is the ≥ 2-accepted-sealed case → Disputed → re-incept — the
+sealed branch the owner did not author) is the ≥ 2-accepted-sealed case → Disputed → reincept — the
 point of no return.
 
-## Re-incepting a lookup SEL
+## Reincepting a lookup SEL
 
 The **`lineage`** counter and its positive walk are the field model in
 [`log.md` §The content and lineage fields](log.md#the-content-and-lineage-fields); this section
-states what **re-inception** adds. A content or random-prefix SEL re-incepts by rerolling its nonce
-→ a fresh unguessable prefix. A **discoverable value lookup cannot** — its prefix is a pure function
+states what **reinception** adds. A content or random-prefix SEL reincepts by rerolling its nonce →
+a fresh unguessable prefix. A **discoverable value lookup cannot** — its prefix is a pure function
 of fixed inputs, so the same inputs recompute the same dead address; `lineage` is the remedy (a
-re-incept at `lineage: n+1` is a distinct prefix, and the positive walk stops at the lowest live
+reincept at `lineage: n+1` is a distinct prefix, and the positive walk stops at the lowest live
 lineage). This matters because a value lookup's own live state is the sole authority for its
 **positive** resolution (no owner-IEL fallback there), so a Disputed or severed lineage is a real
-denial that re-inception heals. Rescinding one lineage is a monotone `Trm` whose anchoring `Dth`
+denial that reinception heals. Rescinding one lineage is a monotone `Trm` whose anchoring `Dth`
 declares the **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')`, so the walk's per-lineage
 check reads `lineage: n` dead (from its own chain **or** that target in the owner IEL's fresh
 `kills[]`) while the re-established `n+1` survives — the positive walk consumes that per-lineage
@@ -202,7 +202,7 @@ rescission that named only an on-chain `Trm`, or a wrong-lineage target, would l
 withholdable leg ([`verification.md` §The lineage walk](verification.md#the-lineage-walk)). A
 **monotone kill** (a cred revocation, a delegate / doc-member rescission) carries **no** `lineage`
 field and a **non-lineaged** target: it is answered by a single **negative check** (a verified `Trm`
-→ killed), never walked. Content re-incepts by nonce-reroll and never carries `lineage` — its
+→ killed), never walked. Content reincepts by nonce-reroll and never carries `lineage` — its
 `content: true` flag keeps it in a separate address namespace, so a content squat at a value's
 lookup address is impossible by construction. The verifier reads the `content` flag and the
 `lineage` field's presence — no tier-check on the read path — capped at `MAXIMUM_SEL_LINEAGE = 64`

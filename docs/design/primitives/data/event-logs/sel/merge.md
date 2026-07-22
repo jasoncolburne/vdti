@@ -48,7 +48,7 @@ acceptance also requires the owner to have authorized it):
 - **Sealed (`Gnt` / `Trm` / `Sea`) → first-seen and retained for detection.** A witness signs the
   first sealed sibling and declines later ones, so a threshold chain cannot be forked by one stolen
   reserve, and a **second accepted sealed branch** is proof the witnesses colluded, surfaced loudly.
-  Two accepted sealed branches → **Disputed → re-incept**; a sealed branch beside content is
+  Two accepted sealed branches → **Disputed → reincept**; a sealed branch beside content is
   **recoverable** (the sealed branch survives and the content buries). A witness-declined sealed
   sibling is held deferred-pending, forcing nothing.
 
@@ -70,7 +70,7 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 | **Recovered**  | A burying seal-advancer resolved a content fork → **Active**: it extends the winning branch and advances the seal past the loser. | A `Gnt` / `Trm` / `Sea` extends a fork's winning branch (or buries a run past its attach point) — the content loser drops below the seal. |
 | **Terminated** | A `Trm` admitted → **Terminated** (the SEL is retired).                                                                           | A `Trm` lands as a linear extension, or buries a content loser below its own seal.                                                        |
 | **Forked**     | A **recoverable** content fork → the chain is **Forked**, origination frozen.                                                     | A content event forks at a serial (a witness compromise), or a content event lands on an already-forked chain.                            |
-| **Disputed**   | **Two or more accepted sealed branches** → **Disputed** (terminal; the owner re-incepts).                                         | A second accepted sealed branch joins a fork, or a seal-advancer would bury a competing sealed branch.                                    |
+| **Disputed**   | **Two or more accepted sealed branches** → **Disputed** (terminal; the owner reincepts).                                          | A second accepted sealed branch joins a fork, or a seal-advancer would bury a competing sealed branch.                                    |
 
 **Rejections** — nothing lands; the chain is unchanged.
 
@@ -215,7 +215,7 @@ pre-sever portion stays live.
 - A **Disputed is never downgraded** by severance: its two sealed branches are **accepted**, and SEL
   acceptance gates on the owner-IEL anchor being accepted, so their (IEL sealed) anchors are never
   buried — no severance reaches an accepted sealed branch (§Matrix 2 in
-  [`reconciliation.md`](reconciliation.md)). A Disputed stays terminal → re-incept.
+  [`reconciliation.md`](reconciliation.md)). A Disputed stays terminal → reincept.
 - A **`{Trm, content}` fork** with a severed branch keeps the survivor — a severed content leaves
   the `Trm` standing (**Terminated**).
 

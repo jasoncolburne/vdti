@@ -144,12 +144,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
 - **lineage** — a value lookup-SEL's **re-establishment counter** (`Icp` only; base `0`, then
   `1, 2, …`, each a distinct prefix; cap `MAXIMUM_SEL_LINEAGE = 64`). A deterministic-prefix SEL
-  can't reroll a nonce to re-incept, so a rescinded **re-establishable value** re-incepts at the
-  next `lineage`, found by a **positive walk** to the lowest live one. Monotone lookups (cred /
-  delegate / doc-member rescissions, and non-re-establishable values) and content carry **no**
-  `lineage`. Load-bearing for value-bearing lookups; `sel/log.md` owns the walk and the lineaged
-  rescission target.
-  ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
+  can't reroll a nonce to reincept, so a rescinded **re-establishable value** reincepts at the next
+  `lineage`, found by a **positive walk** to the lowest live one. Monotone lookups (cred / delegate
+  / doc-member rescissions, and non-re-establishable values) and content carry **no** `lineage`.
+  Load-bearing for value-bearing lookups; `sel/log.md` owns the walk and the lineaged rescission
+  target. ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields))
 - **roster** — an identity's set of member prefixes (a delta on each change); for a federation, its
   witness KELs.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))

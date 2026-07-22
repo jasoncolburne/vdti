@@ -78,7 +78,7 @@ store-and-forward transport.
   - **A time cadence** — after a set interval, the epoch turns even with stable membership, so a
     compromised epoch key exposes only that window.
 - **Checkpoints keep verification bounded.** A long-lived group accrues a great many epoch events on
-  one log, which a cold verifier would otherwise walk end to end. The primitive **re-incepts a fresh
+  one log, which a cold verifier would otherwise walk end to end. The primitive **reincepts a fresh
   key-epoch log every so often** (chained to its predecessor), so a cold verifier walks only a
   bounded tail.
 

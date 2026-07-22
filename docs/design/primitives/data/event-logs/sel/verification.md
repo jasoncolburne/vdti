@@ -178,7 +178,7 @@ resolve_lookup(owner, topic, data):                       # a re-establishable v
 ```
 
 - **`Trm` advances.** A `Trm` on `lineage: n` kills **that lineage**, not the address, so the walk
-  advances to `lineage: n+1`. A rescinded value is re-established by re-incepting at the next
+  advances to `lineage: n+1`. A rescinded value is re-established by reincepting at the next
   lineage, so a live key stays reachable at a discoverable address.
 - **Any non-dead reading stops — `Forked` included.** Only `Trm` / Disputed / severed advance the
   walk; `Active` and `Forked` stop and return their reading (a `Forked` locus reads fail-secure).

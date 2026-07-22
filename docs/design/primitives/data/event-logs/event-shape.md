@@ -170,10 +170,9 @@ The roles that carry discrimination or shape rules, in prose:
 - **`anchors`** is the one anchoring vocabulary, discriminated by the **anchored event's kind**, not
   a label — kind-strict both ways: a KEL `Wit` anchors the IEL `Wit`; an IEL `Ixn` anchors content
   SEL **v1s** (the `Icp` rides `v1.previous`, never itself anchored) **and** a credential's
-  **issuance commitment** `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an
-  immutable SAD, no credential-SEL — the anchor is the validity proof); `Ath` → SEL `Gnt`; `Rev` →
-  SEL `Trm` (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal
-  recovery).
+  **issuance commitment** `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` (an immutable
+  SAD, no credential-SEL — the anchor is the validity proof); `Ath` → SEL `Gnt`; `Rev` → SEL `Trm`
+  (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal recovery).
 - **`roster`** is a **delta**, never a snapshot (`{ add, cut, changed thresholds }`): `add` is a
   list on every kind — on a federation `Wit` it must carry **exactly one** element (one witness
   added at a time); an **eviction** is an `Evl` whose delta includes a **non-empty `cut`** — `add`
@@ -268,8 +267,8 @@ means **forbidden** (the field must be unset); the full `req` / `fbd` / `opt` le
   ([`sel/log.md`](sel/log.md#the-content-and-lineage-fields)), verifier-enforced against the v1's
   tier (`content: true` ⟺ a v1-T1 content SEL; omitted ⟺ a v1-T2 lookup). Distinct from the manifest
   `payload` role.
-- ᶠ **`lineage`** — lets a re-establishable value re-incept at a fresh address (`lineage: n+1`)
-  after a rescission; a monotone lookup and content carry none.
+- ᶠ **`lineage`** — lets a re-establishable value reincept at a fresh address (`lineage: n+1`) after
+  a rescission; a monotone lookup and content carry none.
 
 The KEL key-state fields (`publicKey`, `rotationHash`) and the witness-config SAD are KEL-specific —
 see [`kel/`](kel/).
@@ -378,7 +377,8 @@ and [`substrate/federation/`](../../../substrate/federation/).
 | `Sea` | `t_govern`                                           | 2    | `Evl`                            | The **neutral re-seal** — buries a content fork on a SEL with no natural `Gnt` / `Trm`. **Sealed on arrival, seal-advancing, non-terminal.**ᵈ                                                                                  |
 
 - ᵃ **`Icp`** — stays recomputable for lookup (§Prefix derivation); the SEL's **serial-1 event (its
-  v1)** is what an IEL `Ixn` anchors, the `Icp` riding `v1.previous` (a bare `Pin` for
+  v1)** is what the owner IEL anchors with the **matching kind** (`Ixn` for content; `Ath` / `Rev` /
+  `Dth` for a lookup's `Gnt` / `Trm`), the `Icp` riding `v1.previous` (a bare `Pin` for
   issue-and-sit, else the first event). A lookup SEL's `data` is the recompute input (the
   grant-instance). A **credential is not a SEL** — it is a direct-anchored SAD (§Prefix derivation).
 - ᵇ **`Trm`** — the SEL kill, sealed by an IEL `Rev` (`t_govern`, a governed kill) or `Dth`
@@ -628,14 +628,14 @@ inception populates.
   batched serial-1 event instead).
 
 A **credential is not a SEL** — it is an immutable SAD the issuer **direct-anchors** by its
-**issuance commitment** `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` on an IEL
-`Ixn` (the anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL —
-the issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are
-all hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy
-via the body `nonce`) while a public credential's is correctly public. The custody rule: an
+**issuance commitment** `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` on an IEL `Ixn`
+(the anchor is the validity proof). `cred.said` appears **nowhere raw** on the public IEL — the
+issuance commitment, the revocation kill target, and the revocation lookup SEL's prefix/said are all
+hashes of it — so a private credential's status stays private (its `cred.said` is high-entropy via
+the body `nonce`) while a public credential's is correctly public. The custody rule: an
 `owner`-bearing SAD is **directly anchored** on the owner's IEL — its `Ixn` commits the issuance
-commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` (the credential is one use),
-located by its `pin`; SELs are the separate primitive for mutable / evolving state
+commitment `hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` (the credential is one use), located
+by its `pin`; SELs are the separate primitive for mutable / evolving state
 ([`../sad/custody.md`](../sad/custody.md)).
 
 The verifier reconstructs the prefix from canonical serialization and rejects any event whose
@@ -646,9 +646,9 @@ computed prefix doesn't match its declared `prefix`.
 Some kinds land only as part of a multi-event atomic batch, enforced at the merge layer:
 
 - **Credential issuance** — the issuer anchors the credential's **issuance commitment**
-  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` under an IEL `Ixn`'s
-  `manifest.anchors` (an immutable SAD, no credential-SEL — the anchor is the validity proof); one
-  IEL `Ixn` may batch many issuances.
+  `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` under an IEL `Ixn`'s `manifest.anchors`
+  (an immutable SAD, no credential-SEL — the anchor is the validity proof); one IEL `Ixn` may batch
+  many issuances.
 - **A SEL kill** — a revocation lookup-SEL `Trm` is anchored by an IEL `Rev`, and a rescission
   lookup-SEL `Trm` by an IEL `Dth`, each under `manifest.anchors` (one kill-anchor may batch many
   kills), and the `Rev` / `Dth` also carries the `kills[]` declaration naming each killed locus.

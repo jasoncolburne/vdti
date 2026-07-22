@@ -179,8 +179,8 @@ shows only grant / rescission **event** volume-timing, never who or how many mem
 three chains (closes every open bracket, so no new version is honored — the version-stopper) **and**
 terminates the three grant chains (a `Trm ← Rev`, `t_govern` — revoking its own chains), blocking
 re-grant. Bounding alone stops new versions; terminating alone leaves open brackets open. A grant
-chain carries **no `lineage`** (it is monotone, so a terminated chain cannot be re-incepted at a
-fresh lineage), which is what makes the freeze **permanent** — unfreeze is not a chain re-incept but
+chain carries **no `lineage`** (it is monotone, so a terminated chain cannot be reincepted at a
+fresh lineage), which is what makes the freeze **permanent** — unfreeze is not a chain reincept but
 a fresh V0′.
 
 **Crediting is claimed-versus-consent.** A grant _names_ a participant, but credit accrues only to
@@ -216,7 +216,7 @@ editor's own `t_use` produces the anchor, so anchoring proves _authorship_, not 
 
 **Anchoring gives position without a per-version log.** The editor authors an `Ixn` whose manifest
 anchors the version's issuance commitment
-`hash('vdti/iel/v1/actions/commitment:{owner}:{version_said}')`, and the version's custody `pin`
+`hash('vdti/iel/v1/tags/commitment:{owner}:{version_said}')`, and the version's custody `pin`
 locates that `Ixn` — call its position `V_x`, the version's **as-of**. There is no per-version SEL:
 the direct anchor carries both attribution and position at cheap `t_use` cost, and the commitment
 blinds `version_said` on the public IEL.
@@ -323,7 +323,7 @@ holds.
 - **Open-by-absence reads fail-secure.** `B_x` absent → open is answered like any membership
   rescission: the removal is a `kills[]` declaration on the creator's **witnessed** IEL plus a
   `{ Icp, Trm }` lookup, with
-  `target = hash('vdti/sel/v1/actions/rescission:{creator}:{hash(G : said_b)}')` — the primitive's
+  `target = hash('vdti/sel/v1/tags/rescission:{creator}:{hash(G : said_b)}')` — the primitive's
   derivation **tag** (never a feature topic), colon-joined canonical bytes. Honoring an open-period
   version **walks the creator's fresh IEL and forward-matches the target** — a stale or withheld
   view cannot hide a closure, because a hidden rescission needs a stale chain, which the

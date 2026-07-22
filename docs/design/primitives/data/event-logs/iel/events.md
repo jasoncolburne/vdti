@@ -166,7 +166,7 @@ change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit 
 
 Anchors content SEL events, each content SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`,
 never itself anchored), **and a credential's issuance commitment**
-`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
+`hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
 may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
 malformed / inert — a lightweight structural guard. Fork-prevention for a SEL is the SEL's **own**
@@ -262,8 +262,8 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
 - **`target = hash('{tag}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier computes
   directly and **forward-matches** on the owner's fresh IEL. The `tag` is a primitive derivation tag
   ([`tags-and-topics.md`](../tags-and-topics.md)), never a feature name —
-  `vdti/sel/v1/actions/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/actions/rescission`
-  for a `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
+  `vdti/sel/v1/tags/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/tags/rescission` for a
+  `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
   distinguishes them). The target **mirrors the killed address**
   ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
   `hash('{tag}:{owner}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member

@@ -24,7 +24,7 @@ re-derivable **index** of it — a `Gnt` sealing a minimal marker, never the sea
 Rescission is a **`kills[]` declaration** on the delegator's witnessed IEL **`Dth`** (tier 2,
 `t_authorize`, the polarity-inverse of `Ath`) plus a **`Trm` on the delegating-link SEL itself** —
 there is **no separate rescission lookup**. The `Dth`'s `kills[]` entry is `{ target, bound }`:
-`target = hash('vdti/sel/v1/actions/rescission:{delegator}:{delegate}')` — a flat, domain-qualified
+`target = hash('vdti/sel/v1/tags/rescission:{delegator}:{delegate}')` — a flat, domain-qualified
 hash over `(delegator, delegate)` (the shared `rescission` tag,
 [`../tags-and-topics.md`](../tags-and-topics.md), feature-blind), which the verifier
 forward-matches, and **distinct from the delegating-link SEL's derived prefix** (a separate
@@ -75,7 +75,7 @@ A `del(X, N)` document commits the exact authorizing path it was issued under �
 **`delegationPath`** field
 ([`../../../policy/documents.md` §Delegation in a document](../../../policy/documents.md#delegation-in-a-document))
 — and a verifier re-derives each hop through the owner-rooted **delegating-link** lookup SEL. Its
-prefix derives from `(delegator, vdti/sel/v1/actions/delegation, delegate)` (`delegate` = `data`,
+prefix derives from `(delegator, vdti/sel/v1/topics/delegation, delegate)` (`delegate` = `data`,
 [`../tags-and-topics.md`](../tags-and-topics.md)); it is **`{Icp, Gnt}`-shaped and monotone** (no
 `lineage`), rescinded to `{Icp, Gnt, Trm}`. The **`Gnt` seals a `vdti/sel/v1/grants/delegation`
 marker** — the discoverable, tier-2 **signpost** to the grant, **not** the seat of authority. The
