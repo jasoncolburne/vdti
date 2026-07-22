@@ -85,10 +85,11 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   rescission ([`evaluation.md`](evaluation.md)) — with **fail-open** (trust the miss) as the
   opt-out. The verifier walks **up** from the **presented party** rather than down from `X`: `X`'s
   _transitive_ delegate closure (delegates of delegates …) is unbounded, so it is never enumerated;
-  instead the verifier follows the **one authorizing path the document commits** (each hop a
-  self-recorded `delegating` link chaining up toward `X` — [`documents.md`](documents.md)),
-  confirming each hop's grant against that delegator's `Ath` inclusion list (the positive lookup
-  above). The walk is bounded by `N` **and** by the verifier-wide **`MAXIMUM_DELEGATION_DEPTH`** cap
+  instead the verifier follows the **one authorizing path the document commits in its
+  `delegationPath` field** (each hop a self-recorded `delegating` link chaining up toward `X` —
+  [`documents.md`](documents.md)), confirming each hop's grant against that delegator's `Ath`
+  inclusion list (the positive lookup above). The walk is bounded by `N` **and** by the
+  verifier-wide **`MAXIMUM_DELEGATION_DEPTH`** cap
   ([`../data/event-logs/iel/delegation.md`](../data/event-logs/iel/delegation.md)), and exceeding
   **either** denies (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates,
   not `X` itself (an `Ath` listing `X`'s own prefix is rejected, so a self-grant cannot collapse

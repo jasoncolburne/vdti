@@ -55,7 +55,9 @@ simultaneously. Events must arrive in canonical order
 set of all events at a given serial; the verifier processes events in generation order and tracks
 per-branch state. A fork forks per-branch state — when a second distinct event appears at the same
 serial as the first, the verifier records `divergence_ancestor` (the SAID of `v_{d-1}`) and tracks
-both branches independently.
+both branches independently — the field verdict-coupled exactly as the KEL's (Forked: the first
+divergence; Disputed: the earliest carrying ≥ 2 accepted sealed branches; not a recovery point on
+Disputed).
 
 ### Per-event checks
 
@@ -168,17 +170,17 @@ within `N` hops?" is a **bounded per-candidate walk**, never a materialization o
   per-candidate scalar state** (each candidate's `Ath` inclusion sets a boolean true), returning
   scalars. State is O(candidates), never the full set.
 - **Walk up from the presented party, not down from `X`.** The verifier follows the **one
-  authorizing path the document commits** — each hop a self-recorded `delegating` link chaining up
-  toward `X` — confirming each hop's grant against that delegator's `Ath` inclusion list (a positive
-  lookup). **Depth is the only quantity the walk adds.** Walking _up_ one committed path never
-  enumerates the delegate tree beneath `X` — that tree **fans out** by design: a delegation
-  hierarchy is how authority scales and how key management distributes across layers, so `X` need
-  not authorize every actor directly. Each hop is a single `Ath`-inclusion lookup (itself bounded by
-  `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary per-IEL cost — no
-  delegation-specific fan-out. The walk is bounded by the per-policy depth `N` **and** by a fixed
-  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 8`** backstop; exceeding **either** denies
-  (fail-secure). Eight leaves generous room — a real org hierarchy several layers deep (root →
-  company → division → region → branch → team → individual) **and** person-to-person chains that
+  authorizing path the document commits in its `delegationPath` field** — each hop a self-recorded
+  `delegating` link chaining up toward `X` — confirming each hop's grant against that delegator's
+  `Ath` inclusion list (a positive lookup). **Depth is the only quantity the walk adds.** Walking
+  _up_ one committed path never enumerates the delegate tree beneath `X` — that tree **fans out** by
+  design: a delegation hierarchy is how authority scales and how key management distributes across
+  layers, so `X` need not authorize every actor directly. Each hop is a single `Ath`-inclusion
+  lookup (itself bounded by `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary
+  per-IEL cost — no delegation-specific fan-out. The walk is bounded by the per-policy depth `N`
+  **and** by a fixed protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 8`** backstop; exceeding **either**
+  denies (fail-secure). Eight leaves generous room — a real org hierarchy several layers deep (root
+  → company → division → region → branch → team → individual) **and** person-to-person chains that
   reach across a well-connected planet (the six-degrees intuition, with headroom) — while the walk
   stays a cheap linear climb: each hop is one bounded `Ath`-inclusion lookup with no fan-out, so
   depth is the only quantity it adds. A per-policy `N` sits tighter underneath. A power of two, like
@@ -234,7 +236,7 @@ IelVerification:
     root_facet: RootFacet                  # Icp-rooted (user identity) vs Fcp-rooted (federation); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     roster_at_tip: RosterState             # the accumulated live roster + threshold vector at the canonical tip (a delta accumulation, not a stored snapshot)
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = divergent)
-    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
+    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} at the verdict's divergence (Forked: the first divergence; Disputed: the earliest carrying >= 2 accepted sealed branches — not a recovery point there); None on linear
     last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it; >= 2 accepted sealed branches -> no clean seal above the divergence)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
     anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and custody-anchored SAD issuance commitments (a credential is one use) found anchored on the canonical branch

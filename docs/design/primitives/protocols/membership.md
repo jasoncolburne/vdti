@@ -28,7 +28,11 @@ it seals a **membership delta** — `{ grants, rescinds }`:
   boundary** (below).
 
 A membership change is one such delta. There is no separate "add" and "remove" event — one delta
-carries both, the way an identity's own roster change carries adds and cuts together.
+carries both, the way an identity's own roster change carries adds and cuts together. One delta's
+`grants` list is capped at **`MAXIMUM_GRANT_ADDS = 64`** — the verifier accumulates the event's adds
+and bails the instant it breaches. Every instance inherits this bound — the three
+`document-*-membership` sets and `chat-membership` alike. The **membership set itself stays
+uncapped** (§No cap, no enumeration): the bound is per-delta verifier work, never set size.
 
 ## Checking one member — the two modes credentials already use
 

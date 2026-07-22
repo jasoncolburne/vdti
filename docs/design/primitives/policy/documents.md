@@ -141,18 +141,27 @@ applies at every level — with no self-asserted value carried at any level.
 ## Delegation in a document
 
 A document may be authorized by a **delegate** of an identity — the `del(X, N)` leaf
-([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under:
-each hop's delegating link is the content-addressed prefix recomputed from
+([`policy.md`](policy.md)). The document commits the **one authorizing path** it was issued under in
+its **`delegationPath` field** — an **ordered list of prefixes** running from the issuer's immediate
+delegator **up to and including `X`**: with issuer `E` and `delegationPath = [D1, D2, X]`, the hops
+are `(D1, …, E)`, `(D2, …, D1)`, `(X, …, D2)`. Well-formedness: non-empty, entries distinct, length
+≤ `MAXIMUM_DELEGATION_DEPTH`. `del(X, N)` is satisfied iff the path's **last entry `== X`**, its
+**length `≤ N`**, and **every hop verifies**; `del(X, 1)` is the same shape —
+`delegationPath = [X]`. Each hop's delegating link is the content-addressed prefix recomputed from
 `(delegator, vdti/sel/v1/actions/delegation, delegate)` (delegator = owner, delegate = data — the
 same scheme as a rescission lookup,
 [`../data/event-logs/iel/delegation.md`](../data/event-logs/iel/delegation.md)), **committed on the
-delegator's (owner's) own identity** (owner-rooted — only the owner anchors at a derived locus) and
-pinning up to `X`, so the verifier **derives** the authorizing chain from committed data and walks
-it (up to `N` hops, and never beyond the verifier-wide work cap — exceeding either denies,
-fail-secure) — the presenter furnishes nothing to prune. Per hop the verifier checks that the
-delegation was granted — the hop's `Ath` delegates the prefix **and** the delegating-link marker
+delegator's (owner's) own identity** (owner-rooted — only the owner anchors at a derived locus). The
+**field carries the up-chain; the link is the per-hop checkpoint**: the verifier **derives** each
+hop's address from the committed path and walks it (up to `N` hops, and never beyond the
+verifier-wide work cap — exceeding either denies, fail-secure) — the presenter furnishes nothing to
+prune (the path is fixed at issuance, inside the document's SAID). Per hop the verifier checks that
+the delegation was granted — the hop's `Ath` delegates the prefix **and** the delegating-link marker
 commits that same delegate — and that the grant has not been **rescinded** (a positive `kills[]`
-match, fail-secure by default — [`policy.md`](policy.md)).
+match, fail-secure by default — [`policy.md`](policy.md)). The path discloses the intermediate
+delegators to the **relying party inside the presented document** — the party entitled to the
+authorizing chain; the marker's blinding (the delegator's public chain never enumerates its
+delegates) is untouched.
 
 The **grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock:
 the **issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor

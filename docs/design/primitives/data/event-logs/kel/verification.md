@@ -47,7 +47,10 @@ simultaneously. Events must arrive in canonical order
 A **generation** is the set of all events at a given serial. The verifier processes events in
 generation order and tracks per-branch state. A fork forks per-branch state — when a second distinct
 event appears at the same serial as the first, the verifier records `divergence_ancestor` (the SAID
-of `v_{d-1}`) and tracks both branches independently.
+of `v_{d-1}`) and tracks both branches independently. The field is **verdict-coupled**: on a
+**Forked** chain it names the first (content) divergence; on a **Disputed** chain the **earliest
+divergence carrying ≥ 2 accepted sealed branches** — the two coincide except in a nested fork. On a
+Disputed chain it is **not** a recovery attach point (Disputed exits only by reincept).
 
 ### Per-event checks
 
@@ -152,7 +155,8 @@ verify_generation(events_at_serial):
     if events_at_serial.len() > branches.len():
         # More events than branches → divergence detected
         fork BranchState for new branches
-        record divergence_ancestor (the SAID of v_{d-1}) if first divergence
+        record divergence_ancestor (the SAID of v_{d-1}) at the first divergence;
+        re-point it to the dispute's divergence when a dispute is detected (verdict-coupled)
 
     for each event:
         match to branch via event.previous
@@ -220,7 +224,7 @@ KelVerification:
     prefix: String
     root_facet: RootFacet                        # Fcp-rooted (federation-witness infra) vs Icp-rooted (user); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
-    divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
+    divergence_ancestor: Option<SAID>            # SAID of v_{d-1} at the verdict's divergence (Forked: the first divergence; Disputed: the earliest carrying >= 2 accepted sealed branches — not a recovery point there); None on linear
     last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Wit/Trm with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it; a fork with >= 2 accepted sealed branches has no clean seal above the divergence) — computed from the held events, never arrival order
     federation_context_per_event: ...            # per-event federation binding (for chains that have re-bound)
     anchored_saids: BTreeSet<SAID>               # registered SAIDs found anchored on the canonical branch
@@ -333,8 +337,10 @@ pass, and it reads through the pathology to expose the chain's final portion rat
 hard-failing. The verifier:
 
 - Forks per-branch state when a second distinct event appears at the same serial.
-- Records the divergence ancestor (`v_{d-1}`'s SAID) and exposes it via `divergence_ancestor`, and
-  the competing branch tips via `competing_branch_saids`.
+- Records the divergence ancestor (`v_{d-1}`'s SAID) — verdict-coupled: on a Forked chain the first
+  (content) divergence, on a Disputed chain the earliest divergence carrying ≥ 2 accepted sealed
+  branches — and exposes it via `divergence_ancestor`, and the competing branch tips via
+  `competing_branch_saids`.
 - Verifies each branch independently.
 - Surfaces `is_divergent() = true` and the per-branch state via `branch_tips`, and the trust region
   via `region()`.

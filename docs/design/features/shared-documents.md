@@ -154,10 +154,12 @@ threshold.
 
 **Unbounded, one cap.** The set is never materialized — a version's check reads its own grant plus
 at most one rescission, never a live roster (knowing the live count would require resolving every
-rescission, defeating the O(1) model). The single amplification bound is
-**`MAXIMUM_GRANT_ADDS = 64`** — a grant event's add-list totals at most that many entries, enforced
-as the verifier accumulates the event's adds and bails the instant it breaches. The grant-chain
-length and per-member period count are the creator's own cost, cost-symmetric.
+rescission, defeating the O(1) model). The single amplification bound is the membership primitive's
+**`MAXIMUM_GRANT_ADDS = 64`**
+([`../primitives/protocols/membership.md`](../primitives/protocols/membership.md)) — a grant event's
+add-list totals at most that many entries, enforced as the verifier accumulates the event's adds and
+bails the instant it breaches. The grant-chain length and per-member period count are the creator's
+own cost, cost-symmetric.
 
 **Member names live in gated content, never public structure.** A chain's structural fields are
 witnessed, hence public, so a member prefix in one would leak. Every member reference is therefore a

@@ -238,7 +238,7 @@ SelVerification:
     lineage: Option<u32>                    # Some(n) only on a re-establishable value lookup; None on content or a monotone lookup
     kind_class: SelClass                    # content SEL vs kill-lookup vs value-lookup
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = the SEL's own divergence)
-    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
+    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} at the verdict's divergence (Forked: the first divergence; Disputed: the earliest carrying >= 2 accepted sealed branches — not a recovery point there); None on linear
     severed_at: Option<SAID>                # the last live-anchored event when a dead owner-IEL anchor truncates the chain
     last_seal_advancing_event: Option<SAID>  # the derived seal: the most recent Gnt / Trm / Sea with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it)
     owner_anchor_per_event: ...            # per-event owner-IEL anchor (kind + liveness)

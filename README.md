@@ -16,7 +16,8 @@ Underneath, you get the things every backend gives you — as verifiable primiti
 
 - **Data with custody** — content that carries a provable writer and a controlled read-set. Storage,
   provenance, and access control in one primitive.
-- **Logs** — single-owner, append-only, tamper-evident. Audit trails and event sourcing, free.
+- **Logs** — single-owner, append-only, tamper-evident. Audit trails and event sourcing, free to
+  compose — a high-volume log on a multi-device identity budgets a periodic re-seal.
 - **Identity** — a person or organization as a threshold of their own devices: the unit you
   authenticate and issue to, independent of any single device.
 

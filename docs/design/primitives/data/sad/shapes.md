@@ -265,18 +265,19 @@ A credential is a **direct-anchored** SAD (its issuance is a commitment hash on 
 Its `kind` names its **type** (application-registered — a diploma, an accreditation); the wrapper
 below is common to every type.
 
-| Field       | Type      | Required | Meaning                                                                         |
-| ----------- | --------- | -------- | ------------------------------------------------------------------------------- |
-| `said`      | SAID      | yes      | The credential's SAID — its immutable anchor.                                   |
-| `kind`      | string    | yes      | `vdti/cred/v1/schemas/*` — the credential's registered type.                    |
-| `issuer`    | prefix    | yes      | The issuer's IEL prefix.                                                        |
-| `issuerPin` | SAID      | yes      | The anchoring `Ixn`'s `previous` — locates the anchor at `previous.serial + 1`. |
-| `issuee`    | prefix    | no       | The issuee's IEL prefix; **absent → a bearer credential**.                      |
-| `claims`    | SAD       | yes      | A claims SAD (nested → partial disclosure).                                     |
-| `terms`     | SAD       | no       | An issuer-set terms-of-use SAD (nested); travels with the credential.           |
-| `issued`    | timestamp | yes      | Issuance time (advisory).                                                       |
-| `expires`   | timestamp | no       | Expiry (advisory).                                                              |
-| `nonce`     | bytes     | yes      | High-entropy — every credential has one; makes `said` unguessable.              |
+| Field            | Type         | Required | Meaning                                                                                                                                                                                                                                                            |
+| ---------------- | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `said`           | SAID         | yes      | The credential's SAID — its immutable anchor.                                                                                                                                                                                                                      |
+| `kind`           | string       | yes      | `vdti/cred/v1/schemas/*` — the credential's registered type.                                                                                                                                                                                                       |
+| `issuer`         | prefix       | yes      | The issuer's IEL prefix.                                                                                                                                                                                                                                           |
+| `issuerPin`      | SAID         | yes      | The anchoring `Ixn`'s `previous` — locates the anchor at `previous.serial + 1`.                                                                                                                                                                                    |
+| `issuee`         | prefix       | no       | The issuee's IEL prefix; **absent → a bearer credential**.                                                                                                                                                                                                         |
+| `delegationPath` | list⟨prefix⟩ | no       | Present iff issued under **delegated** authority — the ordered committed path, the issuer's immediate delegator up to and including the policy root ([`../../policy/documents.md` §Delegation in a document](../../policy/documents.md#delegation-in-a-document)). |
+| `claims`         | SAD          | yes      | A claims SAD (nested → partial disclosure).                                                                                                                                                                                                                        |
+| `terms`          | SAD          | no       | An issuer-set terms-of-use SAD (nested); travels with the credential.                                                                                                                                                                                              |
+| `issued`         | timestamp    | yes      | Issuance time (advisory).                                                                                                                                                                                                                                          |
+| `expires`        | timestamp    | no       | Expiry (advisory).                                                                                                                                                                                                                                                 |
+| `nonce`          | bytes        | yes      | High-entropy — every credential has one; makes `said` unguessable.                                                                                                                                                                                                 |
 
 The `claims` field is the SAID of a **claims SAD** (`vdti/cred/v1/claims/*`, application-defined).
 Each gated predicate it carries is a **uniformly-shaped blinded claim** —

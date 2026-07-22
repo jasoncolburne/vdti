@@ -112,8 +112,10 @@ conjunction:
 - **Structural integrity** — the SAID recomputes and `claims` is a well-formed SAD of the expected
   kind.
 - **Validly issued** — the issuance is anchored at the position its `issuerPin` names and the issuer
-  condition resolves there; for a **delegated** issuer, the delegation path is **not rescinded past
-  its grandfather bound** (a hop anchored before the bound stays honored).
+  condition resolves there; for a **delegated** issuer, the committed delegation path (the
+  credential's `delegationPath` field,
+  [`../primitives/policy/documents.md` §Delegation in a document](../primitives/policy/documents.md#delegation-in-a-document))
+  is **not rescinded past its grandfather bound** (a hop anchored before the bound stays honored).
 - **Issuer trusted** — the relying party trusts the `issuer` (its application decision).
 - **Fresh to the tip** — the issuer's chain is not forked, not disputed, and current, read against
   multi-source witnessed state. This is **mandatory**: an as-issued read alone is fooled by a forged
