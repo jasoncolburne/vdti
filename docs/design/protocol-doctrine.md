@@ -62,12 +62,12 @@ regardless of source.
 Structural concepts referenced throughout. Distinct senses; not interchangeable.
 
 - **Sealed / content** (for post-inception events): **content** is tier 1 — `Ixn` (and the SEL's
-  floor `Pin`); **sealed** is every non-content kind — tier 2 ([§Tiers](#tiers)). Every
-  **non-inception** sealing event advances the seal, and only sealing kinds do
-  ([§Forks are Seal-Bounded](#forks-are-seal-bounded)). **Inception is the exception on both
-  counts**: an `Icp` / `Fcp` is the spine root (it advances no seal) and may itself be tier 1 (KEL /
-  SEL) or tier 2 (IEL) — it never enters fork dispatch, because two distinct inceptions for one
-  prefix are impossible by whole-content prefix derivation.
+  floor `Pin` — the epithet names the kind; every `Pin`, at any serial, is content); **sealed** is
+  every non-content kind — tier 2 ([§Tiers](#tiers)). Every **non-inception** sealing event advances
+  the seal, and only sealing kinds do ([§Forks are Seal-Bounded](#forks-are-seal-bounded)).
+  **Inception is the exception on both counts**: an `Icp` / `Fcp` is the spine root (it advances no
+  seal) and may itself be tier 1 (KEL / SEL) or tier 2 (IEL) — it never enters fork dispatch,
+  because two distinct inceptions for one prefix are impossible by whole-content prefix derivation.
 - **Locked**: the portion of a chain before its most recent sealed event. **Within-chain rule** —
   locked events are structurally immutable within their own chain: a recovery cannot bury them, and
   within-chain historical authorizations are not retroactively unsatisfiable. The sealed event
@@ -615,15 +615,17 @@ be removed, the eviction rides a **`cut` `Evl`** — one sealing event that buri
 evicts, atomically — not a following `Evl`. Atomicity is required: were the eviction a later event,
 the still-rostered member could race a fresh `Ixn` at the resolved tip → re-fork → indefinitely (a
 timing attack); the `cut` `Evl` makes it atomic by construction, so the member is gone the instant
-the fork resolves and no post-recovery window exists. The `cut` `Evl` carries a **required non-empty
-`cut` + an optional `threshold` change — never an `add`, never a `threshold`-only change**, and is
-`Rot`-anchored like any `Evl`. There is **no** repair-and-evict fold — the eviction is an ordinary
-`Evl`. The cut is priced at the **outgoing** `t_govern` (the pre-change gate — an `Evl` cannot lower
-its own gate before cutting); the post-cut roster is re-checked against the threshold-vector bounds
-(a stranding or hostage cut is rejected, forcing a simultaneous `threshold` drop the `Evl` may
-carry, or reincept). The cut target is **operator-chosen** — the fork-causer is the motivating case,
-not a structural check, since chain data cannot tell operator from adversary. This is IEL-only (the
-KEL buries by rotating, the SEL cascades from its owner IEL).
+the fork resolves and no post-recovery window exists. The `cut` `Evl` is an **ordinary `Evl` whose
+delta includes a non-empty `cut`** — the general roster-delta rules apply, so the same event may
+also carry an `add` or a `threshold` change (singleton evict-and-replace, `cut 1 + add 1`, is the
+worked case) — and it is `Rot`-anchored like any `Evl`. There is **no** repair-and-evict fold — the
+eviction is an ordinary `Evl`. The cut is priced at the **outgoing** `t_govern` (the pre-change gate
+— an `Evl` cannot lower its own gate before cutting); the post-cut roster is re-checked against the
+threshold-vector bounds (a stranding or hostage cut is rejected, forcing a simultaneous `threshold`
+drop or replacement `add` the `Evl` may carry, or reincept). The cut target is **operator-chosen** —
+the fork-causer is the motivating case, not a structural check, since chain data cannot tell
+operator from adversary. This is IEL-only (the KEL buries by rotating, the SEL cascades from its
+owner IEL).
 
 **Burial is by position + ascent — growth-proof.** There is no repair event and no `fork` root; a
 content loser is buried **by position**: its **first event** is locked below the burying seal (the
@@ -900,15 +902,17 @@ is **monotone**: restoring a killed thing is **never** a retraction — the part
 restore it; its kill locus permanently caps that prefix.
 
 A **validity bound** removes a **contiguous suffix** of a chain — whether it is a rescission's
-`bound` (declared in the `Dth`'s `kills[]`) or the attacker's tail a **burying seal** drops from a
-divergence point. By chain linearity every event builds on the prior, so only a contiguous tail can
-be invalidated — never a non-contiguous subset. **Nothing past the bound is honored — grants _and_
-kills alike**; there is no per-kind exception across a validity bound (honoring an event past the
-bound would trust an un-anchored, invalidated event). In a compromise the invalidated suffix is
-exactly the attacker's contiguous tail from the divergence point — legitimate and attacker events
-never interleave into a subset worth keeping. A bound is **set once** at the rescission `Trm`: it
-can't move later (no un-kill) nor be tightened earlier; a sealed kill is never retracted. Recovery
-from a mis-set bound is operational (reincept and re-grant / reissue), not a rewind.
+`bound` (declared inline in the `Dth`'s `kills[]`, or — when the cutoff is participant-identifying —
+carried on the sealing SEL `Trm`'s gated `bound` role) or the attacker's tail a **burying seal**
+drops from a divergence point. By chain linearity every event builds on the prior, so only a
+contiguous tail can be invalidated — never a non-contiguous subset. **Nothing past the bound is
+honored — grants _and_ kills alike**; there is no per-kind exception across a validity bound
+(honoring an event past the bound would trust an un-anchored, invalidated event). In a compromise
+the invalidated suffix is exactly the attacker's contiguous tail from the divergence point —
+legitimate and attacker events never interleave into a subset worth keeping. A bound is **set once**
+at the rescission `Trm`: it can't move later (no un-kill) nor be tightened earlier; a sealed kill is
+never retracted. Recovery from a mis-set bound is operational (reincept and re-grant / reissue), not
+a rewind.
 
 #### Inception tiers
 
@@ -1179,11 +1183,14 @@ contents stay within the federation.
 selected witnesses' sub-gossip mesh while it gathers receipts, and is returned by a query **only to
 a selected witness** for that position — to every other node it is noise that could only skew a
 reading, so it is **not** returned. A non-witness therefore holds only **witnessed-in-full** events,
-which is what makes the data-local walk a pure function of **accepted** state on every node. An
-opt-in, non-default **`all-data` audit query** is the one exception: it returns **every** event and
-receipt a node holds, sub-threshold ones included — but the walk **ignores** anything not accepted,
-so surfacing them cannot skew a verdict. Its value is **forensic** (detecting injection or collusion
-attempts) and it carries an audit obligation. The mechanics are federation doctrine —
+which is what makes the data-local walk a pure function of **accepted** state on every node. (One
+nuance: an accepted event commits its whole ancestry — including an ancestor that never individually
+reached threshold; acceptance gates the tip, not each ancestor —
+[`kel/verification.md` §Acceptance requires threshold](primitives/data/event-logs/kel/verification.md#acceptance-requires-threshold--for-every-node).)
+An opt-in, non-default **`all-data` audit query** is the one exception: it returns **every** event
+and receipt a node holds, sub-threshold ones included — but the walk **ignores** anything not
+accepted, so surfacing them cannot skew a verdict. Its value is **forensic** (detecting injection or
+collusion attempts) and it carries an audit obligation. The mechanics are federation doctrine —
 [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 
 **The propagation premise and the split stall.** Prevention's success rate — never its safety —
@@ -1279,9 +1286,11 @@ chain it transitively leans on — the KEL(s) beneath an IEL, the IEL beneath a 
 above it, and the federation that witnesses it — not on that one chain alone. A lower-layer recovery
 `Rot` that breaks an upper event must be visible to a holder of the upper token, so a loss-of-trust
 decision confirms each dependency's effective-SAID **multi-source** (a witness-signed effective-SAID
-is multi-source by construction; an unwitnessed chain degrades to single-source, flagged). "Is this
-chain forked / disputed?" is itself a loss-of-trust question — a one-branch holder computes a
-normal-looking tip and never sees a fork, so divergence detection is in the multi-source bucket.
+is multi-source by construction; a decision that cannot multi-source-confirm — any eclipse or single
+source — **refuses**, never proceeds with a flag —
+[witnessing §No direct mode](substrate/federation/witnessing.md#no-direct-mode-and-fail-secure)).
+"Is this chain forked / disputed?" is itself a loss-of-trust question — a one-branch holder computes
+a normal-looking tip and never sees a fork, so divergence detection is in the multi-source bucket.
 
 ### Walk semantics
 

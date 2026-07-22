@@ -26,7 +26,9 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
 - **`name`** — the specific member.
 
 A `*` below marks a family whose members are listed inline or defined by a feature. There is
-**never** a fifth segment: grouping is carried by descriptive names, not extra path depth.
+**never** a fifth segment: grouping is carried by descriptive names, not extra path depth. An
+identifier is **capped at 64 characters** — a DoS bound: the verifier rejects a longer identifier
+outright.
 
 ## Schema — exhaustive and versioned
 

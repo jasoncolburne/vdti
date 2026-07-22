@@ -35,12 +35,15 @@ pin**. _(A delegate `bound` is not participant-identifying, so it is public; a d
 rescission's `bound` **is** participant-identifying and instead rides the SEL `Trm`'s gated `bound`
 role — see [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md).)_
 
-The check reads the delegating-link SEL **first** (O(1) — tip `Gnt` → live, tip `Trm` → rescinded);
-on a miss it is **fail-secure by default** — walk the delegator's fresh IEL and forward-match the
-`target` against each `Dth`'s `kills[]` (in some → rescinded; in none on the fully-walked fresh
-chain → not rescinded) — with **fail-open** (trust the miss) as the opt-out. On a hit, the lookup
-`Trm`'s pin (`Trm.pin` = the `Dth`'s `previous`) points straight at the killing `Dth`, so the
-`bound` is read from its `kills[]` entry directly — no exhaustive scan.
+The check reads the delegating-link SEL **first** — an O(1) read that concludes **only from
+presence**: a tip `Trm` proves rescinded (a kill is monotone). A tip `Gnt` is **not** a liveness
+verdict — a store that withholds the `Trm` serves exactly `{Icp, Gnt}`, so absence proves nothing.
+Anything short of a found `Trm` is a **miss**, and a miss is **fail-secure by default** — walk the
+delegator's fresh IEL and forward-match the `target` against each `Dth`'s `kills[]` (in some →
+rescinded; in none on the fully-walked fresh chain → not rescinded) — with **fail-open** (trust the
+miss) as the opt-out. On a hit, the lookup `Trm`'s pin (`Trm.pin` = the `Dth`'s `previous`) points
+straight at the killing `Dth`, so the `bound` is read from its `kills[]` entry directly — no
+exhaustive scan.
 
 Rescission is **final for that `(delegator, delegate)` pair** — the delegating-link SEL is
 **monotone** (no `lineage`), so once `Trm`'d its address is dead. To re-delegate, the delegate

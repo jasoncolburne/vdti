@@ -176,8 +176,9 @@ The roles that carry discrimination or shape rules, in prose:
   recovery).
 - **`roster`** is a **delta**, never a snapshot (`{ add, cut, changed thresholds }`): `add` is a
   list on every kind — on a federation `Wit` it must carry **exactly one** element (one witness
-  added at a time); a `cut` `Evl` carries a **required non-empty `cut`** + optional `threshold`,
-  **never** an `add`.
+  added at a time); an **eviction** is an `Evl` whose delta includes a **non-empty `cut`** — `add`
+  and `threshold` changes may ride the same delta (device swap; singleton evict-and-replace), per
+  the general well-formedness rules ([`../sad/shapes.md`](../sad/shapes.md)).
 - **`delegates`** is a positive inclusion list; the same `Ath` may also carry `anchors` (a `Gnt`) —
   the two roles are independent.
 - **`grant`** names the grant-doc: the `editors` / `commenters` and their `from` validity-period
@@ -478,9 +479,10 @@ carry `federationPin` (`opt`) for a **same-federation re-pin**, but never `feder
 **down-pins** — a scalar SAID naming a small SAD of each participating member's **prior KEL tip**
 (`participation.previous`, not the anchoring event's own SAID — no cycle) (a federation `Wit`'s are
 the witness KELs); every IEL event is anchored by a threshold of members, so every IEL event carries
-it. On a `cut` `Evl`, `roster` carries a **non-empty `cut` + an optional `threshold`**, never an
-`add`. The kind→role allowlist gates the role's _presence_; the delta shape is checked per-kind. The
-exact roster delta SAD and pins-SAD schemas, the consent rule for additions, and the per-kind anchor
+it. An `Evl`'s `roster` delta follows the general well-formedness rules — `add`, `cut`, and
+`threshold` changes combine freely; a `cut` `Evl` is one whose delta includes a non-empty `cut`. The
+kind→role allowlist gates the role's _presence_; the delta shape is checked per-kind. The exact
+roster delta SAD and pins-SAD schemas, the consent rule for additions, and the per-kind anchor
 matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL

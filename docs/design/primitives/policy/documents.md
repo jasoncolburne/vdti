@@ -111,10 +111,18 @@ identity (a threshold over devices is not a threshold over identities). The docu
 custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each authorizing identity issues
 its own attestation independently**: each authors its own attestation SEL over the document,
 self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by re-deriving its
-prefix. The **relying party's** authorizing policy (`thr` / `wgt` / `and` over `id()`) is satisfied
-by the **positive lookup** of each named issuer's attestation — there are **no per-party pins**, no
-scan, and no cross-issuer coordination: each issuer anchors on its own chain at its own pace, and
-the verifier reads each one's authorization **as-of its own anchoring position**.
+prefix. The attestation SEL is a **discoverable content SEL** with its derivation fully pinned: its
+`Icp` carries `owner` = the attesting identity's prefix, `topic` = `vdti/sel/v1/actions/attestation`
+([`../data/event-logs/tags-and-topics.md`](../data/event-logs/tags-and-topics.md)), `data` = the
+attested SAD's **`said`** (never a prefix), and `content: true` — with no `lineage` and no nonce, so
+any relying party recomputes the same address (a private document's nonce'd `said` keeps the address
+unguessable to non-holders). Its v1 is the serial-1 `Pin`, anchored by the attesting identity's IEL
+`Ixn` — attesting is a **use act** (`t_use`), and the anchored existence, read as-of its own
+anchoring position, **is** the attestation. The **relying party's** authorizing policy (`thr` /
+`wgt` / `and` over `id()`) is satisfied by the **positive lookup** of each named issuer's
+attestation — there are **no per-party pins**, no scan, and no cross-issuer coordination: each
+issuer anchors on its own chain at its own pace, and the verifier reads each one's authorization
+**as-of its own anchoring position**.
 
 - An issuer that has **not** attested contributes no anchored position and is **not credited** — a
   malicious co-issuer cannot manufacture another's attestation, exactly as a single issuer cannot

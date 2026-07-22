@@ -81,7 +81,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 | `Sea` | Re-seal (SEL) — the **neutral** burying seal-advancer: advances the seal past a content fork without granting or terminating; anchored by an IEL `Evl` (`Sea ← Evl`). Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                            |
 | `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; carries a `kills[]` declaration and seals a SEL `Trm` that revokes a credential. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                |
 | `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; carries a `kills[]` declaration and seals a SEL `Trm` that rescinds a delegation or doc-membership grant. Tier 2, `t_authorize`, seal-advancing.                                                                                                                                                                         |
-| `Pin` | Pin (SEL) — the **pin-only re-pin** to the owner IEL's current tip at **any serial** (carries no manifest); its serial-1 instance is the issuance floor. A pure re-pin is always a `Pin`, never a payload-less `Ixn`. Tier 1.                                                                                                                                                                        |
+| `Pin` | Pin (SEL) — the **pin-only re-pin** to the owner IEL's current tip at **any serial** (carries no manifest); its serial-1 instance is the issuance floor. A pure re-pin is always a `Pin`, never a payload-less `Ixn`. Tier 1. The pervasive epithet "the floor `Pin`" names this kind — its serial-1 instance is the floor; every `Pin`, at any serial, is tier-1 buriable content.                  |
 | `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, seal-advancing (terminal); `t_govern` (identity-kill / SEL revoke) or `t_authorize` (SEL rescind).                                                                                                                                                                                               |
 
 ### Chain structure
@@ -296,7 +296,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`protocol-doctrine.md`](protocol-doctrine.md#effective-said-comparison))
 - **confirmed tip** — a chain tip **witnessed at threshold (accepted)**; the acceptance boundary
   that Active and the effective-SAID's real-SAID arm read against. An unwitnessed or below-threshold
-  tip is **not** confirmed (a non-witness never even holds a sub-threshold event — query-scoping).
+  tip is **not** confirmed (a non-witness never even holds a sub-threshold **pending** event —
+  query-scoping; an ancestor an accepted event commits is canonical, not pending —
+  [`kel/verification.md` §Acceptance requires threshold](primitives/data/event-logs/kel/verification.md#acceptance-requires-threshold--for-every-node)).
   ([`protocol-doctrine.md`](protocol-doctrine.md#federation-convergence))
 - **witnessed vs accepted** — **witnessed**: a selected witness signed a first-seen receipt.
   **accepted**: witnessed **at threshold** (a `confirmed tip`). The Active / `Disputed` boundary and

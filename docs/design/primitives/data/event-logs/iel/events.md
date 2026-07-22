@@ -194,7 +194,7 @@ IEL body event.
 is no repair-and-evict fold — there is no repair event). The `cut` is priced the **outgoing**
 `t_govern` (the pre-change gate — so an `Evl` cannot lower its own gate then cut), and the post-cut
 roster is re-checked against the bounds above (a stranding / hostage cut is rejected, forcing a
-simultaneous `threshold` drop or reincept). The timing rationale is in
+simultaneous `threshold` drop or replacement `add`, or reincept). The timing rationale is in
 [`merge.md` §Eviction](merge.md#eviction--a-cut-evl-buries-and-evicts-atomically).
 
 A key-state (roster + thresholds) an establishment event installs — an `Icp`, an `Evl`, or a

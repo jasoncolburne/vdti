@@ -17,25 +17,27 @@ convention `vdti/{component}/v1/{category}/{name}`
 Primitive-owned. The `tag` that qualifies the digest so derivations in different domains never
 collide.
 
-| Tag                              | Derivation                                                                                                                                                                |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/iel/v1/actions/commitment` | an owner's `Ixn`-anchored commitment to an immutable owned SAD — the direct custody anchor (a credential is one use, `owner` = `issuer`) — `hash('…:{owner}:{sad.said}')` |
-| `vdti/sel/v1/actions/revocation` | a `Rev`-anchored kill's target + its lookup-SEL — `hash('…:{owner}:{data}')`                                                                                              |
-| `vdti/sel/v1/actions/rescission` | a `Dth`-anchored kill's target + its lookup-SEL                                                                                                                           |
-| `vdti/sel/v1/actions/delegation` | the topic of a `del(X, N)` hop's positive **delegating-link** lookup SEL — locus derived from the delegator + delegate, pinning the `Ath` grant                           |
-| `vdti/log/v1/states/active`      | a single-tip chain — uses that tip's real SAID; no synthetic                                                                                                              |
-| `vdti/log/v1/states/forked`      | the effective-SAID synthetic for a forked chain — `hash('…:{prefix}:{position}')`                                                                                         |
-| `vdti/log/v1/states/disputed`    | the effective-SAID synthetic for a disputed chain                                                                                                                         |
-| `vdti/log/v1/states/terminated`  | a terminated chain — uses its real `Trm` SAID; no synthetic                                                                                                               |
+| Tag                               | Derivation                                                                                                                                                                                                                                                                                   |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/iel/v1/actions/commitment`  | an owner's `Ixn`-anchored commitment to an immutable owned SAD — the direct custody anchor (a credential is one use, `owner` = `issuer`) — `hash('…:{owner}:{sad.said}')`                                                                                                                    |
+| `vdti/sel/v1/actions/revocation`  | a `Rev`-anchored kill's target + its lookup-SEL — `hash('…:{owner}:{data}')`                                                                                                                                                                                                                 |
+| `vdti/sel/v1/actions/rescission`  | a `Dth`-anchored kill's target + its lookup-SEL                                                                                                                                                                                                                                              |
+| `vdti/sel/v1/actions/delegation`  | the topic of a `del(X, N)` hop's positive **delegating-link** lookup SEL — locus derived from the delegator + delegate, pinning the `Ath` grant                                                                                                                                              |
+| `vdti/sel/v1/actions/attestation` | the topic of a multi-identity **attestation** content SEL — locus derived from the whole `Icp` (`owner` = the attesting identity, `data` = the attested SAD's `said`, `content: true`), the attestation the policy layer looks up ([`../../policy/documents.md`](../../policy/documents.md)) |
+| `vdti/log/v1/states/active`       | a single-tip chain — uses that tip's real SAID; no synthetic                                                                                                                                                                                                                                 |
+| `vdti/log/v1/states/forked`       | the effective-SAID synthetic for a forked chain — `hash('…:{prefix}:{position}')`                                                                                                                                                                                                            |
+| `vdti/log/v1/states/disputed`     | the effective-SAID synthetic for a disputed chain                                                                                                                                                                                                                                            |
+| `vdti/log/v1/states/terminated`   | a terminated chain — uses its real `Trm` SAID; no synthetic                                                                                                                                                                                                                                  |
 
 `revocation` and `rescission` carry **no feature name** — a delegate rescission and a
 document-member rescission share `rescission` and never collide, because the `data` (the
 grant-instance) differs in `hash('{tag}:{owner}:{data}')`. The primitive never hears "delegate" or
-"document." `delegation` differs from those two: it serves **only** as a lookup-SEL inception
-**topic** (the delegating-link SEL's derivation), never as a flat kills-target the way `revocation`
-/ `rescission` also do — but it is a primitive-owned derivation string all the same, catalogued here
-with them. `active` and `terminated` are formalized for a complete enumeration, though only `forked`
-/ `disputed` are ever derived (the other two states carry a real SAID).
+"document." `delegation` and `attestation` differ from those two: each serves **only** as a SEL
+inception **topic** (`delegation` derives the delegating-link lookup SEL; `attestation` a
+discoverable **content** SEL — the multi-identity attestation), never as a flat kills-target the way
+`revocation` / `rescission` also do — but each is a primitive-owned derivation string all the same,
+catalogued here with them. `active` and `terminated` are formalized for a complete enumeration,
+though only `forked` / `disputed` are ever derived (the other two states carry a real SAID).
 
 Every `hash('{tag}:…')` derivation above hashes the **bytes of its fields in canonical form** — each
 `prefix` / `said` as its qualified representation ([`../sad/said.md`](../sad/said.md)), each

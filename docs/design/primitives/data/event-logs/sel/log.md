@@ -125,8 +125,9 @@ flowchart LR
 
 ## Lookup SEL versus content SEL
 
-A SEL is classified by **whether a verifier can recompute its address**, not by whether its data is
-discoverable:
+A SEL is classified by its **`content` flag** — `content: true` ⟺ a content SEL, verifier-enforced
+(§The content and lineage fields). Whether a verifier **recomputes** the address or is **handed** it
+is the usual correlate of that split, not the classifier:
 
 - A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
   inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
@@ -136,8 +137,11 @@ discoverable:
   receive-key, or the **delegating link**: a monotone `{Icp, Gnt}` sealing a minimal delegation
   marker, the positive twin of the rescission lookup, re-derived to confirm a delegation's
   authorizing path — [`../iel/delegation.md`](../iel/delegation.md); §The seal and its advancers).
-- A **content SEL** is one a verifier is **handed** rather than recomputing. It records data over
-  time (`Icp` → serial-1 event → further `Ixn`s).
+- A **content SEL** records data over time (`Icp` → serial-1 event → further `Ixn`s) — usually one a
+  verifier is **handed** rather than recomputing. The multi-identity **attestation SEL** is the
+  deliberate decorrelation: a content SEL (`content: true`, its v1 a tier-1 `Pin`) whose `Icp`
+  carries recomputable `data` and no nonce, so a relying party **re-derives** its address
+  ([`../../../policy/documents.md`](../../../policy/documents.md)).
 
 A **credential is neither** — it is not a SEL at all, but a direct-anchored immutable SAD (its
 issuance is a commitment anchored on the issuer's IEL by an `Ixn`, and that anchor is the validity
