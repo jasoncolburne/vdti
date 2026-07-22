@@ -258,6 +258,12 @@ only *through* a chain you already have the prefix for, so they give the attacke
 case. **Preferred over adding an availability field to every event.** *(One factual to-do before build: verify
 `kind` is populated on every SAD kind.)*
 
+**Design-owed (cold review 7.1, 2026-07-21):** the serve-by-SAID allowlist is a **soundness rule, not
+plumbing** — a load-bearing privacy enforcement (the principle above). On the design surface it currently
+lives only in the `kinds.md` §Fetch-by-SAID catalogue entry; the forthcoming
+`substrate/infrastructure/vdtid.md` design doc must **state and enforce it explicitly** when it lands
+(the enforcement point is wholly in that not-yet-written file today).
+
 ### 1k. Receipt-encoded threshold + on-receiving-node routing (first-seen hardening, 2026-07-08; design-reviewed 2026-07-14 — sound as written: the committed-config match on pull is authoritative, the receipt-encoded threshold only a fast-path hint)
 
 The match-check *safety* was verified this session; the *value*-scope point is **resolved** (below). **Receipt-encoded

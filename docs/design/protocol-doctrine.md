@@ -412,7 +412,7 @@ flowchart TD
   N -->|"1"| M{"the one sealed branch<br/>a terminal Trm?"}:::q
   M -->|"yes — over content"| TR["<b>Terminated</b> (tier-rank)<br/>the Trm outranks the content loser;<br/>no burying event authored"]:::good
   M -->|"no"| F{"on your<br/>retained branch?"}:::q
-  F -->|yes| R
+  F -->|yes| RA["<b>Already resolved → Active</b><br/>your retained branch already carries<br/>the accepted seal — no new event needed"]:::good
   F -->|no| PR["<b>Reincept</b> (point of no return)<br/>you can't bury a sealed branch<br/>you did not author<br/>— only its author recovers<br/>(they rotated)"]:::bad
   N -->|"≥ 2"| DP["<b>Disputed → reincept</b><br/>no sealed branch buriable;<br/>terminal for everyone"]:::bad
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
