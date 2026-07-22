@@ -49,19 +49,25 @@ The design is **sound and highly consistent.** On the two review axes:
   the internal link graph is clean (1283 links resolve, zero broken; the eight forward-references
   are all registered as forthcoming).
 
-What follows are the few genuine items worth an edit. None is a soundness break; all are polish
-(precision, coherence, and one explicitness note). They are grouped by theme, with a summary table
-first. A closing section records the substantive properties that were checked **and hold**, so the
-next reviewer sees what was actually exercised, not only what was flagged.
+What follows are the few genuine items worth an edit. Three of them (F1, F2, F4) are small,
+unambiguous fixes and have been **applied** to their own docs. The fourth (F3) is **not** mere
+polish: it is a framing problem in `protocol-doctrine.md` — the densest doc in the set — where the
+re-sync / anti-entropy prose leans on a mid-chain fetch anchor and thereby understates that trust
+comes only from re-walking a chain from inception. The **design itself is sound** (the per-primitive
+verifiers do walk from inception and re-derive the prefix); the risk is that the doctrine prose,
+read literally, could lead an implementer to trust a mid-chain delta from an untrusted source. That
+doc was **left unedited by request** and F3 is written up below as a self-contained handoff for a
+higher-effort review pass. A closing section records the substantive properties that were checked
+**and hold**.
 
 ## Summary of findings
 
-| #   | Group              | Severity | One-line                                                                                                                                                                                                                                                | Where                          |
-| --- | ------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| F1  | Naming consistency | Low      | The four-segment identifier convention is written with different placeholder names (`<concept>/<thing>`) in one doc than in the canon (`{component}/{name}`).                                                                                           | `system-thesis.md`             |
-| F2  | Factual precision  | Low      | "A power of two, like the other protocol constants" is not true of every protocol constant (129 and 365 are counterexamples).                                                                                                                           | `iel/verification.md`          |
-| F3  | Coherence          | Low      | The anti-entropy fetch on a diverged chain is described two different ways (send the synthetic → whole-chain re-walk; vs. fetch `since: last seal` → post-seal window) without reconciling them.                                                        | `protocol-doctrine.md`         |
-| F4  | Explicitness       | Low      | The three shared-document governance SELs are said to be "derived from the doc prefix" without stating the actual derivation inputs (owner = creator IEL, doc-prefix as `data`); it is determinable by composition but never written down in one place. | `features/shared-documents.md` |
+| #   | Group              | Severity | Status       | One-line                                                                                                                                                                                                        | Where                          |
+| --- | ------------------ | -------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| F1  | Naming consistency | Low      | **applied**  | The four-segment identifier convention was written with different placeholder names (`<concept>/<thing>`) in one doc than in the canon (`{component}/{name}`).                                                  | `system-thesis.md`             |
+| F2  | Factual precision  | Low      | **applied**  | "A power of two, like the other protocol constants" was not true of every protocol constant (129 and 365 are counterexamples); softened to "most other."                                                        | `iel/verification.md`          |
+| F3  | Doctrine framing   | Low–Med  | **deferred** | The re-sync / anti-entropy prose leans on a mid-chain fetch anchor (`since: effective-SAID` / `since: last seal`) and understates that trust comes only from re-walking from inception. Doctrine not touched.   | `protocol-doctrine.md`         |
+| F4  | Explicitness       | Low      | **applied**  | The three shared-document governance SELs were said to be "derived from the doc prefix" without stating the derivation inputs; now states `owner = creator IEL`, `topic = reserved topic`, `data = doc prefix`. | `features/shared-documents.md` |
 
 ## Findings — detail
 
@@ -80,8 +86,8 @@ reading order puts **first**) learns two labels that no other doc uses.
 
 - **Why it matters:** it is purely cosmetic, but the thesis is the orientation doc, so its wording
   sets the reader's vocabulary. The mismatch is small friction, not an error.
-- **Suggested fix:** change the thesis to `vdti/{component}/v1/{category}/{name}` (or
-  `<component>`/`<name>`) so the first mention agrees with the catalogue that owns the convention.
+- **Applied:** the thesis now reads `vdti/{component}/v1/{category}/{name}`, matching the catalogue
+  that owns the convention.
 
 #### F2 — "a power of two, like the other protocol constants" is imprecise (Low)
 
@@ -95,37 +101,64 @@ other protocol constants" is not a set that is uniformly powers of two: `MINIMUM
 
 - **Why it matters:** it is a throwaway justification, not a load-bearing rule, so nothing breaks —
   but as written the claim is falsifiable by two of the constants it appeals to.
-- **Suggested fix:** narrow the comparison to the family it means — e.g. "a power of two, like the
-  other **size-cap** constants" — or drop the "like the other protocol constants" clause.
+- **Applied:** softened to "a power of two, like **most** other protocol constants" — true, since
+  the size-cap family is powers of two and only `MINIMUM_PAGE_SIZE` / `MAXIMUM_WITNESS_KEY_WINDOW`
+  are not.
 
 ### Group B — coherence and explicitness
 
-#### F3 — two different anti-entropy cursors are described for a diverged chain (Low)
+#### F3 — the re-sync framing in the doctrine leans on a mid-chain fetch anchor (Low–Med; deferred to a higher-effort pass)
 
-Two sections of `protocol-doctrine.md` describe how a node re-syncs a chain whose effective-SAID has
-moved, and they give different pictures of the same diverged case:
+**This is a handoff, not an applied fix.** `protocol-doctrine.md` is the densest document in the set
+and was **left untouched by request**; this entry is a self-contained description for a
+higher-effort reviewer to act on. The **design is sound** — the per-primitive verifiers
+(`kel/verification.md` and its siblings) walk from inception and re-derive the prefix at serial 0.
+What is at issue is the doctrine **prose**, which — read literally — could lead an implementer to
+trust a mid-chain fetch from an untrusted source.
 
-- **§Caching and continuation** says the consumer "queries with the token's effective-SAID as a
-  `since` cursor," and when that cursor "is not a stored event — a `forked` / `disputed`
-  **synthetic** … the lookup simply misses and the source returns the **whole chain from the start**
-  (the first page)," so "a fork or dispute just costs a full re-walk."
-- **§Effective-SAID comparison** says "a node fetches `since: {its own last seal}` — pulling
-  everything from that seal forward (the canonical tip, every competing branch above it, a burying
-  seal-advancer) **plus the seal's own siblings**," a bounded post-seal window.
+**Where.** `protocol-doctrine.md`, Part 3 (Verification Mechanics): **§Caching and continuation**
+(the `since`-cursor / "whole chain from the start" / "full re-walk" passage) and **§Effective-SAID
+comparison** (the `since: {its own last seal}` passage).
 
-Both are safe (the two fetches converge, and a whole-chain re-walk is a superset of the post-seal
-window), so this is **not** a soundness problem. But the two passages leave a reader implementing
-anti-entropy with two different answers to "which cursor do I send when my effective-SAID is a
-synthetic, and how much do I re-fetch?" The §Effective-SAID strategy (send the last seal, which is a
-real SAID the node holds, and pull the bounded post-seal window) is strictly the better one; the
-§Caching passage reads as if the only option on divergence is to send the synthetic and eat a full
-re-walk.
+**What the prose says.** Both passages describe re-syncing a chain as a `since`-cursor fetch
+anchored at a mid-chain position:
 
-- **Suggested fix:** reconcile the two — state in §Caching that a node whose effective-SAID is a
-  synthetic fetches `since: {its last seal}` (a held real SAID) rather than sending the synthetic,
-  so the diverged fetch is the bounded post-seal window of §Effective-SAID, and the "synthetic
-  misses → whole chain from start" path is only the defensive fallback when a node has no held seal
-  to anchor on. A one-line cross-reference between the sections would close it.
+- §Caching: "query with the token's effective-SAID as a `since` cursor … when the cursor is a
+  synthetic … the source returns the **whole chain from the start** (the first page), which the
+  consumer re-walks; a fork or dispute just costs a full re-walk."
+- §Effective-SAID: "a node fetches `since: {its own last seal}` … plus the seal's own siblings."
+
+Read literally, this treats a mid-chain position (the effective-SAID, or the last seal) as a
+trustworthy resume / fetch anchor, and says a diverged chain is re-obtained by the source "returning
+the whole chain from the start."
+
+**Why that framing is wrong.** The source (the store) and the witnesses are **untrusted**. There is
+**no trustworthy mid-chain anchor**: a chain's identity is its **prefix**, and the prefix is derived
+from the **inception content**, so the only way to know a source returned the real chain — and not a
+substituted or tampered one carrying a different prefix — is to **walk from inception (v0) and
+re-derive the prefix**. The actual mechanism is: **re-read the chain from inception out of local
+store** (this is the trust — it re-derives the prefix and re-verifies), **and separately** issue the
+`since` query to the source for **only the new events** (the delta). A node does **not** fetch the
+whole chain over the network, and does **not** trust a `since`-anchored delta on its own.
+
+**Two distinctions to preserve when it is reworked.**
+
+- The **effective SAID is a state fingerprint for comparison** — the anti-entropy trigger between
+  nodes. That role is correct. What is wrong is using it (or the last seal) as a **trusted fetch
+  anchor** for the authoritative read.
+- **Token caching is legitimate** — an accepted-risk performance optimisation with its own freshness
+  tracking. It is not a hazard and must not be framed as one; it is simply a **separate concern from
+  the trust statement**.
+
+**Suggested direction (for the reviewer to weigh — not a prescribed edit).** The `since`-cursor and
+whole-chain-fetch specifics are transport detail that sits **above the doctrine's altitude** — the
+§Caching block already defers "the sink/source transfer surface" to the forthcoming services layer.
+So the likely fix is to **trim** those specifics from the doctrine and keep only the doctrine-level
+truth: verification re-walks **from inception over local data**, re-deriving the prefix (trust the
+data, not the source or the witnesses); the incremental `since` fetch and token caching are
+freshness-tracked performance optimisations whose mechanics belong to the services layer
+(forthcoming, `vdtid.md`). Because it is the densest doc in the set, the exact edit wants a careful
+hand — hence this handoff.
 
 #### F4 — the shared-document governance-SEL derivation is left implicit (Low)
 
@@ -150,10 +183,11 @@ written down, and the phrase "derived from the doc prefix" can read as if the do
   flags that "skip the seal-locate and the gate is a total bypass"), and it rests on the verifier
   deriving the **right** SEL address. Getting `owner`/`data` wrong there is a security-relevant
   implementation error, so the derivation deserves to be explicit rather than reconstructed.
-- **Note on scope:** the concrete grant-doc / SEL shapes are marked **forthcoming** in `shapes.md`,
-  so this is legitimately a feature-encode detail. The suggestion is only to state, at that encode,
-  the derivation tuple `(owner = creator IEL, topic = the reserved topic, data = doc prefix)`
-  explicitly — and, if cheap, to add a half-sentence to `shared-documents.md` now.
+- **Applied:** `shared-documents.md` now states the derivation directly — `owner` = the creator IEL
+  (V0's `creator`), `topic` = the reserved membership topic, `data` = the document prefix, each a
+  monotone `{Icp, Gnt}` value-lookup chain. The concrete grant-doc field layout stays
+  **forthcoming** in `shapes.md`; only the address-derivation inputs, which the honored-predicate
+  seal-locate depends on, are now explicit.
 
 ## What was checked and holds
 

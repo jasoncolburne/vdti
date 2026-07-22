@@ -307,7 +307,7 @@ matters, the verifier enforces it.
 ### Uniform data — a program can operate it natively
 
 Every artifact is a **kinded SAD**: one self-describing shape
-(`kind = vdti/<concept>/v1/<category>/<thing>`, a discoverable taxonomy), addressed and verified by
+(`kind = vdti/{component}/v1/{category}/{name}`, a discoverable taxonomy), addressed and verified by
 pure functions — a prefix recomputed from its inception content, a SAID that is the content hash,
 and validity a deterministic walk — over data from any source, with no service to trust. A consumer
 learns **one** model and can generate, address, and verify the entire surface locally, without an

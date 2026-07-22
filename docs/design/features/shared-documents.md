@@ -90,8 +90,11 @@ V0 carries:
 - **`nonce`** — high-entropy, so the prefix (hence every governance and version chain) is
   unguessable for a **private** document; a public document may omit it.
 
-The governance chains ride no V0 field — a holder derives them from the document prefix plus the
-protocol's reserved topics (below).
+The governance chains ride no V0 field — a holder recomputes each from V0 alone: the SEL's `owner`
+is the **creator** IEL (V0's `creator`, the identity that governs them), its `topic` is the reserved
+membership topic (below), and its `data` is the **document prefix** — so a creator's chains for two
+documents derive to distinct addresses. Each is a monotone `{Icp, Gnt}` value-lookup chain (no
+`content` flag, no `lineage`).
 
 V0 is **anonymous-write** — the shared constitution carries no `owner`, so its legitimacy is social,
 established out of band. A competing V0′ is always mintable; nothing structural privileges one
