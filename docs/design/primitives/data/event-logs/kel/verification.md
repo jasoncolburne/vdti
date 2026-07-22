@@ -260,7 +260,7 @@ read-only component of the token, not an independent verified state). The seal t
   **single** accepted sealed branch buries the content and reads **trusted** — a reserve-theft
   takeover you did not author is clean on-chain, caught by owner-vigilance and answered by reincept
   out-of-band, not surfaced here), or **disputed** (two or more branches each carry an **accepted**
-  (witnessed-at-threshold) sealed event at the last seal — terminal, reincept).
+  (witnessed-at-threshold) sealed event — per branch, wherever the seal sits — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** — an unresolved fork
   — yields a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified
@@ -358,8 +358,8 @@ The verifier's terminal-state-determination rule:
   - **No accepted sealed branch** (a content-only fork) → **forked** (recoverable); a burying
     seal-advancer buries the content → Active. A **single** accepted sealed branch buries the
     content → **Active**, not forked.
-  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
-    **disputed**; reincept.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches** (per branch, wherever their
+    seals sit) → **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 

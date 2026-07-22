@@ -72,10 +72,10 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   locked events are structurally immutable within their own chain: a recovery cannot bury them, and
   within-chain historical authorizations are not retroactively unsatisfiable. The sealed event
   ratchets the lock forward. On a chain carrying a fork, the locked portion is still read against
-  the tracked seal — the most recent seal-advancing event with no competing accepted **sealed**
-  sibling (a content sibling is buried below it, not a competitor); a seal-advancing event that is
-  one of two competing **accepted sealed** branches never becomes the lock (that is a Disputed
-  sealed fork, and the divergence rules read it — see
+  the tracked seal — the most recent seal-advancing event with no competing accepted **sealed
+  branch** from the divergence onward (a content sibling is buried below it, not a competitor); a
+  seal-advancing event that is one of two competing **accepted sealed** branches never becomes the
+  lock (that is a Disputed sealed fork, and the divergence rules read it — see
   [§Divergence and recovery](#divergence-and-recovery)).
 - **Chain states** (per-node — a chain is in exactly one of **four**, each **computed from the
   events a node holds by a data-local walk**, never a stored flag):
@@ -438,29 +438,30 @@ by content, independent of who signed it.)
 **A live divergence freezes further origination; the reading is a pure walk.** A node's **reading**
 of a chain — Active / Forked / Disputed — is a **pure function of the events it holds**: the walk
 derives the seal from those events (the most recent seal-advancing event with no competing accepted
-sealed sibling — a content sibling is buried below it) and reads the fork against it, counting the
-**sealed** branches past it, so two nodes holding the same events read the same state whatever order
-the events arrived in. What **freezes** is **origination**: while a node holds a fork **at or above
-the derived seal**, it **grows the fork no further** — it originates no new event that would
-**extend a contested branch**. The only event it authors onto such a chain is the one that
-**resolves** a content fork: a **burying seal-advancer on the winning branch** — a `Rot` / `Wit` /
-`Trm` on the KEL, a sealing event on the IEL (any non-terminal seal-advancer, typically the `Evl`,
-or the `cut` `Evl` when it also evicts) — that seals past the loser. That resolving move is **not**
-an exception to the freeze: it attaches at the **winning** branch and seals past the loser, it does
-not extend the contested position (you cannot fork the past, so a below-seal content loser is
-inert). Freezing is an **origination posture**, not a stored flag and not the reading: a node that
-comes to hold a burying seal-advancer re-reads the chain **Active**, exactly as a node that sealed
-before it ever saw the loser. One carve-out on the resolving move: a fork whose single sealed branch
-is a **terminal `Trm`** (an identity/SEL terminate) resolves by **tier-rank** with no burying event
-(below) — the terminal admits no successor, so it wins outright over the buriable content. A
-`Rev`/`Dth` is **not** terminal (it kills a _target_, not its host chain), so `{Rev|Dth, content}`
-recovers like `{Evl, content}`. (A below-seal **content** straggler that arrives after the chain
-already sealed past its serial is dead on ascent — kept as evidence or dropped per the retention
-bound below — never a freeze: the canonical branch is already sealed past it. A below-seal
-**sealed** straggler is **dropped** (inert) — the witness mirrors the seal-cap, so it cannot be
-witnessed past the seal and it does not retreat the clean seal (the backdate defense); a sealed
-dispute forms only at the **last seal**, from two witnessed seals there; see pre-seal verifiability,
-below.) Freezing origination on divergence is the founding insight of the event-log primitives.
+sealed branch from the divergence onward — a content sibling is buried below it) and reads the fork
+against it, counting the **sealed** branches past it, so two nodes holding the same events read the
+same state whatever order the events arrived in. What **freezes** is **origination**: while a node
+holds a fork **at or above the derived seal**, it **grows the fork no further** — it originates no
+new event that would **extend a contested branch**. The only event it authors onto such a chain is
+the one that **resolves** a content fork: a **burying seal-advancer on the winning branch** — a
+`Rot` / `Wit` / `Trm` on the KEL, a sealing event on the IEL (any non-terminal seal-advancer,
+typically the `Evl`, or the `cut` `Evl` when it also evicts) — that seals past the loser. That
+resolving move is **not** an exception to the freeze: it attaches at the **winning** branch and
+seals past the loser, it does not extend the contested position (you cannot fork the past, so a
+below-seal content loser is inert). Freezing is an **origination posture**, not a stored flag and
+not the reading: a node that comes to hold a burying seal-advancer re-reads the chain **Active**,
+exactly as a node that sealed before it ever saw the loser. One carve-out on the resolving move: a
+fork whose single sealed branch is a **terminal `Trm`** (an identity/SEL terminate) resolves by
+**tier-rank** with no burying event (below) — the terminal admits no successor, so it wins outright
+over the buriable content. A `Rev`/`Dth` is **not** terminal (it kills a _target_, not its host
+chain), so `{Rev|Dth, content}` recovers like `{Evl, content}`. (A below-seal **content** straggler
+that arrives after the chain already sealed past its serial is dead on ascent — kept as evidence or
+dropped per the retention bound below — never a freeze: the canonical branch is already sealed past
+it. A below-seal **sealed** straggler is **dropped** (inert) — the witness mirrors the seal-cap, so
+it cannot be witnessed past the seal and it does not retreat the clean seal (the backdate defense);
+a sealed dispute forms only at the **last seal**, from two witnessed seals there; see pre-seal
+verifiability, below.) Freezing origination on divergence is the founding insight of the event-log
+primitives.
 
 Every KEL, IEL, and SEL is **federation-witnessed** — there is no direct mode; a SEL is its own
 witnessed chain at its own `(prefix, serial)`, inheriting its owner IEL's federation (below). On a
@@ -785,7 +786,7 @@ decides the reading, not their arrival order. A **content-versus-content** pair 
 it** — the content's parent sits below the new seal, so it is dead on ascent — and that
 seal-advancer **becomes the tracked seal**: the chain reads **Active**, the same one-event
 resolution whether the seal arrived first or second (identical to a seal extending a branch
-**above** the fork — the burying case above). Only **two accepted sealed siblings** stay unresolved
+**above** the fork — the burying case above). Only **two accepted sealed branches** stay unresolved
 → **Disputed**. Both arrival orders therefore converge to the same reading (identical events,
 identical state — the reading is the walk's, not the arrival order's): a **content-only** fork (no
 sealed branch) reads Forked until its burying seal lands, a fork **carrying** that seal reads

@@ -259,13 +259,11 @@ claim is "the evidence always exists," not "no party can be unaware."
 Be precise about what this does _not_ cover. If an attacker steals the deepest reserve — the point
 of no return — they don't need to fork at all: they can just _extend_ the chain with a rotation to
 their own key. Witnesses sign it willingly, as an ordinary next event. Nothing is forced, so nothing
-double-signs — it isn't a conflict, and it isn't stale (the receipts are fresh). The owner has no
-way to turn it into a visible dispute — there is no forced fork to surface. Watching the chain
-doesn't change that; it only means the owner notices sooner. To a third party the takeover reads as
-an ordinary rotation either way. So the honest guarantee is narrower: **no silent _forgery_** (no
-forced fork). Catching a reserve-theft takeover rests on **owner vigilance**, not on the witnesses —
-watched or not — and reserve theft is unrecoverable regardless, so the answer there is to start
-fresh and tell the people who rely on you.
+double-signs — it isn't a conflict, and it isn't stale (the receipts are fresh). Watching the chain
+means the owner notices sooner. To a third party the takeover reads as an ordinary rotation. So the
+honest guarantee is narrower: **no silent _forgery_** (no forced fork). Catching a reserve-theft
+takeover rests on **owner vigilance**, not on the witnesses — watched or not — and reserve theft is
+unrecoverable regardless, so the answer there is to start fresh and tell the people who rely on you.
 
 And the outer edge, as always: an attacker who has corrupted _every_ witness vouching for you at
 once leaves no honest witness to trace it. That's the same limit every system of this kind has — if

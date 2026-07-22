@@ -208,8 +208,14 @@ framework's acknowledged points of no return, shared in kind with any pre-rotati
   alone cannot reach it. The takeover is not prevented, but it need not be silent: an owner who
   [monitors their own chain](monitoring.md) — comparing the network's effective SAID for their
   prefix against what their key state says it should be — is alerted the moment an event they did
-  not author appears, and reincepts and warns relying parties fast. The guarantee the design makes
-  is "no **undetected** takeover for a monitored chain," not "no takeover."
+  not author appears, and reincepts and warns relying parties fast. A vigilant owner also holds one
+  **in-band surfacing lever**: theft copies the reserve rather than removing it, so the owner can
+  author a competing **rebind to a different federation** — both sides reach acceptance on disjoint
+  witness sets ([witnessing §Rebinding](substrate/federation/witnessing.md#rebinding)) — and the
+  chain reads **disputed to any verifier whose trusted set includes both federations**. It recovers
+  nothing for the prefix (reincept is still the answer), but it flips those relying parties from
+  trusting the attacker to refusing. The guarantee the design makes is "no **undetected** takeover
+  for a monitored chain," not "no takeover."
 - **Lost** — Control of the prefix, permanently. Recovery is reinception under a **new** prefix plus
   out-of-band notification of every relying party. Irreversible.
 

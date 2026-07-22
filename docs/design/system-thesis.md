@@ -176,7 +176,7 @@ extend the chain even if the adversary still holds it.
 ### Divergence is resolved by tier; a divergent chain freezes further origination
 
 A **live** fork — two competing **content** events at one serial at or above the seal (two accepted
-**sealed** siblings are Disputed) — freezes further work and resolves by **tier**, never by
+**sealed** branches are Disputed) — freezes further work and resolves by **tier**, never by
 identity:
 
 - **Freeze is origination, not the reading.** No new work lands on a live fork until it resolves —
