@@ -62,13 +62,13 @@ claims hold _by construction_.
 
 ## SEL states (proof states)
 
-| State          | Description                                                                                                                                       |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**      | No events for this prefix on this node.                                                                                                           |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                |
-| **Forked**     | A live **content** fork (no accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.         |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner re-incepts (a lookup SEL at a fresh lineage). |
-| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried.       |
+| State          | Description                                                                                                                                            |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Empty**      | No events for this prefix on this node.                                                                                                                |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                     |
+| **Forked**     | A live **content** fork (no accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.              |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner re-incepts (a lookup SEL at a fresh lineage).      |
+| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried (`Buried`). |
 
 **Severed** is not a state — it truncates the SEL to its last live-anchored event, after which the
 chain reads one of the four above (typically Active, or auto-resolved from a fork).
@@ -89,11 +89,11 @@ submission on an Active chain is in one of three attach-positions.
 
 ### Position 2 — adjacent to the last seal (competes with the seal)
 
-| new event     | outcome                                                                                                                                                                 |
-| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Ixn` / `Pin` | chain stays `Active` — a content sibling of a seal is **buried** below it (dead on ascent); first-seen declines it, a colluded one is buried anyway — never a live fork |
-| `Gnt` / `Sea` | `Disputed` — a second accepted sealed branch (provable collusion); a witness-declined sibling is held deferred-pending                                                  |
-| `Trm`         | `Disputed` — a second accepted sealed branch                                                                                                                            |
+| new event     | outcome                                                                                                                                                                                                        |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn` / `Pin` | `Buried` — a content sibling of a seal is dead below it (dead on ascent, retained evidence); the chain stays `Active`. First-seen declines it (`Ignored`); a colluded one is buried anyway — never a live fork |
+| `Gnt` / `Sea` | `Disputed` — a second accepted sealed branch (provable collusion); a witness-declined sibling is held deferred-pending                                                                                         |
+| `Trm`         | `Disputed` — a second accepted sealed branch                                                                                                                                                                   |
 
 ### Position 3 — on the content run past the last seal
 
@@ -115,7 +115,7 @@ submission on an Active chain is in one of three attach-positions.
 - **Disputed** — terminal; a new submission is `Ignored`. The exit is re-incept (a lookup SEL at a
   fresh lineage).
 - **Terminated** — a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling →
-  `Disputed`; a content sibling → buried below the `Trm`'s seal.
+  `Disputed`; a content sibling → buried below the `Trm`'s seal (`Buried`).
 
 ## Matrix 2: Axis A crossed with Axis B (the load-bearing matrix)
 

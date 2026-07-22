@@ -91,10 +91,10 @@ protocol's safety claims hold _by construction_, not by observation.
    **dropped** too (inert — not witnessable past the seal; the backdate defense — _not_ read
    `Disputed`). A **sibling at the seal's own serial** (parent `v_{seal−1}`) is not in the locked
    portion — it is retained, not `Sealed`: a **content** sibling is **buried** below the seal (dead
-   on ascent — the chain reads **Active**, order-independent), while a **sealed** sibling is a
-   second seal at that serial → **Disputed** only if it too is accepted (invariant 2). So the cap
-   bounds content extended **from** the seal; a content sibling **to** the seal is buried, not a
-   live fork. (Retention-versus-rejection is the witnessing-gated matter — see
+   on ascent — the chain reads **Active**, order-independent; the `Buried` outcome), while a
+   **sealed** sibling is a second seal at that serial → **Disputed** only if it too is accepted
+   (invariant 2). So the cap bounds content extended **from** the seal; a content sibling **to** the
+   seal is buried, not a live fork. (Retention-versus-rejection is the witnessing-gated matter — see
    [`merge.md` §Merge outcomes](merge.md#merge-outcomes).)
 
 These invariants make synchronous resolution, single-page recovery, and atomic batched submissions
@@ -114,7 +114,7 @@ computed, not a reading layered on a single divergent state).
 | **Active**     | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | **Forked**     | A live **content-only** fork (no accepted sealed branch) past it — recoverable; a fork **carrying** an accepted sealed branch has that seal bury the content and reads Active, not a live fork. The chain is **origination-frozen** (a node originates no new work onto the live fork); the state is the pure walk of the events held. A sealed event extending `v_{d-1}` is retained as non-canonical evidence per invariant 4, not extended onto. Resolved by a **burying seal-advancer** on the winning branch (a `Rot` / `Wit`), which buries the content loser below the new seal → **Active**. |
 | **Disputed**   | A live fork with **≥ 2 accepted sealed branches** past it — terminal. No sealed branch can be buried (that would resurrect retired keys), so nothing resolves it and the prefix must **reincept**. Derived by the same data-local walk as Forked; the discriminator is the sealed count (≥ 2). Witnesses decline any extension of a disputed chain (barring a partition), so a new submission is `Ignored`; the only exit is reincept.                                                                                                                                                               |
-| **Terminated** | The `Trm` is the **permanent** end of the canonical chain (its tier-2 signature authorizes ending it there). **Not absorbing**: a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling beside or beyond → `Disputed`; a content sibling → `Sealed`.                                                                                                                                                                                                                                                                                                                                   |
+| **Terminated** | The `Trm` is the **permanent** end of the canonical chain (its tier-2 signature authorizes ending it there). **Not absorbing**: a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling beside or beyond → `Disputed`; a content sibling → `Buried`.                                                                                                                                                                                                                                                                                                                                   |
 
 **Empty** is the pre-inception (no-chain) case, included for matrix completeness; the four
 **live-chain** states are **Active** / **Forked** / **Disputed** / **Terminated**. A "proof state"
@@ -140,12 +140,13 @@ land **Active**):
 
 **Rejections** — chain unchanged:
 
-| Rejection    | Verdict                                                                                                              |
-| ------------ | -------------------------------------------------------------------------------------------------------------------- |
-| **Sealed**   | inert below-seal parent — not admitted                                                                               |
-| **Terminal** | a `Trm` admits no successor                                                                                          |
-| **Invalid**  | structurally inapplicable here                                                                                       |
-| **Ignored**  | a well-formed event the witnesses decline (content-fork prevention, or a new event on a Disputed / Terminated chain) |
+| Rejection    | Verdict                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------- |
+| **Sealed**   | inert below-seal parent — not admitted                                                                                |
+| **Buried**   | a content sibling at the seal's own serial — dead below the seal, retained as non-canonical evidence; state unchanged |
+| **Terminal** | a `Trm` admits no successor                                                                                           |
+| **Invalid**  | structurally inapplicable here                                                                                        |
+| **Ignored**  | a well-formed event the witnesses decline (content-fork prevention, or a new event on a Disputed / Terminated chain)  |
 
 ## Matrix 1: Local submissions
 
@@ -166,8 +167,8 @@ A new event whose **own serial is below the seal's** (its parent below `v_{seal�
 these three — it lands in the locked portion, so by the seal-cap (invariants 2, 5) it is rejected
 `Sealed` (a content child) or **dropped** (a sealed child — inert, the backdate defense),
 independent of attach-position. A sibling **at** the seal's own serial (parent `v_{seal−1}`) is
-Position 2 — resolved by tier (a content sibling buried → Active; a second accepted sealed sibling →
-Disputed), not a below-seal inert event.
+Position 2 — resolved by tier (a content sibling buried (`Buried`) → Active; a second accepted
+sealed sibling → Disputed), not a below-seal inert event.
 
 The attach-position, not the chain state, carries this distinction — the state stays one of the four
 live-chain states. Outcomes are the `Result<MergeTransition, MergeRejection>` vocabulary above.
@@ -183,12 +184,12 @@ live-chain states. Outcomes are the `Result<MergeTransition, MergeRejection>` vo
 
 ### Position 2 — the new event is adjacent to the last seal (competes with the sealed seal)
 
-| new event     | outcome                                                                                                                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Ixn`         | chain stays `Active` — the content sibling is **buried** below the seal (dead on ascent); an honest witness declines it (the position is already sealed), a colluded one is buried anyway — never a live fork |
-| `Rot` / `Wit` | `Disputed` — a second _accepted_ sealed branch beside the seal (two accepted sealed; a witness-declined sibling is deferred-pending, no change)                                                               |
-| `Trm`         | `Disputed` — a second _accepted_ sealed branch (else witness-declined, deferred-pending)                                                                                                                      |
-| `Icp` / `Fcp` | `Invalid`                                                                                                                                                                                                     |
+| new event     | outcome                                                                                                                                                                                                                                                                   |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn`         | `Buried` — the content sibling is dead below the seal (dead on ascent, retained evidence); the chain stays `Active`. An honest witness declines it (`Ignored` at the witness layer — the position is already sealed); a colluded one is buried anyway — never a live fork |
+| `Rot` / `Wit` | `Disputed` — a second _accepted_ sealed branch beside the seal (two accepted sealed; a witness-declined sibling is deferred-pending, no change)                                                                                                                           |
+| `Trm`         | `Disputed` — a second _accepted_ sealed branch (else witness-declined, deferred-pending)                                                                                                                                                                                  |
+| `Icp` / `Fcp` | `Invalid`                                                                                                                                                                                                                                                                 |
 
 ### Position 3 — the new event is on the run past the last seal (competes with content)
 
@@ -213,7 +214,7 @@ No position split is needed — each is one rule:
   submission is `Ignored`; a branch **already** witnessed before the dispute stays retained (it
   arrives via gossip, not as a new submission). The only exit is reincept.
 - **Terminated** — a submission chaining _from_ the `Trm` → `Terminal`; a **sealed** sibling beside
-  or beyond the `Trm` → `Disputed`; a content sibling → `Sealed`.
+  or beyond the `Trm` → `Disputed`; a content sibling → `Buried`.
 
 ### Batch submissions
 
@@ -247,12 +248,12 @@ non-canonical evidence (keep-all-data) — and that retention, when it changes t
 node before the divergence was detected elsewhere). The protocol cannot distinguish the two from
 chain data alone.
 
-| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated |
-| ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | ---------- |
-| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵈ     | Sealed     |
-| **Recovered** (source burying) | Extended | Extended         | Recovered ᵈ     | Recovered / Disputed ᵈ  | Sealed     |
-| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed     |
-| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵈ | Extended ᶜ |
+| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated      |
+| ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | --------------- |
+| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵈ     | Sealed / Buried |
+| **Recovered** (source burying) | Extended | Extended         | Recovered ᵈ     | Recovered / Disputed ᵈ  | Sealed / Buried |
+| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed / Buried |
+| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵈ | Extended ᶜ      |
 
 **Column note (the Active-source row).** "winning" / "losing" are relative to the **source's**
 branch: a sink on the _same_ branch as the source reads "winning" (→ `Extended`, dedup); a sink on a
@@ -290,9 +291,10 @@ column is needed.
 
 ### Notes on cell routing
 
-- **Sink terminal state** (Terminated). The source branched before the sink's `Trm`, so its
-  competing event shares the `Trm`'s parent — a **sibling to the `Trm`**, not a chain _from_ the
-  `Trm`. A content sibling is inert below the `Trm`'s seal → `Sealed`; a sealed sibling →
+- **Sink terminal state** (Terminated). The source branched before the sink's `Trm` — its competing
+  event lands in the `Trm`'s final window, never _from_ the `Trm`. A **content** competitor resolves
+  **by depth**: at the `Trm`'s own serial it is a **sibling to the `Trm`** — dead below its seal,
+  retained → `Buried`; strictly below, a locked-portion straggler → `Sealed`. A sealed competitor →
   `Disputed`. (The `Terminal` diagnostic — a chain-_from_-`Trm` — arises for local tip-extension as
   in [Matrix 1](#matrix-1-local-submissions), not for gossiped chains, which never carry an event
   built on the sink's `Trm`.)
@@ -443,8 +445,8 @@ both **accepted** branches to each node, has every node read **Disputed** from t
 branches. A selected witness signs the **first** structurally-valid **sealed** sibling per chain
 position and declines later ones (first-seen, like content); a node accepts up to **two witnessed**
 sealed branches per position (two are the **Disputed** proof), and a witness-declined sibling is
-deferred-pending; adjacent receipts at the same chain position carrying different `witnessed_said`
-values are the evidence that a divergence exists there — the beacon **propagates** the branches, the
+deferred-pending; adjacent receipts at the same chain position carrying different `eventSaid` values
+are the evidence that a divergence exists there — the beacon **propagates** the branches, the
 data-local walk **decides** the verdict. The prefix is disputed at-and-beyond the divergent serial;
 events strictly below the last clean seal stay canonical. See
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) and

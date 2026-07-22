@@ -421,8 +421,8 @@ receipts deliver competing branches and freshness, never a verdict.
 **`witnessed`.** True iff the event has accumulated threshold-many receipts under a consistent
 federation state. Witnesses are sort-selected by chain position `(prefix, serial)`; all competing
 candidate events at the same chain position route to the same witness set by construction. The
-verifier independently re-checks each receipt's `witnessed_said` against structural validity —
-receipt counts alone do not satisfy `witnessed`.
+verifier independently re-checks each receipt's `eventSaid` against structural validity — receipt
+counts alone do not satisfy `witnessed`.
 
 **The divergence signal splits by provenance.** When a node holds two or more sealed branches **each
 accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen loss is
@@ -434,12 +434,12 @@ counted — it stays **`forked`** / deferred-pending, and a below-seal straggler
 threshold under the floor, so the anomaly signal is a **sub-threshold competing receipt set** at a
 position — the node fetches the event and the data-local walk decides
 ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) derives why).
-Single-rogue protection: a rogue who signs receipts on a fake `witnessed_said` cannot trigger a
-verdict — the fake event fails structural re-check, and honest witnesses do not sign for fakes; the
-verifier re-checks validity because the database cannot be trusted. Receipts tell a node it is
-_forked_; only the data-local walk tells it _disputed_.
+Single-rogue protection: a rogue who signs receipts on a fake `eventSaid` cannot trigger a verdict —
+the fake event fails structural re-check, and honest witnesses do not sign for fakes; the verifier
+re-checks validity because the database cannot be trusted. Receipts tell a node it is _forked_; only
+the data-local walk tells it _disputed_.
 
-**`minority_dissent`.** Receipts below threshold for some `witnessed_said` that don't contribute to
+**`minority_dissent`.** Receipts below threshold for some `eventSaid` that don't contribute to
 pinning. Forensic signal for potentially-compromised witnesses; not load-bearing for trust
 decisions.
 

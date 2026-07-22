@@ -87,14 +87,20 @@ V0 carries:
   threshold over distinct identities) are a deliberate extension, not this feature.
 - **`readers[]`** — the initial read gate: the sorted union of the three `document-*-membership` SEL
   prefixes (edit ∪ comment ∪ read); omitted = public.
-- **`nonce`** — high-entropy, so the prefix (hence every governance and version chain) is
-  unguessable for a **private** document; a public document may omit it.
+- **`nonce`** — required, high-entropy: the governance chains derive from it (below), and it makes
+  the prefix (hence every governance and version chain) unguessable for a **private** document. Draw
+  a fresh nonce per document — reusing one derives the same governance addresses, one membership set
+  silently governing both.
 
 The governance chains ride no V0 field — a holder recomputes each from V0 alone: the SEL's `owner`
 is the **creator** IEL (V0's `creator`, the identity that governs them), its `topic` is the reserved
-membership topic (below), and its `data` is the **document prefix** — so a creator's chains for two
-documents derive to distinct addresses. Each is a monotone `{Icp, Gnt}` value-lookup chain (no
-`content` flag, no `lineage`).
+membership topic (below), and its `data` is the **V0 `nonce`** — so a creator's chains for two
+documents derive to distinct addresses. Keying the chains on the nonce is what makes V0 mintable:
+the nonce exists before anything is hashed, so the three chain prefixes derive first, `readers[]`
+lists them, and the doc prefix then commits the whole content — chains, gate, and discriminator in
+one direction. `(creator, nonce)` is thus the document's root: every governance address re-derives
+from the pair, and the doc prefix from the pair plus the gate choice. Each is a monotone
+`{Icp, Gnt}` value-lookup chain (no `content` flag, no `lineage`).
 
 V0 is **anonymous-write** — the shared constitution carries no `owner`, so its legitimacy is social,
 established out of band. A competing V0′ is always mintable; nothing structural privileges one
@@ -293,7 +299,7 @@ read-grant authorizes no version. It composes with DAG placement: a version coun
 grant-docs are served by SAID — so the honored check does **not** read `F_x` out of a `G` fetched by
 SAID and trust it. A rogue could compose any `{ kind: document-edit-membership, grants: [self] }`,
 compute `said(G)`, and cite it. `said(G)` is honored **only** when it resolves to a `Gnt` **sealed
-on the creator's `document-edit-membership` SEL** (the chain derived from the doc prefix) — the
+on the creator's `document-edit-membership` SEL** (the chain derived from the V0 `nonce`) — the
 fail-secure member walk confirms exactly that seal. Unlike a credential's `issuerPin`, `grant`
 carries no position, so **locating** the sealing `Gnt` is the one-time O(chain) disjointness pass
 (below), not a per-version lookup; against its result the per-version check is the O(1) bracket
@@ -435,8 +441,8 @@ period once the bad device is rotated out. No whole-document reincept.
   sees `(member, opaque commitment)` entries but cannot recover a version SAID or group them by
   document. The membership graph closes because the rescission key is participant-blind and
   grant-blind — a witness cannot even link a rescission to its grant. A witness sees only
-  `creator ↔ document` (unavoidable — the governance chains derive from the document prefix) plus
-  grant and rescission volume-timing.
+  `creator ↔ document` (unavoidable — the governance chains name the creator as `owner`, and the
+  doc prefix recomputes from their `data`, the nonce) plus grant and rescission volume-timing.
 - **Content off-node — the sovereignty mode.** A participant may submit only the **governance and
   rescission chains** (opaque, witnessed) and the **version anchors** on its own IEL (opaque
   commitments), and **never land any content SAD** (versions, grant or rescind docs) on a node —
@@ -567,7 +573,7 @@ inception (V0) = {
   prefix,                           // the doc prefix, derived from this SAD's whole content
   creator,                          // the creator's identity prefix
   custody { readers[] },            // the sorted edit ∪ comment ∪ read gate; omit = public
-  nonce?,                           // high-entropy for a private doc
+  nonce,                            // required, high-entropy — the governance chains derive from it
 }
 
 version = {

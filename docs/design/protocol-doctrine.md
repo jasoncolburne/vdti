@@ -1118,7 +1118,7 @@ control the rival is carried by a full `threshold` of colluders (the sliding pri
 one-for-one against receipt redundancy: `fork-cost = threshold − slack` where
 `slack = signers − threshold`, so at `threshold = signers` fork resistance is maximal but one
 unreachable witness stalls the position). Paying fork-cost also means exposure: two receipts by one
-witness over two distinct **content** `witnessed_said`s at one position (or a second distinct sealed
+witness over two distinct **content** `eventSaid`s at one position (or a second distinct sealed
 sibling — sealed is one-per-position too) are cryptographic proof of misbehavior — forensics, then
 eviction. The floor holds at KEL positions **and user-IEL positions**: a user IEL's content events
 must reach a majority quorum at their own `(IEL prefix, serial)` — a fork-prevention gate

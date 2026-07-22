@@ -25,6 +25,7 @@ credential = {
   issuer,     // the issuer's identity prefix
   issuerPin,  // the anchoring event's `previous` SAID — locates the anchor (see below)
   issuee?,    // the subject's identity prefix; ABSENT → a bearer credential
+  delegationPath?,  // present iff issued under delegated authority — the ordered committed path (see below)
   claims,     // a nested SAD of the issuer's assertions (application-shaped)
   terms?,     // an issuer-set terms-of-use SAD; travels with the credential
   issued,     // an advisory timestamp — always present

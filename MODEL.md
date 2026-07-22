@@ -200,8 +200,8 @@ take on a new artifact after the fact. Two things fall out, and they're the whol
   any chain (the anchor alone couldn't see one).
 - **And it heals for free.** Because that malicious anchor sits at or above the compromise, the
   owner's recovery — a single key change at the first bad point — buries it, and every artifact
-  event the anchor named dies with it: deadness spreads downward and crosses the anchor. No separate
-  repair for artifacts, ever; recovering the artifact _is_ recovering the identity.
+  event the anchor named dies with it — the deadness crosses the anchor. No separate repair for
+  artifacts, ever; recovering the artifact _is_ recovering the identity.
 
 So a stolen artifact-signing key is exactly as recoverable as a stolen identity signing key — it
 reduces to the identity's own "rotate at the root and bury." Nothing new to learn.

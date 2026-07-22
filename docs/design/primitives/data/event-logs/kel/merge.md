@@ -52,12 +52,13 @@ it.
 **Rejections** — nothing lands; the chain is unchanged (retention of the rejected event as evidence
 is a separate, witnessing-gated matter — below).
 
-| Rejection    | Verdict                                                               | Triggering condition                                                                                                                                                                                                                                                                                                                                                                       |
-| ------------ | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Sealed**   | Parent sits below the seal and the event is **inert** — not admitted. | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content **or sealed** sibling behind an advanced seal — a below-seal sealed straggler is dropped, backdate-safe); on a Terminated chain, the **sibling-to-`Trm`** race (content).                                                                                                                                       |
-| **Terminal** | The tip is a `Trm`, which admits no successor.                        | Chains _from_ a `Trm` (parent kind `Trm`) — the kind-schema rule ([§Routing order](#routing-order) rule 1).                                                                                                                                                                                                                                                                                |
-| **Invalid**  | Structurally inapplicable to the chain state.                         | Structural-validation failure — the kind does not apply (inception on a non-empty chain, or a non-inception on an Empty one).                                                                                                                                                                                                                                                              |
-| **Ignored**  | A well-formed event the witnesses decline.                            | Fork prevention — a second **content** sibling, or a second **sealed** sibling (the position gate is universal: the sealed rung is first-seen too), at a position; or a new event on a **Disputed** / **Terminated** chain the witnesses decline (barring a partition) — the witness-layer decline; a Terminated-chain content sibling a node **does** process is `Sealed`, not `Ignored`. |
+| Rejection    | Verdict                                                                                                                                                                   | Triggering condition                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Sealed**   | Parent sits below the seal and the event is **inert** — not admitted.                                                                                                     | An inert below-seal parent (a stale tip-view, or a dead-on-arrival content **or sealed** sibling behind an advanced seal — a below-seal sealed straggler is dropped, backdate-safe).                                                                                                                                                                                                       |
+| **Buried**   | A **content** sibling at the seal's own serial — dead below the seal on arrival, **retained** as non-canonical evidence; the canonical chain and its state are unchanged. | The at-seal content race a node **does** process — a content sibling to the current seal (the chain stays Active), or the **sibling-to-`Trm`** race on a Terminated chain (the honest witness path declines it → `Ignored`).                                                                                                                                                               |
+| **Terminal** | The tip is a `Trm`, which admits no successor.                                                                                                                            | Chains _from_ a `Trm` (parent kind `Trm`) — the kind-schema rule ([§Routing order](#routing-order) rule 1).                                                                                                                                                                                                                                                                                |
+| **Invalid**  | Structurally inapplicable to the chain state.                                                                                                                             | Structural-validation failure — the kind does not apply (inception on a non-empty chain, or a non-inception on an Empty one).                                                                                                                                                                                                                                                              |
+| **Ignored**  | A well-formed event the witnesses decline.                                                                                                                                | Fork prevention — a second **content** sibling, or a second **sealed** sibling (the position gate is universal: the sealed rung is first-seen too), at a position; or a new event on a **Disputed** / **Terminated** chain the witnesses decline (barring a partition) — the witness-layer decline; a Terminated-chain content sibling a node **does** process is `Buried`, not `Ignored`. |
 
 `Sealed` is the **inert** case only — a below-seal event that changes nothing (content _or_ sealed:
 a below-seal **sealed** straggler is dropped, inert — not witnessable past the seal, the backdate
@@ -65,7 +66,8 @@ defense; it does **not** → `Disputed`). A competing event that **forms or join
 at-or-above the seal** is a transition, not a rejection: it moves the chain to `Forked` or
 `Disputed` even though it lands as retained evidence rather than a canonical tip. This is what a
 single flat "below-seal rejection" would conflate — the inert case is `Sealed`, the live-fork case
-(at-or-above the seal) is `Forked` / `Disputed`.
+(at-or-above the seal) is `Forked` / `Disputed`, and the at-seal **content** race — dead on arrival
+yet retained — is `Buried`.
 
 **Acceptance precedes the outcome — `deferred-pending`.** Every transition above names what an
 **accepted** batch does: the canonical routing runs on threshold-witnessed input. A
@@ -156,8 +158,8 @@ regardless of chain state. The verifier walks each event and checks:
 The submitted event's parent must sit at-or-after `last_seal_advancing_event` in chain order
 (`parent_serial ≥ seal_serial`). A submission whose parent is in the locked portion and would change
 nothing is rejected `Sealed`; one at the seal's own serial resolves by tier instead — a content
-sibling is buried → Active, a second accepted sealed sibling → `Disputed` (retained evidence). This
-is the structural rule that enforces current-state-only authority — see
+sibling is buried (`Buried`) → Active, a second accepted sealed sibling → `Disputed` (retained
+evidence). This is the structural rule that enforces current-state-only authority — see
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded) and
 [`log.md` §The locked portion](log.md#the-locked-portion).
 
@@ -170,8 +172,8 @@ The seal-cap and `Trm`-terminality (rule 1's kind-schema check) are **independen
 mechanisms. Both surface on a Terminated chain, but they catch different shapes:
 
 - **Sibling to the `Trm`** — a submission whose parent is the `Trm`'s parent, racing the `Trm` at
-  its serial. A **content** sibling is inert below the `Trm`'s seal → `Sealed`; a **sealed** sibling
-  is a second sealed branch → `Disputed`.
+  its serial. A **content** sibling is dead below the `Trm`'s seal, retained → `Buried`; a
+  **sealed** sibling is a second sealed branch → `Disputed`.
 - **Chains from the `Trm`** — a submission whose parent IS the `Trm`. Its parent sits at the seal
   boundary, so it _passes_ the seal-cap and would append after the `Trm`. Only the kind-schema rule
   in rule 1 catches it, rejecting `Terminal`.
@@ -253,9 +255,10 @@ correctness, and naming the _cause_ rather than the _symptom_ is part of that po
 
 The four-rule sequence is what guarantees the chain's four per-node states (Active, Forked,
 Disputed, Terminated) are the only states the rules can produce. The seal never forks (rule 2 plus
-rule 3 jointly); a Terminated chain accepts nothing — a content sibling to the `Trm` is rejected by
-the seal-cap (rule 2, `Sealed`), a sealed sibling is `Disputed`, and any chain-from-`Trm` submission
-is rejected by the kind-schema rule (rule 1, `Terminal`).
+rule 3 jointly); a Terminated chain accepts nothing — a content sibling to the `Trm` resolves at the
+seal-cap's at-seal branch (rule 2), dead below the `Trm`'s seal → `Buried`; a sealed sibling is
+`Disputed`; and any chain-from-`Trm` submission is rejected by the kind-schema rule (rule 1,
+`Terminal`).
 
 ## Routing by chain state
 
@@ -529,10 +532,10 @@ for truncation.
 3. **Seal advance in a branch resolves or terminalizes the fork.** Once a seal-advancing event lands
    in a branch (typically via a node-local extension that hasn't gossiped to peers), it buries a
    content loser (→ `Recovered`, Active) or, if it would bury a sealed branch, the fork is
-   `Disputed`; the locked-portion bound then rejects further inert extensions against `v_{d-1}` with
-   `Sealed`.
+   `Disputed`; a later content extension against `v_{d-1}` lands at the new seal's own serial, dead
+   below it → `Buried`.
 4. **Terminated KEL is fully terminal.** No event of any kind lands as a successor. A submission
-   chaining from the `Trm` is `Terminal`; a content sibling to the `Trm` is `Sealed`; a sealed
+   chaining from the `Trm` is `Terminal`; a content sibling to the `Trm` is `Buried`; a sealed
    sibling is `Disputed`.
 5. **Branch-scoped verifier input on recovery.** Recovery verification is branch-scoped, not
    chain-scoped; the seal advances only after verification succeeds, and the content loser buries by

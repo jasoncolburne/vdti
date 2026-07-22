@@ -300,7 +300,7 @@ The **V0 constitution** (derives the doc prefix):
 | `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                                                                                 |
 | `prefix`  | prefix | The doc prefix — derived from V0's whole content (nonce'd → unguessable if private).                                                       |
 | `custody` | struct | `{ readers[] }` — the initial read gate: the three `document-*-membership` SEL prefixes (edit ∪ comment ∪ read), sorted; omitted → public. |
-| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                                                                                |
+| `nonce`   | bytes  | Required, high-entropy — the governance chains derive from it (their `data`); makes the doc prefix unguessable if private.                 |
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
