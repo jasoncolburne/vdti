@@ -155,10 +155,12 @@ seal-advancing event itself is a legal parent: the normal post-`Rot` append exte
 this segment are structurally immutable within the chain:
 
 - A new event whose `previous` points into the locked portion is **rejected as a canonical
-  extension** with `Sealed`. Whether that rejected fork is **retained as non-canonical evidence** is
-  a separate, witnessing-gated decision — a losing **content** sibling on a witnessed chain never
-  forms (nothing to retain), while a sealed branch is kept, so the proof a divergence occurred
-  survives wherever a fork actually forms.
+  extension** — `Sealed` from a parent two or more below the seal; at the rim (parent `v_{seal−1}`,
+  the event landing at the seal's own serial) it resolves by tier instead: a content sibling is
+  buried (`Buried`), a sealed sibling is the record-both race. Whether that rejected fork is
+  **retained as non-canonical evidence** is a separate, witnessing-gated decision — a losing
+  **content** sibling on a witnessed chain never forms (nothing to retain), while a sealed branch is
+  kept, so the proof a divergence occurred survives wherever a fork actually forms.
 - The seal-cap's role is to deny revival attacks: a party holding stale authority (a rotation
   reserve already revealed — spent — by an earlier `Rot` / `Wit`, or a signing key since rotated
   out) cannot construct an event targeting the locked portion to rearrange the chain. Only current

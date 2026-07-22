@@ -217,7 +217,7 @@ structural validity; the merge layer gates writes against it — see
 ### Why this order
 
 The order is chosen so attacker diagnostics correctly name the structural cause-of-rejection. When a
-candidate's `parent.serial < seal.serial` (it targets the locked portion) **and** a conflicting
+candidate's `parent.serial < seal.serial − 1` (it targets the locked portion) **and** a conflicting
 event already exists at `candidate.serial`, running the **seal-cap (rule 2) before fork-detect
 (rule 3)** emits `Sealed` — accurately naming the rule the attacker violated — rather than naming
 the symptom (the conflict in locked storage). The security outcome (reject) is identical regardless

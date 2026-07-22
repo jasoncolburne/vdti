@@ -236,8 +236,8 @@ gates writes against it — see
 
 The routing order is chosen so attacker diagnostics correctly name the structural
 cause-of-rejection. Consider attacker input where the candidate event's
-`parent.serial < seal.serial` (it targets the locked portion) AND a conflicting event already exists
-at `candidate.serial`:
+`parent.serial < seal.serial − 1` (it targets the locked portion) AND a conflicting event already
+exists at `candidate.serial`:
 
 - **Rule 2 (seal-cap) before rule 3 (fork-detect)** emits `Sealed`, accurately naming the structural
   rule the attacker violated — the parent sits in the locked portion.
@@ -326,7 +326,8 @@ creating a potential fork. The branch point is the existing event whose SAID mat
 submitted event's `previous`. The verifier walks from the branch point; the merge layer checks:
 
 - If a seal-advancing event has already landed between the branch point and the chain's current
-  state, and the incoming event is inert below it → `Sealed`.
+  state, and the incoming event lands strictly below it → `Sealed` (one landing at the seal's own
+  serial is the at-seal race — a content sibling is `Buried`).
 - If the batch contains a sealed event (`Rot` / `Wit` / `Trm`) with `previous = v_{d-1}.said` → it
   lands at `v_d` as a **burying seal-advancer** (the ancestor-extending shape): it buries the
   **content** siblings at `v_d` → the chain re-reads **Active** → `Recovered`; if it siblings an

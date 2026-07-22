@@ -412,11 +412,12 @@ period once the bad device is rotated out. No whole-document reincept.
   ([`../primitives/data/sad/custody.md`](../primitives/data/sad/custody.md)), the three-chain union
   **is** the custody gate — no separate feature check. Each listed set is checked **independently**
   one at a time (the same fail-secure membership walk), so an on-node store can enforce the gate
-  directly (it holds the doc `prefix`, from which the three SEL prefixes derive) and a verifier
-  re-checks it authoritatively; the store gate and the read gate are the same set. An author
-  trivially reads what it authored (it holds its own plaintext). A read-gate change is a
-  `document-read-membership` grant, the same tier-2 machinery as an edit grant, rescinded
-  participant-blind exactly the same way. (A public document simply omits `readers`.)
+  directly (each gated SAD's `readers[]` lists the three SEL prefixes literally; a holder of V0
+  re-derives the canonical trio from `(creator, nonce)` to cross-check) and a verifier re-checks it
+  authoritatively; the store gate and the read gate are the same set. An author trivially reads what
+  it authored (it holds its own plaintext). A read-gate change is a `document-read-membership`
+  grant, the same tier-2 machinery as an edit grant, rescinded participant-blind exactly the same
+  way. (A public document simply omits `readers`.)
 - **The read gate is read-set integrity, not confidentiality.** A co-author can always read and
   exfiltrate; the rule keeps the **canonical DAG's read-set uniform**, it does not hide bytes. For
   confidentiality, **encrypt** (the group-key primitive, below). A version declares the gate it was

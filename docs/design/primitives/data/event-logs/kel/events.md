@@ -452,13 +452,13 @@ sN+1     kind=trm   ← Trm ends the KEL cleanly; single-signed with the reserve
                       advances the seal to its own serial; previousSeal=<prior seal>.said
 ```
 
-After `Trm`, the chain is fully terminal. Two independent merge-layer mechanisms reject every
-subsequent submission: a sibling to the `Trm` (sharing parent `v_{N}`) is rejected by the seal-cap
-(`Sealed`), and a submission chaining from the `Trm` is rejected by the kind-schema rule (`Terminal`
-— no kind admits a `Trm` parent). See [`merge.md` §Routing order](merge.md#routing-order). A
-concurrent sealed event racing the `Trm` at the same serial on another node is retained as
-non-canonical evidence and read data-locally — see
-[`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix).
+After `Trm`, the chain is fully terminal. Two independent merge-layer mechanisms close off every
+subsequent submission: a **content** sibling to the `Trm` (sharing parent `v_{N}`) resolves at the
+seal-cap's at-seal branch — dead below the `Trm`'s seal, retained → `Buried` — and a submission
+chaining from the `Trm` is rejected by the kind-schema rule (`Terminal` — no kind admits a `Trm`
+parent). See [`merge.md` §Routing order](merge.md#routing-order). A concurrent sealed event racing
+the `Trm` at the same serial on another node is retained as non-canonical evidence and read
+data-locally — see [`reconciliation.md` §Matrix 3](reconciliation.md#matrix-3-race-matrix).
 
 ## Cross-references
 
