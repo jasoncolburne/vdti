@@ -104,15 +104,16 @@ repo layout, 9-phase v1 sequencing, and acceptance criteria.
 
 ## Contributing
 
-VDTI is in the design-completion phase; the canon is nearly complete. If you are considering
-contributing, the v1 roadmap ([vdti#1](https://github.com/jasoncolburne/vdti/issues/1)) lays out the
-planned phases and where work is happening. Use the issue templates (Doctrine, Implementation, Bug,
-Tracker) to file new items.
+VDTI is in the design-completion phase; the core design is under self-review, with the services
+architecture and example applications still ahead. If you are considering contributing, the v1
+roadmap ([vdti#1](https://github.com/jasoncolburne/vdti/issues/1)) lays out the planned phases and
+where work is happening. Use the issue templates (Doctrine, Implementation, Bug, Tracker) to file
+new items.
 
-To work on VDTI with an LLM, point it at [`docs/canon`](docs/canon) — VDTI's design notes. The
-workflow flows one way: the canon is propagated into **doctrine** (the design docs under
-[`docs/design`](docs/design/)), which is then translated into implementation. Design docs follow
-three rules: no jargon, greenfield voice, and human-readable slug refs.
+To work on VDTI with an LLM, point it at [`docs/design`](docs/design/) — the canonical design
+surface, written to three rules: no jargon, greenfield voice, and human-readable slug refs. The
+machine-oriented working canon that produced it is retired; its full decision history lives at the
+`canon-final` git tag, and [`docs/canon`](docs/canon) now holds only not-yet-encoded notes.
 
 ## License
 

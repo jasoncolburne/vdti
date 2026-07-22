@@ -1,5 +1,8 @@
 # vdti — area note: `vdtid` services (node service architecture)
 
+_(This note's cross-refs to `vdti-area-*.md` / `vdti-invariants.md` name the retired encoded canon
+— resolve them at the `canon-final` tag, or read the corresponding `docs/design/` doc.)_
+
 **Status: FIRST CUT (2026-06-20).** The node service architecture — `vdtid` + `witnessd` over a shared
 `lib/vdti`. Mirrors the kels service layout with two deliberate changes (merge chain+SAD; gossip→witnessd).
 Grounded in the **kels build read on `main`** (the *mechanics* are correct; the *shape/taxonomy* is design-stale,

@@ -1,7 +1,7 @@
 # VDTI in plain english
 
 **What this is.** Plain-language statements of the design rules — the _narrative_ layer: the
-concepts, not the structural encoding. The structural detail lives in the canon (`docs/canon/`).
+concepts, not the full detail. The detail lives in the design docs (`docs/design/`).
 
 ---
 

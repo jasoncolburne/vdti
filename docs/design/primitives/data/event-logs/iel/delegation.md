@@ -10,8 +10,7 @@ sub-delegators on down) — how authority scales and key management distributes 
 authorizing every actor directly: the verifier's bounded delegation walk and the `kills[]`
 forward-match are
 [`verification.md` §The bounded delegation walk](verification.md#the-bounded-delegation-walk), and
-the document-authorization use — the per-hop grandfather, the committed authorizing path, and the
-bound-choice usage doctrine — is
+the document-authorization use — the per-hop grandfather and the committed authorizing path — is
 [`../../../policy/documents.md` §Delegation in a document](../../../policy/documents.md#delegation-in-a-document).
 
 ## Delegate, then rescind

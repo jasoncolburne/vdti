@@ -113,6 +113,10 @@ They don't share blind spots — warm is primed (checks fidelity, trusts the fra
 
 The product is a solid design, ready for implementation.
 
+_(Stages 3–6 have run their course for the core design: the canon was fully propagated into the
+design docs and the encoded canon files were then removed — their decision history is preserved at
+the `canon-final` git tag. `docs/canon/` retains only not-yet-encoded notes.)_
+
 ## Details
 
 I made most positive additions by teasing apart conflated axes. An example - the {content, lineage}

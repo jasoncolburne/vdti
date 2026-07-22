@@ -122,7 +122,7 @@ Doctrine is the leading edge — these follow it.
   encryption key**. _(An earlier plan rooted a published per-witness key in a derived **degenerate IEL** —
   considered, then not built once the handshake removed any published key to own; the thinking, the
   deterministic nonce, and why it is not general-purpose are captured in
-  `supplemental/degenerate-iel-idea.md`.)_
+  `supplemental/degenerate-iel-idea.md`, retired — at the `canon-final` tag.)_
 - **Push over pull.** Prefer gossiping events (push, over the encrypted mesh) to a separate inter-node
   *query* — then there is no second channel to secure, and a one-branch holder receives competing
   branches by push rather than a detection-time fetch (the sub-mesh event-gossip already does this for
