@@ -627,6 +627,14 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
   revoke just one grandfathered credential of it (a boundary removes a contiguous suffix, not a
   non-contiguous subset). Recovery is to reincept the delegate. The accepted cost of the clean
   contiguous-boundary model.
+- **Monotone delegation assumes a fungible delegate** — A rescinded `(delegator, delegate)` pair is
+  permanent (the delegating-link SEL is monotone, no `lineage`); re-delegating means the delegate
+  reincepts to a fresh prefix, which is a fresh delegating-link address. This fits a **fleet** model
+  — a delegate is an operational node or sub-delegator you terminate or rescind and **replace**,
+  never pause and resume. Worth revisiting only if delegation is ever pointed at stable,
+  reputation-anchored identities whose prefix carries its own credentials or other delegations, for
+  which replace-don't-resume would throw away or fork that value. For scaling fleets it is exactly
+  right.
 
 ### Burying rotation orphans a dependent anchor
 

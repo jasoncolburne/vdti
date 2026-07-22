@@ -324,7 +324,7 @@ adversarial pass.
   "closed at the source" but **downgraded** to **confirm-a-known-subject** over the **encrypted** mesh (an
   unguessable prefix, exposed only to semi-trusted `< threshold` infra; the exfiltration-during-a-compromise
   -window residual, inv 16). `cred.said` still **never** enters a receipt: the cred is anchored as its
-  issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque
+  issuance commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque
   `anchors[]` (cred = anchored SAD, no cred-SEL; `cred.said` never raw, never on a witness), so what a SEL
   receipt carries is the lookup-SEL's own (unguessable) `chain_prefix`. The residual receipt prefix is
   therefore a public **IEL/KEL identity** prefix **or** an unguessable lookup-SEL prefix (§1g Decision 2),
@@ -562,7 +562,7 @@ adversarial pass.
   the anchoring IEL event's receipts — a revocation/rescission lookup-SEL `Trm` is sealed by a witnessed IEL
   `Rev`/`Dth`, whose `kills[]` declares the target — §7 / `area-sel`). This is the load-bearing **correlation
   protection**: a sensitive **subject prefix / `cred.said`** **never enters a receipt** (a cred is anchored as its
-  issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque `anchors[]` — cred
+  issuance commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` in an IEL `Ixn`'s opaque `anchors[]` — cred
   = anchored SAD, no cred-SEL, 2026-07-09; `cred.said` never raw; the lookup-SEL flat `kills[]` target lives only on a
   witnessed `Rev`/`Dth`, ≠ the SEL's prefix). Retires the former cred-SEL
   `(prefix, said(v1))` receipt. *Verify-first (confirmed against the SEL kind list, `area-sel`):* every SEL event that

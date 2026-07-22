@@ -130,12 +130,12 @@ discoverable:
 
 - A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
   inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
-  already holds, then fetches by that prefix. Three shapes: a **kill lookup** `{Icp, Trm}` (a
-  revocation or rescission locus — the read strategy the fail-secure kill check consumes), a **value
-  lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key — §The seal and its
-  advancers), and a **delegating-link lookup** `{Icp, Pin}` (the positive twin of the rescission
-  lookup, re-derived to confirm a delegation's authorizing path —
-  [`../iel/delegation.md`](../iel/delegation.md)).
+  already holds, then fetches by that prefix. Two shapes: a **kill lookup** `{Icp, Trm}` (a
+  revocation or rescission locus — the read strategy the fail-secure kill check consumes) and a
+  **value lookup** `{Icp, Gnt}` (a value the verifier reads at the address — a published encryption
+  receive-key, or the **delegating link**: a monotone `{Icp, Gnt}` sealing a minimal delegation
+  marker, the positive twin of the rescission lookup, re-derived to confirm a delegation's
+  authorizing path — [`../iel/delegation.md`](../iel/delegation.md); §The seal and its advancers).
 - A **content SEL** is one a verifier is **handed** rather than recomputing. It records data over
   time (`Icp` → serial-1 event → further `Ixn`s).
 

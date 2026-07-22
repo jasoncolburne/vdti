@@ -142,8 +142,9 @@ delegator's (owner's) own identity** (owner-rooted — only the owner anchors at
 pinning up to `X`, so the verifier **derives** the authorizing chain from committed data and walks
 it (up to `N` hops, and never beyond the verifier-wide work cap — exceeding either denies,
 fail-secure) — the presenter furnishes nothing to prune. Per hop the verifier checks that the
-delegation was granted and that the grant has not been **rescinded** (a positive `kills[]` match,
-fail-secure by default — [`policy.md`](policy.md)).
+delegation was granted — the hop's `Ath` delegates the prefix **and** the delegating-link marker
+commits that same delegate — and that the grant has not been **rescinded** (a positive `kills[]`
+match, fail-secure by default — [`policy.md`](policy.md)).
 
 The **grandfather** check is **per hop, on that hop's own chain** — there is no cross-chain clock:
 the **issuer's own hop** is grandfathered iff the document's **anchoring position** is an ancestor

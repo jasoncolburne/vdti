@@ -18,21 +18,28 @@ negative-checks-are-lookup-SELs, [inv 12] thresholds (`t_authorize`).
 
 ## 1. Locked-candidate — current model
 - **`Ath` (positive — "is P delegated?")** — an IEL `Ath` whose `manifest.delegates` lists delegate prefixes
-  (inv 4); an inclusion proof. Cheap batch authoring. `t_authorize`-gated (T2). [inv 12]
-- **Multi-hop `del(X, N)`** = the single-hop primitive per hop; each hop = a self-recorded `delegating` link +
-  that delegator's rescission lookup-SEL + ancestry check. Cost O(N) O(1)-reads; depth cap = hop count.
+  (inv 4); an inclusion proof. The **same `Ath` also anchors the delegating-link `Gnt`** (kind-strict `Ath → Gnt`,
+  both roles at once) — a monotone `{Icp, Gnt}` value lookup at `derive(X, vdti/sel/v1/actions/delegation, P)` whose
+  `Gnt` seals a `vdti/sel/v1/grants/delegation` **marker committing a blinded reference to P** (the discoverable
+  signpost; the authority is `delegates`, re-verified — the `del` walk also confirms the marker commits P). Cheap
+  batch authoring. `t_authorize`-gated (T2). [inv 12]
+- **Multi-hop `del(X, N)`** = the single-hop primitive per hop; each hop = a self-recorded `delegating` link (the
+  `{Icp, Gnt[, Trm]}` SEL — the positive `Gnt` and its rescission `Trm` on one chain) + ancestry check. Cost O(N)
+  O(1)-reads; depth cap = hop count.
 - **Rescission (negative — "is P *not* rescinded?")** = a **`kills[]` declaration on X's witnessed IEL `Dth`** + a
-  **derived lookup SEL** (the fail-open object), NOT a scan, NOT a list. [inv 10]
-  - `target` = `hash('{DLG_RSC_TOPIC}:{X}:{said({ grant: said(Ath), delegate: P })}')` — a flat, `:`-delimited,
-    domain-qualified hash over the **grant-instance** `data = said({ grant: said(Ath), delegate: P })` (the granting
-    `Ath` + the delegate prefix `P`, since an `Ath` grants a *list*), recomputable by a verifier that walked the
-    delegation grant; a **re-grant** after a rescission gets a **fresh** `target` (each grant epoch → its own kill
-    locus); no decoy substitution. The `target` (flat hash) is **≠ the lookup SEL's prefix** (a separate two-pass over
-    `Icp{owner=X, topic=DLG_RSC_TOPIC, data}`), so the public `kills[]` doesn't leak the object's address. *(Was
-    `derive(X, RSC_TOPIC, P)`; now the qualified-hash target with a distinct `DLG_RSC_TOPIC`, B1 fail-secure rework
-    2026-07-09.)*
-  - `Icp` + a **`Trm`** (the terminal kill — anchored via X's IEL `Dth`, whose **`anchors`** names the lookup-SEL's
-    `Trm`). The `Trm` carries **only its pin** → X's tip (uniform — every event pins). The **`bound`** (→ SAID of the
+  **`Trm` on the delegating-link SEL itself** (`{Icp, Gnt, Trm}` — no separate rescission lookup; the positive `Gnt`
+  and the negative `Trm` ride one chain). NOT a scan, NOT a list. [inv 10]
+  - `target` = `hash('vdti/sel/v1/actions/rescission:{X}:{P}')` — a flat, `:`-delimited, domain-qualified hash over
+    `(delegator X, delegate P)` (the shared `rescission` tag, feature-blind), recomputable by a verifier that walked
+    the delegation. **Monotone** — the delegating-link SEL carries no `lineage`, so a rescinded `(X, P)` pair is
+    permanent; to re-delegate, P **reincepts to a fresh prefix** (a fresh delegating-link address). The `target`
+    (flat hash) is **≠ the delegating-link SEL's prefix** (a two-pass over
+    `Icp{owner=X, topic=vdti/sel/v1/actions/delegation, data=P}`), so the public `kills[]` doesn't leak the object's
+    address. *(Consolidated 2026-07-21 from the earlier grant-instance-keyed target on a separate `{Icp, Trm}`
+    lookup: the delegating-link is now a `{Icp, Gnt}` value lookup, so its rescission is a `Trm` on that same SEL;
+    the marker `Gnt` commits a blinded reference to P, checked by the `del(X, N)` walk.)*
+  - The rescission **`Trm`** on the delegating-link SEL (the terminal kill — anchored via X's IEL `Dth`, whose
+    **`anchors`** names the SEL's `Trm`). The `Trm` carries **only its pin** → X's tip (uniform — every event pins). The **`bound`** (→ SAID of the
     last valid event on P's delegated chain) lives in the **`Dth`'s `kills[]`** entry (`{ target, bound }`), **not**
     on the `Trm` — so it is **un-withholdable** on X's witnessed IEL and the fail-secure walk reads it directly.
     *(`Trm.pin` = the `Dth`'s `previous`, so an O(1) lookup-SEL hit traces straight to the killing `Dth` and reads
@@ -92,7 +99,7 @@ The per-delegator doc's *mechanism* is superseded, but it proved requirements th
 
 ## 3. Superseded — do NOT carry forward
 - **Per-delegator revocation registries** `R_{D_i}` with `gov = op = id(D_i)` → reshape: single-owner `kills[]`
-  declaration (`target = hash('{DLG_RSC_TOPIC}:{X}:{data}')`) + lookup SEL (two-pass over `Icp{X, DLG_RSC_TOPIC, data}`), no policy (policy moved up). [inv 1]
+  declaration (`target = hash('vdti/sel/v1/actions/rescission:{X}:{data}')`) + lookup SEL (two-pass over `Icp{X, vdti/sel/v1/actions/rescission, data}`), no policy (policy moved up). [inv 1]
 - **Non-membership proofs / status-accumulator / compact-witness** → reshape: a **fail-secure `kills[]`
   forward-match** on X's fresh IEL (default) with a **fail-open O(1)** content-addressed lookup opt-out
   (present → rescinded). The whole non-membership-witness machinery is gone. [inv 10]

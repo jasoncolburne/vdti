@@ -54,6 +54,15 @@ flowchart TD
 The floor is exactly the strict-majority threshold that forces the overlap: below it, two disjoint
 threshold-quorums could form and `witnessed` would stop meaning per-position exclusivity.
 
+**Worked example — the minimum federation.** A federation carries two distinct numbers that are easy
+to conflate, so pin them at the smallest roster (`|roster| = 4`): a **governance** change needs
+`t_govern = 3` co-authoring members (the authorization floor `> |roster| / 2` meeting the
+recoverability cap `≤ |roster| − 1`), while an event becomes **witnessed** at `threshold = 2` of its
+`signers` selected witnesses (the floor `threshold > signers / 2`, held at `2` so the federation can
+still evict one witness and stay recoverable — `threshold ≤ |roster| − 1 − 1`). Three to govern, two
+to witness: different questions at the same roster — how many members must author a governance
+event, versus how many selected witnesses must sign to make any event witnessed.
+
 **Per-layer.** A KEL, a user IEL, and the federation IEL each carry their **own** authoritative
 witness-config, independent of one another; a **SEL inherits** its owner IEL's (a single-owner log
 declares nothing of its own). A user IEL needs its own config because an IEL event is witnessed and

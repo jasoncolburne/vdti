@@ -63,7 +63,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      `issues`/`revokes`/`rescinds` (2026-06-27):** those were **credential / feature vocabulary on a log primitive**
      (inv 1 — features live on documents, never on primitives). The IEL is now **feature-blind** — it anchors a lower
      SEL event or SAD; **the feature layer names it** (an anchored **issuance commitment
-     `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on an IEL `Ixn` *is* an issuance — no cred-SEL,
+     `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`** on an IEL `Ixn` *is* an issuance — no cred-SEL,
      2026-07-09; a revocation lookup-SEL `Trm` on a `Rev` *is* a revocation, with the `Rev`'s `kills[]` naming the
      target; a lookup-SEL `Trm` on a `Dth` *is* a rescission). The discrimination was never the label (this
      invariant's own "never trust the label alone") — it is the **back-check** (below) plus, for the kill
@@ -76,7 +76,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    - `witnesses` — the witness-config `{threshold, signers}` SAD (KEL `Icp`/`Wit` **+ user IEL `Icp`/`Wit` + federation IEL `Fcp`/`Wit`** — D1, 2026-06-28). **Mandatory iff federated *at inception*** (`Icp` / federation IEL `Fcp`): a federated `Icp`/`Fcp` omitting it is **malformed → rejected, fail-secure**; **forbidden** on `Fcp`-pre-federation KEL inception — cold-7 F3. **On a `Wit` it is present-iff-changed (`opt`)** — the same delta discipline as `roster`/`threshold`/`federationPin`: a `Wit` re-states the config **only when it changes it** (the rotation itself — `pins` / key-state always advancing — is the non-empty change; otherwise inherited), and when present on a federation-governance `Wit` it **field-matches** the anchoring KEL `Wit`s (Q3 — the KEL carries, the IEL matches; never derive IEL-from-KEL). An **IEL event is witnessed too** — it could otherwise fork without *any* member KEL forking (two disjoint sub-quorums each author a valid event at one position → the IEL diverges, no KEL does — closed by the option-(b) position gate below, which is now **universal** (every event, content _or_ sealed; revised 2026-07-11) — a competing sealed sibling is declined first-seen too, so `{Evl, Evl}` no longer diverges on an honest split; only a witness-colluded double-sign yields `disputed`), and its effective-SAID is in the F-E transitive freshness set ([inv 8]); so the IEL carries its **own authoritative** witness-config for its events, **independent of every member KEL's** (a member's config witnesses that member's KEL events) — the same anti-straddle reasoning as the federation binding (cold-3 B2), **not** a match across members. The **federation IEL carries its own config too** (on `Fcp`/`Wit`, adjusted at each governance `Wit` — resolves cold-7 F1 / option b). *(No contradiction with the governance-facet field-match — C1, cold-9/10: "independent / not matched" scopes a member KEL's **own KEL-event config** (different chains); the federation-governance `Wit↔Wit` field-match is on the **federation config the approvers jointly endorse** — a consensus vote, area-iel:32 — i.e. the federation IEL's own config, not a member's.)* A **SEL inherits** its owner IEL's config (single-owner — nothing to declare, like the federation binding it already inherits). **How an IEL event is "witnessed" — self-attestation (Q1, Jason 2026-06-29):** an IEL has no signing key of its own (it is a *threshold over member KELs*), so an IEL event's witnessing **is** the witnessing of its **member KEL anchors** — the event is trusted when the member KEL anchors that authorize it are witnessed — concretely, the IEL event's own authorization count (inv 12: `t_use`/`t_govern`/… by kind) of its anchoring member KEL events are **each** witnessed at the witness-config `threshold`. **Two distinct counts (cold-9 Q1):** the IEL event's authorization count = *how many* anchoring KEL events must be witnessed; the witness-config `threshold` = *how many receipts* each one needs. IEL events still propagate + earn receipts **as per usual**. **Authorization** stays the witnessed KEL anchors (Q1); **fork-prevention** adds a second gate — **option (b), 2026-07-02, universalized 2026-07-11: a *user* IEL's events — content _and_ sealed — must also reach a majority quorum at their own `(IEL prefix, serial)`** (the same first-seen position gate as a KEL — federation §1e), closing the two-disjoint-sub-quorums fork; a competing **sealed** sibling (`{Evl, Evl}`, …) is declined first-seen too, so an honest split can't diverge — only a witness-colluded double-sign yields `disputed`. The **federation IEL realizes the position gate through exclude-self peer-witnessing** (a governance event needs a peer majority first-seen at its serial → a competing sibling declined): its member witness-KELs witness **each other's** KEL events **exclude-self** (a witness never receipts its own KEL event), pool **`|roster| − 1`** — so for federation member events `signers/2 < threshold ≤ min(|roster| − 2, signers − 1)` and `threshold ≤ signers ≤ |roster| − 1`; a user chain stays `signers/2 < threshold ≤ signers ≤ |roster(F @ context)|` (external witnesses, no self-exclusion). **A structural witnessing floor `threshold > signers/2`** (a strict majority of the *selected* witnesses) makes two conflicting **content** siblings un-co-witnessable (sealed siblings are first-seen too now — one per position; a second *accepted* sealed branch needs `2·threshold − signers` colluding double-signers → `disputed`, provable — revised 2026-07-11, federation §1e) — with the option-(b) position gate — **universal** (every event) — closing the *partition / disjoint-sub-quorum* fork that otherwise lets an IEL diverge with no member KEL forking (a competing `{Evl, Evl}` is declined first-seen too; only witness collusion yields `disputed`); **fork-cost = `2·threshold − signers`** (own the whole quorum intersection), and a sub-majority config is **un-usable → rejected** (every config clears `signers ≥ 3` + the witnessing floor, federation §1e). **The recoverability cap `threshold ≤ min(|roster| − 2, signers − 1)` (cold-9 B1 + F6, verifier-rejects higher)** is the direct analog of `t_govern`'s gratuitous-hostage rejection (inv 12): an eviction/recovery `Wit` is authored by the remaining members but must also **self-attest**, and the evicted/dead member won't co-witness — so the self-attest pool is `|roster| − 2`, and at **sub-pool selection** (`signers < |roster|`) the *selected* pool loses one too, so `threshold ≤ signers − 1` binds as well (the `|roster| − 2` leg is exact only at full-pool selection; with `signers ≥ 3` the `signers − 1` leg is `≥ 2` and always binds cleanly (no waiver, no `threshold ≤ 0` degenerate); the guaranteed evict-one begins at the `|roster| = 4` structural floor `{2, 3}` — federation §1e); capping `threshold` there guarantees the federation can always **evict one** compromised witness and get the cut trusted (the guarantee is *evict-one*; surviving `k` simultaneous unavailable members needs `threshold ≤ |roster| − 1 − k`, the operator's sizing choice — cold-10 F1 / federation §1c/§1e). The cap is **federation-only** (a user IEL's anchors are witnessed by the **external** federation pool, no self-exclusion, so evicting a user's member never shrinks it). At the `|roster| = 4` structural floor the minimal config is **`{threshold 2, signers 3}`** (fork-cost 1); `signers ≥ 3` gives real witnessing byzantine-tolerance — no forced lone-witness — and the `≥ 5` operator doctrine lifts the fork-cost dial (cold-10 F2); **the structural floor is `≥ 4`** (`≥ 5` recommended, a consequence of `signers ≥ 3`); a **config change** is **re-checked on the post-delta config** (inv 12 — any `Wit` changing roster/`threshold`/`signers`) — valid only if the **full cap `threshold ≤ min(|roster| − 2, signers − 1)`** **and the witnessing floor `threshold > signers/2`** hold after the change (the roster leg alone is the *slack* leg for `signers ≥ 2` — cold-seam F1), so a bare shrink that would strand the federation un-recoverable is rejected, forcing **evict-and-replace** or a simultaneous threshold-and-`signers` drop (a `threshold` drop to 1 forces `signers` to 1 — else sub-majority) — cold-13 F1). A **`Wit`'s own self-attestation is judged under the at-or-before witness-config + roster** (no self-weakening), **but under the NEW key-windows the rotation establishes** (the fresh keys its anchoring KEL `Wit`s reveal, F4-bounded — not the possibly-expired old windows; the clock axis is carved out of no-self-weakening — cold-11). So an all-windows-lapsed federation reads stale (fail-secure) then recovers via a catch-up rotation — never bricked; and a lone broken key still can't mint a current window (a rotation is honored only as a federation `Wit`, needing `t_govern` + self-attestation — federation §1e/§1a). The federation `Wit` thus **never bricks** even when every witness participates — its trust rides its (cross-witnessed, exclude-self) KEL anchors, not an exclude-all-participants aggregate count. Divergence stays data-local-detectable: a federation `Wit` fork's competing branches are each anchored by witnessed KEL `Wit`s that propagate, surfaced by the keep-all-data walk (inv 17). *(Supersedes the `|roster| − |participants|` aggregate-gate framing — that bricked an all-witness rotation; cold-8 F1.)*
    - `delegates` — delegate **prefixes** (the delegate-list SAD) (IEL `Ath`, `delegates` role).
      *(The former `issues` / `revokes` / `rescinds` lists are now plain `anchors` entries — an anchored issuance
-     commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` on an IEL `Ixn` (issuance — no cred-SEL,
+     commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` on an IEL `Ixn` (issuance — no cred-SEL,
      2026-07-09), revocation lookup-SEL `Trm`s on a `Rev`, lookup-SEL
      `Trm`s on a `Dth` — discriminated by the anchored event's kind, not a role label; the **kill declaration** rides
      the `kills` role (above), not `anchors`. A revocation/rescission lookup-SEL `{Icp, Trm}` is born under its
@@ -86,7 +86,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      the sealed `Trm`'s *termination validity*, `kills` = *what is revoked*; a `Trm` anchored but in no `kills[]` is
      a terminated SEL that isn't a revocation, so there is **no coverage rule and no hole** — "not in any `kills[]`"
      *is* not-revoked). **`target = hash('{topic}:{owner}:{data}')`** — a flat, `:`-delimited, domain-qualified hash
-     (distinct `topic` per kind: `CRED_REVOCATION_TOPIC` / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC`; `data` = the
+     (`topic` per **anchor kind**: `vdti/sel/v1/actions/revocation` for a `Rev`, the **shared** `vdti/sel/v1/actions/rescission` for a `Dth` (delegate + doc-member + chat, differentiated by `data`); `data` = the
      grant-instance), the fail-secure walk's forward-match handle. It is **≠ the lookup SEL's prefix and said**
      (the SEL is a separate two-pass over `Icp{owner, topic, data}`), so the public `kills[]` target does **not**
      reveal the object's address (inv 10 / inv 16). **`bound`** (rescission only) = the SAID of the **last valid
@@ -124,7 +124,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      the prior seal" is the derived predicate `previous != previousSeal`** — no field.)*
    **Two enforcement classes (F1):** `anchors`/`grant` are **back-checked** — a mislabel is caught when the
    referenced event is validated against its required kind. *(Exception — the **bare issuance commitment** (a cred's
-   `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` in an IEL `Ixn`'s `anchors`) has **no event behind it** — it
+   `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` in an IEL `Ixn`'s `anchors`) has **no event behind it** — it
    is a flat hash, not a SEL event — so there is **nothing to kind-back-check**. Its validity is **by-anchor-existence
    at the cred feature layer** (a matching commitment resolvable on the issuer's fresh IEL = validly issued; R5/R1);
    the chain treats it as an opaque anchored digest.)* **The anchor matrix is enforced *kind-strict* on both
@@ -152,13 +152,13 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
      **delegation**-rescission or a **doc-membership** rescission — and by **`Rev`** (`t_govern`) **otherwise**. So a
      **cred revocation** and a shared-doc-leg (a doc governance / freeze closure) `Trm` are `Rev`-sealed; the rescission
      lookup-SELs are `Dth`-sealed; and an **arbitrary app-topic** SEL's `Trm` defaults to `Rev` (never the cheaper
-     `Dth` when `t_authorize < t_govern`). *(The revocation/rescission lookup-SELs use **distinct topics per kind** —
-     `CRED_REVOCATION_TOPIC` (Rev) / `DLG_RSC_TOPIC` / `DOC_RSC_TOPIC` (Dth), **never a shared `KILL_TOPIC`** —
+     `Dth` when `t_authorize < t_govern`). *(The revocation/rescission lookup-SELs use **distinct topics per anchor kind** —
+     `vdti/sel/v1/actions/revocation` (Rev) vs the **shared** `vdti/sel/v1/actions/rescission` (Dth — delegate + doc-member + chat, by `data`), **never a single shared kill topic** —
      B1 fail-secure rework 2026-07-09; the topic makes the Rev-vs-Dth split explicit in the derivation, and a `Trm`'s
      anchor-kind (`Rev`/`Dth`) is the structural check.)*
      The **grant** side is the additive twin: a `Gnt` is `Ath`-sealed.
    - a **credential is anchored directly** by an IEL `Ixn` naming its **issuance commitment
-     `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** (an immutable SAD, no cred-SEL — 2026-07-09; the anchor is
+     `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`** (an immutable SAD, no cred-SEL — 2026-07-09; the anchor is
      the validity proof; `cred.said` never appears raw — inv 16). A **content SEL** is anchored by an IEL `Ixn` naming its
      **serial-1 event** (its *v1* — a `Pin` for issue-and-sit; `v1.pin == this Ixn.previous` is the floor). A
      **revocation/rescission** lookup-SEL's v1 **is** its `Trm`, anchored by the `Rev`/`Dth`, floored
@@ -305,7 +305,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
    or eclipse-isolated chain **can't meet the bar → the loss-of-trust decision fails-secure: REFUSE**, never
    proceed-with-a-flag, cold-5 C2). **This fail-secure bar governs the whole loss-of-trust read (B1 fail-secure rework
    2026-07-09):** both the **positive trust chain** — is this cred *validly issued* by an authority I trust (the
-   issuer's fresh IEL/KEL, where the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` lives — confirm multi-source or refuse) — **and
+   issuer's fresh IEL/KEL, where the issuance commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` lives — confirm multi-source or refuse) — **and
    cred REVOCATION / delegate / doc-member RESCISSION**, which are **`kills[]` declarations on that same witnessed
    IEL** and so ride the same freshness gate (walk the fresh chain, forward-match the `target`; a hidden kill needs a
    stale IEL, which the bar already refuses — inv 10). The trust decision is **grant iff (validly-issued) AND
@@ -342,7 +342,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       ends are load-bearing:** the floor is the **earliest** issuance anchor (a cred's re-anchor is inert — R1, else a
       T1 re-anchor after a T2 `Rev` moves the floor past the kill, a tier inversion), the ceiling the **fresh tip**
       (inv 8). Forward-match your computed `target = hash('{topic}:{owner}:{data}')` (a flat domain-qualified hash;
-      distinct `topic` per kind, `data` = the grant-instance; the target **mirrors the killed address** —
+      `topic` per **anchor kind** (`revocation` for `Rev`, `rescission` for `Dth`), `data` = the grant-instance; the target **mirrors the killed address** —
       **non-lineaged** for a monotone kill (cred revocation, delegate/doc-member rescission), **lineaged**
       (`…:{lineage}`) for a **value rescission** (scoped to the one instance it kills, so `lineage: N+1`
       survives), a literal **`:content`** for a **content (app-SEL) closure** — area-sel §1f; both this
@@ -670,10 +670,10 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
       named in that IEL event's `anchors`, `v1.previous == said(Icp)`); reject a SEL whose `v1` is absent or whose
       v1-anchor's prefix ≠ `Icp.owner`. A fabricated bare `{Icp}` naming a victim issuer is **not** evidence of issuance.
       A **credential is a direct-anchored SAD, not a SEL** (issuance SEL dropped 2026-07-09, area-sel §1): the issuer
-      anchors the **issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an
+      anchors the **issuance commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`** on its own IEL via an
       `Ixn`, and that anchor **is** the validity proof (an issuance commitment with no resolvable anchor on the
       issuer's fresh IEL is not validly issued). The cred body carries a checked-locator **`issuerPin`** (= the anchoring `Ixn`'s `previous`; the as-of is
-      still the **anchoring position** it finds, never a trusted claim). The **revocation kill-target** `hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`
+      still the **anchoring position** it finds, never a trusted claim). The **revocation kill-target** `hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')`
       is a separate flat hash of the same preimage → its `{Icp, Trm}` lookup SEL (built two-pass, prefix ≠ target);
       safety is **owner-rooting** (only the owner IEL declares a kill / anchors the cred), **not** prefix-secrecy.
       A *private* cred stays private because **`cred.said` appears nowhere raw** on the public IEL — issuance
@@ -789,8 +789,8 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     refs in `vdti-area-shared-documents.md`. *Src:* Jason 2026-07-03. `[locked]`
     *Consequence (the private-cred boundary, F2 — B1 fail-secure rework 2026-07-09, CLOSED):* a credential is a
     **direct-anchored SAD** (no cred-SEL). **`cred.said` appears NOWHERE raw on the public IEL** — every public value
-    is a hash of it: the issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`, the kill target
-    `hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, the lookup SEL's prefix/said (two-pass over an `Icp` whose
+    is a hash of it: the issuance commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`, the kill target
+    `hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')`, the lookup SEL's prefix/said (two-pass over an `Icp` whose
     `data = cred.said`), and `said(Trm)` in `anchors[]` (opaque — needs the `Trm` body). A **holder** verifies
     issuance by recomputing the issuance commitment and matching it on the issuer's fresh IEL, and computes the kill
     target from the **preimage** `cred.said` — never from a public hash — to check status. A **private** cred's
@@ -828,7 +828,7 @@ constrain all reasoning; every area note references them. Tags: `[locked]` = adj
     `anchors[]` still carry only **opaque** commitments. **The fail-secure revocation residual is grant-instance-gated
     confirm-a-known-subject (B1 fail-secure rework 2026-07-09):** revocation is a `kills[]` declaration on the
     issuer's IEL + a content-addressed lookup object, keyed by the flat hash `target =
-    hash('{topic}:{owner}:{data}')` (distinct `topic` per kind; `data` = the grant-instance). You can only
+    hash('{topic}:{owner}:{data}')` (`topic` per **anchor kind** — `revocation`/`rescission`; `data` = the grant-instance). You can only
     **confirm** a subject whose grant-instance you already hold (→ can compute its `target`); you **can't invert** a
     `target` back to a subject, so it is a bounded *confirm*, not a bulk-enumerate. A private cred / gated grant-doc
     keeps its `target` uncomputable because its `data` (`cred.said` / `hash(G : said_b)`) stays secret — and the

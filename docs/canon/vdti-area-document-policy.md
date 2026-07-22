@@ -34,8 +34,8 @@ credentials is one caller of.
   `max_depth`/work caps); there is no separate satisfaction mechanism. Its **exact composer mechanics are imported at
   the feature encode** from the policy-DSL canon (SS-4). **[RESOLVED — = §C]**
 - **F. Revocation** — a cred is a **direct-anchored SAD** (no cred-SEL; issuance commitment
-  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`); revocation is a **`kills[]` declaration** on the issuer's
-  witnessed IEL `Rev` (`target = hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, a flat qualified hash) + a
+  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`); revocation is a **`kills[]` declaration** on the issuer's
+  witnessed IEL `Rev` (`target = hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')`, a flat qualified hash) + a
   sealed `{Icp, Trm}` lookup SEL. Status = **fail-secure by default** (walk the fresh IEL, forward-match
   `kills[].target`); a content-addressed **fail-open** lookup is the opt-out (vdtid / walk-timeout).
   **[RESOLVED — §F / B1 reworked]**

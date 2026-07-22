@@ -185,9 +185,11 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
 - A **value lookup** is `{Icp, Gnt}` — its v1 the `Gnt` that seals the value. Rotating the value
   stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value re-incepts
   at the next lineage).
-- A **delegating-link lookup** is `{Icp, Pin}` — the positive twin of the rescission lookup,
-  re-derived to confirm a delegation's authorizing path; its serial-1 is a `Pin` whose pinned
-  position names the authorizing `Ath`
+- A **delegating-link lookup** is a **monotone `{Icp, Gnt}` value lookup** whose `Gnt` seals a
+  `vdti/sel/v1/grants/delegation` marker committing a blinded reference to the delegate — the
+  positive twin of the rescission lookup, re-derived to confirm a delegation's authorizing path. The
+  `Gnt` is only the signpost; the authoritative grant is the anchoring `Ath`'s `delegates`,
+  re-checked directly (the `del` walk also confirms the marker commits the same delegate)
   ([`../iel/delegation.md`](../iel/delegation.md#the-positive-delegating-link)).
 
 ## The content and lineage fields

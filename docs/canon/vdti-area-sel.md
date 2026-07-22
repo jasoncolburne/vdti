@@ -55,7 +55,7 @@ divergence, [inv 14] federation/witnessing, [inv 15] inception/pin, [inv 16] add
   content SEL's `Icp` carries **`content: true`** (a lookup's does not), verifier-enforced against the v1's tier
   (the biconditional, §1f). **A credential is neither — it is a direct-anchored SAD, not a
   SEL** (issuance SEL dropped, B1 fail-secure rework 2026-07-09): the issuer anchors an **issuance
-  commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** on its own IEL via an `Ixn`, and _that_
+  commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')`** on its own IEL via an `Ixn`, and _that_
   anchor is the validity proof — the holder **presents** the cred, it is **never looked up by address**.
   **Revocation** is a **`kills[]` declaration** on the issuer's **witnessed** IEL `Rev` (fail-secure by
   default, inv 8/10) + a content-addressed **lookup SEL** giving a fail-open fast path (§document-policy
@@ -334,8 +334,10 @@ SEL needs its **own** witnessed state.
 - **Which event is v1:** a content SEL's is the first content `Ixn`, or a bare **`Pin`** for an
   incept-and-sit SEL (a doc author who endorses before editing); a **kill lookup's is its `Trm`** (`{Icp,
   Trm}` — born-to-kill, no separate `Pin`); a **value lookup's is its `Gnt`** (`{Icp, Gnt}`); a
-  **delegating-link lookup's is a bare `Pin`** (`{Icp, Pin}` — the positive twin of the rescission
-  lookup). The `Pin` kind
+  **delegating-link lookup's is a `Gnt`** (`{Icp, Gnt}` — a monotone value lookup sealing a
+  `vdti/sel/v1/grants/delegation` marker, the positive twin of the rescission lookup; consolidated
+  from the earlier `{Icp, Pin}` so every lookup is v1-T2 and the §1f discriminator holds with no
+  carve-out — 2026-07-21). The `Pin` kind
   does **only** the pin re-pin (`t_use` / T1, not sealing) and is the **pin-only re-pin at any serial** — its
   serial-1 instance is the issuance floor here; a later content-less re-pin is also a `Pin`. **`Ixn` and `Pin`
   are disjoint:** an `Ixn` always carries payload (required), a `Pin` never does, so no event is expressible
@@ -350,7 +352,7 @@ SEL needs its **own** witnessed state.
 - **Content rides the IEL `Ixn` rail; grants the `Ath` rail; kills the `Rev`/`Dth` rail; `Sea` the `Evl`
   rail.** An IEL **`Ixn`** anchors a content SEL's **v1** (a `Pin`, or the first content `Ixn`) and each
   later content `Ixn` (≤ 1 per SEL per IEL `Ixn`), **and** a credential's **issuance commitment**
-  `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` directly (an immutable SAD, no cred-SEL). An IEL
+  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` directly (an immutable SAD, no cred-SEL). An IEL
   **`Ath`** anchors a **`Gnt`**; an IEL **`Rev`/`Dth`** anchors a **`Trm`** (the `Rev`/`Dth` also carrying
   the **`kills[]`** declaration naming the killed locus); an IEL **`Evl`** anchors a **`Sea`** (§1d — the new
   pairing). **The matrix is kind-strict both directions** (a `Rev`/`Dth` anchors only `Trm`s, an `Ath` only

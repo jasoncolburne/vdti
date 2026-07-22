@@ -210,8 +210,14 @@ The unified authorization anchor, carrying **two manifest roles, both permitted 
 - **`delegates`** — a positive inclusion list of **delegate IEL prefixes** (the party acts **for**
   the delegator), capped like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` entries
   (event-shape). This is the delegation grant — see [`delegation.md`](delegation.md).
-- **`anchors`** — the downstream SEL **`Gnt`**(s) it seals (a doc-membership grant; the party acts
-  **as itself**). Kind-strict: `Ath.anchors` names **only** `Gnt`s.
+- **`anchors`** — the downstream SEL **`Gnt`**(s) it seals. Kind-strict: `Ath.anchors` names
+  **only** `Gnt`s. The `Gnt` may be a **doc-membership capability** (the party acts **as itself**)
+  or a **delegation-marker** signpost (the discoverable index for a `delegates` grant — the
+  delegating link, [`delegation.md`](delegation.md)); the two never collide, because each consumer
+  reaches its `Gnt` by deriving **its own SEL topic**, not by reading the `Gnt`. The delegation
+  authority is always `Ath.delegates`, re-verified directly; the `del(X, N)` walk also confirms the
+  marker commits (a blinded reference to) that same delegate, so a stray or mismatched marker grants
+  nothing on its own.
 
 `Ath` carries **no own-state delta** (it grants authority over a downstream party, nothing on the
 host IEL) and is the **additive counterpart of the kill-anchors** — sealed on arrival, non-terminal,

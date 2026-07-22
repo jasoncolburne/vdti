@@ -27,7 +27,7 @@ sealed-send core wraps to each — see the group case in [`vdti-area-group-key.m
 
 ## The pieces
 
-- **The address is deterministic (discoverable).** A receive key lives at `derive(owner, RECEIVE_KEY_TOPIC,
+- **The address is deterministic (discoverable).** A receive key lives at `derive(owner, vdti/directory/v1/topics/receive-key,
   data)` — `owner` = the identity IEL prefix, topic = `vdti/directory/v1/topics/receive-key`. A receive key is
   meant to be **found**, so it is **not** nonce-blinded; any sender holding the recipient's prefix computes it
   (the cost is the lookup-prefix residual). `lineage` (area-sel §1f) handles reincept after a forced-dead key.
@@ -52,7 +52,7 @@ sealed-send core wraps to each — see the group case in [`vdti-area-group-key.m
     a key to a physical device. A framework warning; the app / wallet enforces the naming.
 - **Fan-out enumerates the identity's IEL roster; opaque aliases are opt-in and point-to-point.** To reach
   **all** of an identity's devices, a sender enumerates the identity's **IEL roster** (its member KEL prefixes —
-  its devices) and derives each device's receive-key address `derive(owner, RECEIVE_KEY_TOPIC,
+  its devices) and derives each device's receive-key address `derive(owner, vdti/directory/v1/topics/receive-key,
   device_kel_prefix)`, so a device published under its **KEL prefix** is automatically fanned-out-to. A device
   published under an **opaque alias** is **not** roster-derivable (the alias is unguessable by design), so it is
   reachable only by a sender given the alias **out-of-band** — a **point-to-point** address, not part of the
@@ -117,7 +117,7 @@ predates the SEL `data` field; the federation case that once motivated it uses t
   `vdti-area-exchange.md` §2** into a pointer (exchange is a consumer).
 - **Reserved names** (register in `kinds.md` / `tags-and-topics.md`; component **`directory`** — settleable):
   SEL topic `vdti/directory/v1/topics/receive-key`; grant-value kinds `vdti/sel/v1/grants/directory-ml-kem-1024`
-  and `directory-ml-kem-768` (moved from `exchange-ml-kem-*`); the `RECEIVE_KEY_TOPIC` derivation tag. The
+  and `directory-ml-kem-768` (moved from `exchange-ml-kem-*`); the `vdti/directory/v1/topics/receive-key` derivation tag. The
   attestation shape (`{ format, statement }`) settles at the encode.
 - Update the consumers' boundaries to name this directory: the **ESSR note** (key resolution), the **group-key
   note** (per-device wrapping reads it), **exchange §2 / §7a**, **shared-documents**.

@@ -236,7 +236,7 @@ and **without a predicate language** by shaping the credential:
 A credential needs no revocation object unless it is ever revoked. To revoke, the issuer signs a **`Rev`**
 on its own witnessed IEL declaring `kills[] = [{ target }]` with
 `target = hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')` (the tag the constant-named canon
-writes as `CRED_REVOCATION_TOPIC`), alongside a sealed `{Icp, Trm}`
+writes as `vdti/sel/v1/actions/revocation`), alongside a sealed `{Icp, Trm}`
 lookup SEL (the SEL prefix ≠ the flat `target`, so `kills[]` doesn't leak the object's address). A
 non-issuer cannot declare it (no forged revocation); a witnessed `Rev` + sealed monotone `Trm` cannot be
 rolled back (no silent un-revocation).
