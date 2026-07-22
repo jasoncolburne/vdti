@@ -391,7 +391,8 @@ Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
   device's **body-less lane-root marker**, and a `rescinds` entry records each anchored device
   lane's **`bound`** (its lane tip, on the rescission `Trm`'s `bound` role), together bracketing
   each writing device's honored lane `[root … bound]`; a removal also turns the epoch for forward
-  secrecy.
+  secrecy. The removal lookup's SEL topic is `vdti/exchange/v1/topics/rescission` — the chat
+  counterpart of the documents feature's rescission topic.
 - **Mail-payload inner shape**: `vdti/exchange/v1/schemas/mail-payload` — the ESSR inner payload a
   mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
   `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and

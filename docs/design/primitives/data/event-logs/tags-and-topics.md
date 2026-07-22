@@ -67,12 +67,12 @@ primitives that are themselves stateful**: the group-key primitive (its epoch + 
 receive-key directory (its lookup SEL) own the SELs they ride, so they enumerate their own topics
 (the `vdti/groupkey/v1/topics/*` and `vdti/directory/v1/topics/*` rows).
 
-| Topic                        | Owner                                                                                                                                                                                    |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/doc/v1/topics/*`       | shared documents (`edit-membership`, `comment-membership`, `read-membership`, `rescission`)                                                                                              |
-| `vdti/exchange/v1/topics/*`  | exchange (`chat-membership` — the chat store-auth grant chain; the `exchange` **message topic** is a ciphertext payload discriminator, **not** a SEL — see the feature's reserved names) |
-| `vdti/directory/v1/topics/*` | the receive-key directory (`receive-key`)                                                                                                                                                |
-| `vdti/groupkey/v1/topics/*`  | the group-key primitive (`key-epoch`, `roster`)                                                                                                                                          |
+| Topic                        | Owner                                                                                                                                                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/doc/v1/topics/*`       | shared documents (`edit-membership`, `comment-membership`, `read-membership`, `rescission`)                                                                                                                                 |
+| `vdti/exchange/v1/topics/*`  | exchange (`chat-membership` — the chat store-auth grant chain; `rescission` — its removal lookup; the `exchange` **message topic** is a ciphertext payload discriminator, **not** a SEL — see the feature's reserved names) |
+| `vdti/directory/v1/topics/*` | the receive-key directory (`receive-key`)                                                                                                                                                                                   |
+| `vdti/groupkey/v1/topics/*`  | the group-key primitive (`key-epoch`, `roster`)                                                                                                                                                                             |
 
 ## Cross-references
 

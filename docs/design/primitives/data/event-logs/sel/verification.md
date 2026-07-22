@@ -280,7 +280,8 @@ state).
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
   and position, **not** a digest over the competing tips (that set is adversarially extensible →
-  flood-unstable). A buried content branch and a severed portion both drop out. See
+  flood-unstable). A buried content branch and a severed portion both drop out, and a **below-seal**
+  sealed straggler drops out too (dropped, inert — backdate-safe). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three

@@ -48,7 +48,9 @@ claims hold _by construction_.
    own first-seen is what **closes** the equivocation, so two **accepted** sealed branches are
    provable collusion.
 2. **Only tier-1 content is buriable.** A seal-advancer (`Gnt` / `Trm` / `Sea`) buries a content
-   loser by advancing the seal past it; a sealed branch is never buried or overturned.
+   loser by advancing the seal past it; a sealed branch is never buried or overturned. A late sealed
+   event whose parent sits below the current seal is **dropped**, never counted toward a dispute
+   (not witnessable past the seal — the backdate defense).
 3. **A dead owner-IEL anchor severs the SEL** at the earliest dead anchor — dead and un-verifiable
    from there, no repair. Severed is a truncation, not a fifth state.
 4. **The verdict is by accepted-sealed-branch count.** No accepted sealed branch (a content-only

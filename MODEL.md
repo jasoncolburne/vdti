@@ -68,14 +68,12 @@ never the witnesses.
 **The question — is the conflict over ordinary activity, or over a key change?**
 
 - **Ordinary activity (content)** → **recoverable.** Witnesses take the first version they see and
-  decline the rest, so a second only gets backed if an attacker corrupts enough witnesses to force
-  it — and even then the next key change **buries** the loser and the chain reads clean again. An
-  ordinary conflict never has to alarm.
+  decline the rest; if a second does get backed, the next key change **buries** the loser and the
+  chain reads clean again. An ordinary conflict never has to alarm.
 - **A key change (sealed)** → **possibly terminal.** You can't un-change a key. Witnesses take the
-  first here too — the first-seen rule is the same for key changes as for ordinary activity — so a
-  _second_ key change gets backed only when an attacker corrupts enough witnesses to force it,
-  leaving their double-signature in the data as proof. When two key changes are both backed, the
-  chain is **Disputed**: unrecoverable, and you start over under a new identifier.
+  first here too — the first-seen rule is the same for key changes as for ordinary activity. When
+  two key changes are both backed, the chain is **Disputed**: unrecoverable, and you start over
+  under a new identifier.
 
 That's the whole line: **content is recoverable; a key change can be terminal.** It does **not**
 matter whether _one_ key or a whole _group_ authorized the key change — two backed key changes are
@@ -100,9 +98,8 @@ honest — and a corrupted one that signs twice leaves its signature on both as 
 
 **Disputed** is when a conflict is visible to everyone in the data — both versions have enough
 backing to be trusted. Same word on every kind of chain. Honest witnesses take only the first
-version at any step — key changes included — so a second reaching backing means an attacker
-_corrupted enough witnesses_ to force it, leaving their double-signatures in the data as proof. What
-you _do_ about it depends on which kind of event conflicted:
+version at any step — key changes included. What you _do_ about it depends on which kind of event
+conflicted:
 
 - **Two pieces of ordinary activity** → recoverable. Your next key change keeps the real line and
   drops the other.

@@ -58,8 +58,9 @@ same fail-secure / fail-open split a credential's revocation check uses:
   path.
 - **The O(1) happy path (opt-out).** A rescinded member has a **content-addressed rescission
   lookup** — a tiny `{ inception, termination }` log derived from
-  `{ group, the rescission topic, the member's grant instance }` (the member's **high-entropy
-  blinded-claim `said`**, not the bare prefix — a raw-prefix address would be a
+  `{ group, the rescission topic, the member's grant instance }` (a **feature-defined identifier
+  built on the member's high-entropy blinded-claim `said`** — shared documents key per period on
+  `hash(G : said_b)` — never the bare prefix: a raw-prefix address would be a
   confirm-a-guessed-removal oracle, reopening for removals exactly what the grant-side `nonce`
   closes for admissions; keyed on the grant instance, the address is no more guessable than the
   grant it locates) — whose **termination `Trm` records the removal** and carries the lane-tip

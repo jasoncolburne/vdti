@@ -67,8 +67,10 @@ unrepresentable:
 
 In contrast to systems like KERI (a Decentralized Key Management Infrastructure), where system-wide
 state must be inferred through out-of-band watcher infrastructure, VDTI lets any verifier determine
-system-wide state — including whether an identity has **diverged or been compromised** — from the
-data itself, with no watcher infrastructure.
+system-wide state — including whether an identity has **diverged or been disputed** — from the data
+itself, with no watcher infrastructure. A compromise that leaves no fork — most severely, a stolen
+rotation reserve extending the chain — is caught by the owner's own cheap self-monitoring, not by a
+watcher network.
 
 ## Who runs it
 

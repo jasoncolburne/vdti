@@ -4,8 +4,9 @@ VDTI lets users control their identity and data without relying on a central aut
 decoupled from the identity that operates them; identity is a first-class primitive, and policy is a
 composable layer over it. In contrast to solutions like KERI (a Decentralized Key Management
 Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure,
-VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting the
-data itself.
+VDTI lets any verifier determine system-wide state — including whether a chain has diverged or been
+disputed — by inspecting the data itself (a compromise that leaves no fork — most severely, a stolen
+rotation reserve — is caught by owner-side monitoring — [monitoring](monitoring.md)).
 
 This is the canonical orientation doc. Read it before doing substantive work on VDTI. Detailed
 doctrine — primitive specs, witnessing mechanics, kind-strict anchoring, divergence handling,
