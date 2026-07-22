@@ -283,7 +283,7 @@ Each gated predicate it carries is a **uniformly-shaped blinded claim** —
 **type-generic** blinded kind (`vdti/cred/v1/claims/blinded-{string,number,boolean,object,array}`,
 naming the JSON type of `data`, never the predicate — it rides _inside_ the blinded `said`); a
 high-entropy `nonce` blinds it so a compacted claim leaks neither presence nor value; and `data` is
-the application-shaped value (a boolean bracket like `ageOver18`, a field). Disclosing a claim
+the application-shaped value (a boolean bracket like `ageGTE18`, a field). Disclosing a claim
 reveals its `{ kind, nonce, data }` and recomputes the `said` against the commitment
 ([claim-gating](../../../features/credentials.md#claim-gating)).
 

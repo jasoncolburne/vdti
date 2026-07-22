@@ -209,7 +209,7 @@ language**, by shaping the credential:
 - **The issuer pre-computes useful predicates as individually-blinded claims** — each a nested SAD
   `{ said, kind, nonce, data }` (the `kind` a **type-generic** blinded kind,
   `vdti/cred/v1/claims/blinded-{type}`, naming `data`'s JSON type — not the predicate), e.g.
-  `ageOver18`, `ageOver21`, `citizen`, alongside `birthdate` (the recompute source). The per-claim
+  `ageGTE18`, `ageGTE21`, `citizen`, alongside `birthdate` (the recompute source). The per-claim
   `nonce` blinds each SAID, and the `kind` rides inside it, so a compacted claim leaks nothing.
 - **Disclose only what is asked.** The holder reveals the `{ kind, nonce, data }` for the exact
   claim the verifier needs and the verifier recomputes its SAID against the credential's commitment;
@@ -222,7 +222,7 @@ language**, by shaping the credential:
   unverified claim.
 - **A uniform bracket set gives presence-privacy.** Every credential _of a type_ carries the
   **same** claim keys, all blinded, differing only in the hidden `data`. If a minor's passport
-  omitted `ageOver18`, the mere presence of the key would leak age; uniform keys mean presence
+  omitted `ageGTE18`, the mere presence of the key would leak age; uniform keys mean presence
   reveals nothing. This is the one non-obvious rule.
 - **Crossing a threshold is a renewal.** A bracket is a fixed boolean, so a birthday that flips one
   is handled by re-issue: the holder discloses fully to the issuer (the birthdate is always in the
@@ -231,8 +231,11 @@ language**, by shaping the credential:
   the same way. The predicate set is issuer-defined and extensible by renewal, with no protocol
   change.
 - **Key derivation is application code, not a protocol registry.** Issuer and verifier call the
-  **same** canonical key derivation, so keys match by construction; operators are a small **total**
-  set (`gt`/`gte`/`lt`/`lte`/`eq`/`in`), decidable, with no arbitrary computation, and eligibility
+  **same** canonical key derivation — `predicateKey(field, op, required)` returns the claim key, so
+  `predicateKey("age", GTE, 18)` yields `ageGTE18` for both sides and keys match by construction —
+  and the issuer bakes each value with a matching value-producing helper
+  (`gtePredicate("age", actual, 18)`). Operators are a small **total** set
+  (`gt`/`gte`/`lt`/`lte`/`eq`/`in`), decidable, with no arbitrary computation, and eligibility
   defaults to `gte` so a `gt`/`gte` mismatch cannot silently miss.
 
 ## Revocation

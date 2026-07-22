@@ -202,22 +202,22 @@ and **without a predicate language** by shaping the credential:
 - **The issuer pre-computes useful predicates as individually-blinded claims**, each a nested SAD
   `{ said, kind, nonce, data }` (the `kind` a **type-generic** blinded kind,
   `vdti/cred/v1/claims/blinded-{string,number,boolean,object,array}`, naming `data`'s JSON type — not
-  the predicate — and committed into the blinded `said`) — e.g. `ageOver18`, `ageOver21`, `ageOver65`,
+  the predicate — and committed into the blinded `said`) — e.g. `ageGTE18`, `ageGTE21`, `ageGTE65`,
   `citizen`, plus `birthdate` (the recompute source). The per-claim `nonce` blinds the SAID and the
   `kind` rides inside it, so a compacted claim leaks nothing.
 - **Disclose only what is asked.** The holder reveals `{ kind, nonce, data }` for the exact claim the verifier
-  needs (say `ageOver18`) and the verifier recomputes its SAID against the credential's commitment
+  needs (say `ageGTE18`) and the verifier recomputes its SAID against the credential's commitment
   (proof-of-disclosure) on top of the anchor (proof-of-issuance) — everything else stays blinded.
   Privacy without a range proof: the issuer already computed the boolean, so proving `age ≥ 18` never
   reveals the birthdate.
-- **The verifier's check collapses to a boolean** — _"is `ageOver18` disclosed, `true`, and provably
+- **The verifier's check collapses to a boolean** — _"is `ageGTE18` disclosed, `true`, and provably
   from a trusted issuer?"_ No predicate evaluation, no birthdate. So there is **no claims-DSL in the
   protocol**; claim-gating is app-layer. The reusable piece apps get is a **verify-the-disclosure
   helper** (confirm proof-of-disclosure + proof-of-issuance) — shipped so an app can't gate on an
   unverified claim.
 - **Structural rule — a uniform bracket set (presence-privacy).** Every credential *of a type* carries
   the **same** claim keys, all blinded — differing only in the hidden `data`. If a minor's passport
-  omitted `ageOver18`, the mere presence of the key would leak age. Uniform keys → presence reveals
+  omitted `ageGTE18`, the mere presence of the key would leak age. Uniform keys → presence reveals
   nothing. This is the one non-obvious rule.
 - **Renewal (time-dependence).** A bracket is a fixed boolean, so crossing a threshold requires a
   **re-issue**: the holder fully discloses to the issuer (the birthdate is always in the credential),
