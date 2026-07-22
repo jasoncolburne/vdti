@@ -132,6 +132,19 @@ Doctrine is the leading edge — these follow it.
   string leaks into common access/proxy logs, so a prefix-bearing request carries it in the body.
   **The reference implementation uses HTTP QUERY (RFC 10008)** — a safe, idempotent, body-carrying
   method — for reads, and POST for submit (a mutation).
+- **Anti-entropy enumeration — page a peer's prefix listing by the peer's LOCAL update sequence, NOT by
+  witnessed time (Jason, 2026-07-22).** The reconcile loop: a store exposes its prefixes ordered by a
+  **monotone per-store update sequence** (bumped whenever a prefix's *held state* changes — a tip advance, a
+  new branch, a receipt crossing threshold — regardless of how old the arriving event's witnessed τ is); a
+  syncing node pages **descending from the head to its per-peer watermark**, compares each listed prefix's
+  **effective SAID** against its own (the doctrine's anti-entropy trigger), fetches where they differ, and
+  advances the watermark to the **scan-start** sequence (anything moving mid-scan re-sorts above it → caught
+  next round). The first cut ordered by **most-recent witnessed-event timestamp** — REJECTED for a race:
+  witnessed τ is a **data-time, not a delivery-time**, so a late-gossiped old event (witnessed τ below the
+  watermark) updates a prefix that never re-sorts above the watermark → missed permanently; witnessed-time
+  subset-dependence (per-node τ differs by receipt subset) frays the same boundary. A peer-local sequence is
+  delivery-ordered, so late arrivals always resurface. Services-layer (vdtid) mechanism — the doctrine
+  carries only "the anti-entropy trigger is the effective-SAID delta".
 
 ## Merge / locking
 

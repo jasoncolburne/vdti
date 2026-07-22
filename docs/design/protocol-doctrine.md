@@ -1330,16 +1330,19 @@ rather than re-verifying from inception. What to cache depends on what the next 
   is unchanged.
 
 Fetching is **incremental against a source**: a consumer queries with the token's effective-SAID as
-a **`since` cursor**, and the source returns only the events **after** that stored position. When
-the cursor is **not a stored event** — a `forked` / `disputed` **synthetic**, or any SAID the source
-does not hold — the lookup simply misses and the source returns the **whole chain from the start**
-(the first page), which the consumer re-walks; a synthetic effective-SAID needs no special handling,
-and a fork or dispute just costs a full re-walk. The mesh is beacon-plus-fetch, not a stream — every
-page is a network round-trip, so continuation avoids re-fetching settled history (the sink/source
-transfer surface is a services-layer mechanism, forthcoming). A `resume` still re-runs the to-tip
-negative checks (revocation / rescission / divergence) against the new tip whenever a
-transitively-pinned chain moved, so extending a walk never advances a token past a revocation
-without surfacing it.
+a **`since` cursor**, and the source returns only the events **after** that stored position. The
+cursor is the **consumer's own verified position — never a source-trusted anchor**: holding the
+token is unforgeable proof of the prior from-inception walk (the prefix re-derived at serial 0,
+every event verified), and a fetched delta is accepted only as a **verified extension of that held
+state** — each event self-verifies and chains back into it, so a source can substitute nothing and
+withholding is only denial. A cursor the source cannot resolve — a `forked` / `disputed`
+**synthetic**, or a SAID it does not hold — simply misses, and the source serves from the start; the
+consumer re-walks everything it receives (a fork or dispute costs a full re-walk, verified like any
+other read). Paging, cursor, and continuation mechanics — avoiding the re-fetch of settled history —
+are the sink/source transfer surface, a services-layer mechanism (forthcoming). A `resume` still
+re-runs the to-tip negative checks (revocation / rescission / divergence) against the new tip
+whenever a transitively-pinned chain moved, so extending a walk never advances a token past a
+revocation without surfacing it.
 
 Caching is a **consumer choice**: a client may retain tokens and chains up to whatever its disk and
 memory allow; a service keeps no such per-consumer cache and re-walks under its work bound.
@@ -1507,9 +1510,10 @@ fork to a _denial_, never a _grant_.
 The value is **change-sensitive** — it moves the instant a node's held state changes (a tip
 advances, a fork forms or settles, a verdict transitions) — and that is load-bearing: the
 anti-entropy trigger is the effective-SAID delta, so a change a node lacks must move the value to
-drive the fetch that assembles it. A node fetches `since: {its own last seal}` — pulling everything
-from that seal forward (the canonical tip, every competing branch above it, a burying seal-advancer)
-**plus the seal's own siblings**, so it also learns if the seal it anchors on is itself forked — and
+drive the fetch that assembles it. A node fetches `since: {its own last seal}` — a **sync bound, not
+a trust anchor** (fetched events verify and merge like any others) — pulling everything from that
+seal forward (the canonical tip, every competing branch above it, a burying seal-advancer) **plus
+the seal's own siblings**, so it also learns if the seal it anchors on is itself forked — and
 SAID-addressed dedupe reconciles cleanly. Convergence is **conditional on propagation**: witnessed
 events always propagate and are never dropped, so all nodes eventually hold the same state and
 compute the same value; the un-witnessed flood a node may briefly hold is declined by witnesses and
