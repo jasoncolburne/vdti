@@ -10,6 +10,37 @@ family as `health` and `registrar`, kept as its own app for the same reason thos
 role differs. `permit` is the relying party's lifecycle; `registrar` is issuance bound to external
 truth; `issuer` is issuance as a product surface.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph org["the issuing organization"]
+    con["issuer console — mint · revoke ·<br/>delegate · publish policy SADs"]:::org
+  end
+  office["a delegated office<br/>its own issuer console"]:::org
+  subgraph holder["a holder"]
+    wallet["wallet — pds"]:::app
+  end
+  subgraph rp["relying parties"]
+    rlib["checker clients — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  con -->|"anchor issuances · kills · policies"| node
+  con -->|"Ath delegation"| office
+  con -->|"deliver creds sealed"| wallet
+  wallet -->|"present"| rlib
+  rlib -->|"verify · adopt the policy by SAID"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+In a test harness this whole picture shrinks to one process per box: an `issuer` per fixture role, a
+wallet per subject, a checker per relying party — the same topology every app above deploys.
+
 ## The composition
 
 Everything is the credentials feature's own machinery, operated:

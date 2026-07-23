@@ -6,6 +6,33 @@ is the composition case for **shared documents alone**, and it absorbs the catal
 same-composition variants: the **wiki / knowledge base** and **code hosting / version control** are
 the same construct with the emphasis moved from the comment tree to the version DAG (below).
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph ops["the operators — the board's creator identity"]
+    oapp["bbs app — charter · grants"]:::app
+  end
+  subgraph member["a poster"]
+    papp["bbs app — post · reply"]:::app
+    plib["lib/vdti"]:::lib
+  end
+  lurker["a reader"]:::ext
+  subgraph sub["the substrate — federations run it"]
+    node[("the board's nodes<br/>vdtid + witnessd")]:::svc
+  end
+  oapp -->|"membership grants and rescissions"| node
+  papp --> plib -->|"anchor + deposit posts"| node
+  lurker -->|"fetch and verify"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef ext fill:#20263a,stroke:#868e96,color:#e9ecef
+```
+
+The operators run no forum server — moderation authority is their creator identity, and every party,
+poster or lurker, reads the same verifiable data from any node.
+
 ## The composition
 
 A board is a **shared document**

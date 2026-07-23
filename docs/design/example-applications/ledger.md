@@ -6,6 +6,31 @@ primitive carrying application entries — and it absorbs the catalogue's same-c
 **event sourcing**: an event-sourced system's store _is_ an audit trail whose entries are state
 transitions, replayed by the same walk an auditor runs.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph org["the organization — the ledger's owner"]
+    app["ledger app"]:::app
+    lib["lib/vdti"]:::lib
+  end
+  subgraph aud["the auditor"]
+    alib["auditor's client — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("any node<br/>vdtid + witnessd")]:::svc
+  end
+  app --> lib
+  lib -->|"append: Ixn + entry SAD, witnessed"| node
+  alib -->|"walk the chain — from any source"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+Two parties, no service between them: the organization appends through its own client, and the
+auditor walks the chain from any node — including its own mirror.
+
 ## The composition
 
 The ledger is a **content SEL** owned by the organization's identity

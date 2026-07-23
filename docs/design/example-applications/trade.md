@@ -6,6 +6,35 @@ whose authenticity, endorsements, and current holder must be verifiable across c
 borders. It is the composition case for **credentials plus shared documents plus exchange** — the
 only three-feature composition in the set.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  carrier["the carrier<br/>issuer console — bills of lading"]:::org
+  bank["the bank<br/>issuer console — letters of credit"]:::org
+  subgraph parties["shipper · consignee — the transaction file's members"]
+    papp["trade app — file versions,<br/>presentations, endorsements"]:::app
+  end
+  subgraph port["the port — a relying party"]
+    plib["checker client — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  carrier -->|"issue · re-grant title"| node
+  bank -->|"issue · attest release conditions"| node
+  papp -->|"file versions · sealed negotiation"| node
+  papp -->|"present with selective disclosure"| plib
+  plib -->|"verify · current-holder read"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+Every institution keeps its own chain; the port answers "who holds the bill now" from the carrier's
+chain rather than from paper in a courier bag.
+
 ## The composition
 
 Each feature carries the leg it is shaped for:

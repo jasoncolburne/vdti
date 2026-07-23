@@ -5,6 +5,34 @@ about, shared with each provider on the patient's own terms. It is a core refere
 composition case for **credentials plus exchange** in its person-centered form — the provider-signed
 record is a credential, the sharing is a sealed, selective disclosure.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  clinic["the clinic<br/>issuer console — records"]:::org
+  subgraph patient["the patient"]
+    wallet["health app over the pds"]:::app
+  end
+  subgraph specialist["a new provider"]
+    slib["provider client — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  clinic -->|"issue record creds · revoke corrections"| node
+  clinic -->|"deliver sealed to the patient"| wallet
+  wallet -->|"share — selective disclosure, sealed"| slib
+  slib -->|"verify issuance · standing · freshness"| node
+  wallet -->|"check-in — ownership proof"| slib
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The patient sits in the middle by design: records flow to their store, and every share is their act
+— with the receiving provider verifying against the issuing clinic's chain, not the patient's word.
+
 ## The composition
 
 - **A record is a credential issued to the patient.** The clinic is the issuer, the patient the

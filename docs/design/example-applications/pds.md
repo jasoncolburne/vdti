@@ -11,6 +11,30 @@ pointer to _evolving_ state is a log's job ([`drive.md`](drive.md)). The pds is 
 same custodied records, now **indexed by the owner's own chains**, which is exactly the split the
 catalogue's core patterns draw: store → custody; look up → a log.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph person["the person"]
+    a["apps and agents"]:::app
+    lib["lib/vdti — the cascading store<br/>memory → disk → remotes"]:::lib
+  end
+  own[("personal storage node<br/>vdtid, store-only — no witnessd")]:::svc
+  subgraph sub["the substrate — federations run it"]
+    pub[("public home node<br/>vdtid + witnessd")]:::svc
+  end
+  a --> lib
+  lib -->|"replica-scoped records"| own
+  lib -->|"chains · fallback fetch"| pub
+  own <-->|replication| pub
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The one optional server is the person's own: a store-only node — a `vdtid` with no witness beside it
+— slotted into the cascade between local disk and the public substrate.
+
 ## The composition
 
 - **The root is the identity.** A person is an IEL over their devices — the unit everything below

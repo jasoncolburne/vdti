@@ -6,6 +6,39 @@ anchored and auditable, the tally recomputable by anyone. It is a core reference
 **auditable** ballot; the fully **secret** ballot (voter privacy with coercion resistance) is out of
 scope, stated here first because everything else in this doc is read in its light.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  reg["the registrar<br/>one person, one prefix"]:::org
+  subgraph auth["the election authority"]
+    ea["issuer console — ballot creds<br/>+ the committed acceptance policy"]:::org
+    coll["collection service —<br/>accept · revoke-on-cast · anchor"]:::app
+  end
+  subgraph voter["a voter"]
+    vapp["voting app"]:::app
+  end
+  subgraph obs["an observer"]
+    olib["observer client — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  reg -->|"binds citizens"| node
+  ea -->|"issue one ballot cred per prefix<br/>· publish the policy SAD"| node
+  vapp -->|"present + cast"| coll
+  coll -->|"spend strike · anchor accepted ballots"| node
+  olib -->|"recount from the published set"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The stack in one picture: the registrar's binding feeds the authority's issuance, the collection
+service's every acceptance is a public anchor, and the observer needs nobody's honesty — only the
+data.
+
 ## The composition
 
 - **Eligibility is a registrar-backed credential.** The government's registrar binds each citizen to

@@ -7,6 +7,37 @@ system exercises the whole credential lifecycle — issue, verify, delegate, dis
 renew, revoke — in one application. It absorbs the catalogue's largest same-composition family
 (below).
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph gov["the ministry"]
+    min["issuer console<br/>+ committed policy SAD"]:::org
+    off["regional office<br/>issuer console — delegated"]:::org
+  end
+  subgraph holder["the licensee"]
+    wallet["wallet — pds"]:::app
+  end
+  subgraph rp["a checker — roadside · venue · counterparty"]
+    chk["checker client — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  min -->|"delegate — Ath"| off
+  min -->|"issue · revoke · publish policy"| node
+  off -->|"issue under delegationPath"| node
+  wallet -->|"present — selective disclosure"| chk
+  chk -->|"freshness + revocation reads"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The presentation runs holder-to-checker directly — authenticity needs no network; the checker's two
+online legs are the freshness and revocation reads, from any node.
+
 ## The composition
 
 - **A licence is a targeted credential.** The authority is the `issuer`, the licensee's identity the

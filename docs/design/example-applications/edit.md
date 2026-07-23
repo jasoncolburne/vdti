@@ -6,6 +6,29 @@ plus exchange** — the document construct carries authorship and governance, ex
 content between members — and it is where the two features' deliberate seam shows: what the document
 proves and what the transport moves are separate concerns, composed.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph creator["the creator — governs membership"]
+    capp["edit app — grants · rescissions"]:::app
+  end
+  subgraph editors["editors — each its own identity"]
+    eapp["edit app — versions · comments<br/>+ live-sync channel between peers"]:::app
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes — governance chains + anchors;<br/>content gated, or off-node entirely")]:::svc
+  end
+  capp -->|"membership acts — tier-2, witnessed"| node
+  eapp -->|"anchor versions · fetch or exchange content"| node
+  eapp <-.->|"sealed member-to-member delivery<br/>in the sovereignty mode"| eapp
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+In the sovereignty mode the nodes hold nothing readable — opaque chains and anchors — while content
+moves member-to-member; the on-node mode trades that for availability, per document.
+
 ## The composition
 
 - **The document is the shared-documents construct whole.** Constitution, the three-role membership

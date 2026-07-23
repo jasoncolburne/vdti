@@ -6,6 +6,30 @@ authenticated when they open it. It is the thinnest of the core reference apps �
 same-composition variants: **notifications / pub-sub**, **secure file transfer**, and **key
 distribution** (below).
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph sender["the sender"]
+    sapp["mail app — seal + deposit"]:::app
+  end
+  subgraph recipient["the recipient — any device"]
+    rapp["mail app — poll · open · ack"]:::app
+  end
+  subgraph sub["the substrate — federations run it"]
+    inbox[("the recipient's chosen<br/>inbox nodes")]:::svc
+    other[("other nodes — chains only,<br/>no message bytes")]:::svc
+  end
+  sapp -->|"lookup receive keys · deposit sealed<br/>message + payload, replica-scoped"| inbox
+  rapp -->|"poll own nodes · fetch under the<br/>serve gate · acknowledge"| inbox
+  inbox <-.->|"chain gossip only"| other
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The sealed bytes live only on the nodes the recipient chose — the rest of the federation carries
+chains, never mail.
+
 ## The composition
 
 Every mechanism is exchange's, used as specified

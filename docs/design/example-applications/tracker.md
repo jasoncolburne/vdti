@@ -6,6 +6,34 @@ construct carries the collaboration, and credentials carry the **roles**, combin
 application exactly the way the design says roles must be combined: as the relying party's
 acceptance decision, never as policy on the data.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph org["the organization"]
+    issr["issuer console — role credentials<br/>+ the committed policy SAD"]:::org
+  end
+  subgraph maint["a maintainer"]
+    mapp["tracker client"]:::app
+  end
+  subgraph contrib["a contributor"]
+    capp["tracker client"]:::app
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  issr -->|"issue triager creds · publish policy"| node
+  mapp -->|"versions + furnished role cred"| node
+  capp -->|"comments · proposals"| node
+  mapp <-.->|"each client evaluates the same policy SAID"| capp
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+There is no tracker server: the organization's one operator surface is its issuer console, and every
+client renders the same state by evaluating the same committed policy against the same data.
+
 ## The composition
 
 - **An issue is a shared document.** Its constitution derives the issue's identity; its version DAG

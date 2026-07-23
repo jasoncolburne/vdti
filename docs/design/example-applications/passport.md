@@ -8,6 +8,34 @@ log**, and it absorbs the catalogue's same-composition variants: **compliance at
 auditor attests; a log holds the trail) and **warranty and service history** (a service record that
 travels with the good).
 
+## Deployment
+
+```mermaid
+flowchart LR
+  maker["the maker<br/>issuer console — product credential"]:::org
+  subgraph reg["the registry — the dossier's owner"]
+    regapp["passport app — curate the SEL"]:::app
+  end
+  attestor["inspector · lab · service shop<br/>issuer console — attestations"]:::org
+  subgraph reader["a reader — auditor · buyer"]
+    rlib["reader client — lib/vdti"]:::lib
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  maker -->|"issue product cred · recall"| node
+  attestor -->|"issue attestation creds"| node
+  regapp -->|"append entries committing them"| node
+  rlib -->|"walk the dossier · verify each leg"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+Three independent authorities — the maker, the registry, the attestors — never share a system; the
+reader composes their chains from any node.
+
 ## The composition
 
 Two constructs, joined by reference — each doing only what it is for:

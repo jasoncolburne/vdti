@@ -7,6 +7,31 @@ ratchet underneath — and a 1:1 conversation is the degenerate group of two, de
 separate construction
 ([`../features/exchange.md` §The session mode](../features/exchange.md#the-session-mode--chat)).
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph mA["member A — writing device"]
+    aApp["chat app — own lane"]:::app
+  end
+  subgraph mB["member B — several devices"]
+    bApp["chat app — reads all lanes"]:::app
+  end
+  ex["an ex-member"]:::ext
+  subgraph sub["the substrate — federations run it"]
+    gnode[("the group's nodes —<br/>membership-gated store")]:::svc
+  end
+  aApp -->|"deposit lane messages<br/>epoch-sealed, signed"| gnode
+  bApp -->|"fetch — chat-membership check<br/>catch-up across own periods"| gnode
+  ex -.->|"refused — rescinded;<br/>next epoch sealed past them"| gnode
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef ext fill:#20263a,stroke:#868e96,color:#e9ecef
+```
+
+No key server exists anywhere in the picture: the epoch keys live with members, and the group's
+nodes hold ciphertext they cannot read behind a per-requester membership gate.
+
 ## The composition
 
 Everything is the session mode as specified; the app adds rendering:

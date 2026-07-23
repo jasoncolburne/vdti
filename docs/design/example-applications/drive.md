@@ -10,6 +10,34 @@ application with `readers` omitted or present.
 This doc, like every example-application doc, is a validation exercise: it composes only landed
 mechanisms, cites each one, and states honestly where the composition's edges are.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph owner["the owner — one identity"]
+    d1["device A — drive app"]:::app
+    d2["device B — drive app"]:::app
+    lib["lib/vdti"]:::lib
+  end
+  reader["a shared-folder reader<br/>another identity"]:::ext
+  subgraph sub["the substrate — federations run it"]
+    node[("home node<br/>vdtid + witnessd")]:::svc
+    rep[("replica-scoped<br/>storage nodes")]:::svc
+  end
+  d1 --> lib
+  d2 --> lib
+  lib -->|"mint · anchor · fetch by SAID"| node
+  node <-->|replication| rep
+  reader -->|"fetch — the readers gate"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+  classDef ext fill:#20263a,stroke:#868e96,color:#e9ecef
+```
+
+No party runs a server: the drive is client code over the substrate, and a reader is just another
+verifying consumer admitted by membership.
+
 ## The composition
 
 A file is a **`file` SAD** with its bytes as a content-addressed blob

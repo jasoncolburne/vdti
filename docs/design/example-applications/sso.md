@@ -5,6 +5,32 @@ yourself ("verified employee of X"), start a session. It is the composition case
 credentials**, and it is the one application in the set that validates the identity primitive
 **directly** — the thing being consumed is control of an identity, not data the identity wrote.
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph person["the person"]
+    dev["device — any of the roster"]:::app
+  end
+  subgraph rp["the application — the one party with a server"]
+    site["app service + lib/vdti"]:::lib
+  end
+  attestor["attesting organization<br/>issuer console"]:::org
+  subgraph sub["the substrate — federations run it"]
+    node[("home node<br/>vdtid + witnessd")]:::svc
+  end
+  dev -->|"ownership proof, audience-scoped<br/>+ furnished credential"| site
+  site -->|"verify: key state · freshness · revocation"| node
+  attestor -->|"issue employee cred"| node
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The application is the one party here that runs a service — and it holds no secrets worth stealing:
+it verifies proofs against the substrate instead of keeping a credential database.
+
 ## The composition
 
 - **The account is a prefix.** An application account is an identity — an IEL over the person's

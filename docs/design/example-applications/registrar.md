@@ -6,6 +6,33 @@ organization's data about them. It is a core reference app — the carrier of th
 seam**, the one place an application must plug in truth the chains cannot derive — and the
 foundation `vote` builds on ([`vote.md`](vote.md)).
 
+## Deployment
+
+```mermaid
+flowchart LR
+  subgraph person["the person"]
+    dev["device — new identity P"]:::app
+  end
+  subgraph org["the organization"]
+    reg["registrar service<br/>framework + the Registrar trait"]:::org
+    old[("the existing system<br/>accounts · auth · data")]:::ext
+  end
+  subgraph sub["the substrate — federations run it"]
+    node[("nodes<br/>vdtid + witnessd")]:::svc
+  end
+  dev -->|"bind request: old-system login<br/>+ signature by P"| reg
+  reg -->|"trait: authenticate · fetch data ·<br/>check the binding"| old
+  reg -->|"issue to P · anchor · record X to P"| node
+  reg -->|"deliver the credential sealed"| dev
+  classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
+  classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
+  classDef ext fill:#20263a,stroke:#868e96,color:#e9ecef
+  classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
+```
+
+The registrar is the one app in the set that must run a service, because its job is the seam: the
+grey box is the organization's existing world, reached only through the trait it implements.
+
 ## The composition
 
 The mechanism is the credential feature's registrar model, applied
