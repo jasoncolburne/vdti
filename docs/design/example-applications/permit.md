@@ -57,7 +57,9 @@ online legs are the freshness and revocation reads, from any node.
   from that moment, and no one — not the licensee, not a compromised verifier — can un-declare it
   ([`../features/credentials.md` §Revocation](../features/credentials.md#revocation)). Restoring a
   suspended licence is a re-issue: a fresh credential, the old one dead — strikes are additive and
-  final, which is what makes them trustworthy.
+  final, which is what makes them trustworthy. Office-issued licences mint under a
+  `revocationPolicy` naming the ministry's line, so winding an office down never strands its
+  outstanding licences beyond the ministry's strike.
 - **Delegated issuing authority is the delegation machinery.** A national authority delegates to
   regional offices; a licence issued by an office carries its committed `delegationPath`, and
   acceptance walks it — authority is derived by the verifier, never asserted by the office

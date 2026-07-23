@@ -40,8 +40,10 @@ policy mode.
   checks the typed envelope (the `kind` matches `K` in full; the `issuee` is the credited party —
   bearer credentials never satisfy; `expires` has not passed — expired folds to deny), verifies the
   issuance anchor at the credential's own `issuerPin`, evaluates `E` in the issuer slot as-issued at
-  that anchoring position, and reads the revocation status by the positive kill lookup — the same
-  current-mode fold as a `del` hop's liveness, fail-secure by default.
+  that anchoring position, and reads the revocation status by the positive kill lookup over the
+  credential's kill surfaces — the issuer's chain, and the revocation locus where the committed
+  `revocationPolicy` admits non-issuer revokers — the same current-mode fold as a `del` hop's
+  liveness, fail-secure by default.
 
 So evaluation is one function over the policy expression, parameterized by the as-issued resolver: a
 thin entry point assembles the resolver's inputs (the anchoring positions and the committed-anchor
@@ -141,8 +143,8 @@ The resolver asks a token for exactly four things:
   at most `N` hops. Supplied by the IEL and SEL verifiers' tokens.
 - **A credential's anchor and kill status** — that a furnished credential's issuance commitment is
   anchored at the position its `issuerPin` names, and whether its derived revocation target has been
-  declared — what `crd(K, E)` resolves against. Supplied by the issuer's IEL token and the kill
-  lookup's SEL token.
+  declared — what `crd(K, E)` resolves against. Supplied by the issuer's IEL token and the
+  revocation locus's SEL token.
 - **The events a chain has committed to as of a position** — the committed anchors that prove, in
   as-issued mode, that the named party acted. Supplied by every contributing chain's token.
 

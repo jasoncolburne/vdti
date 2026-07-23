@@ -56,11 +56,11 @@ Two constructs, joined by reference — each doing only what it is for:
   composition applied to one product's life ([`ledger.md`](ledger.md)).
 - **Third parties attest by credential; the log collects by reference.** An inspector, a service
   shop, an auditor issues its **own** credential — anchored on its own chain, carrying its own
-  authority, revocable by it alone — and the dossier's next entry commits that credential's SAID.
-  The log owner curates the timeline; it cannot forge the attestations on it (each verifies against
-  its issuer's chain), and the attestors cannot rewrite the timeline (only the owner appends,
-  witnessed). Curation and attestation stay separate authorities, which is the honest division a
-  multi-party dossier needs.
+  authority, revocable per its committed revocation rule (by default, by it alone) — and the
+  dossier's next entry commits that credential's SAID. The log owner curates the timeline; it cannot
+  forge the attestations on it (each verifies against its issuer's chain), and the attestors cannot
+  rewrite the timeline (only the owner appends, witnessed). Curation and attestation stay separate
+  authorities, which is the honest division a multi-party dossier needs.
 - **A reader walks both legs.** Verify the product credential against the maker; walk the dossier
   for its entries; verify each committed attestation against its own issuer, including revocation —
   an attestation the auditor later withdrew reads withdrawn even though the log entry that cited it

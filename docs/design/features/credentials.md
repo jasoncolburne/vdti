@@ -30,15 +30,18 @@ credential = {
   terms?,     // an issuer-set terms-of-use SAD; travels with the credential
   issued,     // an advisory timestamp — always present
   expires?,   // an advisory timestamp
+  revocationPolicy?,  // who may revoke — id(X) or del(Y, N); ABSENT → the issuer alone (see Revocation)
   nonce,      // high-entropy; every credential has one
 }
 ```
 
 - **No policy field.** A credential carries no acceptance policy and no authorizing structure —
   _what_ makes a credential acceptable is the relying party's decision, not something the credential
-  asserts about itself (see [The two questions](#the-two-questions)). Its as-of authority is the
-  **anchoring position**, never a self-declared body value, so nothing can select a permissive past
-  while issuance anchors in the present.
+  asserts about itself (see [The two questions](#the-two-questions)). `revocationPolicy` is not an
+  exception: it is the write rule for the credential's own kill locus — deny-side only, able to make
+  the credential more killable and never more acceptable. Its as-of authority is the **anchoring
+  position**, never a self-declared body value, so nothing can select a permissive past while
+  issuance anchors in the present.
 - **The `kind` is the type.** Every credential shares the wrapper above, but its `kind` names which
   credential it is. The framework validates the wrapper and that the `kind` is a **registered**
   credential kind; the **application** validates the claim contents, with helpers the feature ships.
@@ -128,8 +131,9 @@ conjunction:
   freshness read catches via the witness key-window staleness flag; only the to-tip check surfaces
   it. A no-single-tip or stale chain grounds no new trust and is refused. A **terminated** issuer
   passes — its `Trm` is the definitive, un-extendable tip, so pre-`Trm` issuance stays valid — but a
-  `Trm` freezes the issuer's logs, so its unrevoked credentials can no longer be killed: **revoke
-  before terminating** anything you may need to revoke.
+  `Trm` freezes the issuer's own logs, so credentials whose `revocationPolicy` names no one else can
+  no longer be killed: **revoke before terminating** anything only you can revoke — a widened policy
+  keeps the locus open to the parties it names ([Revocation](#revocation)).
 - **Not revoked** — the fail-secure revocation walk ([Revocation](#revocation)).
 - **Owned** — the presenter satisfies the `issuee`'s `t_use`, bound to a fresh, audience-scoped
   `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
@@ -247,18 +251,41 @@ language**, by shaping the credential:
 
 ## Revocation
 
-A credential needs no revocation object unless it is ever revoked. To revoke, the issuer declares a
-**kill** on its own chain naming the credential's derived revocation target —
-`hash('vdti/sel/v1/tags/revocation:{issuer}:{cred.said}')` — alongside a small sealed `{Icp, Trm}`
-lookup log at the credential's **separately derived lookup address** (its own chain-prefix
-derivation under `topics/revocation`, over the same issuer + credential inputs — so the public
-declaration does not leak the lookup's address). A non-issuer cannot declare it, and a witnessed
-kill cannot be rolled back — no forged revocation, no silent un-revocation.
+A credential needs no revocation object unless it is ever revoked, and **who may revoke is committed
+at issuance**: the credential's `revocationPolicy` names the write rule for its kill surface —
+absent, the issuer alone. To revoke, an authorized party declares a **kill**: the issuer's own
+declaration rides its chain, naming the credential's derived revocation target —
+`hash('vdti/sel/v1/tags/revocation:{issuer}:{cred.said}')` — alongside the small sealed `{Icp, Trm}`
+lookup log at the credential's **revocation locus**. A witnessed kill cannot be rolled back — no
+forged revocation, no silent un-revocation.
 
+- **The locus is policy-governed.** Its prefix derives from
+  `(authority, vdti/sel/v1/topics/revocation, cred.said)` — the `authority` slot carrying the
+  committed `revocationPolicy` where one is present, `id(issuer)` where it is absent
+  ([`../primitives/data/event-logs/sel/log.md` §Prefix derivation](../primitives/data/event-logs/sel/log.md#prefix-derivation)).
+  A `revocationPolicy` is one of the two structural leaves — `id(X)` or `del(Y, N)` — never a
+  composed expression: a SEL's authority must keep authorship one-identity-per-event, and the two
+  leaves keep the write check a prefix equality or one delegation walk. The address commits the
+  write rule (a locus under any other rule is a different address, which the credential's bytes
+  never derive), and it never leaks from the public tag — different digests over different inputs.
+  The locus `Trm` is valid anchored by **any** identity satisfying the expression at its anchoring
+  position — it names its **`author`** and carries the author's own **`delegationPath`**, the
+  credential's issuance envelope mirrored one layer down
+  ([`../primitives/data/event-logs/sel/events.md` §The lookup-SEL shapes](../primitives/data/event-logs/sel/events.md#the-lookup-sel-shapes));
+  `del(Y, N)`, mirroring a delegated issuance condition, lets the up-chain strike what a defunct
+  delegated issuer left outstanding — the issuer itself satisfies it by construction. **What could
+  mint can revoke**, at the issuer's choice, fixed at issuance.
 - **Status is read fail-secure by default** — compute the target and walk the issuer's **fresh**
-  chain from the issuance position to the tip, matching the target against each kill. Found →
-  revoked; absent on a fully-walked fresh chain → not revoked. This rides the freshness gate: hiding
-  a revocation would need a stale chain, which a verifier trusting the issuer already refuses.
+  chain from the issuance position to the tip, matching the target against each kill; where the
+  committed policy admits non-issuer revokers, also read the locus, recomputed from the credential's
+  own bytes and fetched **multi-source**. Found on either surface → revoked; absent on a
+  fully-walked fresh chain (and a multi-source locus miss, where the leg applies) → not revoked. The
+  walk rides the freshness gate — hiding an issuer-declared kill needs a stale chain, which a
+  verifier trusting the issuer already refuses. The locus leg has no walk behind it: present is
+  authoritative (a kill is monotone), a miss is only as strong as the sources asked — suppression is
+  eclipse-class, and the residual is priced in [Boundary / residuals](#boundary--residuals).
+- An absent `revocationPolicy` means the locus can hold nothing any non-issuer authored, so a
+  verifier skips that leg entirely — the widened read is paid only where it was bought.
 - A content-addressed **fail-open** lookup is available where a consumer prefers availability over
   fail-secure — its own choice, not the framework's.
 
@@ -392,6 +419,11 @@ The presentation flow uses a secure transport, but **credentials must not be tra
   relying party's application decision, not on the credential and not in the protocol.
 - **Revocation freshness** is bounded by the consumer's read strategy (fail-secure walk vs.
   fail-open lookup vs. timeout) — an application choice, not a protocol guarantee.
+- **Foreign-kill discovery is locus-only.** A kill authored under a widened `revocationPolicy` by a
+  non-issuer is found at the revocation locus, not on a chain the verifier already walks: present
+  reads killed with full authority (a kill is monotone), but a miss has no walk to harden it — the
+  multi-source read narrows suppression to eclipse-class (the freshness machinery's adversary), with
+  quieter tripwires than the issuer-chain walk. Priced, not hidden.
 - **The bearer copy-race** (issuance to first redemption) and **registrar attestation** (single
   binding rests on the registrar not losing its own identity, and is attested by it rather than
   independently verifiable) are the standing residuals.

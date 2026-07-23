@@ -3,12 +3,12 @@
 The **SAD Event Log** (SEL) is a **single-owner data log** — a per-owner chain of
 cryptographically-linked events recording one owner's data over time. Its owner is exactly one
 **identity**, named by that identity's [IEL](../iel/log.md) prefix and fixed for the SEL's whole
-life. A SEL composes no policy, no roster, and no multi-party governance of its own; it pins and
-anchors **only its owner IEL**, and its finality floors down to that IEL. Each event is a
-[SAD](../../sad/sad.md) carrying chain-linkage fields (`prefix`, `previous`, `serial`, `kind`) plus
-kind-specific commitments. The per-kind field shape is the cross-primitive
-[event-shape reference](../event-shape.md#sel); this doc and its siblings state the SEL-specific
-doctrine.
+life (one carved exception, the policy-governed kill locus, is §Prefix derivation's). A SEL composes
+no policy, no roster, and no multi-party governance of its own; it pins and anchors **only its owner
+IEL**, and its finality floors down to that IEL. Each event is a [SAD](../../sad/sad.md) carrying
+chain-linkage fields (`prefix`, `previous`, `serial`, `kind`) plus kind-specific commitments. The
+per-kind field shape is the cross-primitive [event-shape reference](../event-shape.md#sel); this doc
+and its siblings state the SEL-specific doctrine.
 
 A SEL relates to its owner IEL in two distinct ways, and keeping them apart is the heart of the
 model:
@@ -46,13 +46,24 @@ A SEL inception event (`Icp`) is a
 the whole-content two-hash digest of the inception body —
 [`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic (`prefix ≠ said`, for
 correlation resistance). There is no `derive()` function: the prefix is the two-hash digest over the
-**whole inception body**, so it commits to every populated inception field — `owner` and `topic`,
-plus optional `data`, `content`, and `lineage`:
+**whole inception body**, so it commits to every populated inception field — `authority` and
+`topic`, plus optional `data`, `content`, and `lineage`:
 
-- **`owner`** — the owner IEL prefix. It is **`Icp`-only and immutable**: a SEL has one owner for
-  life, and no later event may change it.
+- **`authority`** — who may extend the chain: always a **policy-language leaf**
+  ([`../../../policy/policy.md`](../../../policy/policy.md)), **`Icp`-only and immutable**, and
+  restricted to the two structural leaves — `id(prefix)` or `del(prefix, N)`, never a composed
+  expression. Every content SEL and every value lookup MUST carry the bare `id(prefix)` — that
+  identity is the SEL's **owner**, for life (the doctrine's "owner" language names exactly this
+  identity), and no later event may change it. A **kill lookup only** may instead carry
+  `del(prefix, N)` — a **policy-governed locus**, extendable by any live delegate of the named
+  identity within `N` hops at the anchoring act's position; the address commits the write rule,
+  since a different rule derives a different prefix. The restriction is structural, not stylistic:
+  the SEL's chain-to-IEL relations — anchoring, the down-pin, federation inheritance, severance —
+  assume **one IEL per chain**, which a kill lookup's single authored event preserves per instance
+  and a multi-satisfier composition would break. The consuming shape is credential revocation
+  ([`../../../../features/credentials.md` §Revocation](../../../../features/credentials.md#revocation)).
 - **`topic`** — an application discriminator (the SEL's namespace or schema), opaque bytes to the
-  chain. Together `owner` + `topic` + derivation **locate a SEL directly**: its address is a
+  chain. Together `authority` + `topic` + derivation **locate a SEL directly**: its address is a
   function of its content, so a SEL is found by re-deriving or being handed its prefix, with no
   separate registry object to consult.
 - **`data`** — optional. The recompute input a discoverable SEL roots on: a private nonce, or
@@ -81,7 +92,9 @@ Whether `data` must be high-entropy depends on why the prefix must be hard to pr
   entropy.
 - **A discoverable SEL** uses `data` a verifier can recompute (a grant-instance reference), so
   unpredictability is not the goal. Its protection is **owner-rooting**: only the owner IEL anchors
-  events at that locus, so predicting the address is not forging one.
+  events at that locus, so predicting the address is not forging one. (A policy-governed kill
+  lookup's protection is the same shape with the generalized predicate — only an identity satisfying
+  its `authority` expression lands events there.)
 
 ### The content and lineage fields
 
@@ -130,7 +143,7 @@ A SEL is classified by its **`content` flag** — `content: true` ⟺ a content 
 is the usual correlate of that split, not the classifier:
 
 - A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
-  inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
+  inception body (`authority`, `topic`, and optional `data` / `content` / `lineage`) — from data it
   already holds, then fetches by that prefix. Two shapes: a **kill lookup** `{Icp, Trm}` (a
   revocation or rescission locus — the read strategy the fail-secure kill check consumes) and a
   **value lookup** `{Icp, Gnt}` (a value the verifier reads at the address — a published encryption
@@ -189,8 +202,9 @@ close. (SELs are one-to-many with IELs, so a SEL's divergence is not a function 
 
 The SEL is a witnessed chain in the IEL's mold, **inheriting the owner IEL's federation** — the same
 witnesses, no new trust root; witness selection is deterministic on `(SEL-prefix, serial)` and the
-inherited roster, and the SEL inherits the owner IEL's witness-config and federation binding. The
-mechanics are the federation's, applied at the SEL's own position
+inherited roster, and the SEL inherits the owner IEL's witness-config and federation binding (a
+policy-governed kill lookup, having no owner, inherits its **authoring** identity's — the anchor
+names it). The mechanics are the federation's, applied at the SEL's own position
 ([`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)):
 
 - **Content (`Ixn` / `Pin`) is first-seen** — a selected witness signs the first content event at a
@@ -212,9 +226,15 @@ the plain SAD store, and an `Icp` is not valid without its anchored serial-1 eve
 batched anchor is an owner-signed IEL event the witness validates as part of its ordinary job —
 **including that the anchor is itself accepted** (witnessed at threshold on the owner IEL), so a SEL
 event never reaches acceptance ahead of its anchor. So **acceptance requires owner-authorization** —
-a non-owner produces no valid anchor, so nothing lands at any locus. And because a SEL **sealed**
-event's anchor is an IEL **sealed** event — never buried once accepted — an **accepted** SEL sealed
-branch always rests on an accepted anchor, so it is **never later severed** by a dead anchor
+a non-owner produces no valid anchor, so nothing lands at any locus. On a **policy-governed kill
+lookup** the same gate runs with the generalized predicate: the anchor is the authoring identity's
+own IEL event — the batch's anchor chain must equal the `Trm`'s committed `author` — and the witness
+checks that author against the `authority` leaf in the very `Icp` the event extends, walking the
+`Trm`'s furnished `delegationPath`. An unsatisfying author produces no acceptable event, so the
+locus never fills with unauthorized kills (and a verifier re-checks the same predicate end-to-end
+regardless). And because a SEL **sealed** event's anchor is an IEL **sealed** event — never buried
+once accepted — an **accepted** SEL sealed branch always rests on an accepted anchor, so it is
+**never later severed** by a dead anchor
 ([`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix)).
 Witnessing thus closes both threats: **equivocation** (first-seen at the SEL position) and
 **authorship-forgery** (the owner-signed anchor rides the batch). A verifier still re-derives the

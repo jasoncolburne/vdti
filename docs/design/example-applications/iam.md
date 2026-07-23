@@ -79,7 +79,9 @@ there is no policy decision service to stand up, scale, or take down.
   before stands until revoked.
 - **Withdrawal is the kill.** Offboarding is revocation of the subject's grants — a strike per grant
   on the issuing chain, read fail-secure by every resource everywhere from its next fresh read
-  ([`../features/credentials.md` §Revocation](../features/credentials.md#revocation)). There is no
+  ([`../features/credentials.md` §Revocation](../features/credentials.md#revocation)). Grants are
+  minted with a widened `revocationPolicy` — `del(org, 2)` — so what a defunct team lead granted
+  stays revocable by any standing delegate of the root: what could mint can revoke. There is no
   per-system account cleanup because there are no per-system accounts: the resources never held
   authority state, only the data did.
 
@@ -124,11 +126,10 @@ there is no policy decision service to stand up, scale, or take down.
   committed expression names who may act, as-issued; the resource decides the rest.
 - **Revocation latency is the resource's dial.** Between a strike and the next fresh read, a
   fail-open resource honors a dead grant — the standing freshness residual, tuned per resource.
-- **Revocation authority is the issuing chain's.** A kill is declared where the grant was issued, so
-  a delegated issuer that disappears with its books open leaves grants nobody can revoke —
-  rescission stops its future issuance but grandfathers its past. The stated discipline is
-  revoke-before-terminate and delegates wound down in order; an organization that cannot tolerate
-  the residual issues from the root.
+- **Revocation reach is chosen at mint time.** A grant whose `revocationPolicy` names only its
+  issuer dies unrevocable with that issuer's books — rescission stops future issuance but
+  grandfathers the past. The composition's discipline is the widened policy above; what stays
+  outside structural reach is only the organization's diligence in actually minting under it.
 - **A legitimate issuer's bad grant is structurally perfect.** The composition proves the
   organization granted the authority, not that it should have; the checks and balances above the
   grant are the organization's governance, outside structural reach.
