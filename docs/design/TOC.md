@@ -666,6 +666,14 @@ straight to a section.
 - [What this validates](example-applications/health.md#what-this-validates)
 - [Limits](example-applications/health.md#limits)
 
+### [`example-applications/iam.md`](example-applications/iam.md) — iam — organizational access control
+
+- [Deployment](example-applications/iam.md#deployment)
+- [The composition](example-applications/iam.md#the-composition)
+- [Scenarios](example-applications/iam.md#scenarios)
+- [What this validates](example-applications/iam.md#what-this-validates)
+- [Limits](example-applications/iam.md#limits)
+
 ### [`example-applications/issuer.md`](example-applications/issuer.md) — issuer — the issuing organization's console
 
 - [Deployment](example-applications/issuer.md#deployment)

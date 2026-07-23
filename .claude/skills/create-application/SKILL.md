@@ -18,7 +18,7 @@ cannot express a requirement, that is a finding to surface, not a gap to fill wi
 
 Read, in this order: `docs/design/AGENTS.md` (how to read the tree), `docs/design/TOC.md` (the
 per-section map), `USES.md` at the repo root (the composition catalogue and core patterns), and skim
-`docs/design/example-applications/` — seventeen worked designs, one per distinct feature/primitive
+`docs/design/example-applications/` — eighteen worked designs, one per distinct feature/primitive
 composition. They are the case book: every derivation below starts from the nearest of them.
 
 ## Phase 1 — Target
@@ -66,7 +66,7 @@ An adversarial pass over the requirement list, before any design exists:
 
 ## Phase 4 — Derive the design
 
-- **Find the nearest compositions.** Match the requirement tags against the seventeen
+- **Find the nearest compositions.** Match the requirement tags against the eighteen
   example-application docs and pick the closest one or two; the new design is a delta from them, not
   a blank page. State which apps it is nearest to and what differs.
 - **Select the composition** — which features and primitives, and why each requirement lands on

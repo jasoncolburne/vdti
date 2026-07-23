@@ -39,7 +39,7 @@ is faster and more reliable than inference.
   ([`system-thesis.md` §Adversarial-first posture](system-thesis.md#adversarial-first-posture)).
   When a question has no confident answer, the design's answer is refuse.
 - **Compose; never invent.** New work builds from landed mechanisms. The
-  [`example-applications/`](example-applications/) docs are seventeen worked proofs of that
+  [`example-applications/`](example-applications/) docs are eighteen worked proofs of that
   discipline — each cites every mechanism it leans on and states its limits honestly. Match their
   shape: if your design needs machinery no doc provides, you have found either a wrong decomposition
   or a real gap to raise — not a license to invent.
