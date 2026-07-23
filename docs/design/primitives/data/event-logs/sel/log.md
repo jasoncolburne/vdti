@@ -362,8 +362,8 @@ manifest**; a `Trm`'s termination validity is carried by its anchoring `Rev` / `
 manifest is **opt** — when present it carries the **`bound`** role, a feature-layer gated
 rescind-doc holding a feature rescission's participant-blind cutoff — a doc-member grandfather, or a
 chat-membership **per-lane bound list** (the gated custody mode; a delegate's rides the
-inline-public `kills[].bound` field). The `owner` / `topic` / `data` / `lineage` derivation inputs
-and the down-`pin` stay **top-level structural**. See
+inline-public `kills[].bound` field). The `authority` / `topic` / `data` / `lineage` derivation
+inputs and the down-`pin` stay **top-level structural**. See
 [`events.md` §The manifest](events.md#the-manifest--roles-a-sel-event-carries) for the per-kind
 detail.
 

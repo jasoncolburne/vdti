@@ -232,9 +232,9 @@ the live value" (no owner-IEL fallback for that resolution), so a dispute is gen
 collusion-forced dead lineage is a real denial; the walk re-establishes it. But the walk
 **consumes** a per-lineage negative check, not a separate mechanism: `lineage: N` reads dead when a
 `Trm` sits on its own chain **or** its **lineaged** `kills[]` target
-`hash('{tag}:{owner}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` — scoped
-to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm` whose
-`Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
+`hash('{tag}:{declarer}:{data}:{lineage}')` is present in the owner IEL's fresh `Rev` / `Dth` —
+scoped to the one instance, so the re-established `N+1` survives (a rescission is a monotone `Trm`
+whose `Dth` declares that lineaged target). A **monotone kill** (a cred revocation, a delegate /
 doc-member rescission) uses a **non-lineaged** target and is a single negative-checked read, never
 walked. The split is **structural** — the verifier reads the `content` flag and the `lineage`
 field's presence, never the topic's meaning, with **no tier-check** on the read path
@@ -261,12 +261,12 @@ exist at inception. The four shapes are its instances:
 | a value lookup                  | the `Gnt`       | `Ath`                   |
 
 **Authentication is the v1's anchor, never the `Icp`** — a SEL is validly established only if its v1
-resolves to a real owner-IEL event whose prefix equals the SEL's `owner`, with the v1 named in that
-IEL event's `anchors` and `v1.previous == said(Icp)` ([`log.md` §Inception](log.md#inception)). When
-the v1 is a seal-advancer — a value lookup's `{Icp, Gnt}` or a kill lookup's `{Icp, Trm}` — it also
-carries `previousSeal`, back-linking at serial 1 to the `Icp` as the spine root. A SEL `Icp` is tier
-1 because it establishes single-owner **data**, not governance — the
-inception-tier-follows-what-it-establishes rule
+resolves to a real owner-IEL event whose prefix equals the SEL's owner (the `authority` leaf's
+identity), with the v1 named in that IEL event's `anchors` and `v1.previous == said(Icp)`
+([`log.md` §Inception](log.md#inception)). When the v1 is a seal-advancer — a value lookup's
+`{Icp, Gnt}` or a kill lookup's `{Icp, Trm}` — it also carries `previousSeal`, back-linking at
+serial 1 to the `Icp` as the spine root. A SEL `Icp` is tier 1 because it establishes single-owner
+**data**, not governance — the inception-tier-follows-what-it-establishes rule
 ([`../../../../protocol-doctrine.md` §Tiers](../../../../protocol-doctrine.md#tiers)).
 
 ## The manifest — roles a SEL event carries
@@ -292,7 +292,7 @@ feature-layer gated rescind-doc holding a feature rescission's participant-blind
 doc-member grandfather, or a chat-membership per-lane bound list). This is the **gated custody
 mode** of the `bound` (a delegate rescission's rides the inline-public `kills[].bound` field on the
 owner IEL); like `grant`, it is a feature-layer SAD, not a directly-consumed role. The derivation
-inputs (`owner` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level
+inputs (`authority` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level
 structural**.
 
 ## The kind-strict cross-layer anchor matrix

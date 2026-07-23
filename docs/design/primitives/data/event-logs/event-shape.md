@@ -184,13 +184,13 @@ The roles that carry discrimination or shape rules, in prose:
   starts that the `Gnt` opens.
 - **`kills`** is the revocation / rescission **declaration** — a flat list `[{ target, bound? }]`
   carried **alongside** `anchors[]` (two separate roles: `anchors` names the sealing `Trm`, `kills`
-  names _what_ is revoked). `target = hash('{tag}:{owner}:{data}')` — a flat, domain-qualified hash
-  the verifier computes directly and forward-matches; `bound` (rescission only) is the grandfather
-  cutoff, carried **either** inline-public in this `kills[]` entry **or** — when the cutoff is
-  participant-identifying — via the gated `bound` role on the SEL `Trm` (below). **`kills` is opaque
-  to the IEL** — placement (kind-strict to the tier-2 `Rev` / `Dth`) is the only structural rule;
-  the IEL never dereferences a target or interprets a bound (all revocation / grandfather logic is
-  the feature layer's).
+  names _what_ is revoked). `target = hash('{tag}:{declarer}:{data}')` — a flat, domain-qualified
+  hash the verifier computes directly and forward-matches; `bound` (rescission only) is the
+  grandfather cutoff, carried **either** inline-public in this `kills[]` entry **or** — when the
+  cutoff is participant-identifying — via the gated `bound` role on the SEL `Trm` (below). **`kills`
+  is opaque to the IEL** — placement (kind-strict to the tier-2 `Rev` / `Dth`) is the only
+  structural rule; the IEL never dereferences a target or interprets a bound (all revocation /
+  grandfather logic is the feature layer's).
 - **`bound`** carries a feature rescission's participant-blind cutoff — a gated rescind-doc
   committed by the SEL `Trm`. It is the **gated custody mode** of the same `bound` concept: a
   delegate rescission, not participant-identifying, rides the **inline-public `kills[].bound`
@@ -246,7 +246,7 @@ means **forbidden** (the field must be unset); the full `req` / `fbd` / `opt` le
 | `delegationPath` | Digest256[] | SEL           | policy-governed kill-lookup `Trm` only — `req` iff the locus `authority` is a `del` leaf; `fbd` everywhere else                                                                                                                                                                                                                | The author's own committed path to the `del` leaf's root, verified hop-by-hop as of the kill's anchor ([`documents.md` §Delegation in a document](../../policy/documents.md#delegation-in-a-document)).                                                            |
 | `pins`           | Digest256   | IEL           | every IEL kind (`Icp`/`Ixn`/`Evl`/`Ath`/`Rev`/`Dth`/`Trm`/`Wit`)                                                                                                                                                                                                                                                               | SAID of a SAD listing each participating member's **prior KEL tip** (`participation.previous`; the anchoring KEL event sits one past it, so there is no SAID cycle) — the IEL's **down-pins**.ᶜ                                                                    |
 | `nonce`          | Nonce256    | IEL           | `Icp`                                                                                                                                                                                                                                                                                                                          | Opaque random bytes chosen by the inceptor; makes the IEL prefix unpredictable. Required at inception, forbidden elsewhere.                                                                                                                                        |
-| `owner`          | Digest256   | SEL           | `Icp`                                                                                                                                                                                                                                                                                                                          | The **owner IEL prefix** — which IEL owns this SEL; `Icp`-only and **immutable**; participates in the SEL prefix derivation.                                                                                                                                       |
+| `authority`      | PolicyLeaf  | SEL           | `Icp`                                                                                                                                                                                                                                                                                                                          | The chain's write rule — `id(prefix)` (that identity is the owner) or, kill lookups only, `del(prefix, N)`; `Icp`-only and **immutable**; participates in the SEL prefix derivation.                                                                               |
 | `topic`          | String      | SEL           | `Icp`                                                                                                                                                                                                                                                                                                                          | Application discriminator; participates in the SEL prefix derivation.                                                                                                                                                                                              |
 | `data`           | Digest256   | SEL           | `Icp` (opt)                                                                                                                                                                                                                                                                                                                    | The recompute input a lookup SEL roots on (the whole reference; the `Icp` carries no manifest). Optional; participates in the SEL prefix derivation.ᵈ                                                                                                              |
 | `content`        | Bool        | SEL           | `Icp` (content SEL only)                                                                                                                                                                                                                                                                                                       | The content-vs-lookup **type discriminator** — `content: true` on a content SEL's `Icp` (v1 an `Ixn` / `Pin`), **omitted** on a lookup (never present-and-false). Participates in the SEL prefix derivation, so content and lookups derive to distinct addresses.ᵉ |
@@ -489,21 +489,21 @@ matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL
 
-| Kind  | owner | topic | data | content | lineage | pin | previousSeal | manifest        |
-| ----- | ----- | ----- | ---- | ------- | ------- | --- | ------------ | --------------- |
-| `Icp` | req   | req   | opt  | opt     | opt     | fbd | fbd          | fbd             |
-| `Ixn` | fbd   | fbd   | fbd  | fbd     | fbd     | req | fbd          | req (`payload`) |
-| `Pin` | fbd   | fbd   | fbd  | fbd     | fbd     | req | fbd          | fbd             |
-| `Gnt` | fbd   | fbd   | fbd  | fbd     | fbd     | req | req          | req (`grant`)   |
-| `Trm` | fbd   | fbd   | fbd  | fbd     | fbd     | req | req          | opt (`bound`)   |
-| `Sea` | fbd   | fbd   | fbd  | fbd     | fbd     | req | req          | fbd             |
+| Kind  | authority | topic | data | content | lineage | pin | previousSeal | manifest        |
+| ----- | --------- | ----- | ---- | ------- | ------- | --- | ------------ | --------------- |
+| `Icp` | req       | req   | opt  | opt     | opt     | fbd | fbd          | fbd             |
+| `Ixn` | fbd       | fbd   | fbd  | fbd     | fbd     | req | fbd          | req (`payload`) |
+| `Pin` | fbd       | fbd   | fbd  | fbd     | fbd     | req | fbd          | fbd             |
+| `Gnt` | fbd       | fbd   | fbd  | fbd     | fbd     | req | req          | req (`grant`)   |
+| `Trm` | fbd       | fbd   | fbd  | fbd     | fbd     | req | req          | opt (`bound`)   |
+| `Sea` | fbd       | fbd   | fbd  | fbd     | fbd     | req | req          | fbd             |
 
 The `Icp` `content` column is the type-discriminator **field** (content-vs-lookup), distinct from
 the manifest `payload` role (the SAD(s) an `Ixn` records): **`content: true`** on a content SEL's
 `Icp` (its v1 an `Ixn` / `Pin`), **omitted** on a lookup (never present-and-false — a lookup omits
 the field entirely; the falsy-omission keeps a lookup address stable, since a present falsy flag and
-an omitted one are different whole-content). `owner` (the owner IEL prefix, immutable — `Icp` only),
-`topic`, `data`, the `content` flag, and — for a re-establishable value lookup — `lineage`
+an omitted one are different whole-content). `authority` (the write-rule leaf, immutable — `Icp`
+only), `topic`, `data`, the `content` flag, and — for a re-establishable value lookup — `lineage`
 participate in the SEL prefix derivation (§Prefix derivation), so the `Icp` carries **no `pin`**: a
 pin field would make the prefix non-recomputable for lookup. The SEL's down-pin to its owner IEL
 therefore rides a **serial-1 event** — a bare **`Pin`** batched with the `Icp` when inception
@@ -616,7 +616,7 @@ inception populates.
 - **IEL**: the roster + threshold vector + the `nonce`. The `nonce` makes the prefix
   **unpredictable** from outside (a camping / prefix-squatting defense) — so an IEL is located only
   by parties told its prefix.
-- **SEL**: the populated inception fields — `owner` (the owner IEL prefix), `topic`, `data`, a
+- **SEL**: the populated inception fields — `authority` (the write-rule leaf), `topic`, `data`, a
   `content: true` flag on a content SEL (omitted on a lookup), and — on a re-establishable value
   lookup — `lineage`. (The address is recomputed by re-constructing that inception and taking its
   prefix, **not** a hash of those values pulled into a separate tuple — the prefix is the

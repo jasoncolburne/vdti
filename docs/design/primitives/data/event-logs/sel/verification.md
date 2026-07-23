@@ -113,9 +113,9 @@ A SEL's `Icp` is unsigned, recomputable content, so it proves nothing on its own
 `{Icp}` naming a victim owner is **not** evidence the owner authored anything. A SEL is validly
 established **only** if its **serial-1 event (its v1)** resolves to a real event on the **claimed
 owner's** IEL: the v1 is named in that IEL event's `anchors`, its `pin` links to the anchoring
-position, and the anchoring IEL prefix equals the SEL's `owner`. A SEL whose v1 is absent, or whose
-v1-anchor sits on a different owner, is rejected. The `Icp` rides via `v1.previous`; it is **never
-itself anchored**.
+position, and the anchoring IEL prefix equals the SEL's owner (the `authority` leaf's identity). A
+SEL whose v1 is absent, or whose v1-anchor sits on a different owner, is rejected. The `Icp` rides
+via `v1.previous`; it is **never itself anchored**.
 
 This is the SEL's end-verifiability barrier and it is **independent of the witness**: a witness
 gates structure, first-seen, and threshold, but the consumer re-derives the SEL prefix and re-checks
@@ -167,7 +167,7 @@ over its own lineage chain. The walk is **meaning-blind** (topic opacity) — it
 never what the value is _for_:
 
 ```
-resolve_lookup(owner, topic, data):                       # a re-establishable value
+resolve_lookup(authority, topic, data):                       # a re-establishable value
     for n in 0 ..= MAXIMUM_SEL_LINEAGE:                   # lineage: 0, 1, 2, …
         sel = fetch(lookup_prefix(owner, topic, data, lineage = n))
         if sel is absent:            return (not established, at lineage n)   # a gap ends the walk
@@ -191,7 +191,7 @@ resolve_lookup(owner, topic, data):                       # a re-establishable v
 
 **The positive walk consumes the per-lineage negative check — one act, not two mechanisms.**
 `lineage: n` reads dead when a `Trm` sits on its own SEL chain (Disputed or severed count too)
-**or** its **lineaged** target `hash('{tag}:{owner}:{data}:{lineage}')` is present in the owner
+**or** its **lineaged** target `hash('{tag}:{declarer}:{data}:{lineage}')` is present in the owner
 IEL's **fresh** `Rev` / `Dth` `kills[]` — the fail-secure, un-withholdable authority
 ([`../iel/verification.md` §The kills forward-match](../iel/verification.md#the-kills-forward-match)).
 So a value's **positive** resolution — "what is the live value?" — has no owner-IEL fallback (the
@@ -209,13 +209,13 @@ un-withholdable leg — `lineage: n`'s **lineaged** `kills[]` target on the owne
 walk only when the value-lookup rescission actually **declares that matching lineaged target**.
 Because `kills[]` is opaque to the IEL (it never dereferences a target), no primitive check can
 assert that a value rescission's anchoring `Dth` carries the lineaged target for **this**
-`(owner, topic, data, lineage)`; a rescission declaring only an on-chain `Trm`, or a non-lineaged /
-wrong-lineage target, would leave the kill on the **withholdable** leg (a node missing lineage `n`'s
-`Trm` reads it live and serves a stale value). So it is a **stated, load-bearing feature-layer
-invariant**: every value-lookup rescission carries the matching lineaged `kills[]` target on the
-witnessed IEL, constructed against the rule through the primitive-composition helpers (the helper
-lands with the value-lookup feature). The primitive **consumes** the lineaged target when present;
-it does not manufacture or require it.
+`(authority, topic, data, lineage)`; a rescission declaring only an on-chain `Trm`, or a
+non-lineaged / wrong-lineage target, would leave the kill on the **withholdable** leg (a node
+missing lineage `n`'s `Trm` reads it live and serves a stale value). So it is a **stated,
+load-bearing feature-layer invariant**: every value-lookup rescission carries the matching lineaged
+`kills[]` target on the witnessed IEL, constructed against the rule through the
+primitive-composition helpers (the helper lands with the value-lookup feature). The primitive
+**consumes** the lineaged target when present; it does not manufacture or require it.
 
 **Content is neither walked nor negative-checked.** A content SEL is **handed**, and `content: true`
 gives it its own address namespace — so it can never occupy a lookup address (the acceptance

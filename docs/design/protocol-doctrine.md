@@ -1389,7 +1389,7 @@ algorithms:
   value's live state is read from its own SEL chain, its per-lineage kill from the lineaged target
   ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields)).
 - **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
-  authoritative only after the walk: compute `target = hash('{tag}:{owner}:{data}')` — the target
+  authoritative only after the walk: compute `target = hash('{tag}:{declarer}:{data}')` — the target
   **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
   for a **value rescission** (scoped to one instance), a literal `:content` for a **content
   (app-SEL) closure**

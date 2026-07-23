@@ -260,14 +260,19 @@ every inline manifest list, capped at `MAXIMUM_MANIFEST_LIST = 128` entries (eve
 over-length list is rejected in structural validation, bounding the per-event forward-match work).
 It is the revocation / rescission **declaration** the fail-secure walk consumes:
 
-- **`target = hash('{tag}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier computes
-  directly and **forward-matches** on the owner's fresh IEL. The `tag` is a primitive derivation tag
-  ([`tags-and-topics.md`](../tags-and-topics.md)), never a feature name —
-  `vdti/sel/v1/tags/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/tags/rescission` for a
-  `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
-  distinguishes them). The target **mirrors the killed address**
+- **`target = hash('{tag}:{declarer}:{data}')`** — a flat, domain-qualified hash the verifier
+  computes directly and **forward-matches** on the declaring chain's fresh IEL. `{declarer}` is the
+  identity whose chain carries the declaration — the killed thing's owner or issuer in every
+  walk-matched case; on a foreign kill under a widened `revocationPolicy` it is the locus `Trm`'s
+  `author`, whose tag rides the author's own chain as attribution (a foreign kill is discovered at
+  the revocation locus, never by walking an unknown chain —
+  [`../../../../features/credentials.md` §Revocation](../../../../features/credentials.md#revocation)).
+  The `tag` is a primitive derivation tag ([`tags-and-topics.md`](../tags-and-topics.md)), never a
+  feature name — `vdti/sel/v1/tags/revocation` for a `Rev`-anchored kill and
+  `vdti/sel/v1/tags/rescission` for a `Dth`-anchored one (one `rescission` tag covers both delegate
+  and doc-member; the `data` distinguishes them). The target **mirrors the killed address**
   ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
-  `hash('{tag}:{owner}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
+  `hash('{tag}:{declarer}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
   rescission), **lineaged** (`…:{lineage}`) for a **value rescission** (scoped to the one instance
   it kills, so the re-established `lineage: N+1` survives), and a literal `:content` for a **content
   (app-SEL) closure**. A value's positive resolution reads its own SEL chain; its per-lineage

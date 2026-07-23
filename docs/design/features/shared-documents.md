@@ -92,15 +92,15 @@ V0 carries:
   a fresh nonce per document — reusing one derives the same governance addresses, one membership set
   silently governing both.
 
-The governance chains ride no V0 field — a holder recomputes each from V0 alone: the SEL's `owner`
-is the **creator** IEL (V0's `creator`, the identity that governs them), its `topic` is the reserved
-membership topic (below), and its `data` is the **V0 `nonce`** — so a creator's chains for two
-documents derive to distinct addresses. Keying the chains on the nonce is what makes V0 mintable:
-the nonce exists before anything is hashed, so the three chain prefixes derive first, `readers[]`
-lists them, and the doc prefix then commits the whole content — chains, gate, and discriminator in
-one direction. `(creator, nonce)` is thus the document's root: every governance address re-derives
-from the pair, and the doc prefix from the pair plus the gate choice. Each is a monotone
-`{Icp, Gnt}` value-lookup chain (no `content` flag, no `lineage`).
+The governance chains ride no V0 field — a holder recomputes each from V0 alone: the SEL's
+`authority` is the **creator** IEL (V0's `creator`, the identity that governs them), its `topic` is
+the reserved membership topic (below), and its `data` is the **V0 `nonce`** — so a creator's chains
+for two documents derive to distinct addresses. Keying the chains on the nonce is what makes V0
+mintable: the nonce exists before anything is hashed, so the three chain prefixes derive first,
+`readers[]` lists them, and the doc prefix then commits the whole content — chains, gate, and
+discriminator in one direction. `(creator, nonce)` is thus the document's root: every governance
+address re-derives from the pair, and the doc prefix from the pair plus the gate choice. Each is a
+monotone `{Icp, Gnt}` value-lookup chain (no `content` flag, no `lineage`).
 
 V0 is **anonymous-write** — the shared constitution carries no `owner`, so its legitimacy is social,
 established out of band. A competing V0′ is always mintable; nothing structural privileges one
@@ -442,8 +442,8 @@ period once the bad device is rotated out. No whole-document reincept.
   sees `(member, opaque commitment)` entries but cannot recover a version SAID or group them by
   document. The membership graph closes because the rescission key is participant-blind and
   grant-blind — a witness cannot even link a rescission to its grant. A witness sees only
-  `creator ↔ document` (unavoidable — the governance chains name the creator as `owner`, and the
-  doc prefix recomputes from their `data`, the nonce) plus grant and rescission volume-timing.
+  `creator ↔ document` (unavoidable — the governance chains name the creator in `authority`, and
+  the doc prefix recomputes from their `data`, the nonce) plus grant and rescission volume-timing.
 - **Content off-node — the sovereignty mode.** A participant may submit only the **governance and
   rescission chains** (opaque, witnessed) and the **version anchors** on its own IEL (opaque
   commitments), and **never land any content SAD** (versions, grant or rescind docs) on a node —

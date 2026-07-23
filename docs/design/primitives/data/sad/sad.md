@@ -82,9 +82,9 @@ Every SAD carries:
   [`said.md` §Derivation](said.md#derivation) for the algorithms.
 
 What content the prefix commits to is **per-primitive** — always the whole inception SAD (the KEL's
-key state; the IEL's `roster`, threshold vector, and `nonce`; the SEL's `owner` / `topic` / `data`),
-never a hash of a separate field tuple. The shared fixed-value mechanism and the per-primitive
-shapes are [`said.md` §Derivation](said.md#derivation)'s.
+key state; the IEL's `roster`, threshold vector, and `nonce`; the SEL's `authority` / `topic` /
+`data`), never a hash of a separate field tuple. The shared fixed-value mechanism and the
+per-primitive shapes are [`said.md` §Derivation](said.md#derivation)'s.
 
 ## Canonical serialization
 

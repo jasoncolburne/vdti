@@ -195,13 +195,13 @@ on the owner's fresh IEL, never by scanning for absence. Given a killed locus, t
 **O(1) first, with a fail-secure fall-through**:
 
 - **O(1) content-addressed read — first.** Read the derived lookup-SEL (its address is recomputed
-  from `(owner, topic, data)`; the `Icp` is recomputed locally, never served, and only the `Trm` (+
-  receipts) is fetched): **present → killed**. Tamper-evident and authoritative — and `Trm.pin` (=
-  the killing `Rev` / `Dth`'s `previous`) points straight at that kill event, so a grandfather check
-  reads the `bound` from its `kills[]` entry directly, with no exhaustive `kills[]` scan of the
-  chain.
+  from `(authority, topic, data)`; the `Icp` is recomputed locally, never served, and only the `Trm`
+  (+ receipts) is fetched): **present → killed**. Tamper-evident and authoritative — and `Trm.pin`
+  (= the killing `Rev` / `Dth`'s `previous`) points straight at that kill event, so a grandfather
+  check reads the `bound` from its `kills[]` entry directly, with no exhaustive `kills[]` scan of
+  the chain.
 - **On a miss, fail-secure by default** — compute the flat domain-qualified
-  `target = hash('{tag}:{owner}:{data}')` (the target **mirrors the killed address**:
+  `target = hash('{tag}:{declarer}:{data}')` (the target **mirrors the killed address**:
   **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`) for a **value rescission**,
   `:content` for a **content (app-SEL) closure** —
   [`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)) and walk the owner's **fresh** IEL

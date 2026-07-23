@@ -117,7 +117,7 @@ placeholder mechanism is identical; the set of placeholder-filled positions diff
 
 Per-primitive prefix derivation rules — what content the prefix commits to (whole-SAD-content for
 KEL; whole-SAD-content for IEL, including the `roster` of member devices, the threshold vector, and
-the `nonce`; whole-SAD-content for SEL, namely the populated `owner` / `topic` / `data` (+
+the `nonce`; whole-SAD-content for SEL, namely the populated `authority` / `topic` / `data` (+
 `content: true` on a content SEL, + the optional `lineage` on a re-establishable value lookup)
 inception fields — so content and lookups derive to **distinct** prefixes (the `content: true` flag
 rides the whole-content digest, and a lookup omits it), and a re-establishable value lookup carrying

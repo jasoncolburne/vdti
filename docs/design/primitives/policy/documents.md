@@ -113,7 +113,8 @@ custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each au
 its own attestation independently**: each authors its own attestation SEL over the document,
 self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by re-deriving its
 prefix. The attestation SEL is a **discoverable content SEL** with its derivation fully pinned: its
-`Icp` carries `owner` = the attesting identity's prefix, `topic` = `vdti/sel/v1/topics/attestation`
+`Icp` carries `authority` = `id` of the attesting identity, `topic` =
+`vdti/sel/v1/topics/attestation`
 ([`../data/event-logs/tags-and-topics.md`](../data/event-logs/tags-and-topics.md)), `data` = the
 attested SAD's **`said`** (never a prefix), and `content: true` — with no `lineage` and no nonce, so
 any relying party recomputes the same address (a private document's nonce'd `said` keeps the address
