@@ -179,6 +179,13 @@ you don't make standing memories or rules for the LLM to reason with, it may imp
 duplicating concepts or code, making things generally hard to work with (for you or even _it_ in the
 future).
 
+## Reasoning over a dense information set
+
+Now that the core design has been encoded, it consumes about 650k tokens to reason about it in
+aggregate. This _is_ some thing that Fable seems to do better than Opus. Opus can make unsound
+decisions, Fable makes less in my experience. The result is less churn over review cycles and a
+faster convergence on correctness.
+
 # Conclusion
 
 Claude is an asset to the lone wolf security designer. I use it to:
