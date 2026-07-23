@@ -29,6 +29,11 @@ acceptance decision, never as policy on the data.
   This is the layering the design fixes — the features carry proofs, the application combines them
   with the relying party's policy; no role field rides the chain or the document
   ([`../features/credentials.md` §The two questions](../features/credentials.md#the-two-questions)).
+  And the rule itself is committable: the organization publishes "who may close" as a **policy SAD**
+  — `crd(vdti/cred/v1/schemas/triager, id(org))` in the policy language
+  ([`../primitives/policy/policy.md` §The policy language](../primitives/policy/policy.md#the-policy-language))
+  — named by SAID, so every client evaluates the same committed expression, with the author's role
+  credential **furnished** to the evaluation the way a delegated credential furnishes its path.
 
 ## Scenarios
 
@@ -67,10 +72,11 @@ acceptance decision, never as policy on the data.
 
 ## Limits
 
-- **Role arbitration is client policy, so clients can differ.** Two clients with different trusted
-  issuers or different role weightings can render different canonical states from identical data.
-  Within one organization this is configuration, not chaos; across organizations it is the honest
-  shape of decentralized authority — the data carries the proofs, acceptance is the reader's.
+- **Role arbitration is client policy — shared exactly as far as the policy SAD is.** Clients that
+  name the same committed policy SAID agree by construction; clients configured differently render
+  different canonical states from identical data, visibly — a configuration difference, not drift.
+  Across organizations that is the honest shape of decentralized authority: the data carries the
+  proofs, acceptance is the reader's.
 - **The status lattice is application vocabulary.** What statuses exist, which transitions are
   sensible, what a label means — none of it is structural, and the chain will happily commit a
   version with a nonsense status. Structure guarantees authorship, order, and authority — not

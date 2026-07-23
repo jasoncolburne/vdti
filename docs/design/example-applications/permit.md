@@ -32,7 +32,11 @@ renew, revoke — in one application. It absorbs the catalogue's largest same-co
   it — authority is derived by the verifier, never asserted by the office
   ([`../features/credentials.md` §Edges / chaining](../features/credentials.md#edges--chaining)).
   Rescinding an office's accreditation cuts future issuance without unwinding what it validly issued
-  before the bound — the grandfather semantics a real licensing hierarchy needs.
+  before the bound — the grandfather semantics a real licensing hierarchy needs. The checker's whole
+  condition is one committed expression in the policy language —
+  `crd(vdti/cred/v1/schemas/driving-licence, thr(1, [id(ministry), del(ministry, 2)]))` — a policy
+  SAD named by SAID, shared verbatim by every checker that adopts it
+  ([`../primitives/policy/policy.md` §The policy language](../primitives/policy/policy.md#the-policy-language)).
 - **Conditions disclose selectively.** The claims carry issuer-precomputed brackets — the age
   brackets, the licence-class booleans, the endorsement flags — so a check learns exactly the
   boolean it asks for and nothing else

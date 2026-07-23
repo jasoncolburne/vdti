@@ -20,6 +20,11 @@ Each feature carries the leg it is shaped for:
   each an attributed, anchored version under a governed membership, disputes surfacing as the DAG's
   presented branches rather than as competing faxes
   ([`../features/shared-documents.md`](../features/shared-documents.md)).
+- **Separation of duties is the policy language's `and`.** A release condition like "the carrier
+  **and** the consignee's bank" is `and(id(carrier), id(bank))` — a committed policy SAD the relying
+  party evaluates, satisfied by each party's **independent attestation** on its own chain at its own
+  pace, no countersigning ceremony
+  ([`../primitives/policy/documents.md` §Multi-identity authorization](../primitives/policy/documents.md#multi-identity-authorization--independent-attestations)).
 - **Negotiation and delivery are sealed exchange.** Offers, amendments, and the documents themselves
   move between parties as sealed payloads — confidential against the world, attributed between the
   parties, delivered offline ([`../features/exchange.md`](../features/exchange.md)); a formal

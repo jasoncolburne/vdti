@@ -67,7 +67,7 @@ flowchart BT
   L5["<b>5 · Document authorization</b><br/><i>policy · documents · evaluation</i>"]:::compose
   L6["<b>6 · Protocol primitives</b><br/><i>essr · ipex · receive-key-directory · group-key · membership · authored-dag</i>"]:::compose
   L7["<b>7 · Features</b><br/><i>credentials · exchange · shared-documents</i>"]:::compose
-  L8["app layer · forthcoming"]:::future
+  L8["<b>9 · Example applications</b> — validation by composition<br/><i>seventeen app designs · drive → issuer</i>"]:::compose
 
   L0 -.->|read first| L1
   L1 --> L3
@@ -374,6 +374,9 @@ per distinct feature/primitive combination; the set grows as the docs land.
 60. [`example-applications/vote.md`](example-applications/vote.md) — auditable elections on the
     registrar: eligibility credentials, spend-on-cast, anchored ballots, and the recomputable tally
     — with the secret ballot scoped out honestly.
+61. [`example-applications/issuer.md`](example-applications/issuer.md) — the issuing organization's
+    console: kinds, minting, revocation, delegation, and published acceptance policies — the
+    building block every other harness instantiates.
 
 ## Forthcoming
 

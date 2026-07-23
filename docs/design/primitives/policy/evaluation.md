@@ -35,6 +35,14 @@ policy mode.
   position and checks the grant's grandfather ancestry against the rescission bound. "Is this
   delegation rescinded?" is the **positive lookup** of [`policy.md`](policy.md), never a scan.
 
+  The `crd(K, E)` leaf resolves against a **furnished** credential — supplied by the presenting
+  context the way a document supplies its `delegationPath`, never discovered by scan. The resolver
+  checks the typed envelope (the `kind` matches `K` in full; the `issuee` is the credited party —
+  bearer credentials never satisfy; `expires` has not passed — expired folds to deny), verifies the
+  issuance anchor at the credential's own `issuerPin`, evaluates `E` in the issuer slot as-issued at
+  that anchoring position, and reads the revocation status by the positive kill lookup — the same
+  current-mode fold as a `del` hop's liveness, fail-secure by default.
+
 So evaluation is one function over the policy expression, parameterized by the as-issued resolver: a
 thin entry point assembles the resolver's inputs (the anchoring positions and the committed-anchor
 proofs). Everything above the leaves is the composer.
@@ -89,6 +97,31 @@ flowchart TD
   classDef bad fill:#3d1218,stroke:#e03131,color:#fff
 ```
 
+## Decisions at the leaves, reports around them
+
+The policy layer and the chain verifiers sit on opposite sides of one architectural line. A chain
+verifier **reports** — region state, freshness, anchor status — because its output serves many
+questions and the purpose lives with the caller: the same walk feeds a trust-granter, a history
+reader, and a forensic auditor, and the right disposition differs per purpose. A policy **decides**,
+because the policy **is** the caller's purpose, already written down — the relying party made its
+decision when it authored the expression, and evaluation executes that pre-committed judgment
+against facts. The composers force the shape: `thr(M, […])` must count **satisfied** branches, so
+every leaf collapses to a boolean under one fixed rule — **deny on any uncertainty** — and two
+evaluators can differ only toward denial, never toward a wrongful accept. A leaf's current-mode
+reads — a `del` hop's rescission liveness, a `crd`'s revocation and expiry — are folds under that
+same rule, not a live evaluation mode: nothing gathers live signatures.
+
+What evaluation returns is therefore a **decision with a witness**, not a report awaiting one:
+satisfied or denied; the satisfying assignment the composer found (which identities and credentials
+filled which branches); on denial, per-leaf dispositions naming the cause — unfurnished, expired,
+revoked, path-rescinded, unrecognized construct, budget exceeded — the correct-and-informative
+rejections the adversarial posture demands; and beneath them the contributing chains' own reports
+(anchor status, region, freshness), which the caller still composes into current trust exactly as
+above. This result is **not** a verification token: a token is proof a chain was verified —
+position-addressable, reusable across questions, the thing trust rides on — while an evaluation
+result is bound to its policy, its furnished inputs, and its moment, and decays with freshness.
+Trust keeps riding the chain tokens beneath it.
+
 ## The verification-token interface — the seam to the primitives
 
 The policy layer reads **no chain directly** and holds no live connection to a chain source. Instead
@@ -99,13 +132,17 @@ unverified state). This interface is what the policy layer **declares** and the 
 **implement** — the dependency is inverted, which is what breaks any policy-depends-on-primitive /
 primitive-depends-on-policy cycle.
 
-The resolver asks a token for exactly three things:
+The resolver asks a token for exactly four things:
 
 - **An identity's members and threshold as of a position** (or at the tip) — what `id(X)` resolves
   against. Supplied by the IEL verifier's token.
 - **A delegation's live status** — whether `X` granted the delegation, whether it has been rescinded
   (the positive lookup), and the grandfather bound — what `del(X, N)` resolves against, walking up
   at most `N` hops. Supplied by the IEL and SEL verifiers' tokens.
+- **A credential's anchor and kill status** — that a furnished credential's issuance commitment is
+  anchored at the position its `issuerPin` names, and whether its derived revocation target has been
+  declared — what `crd(K, E)` resolves against. Supplied by the issuer's IEL token and the kill
+  lookup's SEL token.
 - **The events a chain has committed to as of a position** — the committed anchors that prove, in
   as-issued mode, that the named party acted. Supplied by every contributing chain's token.
 
