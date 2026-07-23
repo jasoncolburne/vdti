@@ -51,8 +51,9 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
   list** of read-authorization SEL prefixes gating reads — a requester in **any** listed set may
   read (omitted → public; one element the common case, several a union like a shared document's edit
   ∪ comment ∪ read gate).
-- **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
-  everywhere), `ttl` a retention bound, `once` a destructive-read flag.
+- **`availability { replicas, expiry, once }`** — `replicas` the SAID of a replica-set SAD (absent →
+  everywhere), `expiry` a timestamp — the absolute instant past which the bytes need not be
+  retained, `once` a destructive-read flag.
 
 ## The file payload — `vdti/sad/v1/schemas/file`
 
@@ -71,9 +72,24 @@ encrypted payload, a file, media — as a **content-addressed blob** rather than
 | `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.       |
 
 The `custody` / `availability` wrapper applies as to any standalone SAD: `custody.readers` gates who
-may fetch, and `availability` governs the referenced **blob** (its replicas, TTL, one-shot) as well
-as the SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest** from
-the store's blob path and accepted only when its recomputed digest matches `digest`.
+may fetch, and `availability` governs the referenced **blob** (its replicas, expiry, one-shot) as
+well as the SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest**
+from the store's blob path and accepted only when its recomputed digest matches `digest`.
+
+## The replica set — `vdti/sad/v1/schemas/replicas`
+
+The replica-set SAD an `availability.replicas` field names ([`availability.md`](availability.md)):
+the eligible storage nodes for a SAD's bytes, named by **identity prefix** — the node identity a
+storage node authenticates as — never by address (endpoints move; identities rotate keys and
+survive). The store resolves it to place bytes, so it is on the serve-by-SAID list; an unresolvable
+set narrows replication to the fail-secure skip
+([`../../../substrate/infrastructure/vdtid.md` §The replica-set SAD](../../../substrate/infrastructure/vdtid.md#the-replica-set-sad)).
+
+| Field      | Type         | Required | Meaning                                                                   |
+| ---------- | ------------ | -------- | ------------------------------------------------------------------------- |
+| `said`     | SAID         | yes      | The replica set's own SAID.                                               |
+| `kind`     | string       | yes      | `vdti/sad/v1/schemas/replicas`.                                           |
+| `replicas` | list⟨prefix⟩ | yes      | The eligible storage nodes — a strictly ascending (sorted, distinct) set. |
 
 ## Chain events
 
@@ -170,6 +186,22 @@ sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/rec
 | `eventSerial`   | u64       | Its serial.                                                       |
 | `timestamp`     | timestamp | The witness's asserted time (inside the signed payload).          |
 | `witnessPrefix` | prefix    | The signing witness's KEL prefix.                                 |
+
+## Freshness statements
+
+A **freshness statement** is a witness-signed attestation of held state — the multi-source freshness
+evidence a consumer's loss-of-trust decisions gather
+([`../../../substrate/infrastructure/architecture.md` §The freshness statement](../../../substrate/infrastructure/architecture.md#the-freshness-statement)).
+Like a receipt, it is a SAD whose witness signature rides **adjacent**, never in the body.
+
+| Field           | Type      | Required | Meaning                                                                                                                 |
+| --------------- | --------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `said`          | SAID      | yes      | The statement's own SAID.                                                                                               |
+| `kind`          | string    | yes      | `vdti/witness/v1/states/freshness`.                                                                                     |
+| `statements`    | list      | yes      | `[{ prefix, effectiveSaid }, …]` — the attested pairs, strictly ascending by prefix, capped at `MAXIMUM_MANIFEST_LIST`. |
+| `timestamp`     | timestamp | yes      | The witness's asserted time (inside the signed payload).                                                                |
+| `nonce`         | bytes     | no       | A consumer-supplied challenge — present in the live (challenge-response) variant.                                       |
+| `witnessPrefix` | prefix    | yes      | The signing witness's KEL prefix.                                                                                       |
 
 ## Grant values — what a SEL `Gnt` seals
 
@@ -412,7 +444,6 @@ The kinds whose role is fixed but whose exact field layout is owed, with where e
 | Shared-document grant values (`document-edit-membership`, `document-comment-membership`, `document-read-membership`) + grant-doc + rescind-doc                                                                                                                                                                                                                                                                                                                   | the shared-documents encode                                  |
 | Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a grant-chain entry anchors a writing device's body-less lane-root marker; a `rescinds` entry records each device lane's `bound` on the rescission `Trm`'s `bound` role) + the body-less join-marker shape (commits the **device prefix + group prefix + membership period / grant-instance** — structurally bound to one group, single-use per period) | the exchange encode                                          |
 | Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals                                                                                                                                                                                                                                                                                                                           | the exchange encode                                          |
-| Replica-set SAD (the `availability.replicas` target)                                                                                                                                                                                                                                                                                                                                                                                                             | the vdtid encode                                             |
 
 ## Cross-references
 

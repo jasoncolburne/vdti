@@ -234,7 +234,7 @@ protocol supports without per-pattern carve-outs:
 ## Decoupling from availability
 
 Custody and [`availability`](availability.md) (a sibling top-level field declaring replication
-scope, TTL, and one-shot delivery) are independent axes:
+scope, expiry, and one-shot delivery) are independent axes:
 
 - A SAD object can be **widely replicated and custody-gated**: the bytes live on many nodes but
   every read fetch enforces `readers`.

@@ -67,7 +67,7 @@ flowchart BT
   L5["<b>5 · Document authorization</b><br/><i>policy · documents · evaluation</i>"]:::compose
   L6["<b>6 · Protocol primitives</b><br/><i>essr · ipex · receive-key-directory · group-key · membership · authored-dag</i>"]:::compose
   L7["<b>7 · Features</b><br/><i>credentials · exchange · shared-documents</i>"]:::compose
-  L8["apps · forthcoming"]:::future
+  L8["app layer · forthcoming"]:::future
 
   L0 -.->|read first| L1
   L1 --> L3
@@ -76,9 +76,11 @@ flowchart BT
   L3 -->|a federation is a restricted IEL| L4
   verified --> L5
   verified --> L6
-  L5 --> L7
   L6 --> L7
+  L5 -->|"the app's acceptance policy —<br/>features carry proofs, apps combine"| L8
   L7 --> L8
+  LS["<b>8 · Services layer</b> — how it deploys<br/><i>architecture · vdtid · witnessd</i>"]:::found
+  LS -.->|"stores, serves, and witnesses every layer's data"| verified
 
   classDef orient fill:#2a2a2a,stroke:#868e96,color:#adb5bd
   classDef found fill:#10303a,stroke:#1098ad,color:#fff
@@ -107,6 +109,7 @@ up to the one that builds on it; dotted edges are orientation and the cross-cut.
 - [5 — The document-authorization layer](#5--the-document-authorization-layer)
 - [6 — The protocol primitives](#6--the-protocol-primitives)
 - [7 — The feature layer](#7--the-feature-layer)
+- [8 — The services layer](#8--the-services-layer)
 - [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
@@ -134,7 +137,7 @@ its own reading-order note in `sad.md`.)
 4. [`primitives/data/sad/custody.md`](primitives/data/sad/custody.md) — per-object authority: who
    may write, who may read.
 5. [`primitives/data/sad/availability.md`](primitives/data/sad/availability.md) — where the bytes
-   live: replicas, time-to-live, one-shot delivery.
+   live: replicas, expiry, one-shot delivery.
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
 
@@ -301,9 +304,24 @@ Features compose the primitives into what an application ships: credentials, sec
     `document-*-membership` instances (edit / comment / read, max-capability), the multi-parent
     version DAG, the honored-window predicate, and group-key confidentiality.
 
+## 8 — The services layer
+
+How the design deploys: the verification core as a library, two thin daemons over it, and the
+consumer-side machinery that keeps trust decisions fresh without trusting any node.
+
+42. [`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md) — the
+    decomposition and its boundary rules: the core as the consumer-linked library, the transfer
+    engine, the home-node consumer topology, the token store, and the freshness statement.
+43. [`substrate/infrastructure/vdtid.md`](substrate/infrastructure/vdtid.md) — the chain-log and SAD
+    store daemon: the API surface, the merge write path, the deferred-dependencies response, the
+    SAD-store write path, and the enforced serve-by-SAID rule.
+44. [`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md) — the witness,
+    gossip, and sync daemon: key custody, the witness role and routing, freshness-statement service,
+    deferred-dependency parking, and anti-entropy.
+
 ## Forthcoming
 
 These are referenced above as forward-references and are still forthcoming:
 
-- `infrastructure/` — the storage service and the **encoding library** (the byte-exact `select`
-  scheme, receipt canonicalization, and the AEAD nonce / key-scope discipline).
+- The **encoding library** — the byte-exact `select` scheme, receipt and freshness-statement
+  canonicalization, and the AEAD nonce / key-scope discipline.

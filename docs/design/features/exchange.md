@@ -110,7 +110,8 @@ The bytes are uploaded through the store's **payload endpoint**, authorized by t
   what gates the bytes; the concrete endpoints are the store service's to specify.
 - The message is deposited **first** (the store needs its body to read the digest), then the payload
   is uploaded against it. A recipient that sees the message before the blob lands reads "payload
-  pending" and retries; a digest that is referenced but never uploaded expires by the payload's TTL.
+  pending" and retries; a digest that is referenced but never uploaded expires at the payload's
+  committed `expiry`.
 
 ## Sender-key currency
 

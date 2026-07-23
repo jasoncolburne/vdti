@@ -425,11 +425,13 @@ window**.
 
 ## Query-scoping and the audit flag
 
-Events reach the nodes that need them over the federation's gossip mesh — roster-wide push-gossip
-for an event witnessed in full, and sub-gossip among a position's selected witnesses for one still
-gathering receipts. All mesh traffic is encrypted, so contents stay within the roster; the channels
-and the two-scope transport are [`topics.md`](topics.md); the channel underneath it — the handshake,
-the per-connection session keys, and the nonce discipline that makes reuse structural — is
+Events reach the nodes that need them over the federation's gossip mesh — roster-wide announcement
+flooding for an event witnessed in full (its receipts and its chain's effective-SAID announcement
+flood; nodes fetch the events they lack — [`topics.md`](topics.md)), and sub-gossip among a
+position's selected witnesses for one still gathering receipts. All mesh traffic is encrypted, so
+contents stay within the roster; the channels and the two-scope transport are
+[`topics.md`](topics.md); the channel underneath it — the handshake, the per-connection session
+keys, and the nonce discipline that makes reuse structural — is
 [`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md). What matters for
 witnessing is what a query returns.
 
@@ -635,17 +637,18 @@ above). So an all-windows-lapsed federation reads stale, then recovers via a cat
 self-attests under its new windows — stale-but-recoverable, never bricked. A lone broken or old key
 cannot mint a current window: a rotation is honored only as a federation `Wit`, needing `t_govern`
 authors and `threshold` self-attestation, which one key reaches neither. A current-window takeover
-therefore needs `≥ t_govern` current keys — the byzantine assumption violated, an operational
-reincept — and a merely _lost_ key is evicted or reincepted operationally.
+therefore needs `≥ t_govern` current keys — the governance-compromise case, an operational reincept
+— and a merely _lost_ key is evicted or reincepted operationally.
 
 ## Security assumption and residual
 
-The federation's soundness assumes **fewer than `threshold` byzantine** members at attestation time;
-beyond that is operational recovery and reincept. The co-witnessing exclusivity carries its own
-tighter bound: it holds against fewer than `2·threshold − signers` byzantine double-signers within
-the selected set (the fork-cost), so for an over-provisioned config a coalition _within_ the blanket
-`< threshold` assumption can manufacture a co-witnessed content fork at fork-cost — priced, exposed,
-and evictable, not free. The irreducible residual is compromising `threshold`-many _current_ witness
+The federation's soundness assumes **fewer than `threshold` byzantine** members at attestation time
+(the witness-config's receipting `threshold`, not the `t_govern` governance quorum); beyond that is
+operational recovery and reincept. The co-witnessing exclusivity carries its own tighter bound: it
+holds against fewer than `2·threshold − signers` byzantine double-signers within the selected set
+(the fork-cost), so for an over-provisioned config a coalition _within_ the blanket `< threshold`
+assumption can manufacture a co-witnessed content fork at fork-cost — priced, exposed, and
+evictable, not free. The irreducible residual is compromising `threshold`-many _current_ witness
 keys, which is the federation itself being compromised — recovery is reincept, not a backdate via
 stale keys.
 

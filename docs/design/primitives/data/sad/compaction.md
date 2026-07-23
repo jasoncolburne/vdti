@@ -199,5 +199,4 @@ change the structural model in this doc. The model is: compact form and expanded
 expansion is a verifier-controlled operation that fetches named sub-SADs and checks each SAID before
 accepting. Which side performs each transform — compaction by the submitting client; expansion
 served by the storage service as a convenience — is a service-architecture decision documented in
-[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)
-(forward-ref; forthcoming).
+[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md).

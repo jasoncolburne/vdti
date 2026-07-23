@@ -1085,9 +1085,10 @@ and everything post-genesis is witnessed normally.
 
 The convergence model has three components:
 
-- **Gossip propagates events** — anti-entropy plus submission-time fan-out push new events to all
-  nodes within a bounded window (the bound is operational; the doctrine asserts only the eventual
-  property).
+- **Gossip propagates events** — an accepted event's receipts and its chain's effective-SAID
+  announcement flood the roster at submission time, nodes fetch the events they lack, and
+  anti-entropy backstops both — so new events reach all nodes within a bounded window (the bound is
+  operational; the doctrine asserts only the eventual property).
 - **Semantic state is a function of the events** — each node computes a chain's state (Active /
   Forked / Disputed / Terminated, with which events at which serials) deterministically from the
   events it holds, **deriving the seal from those events**
@@ -1199,22 +1200,23 @@ collusion attempts) and it carries an audit obligation. The mechanics are federa
 [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 
 **The propagation premise and the split stall.** Prevention's success rate — never its safety —
-rests on prompt roster-wide propagation once an event is witnessed in full (the push-gossip mesh): a
-roster member ordinarily sees a completed quorum before any later sibling arrives, which is what
-arms the first-seen declines. A fork that forms despite the premise lands in freeze → burying
-seal-advancer; nothing false becomes canonical on any node. First-seen-one-per-serial partitions the
-receipts at a contested position (`a + b ≤ signers`); when neither content sibling reaches majority
-(an even-`signers` tie, abstentions, or a partition) the **position stalls, fail-secure** — signed
-witnesses cannot switch, so a minority partition **stalls, never forks** (consistency over
-availability). The **exit is a burying seal-advancer** (a `Rot` / `Evl`), in either attach shape:
-**extending the author's own stalled sibling**, it lands at the **next** serial — an ordinary first
-sealed event there, no cross-tier co-sign involved — **retains** that content (the witnessed seal
-commits it as canonical), and the competing sibling closes below the seal; **attaching at the shared
-ancestor**, it lands **at the stalled position** as the first sealed sibling there — signed by every
-selected witness, including those that signed a content sibling (the cross-tier co-sign) — and
-buries **both**, the honest content re-issuing forward. Either way the seal reaches majority. Odd
-`signers` avoids the pure tie (operator guidance: with every selected witness voting, an odd set
-always yields a strict majority for one sibling).
+rests on prompt roster-wide propagation once an event is witnessed in full (the gossip mesh —
+receipts and announcements flood, bodies follow by fetch): a roster member ordinarily sees a
+completed quorum before any later sibling arrives, which is what arms the first-seen declines. A
+fork that forms despite the premise lands in freeze → burying seal-advancer; nothing false becomes
+canonical on any node. First-seen-one-per-serial partitions the receipts at a contested position
+(`a + b ≤ signers`); when neither content sibling reaches majority (an even-`signers` tie,
+abstentions, or a partition) the **position stalls, fail-secure** — signed witnesses cannot switch,
+so a minority partition **stalls, never forks** (consistency over availability). The **exit is a
+burying seal-advancer** (a `Rot` / `Evl`), in either attach shape: **extending the author's own
+stalled sibling**, it lands at the **next** serial — an ordinary first sealed event there, no
+cross-tier co-sign involved — **retains** that content (the witnessed seal commits it as canonical),
+and the competing sibling closes below the seal; **attaching at the shared ancestor**, it lands **at
+the stalled position** as the first sealed sibling there — signed by every selected witness,
+including those that signed a content sibling (the cross-tier co-sign) — and buries **both**, the
+honest content re-issuing forward. Either way the seal reaches majority. Odd `signers` avoids the
+pure tie (operator guidance: with every selected witness voting, an odd set always yields a strict
+majority for one sibling).
 
 Witnessing is **current** — the currency gate refuses a stale-pin event, so selection happens over
 the current set — and receipts are then **counted as-of the event's federation context** by
@@ -1342,10 +1344,11 @@ withholding is only denial. A cursor the source cannot resolve — a `forked` / 
 **synthetic**, or a SAID it does not hold — simply misses, and the source serves from the start; the
 consumer re-walks everything it receives (a fork or dispute costs a full re-walk, verified like any
 other read). Paging, cursor, and continuation mechanics — avoiding the re-fetch of settled history —
-are the sink/source transfer surface, a services-layer mechanism (forthcoming). A `resume` still
-re-runs the to-tip negative checks (revocation / rescission / divergence) against the new tip
-whenever a transitively-pinned chain moved, so extending a walk never advances a token past a
-revocation without surfacing it.
+are the sink/source transfer surface the transfer engine owns
+([`substrate/infrastructure/architecture.md` §The transfer engine](substrate/infrastructure/architecture.md#the-transfer-engine--the-one-sanctioned-data-mover)).
+A `resume` still re-runs the to-tip negative checks (revocation / rescission / divergence) against
+the new tip whenever a transitively-pinned chain moved, so extending a walk never advances a token
+past a revocation without surfacing it.
 
 Caching is a **consumer choice**: a client may retain tokens and chains up to whatever its disk and
 memory allow; a service keeps no such per-consumer cache and re-walks under its work bound.
@@ -1465,8 +1468,10 @@ trusted set (no transitive trust). The full witnessing rules are the federation 
 The effective SAID is the canonical chain-state fingerprint across KEL, IEL, and SEL — it lets nodes
 recognize each other's state cheaply and is the universal "has state changed?" comparison behind
 token reuse, deferred-dependency draining (parking an event until a dependency on another chain
-lands, then replaying it — a services-layer mechanism, forthcoming), anti-entropy, and divergence
-handling. It is a **pure function of the events a node holds**, and it takes one of two forms:
+lands, then replaying it — the parking-and-drain machinery,
+[`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md)), anti-entropy, and
+divergence handling. It is a **pure function of the events a node holds**, and it takes one of two
+forms:
 
 - **A single confirmed tip** (Active or Terminated — a settled/recovered fork reads Active) — **that
   tip's real SAID** (a terminated chain's is its `Trm`).

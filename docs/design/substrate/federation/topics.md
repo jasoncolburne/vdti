@@ -16,11 +16,13 @@ authenticate, agree a key, and encrypt each frame — is
 
 Gossip runs at two scopes:
 
-- **Roster-wide (push-gossip).** Once an event is **witnessed in full** it is pushed to every node —
-  submission-time fan-out plus continuous anti-entropy — so a node ordinarily sees a completed
-  quorum before any later sibling arrives. The propagation window is bounded, but the bound is
-  **operational**: the doctrine asserts only the eventual property (every node eventually holds
-  every accepted event).
+- **Roster-wide (announce and fetch).** Once an event is **witnessed in full**, its receipts and its
+  chain's **effective-SAID announcement** flood to every node, and a node whose held value differs
+  from an announced one **fetches the events it lacks** — submission-time announcement plus
+  continuous anti-entropy — so a node ordinarily sees a completed quorum before any later sibling
+  arrives, and every node comes to hold every accepted event. Bodies do not flood; the signal does.
+  The propagation window is bounded, but the bound is **operational**: the doctrine asserts only the
+  eventual property (every node eventually holds every accepted event).
 - **Selected witnesses (sub-gossip).** A **not-yet-witnessed** event lives among the witnesses
   selected for its position while it gathers receipts; they sub-gossip it among themselves, so the
   first-seen sibling reaches threshold once it reaches any one honest selected witness. A
@@ -32,7 +34,7 @@ Gossip runs at two scopes:
 flowchart TD
   ev["event at a position"]:::iel
   ev -->|"not yet witnessed"| sub["<b>selected-witness sub-gossip</b><br/>circulates only among the position's selected witnesses"]:::q
-  ev -->|"witnessed in full"| push["<b>roster-wide push-gossip</b><br/>pushed to every node + anti-entropy"]:::good
+  ev -->|"witnessed in full"| push["<b>roster-wide announce + fetch</b><br/>receipts + announcements flood;<br/>nodes fetch what they lack + anti-entropy"]:::good
   sub --> w["selected witnesses<br/>gather receipts to threshold"]:::sel
   sub -.->|"withheld — a query returns it only<br/>to a selected witness for the position"| nonw["non-witness nodes<br/>see nothing sub-threshold"]:::bad
   push --> all["every node holds it"]:::good
@@ -50,12 +52,15 @@ Pub-sub channels on the `vdti/gossip/v1/*` convention
 ([the shared naming convention](../../primitives/data/sad/kinds.md#the-naming-convention)). A topic
 names _what_ rides the mesh, never _how_:
 
-| Topic                            | Carries           |
-| -------------------------------- | ----------------- |
-| `vdti/gossip/v1/witness/receipt` | a witness receipt |
-| `vdti/gossip/v1/kel/event`       | a KEL event       |
-| `vdti/gossip/v1/iel/event`       | an IEL event      |
-| `vdti/gossip/v1/sel/event`       | a SEL event       |
+| Topic                             | Carries                                          |
+| --------------------------------- | ------------------------------------------------ |
+| `vdti/gossip/v1/witness/receipt`  | a witness receipt                                |
+| `vdti/gossip/v1/kel/event`        | a KEL event                                      |
+| `vdti/gossip/v1/kel/announcement` | a KEL chain's `(prefix, effective-SAID)` change  |
+| `vdti/gossip/v1/iel/event`        | an IEL event                                     |
+| `vdti/gossip/v1/iel/announcement` | an IEL chain's `(prefix, effective-SAID)` change |
+| `vdti/gossip/v1/sel/event`        | a SEL event                                      |
+| `vdti/gossip/v1/sel/announcement` | a SEL chain's `(prefix, effective-SAID)` change  |
 
 The list grows as the system adds propagated payloads. A gossip topic is **not** a SAD and **not** a
 derivation input — it is a routing label, distinct from a SAD's `kind`

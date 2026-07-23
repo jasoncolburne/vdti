@@ -5,17 +5,16 @@ retrieval is destructive. It is a top-level `availability` field on the standalo
 sibling to the [`custody`](custody.md) field, and is one of the per-object axes the wrapper carries.
 
 This doc states the structural role of `availability` and its three sub-axes. Per-axis policy
-expression — concrete encoding for replica references, TTL representation, one-shot semantics — and
-storage-side enforcement live in
-[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)
-(forward-ref; forthcoming).
+expression — concrete encoding for replica references, one-shot semantics — and storage-side
+enforcement live in
+[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md).
 
 ## What availability declares
 
 `availability` is a sibling top-level inline struct on the SAD wrapper:
 
 ```
-availability { replicas, ttl, once }
+availability { replicas, expiry, once }
 ```
 
 Each sub-field is independently optional and covers one operational axis:
@@ -25,9 +24,12 @@ Each sub-field is independently optional and covers one operational axis:
   of a replica-set SAD listing eligible replicas; only those replicas participate in replication for
   this SAD. The replica set is referenced by SAID, so it is a separately-stored SAD (see
   [`said.md` §Canonical form for SAID computation](said.md#canonical-form-for-said-computation)).
-- **`ttl`** — time-to-live. How long the bytes are retained at the storage boundary. Expired SADs
-  are garbage-collected; fetches against an expired SAID return the same "not present" response a
-  never-existed SAID would.
+- **`expiry`** — the **absolute instant** past which the bytes need not be retained at the storage
+  boundary. It is committed inside the SAID'd bytes — never a duration counted from a local write,
+  which each holder would measure from its own clock, letting an expired object re-arrive from a
+  peer and start a fresh life at every hop. An absolute horizon reads the same from the object alone
+  wherever it lands, so an expired copy is refusable on sight. Expired SADs are garbage-collected;
+  fetches against an expired SAID return the same "not present" response a never-existed SAID would.
 - **`once`** — one-shot delivery. Whether retrieval is destructive. A `once` SAD is removed from
   storage after the first successful read; subsequent fetches by the same or any other consumer
   fail. So `once` composes poorly with a **blob shared across a fan-out**: if one ciphertext blob is
@@ -36,12 +38,12 @@ Each sub-field is independently optional and covers one operational axis:
   its own ciphertext, where `once` is exactly right — not a shared one.
 
 The three sub-fields compose freely — a SAD MAY declare any combination (e.g., replica-scoped
-replication + bounded TTL + non-destructive read; or default replication + no TTL + one-shot
+replication + an expiry + non-destructive read; or default replication + no expiry + one-shot
 delivery).
 
 When a SAD names bulk bytes as a **content-addressed blob** rather than inlining them
 ([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)), the blob is
-the bytes this `availability` governs: the `replicas` scope, `ttl`, and `once` semantics apply to
+the bytes this `availability` governs: the `replicas` scope, `expiry`, and `once` semantics apply to
 the referenced blob, not only the SAD wrapper. Scoping a `file` SAD's `replicas` to a recipient's
 storage nodes therefore places the blob there and nowhere else.
 
@@ -68,9 +70,9 @@ replicated) is enumerated in
 
 `availability` is a top-level field on the SAD wrapper and participates in canonical serialization,
 so the availability declaration is committed by the SAD's SAID. An adversary cannot substitute a
-different `availability` value (extending a TTL, converting one-shot to non-destructive, broadening
-a replica scope) without changing the SAD's SAID — and the new SAID would not match any reference
-that names the original.
+different `availability` value (extending an expiry, converting one-shot to non-destructive,
+broadening a replica scope) without changing the SAD's SAID — and the new SAID would not match any
+reference that names the original.
 
 ## Adversarial framing
 
@@ -78,19 +80,19 @@ The structural guarantees follow from the SAID commitment and from where enforce
 
 - **Availability declarations are tamper-evident.** The SAID commitment makes substitution at the
   wrapper boundary surface as a SAID mismatch at the next verifier walk. An adversary cannot quietly
-  upgrade a SAD's replication scope or extend its TTL.
-- **Enforcement is at the storage boundary.** TTL, replica scope, and one-shot semantics are applied
-  by the storage service (`vdtid`). A consumer fetching an expired or already-consumed one-shot SAD
-  receives a uniform "not present" response; the absence does not distinguish "expired" from
-  "one-shot consumed" from "never existed."
+  upgrade a SAD's replication scope or extend its expiry.
+- **Enforcement is at the storage boundary.** Expiry, replica scope, and one-shot semantics are
+  applied by the storage service (`vdtid`). A consumer fetching an expired or already-consumed
+  one-shot SAD receives a uniform "not present" response; the absence does not distinguish "expired"
+  from "one-shot consumed" from "never existed."
 - **One-shot is operational, not cryptographic.** A consumer who has retrieved a one-shot SAD can
   persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the
   storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior.
   Cryptographic deletion is not a property the protocol offers.
-- **TTL is a retention promise, not a verifiable property.** Like one-shot, retention is the storage
-  service's promise, not something a consumer can verify: an adversarial replica can keep expired
-  bytes indefinitely, and an honest one may lose them early. A `ttl` bounds when the store **may**
-  delete, not when the bytes actually vanish.
+- **Expiry is a retention promise, not a verifiable property.** Like one-shot, retention is the
+  storage service's promise, not something a consumer can verify: an adversarial replica can keep
+  expired bytes indefinitely, and an honest one may lose them early. The `expiry` bounds when the
+  store **may** delete, not when the bytes actually vanish.
 - **Replica-scope enforcement is fail-secure.** When `replicas` references a replica set that cannot
   be resolved (fetch failure, parse error), replication MUST default to skip rather than to
   broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's

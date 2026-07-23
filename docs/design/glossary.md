@@ -60,7 +60,7 @@ glossary read straight through.
   `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers[]`
   the read gate — a strictly ascending (sorted, distinct) list of read-authorization SEL prefixes,
   union any-match, omitted → public). ([`custody.md`](primitives/data/sad/custody.md))
-- **availability** — a standalone SAD's per-object replication scope, TTL, and one-shot delivery.
+- **availability** — a standalone SAD's per-object replication scope, expiry, and one-shot delivery.
   ([`availability.md`](primitives/data/sad/availability.md))
 
 ### Event kinds
@@ -168,8 +168,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   propagates and time-stamps, it never decides.
   ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
-  the multi-source freshness evidence for a chain.
-  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+  the per-event witnessing attestation (the multi-source freshness evidence is the freshness
+  statement). ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **witnessing floor** — `threshold > signers/2`, a strict majority of the selected witnesses; it
   makes any two threshold-quorums at a position overlap, so a content fork cannot form.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
@@ -182,9 +182,26 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
   witness key-windows for freshness.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
-- **gossip** — the witness-mesh transport: roster-wide push-gossip for witnessed events, and
-  sub-gossip among a position's selected witnesses for one still gathering receipts; encrypted and
-  roster-scoped. ([`substrate/federation/topics.md`](substrate/federation/topics.md))
+- **gossip** — the witness-mesh transport: roster-wide announcement flooding for witnessed events
+  (receipts and effective-SAID announcements flood; bodies follow by fetch), and sub-gossip among a
+  position's selected witnesses for one still gathering receipts; encrypted and roster-scoped.
+  ([`substrate/federation/topics.md`](substrate/federation/topics.md))
+
+### Services and consumers
+
+- **home node** — the one node a consumer calls for everything, mirror-style: all data flows through
+  it, nothing is trusted from it (every byte end-verifies; freshness evidence is signed by keys it
+  does not hold).
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+- **token store** — the consumer-side cache of verification tokens, reused behind the transitive
+  effective-SAID gate with a wall-clock freshness overlay recomputed at decision time; loss-of-trust
+  decisions add the multi-source bar.
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+- **freshness statement** — a witness-signed attestation of its held effective-SAIDs ("still this
+  value, as of τ"): the multi-source freshness evidence a loss-of-trust decision gathers
+  federation-`threshold`-many of (the federation's own witness-config threshold), relayable through
+  an untrusted pipe because it is signed data.
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
 
 ### Chain states
 
