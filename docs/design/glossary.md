@@ -190,14 +190,15 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 - **Active / Forked / Disputed / Terminated** — the four per-node chain states, each **derived** by
   a data-local walk over the events a node holds, never a stored flag. **Active**: a linear, live
-  chain. **Forked**: a live content-only fork (no accepted sealed branch) — recoverable by a burying
-  seal-advancer on the winning branch; a lone accepted sealed branch buries the content and reads
-  Active. **Disputed**: a fork with ≥ 2 **accepted** sealed branches — counted **per branch**,
-  wherever their seals sit — terminal (reincept); a below-seal sealed straggler is dropped
-  (backdate-safe). **Terminated**: killed by a `Trm`. Forked and Disputed are **distinct, detectable
-  states** — the walk that tells them apart (**0 → Forked / 1 → Active / ≥ 2 → Disputed** accepted
-  sealed branches, per branch) is how the state is computed, not a "reading" layered on one
-  divergent state. ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
+  chain. **Forked**: a live content-only fork — both siblings **accepted** (no accepted sealed
+  branch) — recoverable by a burying seal-advancer on the winning branch; a lone accepted sealed
+  branch buries the content and reads Active. **Disputed**: a fork with ≥ 2 **accepted** sealed
+  branches — counted **per branch**, wherever their seals sit — terminal (reincept); a below-seal
+  sealed straggler is dropped (backdate-safe). **Terminated**: killed by a `Trm`. Forked and
+  Disputed are **distinct, detectable states** — the walk that tells them apart (**0 → Forked / 1 →
+  Active / ≥ 2 → Disputed** accepted sealed branches, per branch) is how the state is computed, not
+  a "reading" layered on one divergent state.
+  ([`reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md))
 - **`Terminated` vs `Terminal` vs `Trm`** — three near-homographs, one letter apart, with distinct
   meanings: **`Terminated`** is the fourth chain **state** (a chain ended by a `Trm`);
   **`Terminal`** is the merge **rejection** for an event chaining _from_ a `Trm` (which admits no

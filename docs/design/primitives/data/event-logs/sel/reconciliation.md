@@ -54,21 +54,21 @@ claims hold _by construction_.
 3. **A dead owner-IEL anchor severs the SEL** at the earliest dead anchor — dead and un-verifiable
    from there, no repair. Severed is a truncation, not a fifth state.
 4. **The verdict is by accepted-sealed-branch count.** No accepted sealed branch (a content-only
-   fork) → **Forked** (recoverable); a single accepted sealed branch buries the content →
-   **Active**; two or more → **Disputed** → reincept.
+   fork, both siblings accepted) → **Forked** (recoverable); a single accepted sealed branch buries
+   the content → **Active**; two or more → **Disputed** → reincept.
 5. **Authorization is the owner IEL's threshold, delivered by the anchor.** A SEL event's count is
    drawn from the owner IEL's threshold vector and carried by the anchoring IEL event; a SEL hosts
    no roster of its own.
 
 ## SEL states (proof states)
 
-| State          | Description                                                                                                                                            |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Empty**      | No events for this prefix on this node.                                                                                                                |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                     |
-| **Forked**     | A live **content** fork (no accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch.              |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner reincepts (a lookup SEL at a fresh lineage).       |
-| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried (`Buried`). |
+| State          | Description                                                                                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**      | No events for this prefix on this node.                                                                                                                                |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                                     |
+| **Forked**     | A live **content** fork — both siblings **accepted** (no accepted sealed branch) — a witness compromise; recoverable by a burying seal-advancer on the winning branch. |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — provable witness collusion; terminal. The owner reincepts (a lookup SEL at a fresh lineage).                       |
+| **Terminated** | A `Trm` is the permanent end. Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → buried (`Buried`).                 |
 
 **Severed** is not a state — it truncates the SEL to its last live-anchored event, after which the
 chain reads one of the four above (typically Active, or auto-resolved from a fork).

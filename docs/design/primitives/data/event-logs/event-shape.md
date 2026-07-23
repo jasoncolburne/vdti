@@ -153,17 +153,17 @@ bounding per-event verifier work to `O(MAXIMUM_MANIFEST_LIST)`.
 
 **Role vocabulary:**
 
-| Role        | Carried by                                                                 | Commits to                                                                                                                        |
-| ----------- | -------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs (the general "we commit to this" role)                                                                         |
-| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                | the roster **delta** / threshold SAD SAID                                                                                         |
-| `delegates` | IEL `Ath`                                                                  | delegate **prefixes** (act for the delegator)                                                                                     |
-| `grant`     | SEL `Gnt`                                                                  | the grant-doc SAD SAID                                                                                                            |
-| `payload`   | SEL `Ixn`                                                                  | the payload SAD SAIDs the `Ixn` records (single-owner data)                                                                       |
-| `kills`     | IEL `Rev` / `Dth`                                                          | the revocation / rescission declaration `[{ target, bound? }]`                                                                    |
-| `bound`     | SEL `Trm`                                                                  | the gated rescind-doc — a feature rescission's participant-blind cutoff (doc-member grandfather / chat-membership per-lane bound) |
-| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                          | the witness-config SAD SAID                                                                                                       |
-| `clock`     | federation `Fcp` / `Wit` / `Trm`                                           | the federation-clock timestamp (inline, non-SAID)                                                                                 |
+| Role        | Carried by                                                                       | Commits to                                                                                                                        |
+| ----------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` (≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs (the general "we commit to this" role)                                                                         |
+| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                      | the roster **delta** / threshold SAD SAID                                                                                         |
+| `delegates` | IEL `Ath`                                                                        | delegate **prefixes** (act for the delegator)                                                                                     |
+| `grant`     | SEL `Gnt`                                                                        | the grant-doc SAD SAID                                                                                                            |
+| `payload`   | SEL `Ixn`                                                                        | the payload SAD SAIDs the `Ixn` records (single-owner data)                                                                       |
+| `kills`     | IEL `Rev` / `Dth`                                                                | the revocation / rescission declaration `[{ target, bound? }]`                                                                    |
+| `bound`     | SEL `Trm`                                                                        | the gated rescind-doc — a feature rescission's participant-blind cutoff (doc-member grandfather / chat-membership per-lane bound) |
+| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                | the witness-config SAD SAID                                                                                                       |
+| `clock`     | federation `Fcp` / `Wit` / `Trm`                                                 | the federation-clock timestamp (inline, non-SAID)                                                                                 |
 
 The roles that carry discrimination or shape rules, in prose:
 
@@ -334,7 +334,7 @@ doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../substrate/federa
 | Kind  | Tier | Count                                      | Role                                                                                                                                                                                                                                                       |
 | ----- | ---- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | 2    | all initial members consent                | Inception — pins the initial roster + threshold vector, federation binding, and `witnesses`. A **federation IEL** incepts the `Fcp` marker instead (below).                                                                                                |
-| `Ixn` | 1    | `t_use`                                    | Content; anchors content SEL events, each content SEL's serial-1 **v1**, **and a credential's issuance commitment** (an immutable SAD, no credential-SEL), batched. **The divergeable content kind** (first-seen, buriable).                               |
+| `Ixn` | 1    | `t_use`                                    | Content; anchors content SEL events, each content SEL's serial-1 **v1**, **and a credential's issuance commitment** (an immutable SAD, no credential-SEL), batched (`anchors`, ≥ 1). **The divergeable content kind** (first-seen, buriable).              |
 | `Evl` | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster/threshold **delta** (`roster`); a `cut` `Evl` **evicts** (buries a fork and evicts in one sealing event); no kills.ᵃ                                                                                                           |
 | `Ath` | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and/or `anchors` a SEL `Gnt` (act **as itself**). **Sealed on arrival, seal-advancing.**ᵇ                                                                                                         |
 | `Rev` | 2    | `t_govern`                                 | **Revoke** — kill-anchor for an **owned** artifact (anchors a SEL `Trm` + a `kills[]` declaration). **Sealed on arrival; non-terminal.**ᶜ                                                                                                                  |
@@ -460,7 +460,7 @@ KEL + federation doctrine — [`kel/`](kel/),
 | Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                |
 | ----- | ----- | ---- | ---------- | ------------- | ------------ | --------------------------------------------------------------------------------------- |
 | `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`) |
-| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`)                                                                         |
+| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                     |
 | `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                   |
 | `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`)                                                      |
 | `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |

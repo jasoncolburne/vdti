@@ -130,9 +130,9 @@ whether or not the witness can derive the prefix
 The SEL's own divergence is read data-locally, exactly as the KEL and IEL read theirs, but at the
 SEL's own `(prefix, serial)`:
 
-- **A live content fork** — two content events at one position — reads **Forked**. It forms only
-  under witness compromise (first-seen prevents an honest one), reads fail-secure, and is resolved
-  by a burying seal-advancer.
+- **A live content fork** — two **accepted** content events at one position — reads **Forked**. It
+  forms only under witness compromise (first-seen prevents an honest one), reads fail-secure, and is
+  resolved by a burying seal-advancer.
 - **A `{Trm, content}` divergence** reads **Terminated** by tier-rank — the sealed `Trm` wins, the
   content buries.
 - **Two or more accepted sealed branches** read **Disputed** — a data-local walk over the accepted

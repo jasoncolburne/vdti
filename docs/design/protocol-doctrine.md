@@ -81,13 +81,13 @@ Structural concepts referenced throughout. Distinct senses; not interchangeable.
   events a node holds by a data-local walk**, never a stored flag):
 
   - **Active** — a single confirmed tip; accepts linear extension.
-  - **Forked** — a **live, recoverable** fork: two **distinct content** events at one serial, with
-    **no accepted sealed branch** past it. While the fork is live (at or above the derived seal) the
-    chain **freezes further origination** — it originates no new work onto the live fork; the one
-    move that resolves it is a **burying seal-advancer on the winning branch** (a `Rot` / `Wit` /
-    `Trm` on the KEL; a sealing event on the IEL — any seal-advancer on the winning branch,
-    typically the `Evl` or the `cut` `Evl`; a `Trm` buries then terminates), which extends the
-    winning branch and advances the seal past a **content** loser (the loser dies below the new
+  - **Forked** — a **live, recoverable** fork: two **accepted, distinct content** events at one
+    serial, with **no accepted sealed branch** past it. While the fork is live (at or above the
+    derived seal) the chain **freezes further origination** — it originates no new work onto the
+    live fork; the one move that resolves it is a **burying seal-advancer on the winning branch** (a
+    `Rot` / `Wit` / `Trm` on the KEL; a sealing event on the IEL — any seal-advancer on the winning
+    branch, typically the `Evl` or the `cut` `Evl`; a `Trm` buries then terminates), which extends
+    the winning branch and advances the seal past a **content** loser (the loser dies below the new
     seal, dead on ascent). A content fork is recoverable because all content is buriable. The
     **reading** is the pure walk over the events held, not a frozen flag: a node that comes to hold
     a burying seal-advancer re-reads the chain **Active**, order-independently. A **single**
@@ -1206,14 +1206,15 @@ seal-advancer; nothing false becomes canonical on any node. First-seen-one-per-s
 receipts at a contested position (`a + b ≤ signers`); when neither content sibling reaches majority
 (an even-`signers` tie, abstentions, or a partition) the **position stalls, fail-secure** — signed
 witnesses cannot switch, so a minority partition **stalls, never forks** (consistency over
-availability). The **exit is a burying seal-advancer**: a `Rot` / `Evl` at the position is sealed —
-the first sealed sibling there, signed by every selected witness (including those that signed a
-content sibling — the cross-tier co-sign) — and reaches majority. If it attaches at the author's
-**own** stalled sibling it **retains** that content (the witnessed seal commits it as canonical) and
-the competing sibling closes below the seal; if it attaches at the shared ancestor it buries
-**both**, and the honest content re-issues forward. Odd `signers` avoids the pure tie (operator
-guidance: with every selected witness voting, an odd set always yields a strict majority for one
-sibling).
+availability). The **exit is a burying seal-advancer** (a `Rot` / `Evl`), in either attach shape:
+**extending the author's own stalled sibling**, it lands at the **next** serial — an ordinary first
+sealed event there, no cross-tier co-sign involved — **retains** that content (the witnessed seal
+commits it as canonical), and the competing sibling closes below the seal; **attaching at the shared
+ancestor**, it lands **at the stalled position** as the first sealed sibling there — signed by every
+selected witness, including those that signed a content sibling (the cross-tier co-sign) — and
+buries **both**, the honest content re-issuing forward. Either way the seal reaches majority. Odd
+`signers` avoids the pure tie (operator guidance: with every selected witness voting, an odd set
+always yields a strict majority for one sibling).
 
 Witnessing is **current** — the currency gate refuses a stale-pin event, so selection happens over
 the current set — and receipts are then **counted as-of the event's federation context** by

@@ -146,10 +146,14 @@ else**:
   **member-delivered** (**never published for fetch-by-SAID** — it names its recipient in the clear;
   it moves over recipient-scoped mail, not the public object store), and a read-gated
   shared-document grant is served only to a reader its `readers` gate admits. Serving the grant
-  family by SAID therefore never enumerates who a private grant was sealed to. A **content-addressed
-  blob** — the bulk bytes a `file` wrapper or an ESSR envelope names by **digest** — is **not**
-  served by this rule at all: it is a bare object fetched **by digest** through its `availability` /
-  serve-time request path, never by SAID.
+  family by SAID therefore never enumerates who a private grant was sealed to. A **chat message**
+  SAD is the third protection shape: it sits in the store with **no custody gate**, and the store
+  serves it only to a requester that passes the feature's **serve-time membership gate** — the
+  per-requester check against the chat's store-authorization SEL
+  ([exchange §Reserved names](../../../features/exchange.md#reserved-names)) on the signed request
+  itself. A **content-addressed blob** — the bulk bytes a `file` wrapper or an ESSR envelope names
+  by **digest** — is **not** served by this rule at all: it is a bare object fetched **by digest**
+  through its `availability` / serve-time request path, never by SAID.
 - **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
   event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
   gets back the same "not present" answer a SAID that never existed would.
@@ -158,15 +162,16 @@ else**:
   a way to fetch it.
 
 The whole rule in one line: **the store hands back a SAD by SAID only when learning that SAID
-already meant holding the chain, or when the SAD is public by design and its custody `readers` gate
-admits the requester.** An event's SAID fails that test — it travels in the open as a commitment
-inside a public identity's `anchors[]`, so if the store answered for event bodies by SAID, an
-observer could gather those commitments and walk them back to the private positions they stand for,
-turning the store into the very lookup that reaching events by prefix alone was meant to deny. A
-commitment SAD's SAID passes the test — it appears only inside an event's `manifest`, which you
-reach only after reading an event you already hold the chain for, so serving it tells an observer
-nothing they could not already work out. [`event-shape.md`](../event-logs/event-shape.md) states the
-"there is no SAID-to-event index" property that this makes real.
+already meant holding the chain; when the SAD is public by design and its custody `readers` gate
+admits the requester; or when the owning feature's serve-time membership gate admits the signed
+request (the chat message).** An event's SAID fails that test — it travels in the open as a
+commitment inside a public identity's `anchors[]`, so if the store answered for event bodies by
+SAID, an observer could gather those commitments and walk them back to the private positions they
+stand for, turning the store into the very lookup that reaching events by prefix alone was meant to
+deny. A commitment SAD's SAID passes the test — it appears only inside an event's `manifest`, which
+you reach only after reading an event you already hold the chain for, so serving it tells an
+observer nothing they could not already work out. [`event-shape.md`](../event-logs/event-shape.md)
+states the "there is no SAID-to-event index" property that this makes real.
 
 This is why every SAD carries a `kind` ([`sad.md`](sad.md)): the sort has no fallback — a SAD with
 no kind cannot be placed on either side of it, so it is refused. The store's write path turns away a

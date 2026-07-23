@@ -150,18 +150,20 @@ legitimately-selected witness — not whether to sign.
 **The split-stall and its exit.** First-seen partitions the receipts at a contested content position
 (`a + b ≤ signers`); when neither sibling reaches a majority — an even-`signers` tie, abstentions,
 or a partition — the position **stalls, fail-secure**: signed witnesses cannot switch, so a minority
-partition stalls rather than forks (consistency over availability). The exit is a burying
-seal-advancer at the position — the first sealed sibling there, signed by every selected witness
-including those that signed a content sibling (the permitted cross-tier co-sign) — which reaches the
-majority. Attached at the author's own stalled sibling it retains that content; attached at the
-shared ancestor it buries both and the honest content re-issues forward. Odd `signers` avoids the
-pure tie.
+partition stalls rather than forks (consistency over availability). The exit is a **burying
+seal-advancer**, in either attach shape: **extending the author's own stalled sibling**, it lands at
+the **next** serial — an ordinary first sealed event there, no cross-tier co-sign involved — and
+retains that content (the witnessed seal commits it as canonical; the competing sibling closes below
+the seal); **attaching at the shared ancestor**, it lands **at the stalled position** as the first
+sealed sibling there — signed by every selected witness, including those that signed a content
+sibling (the permitted cross-tier co-sign) — and buries both, the honest content re-issuing forward.
+Either way the seal reaches the majority. Odd `signers` avoids the pure tie.
 
 **The predicate is tier-scoped.** An honest witness legitimately holds
-`{≤ 1 content} ∪ {≤ 1 sealed}` at a position — the cross-tier co-sign the split-stall exit needs is
-not misbehavior. Only a second receipt over two distinct _content_ `eventSaid`s, or a second
-distinct _sealed_ sibling, at one position is proof of misbehavior. That clean attribution is what
-the fork-cost pricing rests on.
+`{≤ 1 content} ∪ {≤ 1 sealed}` at a position — the cross-tier co-sign the split-stall exit's
+ancestor-attach shape needs is not misbehavior. Only a second receipt over two distinct _content_
+`eventSaid`s, or a second distinct _sealed_ sibling, at one position is proof of misbehavior. That
+clean attribution is what the fork-cost pricing rests on.
 
 ## Deterministic selection
 

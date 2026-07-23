@@ -64,12 +64,12 @@ safety claims hold _by construction_, not by observation.
 4. **A sealed divergence is terminal; a content divergence is recoverable.** A sealing event (`Evl`
    / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`) that would create or join a divergence does **not**
    extend the canonical chain — it is retained as non-canonical evidence rather than discarded. A
-   content-only fork (no accepted sealed branch) is **Forked** (recoverable): a burying seal on the
-   winning branch buries the content loser by position + ascent → Active; a fork already carrying
-   that seal reads Active, not Forked. A fork with **two or more witnessed** sealed branches (per
-   branch, wherever their seals sit) is **Disputed** (reincept). Any verifier reads which by a
-   data-local walk. A sealed branch is never buried — that would resurrect a retired sealing
-   decision. See
+   content-only fork (both siblings accepted; no accepted sealed branch) is **Forked**
+   (recoverable): a burying seal on the winning branch buries the content loser by position + ascent
+   → Active; a fork already carrying that seal reads Active, not Forked. A fork with **two or more
+   witnessed** sealed branches (per branch, wherever their seals sit) is **Disputed** (reincept).
+   Any verifier reads which by a data-local walk. A sealed branch is never buried — that would
+   resurrect a retired sealing decision. See
    [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 5. **Locked-portion bound is unconditional.** No event class is exempt from the seal-cap — not even
    a burying `Evl`: a clean canonical extension requires `event.parent.serial ≥ seal_serial`, so
@@ -95,17 +95,17 @@ feasible. The proof matrices below rely on invariants 4–6.
 ## IEL chain states (proof states)
 
 The per-node enumeration covers every shape the merge rules can produce. A live fork is **two
-distinct states**: **Forked** (a content-only fork — no accepted sealed branch, recoverable) and
-**Disputed** (≥ 2 accepted sealed — terminal), each a first-class state a verifier **derives** by a
-data-local walk.
+distinct states**: **Forked** (a content-only fork, both siblings **accepted** — no accepted sealed
+branch, recoverable) and **Disputed** (≥ 2 accepted sealed — terminal), each a first-class state a
+verifier **derives** by a data-local walk.
 
-| State          | Description                                                                                                                                                                                                                                                           |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**      | No events for this prefix on this node.                                                                                                                                                                                                                               |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`.                                                                                                                                                                                                                 |
-| **Forked**     | A live **content-only** fork (no accepted sealed branch) past it — recoverable; origination-frozen; resolved by a burying seal on the winning branch → Active. A fork carrying an accepted sealed branch reads Active (the seal buried the content), not a live fork. |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — proof of quorum subversion or witness collusion (an honest partition cannot produce it), terminal. Nothing resolves it; the identity must reincept. Witnesses decline any extension → `Ignored`.                  |
-| **Terminated** | A `Trm` is the permanent end (all the identity's SELs freeze). Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → `Buried`.                                                                                        |
+| State          | Description                                                                                                                                                                                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**      | No events for this prefix on this node.                                                                                                                                                                                                                                                            |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`.                                                                                                                                                                                                                                              |
+| **Forked**     | A live **content-only** fork — both siblings **accepted**, no accepted sealed branch — past it; recoverable; origination-frozen; resolved by a burying seal on the winning branch → Active. A fork carrying an accepted sealed branch reads Active (the seal buried the content), not a live fork. |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — proof of quorum subversion or witness collusion (an honest partition cannot produce it), terminal. Nothing resolves it; the identity must reincept. Witnesses decline any extension → `Ignored`.                                               |
+| **Terminated** | A `Trm` is the permanent end (all the identity's SELs freeze). Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → `Buried`.                                                                                                                     |
 
 **Empty** is the pre-inception case, included for completeness; the four **live-chain** states are
 Active / Forked / Disputed / Terminated (the state machine is four-state).

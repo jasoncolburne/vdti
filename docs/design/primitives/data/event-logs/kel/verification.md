@@ -255,12 +255,13 @@ read-only component of the token, not an independent verified state). The seal t
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** from the events held,
   against the **derived seal** (above): **trusted** (no fork reaching at-or-above the seal — a fork
-  buried below it is inert), **forked** (a content-only fork at-or-above the seal — no accepted
-  sealed branch — recovers via a burying seal-advancer that buries the content → Active; a
-  **single** accepted sealed branch buries the content and reads **trusted** — a reserve-theft
-  takeover you did not author is clean on-chain, caught by owner-vigilance and answered by reincept
-  out-of-band, not surfaced here), or **disputed** (two or more branches each carry an **accepted**
-  (witnessed-at-threshold) sealed event — per branch, wherever the seal sits — terminal, reincept).
+  buried below it is inert), **forked** (a content-only fork at-or-above the seal, both siblings
+  accepted — no accepted sealed branch — recovers via a burying seal-advancer that buries the
+  content → Active; a **single** accepted sealed branch buries the content and reads **trusted** — a
+  reserve-theft takeover you did not author is clean on-chain, caught by owner-vigilance and
+  answered by reincept out-of-band, not surfaced here), or **disputed** (two or more branches each
+  carry an **accepted** (witnessed-at-threshold) sealed event — per branch, wherever the seal sits —
+  terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** — an unresolved fork
   — yields a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified
@@ -355,9 +356,9 @@ content fork (a burying seal-advancer on the winning branch); the verifier repor
 The verifier's terminal-state-determination rule:
 
 - A **live** fork — a divergence at or above the **derived seal**?
-  - **No accepted sealed branch** (a content-only fork) → **forked** (recoverable); a burying
-    seal-advancer buries the content → Active. A **single** accepted sealed branch buries the
-    content → **Active**, not forked.
+  - **No accepted sealed branch** (a content-only fork, both siblings accepted) → **forked**
+    (recoverable); a burying seal-advancer buries the content → Active. A **single** accepted sealed
+    branch buries the content → **Active**, not forked.
   - **Two or more _accepted_ (witnessed-at-threshold) sealed branches** (per branch, wherever their
     seals sit) → **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
