@@ -7,14 +7,14 @@ serves chain pages with their receipts. It is deliberately **thin**: every corre
 enforces lives in the verification core ([`architecture.md`](architecture.md)); `vdtid` contributes
 routing, storage, and locking.
 
-**Why one service.** Verification is SAD-resolution-heavy: every event on a walk dereferences its
-manifest, and through it the roster, witness-config, and pins SADs — several store reads per event —
-and `vdtid` runs that path constantly (every merge re-verifies under the lock). Splitting the chain
-log from the SAD store would put a network hop inside the verifier's hottest dependency and split
-the write path's atomicity (an anchor and the SAD it commits should land in one transaction). So the
-store and the chain log are one service — and a `vdtid` deployed without a `witnessd` **is** the
-store-only storage node ([`architecture.md`](architecture.md#the-decomposition)); there is no
-separate store service.
+**Why one service.** Verification leans on the SAD store: a walk interleaves chain reads with
+targeted SAD lookups — the witness-config and roster in effect at a position, the specific manifests
+its pin locators name — and `vdtid` runs that path constantly (every merge re-verifies under the
+lock). Splitting the chain log from the SAD store would put a network hop inside the verifier's
+hottest dependency and split the write path's atomicity (an anchor and the SAD it commits should
+land in one transaction). So the store and the chain log are one service — and a `vdtid` deployed
+without a `witnessd` **is** the store-only storage node
+([`architecture.md`](architecture.md#the-decomposition)); there is no separate store service.
 
 ## The API surface
 
@@ -32,7 +32,7 @@ receiver verifies what it gets
 | **effective-SAID** | QUERY  | a prefix's effective-SAID — a real tip SAID, or the verdict-tagged synthetic ([effective-SAID comparison](../../protocol-doctrine.md#effective-said-comparison))                                                                                                                                                                                                                                                                                                                                                                                          |
 | **exists**         | QUERY  | an existence probe by SAID — answered **under the serve gates**: "held" only where a fetch by this requester would succeed, everything else the uniform "not present"; the wider answer sync and dedupe need is scoped to **mesh-authenticated federation peers** (the correlation exposure doctrine already prices for mesh membership)                                                                                                                                                                                                                  |
 | **SAD**            | QUERY  | a standalone SAD by SAID — subject to the serve-by-SAID allowlist, the custody `readers` gate, and any feature serve-time gate (below)                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **SADs (batch)**   | QUERY  | a **bounded list of SAIDs in one request** — the walk-support fetch: a page walk resolves several commitment SADs per event (manifests, rosters, witness-configs, pins), so a page's whole resolution set moves in one round trip; each entry is gated individually by the same serve rules, and a refused or absent entry reads uniformly "not present"                                                                                                                                                                                                  |
+| **SADs (batch)**   | QUERY  | a **bounded list of SAIDs in one request** — the walk-support fetch: a page walk resolves a bounded set of commitment SADs (pin-located manifests, rosters, witness-configs), so a page's whole resolution set moves in one round trip; each entry is gated individually by the same serve rules, and a refused or absent entry reads uniformly "not present"                                                                                                                                                                                             |
 | **blob**           | QUERY  | bulk bytes by digest — the committing SAD's gate decides: an exchange blob only to a **live-signed request** proving a device of the recipient identity (an IEL-roster check, single-device); a chat blob only to a live-signed current member (the membership check); a **public** wrapper's blob per its custody — ungated when public. The request gate is load-bearing for the gated cases because a bare blob carries no `custody` of its own                                                                                                        |
 | **deposits**       | QUERY  | the discovery poll: enumerate the SADs deposited **for an identity** at this node (a recipient's mail inbox), live-signed by a current member device of that identity, `since`-cursored                                                                                                                                                                                                                                                                                                                                                                   |
 | **acknowledge**    | POST   | a recipient's delivery acknowledgment for a deposited message — the origin node deletes the bytes (the explicit-ack complement to `availability`'s `once` and `expiry`)                                                                                                                                                                                                                                                                                                                                                                                   |
