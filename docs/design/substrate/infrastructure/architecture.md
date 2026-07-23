@@ -91,6 +91,21 @@ being processed half-observed) and it partitions a divergent run into sub-batche
 handler accepts ([`witnessd.md` §Send-side partitioning](witnessd.md#send-side-partitioning)).
 Hand-rolled pagination bypasses those guarantees — no other data-mover is permitted.
 
+## The store traits — one interface, composed in sequence
+
+The core defines a store trait per primitive — `KelStore` / `IelStore` / `SelStore` for the chain
+logs, `SadStore` for standalone SADs — and every access to held data, in a daemon or a consumer,
+goes through them. Implementations are interchangeable: in-memory, filesystem, database-backed (the
+daemons' own), and **remote** — a `vdtid`'s API surfaced as a trait implementation.
+
+A consumer instantiates a store over a **sequence** of implementations, searched in order — memory,
+then filesystem, then one or more remotes — so caching tiers and fallback stores compose with no new
+machinery: the **cascading store**. Content addressing is what makes the cascade sound — any store
+returns the same bytes for a SAID or digest, so the sequence changes **where** an answer comes from
+and what it costs, never what it means. Stores legitimately differ in what they _hold_: a read-gated
+record lives only where its gates admit, and some data stays local-only — a miss at one tier falls
+through to the next, and the serve rules hold at whichever store answers.
+
 ## Features are libraries — there are no feature daemons
 
 Credentials, exchange, and shared documents are **libraries over the core and `vdtid`'s API**, never
