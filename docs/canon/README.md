@@ -1,17 +1,22 @@
-# `docs/canon/` — the machine-oriented design canon
+# `docs/canon/` — working notes not yet encoded
 
-This directory holds vdti's **working design canon**: the pressure-tested area notes and the invariants
-the design is derived from. It is written **for machines, not for reading** — one concept per line (no
-prose wrapping, so it is `.prettierignore`d), dense shorthand, cross-referenced by `file:line`, and it
-deliberately preserves the full **decision history** (including superseded vocabulary) so the reasoning
-stays traceable.
+The machine-oriented design canon that once lived here is **retired**: every encoded area note and
+the invariants doc were propagated into the landed design docs and then removed. Their full
+decision history — dated decisions, dropped alternatives, superseded vocabulary — remains browsable
+at the git tag **`canon-final`**.
 
-**If you are a human:** you almost certainly want the **landed design docs** instead —
-[`../design/`](../design/), starting at [`../design/glossary.md`](../design/glossary.md) and
-[`../design/protocol-doctrine.md`](../design/protocol-doctrine.md). Those are prose, kept **greenfield**
-(they state the current model, not its history), and are the human-readable statement of the design.
-This directory will read as noise to you; the landed docs will not.
+**The design surface is [`../design/`](../design/)** — prose, greenfield (it states the current
+model, not its history), no jargon. Humans and LLMs alike should work from there, starting at
+[`../design/README.md`](../design/README.md).
 
-**If you are an LLM or agent:** welcome — this is your surface. Do design work here; keep the
-line-per-concept format; then propagate settled changes into the landed [`../design/`](../design/) docs.
-Treat [`vdti-invariants.md`](vdti-invariants.md) as load-bearing.
+What remains in this directory is the **not-yet-encoded** working set, still line-per-concept and
+prettier-exempt:
+
+- [`vdti-area-vdtid-services.md`](vdti-area-vdtid-services.md) — the services / architecture area
+  (the design's leading edge; no landed counterpart yet).
+- [`vdti-implementation-notes.md`](vdti-implementation-notes.md) — build-shaping decisions that
+  are deliberately not doctrine (storage, transport, locking).
+- [`supplemental/`](supplemental/) — ideas and external-comparison reference notes.
+
+When an area here is encoded into [`../design/`](../design/), its note gets the same treatment:
+delete it, and let git history carry the trail.

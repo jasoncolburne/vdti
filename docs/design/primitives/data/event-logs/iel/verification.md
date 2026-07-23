@@ -55,7 +55,9 @@ simultaneously. Events must arrive in canonical order
 set of all events at a given serial; the verifier processes events in generation order and tracks
 per-branch state. A fork forks per-branch state — when a second distinct event appears at the same
 serial as the first, the verifier records `divergence_ancestor` (the SAID of `v_{d-1}`) and tracks
-both branches independently.
+both branches independently — the field verdict-coupled exactly as the KEL's (Forked: the first
+divergence; Disputed: the earliest carrying ≥ 2 accepted sealed branches; not a recovery point on
+Disputed).
 
 ### Per-event checks
 
@@ -168,21 +170,21 @@ within `N` hops?" is a **bounded per-candidate walk**, never a materialization o
   per-candidate scalar state** (each candidate's `Ath` inclusion sets a boolean true), returning
   scalars. State is O(candidates), never the full set.
 - **Walk up from the presented party, not down from `X`.** The verifier follows the **one
-  authorizing path the document commits** — each hop a self-recorded `delegating` link chaining up
-  toward `X` — confirming each hop's grant against that delegator's `Ath` inclusion list (a positive
-  lookup). **Depth is the only quantity the walk adds.** Walking _up_ one committed path never
-  enumerates the delegate tree beneath `X` — that tree **fans out** by design: a delegation
-  hierarchy is how authority scales and how key management distributes across layers, so `X` need
-  not authorize every actor directly. Each hop is a single `Ath`-inclusion lookup (itself bounded by
-  `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary per-IEL cost — no
-  delegation-specific fan-out. The walk is bounded by the per-policy depth `N` **and** by a fixed
-  protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 8`** backstop; exceeding **either** denies
-  (fail-secure). Eight leaves generous room — a real org hierarchy several layers deep (root →
-  company → division → region → branch → team → individual) **and** person-to-person chains that
+  authorizing path the document commits in its `delegationPath` field** — each hop a self-recorded
+  `delegating` link chaining up toward `X` — confirming each hop's grant against that delegator's
+  `Ath` inclusion list (a positive lookup). **Depth is the only quantity the walk adds.** Walking
+  _up_ one committed path never enumerates the delegate tree beneath `X` — that tree **fans out** by
+  design: a delegation hierarchy is how authority scales and how key management distributes across
+  layers, so `X` need not authorize every actor directly. Each hop is a single `Ath`-inclusion
+  lookup (itself bounded by `MAXIMUM_MANIFEST_LIST`) and its IEL verification is the ordinary
+  per-IEL cost — no delegation-specific fan-out. The walk is bounded by the per-policy depth `N`
+  **and** by a fixed protocol-wide **`MAXIMUM_DELEGATION_DEPTH = 8`** backstop; exceeding **either**
+  denies (fail-secure). Eight leaves generous room — a real org hierarchy several layers deep (root
+  → company → division → region → branch → team → individual) **and** person-to-person chains that
   reach across a well-connected planet (the six-degrees intuition, with headroom) — while the walk
   stays a cheap linear climb: each hop is one bounded `Ath`-inclusion lookup with no fan-out, so
   depth is the only quantity it adds. A per-policy `N` sits tighter underneath. A power of two, like
-  the other protocol constants, and fixed — not a per-deployment knob.
+  most other protocol constants, and fixed — not a per-deployment knob.
 - **Each hop's liveness is a `kills[]` forward-match** (below), never a scan for the absence of a
   rescission.
 
@@ -234,8 +236,8 @@ IelVerification:
     root_facet: RootFacet                  # Icp-rooted (user identity) vs Fcp-rooted (federation); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     roster_at_tip: RosterState             # the accumulated live roster + threshold vector at the canonical tip (a delta accumulation, not a stored snapshot)
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = divergent)
-    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event that landed cleanly on the linear run (not a competing sibling)
+    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} at the verdict's divergence (Forked: the first divergence; Disputed: the earliest carrying >= 2 accepted sealed branches — not a recovery point there); None on linear
+    last_seal_advancing_event: Option<SAID>  # the derived seal: most recent sealing event with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it; >= 2 accepted sealed branches -> no clean seal above the divergence)
     federation_context_per_event: ...      # per-event federation binding, from the IEL's own Icp / Wit (user); a federation IEL carries none
     anchored_saids: BTreeSet<SAID>         # SEL-event SAIDs and custody-anchored SAD issuance commitments (a credential is one use) found anchored on the canonical branch
     delegates_of: ...                      # per-candidate delegation-walk results (bounded scalar state)
@@ -267,19 +269,21 @@ read-only component of the token, not an independent verified state). The seal t
   SELs freeze).
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** against the **derived
-  seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a fork at-or-above the
-  seal with at most one sealed branch — a content fork recovers via a burying seal; a lone sealed
-  branch you did not author reads forked but forces **your** reincept), or **disputed** (two or more
-  branches each carry an **accepted** (witnessed-at-threshold) sealed event at the last seal —
-  terminal, reincept).
+  seal**: **trusted** (no fork reaching at-or-above the seal), **forked** (a content-only fork
+  at-or-above the seal, both siblings accepted — no accepted sealed branch — recovers via a burying
+  seal that buries the content → Active; a **single** accepted sealed branch buries the content and
+  reads **trusted** — a reserve-theft takeover you did not author is clean on-chain, caught by
+  owner-vigilance and answered by reincept out-of-band, not surfaced here), or **disputed** (two or
+  more branches each carry an **accepted** (witnessed-at-threshold) sealed event — per branch,
+  wherever the seal sits — terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
   and position, **not** a digest over the competing tips (that set is adversarially extensible →
   flood-unstable). A settled content branch drops out (forensic, reached by a by-prefix flat fetch);
   a **below-seal** sealed straggler drops out too (dropped, inert — backdate-safe). Only a
-  **witnessed** sealed fork **at the last seal** keeps the chain in the synthetic (a spine fork →
-  `disputed`). See
+  **witnessed** sealed fork — **≥ 2 accepted sealed branches**, wherever their seals sit — keeps the
+  chain in the synthetic (`disputed`). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 - `roster(tip_said)` → the **membership at a specific tip**: the roster + thresholds the verifier
   forked per branch (above), or **`Terminated`** when that tip is a `Trm`. Termination is an
@@ -355,16 +359,17 @@ independently, and surfaces `is_divergent()` and `region()`.
 ### Terminal-state determination rule
 
 - A **live** fork — a divergence at or above the **derived seal**?
-  - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal on the
-    winning branch.
-  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
-    **disputed**; reincept.
+  - **No accepted sealed branch** (a content-only fork, both siblings accepted) → **forked**
+    (recoverable); a burying seal buries the content → Active. A **single** accepted sealed branch
+    buries the content → **Active**, not forked.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches** (per branch, wherever their
+    seals sit) → **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
-A `{Rev, content}` or `{Evl, content}` fork is one sealed branch → **forked**, recoverable (the
-sealed branch survives, the content buries). A `{Evl, Evl}` (or any two sealed branches — the
-federation IEL's every conflict) → **disputed**.
+A `{Rev, content}` or `{Evl, content}` fork is one accepted sealed branch → **Active** (the sealed
+branch buries the content sibling; a `{Trm, content}` reads **Terminated**). A `{Evl, Evl}` (or any
+two accepted sealed branches — the federation IEL's every conflict) → **disputed**.
 
 ### Verifier reports; the merge layer gates
 
@@ -386,12 +391,13 @@ reads `structurally_valid` to gate against it.
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` — a credential issued under a below-seal roster state, a SEL
 bound at a below-seal `Ixn` — is **permanently final**, regardless of any later above-seal
-divergence. (Against a **witnessed** sealed fork **at** the last (clean) seal the reading flips to
-`disputed`, and permanence runs against the last **clean** seal; a below-seal sealed straggler is
-**dropped**, not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer
-composes the anchor's seal position with `region()`: a below-seal anchor is honored even on a
-`disputed` chain — for as-issued finality and existing bindings; granting **new** current trust
-still gates on `region()` — while an above-seal anchor on a `disputed` chain grounds no new trust.
+divergence. (Against a **witnessed** sealed fork — **≥ 2 accepted sealed branches**, wherever their
+seals sit — the reading flips to `disputed` and the clean seal retreats to the divergence ancestor,
+so permanence runs against that retreated clean seal; a below-seal sealed straggler is **dropped**,
+not disputed.) So `anchored_saids` reflects the canonical branch, and a consumer composes the
+anchor's seal position with `region()`: a below-seal anchor is honored even on a `disputed` chain —
+for as-issued finality and existing bindings; granting **new** current trust still gates on
+`region()` — while an above-seal anchor on a `disputed` chain grounds no new trust.
 
 ## Federation witnessing in verification
 
@@ -432,9 +438,9 @@ federation field (it _is_ the federation, never self-bound — the `federationPi
 not apply to it; its freshness is its clock). A **SEL** inherits its owner IEL's binding. The token
 surfaces `federation_context_per_event` so a cross-chain verifier resolves each event to its
 federation for witnessing while reading the binding from the layer that owns it. Trust composes
-through the config-pinned federation prefix set (compile-time-baked + runtime override) — a
-federation is trusted iff its prefix is in that set; multi-federation chains require each federation
-independently trusted (no transitive trust). See
+through the config-pinned federation prefix set (runtime-configured, empty by default — fail-secure)
+— a federation is trusted iff its prefix is in that set; multi-federation chains require each
+federation independently trusted (no transitive trust). See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification).
 
 ## Streaming

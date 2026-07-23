@@ -1,5 +1,8 @@
 # vdti — area note: `vdtid` services (node service architecture)
 
+_(This note's cross-refs to `vdti-area-*.md` / `vdti-invariants.md` name the retired encoded canon
+— resolve them at the `canon-final` tag, or read the corresponding `docs/design/` doc.)_
+
 **Status: FIRST CUT (2026-06-20).** The node service architecture — `vdtid` + `witnessd` over a shared
 `lib/vdti`. Mirrors the kels service layout with two deliberate changes (merge chain+SAD; gossip→witnessd).
 Grounded in the **kels build read on `main`** (the *mechanics* are correct; the *shape/taxonomy* is design-stale,
@@ -111,7 +114,7 @@ The effective SAID answers "**has my trust-relevant held state changed / do two 
 
 - **A single confirmed tip** (a linear active window, or a fork already settled below the seal — Active / Recovered /
   Terminated) → **that tip's real SAID** (a terminated chain's is its `Trm`).
-- **No single tip** (an unresolved fork — a live content fork, or ≥ 1 **sealed** branch past it) → a **type-tagged
+- **No single tip** (an unresolved fork — a live content fork, or **≥ 2 accepted sealed** branches past it) → a **type-tagged
   `synthetic` marker recoupled to the verdict** (`forked` / `disputed`), qualified by **prefix + position**, and
   **structurally distinct from any real SAID** (a distinct type tag — so the "single-tip SAID ≠ synthetic"
   inequality that fires anti-entropy is *structural*, never a probabilistic collision; the encoder must not reduce it
@@ -129,7 +132,7 @@ can't lean on. A **synthetic is set-independent → flood-stable**, still **trig
 content branches by position** (masking is harmless — the value still moves on tip-advance and verdict-transition),
 **Disputed reincepts** (outcome invariant to the set), and **attribution walks the stored events, not the digest.**
 
-**The verdict rides the synthetic (they converge).** A data-local walk reads `forked` (≤ 1 sealed branch past the
+**The verdict rides the synthetic (they converge).** A data-local walk reads `forked` (a content-only fork — no accepted sealed branch past the
 fork — reconcilable) or `disputed` (≥ 2 sealed — terminal, reincept), inv 13/17, with the seal **derived** from the
 held events (the highest cleanly-linear seal-advancer). The synthetic **carries** that reading. **Both the value and
 the verdict are pure functions of the held event set** — no arrival-order dependence (the F2/H1 fix; a divergent
@@ -161,7 +164,7 @@ propagate and are never dropped, so all nodes converge to the **same held state 
 real SAID, or a set-independent synthetic); the un-witnessed adversarial flood is declined by witnesses and
 droppable, so it never perturbs the value. **Per-node state is one of four — {Active, Forked, Disputed,
 Terminated}** — each **DERIVED by a data-local walk** over the held events (never a stored flag; the beacon
-propagates the branches, it does not decide): `Forked` (≤ 1 sealed branch past the fork — recoverable) and
+propagates the branches, it does not decide): `Forked` (a content-only fork — no accepted sealed branch, recoverable) and
 `Disputed` (≥ 2 sealed — terminal) are first-class states, not a verdict layered on one `Divergent` state. **This
 value is the universal "has state changed?" comparison** behind token-reuse, deferred-deps drain, anti-entropy, and
 divergence.
@@ -243,11 +246,11 @@ rescission `Trm`s); if the SAD store answered a **fetch-by-SAID for an event bod
 revocations, using vdti's own store as the inversion oracle. **The fix:** the `vdtid` SAD-store write path **detects
 an event by `kind` and rejects it** — nothing legitimate needs an event body in the SAD store (events live in the
 chain log, prefix-addressed — inv 16), so a fetch-by-SAID **physically cannot return an event**. *(A **credential**
-is anchored as the **issuance commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')`** — an immutable SAD,
+is anchored as the **issuance commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')`** — an immutable SAD,
 **not** an event; the content/event `kind` split lets a **public** cred's body be fetched by SAID (intended) while a
 **private** cred's body is unpublished. The private-cred privacy interaction is **closed** (inv 16): `cred.said`
 appears **nowhere raw** on the public IEL — the issuance commitment, the revocation kill-target
-`hash('{CRED_REVOCATION_TOPIC}:{issuer}:{cred.said}')`, and the lookup SEL's prefix/said are all hashes of the
+`hash('vdti/sel/v1/tags/revocation:{issuer}:{cred.said}')`, and the lookup SEL's prefix/said are all hashes of the
 high-entropy preimage, so a passive observer can compute none of them.)* Bypass-robust: stripping
 the `kind` changes the content → changes the SAID → misses the attacker's harvested *real* event SAID. **`kind` is
 required on SAD data** (a clean per-kind store policy — allow content kinds, reject event kinds; the authoritative
@@ -257,6 +260,12 @@ now** — manifest-role SADs (roster/threshold delta, pins-SAD) also carry ident
 only *through* a chain you already have the prefix for, so they give the attacker nothing new; events are the sharp
 case. **Preferred over adding an availability field to every event.** *(One factual to-do before build: verify
 `kind` is populated on every SAD kind.)*
+
+**Design-owed (cold review 7.1, 2026-07-21):** the serve-by-SAID allowlist is a **soundness rule, not
+plumbing** — a load-bearing privacy enforcement (the principle above). On the design surface it currently
+lives only in the `kinds.md` §Fetch-by-SAID catalogue entry; the forthcoming
+`substrate/infrastructure/vdtid.md` design doc must **state and enforce it explicitly** when it lands
+(the enforcement point is wholly in that not-yet-written file today).
 
 ### 1k. Receipt-encoded threshold + on-receiving-node routing (first-seen hardening, 2026-07-08; design-reviewed 2026-07-14 — sound as written: the committed-config match on pull is authoritative, the receipt-encoded threshold only a fast-path hint)
 

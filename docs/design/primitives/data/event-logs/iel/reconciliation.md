@@ -48,14 +48,15 @@ safety claims hold _by construction_, not by observation.
    ([`events.md` §Seal-advance cap](events.md#seal-advance-cap)).
 2. **Bounded divergence.** A fork can only form at-or-after the last seal — a competing **content**
    event below the seal is dead on arrival (never a live fork; a competing **sealed** event below
-   the seal is **dropped** too — inert, not witnessable past the seal, the backdate defense), and
-   one **at** the seal's own serial forms a live fork (a sealed one → **Disputed** only if a second
-   reaches threshold — witness collusion). Combined with invariant 1 the fork is bounded on both
-   axes: **depth** — each content-fork lineage extends at most `MAXIMUM_UNSEALED_RUN` events past
-   the last seal (a member holding less than a rotation reserve can only author content
-   participations, so a deeper lineage needs a sealing event — tier 2); **breadth** — nodes retain ≥
-   2 competing events per position as evidence and drop the rest, with the one-content-sibling
-   witnessing rule on top.
+   the seal is **dropped** too — inert, not witnessable past the seal, the backdate defense), and at
+   the seal's own serial the tier decides — a **content** sibling is **buried** below the seal (dead
+   on ascent, the chain stays Active), a **sealed** one → **Disputed** only if a second reaches
+   threshold (witness collusion), so a live fork is **content-versus-content** past the seal.
+   Combined with invariant 1 the fork is bounded on both axes: **depth** — each content-fork lineage
+   extends at most `MAXIMUM_UNSEALED_RUN` events past the last seal (a member holding less than a
+   rotation reserve can only author content participations, so a deeper lineage needs a sealing
+   event — tier 2); **breadth** — nodes retain ≥ 2 competing events per position as evidence and
+   drop the rest, with the one-content-sibling witnessing rule on top.
 3. **Bounded operations.** `MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, sized so the
    canonical two-branch content fork anchored at the last seal — both lineages (≤
    `MAXIMUM_UNSEALED_RUN` each) plus the burying seal — fits one page, which a source → sink
@@ -63,19 +64,23 @@ safety claims hold _by construction_, not by observation.
 4. **A sealed divergence is terminal; a content divergence is recoverable.** A sealing event (`Evl`
    / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`) that would create or join a divergence does **not**
    extend the canonical chain — it is retained as non-canonical evidence rather than discarded. A
-   fork with **at most one** sealed branch is **Forked** (recoverable): a burying seal on the
-   winning branch buries the content loser by position + ascent. A fork with **two or more
-   witnessed** sealed branches past it is **Disputed** (reincept). Any verifier reads which by a
-   data-local walk. A sealed branch is never buried — that would resurrect a retired sealing
-   decision. See
+   content-only fork (both siblings accepted; no accepted sealed branch) is **Forked**
+   (recoverable): a burying seal on the winning branch buries the content loser by position + ascent
+   → Active; a fork already carrying that seal reads Active, not Forked. A fork with **two or more
+   witnessed** sealed branches (per branch, wherever their seals sit) is **Disputed** (reincept).
+   Any verifier reads which by a data-local walk. A sealed branch is never buried — that would
+   resurrect a retired sealing decision. See
    [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 5. **Locked-portion bound is unconditional.** No event class is exempt from the seal-cap — not even
    a burying `Evl`: a clean canonical extension requires `event.parent.serial ≥ seal_serial`, so
    nothing ever extends the canonical chain from a parent in the locked portion, and stale-authority
-   revival is structurally impossible. A parent strictly below the seal is inert for **both tiers**
-   — a content child is `Sealed`, and a sealed child is **dropped** too (inert — not witnessable
-   past the seal; the backdate defense — _not_ read `Disputed`). A sibling at the seal's own serial
-   forms a **live fork** (Forked / Disputed), retained as evidence.
+   revival is structurally impossible. A parent **two or more below the seal** (so the event itself
+   lands strictly below it) is inert for **both tiers** — a content child is `Sealed`, and a sealed
+   child is **dropped** too (inert — not witnessable past the seal; the backdate defense — _not_
+   read `Disputed`). A **sibling of the seal** (parent one below it) is retained, not `Sealed`: a
+   **content** sibling is **buried** below the seal (dead on ascent — the chain reads **Active**;
+   the `Buried` outcome), while a **sealed** sibling is a second seal at that serial → **Disputed**
+   only if it too is accepted.
 6. **Threshold anchoring; roster accumulation.** Every IEL event is authorized by a threshold of
    members' fresh KEL participations (kind-strict up), and the current roster is the **accumulation
    of every delta while walking** (a `cut` `Evl` also evicts) with the hard live-set cap of
@@ -90,16 +95,17 @@ feasible. The proof matrices below rely on invariants 4–6.
 ## IEL chain states (proof states)
 
 The per-node enumeration covers every shape the merge rules can produce. A live fork is **two
-distinct states**: **Forked** (≤ 1 sealed branch past it — recoverable) and **Disputed** (≥ 2 —
-terminal), each a first-class state a verifier **derives** by a data-local walk.
+distinct states**: **Forked** (a content-only fork, both siblings **accepted** — no accepted sealed
+branch, recoverable) and **Disputed** (≥ 2 accepted sealed — terminal), each a first-class state a
+verifier **derives** by a data-local walk.
 
-| State          | Description                                                                                                                                                                                                                                          |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Empty**      | No events for this prefix on this node.                                                                                                                                                                                                              |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`.                                                                                                                                                                                                |
-| **Forked**     | A live fork with **≤ 1 sealed branch** past it — recoverable; origination-frozen; resolved by a burying seal on the winning branch → Active.                                                                                                         |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — proof of quorum subversion or witness collusion (an honest partition cannot produce it), terminal. Nothing resolves it; the identity must reincept. Witnesses decline any extension → `Ignored`. |
-| **Terminated** | A `Trm` is the permanent end (all the identity's SELs freeze). Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → `Sealed`.                                                                       |
+| State          | Description                                                                                                                                                                                                                                                                                        |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Empty**      | No events for this prefix on this node.                                                                                                                                                                                                                                                            |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`.                                                                                                                                                                                                                                              |
+| **Forked**     | A live **content-only** fork — both siblings **accepted**, no accepted sealed branch — past it; recoverable; origination-frozen; resolved by a burying seal on the winning branch → Active. A fork carrying an accepted sealed branch reads Active (the seal buried the content), not a live fork. |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** — proof of quorum subversion or witness collusion (an honest partition cannot produce it), terminal. Nothing resolves it; the identity must reincept. Witnesses decline any extension → `Ignored`.                                               |
+| **Terminated** | A `Trm` is the permanent end (all the identity's SELs freeze). Not absorbing — a chain _from_ `Trm` → `Terminal`; a sealed sibling → `Disputed`; a content sibling → `Buried`.                                                                                                                     |
 
 **Empty** is the pre-inception case, included for completeness; the four **live-chain** states are
 Active / Forked / Disputed / Terminated (the state machine is four-state).
@@ -110,11 +116,13 @@ Every cell in Matrices 1–2 is a **transition** (the chain moved to or held a s
 **rejection** (nothing changed) — the `Result<MergeTransition, MergeRejection>` the merge engine
 returns per submission ([`merge.md` §Merge outcomes](merge.md#merge-outcomes) is authoritative).
 
-**Transitions** — `Extended` / `Recovered` both land **Active**; `Terminated`; `Forked` (≤ 1
-sealed); `Disputed` (≥ 2 sealed, or a burial hitting a sealed branch). **Rejections** — `Sealed`
-(inert below-seal parent), `Terminal` (a `Trm` admits no successor), `Invalid` (structurally
-inapplicable — including a role-outside-allowlist, a `kills` on `Ixn`, a facet-wrong `Wit`),
-`Ignored` (a well-formed event the witnesses decline).
+**Transitions** — `Extended` / `Recovered` both land **Active**; `Terminated`; `Forked`
+(content-only, no accepted sealed); `Disputed` (≥ 2 accepted sealed, or a burial hitting a sealed
+branch). **Rejections** — `Sealed` (inert below-seal parent), `Buried` (a content sibling at the
+seal's own serial — dead below the seal, retained as non-canonical evidence; state unchanged),
+`Terminal` (a `Trm` admits no successor), `Invalid` (structurally inapplicable — including a
+role-outside-allowlist, a `kills` on `Ixn`, a facet-wrong `Wit`), `Ignored` (a well-formed event the
+witnesses decline).
 
 ## Matrix 1: Local submissions
 
@@ -132,9 +140,10 @@ is content or sealed**. For an **Active** chain, every valid submission is in ex
 A new event whose own serial is below the seal's lands in the locked portion → `Sealed` (a content
 child) or **dropped / inert** (a sealed child — **not** `Disputed`: a below-seal sealed straggler is
 not witnessable past the seal, the backdate defense, invariant 5), independent of attach-position. A
-sealed sibling **at the seal's own serial** is the live-fork case (Forked / Disputed) — Position 2,
-not this one. The attach-position, not the chain state, carries this distinction — the state stays
-one of the four live-chain states.
+sibling **at the seal's own serial** (parent one below it) is Position 2 — resolved by tier (a
+content sibling buried (`Buried`) — the chain state unchanged; a second **accepted** sealed sibling
+→ `Disputed`), not a below-seal inert event. The attach-position, not the chain state, carries this
+distinction — the state stays one of the four live-chain states.
 
 ### Position 1 — the new event extends the tip (trivial: linear)
 
@@ -147,12 +156,12 @@ one of the four live-chain states.
 
 ### Position 2 — adjacent to the last seal (competes with the seal)
 
-| new event                             | outcome                                                                                                                                          |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Ixn`                                 | `Forked` — the seal + one content sibling, a mixed race (one sealed)                                                                             |
-| `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Disputed` — a second _accepted_ sealed branch beside the seal (two sealed → subverted/colluded; a witness-declined sibling is deferred-pending) |
-| `Trm`                                 | `Disputed` — a second _accepted_ sealed branch (a witness-declined sibling is deferred-pending)                                                  |
-| `Icp` / `Fcp`                         | `Invalid`                                                                                                                                        |
+| new event                             | outcome                                                                                                                                                                                                                                                                   |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Ixn`                                 | `Buried` — the content sibling is dead below the seal (dead on ascent, retained evidence); the chain stays `Active`. An honest witness declines it (`Ignored` at the witness layer — the position is already sealed); a colluded one is buried anyway — never a live fork |
+| `Evl` / `Ath` / `Rev` / `Dth` / `Wit` | `Disputed` — a second _accepted_ sealed branch beside the seal (two sealed → subverted/colluded; a witness-declined sibling is deferred-pending)                                                                                                                          |
+| `Trm`                                 | `Disputed` — a second _accepted_ sealed branch (a witness-declined sibling is deferred-pending)                                                                                                                                                                           |
+| `Icp` / `Fcp`                         | `Invalid`                                                                                                                                                                                                                                                                 |
 
 ### Position 3 — on the run past the last seal (competes with content)
 
@@ -174,7 +183,7 @@ one of the four live-chain states.
   submission is `Ignored`; a branch already witnessed before the dispute stays retained (it arrives
   via gossip). The only exit is reincept.
 - **Terminated** — a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling beside or
-  beyond → `Disputed`; a content sibling → `Sealed`.
+  beyond → `Disputed`; a content sibling → `Buried`.
 
 ### The sealed sub-split
 
@@ -184,8 +193,8 @@ differs, and shows up only in Position 1 and on a Terminated chain:
 
 - **`Evl` / `Ath` / `Rev` / `Dth` / `Wit`** are sealed **non-terminal** — a clean landing is
   `Extended` and the chain stays Active (a `Rev` / `Dth` seals a kill on a _target_, not the host
-  IEL). A `{Rev, content}` at a fork is one sealed branch → `Forked`, recoverable; the `Rev` branch
-  survives.
+  IEL). A `{Rev, content}` at a fork is one accepted sealed branch → `Active` (the `Rev` buries the
+  content sibling).
 - **`Trm`** is sealed **terminal** — a clean landing is `Terminated`.
 - Distinct **kills** at one position (`{Rev, Rev}`) are two accepted sealed branches → `Disputed`;
   identical kills dedupe by SAID (idempotent). A busy issuer's two identical roster-less re-seal
@@ -216,12 +225,12 @@ convergence.
 "Active (winning)" means the sink holds the eventual winning branch; "Active (losing)" the eventual
 buried branch. The protocol cannot distinguish the two from chain data alone.
 
-| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated |
-| ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | ---------- |
-| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵈ     | Sealed     |
-| **Recovered** (source burying) | Extended | Extended         | Recovered ᵈ     | Recovered / Disputed ᵈ  | Sealed     |
-| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed     |
-| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵈ | Extended ᶜ |
+| Source ↓ / Sink →              | Empty    | Active (winning) | Active (losing) | Forked                  | Terminated      |
+| ------------------------------ | -------- | ---------------- | --------------- | ----------------------- | --------------- |
+| **Active**                     | Extended | Extended         | Forked          | Extended / Forked ᵈ     | Sealed / Buried |
+| **Recovered** (source burying) | Extended | Extended         | Recovered ᵈ     | Recovered / Disputed ᵈ  | Sealed / Buried |
+| **Forked** (unrecovered)       | Forked   | Forked           | Forked          | Extended ᵃ              | Sealed / Buried |
+| **Terminated**                 | Extended | Extended         | Terminated ᵇ    | Terminated / Disputed ᵈ | Extended ᶜ      |
 
 **Row note (no Disputed source).** A **Disputed** source (≥ 2 accepted sealed branches) needs no
 separate row: it transfers like a **Forked** source — its retained sealed branches propagate, and
@@ -231,6 +240,11 @@ tier-rank, not by sealed-count.
 **Column note (no Disputed sink).** A **Disputed** sink is a terminal fixed point: every transfer
 dedups or retains the incoming branches and leaves the reading **Disputed**; a new canonical
 extension is `Ignored`.
+
+**Column note (Terminated sink).** The source branched before the sink's `Trm` — its competing event
+lands in the `Trm`'s final window, never _from_ the `Trm`. A **content** competitor resolves **by
+depth**: at the `Trm`'s own serial it is a **sibling to the `Trm`** — dead below its seal, retained
+→ `Buried`; strictly below, a locked-portion straggler → `Sealed`. A sealed competitor → `Disputed`.
 
 **Guarded cells:**
 
@@ -256,9 +270,9 @@ unrecovered divergent cases reach the partitioning path:
 
 - **Unrecovered content fork (`Ixn`-`Ixn`)** — the longer chain first as non-divergent appends; only
   the fork event from the shorter chain is sent, routed through the overlap path → Forked.
-- **A retained sealed branch** (a `{Evl, Evl}` or a burying seal the guard rejected, counted as the
-  second accepted sealed branch of a Disputed fork) is evidence and **must** propagate — dropping it
-  would split the reading across nodes.
+- **A retained sealed branch** (a `{Evl, Evl}` or a burying seal the guard rejected **and that was
+  itself accepted**, counted as the second accepted sealed branch of a Disputed fork) is evidence
+  and **must** propagate — dropping it would split the reading across nodes.
 
 ### Effective-SAID convergence
 
@@ -267,10 +281,10 @@ anti-entropy:
 
 - **A single confirmed tip** (a linear chain, or a fork settled below the seal — Active / Recovered
   / Terminated) → **that tip's real SAID** (a terminated chain's is its `Trm`).
-- **No single tip** (an unresolved fork — a live content fork, or ≥ 1 sealed branch past it) → a
-  **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by
-  **prefix + position**, **structurally distinct from any real SAID**, and **not** a digest over the
-  competing tips.
+- **No single tip** (an unresolved fork — a live content fork, or ≥ 2 accepted sealed branches, per
+  branch wherever their seals sit) → a **type-tagged synthetic recoupled to the verdict** (`forked`
+  / `disputed`), qualified by **prefix + position**, **structurally distinct from any real SAID**,
+  and **not** a digest over the competing tips.
 
 | State                  | Effective SAID (the value)                                                                                                                    | Converges?                                                                                                                                                                            |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -283,9 +297,10 @@ value is a **type-tagged synthetic** recoupled to the verdict, **not** a digest 
 tips (that set is adversarially extensible → flood-unstable; the design rationale for choosing a
 set-independent synthetic is
 [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison)'s). What
-this proof relies on: the verdict rides the synthetic — a data-local walk reads `forked` (≤ 1
-sealed) or `disputed` (≥ 2 sealed), the seal derived from the held events — and both value and
-verdict are **pure functions of the held event set**, in lockstep on every node.
+this proof relies on: the verdict rides the synthetic — a data-local walk reads `forked` (no
+accepted sealed — a content-only fork) or `disputed` (≥ 2 accepted sealed), the seal derived from
+the held events — and both value and verdict are **pure functions of the held event set**, in
+lockstep on every node.
 
 ## Matrix 3: Race matrix
 
@@ -324,8 +339,8 @@ collusion / quorum subversion**, which a designated submitter does **not** touch
 and a `{Evl, Evl}` brick recovers by **reincept**, made detectable on heal by witnessing. (Sealing
 serialization stays a **liveness** aid — it keeps honest sealers from stalling, not a safety
 mechanism.) Serialization above the protocol — a designated submitter or leader election — is a
-liveness aid, not safety; the doctrine — that a second _witnessed_ sealed branch at the last seal is
-terminal — is the chain's, enforced by the witnessing floor.
+liveness aid, not safety; the doctrine — that a second _witnessed_ accepted sealed branch (wherever
+its seal sits) is terminal — is the chain's, enforced by the witnessing floor.
 
 ### The federation IEL — always sealed, still first-seen-gated
 
@@ -375,15 +390,15 @@ competing events per position) with the one-content-sibling witnessing rule on t
 
 Rows = {tier of the losing branch} × {delivery timing}. Cell = reading + closing rule.
 
-| losing branch                                                                 | reading                                                                                                                 | closes with                                                                                                                                                                                                       |
-| ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **content**, buried below the seal                                            | first event below the seal, subtree dead on ascent → **Active** on the winning chain                                    | seal-cap (first event) + deadness-ascends (growth); the seal-cap bounds each dead lineage's depth (≤ `MAXIMUM_UNSEALED_RUN` past the seal)                                                                        |
-| **content**, branch **grows** after the burial (lagging node)                 | grown events dead **on ascent** — no follow-up event → **Active**                                                       | condemnation is over the subtree, not a tip; growth past depth `MAXIMUM_UNSEALED_RUN` needs a sealing event, itself dead on ascent → dropped                                                                      |
-| **content**, held when the burying seal arrives                               | burial **accepted**, the branch drops below the advanced seal → inert → **Active**                                      | an under-covering burial is accepted; the branch inerts rather than freezing the chain                                                                                                                            |
-| **sealed** — a burial attempted against it, or a 2nd present at the last seal | ≥ 2 **witnessed** sealed at the last seal → **Disputed** → reincept                                                     | a sealed branch at the last seal is never buried; two **witnessed** sealed branches read Disputed (needs a provable witness double-sign); a **below-seal** sealed straggler is **dropped** (inert, backdate-safe) |
-| **sealed** — a **lone unretained** branch, no burial                          | one sealed branch → **Forked**-frozen (recoverable only by its author's burying seal; reincept is the operational exit) | invariant 4 (≥ 2 sealed is the Disputed threshold; one is Forked) — _not_ Disputed                                                                                                                                |
-| **≥ 2 accepted sealed branches**                                              | **Disputed** → reincept                                                                                                 | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                                                   |
-| **`{Trm, content}` terminal tip** (no burial)                                 | `Trm` wins on tier-rank, content buried non-canonical → **Terminated**; a late sealed sibling → **Disputed**            | tier-rank, no burial authored; the after-seal sealed asymmetry                                                                                                                                                    |
+| losing branch                                                                                        | reading                                                                                                                                                                      | closes with                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **content**, buried below the seal                                                                   | first event below the seal, subtree dead on ascent → **Active** on the winning chain                                                                                         | seal-cap (first event) + deadness-ascends (growth); the seal-cap bounds each dead lineage's depth (≤ `MAXIMUM_UNSEALED_RUN` past the seal)                                                       |
+| **content**, branch **grows** after the burial (lagging node)                                        | grown events dead **on ascent** — no follow-up event → **Active**                                                                                                            | condemnation is over the subtree, not a tip; growth past depth `MAXIMUM_UNSEALED_RUN` needs a sealing event, itself dead on ascent → dropped                                                     |
+| **content**, held when the burying seal arrives                                                      | burial **accepted**, the branch drops below the advanced seal → inert → **Active**                                                                                           | an under-covering burial is accepted; the branch inerts rather than freezing the chain                                                                                                           |
+| **sealed** — a burial attempted against it, or a 2nd accepted sealed branch (wherever its seal sits) | ≥ 2 **witnessed** sealed branches (wherever their seals sit) → **Disputed** → reincept                                                                                       | a sealed branch is never buried; two **witnessed** sealed branches read Disputed (needs a provable witness double-sign); a **below-seal** sealed straggler is **dropped** (inert, backdate-safe) |
+| **sealed** — a **single** accepted branch, no competing seal                                         | the seal buries the content sibling → **Active** (a takeover you did not author reads Active node-agnostically, but forces _your_ reincept — operational, not a chain state) | invariant 4 (≥ 2 accepted sealed is the Disputed threshold; a **single** accepted sealed branch resolves to **Active**) — _not_ Disputed                                                         |
+| **≥ 2 accepted sealed branches**                                                                     | **Disputed** → reincept                                                                                                                                                      | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                                  |
+| **`{Trm, content}` terminal tip** (no burial)                                                        | `Trm` wins on tier-rank, content buried non-canonical → **Terminated**; a late sealed sibling → **Disputed**                                                                 | tier-rank, no burial authored; the after-seal sealed asymmetry                                                                                                                                   |
 
 ### Eviction is atomic — the `cut` `Evl`
 
@@ -402,12 +417,10 @@ key rotation plays — an IEL burial rotates no identity key, so a culprit is ne
 - **No buried sealed event.** A would-be-buried subtree is walked; a **witnessed** sealed event in
   it means ≥ 2 witnessed sealed branches → **Disputed**, not buried (validated, not trusted). The
   closer, detectable by either walk: every sealed IEL event is a seal-advancer, so a **witnessed**
-  competing seal at the last seal is a spine fork → **Disputed** (a below-seal or witness-declined
-  straggler is dropped / deferred, not counted).
+  competing accepted sealed branch (wherever its seal sits) is a spine fork → **Disputed** (a
+  below-seal or witness-declined straggler is dropped / deferred, not counted).
 - **No stale-authority revival.** Burial marks a subtree dead (by position + ascent), never extends
   or revives an event; there is no below-seal write operation, so the seal-cap stays unconditional.
-- **No self-burial.** A burying seal that siblings its own retained chain is rejected — a node
-  buries only competing branches, never the branch it keeps.
 - **Bounded fork.** Depth ≤ `MAXIMUM_UNSEALED_RUN` events past the last seal per lineage; breadth
   bounded by retention (≥ 2 per position) plus the one-content-sibling witnessing rule (a witness
   signs the first content sibling and declines later ones; sealed siblings first-seen too — one per
@@ -420,10 +433,10 @@ Under eventual beacon delivery and `< threshold` byzantine, every honest node's 
 to the true competing set. **All-content** → every node reads the winning chain as canonical, the
 effective SAID the real winning tip; converges to Active. **One sealed branch** → Active once the
 culprit is neutralized (the `cut` `Evl` evicts it) and beacon-confirmed; a non-author's attempt to
-bury the author's **witnessed** sealed branch is rejected (the guard); the competing seal is
-witnessed at its own position, its burial-effect void, so two witnessed sealed branches terminalize
-the prefix → **Disputed** (a witness-declined or below-seal straggler is dropped, not counted). **≥
-2 witnessed sealed at the last seal** → **Disputed** everywhere; the effective SAID is the
+bury the author's **accepted** sealed branch is rejected (the guard); the competing seal is accepted
+at its own position, its burial-effect void, so two accepted sealed branches terminalize the prefix
+→ **Disputed** (a witness-declined or below-seal straggler is dropped, not counted). **≥ 2 accepted
+sealed branches (wherever their seals sit)** → **Disputed** everywhere; the effective SAID is the
 verdict-recoupled synthetic.
 
 The forked chain is depth-capped at `MAXIMUM_UNSEALED_RUN` past the last seal per lineage — one

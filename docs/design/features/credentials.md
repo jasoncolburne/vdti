@@ -25,6 +25,7 @@ credential = {
   issuer,     // the issuer's identity prefix
   issuerPin,  // the anchoring event's `previous` SAID — locates the anchor (see below)
   issuee?,    // the subject's identity prefix; ABSENT → a bearer credential
+  delegationPath?,  // present iff issued under delegated authority — the ordered committed path (see below)
   claims,     // a nested SAD of the issuer's assertions (application-shaped)
   terms?,     // an issuer-set terms-of-use SAD; travels with the credential
   issued,     // an advisory timestamp — always present
@@ -71,10 +72,14 @@ Both are existing primitives, reused unchanged.
   issuer's chain, so it is time-ordered and revocable in place), and read **as-of that position**
   (the verifier confirms the located event's kind is `Ixn` — surfaced by the walk token — its
   `previous == issuerPin`, and that the issuance commitment
-  `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is a member of its
+  `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` is a member of its
   `manifest.anchors[]`). No registry object and no lookup record: the credential is immutable and
   holder-presented, so it needs none. The anchoring event transitively commits the issuer's key
-  state and its whole authority chain.
+  state and its whole authority chain. The anchoring `Ixn` is tier-1 content — **buriable until the
+  issuer's next seal** (the exposure is the current unsealed run): a fork-recovery that buries its
+  branch orphans the proof, and the credential is **re-minted** (fresh pin, fresh SAID) — the priced
+  residual
+  ([residuals §Burying rotation orphans a dependent anchor](../residuals.md#burying-rotation-orphans-a-dependent-anchor)).
 - **Proof of disclosure is compaction.** A SAD's SAID is a hash over its content with nested SADs
   replaced by their own SAIDs, so a section is disclosed by revealing it and recomputing its SAID
   against the reference in its parent — no sibling-hash paths. Because the anchored SAID is over the
@@ -112,8 +117,10 @@ conjunction:
 - **Structural integrity** — the SAID recomputes and `claims` is a well-formed SAD of the expected
   kind.
 - **Validly issued** — the issuance is anchored at the position its `issuerPin` names and the issuer
-  condition resolves there; for a **delegated** issuer, the delegation path is **not rescinded past
-  its grandfather bound** (a hop anchored before the bound stays honored).
+  condition resolves there; for a **delegated** issuer, the committed delegation path (the
+  credential's `delegationPath` field,
+  [`../primitives/policy/documents.md` §Delegation in a document](../primitives/policy/documents.md#delegation-in-a-document))
+  is **not rescinded past its grandfather bound** (a hop anchored before the bound stays honored).
 - **Issuer trusted** — the relying party trusts the `issuer` (its application decision).
 - **Fresh to the tip** — the issuer's chain is not forked, not disputed, and current, read against
   multi-source witnessed state. This is **mandatory**: an as-issued read alone is fooled by a forged
@@ -207,10 +214,12 @@ needs `citizen ∧ age ≥ 18`. This is solved **without zero-knowledge proofs a
 language**, by shaping the credential:
 
 - **The issuer pre-computes useful predicates as individually-blinded claims** — each a nested SAD
-  `{ said, nonce, data }`, e.g. `ageOver18`, `ageOver21`, `citizen`, alongside `birthdate` (the
-  recompute source). The per-claim `nonce` blinds each SAID, so a compacted claim leaks nothing.
-- **Disclose only what is asked.** The holder reveals the `{ nonce, data }` for the exact claim the
-  verifier needs and the verifier recomputes its SAID against the credential's commitment;
+  `{ said, kind, nonce, data }` (the `kind` a **type-generic** blinded kind,
+  `vdti/cred/v1/claims/blinded-{type}`, naming `data`'s JSON type — not the predicate), e.g.
+  `ageGTE18`, `ageGTE21`, `citizen`, alongside `birthdate` (the recompute source). The per-claim
+  `nonce` blinds each SAID, and the `kind` rides inside it, so a compacted claim leaks nothing.
+- **Disclose only what is asked.** The holder reveals the `{ kind, nonce, data }` for the exact
+  claim the verifier needs and the verifier recomputes its SAID against the credential's commitment;
   everything else stays blinded. Proving `age ≥ 18` never reveals the birthdate, because the issuer
   already computed the boolean.
 - **The verifier's check collapses to a boolean** — _is this claim disclosed, true, and provably
@@ -220,7 +229,7 @@ language**, by shaping the credential:
   unverified claim.
 - **A uniform bracket set gives presence-privacy.** Every credential _of a type_ carries the
   **same** claim keys, all blinded, differing only in the hidden `data`. If a minor's passport
-  omitted `ageOver18`, the mere presence of the key would leak age; uniform keys mean presence
+  omitted `ageGTE18`, the mere presence of the key would leak age; uniform keys mean presence
   reveals nothing. This is the one non-obvious rule.
 - **Crossing a threshold is a renewal.** A bracket is a fixed boolean, so a birthday that flips one
   is handled by re-issue: the holder discloses fully to the issuer (the birthdate is always in the
@@ -229,18 +238,22 @@ language**, by shaping the credential:
   the same way. The predicate set is issuer-defined and extensible by renewal, with no protocol
   change.
 - **Key derivation is application code, not a protocol registry.** Issuer and verifier call the
-  **same** canonical key derivation, so keys match by construction; operators are a small **total**
-  set (`gt`/`gte`/`lt`/`lte`/`eq`/`in`), decidable, with no arbitrary computation, and eligibility
+  **same** canonical key derivation — `predicateKey(field, op, required)` returns the claim key, so
+  `predicateKey("age", GTE, 18)` yields `ageGTE18` for both sides and keys match by construction —
+  and the issuer bakes each value with a matching value-producing helper
+  (`gtePredicate("age", actual, 18)`). Operators are a small **total** set
+  (`gt`/`gte`/`lt`/`lte`/`eq`/`in`), decidable, with no arbitrary computation, and eligibility
   defaults to `gte` so a `gt`/`gte` mismatch cannot silently miss.
 
 ## Revocation
 
 A credential needs no revocation object unless it is ever revoked. To revoke, the issuer declares a
 **kill** on its own chain naming the credential's derived revocation target —
-`hash('vdti/sel/v1/actions/revocation:{issuer}:{cred.said}')` — alongside a small sealed
-`{Icp, Trm}` lookup log at that derived address (so the declaration does not leak the object's
-address). A non-issuer cannot declare it, and a witnessed kill cannot be rolled back — no forged
-revocation, no silent un-revocation.
+`hash('vdti/sel/v1/tags/revocation:{issuer}:{cred.said}')` — alongside a small sealed `{Icp, Trm}`
+lookup log at the credential's **separately derived lookup address** (its own chain-prefix
+derivation under `topics/revocation`, over the same issuer + credential inputs — so the public
+declaration does not leak the lookup's address). A non-issuer cannot declare it, and a witnessed
+kill cannot be rolled back — no forged revocation, no silent un-revocation.
 
 - **Status is read fail-secure by default** — compute the target and walk the issuer's **fresh**
   chain from the issuance position to the tip, matching the target against each kill. Found →

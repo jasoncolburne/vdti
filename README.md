@@ -16,7 +16,8 @@ Underneath, you get the things every backend gives you — as verifiable primiti
 
 - **Data with custody** — content that carries a provable writer and a controlled read-set. Storage,
   provenance, and access control in one primitive.
-- **Logs** — single-owner, append-only, tamper-evident. Audit trails and event sourcing, free.
+- **Logs** — single-owner, append-only, tamper-evident. Audit trails and event sourcing, free to
+  compose — a high-volume log on a multi-device identity budgets a periodic re-seal.
 - **Identity** — a person or organization as a threshold of their own devices: the unit you
   authenticate and issue to, independent of any single device.
 
@@ -50,13 +51,26 @@ Every app you compose inherits, by construction:
   **roster cut**. What forces a truck roll or a fleet re-provision elsewhere is a single in-band
   chain event here.
 
-Whole classes of bug stop being possible: "trust the server" auth bypasses, silent tampering, murky
-provenance, and "who had access when" forensic gaps.
+Whole classes of bug stop being possible — not by discipline, but because the substrate makes them
+unrepresentable:
+
+- **No bad state to clean up** — no corrupt data to migrate, no references that dangle or break.
+- **Nothing to trust** — every object verifies from its own bytes; no server, cache, or database to
+  believe, and no "which copy is authoritative."
+- **No split-brain to reconcile** — conflicts are prevented or surfaced, never silently merged; and
+  ordering comes from the chain, not a clock you have to trust.
+- **Authority never goes stale** — permission is judged at an append-only position no one can
+  backdate; revocations and key rotations just propagate.
+
+**→ The full breakdown is in the design docs'
+[`README.md`](docs/design/README.md#what-you-never-have-to-worry-about).**
 
 In contrast to systems like KERI (a Decentralized Key Management Infrastructure), where system-wide
 state must be inferred through out-of-band watcher infrastructure, VDTI lets any verifier determine
-system-wide state — including whether an identity has **diverged or been compromised** — from the
-data itself, with no watcher infrastructure.
+system-wide state — including whether an identity has **diverged or been disputed** — from the data
+itself, with no watcher infrastructure. A compromise that leaves no fork — most severely, a stolen
+rotation reserve extending the chain — is caught by the owner's own cheap self-monitoring, not by a
+watcher network.
 
 ## Who runs it
 
@@ -93,15 +107,16 @@ repo layout, 9-phase v1 sequencing, and acceptance criteria.
 
 ## Contributing
 
-VDTI is in the design-completion phase; the canon is nearly complete. If you are considering
-contributing, the v1 roadmap ([vdti#1](https://github.com/jasoncolburne/vdti/issues/1)) lays out the
-planned phases and where work is happening. Use the issue templates (Doctrine, Implementation, Bug,
-Tracker) to file new items.
+VDTI is in the design-completion phase; the core design is under self-review, with the services
+architecture and example applications still ahead. If you are considering contributing, the v1
+roadmap ([vdti#1](https://github.com/jasoncolburne/vdti/issues/1)) lays out the planned phases and
+where work is happening. Use the issue templates (Doctrine, Implementation, Bug, Tracker) to file
+new items.
 
-To work on VDTI with an LLM, point it at [`docs/canon`](docs/canon) — VDTI's design notes. The
-workflow flows one way: the canon is propagated into **doctrine** (the design docs under
-[`docs/design`](docs/design/)), which is then translated into implementation. Design docs follow
-three rules: no jargon, greenfield voice, and human-readable slug refs.
+To work on VDTI with an LLM, point it at [`docs/design`](docs/design/) — the canonical design
+surface, written to three rules: no jargon, greenfield voice, and human-readable slug refs. The
+machine-oriented working canon that produced it is retired; its full decision history lives at the
+`canon-final` git tag, and [`docs/canon`](docs/canon) now holds only not-yet-encoded notes.
 
 ## License
 

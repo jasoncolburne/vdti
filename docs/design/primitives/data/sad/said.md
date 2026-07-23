@@ -23,6 +23,13 @@ MUST conform to RFC 8785's key ordering, number representation, and escape rules
 a bug to fix, not a design hedge — SAID-bearing wire formats are interoperable only under a single
 canonicalization spec, and the design pins that spec here.
 
+RFC 8785 canonicalizes numbers as IEEE-754 doubles, so **every JSON number in a SAD is an integer in
+±(2⁵³−1)** (the double-safe range); a number outside that range, or with a fractional part, is
+**malformed and rejected**. A value that does not fit — a larger integer, a decimal — is carried as
+a **string** by the kind's schema (so `u64`-labeled fields are non-negative integers in that range,
+not a usable 64-bit width). This keeps a number's authored value re-derivable and its SAID
+deterministic across implementations.
+
 Base64-encoding and qualifying the Blake3-256 digest produces a fixed-length text token. The
 qualifier carries the algorithm code in its leading characters, so any consumer can re-derive
 without out-of-band agreement on the hash function.
@@ -56,9 +63,11 @@ hashes:
    **only** `said` with the fixed-value placeholder. Canonicalize with JCS. Hash with Blake3-256.
    Base64 encode and qualify. Write the result into the SAD's `said` field.
 
-The two hashes see different canonical bytes, so on the inception event `prefix ≠ said`. The prefix
-is the stable chain identifier — copied forward on every subsequent event of the chain. The SAID is
-the per-event content hash that turns over each event.
+The two hashes see different canonical bytes, so on the inception event `prefix ≠ said` **with
+overwhelming probability** — a match would need a Blake3-256 collision — and, load-bearing, neither
+value is computable from the other, so the inception's event SAID never doubles as the chain's
+lookup key. The prefix is the stable chain identifier — copied forward on every subsequent event of
+the chain. The SAID is the per-event content hash that turns over each event.
 
 ```mermaid
 flowchart LR
@@ -72,8 +81,9 @@ flowchart LR
 
 Two Blake3-256 hashes over the same canonical content. The **prefix** hash blanks both `said` and
 `prefix` to the fixed-length placeholder; the **said** hash uses the real `prefix` and blanks only
-`said`. Different bytes → **`prefix ≠ said`** (correlation resistance), and the placeholder's fixed
-byte-length lets a SAID name its own SAD without circularity.
+`said`. Different bytes → **`prefix ≠ said`** (correlation resistance — overwhelming probability,
+not a certainty), and the placeholder's fixed byte-length lets a SAID name its own SAD without
+circularity.
 
 **Why two hashes, not one — correlation resistance.** A single hash would set the inception event's
 SAID equal to the prefix — and the prefix is the chain's lookup key, while a SAID is an opaque
@@ -144,6 +154,12 @@ per-payload schemas — and naturally surfaces submission errors: an inline nest
 `said` field is not in canonical form, its byte-hash does not match the declared SAID, and the
 storage service rejects via the existing SAID-match check without a new code path.
 
+**Consequence for application payloads.** Because `said` is reserved at **every** nesting level, an
+application that embeds free-form JSON containing a `said` key has that object treated as a sub-SAD
+position — it will not verify as a SAD, so the parent becomes permanently unverifiable. App-defined
+opaque content therefore rides as **bytes / a content-addressed blob** (`{digest, size}`), or under
+a kind-named schema the SAD declares — never as free-form JSON that might carry a `said` key.
+
 **Rule 2 — Inline embedding requires verification before substitution.** When a sub-SAD is embedded
 inline, the verifier MUST verify the embedded child's declared SAID against the child's own bytes —
 re-deriving the child's SAID per the algorithm above — before substituting that SAID into the
@@ -168,11 +184,9 @@ Signatures throughout VDTI are produced over the SAID bytes, not over the SAD's 
 The SAID is the cryptographic commitment to the content; signing the SAID transitively commits the
 signer to the canonical bytes that produced it.
 
-- **Stable signing surface under extension.** When a SAD's schema gains new fields under extension
-  discipline (see
-  [`../../../protocol-doctrine.md`](../../../protocol-doctrine.md#extension-discipline)), the SAID
-  computation absorbs the new fields into the digest. The signing surface is still the SAID, even
-  though the underlying canonical-byte stream changed shape.
+- **The signing surface is schema-agnostic.** A signature is over the SAID, never the serialized
+  bytes, so signing and verification never depend on a kind's field set: whatever fields the
+  canonical form carries, the digest absorbs.
 - **Unambiguous signature subject.** Signatures over serialized payloads are ambiguous about which
   canonicalization the verifier should reapply; signatures over a SAID are unambiguous — the SAID
   names exactly one content. A verifier checks the signature against the SAID, then independently
@@ -222,6 +236,12 @@ determinism of the derivation algorithm.
   list as **non-canonical** and rejects it, exactly as it rejects a non-compacted SAID (Rule 1) — so
   the set has one SAID, not one per permutation or repeat. Order-bearing lists (a version's
   `ancestors`) keep their order.
+
+A third gate closes the remaining degree of freedom — **undeclared fields**. A SAD carries only the
+fields its kind defines, so the same content cannot be padded into arbitrarily many valid SADs. Like
+the ascending-set rule it is a validation gate that **protects** this canonical form rather than an
+input the canonicalizer consults; it lives with the kind model in
+[`kinds.md`](kinds.md#schema--exhaustive-and-versioned).
 
 For chain inception events the prefix is independently content-derived via the second algorithm in
 [§Derivation](#derivation) and carries the same adversarial properties as the SAID —

@@ -8,7 +8,8 @@ and shared documents all resolve recipients through — none of them defines its
 An identity is a set of **devices** — each a key history in the identity's roster. Each device holds
 its own key-encapsulation keypair and publishes the public half here, so the directory is a map from
 an identity to its devices' receive keys. A device is never its own identity; it is one member of
-one.
+exactly one — enforced, not assumed: a chain's first act declares the identity it serves, and roster
+admission checks it ([the identity bond](../data/event-logs/kel/events.md#the-identity-bond)).
 
 ## Publishing a key
 

@@ -87,11 +87,16 @@ The structural guarantees follow from the SAID commitment and from where enforce
   persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the
   storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior.
   Cryptographic deletion is not a property the protocol offers.
+- **TTL is a retention promise, not a verifiable property.** Like one-shot, retention is the storage
+  service's promise, not something a consumer can verify: an adversarial replica can keep expired
+  bytes indefinitely, and an honest one may lose them early. A `ttl` bounds when the store **may**
+  delete, not when the bytes actually vanish.
 - **Replica-scope enforcement is fail-secure.** When `replicas` references a replica set that cannot
   be resolved (fetch failure, parse error), replication MUST default to skip rather than to
   broadcast. A resolution failure cannot quietly broaden the replication scope past what the SAD's
   author declared.
-- **Forbidden on chain events is enforced structurally.** Chain-event kind-schemas have no slot for
-  `availability`, so a chain-event submission carrying inline `availability` is rejected by the
-  structural-validation pass at the merge layer (see
+- **Forbidden on chain events is enforced structurally.** A chain-event kind declares no
+  `availability` field, so the exhaustive-schema rule
+  ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) rejects it: the structural-validation
+  pass at the merge layer drops any chain-event submission carrying inline `availability` (see
   [`../../../protocol-doctrine.md` §Merge verification](../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).

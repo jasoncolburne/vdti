@@ -277,7 +277,7 @@ group's own append-only chain**, validated **as-of its anchoring position** — 
 rotation, removed members can't append. That is exactly the "issue as the aggregate from its own chain"
 direction. **vdti mapping (B1 fail-secure rework 2026-07-09):** revocable-without-reissue issuance ⇒ **a
 credential is an anchored SAD issued by the issuer IEL** — issuance = the issuer anchors the issuance
-commitment `hash('{CRED_ISSUANCE_TOPIC}:{issuer}:{cred.said}')` on its IEL via an `Ixn` (T1), so it validates
+commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` on its IEL via an `Ixn` (T1), so it validates
 **as-of the anchoring position** and grandfathers across rotation; revocation = a **`kills[]` declaration** on
 the issuer's witnessed IEL `Rev` + a `{Icp, Trm}` lookup SEL (fail-secure, read on the same fresh walk).
 **Not** a foreign-`grp(X, group)` splice (the reshape dropped foreign-`grp` and `policyPin` entirely): a

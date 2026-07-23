@@ -21,8 +21,9 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   (parent SAID) + `serial` (monotonic position) + kind-specific fields, including SAD references
   that point to what an event commits to (a KEL or IEL event's role-grouped `manifest`, a lookup SEL
   inception's `data`). Chain events live on a KEL, IEL, or SEL chain and replicate as indivisible
-  units. Their kind-specific schemas have no slots for custody or availability fields, so those
-  fields cannot appear on a chain event.
+  units. Their kind-specific schemas declare no custody or availability fields, so — under the
+  exhaustive-schema rule ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) — those fields
+  are rejected on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
   replica sets, file payloads, and the content payloads SEL events anchor. Stored in the SAD object
   store and retrieved by SAID. MAY carry per-object authority via a top-level
@@ -72,14 +73,14 @@ Every SAD carries:
   drives structural validation, tier dispatch, the role vocabulary the SAD may carry, and whether
   the store serves it by SAID; a SAD with no `kind` cannot be sorted and is refused. The catalogue
   is [`kinds.md`](kinds.md).
-- For **chain inception events** (the prefix-deriving SADs): a `prefix` field in addition to `said`.
-  The inception event derives the two values via two separate hashes, in order — first `prefix`
-  (with both `said` and `prefix` set to the fixed-value placeholder), then `said` (with `prefix`
-  populated with its just-derived real value, and only `said` set to the placeholder). On the
-  inception event, `prefix` and `said` are different values. Subsequent events on the chain inherit
-  `prefix` from the inception event and derive only `said`; the inherited prefix is part of the
-  canonical bytes the `said` hash sees. See [`said.md` §Derivation](said.md#derivation) for the
-  algorithms.
+- For **chain inception events** and the shared-document constitution `V0` (the prefix-deriving
+  SADs): a `prefix` field in addition to `said`. Such a prefix-deriving SAD derives the two values
+  via two separate hashes, in order — first `prefix` (with both `said` and `prefix` set to the
+  fixed-value placeholder), then `said` (with `prefix` populated with its just-derived real value,
+  and only `said` set to the placeholder). On the inception event, `prefix` and `said` are different
+  values. Subsequent events on the chain inherit `prefix` from the inception event and derive only
+  `said`; the inherited prefix is part of the canonical bytes the `said` hash sees. See
+  [`said.md` §Derivation](said.md#derivation) for the algorithms.
 
 What content the prefix commits to is **per-primitive** — always the whole inception SAD (the KEL's
 key state; the IEL's `roster`, threshold vector, and `nonce`; the SEL's `owner` / `topic` / `data`),

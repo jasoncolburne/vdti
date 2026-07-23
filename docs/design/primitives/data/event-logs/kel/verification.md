@@ -47,7 +47,10 @@ simultaneously. Events must arrive in canonical order
 A **generation** is the set of all events at a given serial. The verifier processes events in
 generation order and tracks per-branch state. A fork forks per-branch state — when a second distinct
 event appears at the same serial as the first, the verifier records `divergence_ancestor` (the SAID
-of `v_{d-1}`) and tracks both branches independently.
+of `v_{d-1}`) and tracks both branches independently. The field is **verdict-coupled**: on a
+**Forked** chain it names the first (content) divergence; on a **Disputed** chain the **earliest
+divergence carrying ≥ 2 accepted sealed branches** — the two coincide except in a nested fork. On a
+Disputed chain it is **not** a recovery attach point (Disputed exits only by reincept).
 
 ### Per-event checks
 
@@ -96,10 +99,10 @@ KEL inception is one of two kinds — `Fcp`, `Icp` (see
 [`events.md` §Two-kind inception](events.md#two-kind-inception)). At v=0, the verifier dispatches on
 kind:
 
-| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                                |
-| -------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Fcp`          | absent                         | Pre-federation — no `federation`, no witnessing; the v=1 `Rot` anchors the federation IEL `Fcp` (founder bootstrap), entering the federation-bound lifecycle.                                    |
-| `Icp`          | `federation` + `federationPin` | **Federation-bound** (required — there is no direct mode): reads `federation` / `federationPin` as context (recorded per event); witnessing per `witnesses`. An `Icp` omitting them is rejected. |
+| Inception kind | Federation binding at v=0      | Verifier behavior                                                                                                                                                                                                                                                                        |
+| -------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp`          | absent                         | Federation infrastructure — no `federation`, no witnessing at inception; the v=1 anchors the federation act the chain serves (the genesis `Rot` anchoring the federation IEL `Fcp`, or a joiner's consent `Ixn` anchoring the admitting `Wit`), entering the federation-bound lifecycle. |
+| `Icp`          | `federation` + `federationPin` | **Federation-bound** (required — there is no direct mode): reads `federation` / `federationPin` as context (recorded per event); witnessing per `witnesses`. An `Icp` omitting them is rejected.                                                                                         |
 
 The kind discriminator is structural — encoded in the chain data — so the verifier dispatches the
 carve-out from chain data alone rather than consulting consumer configuration. Consumer trust
@@ -152,7 +155,8 @@ verify_generation(events_at_serial):
     if events_at_serial.len() > branches.len():
         # More events than branches → divergence detected
         fork BranchState for new branches
-        record divergence_ancestor (the SAID of v_{d-1}) if first divergence
+        record divergence_ancestor (the SAID of v_{d-1}) at the first divergence;
+        re-point it to the dispute's divergence when a dispute is detected (verdict-coupled)
 
     for each event:
         match to branch via event.previous
@@ -195,8 +199,8 @@ rather than policy-bound. See
 ```
 verify_signature(signed_event, public_key):
     # SAID is Blake3-256 of canonical content; signing the SAID bytes is
-    # equivalent to signing the content but more efficient (and stable
-    # under extension — see ../../sad/said.md §Signing surface).
+    # equivalent to signing the content but more efficient (the signing
+    # surface is schema-agnostic — see ../../sad/said.md §Signing surface).
     data = signed_event.event.said.as_bytes()
 
     signature = parse_signature(signed_event.signature)
@@ -220,8 +224,8 @@ KelVerification:
     prefix: String
     root_facet: RootFacet                        # Fcp-rooted (federation-witness infra) vs Icp-rooted (user); fixed at inception, carried so a resume reads Wit payloads facet-correctly (never facet-blind)
     branch_tips: Vec<BranchTip>                  # one per branch (1 = linear, >1 = divergent)
-    divergence_ancestor: Option<SAID>            # SAID of v_{d-1} on a divergent chain; None on linear
-    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Wit/Trm that landed cleanly on the linear run (not a competing sibling) — the reading is computed against it, from the held events, never arrival order
+    divergence_ancestor: Option<SAID>            # SAID of v_{d-1} at the verdict's divergence (Forked: the first divergence; Disputed: the earliest carrying >= 2 accepted sealed branches — not a recovery point there); None on linear
+    last_seal_advancing_event: Option<SAID>      # the derived seal: most recent Rot/Wit/Trm with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it; a fork with >= 2 accepted sealed branches has no clean seal above the divergence) — computed from the held events, never arrival order
     federation_context_per_event: ...            # per-event federation binding (for chains that have re-bound)
     anchored_saids: BTreeSet<SAID>               # registered SAIDs found anchored on the canonical branch
     queried_saids: BTreeSet<SAID>                # caller-registered SAIDs of interest
@@ -251,10 +255,13 @@ read-only component of the token, not an independent verified state). The seal t
 - `is_divergent()` → `branch_tips.len() > 1`.
 - `region()` → the consumer-facing trust region computed **data-locally** from the events held,
   against the **derived seal** (above): **trusted** (no fork reaching at-or-above the seal — a fork
-  buried below it is inert), **forked** (a fork at-or-above the seal with at most one sealed branch
-  — a content fork recovers via a burying seal-advancer; a lone sealed branch you did not author
-  reads forked but forces **your** reincept), or **disputed** (two or more branches each carry an
-  **accepted** (witnessed-at-threshold) sealed event at the last seal — terminal, reincept).
+  buried below it is inert), **forked** (a content-only fork at-or-above the seal, both siblings
+  accepted — no accepted sealed branch — recovers via a burying seal-advancer that buries the
+  content → Active; a **single** accepted sealed branch buries the content and reads **trusted** — a
+  reserve-theft takeover you did not author is clean on-chain, caught by owner-vigilance and
+  answered by reincept out-of-band, not surfaced here), or **disputed** (two or more branches each
+  carry an **accepted** (witnessed-at-threshold) sealed event — per branch, wherever the seal sits —
+  terminal, reincept).
 - `effective_said()` → a fingerprint of the node's held state: a **single confirmed tip yields that
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** — an unresolved fork
   — yields a **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified
@@ -331,8 +338,10 @@ pass, and it reads through the pathology to expose the chain's final portion rat
 hard-failing. The verifier:
 
 - Forks per-branch state when a second distinct event appears at the same serial.
-- Records the divergence ancestor (`v_{d-1}`'s SAID) and exposes it via `divergence_ancestor`, and
-  the competing branch tips via `competing_branch_saids`.
+- Records the divergence ancestor (`v_{d-1}`'s SAID) — verdict-coupled: on a Forked chain the first
+  (content) divergence, on a Disputed chain the earliest divergence carrying ≥ 2 accepted sealed
+  branches — and exposes it via `divergence_ancestor`, and the competing branch tips via
+  `competing_branch_saids`.
 - Verifies each branch independently.
 - Surfaces `is_divergent() = true` and the per-branch state via `branch_tips`, and the trust region
   via `region()`.
@@ -347,10 +356,11 @@ content fork (a burying seal-advancer on the winning branch); the verifier repor
 The verifier's terminal-state-determination rule:
 
 - A **live** fork — a divergence at or above the **derived seal**?
-  - **At most one sealed branch** → **forked** (recoverable); resolved by a burying seal-advancer on
-    the winning branch.
-  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches at the last seal** →
-    **disputed**; reincept.
+  - **No accepted sealed branch** (a content-only fork, both siblings accepted) → **forked**
+    (recoverable); a burying seal-advancer buries the content → Active. A **single** accepted sealed
+    branch buries the content → **Active**, not forked.
+  - **Two or more _accepted_ (witnessed-at-threshold) sealed branches** (per branch, wherever their
+    seals sit) → **disputed**; reincept.
 - No live fork — linear, or a fork **buried below the seal** (its content loser inert) → **Active**
   (or Terminated via `Trm`); a `{Trm, content}` fork ends **Terminated** by tier-rank.
 
@@ -390,9 +400,10 @@ carve-outs — see [`merge.md` §Kind-specific authorization](merge.md#4-kind-sp
 The trust an anchor carries splits at the **seal**, not the divergence point. An anchor hosted
 at-or-below `last_seal_advancing_event` is **permanently final** — it stays anchored on the
 canonical branch regardless of any later above-seal divergence. (Against a **witnessed** sealed fork
-**at** the last (clean) seal — a spine fork — the reading flips to `disputed`, and permanence runs
-against the last **clean** seal; a below-seal sealed straggler is **dropped**, not disputed, and
-sealed events are still never rewritten — see
+— **two or more accepted sealed branches**, wherever their seals sit — the reading flips to
+`disputed` and the clean seal retreats to the divergence ancestor, so permanence runs against that
+retreated clean seal; a below-seal sealed straggler is **dropped**, not disputed, and sealed events
+are still never rewritten — see
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).) An anchor
 above the seal carries tier-1-only durable authority and becomes durable only once a later
 seal-advancing event lands cleanly past it. So `anchored_saids` reflects the canonical branch, and a
@@ -411,8 +422,8 @@ receipts deliver competing branches and freshness, never a verdict.
 **`witnessed`.** True iff the event has accumulated threshold-many receipts under a consistent
 federation state. Witnesses are sort-selected by chain position `(prefix, serial)`; all competing
 candidate events at the same chain position route to the same witness set by construction. The
-verifier independently re-checks each receipt's `witnessed_said` against structural validity —
-receipt counts alone do not satisfy `witnessed`.
+verifier independently re-checks each receipt's `eventSaid` against structural validity — receipt
+counts alone do not satisfy `witnessed`.
 
 **The divergence signal splits by provenance.** When a node holds two or more sealed branches **each
 accepted** — witnessed at threshold **and** its lineage accepted (a branch off a first-seen loss is
@@ -424,12 +435,12 @@ counted — it stays **`forked`** / deferred-pending, and a below-seal straggler
 threshold under the floor, so the anomaly signal is a **sub-threshold competing receipt set** at a
 position — the node fetches the event and the data-local walk decides
 ([§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) derives why).
-Single-rogue protection: a rogue who signs receipts on a fake `witnessed_said` cannot trigger a
-verdict — the fake event fails structural re-check, and honest witnesses do not sign for fakes; the
-verifier re-checks validity because the database cannot be trusted. Receipts tell a node it is
-_forked_; only the data-local walk tells it _disputed_.
+Single-rogue protection: a rogue who signs receipts on a fake `eventSaid` cannot trigger a verdict —
+the fake event fails structural re-check, and honest witnesses do not sign for fakes; the verifier
+re-checks validity because the database cannot be trusted. Receipts tell a node it is _forked_; only
+the data-local walk tells it _disputed_.
 
-**`minority_dissent`.** Receipts below threshold for some `witnessed_said` that don't contribute to
+**`minority_dissent`.** Receipts below threshold for some `eventSaid` that don't contribute to
 pinning. Forensic signal for potentially-compromised witnesses; not load-bearing for trust
 decisions.
 
@@ -453,6 +464,16 @@ This is what makes federation witnessing the propagation channel for cross-node 
 sealed events: a witness holds and gossips the event it signed, but **no node — witness or not —
 treats a sub-threshold event as accepted**.
 
+**Acceptance gates the tip; an accepted event commits its ancestry.** Reaching threshold makes an
+event canonical, and its whole `previous`-chain becomes canonical **with** it — including ancestors
+that never individually reached threshold (a stale-pin recovery's deferred events, once the
+witnessed re-pin commits them as `previous`; a split-stall exit's retained sibling, once the
+witnessed seal commits it). This does not contradict the rule above: "no node treats a sub-threshold
+event as accepted" governs whether a sub-threshold event stands as a **competing branch** in the
+fork walk — it never does — not whether an accepted event's own ancestors are canonical. So a
+pure-function-of-accepted-state walk follows an accepted tip's `previous`-chain in full; it does not
+re-gate each ancestor on its own receipt count.
+
 ### Federation context per layer
 
 Federation context attaches **per layer**, not by blanket inheritance through the anchor walk. A
@@ -468,9 +489,9 @@ from the layer that owns it.
 ### Trust composition through the config-pinned federation prefix set
 
 For each event the verifier walks the chain's current federation context back to the federation
-IEL's inception. If the federation's prefix is in the trusted set (compile-time-baked + runtime
-override), the federation is trusted for that event. Multi-federation chains (KELs that have
-transferred federations via `Wit` events) require each federation in the chain's history to be
+IEL's inception. If the federation's prefix is in the trusted set (runtime-configured, empty by
+default — fail-secure), the federation is trusted for that event. Multi-federation chains (KELs that
+have transferred federations via `Wit` events) require each federation in the chain's history to be
 independently trusted — no transitive trust. See
 [§Federation witnessing in verification](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
 and
@@ -506,7 +527,7 @@ page rather than loading the full chain into memory.
 `completed_verification(loader, prefix, page_size, max_pages, anchors)` pages through a
 `PageLoader`, calling `truncate_incomplete_generation()` at page boundaries to handle divergent
 generations that span pages. Returns a trusted `KelVerification` token. The `max_pages` parameter
-prevents resource exhaustion (default 64 pages ≈ 8K events; configurable via env var).
+prevents resource exhaustion (default 64 pages ≈ 8K events; configurable).
 
 ### PageLoader
 
@@ -580,8 +601,8 @@ spanning two pages re-fetches at the next page rather than being processed half-
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#federation-witnessing-in-verification)
   — federation witnessing in verification.
 - [`../../sad/said.md`](../../sad/said.md#derivation) — SAID and prefix derivation algorithms.
-- [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; stability
-  under extension.
+- [`../../sad/said.md`](../../sad/said.md#signing-surface) — signing over SAID bytes; the
+  schema-agnostic signing surface.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing mechanics.
 - [`../../../../substrate/federation/bootstrap.md`](../../../../substrate/federation/bootstrap.md) —

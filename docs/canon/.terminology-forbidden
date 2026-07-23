@@ -163,8 +163,8 @@ kels/sad/
 #     bare "divergent" / "irreconcilable" and the "forked"/"disputed" verdict words
 #     stay live too — only the kels divergent: / irreconcilable: colon forms are dead;
 #   policy_satisfied  — the verifier token reports the structural-validity
-#     result, not a policy signal (authorization is structural; policy lives on
-#     documents);
+#     result, not a policy signal (authorization is structural; the acceptance
+#     policy is the relying party's, at the document/application layer);
 #   RecoveryRecord  — a repair commits a losing branch's root as the `fork`
 #     manifest role, not a separate audit-row type;
 #   witnessParams / witnessThreshold / witnessSelectionSize  — the witness
@@ -271,3 +271,10 @@ rescinds\[\]
 #     (prefix, serial). (Kept — already correct, never renamed.)
 # The bare term must not return; the new names carry no "majority" substring.
 majority floor
+
+# ============================================================================
+# §actions/ derivation-string segment retired (2026-07-22)
+# ============================================================================
+# Role-named namespace: tags/ (hash-tag strings) + topics/ (SEL topics);
+# revocation split into tags/revocation + topics/revocation. actions/ is dead.
+vdti/(iel|sel)/v1/actions/

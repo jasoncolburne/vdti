@@ -4,8 +4,9 @@ VDTI lets users control their identity and data without relying on a central aut
 decoupled from the identity that operates them; identity is a first-class primitive, and policy is a
 composable layer over it. In contrast to solutions like KERI (a Decentralized Key Management
 Infrastructure), where system-wide state must be inferred via out-of-band watcher infrastructure,
-VDTI lets any verifier determine system-wide state — including attack exposure — by inspecting the
-data itself.
+VDTI lets any verifier determine system-wide state — including whether a chain has diverged or been
+disputed — by inspecting the data itself (a compromise that leaves no fork — most severely, a stolen
+rotation reserve — is caught by owner-side monitoring — [monitoring](monitoring.md)).
 
 This is the canonical orientation doc. Read it before doing substantive work on VDTI. Detailed
 doctrine — primitive specs, witnessing mechanics, kind-strict anchoring, divergence handling,
@@ -47,10 +48,10 @@ acceptable is the relying party's decision, not a policy the credential carries.
 ## End-verifiability
 
 Any verifier, given **data from any source** plus the **trusted federation set**
-(compile-time-baked, runtime-overridable), can determine system-wide state — including whether a
-prefix is forked, disputed, or terminated. Source location matters for cost (cache, replication,
-retrieval latency), not for trust. Tamper-evident chain linkage means a verifier catches
-inconsistencies at page boundaries regardless of where the bytes came from.
+(runtime-configured, empty by default — fail-secure), can determine system-wide state — including
+whether a prefix is forked, disputed, or terminated. Source location matters for cost (cache,
+replication, retrieval latency), not for trust. Tamper-evident chain linkage means a verifier
+catches inconsistencies at page boundaries regardless of where the bytes came from.
 
 This is the property that justifies the architecture. **End-verifiability over
 data-from-any-source** is what differentiates VDTI from systems that require trusted-watcher
@@ -58,7 +59,7 @@ infrastructure to infer system state.
 
 ## Federation convergence
 
-**In one line:** the witnessing floor **prevents a _same-kind_ fork** (two content, or two sealed)
+**In one line:** the witnessing floor **prevents a _same-tier_ fork** (two content, or two sealed)
 from forming on an honest quorum — that takes witness collusion, a provable double-sign. A **mixed**
 {sealed, content} fork still forms on an honest cross-node race, and resolves by tier: a burying
 seal buries the content loser (or a `Trm` retires the chain), while **two accepted sealed branches**
@@ -72,9 +73,10 @@ flowchart TD
   A --> K{"same kind?<br/>(two content, or two sealed)"}:::q
   K -->|"yes"| HQ{"co-witnessed on an<br/>honest quorum?"}:::q
   HQ -->|"no — the floor (&gt; signers/2)<br/>declines the second sibling"| P["<b>Prevented</b><br/>the fork never forms;<br/>the loser stalls &amp; re-issues"]:::good
-  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>at the last seal"}:::q
+  HQ -->|"only via witness collusion<br/>(fork-cost 2·threshold − signers,<br/>a provable double-sign)"| N{"accepted sealed branches<br/>(per branch, wherever their seals sit)"}:::q
   K -->|"no — mixed {sealed, content};<br/>forms on an honest cross-node race"| N
-  N -->|"≤ 1"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser<br/>(a Trm retires the chain instead)"]:::good
+  N -->|"0 — content-only fork<br/>(both contents accepted)"| F["<b>Forked</b> (recoverable)<br/>a burying seal buries the content loser"]:::good
+  N -->|"1 — the seal buries the content"| AC["<b>Active</b><br/>the single accepted sealed branch buries<br/>the content sibling (a Trm retires instead)"]:::good
   N -->|"≥ 2"| X["<b>Disputed → reincept</b><br/>two accepted seals — neither can<br/>bury the other; terminal"]:::bad
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
   classDef q fill:#20263a,stroke:#868e96,color:#e9ecef
@@ -85,17 +87,19 @@ flowchart TD
 End-verifiability rests on the **data**, with the federation as a propagation aid:
 
 - **Prevention for witnessed events; detection for the byzantine residual.** On a witnessed chain
-  the witness-config's **witnessing floor** (`threshold > signers/2`), plus **one-per-position
-  witnessing (content _and_ sealed — the position gate is universal)**, means two competing
-  **same-kind** events at a position (two content, or two sealed) can never both be witnessed on an
-  honest quorum — so a fork, content **or** sealed, is **prevented** from forming. Manufacturing one
-  costs owning `2·threshold − signers` witnesses (the **fork-cost**), a provable double-sign. What
-  prevention does not cover is **detected**: the byzantine (witness-collusion) residual — a **seal**
-  being a tier-2 event (a rotation, or a governance / kill act) that ratchets the chain's trust
-  boundary forward, so two _witnessed_ sealed branches at the last seal are a collusion proof →
-  `disputed` (a seal on a buried lineage is **dead on ascent** — you can't seal a buried chain — so
-  two accepted branches can only fork at the competing seals themselves; the double-sign is at that
-  one position).
+  the witness-config's **witnessing floor** (`threshold > signers/2`), plus
+  **one-per-tier-per-position witnessing (content _and_ sealed each first-seen — the position gate
+  is universal)**, means two competing **same-tier** events at a position (two content, or two
+  sealed) can never both be witnessed on an honest quorum — so a fork, content **or** sealed, is
+  **prevented** from forming. Manufacturing one costs owning `2·threshold − signers` witnesses (the
+  **fork-cost** floor, under total partition), a provable double-sign. What prevention does not
+  cover is **detected**: the byzantine (witness-collusion) residual — a **seal** being a tier-2
+  event (a rotation, or a governance / kill act) that ratchets the chain's trust boundary forward,
+  so **two or more _witnessed_ accepted sealed branches** (per branch, wherever their seals sit)
+  prove a dispute → `disputed` (a seal on a **first-seen-dead** lineage is **dead on ascent** — you
+  can't seal a buried chain — so in the honest case only one branch seals → Active; a dispute takes
+  two accepted-lineage branches, proven by a witness double-sign or, across disjoint federations, an
+  author-side proof — a reserve double-reveal or a member's double-anchoring).
 - **Detection is data-local.** Gossip propagation plus deterministic effective-SAID resolution
   ensures every chain converges on the same semantic state across all nodes that hold the same
   events. A divergence is resolved by **tier**: a content fork is recoverable (a burying
@@ -171,8 +175,9 @@ extend the chain even if the adversary still holds it.
 
 ### Divergence is resolved by tier; a divergent chain freezes further origination
 
-A **live** fork — two distinct events at one serial, at or above the seal — freezes further work and
-resolves by **tier**, never by identity:
+A **live** fork — two competing **accepted content** events at one serial at or above the seal (two
+accepted **sealed** branches are Disputed) — freezes further work and resolves by **tier**, never by
+identity:
 
 - **Freeze is origination, not the reading.** No new work lands on a live fork until it resolves —
   for a content fork, a **burying seal-advancer** on the winning branch (a `Rot` / `Wit` / `Trm` on
@@ -226,7 +231,7 @@ Defense is **layered** — each layer catches what the one below it cannot:
 →
 [`protocol-doctrine.md` §Limit of the doctrine](protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise).
 
-### Federation convergence
+### Convergence is data-local; the federation propagates, it does not decide
 
 Detection is **data-local**: a node retains a competing branch as evidence and walks the retained
 branches to decide whether a fork is terminal — even sealed-vs-sealed races converge this way.
@@ -302,7 +307,7 @@ matters, the verifier enforces it.
 ### Uniform data — a program can operate it natively
 
 Every artifact is a **kinded SAD**: one self-describing shape
-(`kind = vdti/<concept>/v1/<category>/<thing>`, a discoverable taxonomy), addressed and verified by
+(`kind = vdti/{component}/v1/{category}/{name}`, a discoverable taxonomy), addressed and verified by
 pure functions — a prefix recomputed from its inception content, a SAID that is the content hash,
 and validity a deterministic walk — over data from any source, with no service to trust. A consumer
 learns **one** model and can generate, address, and verify the entire surface locally, without an

@@ -1,7 +1,7 @@
 # VDTI in plain english
 
 **What this is.** Plain-language statements of the design rules — the _narrative_ layer: the
-concepts, not the structural encoding. The structural detail lives in the canon (`docs/canon/`).
+concepts, not the full detail. The detail lives in the design docs (`docs/design/`).
 
 ---
 
@@ -33,9 +33,11 @@ Two boundaries to be clear about. **The threshold is over _devices_, not people*
 is your own device set, and a device-threshold is not an identity-threshold. Multiple _independent
 identities_ — a team of separate people, or several orgs — compose at the **policy** layer (below),
 not as members of one IEL; a single controller's device set (one person's, or one organization's) is
-one IEL. And these are _recommendations_, not walls the system enforces: nothing can stop two people
-from sharing a key or one device from hosting several identities — but the intended model is **one
-controller (a person, or an organization acting as one) ↔ one IEL ↔ its devices.**
+one IEL. Two rules of different strengths here: nothing can stop two people from sharing a key —
+that stays a recommendation — but a **key history** serves exactly one identity (its first act
+declares which, and joining a roster checks it), so a device hosting several identities runs a
+separate key history for each. The intended model is **one controller (a person, or an organization
+acting as one) ↔ one IEL ↔ its devices.**
 
 ## The two keys on a device
 
@@ -55,56 +57,49 @@ evict, freezing you into reinception. Three is the floor, and that's why you bin
 ## The core rule: conflicts
 
 Normally there's one event per step in a chain. Sometimes two show up claiming the same step — a
-**conflict**. What to do about the second one is the heart of the design. It turns on two questions,
-asked in order — but first, one distinction that trips people up:
+**conflict**. What happens next is the heart of the design, and it turns on a single question — but
+first, one distinction that trips people up:
 
 **Witnesses aren't "the group."** Witnesses are the servers that attest to _every_ event; they're
 the ones _applying_ these rules. Where "the group" matters below, it means the identity's **own keys
 that had to agree** to author the event — a user's own devices, or the federation's own members —
 never the witnesses.
 
-**Question 1 — is it ordinary activity, or a key change?**
+**The question — is the conflict over ordinary activity, or over a key change?**
 
-- **Ordinary activity** → witnesses take the first they see and drop the copies. Always. A conflict
-  here is recoverable (the next key change buries the loser), so it never alarms.
-- **A key change** → could be terminal (you can't un-change a key), so ask Question 2.
+- **Ordinary activity (content)** → **recoverable.** Witnesses take the first version they see and
+  decline the rest; if a second does get backed, the next key change **buries** the loser and the
+  chain reads clean again. An ordinary conflict never has to alarm.
+- **A key change (sealed)** → **possibly terminal.** You can't un-change a key. Witnesses take the
+  first here too — the first-seen rule is the same for key changes as for ordinary activity. When
+  two key changes are both backed, the chain is **Disputed**: unrecoverable, and you start over
+  under a new identifier.
 
-**Question 2 (key changes only) — could one key have signed the competing version, or did it take
-several of the identity's keys agreeing?**
+That's the whole line: **content is recoverable; a key change can be terminal.** It does **not**
+matter whether _one_ key or a whole _group_ authorized the key change — two backed key changes are
+terminal either way. A single device rotating its own key and a federation changing its roster are
+handled the same at the conflict: first-seen, and terminal if a second is forced through.
 
-- **One key could** → take the first, drop the copy. This is **a device rotating its own key** (a
-  KEL rotation) — and also a **solo identity's governance**, since its roster is one key, so one key
-  authorizes a roster change. The trap: the key a device signs with today is the same secret that
-  made its most recent key change, so a stolen signing key could forge a second version — and a
-  stolen key must stay _recoverable_, not terminal. (Inert anyway: the stolen key can only forge
-  _after_ the real change revealed it, by which point the witnesses have already sealed that
-  position.)
-- **It took several** → keep both, raise the alarm. This is **a roster change on a multi-device
-  identity** (several devices must agree — `t_govern ≥ 2`) or **anything the federation does**. No
-  single stolen key can fake it, so a second version is proof the group was subverted — exactly what
-  you want surfaced.
+**So what is the "one key versus a group" distinction for?** It is what a dispute _proves_ afterward
+— the forensics, not the rule. Two backed device rotations (`{rotate, rotate}`) prove the attacker
+held that device's signing key _and_ colluded with witnesses. Two backed group acts
+(`{roster-change, roster-change}`) prove the attacker subverted the group's quorum _and_ colluded
+with witnesses. Same outcome — Disputed, reincept — but the proof tells you _who_ to evict versus
+_who_ to walk away from.
 
-**Both kinds of identity live on both sides.** A multi-device personal identity uses "take the
-first" for its devices' own key changes and "raise the alarm" for its group decisions. The
-**federation is the pure case** — no ordinary activity, every decision a group decision, so _every_
-federation conflict is an alarm.
+**The federation is the pure case** — no ordinary activity, every decision a key-level group act —
+so _every_ federation conflict is a potential dispute, never a recoverable one.
 
-The one-line test: **could a single stolen key have faked this conflict, or would it take a group
-betrayal?** Faked → throw the fake away and recover. Group betrayal → surface it loudly.
-
-(From a single witness's seat it's simpler still: it checks its own history and won't sign twice at
-one step. We only plan for a second getting backed because we can't assume every witness is honest —
-and a corrupted one that does leaves its signature on both as the evidence.)
+(From a single honest witness's seat it's simpler still: it checks its own history and won't sign
+twice at one step. We only plan for a second getting backed because we can't assume every witness is
+honest — and a corrupted one that signs twice leaves its signature on both as the evidence.)
 
 ## What "disputed" means
 
 **Disputed** is when a conflict is visible to everyone in the data — both versions have enough
-backing to be trusted. Same word on every kind of chain, and it arises two ways: on a **group
-decision** the design _records both_ on purpose (the "raise the alarm" rule), so a subverted group
-surfaces at once; on anything else honest witnesses take only the first, so a second version reaches
-backing only if an attacker _corrupts enough witnesses_ to force it — and forcing it leaves their
-double-signatures in the data as proof. Either way, what you _do_ about it depends on which kind of
-event conflicted:
+backing to be trusted. Same word on every kind of chain. Honest witnesses take only the first
+version at any step — key changes included. What you _do_ about it depends on which kind of event
+conflicted:
 
 - **Two pieces of ordinary activity** → recoverable. Your next key change keeps the real line and
   drops the other.
@@ -200,12 +195,13 @@ take on a new artifact after the fact. Two things fall out, and they're the whol
 - **An artifact can't go wrong on its own.** To write a competing artifact event, an attacker who
   stole the owner's key has to author a _fresh_ identity event to anchor it — there's no way to hang
   new artifact content off an old, already-sealed identity point. So the attack always shows up as
-  activity on the _identity_, at or after the point of compromise — never as a lone artifact fork
-  the identity doesn't already reflect.
+  activity on the _identity_, at or after the point of compromise — and the artifact's own log is
+  **witnessed at its own positions**, so a same-position artifact fork is declined there just as on
+  any chain (the anchor alone couldn't see one).
 - **And it heals for free.** Because that malicious anchor sits at or above the compromise, the
   owner's recovery — a single key change at the first bad point — buries it, and every artifact
-  event the anchor named dies with it: deadness spreads downward and crosses the anchor. No separate
-  repair for artifacts, ever; recovering the artifact _is_ recovering the identity.
+  event the anchor named dies with it — the deadness crosses the anchor. No separate repair for
+  artifacts, ever; recovering the artifact _is_ recovering the identity.
 
 So a stolen artifact-signing key is exactly as recoverable as a stolen identity signing key — it
 reduces to the identity's own "rotate at the root and bury." Nothing new to learn.
@@ -263,13 +259,11 @@ claim is "the evidence always exists," not "no party can be unaware."
 Be precise about what this does _not_ cover. If an attacker steals the deepest reserve — the point
 of no return — they don't need to fork at all: they can just _extend_ the chain with a rotation to
 their own key. Witnesses sign it willingly, as an ordinary next event. Nothing is forced, so nothing
-double-signs — it isn't a conflict, and it isn't stale (the receipts are fresh). On a chain the
-owner is watching, the owner sees a rotation they didn't make and raises it (turning it into a fork
-→ disputed → start fresh). But on a chain that's gone quiet, with no one watching, that takeover is
-**invisible to a third party** — it reads as an ordinary rotation. So the honest guarantee is
-narrower: **no silent _forgery_** (no forced fork). Catching a reserve-theft takeover on a dormant
-chain rests on **owner vigilance**, not on the witnesses — and reserve theft is unrecoverable
-regardless, so the answer there is to start fresh.
+double-signs — it isn't a conflict, and it isn't stale (the receipts are fresh). Watching the chain
+means the owner notices sooner. To a third party the takeover reads as an ordinary rotation. So the
+honest guarantee is narrower: **no silent _forgery_** (no forced fork). Catching a reserve-theft
+takeover rests on **owner vigilance**, not on the witnesses — watched or not — and reserve theft is
+unrecoverable regardless, so the answer there is to start fresh and tell the people who rely on you.
 
 And the outer edge, as always: an attacker who has corrupted _every_ witness vouching for you at
 once leaves no honest witness to trace it. That's the same limit every system of this kind has — if

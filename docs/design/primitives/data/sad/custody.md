@@ -81,19 +81,26 @@ hypothetical.
 So a write attribution is **corroborated by an append-only anchor**, not self-asserted. **An
 `owner`-bearing SAD is anchored directly on the owner's IEL:** the owner authors an `Ixn` on its own
 IEL whose `manifest.anchors[]` commits the SAD's **issuance commitment**
-`hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` — a blinded hash, so the SAD's own `said`
-never appears raw on the public IEL. That `Ixn` — a tier-1 (`t_use`) content act only the owner's
-`t_use` quorum can author, witnessed, at an append-only position — **is** the write authorization:
-it records, non-repudiably, that the owner wrote this SAD. A **credential** is the named instance:
-its commitment `hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` is this formula with
-`owner` = `issuer` and `said` = `cred.said` — the same mechanism under the generic custody names. A
-kind that carries its writer-binding in body fields, like the credential, does **not** also populate
-`custody.owner`/`pin` — the body fields are that instance, and acceptance reads them.
+`hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` — a blinded hash, so the SAD's own `said` never
+appears raw on the public IEL. The blind is **not a secret**, though: anyone who already holds — or
+can **guess** — the `said` recomputes the same commitment and confirms the anchor (that is how
+attribution is verified). So the blinding is only as strong as the `said` is **unguessable**, which
+the general custody rule does not itself require — a low-entropy, enumerable SAD would let an
+observer confirm by dictionary that the owner anchored it. Unguessability is a **feature-layer**
+discipline: the credential, file, chat, and private-document kinds each carry a mandatory
+high-entropy `nonce` for exactly this reason. That `Ixn` — a tier-1 (`t_use`) content act only the
+owner's `t_use` quorum can author, witnessed, at an append-only position — **is** the write
+authorization: it records, non-repudiably, that the owner wrote this SAD. A **credential** is the
+named instance: its commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` is this
+formula with `owner` = `issuer` and `said` = `cred.said` — the same mechanism under the generic
+custody names. A kind that carries its writer-binding in body fields, like the credential, does
+**not** also populate `custody.owner`/`pin` — the body fields are that instance, and acceptance
+reads them.
 
 - **The `pin` locates the anchor.** `pin` is the SAID of that anchoring `Ixn`'s `previous`, so the
   `Ixn` sits at `pin`'s serial + 1 on the owner's canonical IEL. A verifier goes straight there and
   opens **one** manifest to confirm `previous == pin`, the event's kind is `Ixn`, and the issuance
-  commitment `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` ∈ `manifest.anchors[]`, never
+  commitment `hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` ∈ `manifest.anchors[]`, never
   scanning a manifest per event. The `pin` is a **checked locator**, never trusted — it only _finds_
   the anchor; the anchor authorizes the write. Non-circular: `pin` (= `previous`) exists before the
   SAD's `said` commits it, and the owner then authors the `Ixn` at the next position. The mint and
@@ -115,7 +122,7 @@ kind that carries its writer-binding in body fields, like the credential, does *
 - **Enforcement splits by layer.** The SAD structural pass enforces only the **presence** rule
   (`owner` ⟹ `pin`; an `owner`-bearing SAD with no `pin` is rejected). Whether the event at
   `pin + 1` actually exists, is an `Ixn`, carries the issuance commitment
-  `hash('vdti/iel/v1/actions/commitment:{owner}:{said}')` in `manifest.anchors[]`, and is a valid
+  `hash('vdti/iel/v1/tags/commitment:{owner}:{said}')` in `manifest.anchors[]`, and is a valid
   owner-authored event is verified by **`verify_anchored_sad`**, a consumer helper (the store is
   untrusted — end-verifiability). A generic **`verify_sad`** delegates to it whenever the SAD is
   owned, so a caller never skips the anchor check.
@@ -250,7 +257,7 @@ and re-checked by consumers.
 
 - **Writer-binding forgery requires IEL-level compromise.** Attributing a write to identity X
   requires an **`Ixn` on X's IEL** committing the SAD's issuance commitment
-  (`hash('vdti/iel/v1/actions/commitment:{owner}:{said}')`) in `manifest.anchors[]` (located by the
+  (`hash('vdti/iel/v1/tags/commitment:{owner}:{said}')`) in `manifest.anchors[]` (located by the
   SAD's `pin`) — a `t_use` content act at X's **current** tip. An adversary who does not control X
   cannot author that anchor — and a broken **old** key cannot either, nor insert one in the past —
   so a write can be neither forged under X's name nor backdated
@@ -259,15 +266,20 @@ and re-checked by consumers.
   of a read-gated SAD (e.g., from a misconfigured replica or a leaked cache) still cannot satisfy a
   downstream verifier that re-checks the requester's `readers` membership against the SAD's read
   authorization. Membership is checked on the read side, so a leaked byte stream does not
-  automatically grant authorized-read status.
+  automatically grant authorized-read status. This is **operational access control through the
+  store, not confidentiality**: it governs authorized-read _status_ (an integrity property), but
+  once the plaintext bytes escape they are readable — secrecy against a leaky replica or a hostile
+  holder requires **encryption**, not `readers` (the residuals catalog states the honest position —
+  confidentiality is operational, not cryptographic).
 - **Custody fields are committed by the parent SAID.** `owner`, `pin`, and `readers` are sub-fields
   of the top-level `custody` struct on the SAD wrapper, so they participate in the SAD's canonical
   serialization and the SAID derivation. An adversary cannot substitute a different `owner` or `pin`
   (e.g., to re-attribute the write, or point the locator at a different anchor) without changing the
   SAD's SAID — and the new SAID would not match any reference that names the original.
-- **Forbidden on chain events is enforced structurally.** Chain-event kind-schemas have no slot for
-  `custody`, so the merge layer's structural-validation pass rejects any submission carrying an
-  inline `custody` struct on a chain event
+- **Forbidden on chain events is enforced structurally.** A chain-event kind declares no `custody`
+  field, so the exhaustive-schema rule ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned))
+  rejects it: the merge layer's structural-validation pass drops any submission carrying an inline
+  `custody` struct on a chain event
   ([`../../../protocol-doctrine.md` §Merge verification](../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 - **Anonymous writes are not unauthorized writes.** An absent writer-binding (`owner` and `pin` both
   `None`) declares "no writer attestation" — not "no authorization." A storage service deployment

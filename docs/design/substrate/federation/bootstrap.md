@@ -23,9 +23,10 @@ A federation is **one IEL**, its prefix written `F`. It differs from a user iden
 ways, all fixed at inception by the `Fcp` root kind:
 
 - **The roster is witness KELs directly** — a threshold over the witness devices, with no policy and
-  no per-witness identity wrapper (policy lives on documents, never on primitives —
-  [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md)). A witness is a device
-  (a KEL), HSM-backed and horizontally replicated; the model sees one logical KEL per witness key.
+  no per-witness identity wrapper (policy is not on the primitives — it is the application's, at the
+  document layer — [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md)). A
+  witness is a device (a KEL), HSM-backed and horizontally replicated; the model sees one logical
+  KEL per witness key.
 - **The kind set is exactly `Fcp` / `Wit` / `Trm`.** `Fcp` is the inception marker; `Wit` is the
   single governance kind — it stands in for the user IEL's `Evl`, carrying every roster change and
   every witness rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation
@@ -95,13 +96,15 @@ federation, so the read fails secure. There is no all-or-nothing transaction to 
 dependency order.
 
 Everything **after** genesis — every `Wit` that adds or cuts a witness or rotates the roster's keys
-— is witnessed normally by the now-existing federation ([`witnessing.md`](witnessing.md)). Genesis
-is the sole unwitnessed step, and only because it is the configured trust root.
+— is witnessed normally by the now-existing federation ([`witnessing.md`](witnessing.md)). The
+unwitnessed steps are the federation-infrastructure inceptions: genesis, rooted in the configured
+trust pin, and a joining witness's own inception pair, rooted in the **witnessed** governance `Wit`
+that admits it — in both shapes, nothing trust-bearing rides the unwitnessed pair alone.
 
 ## The trust root is the configured federation set
 
 A consumer trusts a federation **if and only if its prefix is in the set the consumer is configured
-to trust** — a compile-time default with a runtime override. The library takes this
+to trust** — provided at runtime by the application, empty by default. The library takes this
 trusted-federation set from the application; an **unconfigured** library trusts **nothing**, and its
 verification token reports that it cannot confirm any federation, so every downstream decision fails
 secure. There is no built-in default federation.
@@ -162,10 +165,10 @@ A verifier validates a received genesis against the configured prefix as follows
 - **The `Fcp` is well-formed as a federation inception** — the restricted kind set is in force, the
   threshold vector is exactly `{ govern }`, `|roster| ≥ 4`, and the witness-config clears its floors
   ([`witnessing.md`](witnessing.md)).
-- **A `t_govern` threshold of the founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2
-  → tier 2)** — the anchoring authors are roster founders (no outsiders), so the ordinary inception
-  threshold is met by the roster itself; a genesis below `t_govern` is sub-threshold and reads
-  fail-secure, no special rule.
+- **All founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2 → tier 2)** — every
+  founder anchors, so no founder lands in the founding roster without consenting to it, and the
+  founders' `Rot`s satisfy the inception threshold; a partial genesis (any founder's `Rot` absent)
+  is sub-threshold and reads fail-secure, no special rule.
 - **The `Fcp` carries a `manifest.clock`** seeding the timeline's lower bound.
 
 A genesis that clears these is trusted as the federation's serial-0 root. Nothing about it rests on

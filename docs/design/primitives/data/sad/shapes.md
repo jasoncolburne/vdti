@@ -17,15 +17,17 @@ chain); **digest** — a 256-bit content-address of a raw opaque **blob** (Blake
 distinct from a **SAID**, which addresses a canonical SAD); **SAD** — a **nested sub-SAD** at that
 position (referenced by its SAID, but expandable content the signing discipline must have seen —
 distinct from a scalar **SAID** reference like a `previous`, a pin, or an anchor); **string**;
-**u64** — an unsigned integer; **bool**; **bytes**; **timestamp** — an RFC 3339 time; **list⟨T⟩**.
+**u64** — a non-negative JSON-number integer in the double-safe range ±(2⁵³−1)
+([`said.md`](said.md)); **bool**; **bytes**; **timestamp** — an RFC 3339 time; **list⟨T⟩**.
 
 ## The two shapes
 
 A SAD is one of two shapes ([`sad.md` §Structural shapes](sad.md#structural-shapes)):
 
 - A **chain event** — a SAD with chain-linkage fields (`prefix`, `previous`, `serial`) that lives on
-  a KEL / IEL / SEL and replicates as an indivisible unit. Its schema has **no** slot for `custody`
-  or `availability`.
+  a KEL / IEL / SEL and replicates as an indivisible unit. Its kind declares no `custody` or
+  `availability` field — the exhaustive-schema rule
+  ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) rejects either on a chain event.
 - A **standalone SAD** — everything else (a receipt, a config, a credential, a policy, an exchange
   envelope, the content payloads an event anchors). It is stored in the SAD object store and served
   by SAID, and MAY carry `custody` and `availability` on its wrapper.
@@ -112,7 +114,8 @@ roles that resolve to their **own** SAD are catalogued here.
 | `threshold` | u64    | Valid receipts a consumer requires before it trusts an event. |
 | `signers`   | u64    | Witnesses selected per event; `signers ≥ threshold`.          |
 
-Bounded `signers/2 < threshold ≤ signers ≤ |roster|`, with a tighter recoverability cap on the
+Bounded `signers/2 < threshold ≤ signers ≤ |roster|` (here `|roster|` is the **federation's**
+witness roster, not the identity's own member roster), with a tighter recoverability cap on the
 federation IEL
 ([`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md)).
 
@@ -121,27 +124,28 @@ federation IEL
 Carried by an IEL `Icp` (the initial roster + threshold vector), an `Evl` (a delta), and a
 federation `Fcp` / `Wit`:
 
-| Field            | Type                         | Meaning                                                                                          |
-| ---------------- | ---------------------------- | ------------------------------------------------------------------------------------------------ |
-| `said`           | SAID                         | The delta SAD's SAID.                                                                            |
-| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                    |
-| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                   |
-| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                        |
-| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), governance, authorization (tier 2). |
+| Field            | Type                         | Meaning                                                                                               |
+| ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `said`           | SAID                         | The delta SAD's SAID.                                                                                 |
+| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                         |
+| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                        |
+| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                             |
+| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2). |
 
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the
 threshold bounds are re-checked on the post-delta config
-([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add` is
-a **single** prefix (one witness KEL added at a time), not a list.
+([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add`
+must carry **exactly one** prefix (one witness KEL added at a time) — the type stays `list⟨prefix⟩`;
+the one-at-a-time rule is a cardinality check on the federation facet, not a second shape.
 
 ### `vdti/event/v1/roles/pins` — the participating member KEL SAIDs
 
-| Field  | Type       | Meaning                                                                |
-| ------ | ---------- | ---------------------------------------------------------------------- |
-| `said` | SAID       | The pins SAD's SAID.                                                   |
-| `kind` | string     | `vdti/event/v1/roles/pins`.                                            |
-| `pins` | list⟨SAID⟩ | Each participating member's KEL event SAID (an IEL event's down-pins). |
+| Field  | Type       | Meaning                                                                                                                                                          |
+| ------ | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said` | SAID       | The pins SAD's SAID.                                                                                                                                             |
+| `kind` | string     | `vdti/event/v1/roles/pins`.                                                                                                                                      |
+| `pins` | list⟨SAID⟩ | Each participating member's **prior KEL tip** (`participation.previous`; the anchoring KEL event sits one past it, so no SAID cycle) — an IEL event's down-pins. |
 
 The remaining roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` — are
 carried **inline** in the manifest SAD, so they have no SAD of their own ([`kinds.md`](kinds.md));
@@ -154,33 +158,34 @@ value — §Grant values below). Their value shapes are
 A receipt is itself a SAD; its witness signature rides **adjacent**, never in the body (a SAD cannot
 sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/receipts/{kel,iel,sel}`.
 
-| Field            | Type      | Meaning                                                           |
-| ---------------- | --------- | ----------------------------------------------------------------- |
-| `said`           | SAID      | The receipt's own SAID.                                           |
-| `kind`           | string    | `vdti/witness/v1/receipts/{kel,iel,sel}`.                         |
-| `threshold`      | u64       | The witness-config threshold in effect at the witnessed position. |
-| `signers`        | u64       | The selection size in effect at that position.                    |
-| `federationPin`  | SAID      | The chain's federation binding there — resolves the as-of roster. |
-| `chain_prefix`   | prefix    | The witnessed chain's prefix.                                     |
-| `event_said`     | SAID      | The one committing SAID of the witnessed event.                   |
-| `event_serial`   | u64       | Its serial.                                                       |
-| `timestamp`      | timestamp | The witness's asserted time (inside the signed payload).          |
-| `witness_prefix` | prefix    | The signing witness's KEL prefix.                                 |
+| Field           | Type      | Meaning                                                           |
+| --------------- | --------- | ----------------------------------------------------------------- |
+| `said`          | SAID      | The receipt's own SAID.                                           |
+| `kind`          | string    | `vdti/witness/v1/receipts/{kel,iel,sel}`.                         |
+| `threshold`     | u64       | The witness-config threshold in effect at the witnessed position. |
+| `signers`       | u64       | The selection size in effect at that position.                    |
+| `federationPin` | SAID      | The chain's federation binding there — resolves the as-of roster. |
+| `chainPrefix`   | prefix    | The witnessed chain's prefix.                                     |
+| `eventSaid`     | SAID      | The one committing SAID of the witnessed event.                   |
+| `eventSerial`   | u64       | Its serial.                                                       |
+| `timestamp`     | timestamp | The witness's asserted time (inside the signed payload).          |
+| `witnessPrefix` | prefix    | The signing witness's KEL prefix.                                 |
 
 ## Grant values — what a SEL `Gnt` seals
 
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                             | Carries                                                                                                                                                                                                                         | Status      |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `vdti/sel/v1/grants/directory-ml-kem-1024`       | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints.                                                                                                              | forthcoming |
-| `vdti/sel/v1/grants/directory-ml-kem-768`        | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                                                                                                                                     | forthcoming |
-| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device.                                                                                                                                                                         | forthcoming |
-| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (shared documents, **editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role. | forthcoming |
-| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**.                                                                                                                                                                                                 | forthcoming |
-| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**.                                                                                                                                                                                                    | forthcoming |
-| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role.     | forthcoming |
+| Kind                                             | Carries                                                                                                                                                                                                                                                                                                                  | Status      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
+| `vdti/sel/v1/grants/directory-ml-kem-1024`       | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints.                                                                                                                                                                                                       | forthcoming |
+| `vdti/sel/v1/grants/directory-ml-kem-768`        | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                                                                                                                                                                                                                              | forthcoming |
+| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device.                                                                                                                                                                                                                                                                  | forthcoming |
+| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (shared documents, **editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role.                                                                                          | forthcoming |
+| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**.                                                                                                                                                                                                                                                                                          | forthcoming |
+| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**.                                                                                                                                                                                                                                                                                             | forthcoming |
+| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role.                                                                                              | forthcoming |
+| `vdti/sel/v1/grants/delegation`                  | A **delegation marker** — the tier-2 signpost a delegating-link `{Icp, Gnt}` seals; commits a **blinded reference to the delegate** (checked by the `del(X, N)` walk against the anchoring `Ath`'s `delegates`), and carries no authority itself — [`../event-logs/iel/delegation.md`](../event-logs/iel/delegation.md). | forthcoming |
 
 Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
 encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the
@@ -260,25 +265,29 @@ A credential is a **direct-anchored** SAD (its issuance is a commitment hash on 
 Its `kind` names its **type** (application-registered — a diploma, an accreditation); the wrapper
 below is common to every type.
 
-| Field       | Type      | Required | Meaning                                                                         |
-| ----------- | --------- | -------- | ------------------------------------------------------------------------------- |
-| `said`      | SAID      | yes      | The credential's SAID — its immutable anchor.                                   |
-| `kind`      | string    | yes      | `vdti/cred/v1/schemas/*` — the credential's registered type.                    |
-| `issuer`    | prefix    | yes      | The issuer's IEL prefix.                                                        |
-| `issuerPin` | SAID      | yes      | The anchoring `Ixn`'s `previous` — locates the anchor at `previous.serial + 1`. |
-| `issuee`    | prefix    | no       | The issuee's IEL prefix; **absent → a bearer credential**.                      |
-| `claims`    | SAD       | yes      | A claims SAD (nested → partial disclosure).                                     |
-| `terms`     | SAD       | no       | An issuer-set terms-of-use SAD (nested); travels with the credential.           |
-| `issued`    | timestamp | yes      | Issuance time (advisory).                                                       |
-| `expires`   | timestamp | no       | Expiry (advisory).                                                              |
-| `nonce`     | bytes     | yes      | High-entropy — every credential has one; makes `said` unguessable.              |
+| Field            | Type         | Required | Meaning                                                                                                                                                                                                                                                            |
+| ---------------- | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `said`           | SAID         | yes      | The credential's SAID — its immutable anchor.                                                                                                                                                                                                                      |
+| `kind`           | string       | yes      | `vdti/cred/v1/schemas/*` — the credential's registered type.                                                                                                                                                                                                       |
+| `issuer`         | prefix       | yes      | The issuer's IEL prefix.                                                                                                                                                                                                                                           |
+| `issuerPin`      | SAID         | yes      | The anchoring `Ixn`'s `previous` — locates the anchor at `previous.serial + 1`.                                                                                                                                                                                    |
+| `issuee`         | prefix       | no       | The issuee's IEL prefix; **absent → a bearer credential**.                                                                                                                                                                                                         |
+| `delegationPath` | list⟨prefix⟩ | no       | Present iff issued under **delegated** authority — the ordered committed path, the issuer's immediate delegator up to and including the policy root ([`../../policy/documents.md` §Delegation in a document](../../policy/documents.md#delegation-in-a-document)). |
+| `claims`         | SAD          | yes      | A claims SAD (nested → partial disclosure).                                                                                                                                                                                                                        |
+| `terms`          | SAD          | no       | An issuer-set terms-of-use SAD (nested); travels with the credential.                                                                                                                                                                                              |
+| `issued`         | timestamp    | yes      | Issuance time (advisory).                                                                                                                                                                                                                                          |
+| `expires`        | timestamp    | no       | Expiry (advisory).                                                                                                                                                                                                                                                 |
+| `nonce`          | bytes        | yes      | High-entropy — every credential has one; makes `said` unguessable.                                                                                                                                                                                                 |
 
 The `claims` field is the SAID of a **claims SAD** (`vdti/cred/v1/claims/*`, application-defined).
-Each gated predicate it carries is a **uniformly-shaped blinded claim** — `{ said, nonce, data }`:
-the per-claim `said` is what the credential commits, a high-entropy `nonce` blinds it so a compacted
-claim leaks neither presence nor value, and `data` is the application-shaped value (a boolean
-bracket like `ageOver18`, a field). Disclosing a claim reveals its `{ nonce, data }` and recomputes
-the `said` against the commitment ([claim-gating](../../../features/credentials.md#claim-gating)).
+Each gated predicate it carries is a **uniformly-shaped blinded claim** —
+`{ said, kind, nonce, data }`: the per-claim `said` is what the credential commits; its `kind` is a
+**type-generic** blinded kind (`vdti/cred/v1/claims/blinded-{string,number,boolean,object,array}`,
+naming the JSON type of `data`, never the predicate — it rides _inside_ the blinded `said`); a
+high-entropy `nonce` blinds it so a compacted claim leaks neither presence nor value; and `data` is
+the application-shaped value (a boolean bracket like `ageGTE18`, a field). Disclosing a claim
+reveals its `{ kind, nonce, data }` and recomputes the `said` against the commitment
+([claim-gating](../../../features/credentials.md#claim-gating)).
 
 ### Shared documents — `vdti/doc/v1/schemas/*`
 
@@ -291,21 +300,21 @@ The **V0 constitution** (derives the doc prefix):
 | `creator` | prefix | The creator's IEL prefix — governs membership and sharing.                                                                                 |
 | `prefix`  | prefix | The doc prefix — derived from V0's whole content (nonce'd → unguessable if private).                                                       |
 | `custody` | struct | `{ readers[] }` — the initial read gate: the three `document-*-membership` SEL prefixes (edit ∪ comment ∪ read), sorted; omitted → public. |
-| `nonce`   | bytes  | High-entropy — makes the doc prefix unguessable if private.                                                                                |
+| `nonce`   | bytes  | Required, high-entropy — the governance chains derive from it (their `data`); makes the doc prefix unguessable if private.                 |
 
 A **version** SAD (custody-attributed, chained into the version DAG):
 
-| Field       | Type       | Meaning                                                                     |
-| ----------- | ---------- | --------------------------------------------------------------------------- |
-| `said`      | SAID       | The version's SAID.                                                         |
-| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                              |
-| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers[] }` — the sorted union read gate. |
-| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                              |
-| `prefix`    | prefix     | The doc prefix.                                                             |
-| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant.               |
-| `content`   | SAD        | The version body.                                                           |
-| `edited`    | timestamp  | Advisory feature timestamp.                                                 |
-| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable.                          |
+| Field       | Type       | Meaning                                                                                    |
+| ----------- | ---------- | ------------------------------------------------------------------------------------------ |
+| `said`      | SAID       | The version's SAID.                                                                        |
+| `kind`      | string     | `vdti/doc/v1/schemas/version`.                                                             |
+| `custody`   | struct     | `{ owner: the editor's IEL, pin, readers[] }` — the sorted union read gate.                |
+| `ancestors` | list⟨SAID⟩ | Parent version SAID(s) — the multi-parent DAG.                                             |
+| `prefix`    | prefix     | The doc prefix.                                                                            |
+| `grant`     | SAID       | `said(G)` — the authorizing `document-edit-membership` grant.                              |
+| `content`   | SAD        | The version body.                                                                          |
+| `edited`    | timestamp  | Advisory feature timestamp.                                                                |
+| `nonce`     | bytes      | High-entropy — makes the version SAID unguessable for a private doc (omitted when public). |
 
 The **grant-doc** (the `{ grants, rescinds }` delta — one shape shared by the three instances
 `document-edit-membership` / `document-comment-membership` / `document-read-membership`, the kind

@@ -113,6 +113,10 @@ They don't share blind spots — warm is primed (checks fidelity, trusts the fra
 
 The product is a solid design, ready for implementation.
 
+_(Stages 3–6 have run their course for the core design: the canon was fully propagated into the
+design docs and the encoded canon files were then removed — their decision history is preserved at
+the `canon-final` git tag. `docs/canon/` retains only not-yet-encoded notes.)_
+
 ## Details
 
 I made most positive additions by teasing apart conflated axes. An example - the {content, lineage}
@@ -174,6 +178,13 @@ reference where possible, use consistent naming and convention, and generally ke
 you don't make standing memories or rules for the LLM to reason with, it may implement naively -
 duplicating concepts or code, making things generally hard to work with (for you or even _it_ in the
 future).
+
+## Reasoning over a dense information set
+
+Now that the core design has been encoded, it consumes about 650k tokens to reason about it in
+aggregate. This _is_ some thing that Fable seems to do better than Opus. Opus can make unsound
+decisions, Fable makes less in my experience. The result is less churn over review cycles and a
+faster convergence on correctness.
 
 # Conclusion
 

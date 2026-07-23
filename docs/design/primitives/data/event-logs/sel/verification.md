@@ -92,6 +92,7 @@ verify_event(event):
     if anchor is on a dead owner-IEL branch: sever here            # inherited owner-IEL deadness → sever
     verify_kind_strict(event.kind, anchor.kind)      # Ixn<-Ixn, Gnt<-Ath, Trm<-Rev/Dth, Sea<-Evl
     verify_count(event.kind, anchor, owner_iel_token)  # the owner IEL delivers the count
+    if event.kind == Ixn: assert anchor is not already the attributing Ixn of another content Ixn on this SEL  # ≤ 1 content Ixn per owner-IEL Ixn (anchor-identity dedup)
 
     # 6. Floor + role consumption
     if event.kind != Icp:  assert event.pin floors to the owner IEL (v1: == anchor.previous)
@@ -129,9 +130,9 @@ whether or not the witness can derive the prefix
 The SEL's own divergence is read data-locally, exactly as the KEL and IEL read theirs, but at the
 SEL's own `(prefix, serial)`:
 
-- **A live content fork** — two content events at one position — reads **Forked**. It forms only
-  under witness compromise (first-seen prevents an honest one), reads fail-secure, and is resolved
-  by a burying seal-advancer.
+- **A live content fork** — two **accepted** content events at one position — reads **Forked**. It
+  forms only under witness compromise (first-seen prevents an honest one), reads fail-secure, and is
+  resolved by a burying seal-advancer.
 - **A `{Trm, content}` divergence** reads **Terminated** by tier-rank — the sealed `Trm` wins, the
   content buries.
 - **Two or more accepted sealed branches** read **Disputed** — a data-local walk over the accepted
@@ -152,10 +153,10 @@ event to re-root them. The verifier truncates the SEL to the last live-anchored 
 shortened chain's state.
 
 **Deadness comes first.** A content fork with one severed branch auto-resolves to the live branch
-(no burying seal-advancer needed); a Disputed with one severed branch downgrades to the live branch
-(the severed branch is not counted). A Disputed under a **linear** owner IEL — no severance
-available — stays terminal. A `{Trm, content}` fork with a severed branch likewise keeps the
-survivor (a severed content leaves the `Trm` → Terminated). The full enumeration is
+(no burying seal-advancer needed); a **Disputed is never downgraded** by severance — its accepted
+sealed branches have accepted (IEL sealed) anchors that are never buried, so no severance reaches
+them (§Matrix 2). A Disputed stays terminal. A `{Trm, content}` fork with a severed branch likewise
+keeps the survivor (a severed content leaves the `Trm` → Terminated). The full enumeration is
 [`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix).
 
 ## The lineage walk
@@ -177,7 +178,7 @@ resolve_lookup(owner, topic, data):                       # a re-establishable v
 ```
 
 - **`Trm` advances.** A `Trm` on `lineage: n` kills **that lineage**, not the address, so the walk
-  advances to `lineage: n+1`. A rescinded value is re-established by re-incepting at the next
+  advances to `lineage: n+1`. A rescinded value is re-established by reincepting at the next
   lineage, so a live key stays reachable at a discoverable address.
 - **Any non-dead reading stops — `Forked` included.** Only `Trm` / Disputed / severed advance the
   walk; `Active` and `Forked` stop and return their reading (a `Forked` locus reads fail-secure).
@@ -237,9 +238,9 @@ SelVerification:
     lineage: Option<u32>                    # Some(n) only on a re-establishable value lookup; None on content or a monotone lookup
     kind_class: SelClass                    # content SEL vs kill-lookup vs value-lookup
     branch_tips: Vec<BranchTip>            # one per branch (1 = linear, >1 = the SEL's own divergence)
-    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} on a divergent chain; None on linear
+    divergence_ancestor: Option<SAID>      # SAID of v_{d-1} at the verdict's divergence (Forked: the first divergence; Disputed: the earliest carrying >= 2 accepted sealed branches — not a recovery point there); None on linear
     severed_at: Option<SAID>                # the last live-anchored event when a dead owner-IEL anchor truncates the chain
-    last_seal_advancing_event: Option<SAID>  # the derived seal: the most recent Gnt / Trm / Sea that landed cleanly
+    last_seal_advancing_event: Option<SAID>  # the derived seal: the most recent Gnt / Trm / Sea with no competing accepted sealed branch from the divergence onward (a content sibling is buried below it)
     owner_anchor_per_event: ...            # per-event owner-IEL anchor (kind + liveness)
     payload_saids: BTreeSet<SAID>          # payload SAD SAIDs recorded on the canonical branch
     grant_value: Option<SAID>               # a value lookup's live grant-value (the live sealed tip)
@@ -279,7 +280,8 @@ state).
   tip's SAID** (the `Trm` SAID when terminated); a chain with **no single tip** yields a
   **type-tagged synthetic recoupled to the verdict** (`forked` / `disputed`), qualified by prefix
   and position, **not** a digest over the competing tips (that set is adversarially extensible →
-  flood-unstable). A buried content branch and a severed portion both drop out. See
+  flood-unstable). A buried content branch and a severed portion both drop out, and a **below-seal**
+  sealed straggler drops out too (dropped, inert — backdate-safe). See
   [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison).
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three

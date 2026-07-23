@@ -6,9 +6,10 @@ VDTI has **two authorization mechanisms, kept separate**:
   structure — a device's own key (KEL), an identity's threshold over its member devices (IEL),
   single-owner ownership (SEL). The chain primitives carry **no policy** and evaluate no policy for
   their own events.
-- **Documents are authorized by policy.** A credential — or any other document — carries an
-  authorization condition written in a small composable **policy language**, matched at the
-  application.
+- **Documents are accepted against a policy the _relying party_ holds.** A credential — or any other
+  document — carries **no policy**; it carries anchored facts (who issued it, at what position, what
+  it claims). Whether to accept it is the application's decision, written in a small composable
+  **policy language** and **matched at the application** against those facts.
 
 This layer is that policy language plus how it is evaluated. It sits **above** the chain primitives:
 it consumes their verification (an identity's members and threshold as of a position, a delegation's
@@ -19,14 +20,16 @@ declares is the **verification-token** seam in [`evaluation.md`](evaluation.md).
 
 Keeping the two mechanisms apart is a security decision, not a convenience. A chain event that chose
 its own authorization policy would let the author point that policy at a stale, more permissive past
-— the backdate surface the structural rules exist to close. Authorization that a third party relies
-on — **who could issue a credential** — is exactly where a policy language earns its keep, and that
-lives on the document, never on the chain. (Who may _present_ a credential is a separate question,
-answered by a single-identity challenge to the issuee, not a policy —
-[`documents.md`](documents.md).)
+— the backdate surface the structural rules exist to close. A document that carried its own
+acceptance policy would be just as self-serving: an issuer would simply write "accept me," and every
+verifier would be bound by it. So the acceptance policy is the **relying party's**, never the
+document's — **who could issue a credential** is exactly the question a policy language answers,
+evaluated **as-issued** against the issuer context the document's anchoring fixes. (Who may
+_present_ a credential is a separate question, answered by a single-identity challenge to the
+issuee, not a policy — [`documents.md`](documents.md).)
 
 **Reading order for this layer:** this doc (the language and the two mechanisms) →
-[`documents.md`](documents.md) (where policy lives and how a document anchors its context) →
+[`documents.md`](documents.md) (the anchored issuer context a policy is matched against) →
 [`evaluation.md`](evaluation.md) (the as-issued evaluation — one composer, one leaf resolver — and
 the seam to the primitives).
 
@@ -34,8 +37,9 @@ the seam to the primitives).
 
 A policy is a [SAD](../data/sad/sad.md) whose content is a policy-language expression, identified by
 its [SAID](../data/sad/said.md). Two byte-identical policies derive the same SAID, so an identical
-authorization rule is one shared object the whole system can reference. A document names a policy by
-that SAID; the verifier fetches it, parses the expression, and evaluates it.
+authorization rule is one shared object the whole system can reference. A **relying party** names
+the policy it applies by that SAID; the verifier fetches it, parses the expression, and evaluates it
+against the document's anchored facts. The document names no policy of its own.
 
 ## The policy language
 
@@ -81,10 +85,11 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   rescission ([`evaluation.md`](evaluation.md)) — with **fail-open** (trust the miss) as the
   opt-out. The verifier walks **up** from the **presented party** rather than down from `X`: `X`'s
   _transitive_ delegate closure (delegates of delegates …) is unbounded, so it is never enumerated;
-  instead the verifier follows the **one authorizing path the document commits** (each hop a
-  self-recorded `delegating` link chaining up toward `X` — [`documents.md`](documents.md)),
-  confirming each hop's grant against that delegator's `Ath` inclusion list (the positive lookup
-  above). The walk is bounded by `N` **and** by the verifier-wide **`MAXIMUM_DELEGATION_DEPTH`** cap
+  instead the verifier follows the **one authorizing path the document commits in its
+  `delegationPath` field** (each hop a self-recorded `delegating` link chaining up toward `X` —
+  [`documents.md`](documents.md)), confirming each hop's grant against that delegator's `Ath`
+  inclusion list (the positive lookup above). The walk is bounded by `N` **and** by the
+  verifier-wide **`MAXIMUM_DELEGATION_DEPTH`** cap
   ([`../data/event-logs/iel/delegation.md`](../data/event-logs/iel/delegation.md)), and exceeding
   **either** denies (fail-secure). `del(X, N)` is **not** `id(X)`: it authorizes `X`'s delegates,
   not `X` itself (an `Ath` listing `X`'s own prefix is rejected, so a self-grant cannot collapse
@@ -146,7 +151,16 @@ evaluated (see [`evaluation.md`](evaluation.md)).
   one way — named directly, again through a nested policy, or eligible in two of a threshold's
   branches — is credited **once**, at its highest weight (Weight is per-identity-max, below). So a
   `thr`'s count is over its branches ("M of the N sub-policies"), but **no single identity is
-  counted toward more than one of the satisfied branches** — a signer fills at most one slot.
+  counted toward more than one of the satisfied branches** — a signer fills at most one slot. Where
+  those branches are themselves quorum sub-policies, this makes satisfaction **existential** —
+  satisfied iff **some** assignment of signers to branches reuses none (a set-packing check, not a
+  per-branch greedy pass, which can wrongly deny a satisfiable policy and on which two
+  differently-ordered evaluators would disagree). A conforming evaluator searches for a working
+  assignment, bounded by the verifier-wide work budget. This is not consensus-critical (policy
+  evaluation is each relying party's own); the search is defined so a shared policy **never wrongly
+  permits** — a verifier that exhausts its budget before finding a satisfying assignment **denies**
+  (fail-secure), so two verifiers with different budgets can differ only at the margin, and only
+  toward denial, never toward a wrongful accept.
 
 - **Weight is per-identity-max.** When an identity is reached through several weighted branches, it
   is credited **once, at its highest** weight — never summed across branches. One party cannot stack
@@ -182,8 +196,8 @@ overlap_.
 
 ## Forward references
 
-- [`documents.md`](documents.md) — where a policy lives (a document's authorizing condition) and how
-  a document's issuer context is fixed by its anchoring position.
+- [`documents.md`](documents.md) — the anchored issuer context a relying party's policy is matched
+  against, and how a document's issuer context is fixed by its anchoring position.
 - [`evaluation.md`](evaluation.md) — the as-issued evaluation (one composer, one leaf resolver) and
   the verification-token interface this layer declares.
 - [`../data/event-logs/iel/`](../data/event-logs/iel/) — the IEL primitive: the identity an `id`

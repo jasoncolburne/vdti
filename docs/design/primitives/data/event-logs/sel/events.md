@@ -23,8 +23,13 @@ A SEL uses exactly six kinds; any other kind code is malformed.
 | `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records payload SAD(s) (the `payload` role, **required** — always ≥ 1) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`** (counting content). The divergeable content kind (first-seen, buriable).                   |
 | `Pin` | `vdti/sel/v1/events/pin` | content   | 1    | `t_use`                                       | The **pin-only re-pin** at any serial — carries only the down-`pin` (no manifest). A pure re-pin is always a `Pin`; its serial-1 instance is the issuance floor (incept-and-sit). Buriable; **not** a seal-advancer.                          |
 | `Gnt` | `vdti/sel/v1/events/gnt` | sealed    | 2    | `t_authorize`                                 | The **grant** — seals a typed value (`manifest.grant` names a `vdti/sel/v1/grants/*` SAD). Sealed on arrival, seal-advancing, non-buriable; walked back only by a rescission.                                                                 |
-| `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, monotone, terminal-on-divergence.                                                                                                                                                           |
+| `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, seal-advancing, terminal.                                                                                                                                                                   |
 | `Sea` | `vdti/sel/v1/events/sea` | sealed    | 2    | `t_govern`                                    | The **neutral re-seal** — buries a content fork on a SEL that has no natural `Gnt` or `Trm` to advance the seal. Sealed on arrival, seal-advancing, non-terminal.                                                                             |
+
+The `Icp` row's **Tier / Count is nominal**: the `Icp` is unsigned and proves nothing alone (below),
+so `tier 1 / t_use` prices only _submitting_ it. A lookup SEL's **establishment** is priced by its
+**v1's anchor** — a kill lookup's `Rev` / `Dth` (`t_govern` / `t_authorize`) or a value lookup's
+`Ath` (`t_authorize`), tier 2.
 
 The **class** column names the event's role under the
 [divergence-and-recovery rules](../../../../protocol-doctrine.md#divergence-and-recovery): only
@@ -97,9 +102,12 @@ Records the payload SAD(s) it commits (the `payload` role — **required**, alwa
 like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` — event-shape) and re-pins the SEL
 to the owner IEL's current tip (the top-level `pin`). Anchored by an owner-IEL `Ixn`, **at most one
 `Ixn` per SEL per owner-IEL `Ixn`** (counting content — a pure re-pin is a `Pin`, not a phantom
-`Ixn`). `Ixn` is the divergeable content kind; it does not advance the seal and is buriable until
-the SEL's next seal-advancer. An `Ixn` **always** carries content — a manifest-less `Ixn` is
-malformed; a re-pin with no content is a `Pin`.
+`Ixn`) — the SEL verifier **enforces** this by anchor-identity dedup: a second content `Ixn` that
+resolves to the same owner-IEL `Ixn` is rejected (§verification's per-event checks), distinct from
+the inert re-anchor guard on an already-attributed SEL serial. `Ixn` is the divergeable content
+kind; it does not advance the seal and is buriable until the SEL's next seal-advancer. An `Ixn`
+**always** carries content — a manifest-less `Ixn` is malformed; a re-pin with no content is a
+`Pin`.
 
 ### `Pin` — the pin-only re-pin (tier 1, `t_use`)
 
@@ -143,7 +151,7 @@ The kill-anchor's `manifest.anchors` names the `Trm`, and the `Rev` / `Dth` also
 IEL's **`kills[]` declaration** naming the killed locus (the IEL side —
 [`../iel/events.md` §Kills](../iel/events.md#kills--the-fail-secure-revocation-declaration)). A
 `Trm` is **monotone** — no delayed or unsealed form and no un-kill; restoring a killed thing is a
-**fresh grant at a fresh locus** (a lookup SEL re-incepts at a fresh lineage), never a retraction.
+**fresh grant at a fresh locus** (a lookup SEL reincepts at a fresh lineage), never a retraction.
 
 **`bound` placement is per-feature — the primitive says only that a kill commits whatever its anchor
 commits:** a credential revocation carries no `bound` (revocation is binary); a delegate rescission
@@ -180,11 +188,13 @@ A **lookup SEL** is located by recomputing its prefix, and its shape names its p
   ([`../iel/events.md` §Kills](../iel/events.md#kills--the-fail-secure-revocation-declaration) is
   authoritative on the IEL-side target and bound).
 - A **value lookup** is `{Icp, Gnt}` — its v1 the `Gnt` that seals the value. Rotating the value
-  stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value re-incepts
-  at the next lineage).
-- A **delegating-link lookup** is `{Icp, Pin}` — the positive twin of the rescission lookup,
-  re-derived to confirm a delegation's authorizing path; its serial-1 is a `Pin` whose pinned
-  position names the authorizing `Ath`
+  stacks more `Gnt`s; rescinding it is a `Trm` (the locus reads dead, and a fresh value reincepts at
+  the next lineage).
+- A **delegating-link lookup** is a **monotone `{Icp, Gnt}` value lookup** whose `Gnt` seals a
+  `vdti/sel/v1/grants/delegation` marker committing a blinded reference to the delegate — the
+  positive twin of the rescission lookup, re-derived to confirm a delegation's authorizing path. The
+  `Gnt` is only the signpost; the authoritative grant is the anchoring `Ath`'s `delegates`,
+  re-checked directly (the `del` walk also confirms the marker commits the same delegate)
   ([`../iel/delegation.md`](../iel/delegation.md#the-positive-delegating-link)).
 
 ## The content and lineage fields
@@ -331,7 +341,8 @@ each branch and the canonical two-branch content fork plus the resolving burying
 SEL with no natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral
 advancer, the SEL analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at
 one position dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two
-sealed branches → Disputed, exactly as any two sealed events would be.
+**accepted** sealed branches → Disputed (a witness-declined second sibling stalls first-seen,
+forcing nothing), exactly as any two accepted sealed events would be.
 
 ## Cross-references
 

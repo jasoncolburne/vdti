@@ -95,19 +95,19 @@ the biconditional (`content: true` matches a tier-1 v1, its absence a tier-2 v1)
 tier-1 v1 at a lookup address is invalid ([§Inception](#inception)).
 
 **`lineage` — a re-establishment counter (lookups only).** A discoverable value lookup has a prefix
-that is a pure function of fixed inputs, so it **cannot re-incept by rerolling randomness** — the
+that is a pure function of fixed inputs, so it **cannot reincept by rerolling randomness** — the
 same inputs recompute the same address. `lineage` gives it a fresh one: the base is `lineage: 0`, a
-re-incept adds `lineage: 1`, `lineage: 2`, and so on, each a distinct whole-content and so a
-distinct prefix. It is carried **only** by a **re-establishable value** lookup; a **monotone**
-lookup (a kill, or a non-re-establishable value) omits it, and content omits it too (content is
-discriminated by `content: true`). A re-establishable value's **canonical instance is the lowest
-non-dead lineage**, found by a positive walk; anything above a live one is inert (an equivocation
-attempt fails safe, since only the owner anchors at the locus). Rescinding one lineage is a monotone
-`Trm` whose `Dth` declares a **lineaged** `kills[]` target, so the walk reads that lineage dead
-while the re-established next lineage survives — the positive walk consumes that per-lineage check.
-A **monotone kill** (a cred revocation, a delegate / doc-member rescission) carries a
-**non-lineaged** target and is a single negative-checked read, never walked. Why the positive walk
-is load-bearing for a published value but a monotone kill is a single read is
+reincept adds `lineage: 1`, `lineage: 2`, and so on, each a distinct whole-content and so a distinct
+prefix. It is carried **only** by a **re-establishable value** lookup; a **monotone** lookup (a
+kill, or a non-re-establishable value) omits it, and content omits it too (content is discriminated
+by `content: true`). A re-establishable value's **canonical instance is the lowest non-dead
+lineage**, found by a positive walk; anything above a live one is inert (an equivocation attempt
+fails safe, since only the owner anchors at the locus). Rescinding one lineage is a monotone `Trm`
+whose `Dth` declares a **lineaged** `kills[]` target, so the walk reads that lineage dead while the
+re-established next lineage survives — the positive walk consumes that per-lineage check. A
+**monotone kill** (a cred revocation, a delegate / doc-member rescission) carries a **non-lineaged**
+target and is a single negative-checked read, never walked. Why the positive walk is load-bearing
+for a published value but a monotone kill is a single read is
 [`verification.md` §The lineage walk](verification.md#the-lineage-walk).
 
 ```mermaid
@@ -125,19 +125,23 @@ flowchart LR
 
 ## Lookup SEL versus content SEL
 
-A SEL is classified by **whether a verifier can recompute its address**, not by whether its data is
-discoverable:
+A SEL is classified by its **`content` flag** — `content: true` ⟺ a content SEL, verifier-enforced
+(§The content and lineage fields). Whether a verifier **recomputes** the address or is **handed** it
+is the usual correlate of that split, not the classifier:
 
 - A **lookup SEL** is one whose prefix a verifier **recomputes** — the two-hash digest over its
   inception body (`owner`, `topic`, and optional `data` / `content` / `lineage`) — from data it
-  already holds, then fetches by that prefix. Three shapes: a **kill lookup** `{Icp, Trm}` (a
-  revocation or rescission locus — the read strategy the fail-secure kill check consumes), a **value
-  lookup** `{Icp, Gnt}` (a published value such as an encryption receive-key — §The seal and its
-  advancers), and a **delegating-link lookup** `{Icp, Pin}` (the positive twin of the rescission
-  lookup, re-derived to confirm a delegation's authorizing path —
-  [`../iel/delegation.md`](../iel/delegation.md)).
-- A **content SEL** is one a verifier is **handed** rather than recomputing. It records data over
-  time (`Icp` → serial-1 event → further `Ixn`s).
+  already holds, then fetches by that prefix. Two shapes: a **kill lookup** `{Icp, Trm}` (a
+  revocation or rescission locus — the read strategy the fail-secure kill check consumes) and a
+  **value lookup** `{Icp, Gnt}` (a value the verifier reads at the address — a published encryption
+  receive-key, or the **delegating link**: a monotone `{Icp, Gnt}` sealing a minimal delegation
+  marker, the positive twin of the rescission lookup, re-derived to confirm a delegation's
+  authorizing path — [`../iel/delegation.md`](../iel/delegation.md); §The seal and its advancers).
+- A **content SEL** records data over time (`Icp` → serial-1 event → further `Ixn`s) — usually one a
+  verifier is **handed** rather than recomputing. The multi-identity **attestation SEL** is the
+  deliberate decorrelation: a content SEL (`content: true`, its v1 a tier-1 `Pin`) whose `Icp`
+  carries recomputable `data` and no nonce, so a relying party **re-derives** its address
+  ([`../../../policy/documents.md`](../../../policy/documents.md)).
 
 A **credential is neither** — it is not a SEL at all, but a direct-anchored immutable SAD (its
 issuance is a commitment anchored on the issuer's IEL by an `Ixn`, and that anchor is the validity
@@ -160,12 +164,12 @@ A SEL's state has **two independent inputs**, composed by the rule that deadness
 2. **Inherited owner-IEL deadness** — a SEL event anchored on a dead owner-IEL branch **severs** the
    SEL there.
 
-| State          | Description                                                                                                                                                                                                                      | Accepts new events?                                                                                                            |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                                                                                               | Yes — `Ixn` / `Pin` content, and `Gnt` / `Trm` / `Sea` per their anchor and count requirements.                                |
-| **Forked**     | A live content fork — witnesses declined it, so it only forms under witness compromise. Recoverable: a burying seal-advancer (`Gnt` / `Trm` / `Sea`) on the winning branch drops the loser below the new seal.                   | Only the resolving event — a burying seal-advancer on the winning branch. A second accepted sealed branch → Disputed.          |
-| **Disputed**   | A live fork with **two or more accepted sealed branches** — proof the witnesses colluded (an honest split cannot produce it). No sealed branch can be buried, so the owner must **re-incept** (a lookup SEL at a fresh lineage). | None (barring a partition) — witnesses decline any extension.                                                                  |
-| **Terminated** | A terminal `Trm` landed cleanly — the SEL is retired. `Trm` advances the seal to its own serial and admits no successor.                                                                                                         | None. A content sibling to the `Trm` is buried below its seal; a sealed sibling is a second accepted sealed branch → Disputed. |
+| State          | Description                                                                                                                                                                                                                                                                | Accepts new events?                                                                                                                       |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active**     | Linear chain; the tip extends cleanly via `previous`, each event witnessed and owner-IEL-anchored.                                                                                                                                                                         | Yes — `Ixn` / `Pin` content, and `Gnt` / `Trm` / `Sea` per their anchor and count requirements.                                           |
+| **Forked**     | A live content fork — both siblings **accepted**; honest witnessing declines a second content sibling, so this only forms under witness compromise. Recoverable: a burying seal-advancer (`Gnt` / `Trm` / `Sea`) on the winning branch drops the loser below the new seal. | Only the resolving event — a burying seal-advancer on the winning branch. A second accepted sealed branch → Disputed.                     |
+| **Disputed**   | A live fork with **two or more accepted sealed branches** — proof the witnesses colluded (an honest split cannot produce it). No sealed branch can be buried, so the owner must **reincept** (a lookup SEL at a fresh lineage).                                            | None (barring a partition) — witnesses decline any extension.                                                                             |
+| **Terminated** | A terminal `Trm` landed cleanly — the SEL is retired. `Trm` advances the seal to its own serial and admits no successor.                                                                                                                                                   | None. A content sibling to the `Trm` is buried below its seal (`Buried`); a sealed sibling is a second accepted sealed branch → Disputed. |
 
 Two byte-identical events at one serial **are one event** — they dedupe by SAID, never a second
 branch; only distinct events collide. **Severed** is not a fifth state — it shrinks the SEL to its
@@ -200,17 +204,22 @@ mechanics are the federation's, applied at the SEL's own position
   the data-local walk sees two. A sealed branch is never buriable, so a **second accepted sealed
   branch is Disputed** — it requires a strict majority of witnesses to double-sign, which is
   provable collusion. A witness-**declined** sealed sibling reaches no threshold and is held
-  pending, forcing nothing.
+  deferred-pending, forcing nothing.
 
 **Anchoring and witnessing ride one batch, so witnessing also closes authorship-forgery.** A SEL
 event is committed only together with its owner-IEL anchor: it is event-kinded, so it cannot enter
 the plain SAD store, and an `Icp` is not valid without its anchored serial-1 event (§Inception). The
-batched anchor is an owner-signed IEL event the witness validates as part of its ordinary job, so
-**acceptance requires owner-authorization** — a non-owner produces no valid anchor, so nothing lands
-at any locus. Witnessing thus closes both threats: **equivocation** (first-seen at the SEL position)
-and **authorship-forgery** (the owner-signed anchor rides the batch). A verifier still re-derives
-the prefix and re-checks the anchor against the data it holds — trusting the data, not the witness —
-as its independent end-verifiability check
+batched anchor is an owner-signed IEL event the witness validates as part of its ordinary job —
+**including that the anchor is itself accepted** (witnessed at threshold on the owner IEL), so a SEL
+event never reaches acceptance ahead of its anchor. So **acceptance requires owner-authorization** —
+a non-owner produces no valid anchor, so nothing lands at any locus. And because a SEL **sealed**
+event's anchor is an IEL **sealed** event — never buried once accepted — an **accepted** SEL sealed
+branch always rests on an accepted anchor, so it is **never later severed** by a dead anchor
+([`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix)).
+Witnessing thus closes both threats: **equivocation** (first-seen at the SEL position) and
+**authorship-forgery** (the owner-signed anchor rides the batch). A verifier still re-derives the
+prefix and re-checks the anchor against the data it holds — trusting the data, not the witness — as
+its independent end-verifiability check
 ([`verification.md` §Owner-rooting](verification.md#owner-rooting--the-authentication-check)).
 
 **Witnesses see the SEL's structural fields — including a lookup SEL's prefix — as acceptable
@@ -299,11 +308,12 @@ flowchart BT
 **Deadness takes precedence over the neutral advancer.** You never bury something already dead: a
 content fork with one severed branch auto-resolves to the live branch (the SEL shrinks to the shared
 tip and the surviving author extends from there — no `Sea`); both branches dead means severed at the
-fork. Severance also **downgrades a Disputed**: if one of two accepted sealed branches is severed,
-it is un-verifiable and not counted, so the reading drops to the live branch and recovers. A
-Disputed under a **linear** owner IEL — where both anchors are locked-live and no severance is
-available — stays terminal and forces re-incept. The full enumeration is the correctness proof in
-[`reconciliation.md`](reconciliation.md).
+fork. Severance **cannot downgrade a Disputed**: its two sealed branches are **accepted**, and SEL
+acceptance gates on the owner-IEL anchor being accepted, so their (IEL sealed) anchors are never
+buried — no severance reaches an accepted sealed branch (see
+[`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix)).
+A Disputed always stays terminal and forces reincept. The full enumeration is the correctness proof
+in [`reconciliation.md`](reconciliation.md).
 
 ## The down-pin and the manifest
 

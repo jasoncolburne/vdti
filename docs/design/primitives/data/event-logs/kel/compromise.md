@@ -77,15 +77,14 @@ drops by position + ascent. So a fork can resolve **incidentally**: a standard `
 rebind) you were committing anyway lands past a content loser and buries it — you never set out to
 recover, the seal-advance just did it. What is `Rot`-specific is the **deliberate** act: when you
 set out to _resolve_ a fork, you author a **`Rot`**, for two reasons — a `Rot` is **always
-available** (a `Wit` carries the must-change-substrate/federation/witnesses constraint, so you
-cannot fire a bare `Wit` purely to recover), and its rotation is what **closes new forks** by
-rotating the compromised signing key out: **recovery closes the fork window; the rotation closes new
-forks.** One recovery `Rot` buries the whole current fork, and its key rotation then denies the
-culprit the new signing key, so after it propagates they can mint no more. A sustained signing-key
-adversary merely spews **dead** content into a **bounded** fork (depth-capped at
-`MAXIMUM_UNSEALED_RUN` per lineage, breadth bounded by retention + the one-content-sibling
-witnessing rule) — then the depth-cap forces a seal-advancer. (The burial mechanics and the two
-attach shapes are the merge layer's —
+available** (a `Wit` carries the must-change-federation/witnesses constraint, so you cannot fire a
+bare `Wit` purely to recover), and its rotation is what **closes new forks** by rotating the
+compromised signing key out: **recovery closes the fork window; the rotation closes new forks.** One
+recovery `Rot` buries the whole current fork, and its key rotation then denies the culprit the new
+signing key, so after it propagates they can mint no more. A sustained signing-key adversary merely
+spews **dead** content into a **bounded** fork (depth-capped at `MAXIMUM_UNSEALED_RUN` per lineage,
+breadth bounded by retention + the one-content-sibling witnessing rule) — then the depth-cap forces
+a seal-advancer. (The burial mechanics and the two attach shapes are the merge layer's —
 [`merge.md` §How a burying seal-advancer resolves a content fork](merge.md#how-a-burying-seal-advancer-resolves-a-content-fork).)
 
 There is **no repair kind, no recovery key, and nothing to prove** — no losing-branch commitment, no
@@ -196,10 +195,12 @@ for them.
 
 ## The live-tip dispute is a killswitch, forced by structure
 
-A `disputed` verdict needs two **accepted** seals at one serial — a witness double-sign
-([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). Two facts
-about that state set the real attack surface and explain why the brick is a structural necessity,
-not a policy choice.
+A live-tip `disputed` verdict (the brick) needs two **accepted** seals at **the live tip's
+position** — a witness double-sign
+([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)). (The general
+`disputed` state is **≥ 2 accepted sealed branches** counted per branch, wherever their seals sit;
+the brick is its same-position live-tip case.) Two facts about that state set the real attack
+surface and explain why the brick is a structural necessity, not a policy choice.
 
 **Forging the second seal at the live tip needs the current signing key, not the reserve.** A seal
 at position `s` reveals this epoch's key — the one drawn from the reserve committed at `s−1` — and
@@ -319,5 +320,5 @@ observable in the data layer. See
 - [`../../../../protocol-doctrine.md`](../../../../protocol-doctrine.md#limit-of-the-doctrine--current-state-compromise)
   — limit of the doctrine; layered defense; adversary patience; cascade-reincept honesty.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
-  — federation witnessing: the kind-scoped witnessing ladder, the witnessing floor, the beacon,
+  — federation witnessing: the tier-scoped witnessing ladder, the witnessing floor, the beacon,
   divergent witness receipts.

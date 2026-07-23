@@ -85,11 +85,22 @@ V0 carries:
 - **`creator`** — the creator's identity prefix, which governs membership and sharing. The creator
   may be a multi-device or threshold identity; co-equal separate-identity admins (a governance
   threshold over distinct identities) are a deliberate extension, not this feature.
-- **the reserved topics** — a holder derives the governance chains from the document prefix (below).
 - **`readers[]`** — the initial read gate: the sorted union of the three `document-*-membership` SEL
   prefixes (edit ∪ comment ∪ read); omitted = public.
-- **`nonce`** — high-entropy, so the prefix (hence every governance and version chain) is
-  unguessable for a **private** document; a public document may omit it.
+- **`nonce`** — required, high-entropy: the governance chains derive from it (below), and it makes
+  the prefix (hence every governance and version chain) unguessable for a **private** document. Draw
+  a fresh nonce per document — reusing one derives the same governance addresses, one membership set
+  silently governing both.
+
+The governance chains ride no V0 field — a holder recomputes each from V0 alone: the SEL's `owner`
+is the **creator** IEL (V0's `creator`, the identity that governs them), its `topic` is the reserved
+membership topic (below), and its `data` is the **V0 `nonce`** — so a creator's chains for two
+documents derive to distinct addresses. Keying the chains on the nonce is what makes V0 mintable:
+the nonce exists before anything is hashed, so the three chain prefixes derive first, `readers[]`
+lists them, and the doc prefix then commits the whole content — chains, gate, and discriminator in
+one direction. `(creator, nonce)` is thus the document's root: every governance address re-derives
+from the pair, and the doc prefix from the pair plus the gate choice. Each is a monotone
+`{Icp, Gnt}` value-lookup chain (no `content` flag, no `lineage`).
 
 V0 is **anonymous-write** — the shared constitution carries no `owner`, so its legitimacy is social,
 established out of band. A competing V0′ is always mintable; nothing structural privileges one
@@ -121,9 +132,10 @@ not cross-chain linkage of the membership graph.)
 Each instance is a **grant chain** the creator owns, sealing `{ grants, rescinds }` deltas — the
 membership primitive's own model, uniform across all three:
 
-- A **grant** admits a member — a **blinded commitment** (`{ said, nonce, data }`, the claim
-  construction the membership primitive reuses) — and **opens the member's bracket** in that group:
-  a **validity period** on the member's own IEL, `from` = the member's IEL position at grant time.
+- A **grant** admits a member — a **blinded commitment** (a nonce-blinded SAD carrying its own
+  `kind`, the claim construction the membership primitive reuses; the concrete shape is in
+  [§Shapes](#shapes)) — and **opens the member's bracket** in that group: a **validity period** on
+  the member's own IEL, `from` = the member's IEL position at grant time.
 - A **rescission** **closes the bracket** and records a **grandfather `bound`** — the period's
   closing position on the member's IEL. For an editor the bound grandfathers the versions before it;
   for a commenter or reader (who author no versions) it simply closes the bracket.
@@ -151,10 +163,12 @@ threshold.
 
 **Unbounded, one cap.** The set is never materialized — a version's check reads its own grant plus
 at most one rescission, never a live roster (knowing the live count would require resolving every
-rescission, defeating the O(1) model). The single amplification bound is
-**`MAXIMUM_GRANT_ADDS = 64`** — a grant event's add-list totals at most that many entries, enforced
-as the verifier accumulates the event's adds and bails the instant it breaches. The grant-chain
-length and per-member period count are the creator's own cost, cost-symmetric.
+rescission, defeating the O(1) model). The single amplification bound is the membership primitive's
+**`MAXIMUM_GRANT_ADDS = 64`**
+([`../primitives/protocols/membership.md`](../primitives/protocols/membership.md)) — a grant event's
+add-list totals at most that many entries, enforced as the verifier accumulates the event's adds and
+bails the instant it breaches. The grant-chain length and per-member period count are the creator's
+own cost, cost-symmetric.
 
 **Member names live in gated content, never public structure.** A chain's structural fields are
 witnessed, hence public, so a member prefix in one would leak. Every member reference is therefore a
@@ -165,8 +179,8 @@ shows only grant / rescission **event** volume-timing, never who or how many mem
 three chains (closes every open bracket, so no new version is honored — the version-stopper) **and**
 terminates the three grant chains (a `Trm ← Rev`, `t_govern` — revoking its own chains), blocking
 re-grant. Bounding alone stops new versions; terminating alone leaves open brackets open. A grant
-chain carries **no `lineage`** (it is monotone, so a terminated chain cannot be re-incepted at a
-fresh lineage), which is what makes the freeze **permanent** — unfreeze is not a chain re-incept but
+chain carries **no `lineage`** (it is monotone, so a terminated chain cannot be reincepted at a
+fresh lineage), which is what makes the freeze **permanent** — unfreeze is not a chain reincept but
 a fresh V0′.
 
 **Crediting is claimed-versus-consent.** A grant _names_ a participant, but credit accrues only to
@@ -202,7 +216,7 @@ editor's own `t_use` produces the anchor, so anchoring proves _authorship_, not 
 
 **Anchoring gives position without a per-version log.** The editor authors an `Ixn` whose manifest
 anchors the version's issuance commitment
-`hash('vdti/iel/v1/actions/commitment:{owner}:{version_said}')`, and the version's custody `pin`
+`hash('vdti/iel/v1/tags/commitment:{owner}:{version_said}')`, and the version's custody `pin`
 locates that `Ixn` — call its position `V_x`, the version's **as-of**. There is no per-version SEL:
 the direct anchor carries both attribution and position at cheap `t_use` cost, and the commitment
 blinds `version_said` on the public IEL.
@@ -285,7 +299,7 @@ read-grant authorizes no version. It composes with DAG placement: a version coun
 grant-docs are served by SAID — so the honored check does **not** read `F_x` out of a `G` fetched by
 SAID and trust it. A rogue could compose any `{ kind: document-edit-membership, grants: [self] }`,
 compute `said(G)`, and cite it. `said(G)` is honored **only** when it resolves to a `Gnt` **sealed
-on the creator's `document-edit-membership` SEL** (the chain derived from the doc prefix) — the
+on the creator's `document-edit-membership` SEL** (the chain derived from the V0 `nonce`) — the
 fail-secure member walk confirms exactly that seal. Unlike a credential's `issuerPin`, `grant`
 carries no position, so **locating** the sealing `Gnt` is the one-time O(chain) disjointness pass
 (below), not a per-version lookup; against its result the per-version check is the O(1) bracket
@@ -309,7 +323,7 @@ holds.
 - **Open-by-absence reads fail-secure.** `B_x` absent → open is answered like any membership
   rescission: the removal is a `kills[]` declaration on the creator's **witnessed** IEL plus a
   `{ Icp, Trm }` lookup, with
-  `target = hash('vdti/sel/v1/actions/rescission:{creator}:{hash(G : said_b)}')` — the primitive's
+  `target = hash('vdti/sel/v1/tags/rescission:{creator}:{hash(G : said_b)}')` — the primitive's
   derivation **tag** (never a feature topic), colon-joined canonical bytes. Honoring an open-period
   version **walks the creator's fresh IEL and forward-matches the target** — a stale or withheld
   view cannot hide a closure, because a hidden rescission needs a stale chain, which the
@@ -398,11 +412,12 @@ period once the bad device is rotated out. No whole-document reincept.
   ([`../primitives/data/sad/custody.md`](../primitives/data/sad/custody.md)), the three-chain union
   **is** the custody gate — no separate feature check. Each listed set is checked **independently**
   one at a time (the same fail-secure membership walk), so an on-node store can enforce the gate
-  directly (it holds the doc `prefix`, from which the three SEL prefixes derive) and a verifier
-  re-checks it authoritatively; the store gate and the read gate are the same set. An author
-  trivially reads what it authored (it holds its own plaintext). A read-gate change is a
-  `document-read-membership` grant, the same tier-2 machinery as an edit grant, rescinded
-  participant-blind exactly the same way. (A public document simply omits `readers`.)
+  directly (each gated SAD's `readers[]` lists the three SEL prefixes literally; a holder of V0
+  re-derives the canonical trio from `(creator, nonce)` to cross-check) and a verifier re-checks it
+  authoritatively; the store gate and the read gate are the same set. An author trivially reads what
+  it authored (it holds its own plaintext). A read-gate change is a `document-read-membership`
+  grant, the same tier-2 machinery as an edit grant, rescinded participant-blind exactly the same
+  way. (A public document simply omits `readers`.)
 - **The read gate is read-set integrity, not confidentiality.** A co-author can always read and
   exfiltrate; the rule keeps the **canonical DAG's read-set uniform**, it does not hide bytes. For
   confidentiality, **encrypt** (the group-key primitive, below). A version declares the gate it was
@@ -427,8 +442,8 @@ period once the bad device is rotated out. No whole-document reincept.
   sees `(member, opaque commitment)` entries but cannot recover a version SAID or group them by
   document. The membership graph closes because the rescission key is participant-blind and
   grant-blind — a witness cannot even link a rescission to its grant. A witness sees only
-  `creator ↔ document` (unavoidable — the governance chains derive from the document prefix) plus
-  grant and rescission volume-timing.
+  `creator ↔ document` (unavoidable — the governance chains name the creator as `owner`, and the
+  doc prefix recomputes from their `data`, the nonce) plus grant and rescission volume-timing.
 - **Content off-node — the sovereignty mode.** A participant may submit only the **governance and
   rescission chains** (opaque, witnessed) and the **version anchors** on its own IEL (opaque
   commitments), and **never land any content SAD** (versions, grant or rescind docs) on a node —
@@ -559,7 +574,7 @@ inception (V0) = {
   prefix,                           // the doc prefix, derived from this SAD's whole content
   creator,                          // the creator's identity prefix
   custody { readers[] },            // the sorted edit ∪ comment ∪ read gate; omit = public
-  nonce?,                           // high-entropy for a private doc
+  nonce,                            // required, high-entropy — the governance chains derive from it
 }
 
 version = {

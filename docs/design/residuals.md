@@ -23,16 +23,37 @@ Each residual is written as three fields:
   authoritative (fail-secure) path still holds.
 - **Lost** — what is actually given up if it is realized: the accepted cost.
 
-**Cost of exposure** ranks how bad realization is, independent of how hard it is to reach:
+### Severity
 
-- **Catastrophic** (30) — irreversible loss of an identity (a prefix can never be recovered, only
-  reincepted under a new one) or a trust break spanning a whole federation.
-- **High** (10) — a serious break that is bounded or recoverable, or one gated behind a strong
-  precondition (a key theft, a quorum compromise, a skipped mandatory step).
-- **Medium** (3) — a bounded, recoverable exposure needing notable adversary capability or an
-  operator error; usually a liveness, availability, or bounded-correlation cost, not a trust break.
-- **Low** (1) — minor, self-limiting, or a deliberate capability ceiling; no adversary advantage
-  beyond the stated bound.
+**Severity** ranks how bad realization is, independent of how hard it is to reach. It is **bounded
+by the axis** the residual threatens — each axis names a property the system protects and carries a
+**ceiling** (the worst a full break of it can be); a residual's severity sits at or below that
+ceiling, by how _fully_ it breaks the property. A residual that threatens **two** axes takes the
+**higher** ceiling, never the sum (a Trust + Recoverability residual is bounded by trust's 16). Each
+residual threatens one property, sometimes two; the tables name the primary, or both where they are
+equally the point.
+
+- **Trust — ceiling 16.** Integrity of authorship and attestation — can an attacker forge events,
+  take over an identity, or be believed as someone they are not? The core end-verifiability
+  property, and a break is permanent (reincept). A full identity takeover is **16**; a buriable
+  content forgery is ~**4**.
+- **Privacy — ceiling 12.** Confidentiality of identities, relationships, and activity — can an
+  observer correlate, de-anonymize, or read what should be hidden? A leak is **unrecoverable** (you
+  cannot un-link a history), which is why it sits near trust. A whole-history correlation is
+  ~**9–12**; a narrow "confirm a subject you already know" is ~**4**.
+- **Freshness — ceiling 8.** Whether a consumer knows the current truth _in time_ — is an attack
+  real but unseen at decision time: an eclipse, a stale view, a drifted clock, a still-open
+  harvested-key window? A miss is a wrong trust decision at the moment it matters — a trust
+  consequence, but bounded, detectable, and transient, so roughly half of trust.
+- **Recoverability — ceiling 6.** The cost of recovering from a realized compromise or error — is
+  recovery in-place, or does it force reinception, lose history, or leave authority you cannot
+  revoke? Bounded and known; and it almost always co-occurs with a trust break (then taking trust's
+  ceiling by the max rule above), so its solo ceiling rarely governs.
+- **Availability — ceiling 2.** Liveness — can the system, an identity, or an operation be denied,
+  frozen, stalled, or capped? A denial or freeze is transient and recoverable, so it is the least of
+  the five.
+
+### Exploitability
 
 **Exploitability** is how attainable the attack is. The design assumes all keys live in **device
 hardware**, key changes are **pre-rotation** (the reserve is committed, never exposed), and
@@ -60,37 +81,27 @@ each band a multiple of the next, not a step.
 - **Signing + Witnesses** (2) — a signing quorum **and** a witness quorum, each in its own hardware.
 - **Reserve + Witnesses** (1) — a reserve quorum **and** a witness quorum; the hardest.
 
-**Risk = Cost × Exploitability** is what the ranked tables sort by, so a certain-but-passive leak or
-a likely operator slip sorts **above** an astronomically-rare-but-catastrophic key compromise. Both
-factors carry the weights above; the product is bucketed **Critical ≥ 1000 / High 200–999 / Medium
-50–199 / Low ≤ 49**.
+### Risk
+
+**Risk = Severity × Exploitability**, bucketed into **absolute** bands — fixed thresholds, never
+graded on a curve, so a genuinely-secure system's residuals cluster low and _that clustering is the
+finding_: **Critical ≥ 2000 / High 500–1999 / Medium 100–499 / Low < 100**. The ranked tables **sort
+by Severity** (the concern — how bad if realized); the Risk band then shows how far that concern is
+discounted by how hard the attack is to reach. Reading the two together is the point: the
+highest-severity residuals (trust breaks) require astronomically-hard hardware-key quorums, so they
+land only **Medium** in actual risk — **under tight config, nothing irreducible reaches High or
+Critical, and every Critical is an avoidable operator opt-out with a one-line fix.**
 
 Ranking is a judgment call about blast radius, reversibility, and what is protected. The ordering
 below is a first pass meant to be argued with, not a settled verdict.
 
-The **ranked summary** sizes each residual by **Cost** (how bad the outcome is), **Exploitability**
-(how attainable it is), and **Risk = Cost × Exploitability** (the sort key), and tags it by **axis**
-(the property at risk) and **outcome** (what a user or operator sees). The two ranked tables carry
-different remaining columns: **Irreducible** adds **requirements** (what an attacker must already
-have), **detectable**, and **resolution**; **Avoidable** adds **mitigation** (the deployment control
-that removes it). The **inherent trade-offs** table is unscored — accepted costs, not attacks.
-
-## Classification axes
-
-Each residual threatens one property, sometimes two; the table names the primary, or both where they
-are equally the point.
-
-- **Trust** — integrity of authorship and attestation. Can an attacker forge events, take over an
-  identity, or be believed as someone they are not? The core end-verifiability property.
-- **Privacy** — confidentiality of identities, relationships, and activity. Can an observer
-  correlate, de-anonymize, or read what should be hidden?
-- **Availability** — liveness. Can the system, an identity, or an operation be denied, frozen,
-  stalled, or capped?
-- **Recoverability** — the cost of recovering from a realized compromise or error. Is recovery
-  in-place, or does it force reinception, lose history, or leave authority you cannot revoke?
-- **Freshness** — whether a consumer can know the current truth in time. Is an attack real but
-  unseen at decision time — an eclipse, a stale view, a drifted clock, a still-open harvested-key
-  window?
+The **ranked summary** sizes each residual by **Severity** (how bad the outcome is — the property at
+risk and how fully it breaks, bounded by that axis's ceiling), **Exploitability** (how attainable it
+is), and **Risk = Severity × Exploitability** (the band); it **sorts by Severity** and tags each by
+**outcome** (what a user or operator sees). The two ranked tables carry different remaining columns:
+**Irreducible** adds **requirements** (what an attacker must already have), **detectable**, and
+**resolution**; **Avoidable** adds **mitigation** (the deployment control that removes it). The
+**inherent trade-offs** table is unscored — accepted costs, not attacks.
 
 ## Ranked summary
 
@@ -107,44 +118,44 @@ by theme, not by these three groups; a handful of placements are noted in the en
 
 ### Irreducible — under tight config and correct operation
 
-| Residual                              | Cost         | Exploitability      | Risk         | Axis                   | Requirements                                                                                                                                                      | Detectable                     | Outcome                                            | Resolution                                                    |
-| ------------------------------------- | ------------ | ------------------- | ------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------- | ------------------------------------------------------------- |
-| Rotation-reserve theft                | Catastrophic | Reserve             | High (300)   | Trust + Recoverability | A `t_govern` or `t_authorize` reserve quorum                                                                                                                      | **Yes** — monitoring           | Attacker takes over your prefix                    | Reincept + notify relying parties                             |
-| Lookup prefix seen by witnesses       | Medium       | Human Intent        | High (300)   | Privacy                | Compromise a witness operator to weaponize a prefix it legitimately sees, + a known candidate subject                                                             | No — passive at the witness    | Infra confirms a subject you both know             | Inherent to a witnessed lookup; a cut stops only exfiltration |
-| Document governance-quorum compromise | High         | Reserve             | Medium (100) | Trust + Recoverability | A `t_authorize` quorum of the creator's reserves                                                                                                                  | **Yes** — monitoring           | The document is captured                           | Reincept + notify relying parties                             |
-| Forced-dead receive key               | High         | Reserve             | Medium (100) | Availability           | A `t_authorize` reserve quorum — forge a `Trm` rescind so the key reads dead                                                                                      | **Yes** — monitoring           | Senders can't reach you until you republish        | Republish at a fresh lineage                                  |
-| Just-cut key still reads fresh        | Medium       | Signing             | Medium (90)  | Freshness              | Harvest a just-cut key within the staleness window (seconds)                                                                                                      | **Yes** — stale on close       | A just-revoked key still forges, briefly           | Window closes/tighten thresholds                              |
-| Signing-key theft + witness collusion | Catastrophic | Signing + Witnesses | Medium (60)  | Trust + Recoverability | `t_use` signing keys **and** a colluding `threshold` witness quorum, shrinking toward `2·threshold − signers` as a partition splits the redundancy onto the rival | **Yes** — provable double-sign | Your identity bricks                               | Reincept                                                      |
-| Signing-key content forgery           | Low          | Signing             | Low (30)     | Trust                  | `t_use` signing keys (content stays buriable)                                                                                                                     | **Yes** — fork + monitoring    | Forged content appears until you bury it           | Bury (rotate) — the anchors die on ascent                     |
-| Eclipsed at decision time             | High         | Signing + Witnesses | Low (20)     | Freshness              | A signing-key fork + coercing the queried witnesses to withhold                                                                                                   | Post-resolution                | You bind the attacker's branch, not the honest one | Re-verify multi-source before binding                         |
+| Residual                              | Severity                    | Exploitability      | Risk         | Requirements                                                                                                                                                      | Detectable                     | Outcome                                            | Resolution                                                    |
+| ------------------------------------- | --------------------------- | ------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | -------------------------------------------------- | ------------------------------------------------------------- |
+| Rotation-reserve theft                | Trust + Recoverability · 16 | Reserve             | Medium (160) | A `t_govern` or `t_authorize` reserve quorum                                                                                                                      | **Yes** — monitoring           | Attacker takes over your prefix                    | Reincept + notify relying parties                             |
+| Signing-key theft + witness collusion | Trust + Recoverability · 16 | Signing + Witnesses | Low (32)     | `t_use` signing keys **and** a colluding `threshold` witness quorum, shrinking toward `2·threshold − signers` as a partition splits the redundancy onto the rival | **Yes** — provable double-sign | Your identity bricks                               | Reincept                                                      |
+| Document governance-quorum compromise | Trust + Recoverability · 12 | Reserve             | Medium (120) | A `t_authorize` quorum of the creator's reserves                                                                                                                  | **Yes** — monitoring           | The document is captured                           | Reincept + notify relying parties                             |
+| Eclipsed at decision time             | Freshness · 8               | Signing + Witnesses | Low (16)     | A signing-key fork + coercing the queried witnesses to withhold                                                                                                   | Post-resolution                | You bind the attacker's branch, not the honest one | Re-verify multi-source before binding                         |
+| Just-cut key still reads fresh        | Freshness · 6               | Signing             | Medium (180) | Harvest a just-cut key within the staleness window (seconds)                                                                                                      | **Yes** — stale on close       | A just-revoked key still forges, briefly           | Window closes/tighten thresholds                              |
+| Lookup prefix seen by witnesses       | Privacy · 4                 | Human Intent        | Medium (400) | Compromise a witness operator to weaponize a prefix it legitimately sees, + a known candidate subject                                                             | No — passive at the witness    | Infra confirms a subject you both know             | Inherent to a witnessed lookup; a cut stops only exfiltration |
+| Signing-key content forgery           | Trust · 4                   | Signing             | Medium (120) | `t_use` signing keys (content stays buriable)                                                                                                                     | **Yes** — fork + monitoring    | Forged content appears until you bury it           | Bury (rotate) — the anchors die on ascent                     |
+| Forced-dead receive key               | Availability · 2            | Reserve             | Low (20)     | A `t_authorize` reserve quorum — forge a `Trm` rescind so the key reads dead (also §Value-bearing lookup DoS)                                                     | **Yes** — monitoring           | Senders can't reach you until you republish        | Republish at a fresh lineage                                  |
 
 ### Avoidable — loose config, opt-outs, and operational lapses
 
 These aren't the point — someone configured and operating correctly carries none of them. They are
 enumerated for completeness, each with the one thing that makes it go away.
 
-| Residual                                              | Cost         | Exploitability | Risk            | Axis                   | Outcome                                                            | Mitigation                                                                                                           |
-| ----------------------------------------------------- | ------------ | -------------- | --------------- | ---------------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Lost keys left in the roster                          | High         | Human Error    | Critical (3000) | Trust                  | Federation governance is taken over                                | Cut lost keys promptly (watch the at-risk flag)                                                                      |
-| Skipping the freshness check                          | High         | Human Error    | Critical (3000) | Trust                  | You accept a forged, stale-issuer credential                       | Always run the mandatory to-tip check                                                                                |
-| Gated record without a nonce                          | High         | Human Error    | Critical (3000) | Privacy                | A named member is de-anonymized                                    | Give every gated record a high-entropy nonce                                                                         |
-| Fail-open revocation opt-out                          | Medium       | Human Error    | High (900)      | Trust                  | You accept a revoked subject                                       | Stay fail-secure; don't opt down                                                                                     |
-| Fail-open on a walk timeout                           | Medium       | Human Error    | High (900)      | Trust                  | You accept a revoked subject under latency                         | Fail secure on timeout where it matters                                                                              |
-| Leaked chain prefix                                   | Medium       | Human Error    | High (900)      | Privacy                | Your whole history becomes linkable                                | Keep prefixes out of logs and shared refs                                                                            |
-| Guessable derived address                             | Medium       | Human Error    | High (900)      | Privacy                | An attacker probes your status / existence                         | Use a high-entropy `data` input                                                                                      |
-| Mis-set rescission boundary                           | Medium       | Human Error    | High (900)      | Recoverability         | You cut honest work or miss bad work                               | Cut at genesis when the loss time is unknown                                                                         |
-| Naive delegator rescission                            | Medium       | Human Error    | High (900)      | Recoverability         | Sub-delegated creds keep being issued                              | Move the boundary before the sub-grant                                                                               |
-| Routing around a delegator                            | Medium       | Human Error    | High (900)      | Recoverability         | A cred via another path stays valid                                | Rescind at the root, or issue under a threshold                                                                      |
-| Consumer clock drifts backward                        | Medium       | Human Error    | High (900)      | Freshness              | You accept backdated data unknowingly                              | Keep the clock NTP-synced within `CLOCK_TOLERANCE_BAND`                                                              |
-| Anonymous-write flood                                 | Medium       | Human Error    | High (900)      | Availability           | Your store fills with junk (until gated)                           | Rate-limit or gate anonymous writes                                                                                  |
-| Single-device IEL full compromise                     | Catastrophic | Signing        | High (900)      | Trust + Recoverability | A full device compromise takes over your prefix                    | Run a ≥3-device IEL (survivors meet `t_govern` to cut a compromised device)                                          |
-| Two-member identity                                   | Medium       | Human Error    | High (900)      | Availability           | One bad device freezes you; reincept                               | Add a third key to become recoverable                                                                                |
-| Terminated identity freezes revocation and rescission | Medium       | Human Error    | High (900)      | Recoverability         | A retired issuer/delegator can't revoke, rescind, or close periods | Revoke and rescind before terminating                                                                                |
-| Recovery breaks a dependent                           | Medium       | Human Error    | High (900)      | Recoverability         | A dependent event breaks                                           | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
-| Leaked gated-record bytes                             | Medium       | Human Error    | High (900)      | Privacy                | Gated plaintext is readable once bytes escape                      | Encrypt sensitive content (use the exchange channel)                                                                 |
-| Even-signers tie                                      | Low          | Human Error    | High (300)      | Availability           | A position stalls (never forks)                                    | Use an odd number of signers                                                                                         |
-| Never-rotated witness key                             | Medium       | Signing        | Medium (90)     | Freshness              | A stolen witness key forges up to a year                           | Rotate witness keys with margin                                                                                      |
-| Under-provisioned witness set                         | High         | Witnesses      | Medium (50)     | Trust                  | N compromised witnesses forks you                                  | Provision `signers`/`threshold` for the fork-cost `N = 2·threshold − signers` you need (traded against availability) |
+| Residual                                              | Severity                    | Exploitability | Risk            | Outcome                                                            | Mitigation                                                                                                           |
+| ----------------------------------------------------- | --------------------------- | -------------- | --------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| Lost keys left in the roster                          | Trust · 16                  | Human Error    | Critical (4800) | Federation governance is taken over                                | Cut lost keys promptly (watch the at-risk flag)                                                                      |
+| Single-device IEL full compromise                     | Trust + Recoverability · 16 | Signing        | Medium (480)    | A full device compromise takes over your prefix                    | Run a ≥3-device IEL (survivors meet `t_govern` to cut a compromised device)                                          |
+| Skipping the freshness check                          | Trust · 12                  | Human Error    | Critical (3600) | You accept a forged, stale-issuer credential                       | Always run the mandatory to-tip check                                                                                |
+| Gated record without a nonce                          | Privacy · 12                | Human Error    | Critical (3600) | A named member is de-anonymized                                    | Give every gated record a high-entropy nonce                                                                         |
+| Under-provisioned witness set                         | Trust · 12                  | Witnesses      | Low (60)        | N compromised witnesses forks you                                  | Provision `signers`/`threshold` for the fork-cost `N = 2·threshold − signers` you need (traded against availability) |
+| Leaked chain prefix                                   | Privacy · 9                 | Human Error    | Critical (2700) | Your whole history becomes linkable                                | Keep prefixes out of logs and shared refs                                                                            |
+| Fail-open revocation opt-out                          | Trust · 8                   | Human Error    | Critical (2400) | You accept a revoked subject                                       | Stay fail-secure; don't opt down                                                                                     |
+| Fail-open on a walk timeout                           | Trust · 8                   | Human Error    | Critical (2400) | You accept a revoked subject under latency                         | Fail secure on timeout where it matters                                                                              |
+| Guessable derived address                             | Privacy · 6                 | Human Error    | High (1800)     | An attacker probes your status / existence                         | Use a high-entropy `data` input                                                                                      |
+| Leaked gated-record bytes                             | Privacy · 6                 | Human Error    | High (1800)     | Gated plaintext is readable once bytes escape                      | Encrypt sensitive content (use the exchange channel)                                                                 |
+| Consumer clock drifts backward                        | Freshness · 6               | Human Error    | High (1800)     | You accept backdated data unknowingly                              | Keep the clock NTP-synced within `CLOCK_TOLERANCE_BAND`                                                              |
+| Two-member identity                                   | Recoverability · 6          | Human Error    | High (1800)     | One bad device freezes you; reincept                               | Add a third key to become recoverable                                                                                |
+| Never-rotated witness key                             | Freshness · 6               | Signing        | Medium (180)    | A stolen witness key forges up to a year                           | Rotate witness keys with margin                                                                                      |
+| Mis-set rescission boundary                           | Recoverability · 5          | Human Error    | High (1500)     | You cut honest work or miss bad work                               | Cut at genesis when the loss time is unknown                                                                         |
+| Naive delegator rescission                            | Recoverability · 5          | Human Error    | High (1500)     | Sub-delegated creds keep being issued                              | Move the boundary before the sub-grant                                                                               |
+| Routing around a delegator                            | Recoverability · 5          | Human Error    | High (1500)     | A cred via another path stays valid                                | Rescind at the root, or issue under a threshold                                                                      |
+| Terminated identity freezes revocation and rescission | Recoverability · 3          | Human Error    | High (900)      | A retired issuer/delegator can't revoke, rescind, or close periods | Revoke and rescind before terminating                                                                                |
+| Recovery breaks a dependent                           | Recoverability · 3          | Human Error    | High (900)      | A dependent event breaks                                           | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
+| Anonymous-write flood                                 | Availability · 1            | Human Error    | Medium (300)    | Your store fills with junk (until gated)                           | Rate-limit or gate anonymous writes                                                                                  |
+| Even-signers tie                                      | Availability · 1            | Human Error    | Medium (300)    | A position stalls (never forks)                                    | Use an odd number of signers                                                                                         |
 
 ### Inherent trade-offs — deliberate design costs, not attacks
 
@@ -152,12 +163,12 @@ These are not adversarial residuals or mistakes — they are properties the desi
 bounded resources, structural finality, and the minimum metadata an end-verifiable system exposes.
 Listed so an evaluator sees the full picture; none is a defense you can add.
 
-| Residual                                                                                          | Axis           | The accepted trade-off                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Residual                                                                                          | Severity       | The accepted trade-off                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------------------------------------------------------------------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Config-pinned federation root                                                                     | Trust          | Trust roots arrive over an out-of-band channel — the universal bootstrap axiom (cf. CA roots). A mismatch simply fails; there is nothing to trust wrongly unless that channel itself is compromised                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Forgeable document root                                                                           | Trust          | A document root is anonymous-write, so a competing root is always mintable; legitimacy is social and a holder self-authenticates against the derived prefix — the same out-of-band bootstrap axiom as the config-pinned root, one layer up                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Referenced content gone                                                                           | Availability   | A referenced record can read "not present" — retention is an author window, not a lifetime guarantee for the reference                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| Roster / seal caps                                                                                | Availability   | Very large rosters and long content runs between seals are refused — deliberate ceilings that bound verifier work; an over-long rebind chain is refused by the general work bound, not a per-chain cap                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Roster / seal caps                                                                                | Availability   | Very large rosters and long content runs between seals are refused — deliberate ceilings that bound verifier work; an over-long rebind chain is refused by the general work bound, not a per-chain cap; a plain content log's periodic re-seal is priced at **governance tier** (a neutral re-seal anchored by an owner evolve at `t_govern`), so a high-volume log recurs that ceremony every 64 content events — a deployment planning one should budget the cadence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Dead-branch flood                                                                                 | Availability   | A signing-key adversary can waste bounded storage / traffic; it is never canonical and self-resolves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Dangling-parent flood                                                                             | Availability   | A junk flood denies only the flooder's own placement, never others                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | No retroactive distrust                                                                           | Recoverability | A co-signed bad event stands; you remediate forward (revoke, evict) rather than rewrite history                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -171,8 +182,10 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 | Inbox-node hints are targeting metadata                                                           | Privacy        | Publishing which nodes hold an identity's mail tells an observer where to look — the cost of resolving a recipient without federation-wide graph gossip                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | Batch-anchor co-send linkage                                                                      | Privacy        | Anchoring several messages on one `Ixn` publishes that they were co-sent in one batch, confined to the sender's own messages — a linkage a per-message anchor avoids                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Self-lane message backdate is prevented (removed), detectable (live fork), or accounted (dormant) | Recoverability | A **current** chat member backdating below its advanced tip must fork its own lane (`(epoch, timestamp)` monotonicity makes a tip-append malformed) — a self-signed equivocation, undeniable once both siblings reach a common member (an eclipse / split delivery only defers, never hides it). A **removed** member is fully closed at the verifier: honored history is exactly the `chat-membership` removal `bound`'s ancestor-chain `[anchored root … bound]`, so any node off it — a forward-append past the bound, a **fork below it**, or a **fresh parentless root** — is not honored (a local interval check against the durable on-chain `bound`, not fork detection). Residual = a **dormant current** member (never removed, valid key) can forward-append into an epoch it held but was silent for — the accepted backdate-within-a-held-window class, confined to its own lane; plus the equivocation-convergence window for the fork case |
+| Open-epoch chat message future-dating                                                             | Recoverability | A chat message **future-dated within the current (open) epoch** is accepted when authored — the open epoch has no upper witnessed boundary yet — and reads **outside its window** only once the next epoch's witnessed time lands below the stamp, so its validity is **non-monotone** (accepted while open, retroactively out-of-window on close). **Self-harming:** it weakens only the author's own lane, never forges another's, and monotonicity within a lane and cross-lane fork-evidence are unaffected. A **closed** epoch instead refuses a future stamp outright (the next epoch's witnessed time bounds it); a deployment wanting monotone open-epoch validity adds mail's future-side `timestamp ≤ now + CLOCK_TOLERANCE_BAND` bound (exchange §The session mode — chat)                                                                                                                                                                     |
 | Chat authenticity is one device's signature, not a `t_use` quorum                                 | Trust          | Mail authenticates with the sender's `t_use` quorum; a chat message is signed by a **single** writing device, attributed to its owning identity — so one compromised member device can author chat history in that identity's name, bounded by its KEL window, epoch membership, and its own lane. A strictly lower bar than mail's quorum, deliberate (a per-message quorum is impractical for a high-volume conversation)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | Chat's home nodes see the writer set                                                              | Privacy        | A lane-root marker carries the writing device's KEL prefix in cleartext (the receiver needs it to pick the per-writer subkey), so the group's storage nodes passively learn who wrote and when — the chat instance of the communication-graph-at-home-nodes residual                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| A member's prefix is visible in its roster delta                                                  | Privacy        | Being added to an identity's roster names the member's prefix in that `Wit` / `Evl` `add`, so anyone walking that identity's chain learns the membership — a correlation exposure only; the roster grants the naming identity **no** authority over the member's keys, and a conscripted member rotates-and-refuses (or is cut)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 
@@ -181,7 +194,7 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 The most severe residuals: a stolen secret that the recovery model cannot walk back. These are the
 framework's acknowledged points of no return, shared in kind with any pre-rotation identity system.
 
-### Rotation-reserve theft → takeover — Catastrophic
+### Rotation-reserve theft → takeover
 
 - **Attack** — An identity is governed by a **`t_govern` threshold of member KELs**, each holding a
   rotation **reserve** in its own hardware apart from its everyday signing key; the reserve defends
@@ -195,12 +208,18 @@ framework's acknowledged points of no return, shared in kind with any pre-rotati
   alone cannot reach it. The takeover is not prevented, but it need not be silent: an owner who
   [monitors their own chain](monitoring.md) — comparing the network's effective SAID for their
   prefix against what their key state says it should be — is alerted the moment an event they did
-  not author appears, and reincepts and warns relying parties fast. The guarantee the design makes
-  is "no **undetected** takeover for a monitored chain," not "no takeover."
+  not author appears, and reincepts and warns relying parties fast. A vigilant owner also holds one
+  **in-band surfacing lever**: theft copies the reserve rather than removing it, so the owner can
+  author a competing **rebind to a different federation** — both sides reach acceptance on disjoint
+  witness sets ([witnessing §Rebinding](substrate/federation/witnessing.md#rebinding)) — and the
+  chain reads **disputed to any verifier whose trusted set includes both federations**. It recovers
+  nothing for the prefix (reincept is still the answer), but it flips those relying parties from
+  trusting the attacker to refusing. The guarantee the design makes is "no **undetected** takeover
+  for a monitored chain," not "no takeover."
 - **Lost** — Control of the prefix, permanently. Recovery is reinception under a **new** prefix plus
   out-of-band notification of every relying party. Irreversible.
 
-### Current signing-key content forgery — Low
+### Current signing-key content forgery
 
 - **Attack** — A compromised current signing key can author content or assertions in the owner's
   name during the compromise window.
@@ -209,8 +228,8 @@ framework's acknowledged points of no return, shared in kind with any pre-rotati
   [monitoring](monitoring.md); the owner **buries** it by sealing their own branch with a rotation,
   which the attacker, lacking the reserve, cannot counter. Burying the branch kills the forged
   content **and any issuances anchored on it, by deadness-ascent** — no separate revocation is
-  needed. Requiring at least two signers for content means a single compromised device can't author
-  alone.
+  needed. Requiring at least two signers for content — **where configured** (`t_use ≥ 2`;
+  `t_use = 1` is legal at any roster size) — means a single compromised device can't author alone.
 - **Lost** — A transient window before burial in which a relying party may act on the forged content
   and then needs forward notice it was buried. **Not** permanent — permanence needs the reserve,
   which is the takeover above.
@@ -240,7 +259,7 @@ what happens at and past that boundary.
 - **Lost** — Nothing on its own. Naming it keeps the compound residuals honest: every "witnesses do
   X" cost is really "a key compromise **plus** collusion."
 
-### Signing-key theft + witness collusion → brick — Catastrophic
+### Signing-key theft + witness collusion → brick
 
 - **Attack** — A terminal dispute is two **accepted** sealed branches at one position; a sealed
   branch is never buried, so it forces the identity to abandon the prefix and reincept. Forging the
@@ -291,7 +310,7 @@ what happens at and past that boundary.
   witness (under a full partition) forks a position; at a large well-secured config the residual is
   negligible — the exposure is the operator's config choice.
 
-### Cumulative lost-then-broken reserves — High
+### Cumulative lost-then-broken reserves
 
 - **Attack** — Federation members' keys are lost (the operator can't rotate them) but left in the
   roster; an adversary breaks each lost key's reserve, mints a fresh clock-window per key, and
@@ -319,7 +338,7 @@ cannot certify the **absence** of one. But eclipse in VDTI is not a cheap networ
 events from witnesses, so hiding data means compromising the witnesses you query. The universal
 backstop is fail-secure refusal when freshness can't be confirmed.
 
-### Eclipse at decision time — High
+### Eclipse at decision time
 
 - **Attack** — Eclipse bites only when a fork **already exists** (someone with a key authored
   competing branches). Because you fetch events from witnesses / nodes, hiding the honest branch
@@ -337,7 +356,7 @@ backstop is fail-secure refusal when freshness can't be confirmed.
   turns it into a refusal (availability) rather than a wrong bind, and the divergence surfaces
   post-resolution when the partition heals.
 
-### Consumer clock drifts backward — Medium
+### Consumer clock drifts backward
 
 - **Attack** — A consumer whose wall clock drifts backward beyond `CLOCK_TOLERANCE_BAND` (via NTP
   failure or manipulation) reads stale as fresh and suppresses at-risk flags — silently defeating
@@ -348,7 +367,7 @@ backstop is fail-secure refusal when freshness can't be confirmed.
 - **Lost** — The entire backdate / dormant-forgery defense, for a clock-drifted consumer — an
   accepted deployment-invariant pushed to the operator.
 
-### Just-closed-window staleness gap — Medium
+### Just-closed-window staleness gap
 
 - **Attack** — A key whose window closed **within** the consumer's staleness threshold can still
   stamp a receipt that reads fresh until the threshold elapses past the close; a harvested just-cut
@@ -357,7 +376,7 @@ backstop is fail-secure refusal when freshness can't be confirmed.
   freshness-sensitive (demand extra-fresh confirmation near one).
 - **Lost** — Freshness assurance for the just-closed-window interval — a time-granularity gap.
 
-### Never-rotated witness (year-long window) — Medium
+### Never-rotated witness (year-long window)
 
 - **Attack** — A witness that never rotates keeps its receipt-signing window open for up to a year;
   a key harvested any time in that year stamps valid receipts until the auto-close.
@@ -378,7 +397,7 @@ extra reach is about a `CLOCK_TOLERANCE_BAND`. Not a standalone residual.)_
 
 Compromises short of a reserve theft: bounded, revocable, or recoverable — but with real cost.
 
-### Document governance-quorum compromise — High
+### Document governance-quorum compromise
 
 - **Attack** — Compromising the **creator IEL's governance quorum** — its **`t_authorize`**
   threshold for grants and rescissions (`t_govern` on the **freeze** leg), a **quorum of rotation
@@ -392,7 +411,7 @@ Compromises short of a reserve theft: bounded, revocable, or recoverable — but
   history stays verifiable. Member compromises, by contrast, are editor-local.
 - **Lost** — Whole-document capture until reinception, whose successor legitimacy is out-of-band.
 
-### Issuance signing-key compromise — Medium
+### Issuance signing-key compromise
 
 - **Attack** — Issuance is a content-tier operation, so a compromised signing key can forge
   credentials in the issuer's name (no reserve needed).
@@ -402,7 +421,7 @@ Compromises short of a reserve theft: bounded, revocable, or recoverable — but
 - **Lost** — Integrity of issuance during the window: an attacker mints revocable claims in the
   issuer's name until detected. Severity rises for a single-signer issuer.
 
-### Editor signing-key compromise (a document) — Medium
+### Editor signing-key compromise (a document)
 
 - **Attack** — Within a compromised editor's open period, an adversary authors valid attributed
   versions as that member; they linger until the creator rescinds the period.
@@ -422,7 +441,7 @@ declaration on the owner's chain. The default is fail-secure (walk the fresh cha
 object reads don't-honor). A consumer may deliberately **opt down** to a fast content-addressed
 lookup — and that opt-down is where these residuals live. The opt is always down, never up.
 
-### Fail-open negative-check opt-out — Medium
+### Fail-open negative-check opt-out
 
 - **Attack** — A consumer that has opted down to the fast lookup treats a not-found as best-effort
   not-killed. An adversary who withholds (or eclipses the fetch of) the lookup object makes a
@@ -433,7 +452,7 @@ lookup — and that opt-down is where these residuals live. The opt is always do
   application layer.
 - **Lost** — For an opted-down consumer: a killed subject read as valid when the object is withheld.
 
-### Fail-open on a mis-tuned walk timeout — Medium
+### Fail-open on a mis-tuned walk timeout
 
 - **Attack** — A consumer runs the fail-secure walk under a timeout; an adversary induces latency so
   it times out. If the consumer's policy fails open on timeout, a killed subject slips through the
@@ -443,7 +462,7 @@ lookup — and that opt-down is where these residuals live. The opt is always do
 - **Lost** — A consumer whose timeout policy fails open accepts a killed subject under induced
   latency. "Where it matters" is an operator judgment, not a chain guarantee.
 
-### As-issued resolve skips the to-tip step — High
+### As-issued resolve skips the to-tip step
 
 - **Attack** — An adversary who compromises an issuer's key forges a clean linear extension of a
   dormant chain (no divergence to detect). A consumer that runs only the was-this-validly-issued
@@ -464,7 +483,7 @@ chains are walked by prefix, and a derived lookup address is a hash of a high-en
 residuals are the edges of that construction — a leaked prefix, a low-entropy input, a missing
 nonce, or the standing exposure to the federation infrastructure that must route the traffic.
 
-### Offline hash-match oracle (nonce omitted) — High
+### Offline hash-match oracle (nonce omitted)
 
 - **Attack** — A record's identifier does **not** transitively protect its referenced sub-records: a
   gated grant entry, rescind record, or private version is fetchable by its identifier. If such a
@@ -478,7 +497,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
 - **Lost** — If the nonce is omitted, offline de-anonymization of members — no chain access needed
   beyond public identifiers. Closed by construction when the nonce is present.
 
-### Lookup-prefix exposure to federation infra — Medium
+### Lookup-prefix exposure to federation infra
 
 - **Attack** — Because a lookup data log is now witnessed, its prefix rides its own receipt onto the
   witness mesh. A federation member (or a below-threshold mesh compromise) that already knows a
@@ -493,7 +512,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
   semi-trusted infrastructure — and, during a compromise window, exfiltration of the prefix set it
   holds. Never the subject identity itself.
 
-### Prefix leak → whole-chain correlation — Medium
+### Prefix leak → whole-chain correlation
 
 - **Attack** — The whole correlation-resistance rests on the prefix staying secret and events being
   addressed by prefix. If an identity's prefix leaks — published, logged in a request line, or
@@ -505,7 +524,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
 - **Lost** — Correlation of an entire identity's history once its prefix leaks. Prefix
   confidentiality is an operational, not cryptographic, boundary.
 
-### Low-entropy `data` → address brute-force — Medium
+### Low-entropy `data` → address brute-force
 
 - **Attack** — A lookup or kill-check address is a hash of `(owner, topic, data)`; owner and topic
   are low-entropy. If the `data` input is also guessable, an adversary brute-forces the address and
@@ -517,7 +536,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
 - **Lost** — For a guessable `data`, an existence / status oracle for that locus. Closed by the
   entropy discipline; a weak input reopens it.
 
-### Confirm-a-known-subject revocation status — Low
+### Confirm-a-known-subject revocation status
 
 - **Attack** — A party who already holds a subject's grant instance can compute its kill target and
   confirm whether that specific subject is revoked, even without being the intended verifier.
@@ -527,7 +546,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
 - **Lost** — The minimum disclosure needed to make revocation checkable at all: confirm what you
   already hold. Fully closed for private subjects.
 
-### Lower-cost correlation edges — Low
+### Lower-cost correlation edges
 
 - **Issuance volume / timing** — A passive observer of a public chain sees issuance volume and
   timing even though the anchors are opaque; folding issuances into mixed anchors muddies
@@ -548,7 +567,7 @@ nonce, or the standing exposure to the federation infrastructure that must route
 The read gate controls **access through the store**, not the readability of bytes that have escaped
 it. There is no content encryption tied to a read gate (that is a forward direction).
 
-### Leaked bytes of a gated record are readable — Medium
+### Leaked bytes of a gated record are readable
 
 - **Attack** — An adversary who obtains the raw bytes of a read-gated record out-of-band (a
   misconfigured replica, a leaked cache, a compromised storage node, or a prior authorized reader
@@ -559,7 +578,7 @@ it. There is no content encryption tied to a read gate (that is a forward direct
 - **Lost** — Plaintext confidentiality of a gated record once bytes escape — the gate is
   operational, not a cryptographic seal.
 
-### One-shot delivery isn't a deletion guarantee — Low
+### One-shot delivery isn't a deletion guarantee
 
 - **Attack** — A one-shot record instructs the store to delete after the first read; it says nothing
   about what the first reader does with the bytes it already holds.
@@ -575,7 +594,7 @@ The design chooses structural finality over fuller recovery: a sealed kill is ne
 co-signed event never un-signed, a dead prefix never restored in place. These are deliberate costs,
 not gaps — retroactive undo would be a strictly worse weapon (a backdating kill-switch).
 
-### Inherited deadness severs a data log — Medium
+### Inherited deadness severs a data log
 
 - **Attack** — When an owner's chain branch goes dead (buried by a recovery rotation), every
   data-log event anchored on the dead portion is severed at the earliest dead anchor; with no repair
@@ -587,7 +606,7 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
 - **Lost** — A bounded, un-verifiable tail: legitimate data-log work anchored during a since-buried
   window, which must be re-anchored on the recovered branch.
 
-### Mis-set rescission bound (set once) — Medium
+### Mis-set rescission bound (set once)
 
 - **Attack** — An operator sets a rescission boundary wrong: too high grandfathers malicious
   in-window work, too low un-honors honest work. A sealed kill is never retracted, so the boundary
@@ -599,7 +618,7 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
 - **Lost** — A mis-set boundary is unfixable in place; the operator eats either malicious survival
   or honest collateral and recovers operationally.
 
-### Delegation-scope surprises — Medium
+### Delegation-scope surprises
 
 - **Rescinding one delegator doesn't stop a sub** — There is no cross-chain clock: each hop's
   grandfather is judged by its committed grant position. So rescinding a delegator does **not**
@@ -614,8 +633,16 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
   revoke just one grandfathered credential of it (a boundary removes a contiguous suffix, not a
   non-contiguous subset). Recovery is to reincept the delegate. The accepted cost of the clean
   contiguous-boundary model.
+- **Monotone delegation assumes a fungible delegate** — A rescinded `(delegator, delegate)` pair is
+  permanent (the delegating-link SEL is monotone, no `lineage`); re-delegating means the delegate
+  reincepts to a fresh prefix, which is a fresh delegating-link address. This fits a **fleet** model
+  — a delegate is an operational node or sub-delegator you terminate or rescind and **replace**,
+  never pause and resume. Worth revisiting only if delegation is ever pointed at stable,
+  reputation-anchored identities whose prefix carries its own credentials or other delegations, for
+  which replace-don't-resume would throw away or fork that value. For scaling fleets it is exactly
+  right.
 
-### Burying rotation orphans a dependent anchor — Medium
+### Burying rotation orphans a dependent anchor
 
 - **Attack** — A seal locks a chain's own content against burial within that chain, but not that
   event's lower-layer anchors. An owner's burying rotation can bury content that a dependent chain
@@ -626,7 +653,7 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
 - **Lost** — Integrity of a dependent event whose anchor is buried — detected, not prevented;
   recovered operationally.
 
-### Terminated identity freezes revocation and rescission — Medium (avoidable)
+### Terminated identity freezes revocation and rescission (avoidable)
 
 - **Attack** — An IEL `Trm` freezes all the issuer's SELs, so a terminated issuer can author no
   further `Rev`. Its unrevoked credentials read **not-revoked forever** (bounded only by advisory
@@ -643,7 +670,7 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
 - **Lost** — Revocability of a terminated issuer's outstanding credentials, and single-use
   enforcement of its bearer credentials. Removed by the revoke-before-terminate discipline.
 
-### Lower-cost finality costs — Low
+### Lower-cost finality costs
 
 - **Retroactive per-event distrust is forbidden** — An event the quorum co-signed alongside a member
   later found compromised **stands**; remediation is forward (revoke its grants, evict the member).
@@ -663,7 +690,7 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
 Deliberate ceilings that trade a capability or some liveness for a bounded resource surface. Most
 are not exploitable breaks — they are the bounds themselves.
 
-### Value-bearing lookup DoS (collusion-forced) — High
+### Value-bearing lookup DoS (collusion-forced)
 
 - **Attack** — A value-bearing lookup — a system capability like a receive key, with no fallback
   path — has the data log's own live state as its sole authority. Witness collusion that forces that
@@ -676,8 +703,11 @@ are not exploitable breaks — they are the bounds themselves.
 - **Lost** — Availability of secure-receive at that address until the owner reincepts a fresh
   lineage — a bounded interruption, not a permanent loss, and it requires witness collusion to
   force.
+- **Also reachable by** — forging a `Trm` rescind (a `t_authorize` reserve quorum) — the path the
+  ranked table's "Forced-dead receive key" row prices; both paths end in the same fail-closed
+  outcome.
 
-### Anonymous-write flood (operator gate) — Medium
+### Anonymous-write flood (operator gate)
 
 - **Attack** — An anonymous write carries no writer attestation; acceptance is gated only by
   operator-configured policy (open with rate-limits by default). A permissive deployment accepts
@@ -688,7 +718,7 @@ are not exploitable breaks — they are the bounds themselves.
 - **Lost** — Spam / DoS resistance on anonymous writes is an operator-configuration property, not a
   protocol floor.
 
-### Referenced content expires or is withheld — Medium
+### Referenced content expires or is withheld
 
 - **Attack** — A parent commits to a sub-record by identifier; the sub-record's retention window
   expires (or it is withheld) and it is garbage-collected. A later verifier that must expand the
@@ -699,7 +729,7 @@ are not exploitable breaks — they are the bounds themselves.
 - **Lost** — Availability of still-referenced content — retention is an operational window, not a
   guarantee the bytes remain fetchable for the life of the reference.
 
-### Lower-cost availability bounds — Low
+### Lower-cost availability bounds
 
 - **Caps** — The roster is capped (a memory-exhaustion backstop for the verifier's on-walk rebuild),
   and content between seals is capped (forcing a periodic re-seal so a fork plus its burying seal
@@ -724,7 +754,7 @@ are not exploitable breaks — they are the bounds themselves.
 Costs of the smallest configurations and of the trust roots that, by necessity, sit outside the
 witnessing model.
 
-### Single-device IEL full compromise → takeover — Catastrophic (avoidable)
+### Single-device IEL full compromise → takeover (avoidable)
 
 - **Attack** — A single-device IEL's one member KEL is the **whole `t_govern` quorum**. A full
   compromise of that device — both its `t_use` signing key and its on-device rotation reserve —
@@ -745,7 +775,7 @@ witnessing model.
   freeze at two); recovery is reinception under a new prefix. Fully avoided by binding three or more
   devices.
 
-### Two-member identity freeze — Medium
+### Two-member identity freeze
 
 - **Attack** — At two members, the security floor forces every authority threshold to two — so the
   recoverability ceiling (needing fewer than all members to evict) can't also hold. A single
@@ -759,7 +789,7 @@ witnessing model.
   the accepted floor; replicating a rotation reserve across partitionable nodes is a related
   self-inflicted false-dispute the operator must avoid.)
 
-### Unwitnessed genesis / config-pinned root — Medium
+### Unwitnessed genesis / config-pinned root
 
 - **Attack** — A federation's genesis is unwitnessed — there is no earlier root to witness it.
   Anyone can stand up a well-formed federation; trust rests entirely on whether its prefix is in a
@@ -770,7 +800,7 @@ witnessing model.
 - **Lost** — Out-of-band trust-root establishment: a consumer with a wrong or compromised config pin
   trusts the wrong federation. The inherent bootstrap axiom.
 
-### Competing document root is always mintable — Medium
+### Competing document root is always mintable
 
 - **Attack** — A document root is anonymous-write, so its legitimacy is social. An adversary mints a
   competing root claiming to be the legitimate document or successor; nothing structural

@@ -189,7 +189,7 @@ flowchart TD
   silently void the currency check. (A chat message carries its `timestamp` as a SAD field.)
 - **Optionally, anchor a message for an end-verifiable send-time.** For a high-value, non-repudiable
   message, the sender commits the message's **issuance commitment** — the blinded
-  `hash('vdti/iel/v1/actions/commitment:{sender}:{message.said}')` every owner-anchored SAD uses, so
+  `hash('vdti/iel/v1/tags/commitment:{sender}:{message.said}')` every owner-anchored SAD uses, so
   the raw message SAID never appears on the public chain — on an `Ixn` at its current position. A
   stale key cannot forge it, and any verifier (not only the recipient) reads the anchor on the
   sender's witnessed chain and **recomputes the commitment from the message to match**, proving the
@@ -282,32 +282,38 @@ degenerate group of two** — the same machinery, no separate two-party construc
   authored. The chat message carries **no key-state pin** and needs none, because the **witnessed
   epoch anchors the time**: the verifier resolves the writer's key-state among those valid **within
   epoch _N_'s window** and checks the signature, so the self-asserted `timestamp` only selects
-  _within_ that witnessed bound, never outside it (a future-dated stamp beyond the epoch window
-  reads outside it and is refused — so chat needs no separate `timestamp ≤ now + band` bound like
-  mail's). So the check composes two witnessed sources: the **IEL** says whether the signing key was
-  valid, the **epoch SEL** says the message was authored within epoch _N_'s window — authentic iff
-  the key was valid (per its IEL interval) at a time inside that window. Backdating decomposes into
-  cases the model closes and one it accounts for. A **current** member backdating **below its
-  advanced tip** must **fork** its own lane (a `(epoch, timestamp)` decrease is malformed, so the
-  only attach is a second child of an earlier node) — an undeniable self-signed equivocation any
-  reader surfaces on convergence (monotonicity, above). On a live lane the DAG **detects** the fork,
-  but the group's policy decides which branch counts. A **removed** member is closed
-  **structurally** at the **verifier**, because its removal left an on-chain fact: its
-  `chat-membership` rescission recorded a **lane-tip `bound`** (its last message) on the
-  **witnessed** grant chain, so the verifier honors exactly the `bound`'s **ancestor-chain** —
-  `[anchored root … bound]` — and honors **no** node off it: a **frozen-tip forward-append** into a
-  retired epoch (a descendant of the bound), a **fork below the bound** (a sibling of an on-chain
-  node), and a **fresh parentless root** (unanchored — its admission grant anchored the one lane the
-  verifier honors) all fall outside the interval. That is a **local interval check against the
-  durable `bound`**, not fork detection — no propagation wait, no policy call. **The one accepted
-  residual:** a **current**, non-removed member that went **dormant** can forward-append
-  monotonically into an epoch it held but was silent for — no bound exists (it was never removed)
-  and its key was valid, so this reads as legitimate late history; it is confined to its own lane
-  and its own held epochs, the chat instance of the accepted backdate-within-a-held-window class
-  (mail's captured-then-rotated residual), and the opt-in anchor strengthens it for parties that
-  need better. The store's deposit gate is defense-in-depth; the anchor and bound are what make the
-  cuts **verifier-enforced**, not store-only. A self-asserted timestamp never establishes currency;
-  the two witnessed windows do.
+  _within_ that witnessed bound, never outside it (a future-dated stamp beyond a **closed** epoch's
+  window reads outside it and is refused — so a closed epoch needs no separate
+  `timestamp ≤ now + band` bound like mail's). So the check composes two witnessed sources: the
+  **IEL** says whether the signing key was valid, the **epoch SEL** says the message was authored
+  within epoch _N_'s window — authentic iff the key was valid (per its IEL interval) at a time
+  inside that window. The **open (current)** epoch is the one gap: it has no upper boundary yet, so
+  a message future-dated within it is not refused until the next epoch's witnessed time lands below
+  its stamp — its validity is then non-monotone (accepted while the epoch is open, retroactively
+  outside the window once it closes). This is an accepted, **self-harming** residual: monotonicity
+  forces the writer's own later messages past the inflated stamp or forks its lane, and other lanes
+  are unaffected; a deployment wanting monotone open-epoch validity adds mail's future-side
+  `timestamp ≤ now + band` bound. Backdating decomposes into cases the model closes and one it
+  accounts for. A **current** member backdating **below its advanced tip** must **fork** its own
+  lane (a `(epoch, timestamp)` decrease is malformed, so the only attach is a second child of an
+  earlier node) — an undeniable self-signed equivocation any reader surfaces on convergence
+  (monotonicity, above). On a live lane the DAG **detects** the fork, but the group's policy decides
+  which branch counts. A **removed** member is closed **structurally** at the **verifier**, because
+  its removal left an on-chain fact: its `chat-membership` rescission recorded a **lane-tip
+  `bound`** (its last message) on the **witnessed** grant chain, so the verifier honors exactly the
+  `bound`'s **ancestor-chain** — `[anchored root … bound]` — and honors **no** node off it: a
+  **frozen-tip forward-append** into a retired epoch (a descendant of the bound), a **fork below the
+  bound** (a sibling of an on-chain node), and a **fresh parentless root** (unanchored — its
+  admission grant anchored the one lane the verifier honors) all fall outside the interval. That is
+  a **local interval check against the durable `bound`**, not fork detection — no propagation wait,
+  no policy call. **The one accepted residual:** a **current**, non-removed member that went
+  **dormant** can forward-append monotonically into an epoch it held but was silent for — no bound
+  exists (it was never removed) and its key was valid, so this reads as legitimate late history; it
+  is confined to its own lane and its own held epochs, the chat instance of the accepted
+  backdate-within-a-held-window class (mail's captured-then-rotated residual), and the opt-in anchor
+  strengthens it for parties that need better. The store's deposit gate is defense-in-depth; the
+  anchor and bound are what make the cuts **verifier-enforced**, not store-only. A self-asserted
+  timestamp never establishes currency; the two witnessed windows do.
 - **Catch-up is the union of your membership periods.** A member decrypts exactly the epochs during
   which it was a member — membership can be intermittent, and it reads **every period it was in**,
   none it was not. **Each membership period is a disjoint anchored lane:** a re-added member's grant
@@ -328,8 +334,13 @@ degenerate group of two** — the same machinery, no separate two-party construc
   does. The store check is per **identity** (any of a member's devices proves it, so all its devices
   read), while **writing** is per **device** — each writing device anchors its own lane on-demand. A
   **member removal rescinds the `chat-membership` grant** — recording a **`bound`** for each of the
-  member's anchored device lanes (that device's last message) the verifier enforces — as the same
-  act turns the epoch, so a removed member can no longer deposit or drain, nor backfill any lane
+  member's anchored device lanes (that device's last message) the verifier enforces — and turns the
+  epoch to the survivors. The two structures cannot drift into a leaked key: an epoch's **wrap set
+  is derived from both** — the wrap roster **minus every member `chat-membership` has rescinded**,
+  as of the epoch's anchoring position ([group-key](../primitives/protocols/group-key.md)) — and the
+  store reads a member as **removed the instant either structure records it**, so a partial or
+  lagging state costs availability (or a brief window of fetching ciphertext it can no longer
+  decrypt), never a key. So a removed member can no longer deposit or drain, nor backfill any lane
   past its bound, nor mint a **fresh lane** (a writing device's lane root is anchored by a
   grant-chain act, so a second parentless root is unanchored → rejected — see currency, above). A
   downloader enumerates nothing (the grant is participant-blind); the store, handed a
@@ -341,7 +352,7 @@ degenerate group of two** — the same machinery, no separate two-party construc
   hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
   "recipient." Unlike a mail deposit, which the recipient acks-and-deletes, a chat blob is
   **retained** across the catch-up window so a member offline for a while can still read the epochs
-  it was in on return — bounded by the key-epoch log's checkpoint re-inception (the point past which
+  it was in on return — bounded by the key-epoch log's checkpoint reinception (the point past which
   a cold reader need not walk).
 - **Anchoring is opt-in.** A message is signed for authenticity by default and anchored only when
   the app or user flags it for non-repudiation (as above).
@@ -380,7 +391,8 @@ Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
   device's **body-less lane-root marker**, and a `rescinds` entry records each anchored device
   lane's **`bound`** (its lane tip, on the rescission `Trm`'s `bound` role), together bracketing
   each writing device's honored lane `[root … bound]`; a removal also turns the epoch for forward
-  secrecy.
+  secrecy. The removal lookup's SEL topic is `vdti/exchange/v1/topics/rescission` — the chat
+  counterpart of the documents feature's rescission topic.
 - **Mail-payload inner shape**: `vdti/exchange/v1/schemas/mail-payload` — the ESSR inner payload a
   mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
   `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and

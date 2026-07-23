@@ -21,13 +21,13 @@ IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `
 | Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `Icp` | `vdti/iel/v1/events/icp` | inception | 2    | all initial members consent                | Inception — pins the initial roster, threshold vector, federation binding, and `witnesses`. **User IEL only** — a federation IEL incepts `Fcp`.                                                          |
-| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors content SEL events, each content SEL's serial-1 **v1**, and a credential's issuance commitment. **The divergeable content kind** (first-seen, buriable).                               |
+| `Ixn` | `vdti/iel/v1/events/ixn` | content   | 1    | `t_use`                                    | Content — anchors content SEL events, each content SEL's serial-1 **v1**, and a credential's issuance commitment (`anchors` req, ≥ 1). **The divergeable content kind** (first-seen, buriable).          |
 | `Evl` | `vdti/iel/v1/events/evl` | sealed    | 2    | all added consent ∧ `t_govern` of outgoing | **Evolve state** — a roster / threshold **delta** (`add` + `cut`); a `cut` `Evl` **evicts**. Anchors no kills, but **anchors a SEL `Sea`** (the burying-seal recovery, `Sea ← Evl`). **Seal-advancing.** |
 | `Ath` | `vdti/iel/v1/events/ath` | sealed    | 2    | `t_authorize`                              | **Authorize a party to act** — `delegates` (act **for**) and / or `anchors` a SEL `Gnt` (act **as itself**). Sealed on arrival, non-terminal. **Seal-advancing.**                                        |
 | `Rev` | `vdti/iel/v1/events/rev` | sealed    | 2    | `t_govern`                                 | **Revoke** an owned artifact — a `kills[]` declaration + anchors the revocation-SEL `Trm`. Sealed on arrival, non-terminal. **Seal-advancing.**                                                          |
 | `Dth` | `vdti/iel/v1/events/dth` | sealed    | 2    | `t_authorize`                              | **Deauthorize** a grant — a `kills[]` declaration + anchors the rescission-SEL `Trm`; the polarity-inverse of `Ath`. Sealed on arrival, non-terminal. **Seal-advancing.**                                |
 | `Trm` | `vdti/iel/v1/events/trm` | terminal  | 2    | `t_govern`                                 | **Terminal** — retires the identity and freezes all its SELs. **Seal-advancing.**                                                                                                                        |
-| `Wit` | `vdti/iel/v1/events/wit` | sealed    | 2    | `t_govern`                                 | Federation **rebind** (user IEL) / federation **governance** (federation IEL); anchored by member KEL `Wit`s. `{Wit, Wit}` terminal. **Seal-advancing.**ᵃ                                                |
+| `Wit` | `vdti/iel/v1/events/wit` | sealed    | 2    | `t_govern`                                 | Federation **rebind** (user IEL) / federation **governance** (federation IEL); anchored by member KEL `Wit`s. `{Wit, Wit}` terminal (both **accepted**). **Seal-advancing.**ᵃ                            |
 | `Fcp` | `vdti/iel/v1/events/fcp` | inception | 2    | all founders consent                       | **Federation inception marker** _(federation IEL only)_ — the federation IEL's inception; anchored kind-strict by each founder's KEL `Rot`.                                                              |
 
 - ᵃ **`Wit`** is the **one** witness / federation kind — its facet is dispatched on the chain's root
@@ -110,6 +110,10 @@ inception):
 - **An authorization floor `t_govern, t_authorize > |roster|/2`** — so any two authorizing quorums
   overlap and a sealed fork always names a double-dealer (closing the disjoint-quorum attribution
   loss).
+- **Every admitted member carries the identity bond.** A member prefix must be a fresh chain whose
+  serial-1 event anchors this identity's establishment act — its inception, or the admitting evolve
+  ([the identity bond](../kel/events.md#the-identity-bond)); a user roster admits only `Icp`-rooted
+  chains (an `Fcp`-rooted chain is federation infrastructure).
 - **The roster is hard-capped at `MAXIMUM_ROSTER_SIZE` (= 32)** — a DoS backstop; the verifier
   rebuilds the roster in memory as it walks, and any delta pushing the live set past
   `MAXIMUM_ROSTER_SIZE` is rejected (all IELs, including the federation).
@@ -162,7 +166,7 @@ change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit 
 
 Anchors content SEL events, each content SEL's serial-1 **v1** (the SEL `Icp` rides `v1.previous`,
 never itself anchored), **and a credential's issuance commitment**
-`hash('vdti/iel/v1/actions/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
+`hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` (an immutable SAD — a credential is
 **direct-anchored**, there is no credential-SEL, and the anchor is the validity proof). One `Ixn`
 may batch many anchors. A re-anchor naming a SEL event at an already-attributed SEL serial is
 malformed / inert — a lightweight structural guard. Fork-prevention for a SEL is the SEL's **own**
@@ -183,14 +187,15 @@ current roster is the accumulation of every delta while walking). **Added member
 **anchors a SEL `Sea`** (kind-strict, `Sea ← Evl`: the burying-seal recovery that re-seals a plain
 content SEL fork). It carries **no `federation`** (the rebind field), so it cannot mutate the
 federation binding — though it may carry `federationPin` for a same-federation re-pin, like any user
-IEL body event.
+IEL body event. The re-pin is opportunistic — there is no standalone re-pin event: an `Ixn` carries
+`anchors` ≥ 1, and a pin refresh with nothing to anchor rides the roster-less `Evl`.
 
 **Eviction is a `cut` `Evl`.** Evicting a compromised or divergence-causing member is an ordinary
 `Evl` carrying a roster `cut` — one sealing event buries the fork **and** evicts, atomically (there
 is no repair-and-evict fold — there is no repair event). The `cut` is priced the **outgoing**
 `t_govern` (the pre-change gate — so an `Evl` cannot lower its own gate then cut), and the post-cut
 roster is re-checked against the bounds above (a stranding / hostage cut is rejected, forcing a
-simultaneous `threshold` drop or reincept). The timing rationale is in
+simultaneous `threshold` drop or replacement `add`, or reincept). The timing rationale is in
 [`merge.md` §Eviction](merge.md#eviction--a-cut-evl-buries-and-evicts-atomically).
 
 A key-state (roster + thresholds) an establishment event installs — an `Icp`, an `Evl`, or a
@@ -210,8 +215,14 @@ The unified authorization anchor, carrying **two manifest roles, both permitted 
 - **`delegates`** — a positive inclusion list of **delegate IEL prefixes** (the party acts **for**
   the delegator), capped like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` entries
   (event-shape). This is the delegation grant — see [`delegation.md`](delegation.md).
-- **`anchors`** — the downstream SEL **`Gnt`**(s) it seals (a doc-membership grant; the party acts
-  **as itself**). Kind-strict: `Ath.anchors` names **only** `Gnt`s.
+- **`anchors`** — the downstream SEL **`Gnt`**(s) it seals. Kind-strict: `Ath.anchors` names
+  **only** `Gnt`s. The `Gnt` may be a **doc-membership capability** (the party acts **as itself**)
+  or a **delegation-marker** signpost (the discoverable index for a `delegates` grant — the
+  delegating link, [`delegation.md`](delegation.md)); the two never collide, because each consumer
+  reaches its `Gnt` by deriving **its own SEL topic**, not by reading the `Gnt`. The delegation
+  authority is always `Ath.delegates`, re-verified directly; the `del(X, N)` walk also confirms the
+  marker commits (a blinded reference to) that same delegate, so a stray or mismatched marker grants
+  nothing on its own.
 
 `Ath` carries **no own-state delta** (it grants authority over a downstream party, nothing on the
 host IEL) and is the **additive counterpart of the kill-anchors** — sealed on arrival, non-terminal,
@@ -235,11 +246,11 @@ differ by domain and count:
   lookup-SEL `Trm`s, and its `kills[]` entry carries the rescission `bound`.
 
 Both carry **no roster delta** (they cannot mutate establishment state) and both **force a `Rot`**
-on each approving member — a permanent kill needs a ≥ tier-2 KEL anchor, and the distinction from
+on each approving member — a permanent kill needs a tier-2 KEL anchor, and the distinction from
 `Evl` is the absence of a roster delta, not the rotation. Both are **sealed but non-terminal**: they
 seal a kill on a target, not the host IEL, so `{Rev, content}` and `{Dth, content}` are recoverable.
-Distinct kills at one position are `{Rev, Rev}` → ≥ 2 sealed → terminal (identical kills dedupe by
-SAID).
+Distinct kills at one position are `{Rev, Rev}` → ≥ 2 **accepted** sealed → terminal (both witnessed
+at threshold; an honest race first-seen-declines the second — identical kills dedupe by SAID).
 
 ### `kills[]` — the fail-secure revocation declaration
 
@@ -252,8 +263,8 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
 - **`target = hash('{tag}:{owner}:{data}')`** — a flat, domain-qualified hash the verifier computes
   directly and **forward-matches** on the owner's fresh IEL. The `tag` is a primitive derivation tag
   ([`tags-and-topics.md`](../tags-and-topics.md)), never a feature name —
-  `vdti/sel/v1/actions/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/actions/rescission`
-  for a `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
+  `vdti/sel/v1/tags/revocation` for a `Rev`-anchored kill and `vdti/sel/v1/tags/rescission` for a
+  `Dth`-anchored one (one `rescission` tag covers both delegate and doc-member; the `data`
   distinguishes them). The target **mirrors the killed address**
   ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
   `hash('{tag}:{owner}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
@@ -316,7 +327,11 @@ malformed → rejected (trust still roots in the config-pin). A user `Wit` **mus
 `Wit` — it rides any body event — and a pure key rotation is a member's KEL `Rot`, so a `Wit` that
 changes neither is a no-op → rejected. Initial binding rides the `Icp` (which always carries the
 federation); a later `Wit` **rebinds**. Trust is **per-federation and non-transitive** — each event
-is witnessed by whichever federation was current when it landed.
+is witnessed by whichever federation was current when it landed. The field-match binds **the act,
+not the roster's steady state**: between rebinds a member still on the old federation lawfully lags
+until it rebinds (the migration overlap), and each layer's events are witnessed under its own
+binding — the identity bond guarantees no member chain serves another identity, so the lag is the
+only mismatch that can arise.
 
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no
@@ -351,7 +366,7 @@ load-bearing).
 | Role        | Carried by                                       | Commits to                                                                                                          |
 | ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` / `Evl` / `Ath` / `Rev` / `Dth`            | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
 | `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list                                                                   |
 | `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                     |
@@ -454,7 +469,20 @@ tips plus, on a roster-add, the joiner's `Ixn.previous`. See
 The **added-member consent** rule: every added member consents to its own addition at tier 1 (a KEL
 `Ixn`, counted toward consent-of-added, **never** toward `t_govern`); the continuing quorum approves
 at tier 2 (KEL `Rot`s). The kind split (joiner `Ixn` versus approver `Rot`) keeps the joiner's
-consent out of `t_govern`.
+consent out of `t_govern`. The consent is the joiner's chain's **serial-1 event** — an added member
+is a fresh chain incepted for this identity, and admission validates its **identity bond**: the
+prefix's serial-1 must anchor this identity's inception or this admitting act
+([the identity bond](../kel/events.md#the-identity-bond)). A previously-admitted chain fails that
+check (its serial-1 names a prior admitting act), so re-adding a member means a fresh chain.
+
+A device named in a roster it did not mean to join gains the naming identity **nothing over the
+member's own keys or chain** — roster membership is the _identity's_ governance, never authority
+over a member's devices. The member simply **refuses to participate** (never co-signs that
+identity's events) and **rotates**; the only way its key ever acts under a hostile identity is if
+the attacker **holds** that key — a device compromise, resolved by **rotate-and-continue** where
+control is regained, or **cut / reincept** where it is not (the remedy a device compromise already
+carries). The residual is **correlation only**: the member's prefix appears in that roster's delta,
+visible to anyone walking that identity's chain.
 
 ## The restricted federation IEL
 
@@ -518,9 +546,10 @@ A busy issuer that fills the window **re-seals with a roster-less `Evl`** — a 
 omits `roster` (the seal advance via `previousSeal` is the change, not an empty delta). It is valid
 (no added members → no consent needed; `t_govern` of the unchanged roster), content-addressed like
 any event, so two identical re-seals at one position dedupe (idempotent) while a re-seal `Evl`
-versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal. Validation must accept a
-roster-less re-seal `Evl`. `Trm` advances the seal but is terminal, so it is not a mid-chain
-cap-satisfier. See [`log.md` §Seal-advance cap](log.md#seal-advance-cap).
+versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal **when both are accepted**
+(an honest race first-seen-declines the second). Validation must accept a roster-less re-seal `Evl`.
+`Trm` advances the seal but is terminal, so it is not a mid-chain cap-satisfier. See
+[`log.md` §Seal-advance cap](log.md#seal-advance-cap).
 
 ## Cross-references
 

@@ -63,27 +63,30 @@ An IEL is in exactly one of **four** states **on any given node** — Active, Fo
 Terminated — the KEL's machine reused
 ([`../kel/log.md` §Per-node chain states](../kel/log.md#per-node-chain-states)). Every state is
 **computed by a data-local walk** over the events the node holds, never tracked as a separate flag.
-A live fork is **two distinct states**: **Forked** (≤ 1 sealed branch past it — recoverable) and
-**Disputed** (≥ 2 **accepted** sealed branches — terminal). The walk that tells them apart (counting
-the **accepted** sealed branches past the fork) **is** how the state is computed.
+A live fork is **two distinct states**: **Forked** (a content-only fork, both siblings **accepted**
+— no accepted sealed branch, recoverable) and **Disputed** (≥ 2 **accepted** sealed branches —
+terminal). The walk that tells them apart (counting the **accepted** sealed branches past the fork)
+**is** how the state is computed.
 
-| State          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Accepts new events?                                                                                                                                                                                                                 |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Active**     | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Yes — `Ixn` content, and `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm` per their threshold and seal-cap requirements.                                                                                                               |
-| **Forked**     | A live fork with **≤ 1 sealed branch** past it — recoverable. Origination onto the live fork is frozen. The way forward is a **burying seal** on the winning branch: any non-terminal seal-advancer (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`, typically the `Evl` or the `cut` `Evl` that also evicts) buries the content loser below the new seal and the chain re-reads **Active**; a `Trm` on the winning tip buries the content but the chain goes **Terminated** (tier-rank). A below-seal content straggler is inert, retained as evidence, not a freeze. | Only the resolving event — a burying seal on the winning branch. A second accepted sealed branch joining the fork moves it to **Disputed**.                                                                                         |
-| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** past it — proof the quorum was subverted or the witnesses colluded (an honest partition cannot produce it), terminal. No sealed branch can be buried (that would resurrect a retired sealing decision), so nothing resolves it and the identity must **reincept**.                                                                                                                                                                                                                                          | None (barring a partition) — witnesses decline any extension of a disputed chain. The only exit is reincept.                                                                                                                        |
-| **Terminated** | A terminal `Trm` landed cleanly — the identity is retired and all its SELs freeze. The `Trm` advances the seal to its own serial; the chain is sealed there.                                                                                                                                                                                                                                                                                                                                                                                                  | None. A content sibling to the `Trm` is inert below its seal (`Sealed`); a sealed sibling is a second accepted sealed branch → **Disputed**; a submission chaining from the `Trm` is rejected by the kind-schema rule (`Terminal`). |
+| State          | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Accepts new events?                                                                                                                                                                                                                 |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active**     | Linear chain; the current tip extends cleanly via `previous`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Yes — `Ixn` content, and `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm` per their threshold and seal-cap requirements.                                                                                                               |
+| **Forked**     | A live **content-only** fork — both siblings **accepted**, no accepted sealed branch — past it; recoverable. A fork **carrying** an accepted sealed branch has that seal bury the content and reads Active, not a live fork. Origination onto the live fork is frozen. The way forward is a **burying seal** on the winning branch: any non-terminal seal-advancer (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`, typically the `Evl` or the `cut` `Evl` that also evicts) buries the content loser below the new seal and the chain re-reads **Active**; a `Trm` on the winning tip buries the content but the chain goes **Terminated** (tier-rank). A below-seal content straggler is inert, retained as evidence, not a freeze. | Only the resolving event — a burying seal on the winning branch. A second accepted sealed branch joining the fork moves it to **Disputed**.                                                                                         |
+| **Disputed**   | A live fork with **≥ 2 accepted sealed branches** past it — proof the quorum was subverted or the witnesses colluded (an honest partition cannot produce it), terminal. No sealed branch can be buried (that would resurrect a retired sealing decision), so nothing resolves it and the identity must **reincept**.                                                                                                                                                                                                                                                                                                                                                                                                         | None (barring a partition) — witnesses decline any extension of a disputed chain. The only exit is reincept.                                                                                                                        |
+| **Terminated** | A terminal `Trm` landed cleanly — the identity is retired and all its SELs freeze. The `Trm` advances the seal to its own serial; the chain is sealed there.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | None. A content sibling to the `Trm` is inert below its seal (`Buried`); a sealed sibling is a second accepted sealed branch → **Disputed**; a submission chaining from the `Trm` is rejected by the kind-schema rule (`Terminal`). |
 
 Two byte-identical events at one serial **are one event** — they dedupe by SAID, never a second
-branch; only distinct events collide. A busy issuer's re-seal `Evl` at one position is exactly this
-idempotent case (§Seal-advance cap). The full freeze-and-recover rule is the protocol doctrine's —
+branch; only distinct events collide. A busy issuer's re-seal `Evl` **redelivered** is exactly this
+idempotent case (same ceremony, identical `pins`); two independent re-seal ceremonies carry
+different `pins`, so they are byte-distinct and collide instead (§Seal-advance cap). The full
+freeze-and-recover rule is the protocol doctrine's —
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery).
 
 ### Forked versus Disputed — the sealed-branch count
 
-Which state a live fork is in turns on **tier**, read from the data by counting the **sealed**
-branches past the fork. The IEL is a mixed chain, so the count discriminates content from sealed
-directly:
+Which state a live fork is in turns on **tier**, read from the data by counting the **sealed
+branches** — per branch, wherever each branch's seal sits. The IEL is a mixed chain, so the count
+discriminates content from sealed directly:
 
 - **Content (`Ixn`) is buriable.** A content conflict is **recoverable**: the next sealing event on
   the surviving branch buries the loser below the new seal, dead on ascent. Two competing content
@@ -92,14 +95,21 @@ directly:
   stolen key (**except a singleton / `t_use = 1` roster, where one member acts alone**), so a
   **second _accepted_ sealed branch is proof the quorum was subverted or the witnesses colluded** —
   surfaced loudly (a witness-declined sibling is deferred-pending, forcing nothing).
-  `{Evl, content}` (one sealed branch) is recoverable; the `Evl` branch survives and the content is
-  buried. `{Evl, Evl}` (two accepted sealed branches) is **Disputed → terminal → reincept**.
+  `{Evl, content}` (one accepted sealed branch) reads **Active** — the `Evl` buries the content
+  sibling. `{Evl, Evl}` (two accepted sealed branches) is **Disputed → terminal → reincept**.
 
-So the verdict turns on the number of accepted sealed branches past the fork: **one or fewer →
-Forked** (recoverable), **two or more → Disputed**. A single sealed branch you did not author (a
-quorum takeover) is still your point of no return — reincept — but read node-agnostically it stays
-Forked until a second accepted sealed branch lands. The witness beacon **propagates** the branches;
-the data-local walk **decides** the verdict. See
+So the verdict turns on the number of **accepted sealed branches** — counted **per branch**,
+wherever each seal sits (a _sealed branch_ = a diverged branch whose lineage is accepted, i.e. it
+never lost first-seen, carrying an accepted seal at the divergence or above): **zero → Forked** (a
+content-only fork, recoverable), **exactly one → Active** (the sealed branch buries the content
+sibling; a terminal `Trm` reads Terminated instead), **two or more → Disputed**. A single sealed
+branch you did not author (a quorum takeover) is still your point of no return — reincept — but read
+node-agnostically it reads **Active** (a clean sealed tip). An owner's **same-federation**
+counter-seal is a late sibling → **first-seen-declined** → forces nothing; the recourse is
+**reincept**. (A **cross-federation** rebind can force **Disputed** with no collusion — the owner
+still knows the reserve — **visible to verifiers trusting both federations**; it recovers nothing
+(reincept is the recourse either way), but it flips those verifiers to refusing.) The witness beacon
+**propagates** the branches; the data-local walk **decides** the verdict. See
 [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison) for how the
 reading rides the effective SAID.
 
@@ -108,9 +118,9 @@ reading rides the effective SAID.
 The IEL verifier surfaces one forward-only watermark on its
 [`IelVerification`](verification.md#ielverification-token) token, computed from the chain's events.
 
-| Concept                     | Advances on                                   | Used for                                                                                                                                                                                                                                                                          |
-| --------------------------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `last_seal_advancing_event` | `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm` | Seal-cap — a new event's parent must sit at-or-after this serial (below is the locked portion; the seal event itself is a legal parent). The **derived seal**: the most recent to land **cleanly** (not a competing sibling); computed from the events held, never arrival order. |
+| Concept                     | Advances on                                   | Used for                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `last_seal_advancing_event` | `Evl` / `Ath` / `Rev` / `Dth` / `Wit` / `Trm` | Seal-cap — a new event's parent must sit at-or-after this serial (below is the locked portion; the seal event itself is a legal parent). The **derived seal**: the most recent seal-advancing event with no competing accepted **sealed branch** from the divergence onward (a content sibling is buried below it, not a competitor; a fork with ≥ 2 accepted sealed branches has no clean seal above the divergence); the reading computes against it from the events held, never arrival order. |
 
 Every tier-2 event seals. Only content (`Ixn`) leaves the seal where it was. `Trm` advances the seal
 to its own serial, where it is terminal — it opens no new window. `Rev` and `Dth` advance the seal
@@ -144,10 +154,12 @@ the seal-advancing event itself is a legal parent: the normal post-seal append e
 in this segment are structurally immutable within the chain:
 
 - A new event whose `previous` points into the locked portion is **rejected as a canonical
-  extension** with `Sealed`. Whether that rejected fork is **retained as non-canonical evidence** is
-  a separate, witnessing-gated decision — a losing **content** sibling on a witnessed chain never
-  forms (nothing to retain), while a sealed branch is kept, so the proof a sealed divergence
-  occurred survives wherever a fork actually forms.
+  extension** — `Sealed` from a parent two or more below the seal; at the rim (parent `v_{seal−1}`,
+  the event landing at the seal's own serial) it resolves by tier instead: a content sibling is
+  buried (`Buried`), a sealed sibling is the record-both race. Whether that rejected fork is
+  **retained as non-canonical evidence** is a separate, witnessing-gated decision — a losing
+  **content** sibling on a witnessed chain never forms (nothing to retain), while a sealed branch is
+  kept, so the proof a sealed divergence occurred survives wherever a fork actually forms.
 - The seal-cap's role is to deny revival attacks: a member holding stale authority (a rotation
   reserve already revealed by an earlier participation, or a since-evicted membership state) cannot
   construct an event targeting the locked portion to rearrange the chain. Only the current roster's
@@ -191,7 +203,7 @@ permitted to carry it (read kind-first):
 | Role        | Carried by                                       | Commits to                                                                                                                                                                  |
 | ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                                         |
-| `anchors`   | `Ixn` / `Evl` / `Ath` / `Rev` / `Dth`            | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`) |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`) |
 | `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                                    |
 | `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration))                    |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                                                                             |
@@ -233,10 +245,12 @@ would grow unbounded and the IEL would face the same recovery-page pressure the 
 answers. A busy issuer that fills the window **re-seals with a roster-less `Evl`** — a pure re-seal
 that **omits `roster`** (the seal advance via `previousSeal` is the change, not an empty
 `{add:[], cut:[]}`) — the IEL analogue of the KEL re-sealing via `Rot`, reusing `Evl` with no new
-kind and no marker. Two identical re-seal `Evl`s at one position **dedupe** (idempotent), while a
-re-seal `Evl` versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal, exactly as
-any two sealed events would. Validation must **accept** a roster-less re-seal `Evl`. See
-[`events.md` §Seal-advance cap](events.md#seal-advance-cap).
+kind and no marker. The **same** re-seal `Evl` redelivered (identical bytes — same ceremony, same
+`pins`) **dedupes** by SAID (idempotent); two **independent** re-seal ceremonies carry different
+`pins`, so they are byte-distinct and **collide**, not dedupe. A re-seal `Evl` versus a real `Evl`
+at one position diverges as `{Evl, Evl}` → terminal when **both are accepted** (an honest race
+first-seen-declines the second), exactly as any two sealed events would. Validation must **accept**
+a roster-less re-seal `Evl`. See [`events.md` §Seal-advance cap](events.md#seal-advance-cap).
 
 ## Page model
 
@@ -257,8 +271,8 @@ of atomicity for the merge handler.
   order so all nodes process the same batch identically. The `said` tiebreaker is for determinism
   only and carries no semantic meaning.
 
-The verifier's `max_pages` cap (default 64 pages ≈ 8K events; configurable via env var) caps
-resource use even on adversarial chains.
+The verifier's `max_pages` cap (default 64 pages ≈ 8K events; configurable) caps resource use even
+on adversarial chains.
 
 ## The two facets — user and federation
 
