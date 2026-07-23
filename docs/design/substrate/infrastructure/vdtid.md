@@ -21,7 +21,11 @@ without a `witnessd` **is** the store-only storage node
 Reads use a safe, **body-carrying** query method and mutations use POST — the log-leak rationale is
 [`architecture.md` §Transport](architecture.md#transport). Serving requires no verification — the
 receiver verifies what it gets
-([operation categories](../../protocol-doctrine.md#operation-categories)).
+([operation categories](../../protocol-doctrine.md#operation-categories)). The surface splits by
+audience: **public** endpoints serve consumers through the home-node relationship; **mesh**
+endpoints serve federation peers, and exist for replication and sync.
+
+### Public endpoints — the consumer surface
 
 | Endpoint           | Method | Carries / returns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -30,7 +34,7 @@ receiver verifies what it gets
 | **upload payload** | POST   | bulk bytes uploaded **against a committing SAD already deposited** — the store reads that SAD's committed digest, hashes the blob and requires a match, checks a client nonce + timestamp (clock tolerance band; a bounded unseen-nonce cache closes replay), and authenticates the uploader per the committing kind — one round trip, idempotent (a replay re-stores identical bytes); the store never holds a blob nothing committed to ([exchange §The payload](../../features/exchange.md#the-payload--named-by-digest-uploaded-against-the-message)) |
 | **chain**          | QUERY  | a chain's events by prefix — paged, with a `since` cursor for incremental fetch, **receipts bundled with each page**; the response carries the **full retained set after the cursor** (competing branches live or since-settled, the burying seal-advancer, the cursor's own siblings), and with no cursor the whole retained set in canonical order (below)                                                                                                                                                                                              |
 | **effective-SAID** | QUERY  | a prefix's effective-SAID — a real tip SAID, or the verdict-tagged synthetic ([effective-SAID comparison](../../protocol-doctrine.md#effective-said-comparison))                                                                                                                                                                                                                                                                                                                                                                                          |
-| **exists**         | QUERY  | an existence probe by SAID — answered **under the serve gates**: "held" only where a fetch by this requester would succeed, everything else the uniform "not present"; the wider answer sync and dedupe need is scoped to **mesh-authenticated federation peers** (the correlation exposure doctrine already prices for mesh membership)                                                                                                                                                                                                                  |
+| **exists**         | QUERY  | an existence probe by SAID — answered **under the serve gates**: "held" only where a fetch by this requester would succeed, everything else the uniform "not present" (the peer-scoped wider answer is a mesh endpoint, below)                                                                                                                                                                                                                                                                                                                            |
 | **SAD**            | QUERY  | a standalone SAD by SAID — subject to the serve-by-SAID allowlist, the custody `readers` gate, and any feature serve-time gate (below)                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **SADs (batch)**   | QUERY  | a **bounded list of SAIDs in one request** — the walk-support fetch: a page walk resolves a bounded set of commitment SADs (pin-located manifests, rosters, witness-configs), so a page's whole resolution set moves in one round trip; each entry is gated individually by the same serve rules, and a refused or absent entry reads uniformly "not present"                                                                                                                                                                                             |
 | **blob**           | QUERY  | bulk bytes by digest — the committing SAD's gate decides: an exchange blob only to a **live-signed request** proving a device of the recipient identity (an IEL-roster check, single-device); a chat blob only to a live-signed current member (the membership check); a **public** wrapper's blob per its custody — ungated when public. The request gate is load-bearing for the gated cases because a bare blob carries no `custody` of its own                                                                                                        |
@@ -50,6 +54,26 @@ uses. The daemon links no feature code: a feature configures the store through i
 data, which is what keeps
 [no feature daemons](architecture.md#features-are-libraries--there-are-no-feature-daemons) true —
 the store-side half of a feature is entirely these generic mechanisms.
+
+### Mesh endpoints — the federation-peer surface
+
+Federation peers reach a second surface, authenticated by the mesh session
+([`mesh-transport.md`](mesh-transport.md)); `witnessd` drives the loops that page it
+([`witnessd.md` §Anti-entropy](witnessd.md#anti-entropy)), and this daemon serves it. It exists for
+replication and sync, and its admission rule differs from the consumer surface: **custody travels
+with an object and gates the consumer serve, not replication** — no node identity is ever a
+`readers[]` entry, confidential content protects itself with its seal, and the read gate limits
+store-side harvesting — so a peer is admitted by **mesh membership plus the object's replica
+scope**, never by the consumer gates.
+
+| Endpoint               | Method | Carries / returns                                                                                                                                                                                          |
+| ---------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **chain listing**      | QUERY  | the node's own update-sequence enumeration of chain changes, paged descending from the caller's per-peer watermark — the anti-entropy and bootstrap enumeration                                            |
+| **SAD listing**        | QUERY  | the update-sequence enumeration of held standalone-SAD SAIDs — the SAD-object pass's presence compare (the enumeration leaks the existence of custody-gated objects, priced only for mesh members)         |
+| **exists (peer)**      | QUERY  | the wider answer sync and dedupe need: held-or-not, regardless of the serve gates (the correlation exposure doctrine already prices for mesh membership)                                                   |
+| **chain fetch (peer)** | QUERY  | the same paged chain read as the public row, mesh-authenticated — query-scoping still serves a sub-threshold event only to a selected witness for its position                                             |
+| **SAD fetch (peer)**   | QUERY  | a held standalone SAD for replication — admitted by mesh membership and the object's replica scope; the deletion-bearing classes never ride sync ([`witnessd.md` §Anti-entropy](witnessd.md#anti-entropy)) |
+| **blob fetch (peer)**  | QUERY  | the committed bytes a replicated SAD names, under the same replication rule                                                                                                                                |
 
 ## The merge write path
 

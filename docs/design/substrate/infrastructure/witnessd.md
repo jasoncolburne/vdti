@@ -160,7 +160,9 @@ round). Delivery order is the one sound ordering for this listing: ordering by a
 witnessed timestamp — misses a late-gossiped old event permanently (its data-time sorts below the
 watermark even though the peer's held state just changed). The listing is **mesh-scoped** — a
 member-only surface riding the encrypted channel, never public (a prefix enumeration is itself
-correlation-sensitive data) — and conforming implementations expose the same shape.
+correlation-sensitive data) — and conforming implementations expose the same shape
+([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface) — the serving
+side).
 
 **The fetch is `since` the querier's own last seal.** On a mismatch, the syncing node pulls
 everything after its **own** last seal and dedupes by SAID. Bounded divergence makes this complete
@@ -180,9 +182,11 @@ escalates to a **flat by-prefix fetch**, so the loop converges rather than spins
 admits: **enumeration** by the peer store's own update-sequence listing of SAD SAIDs (the same
 watermark discipline, the same mesh-only scoping — a SAD enumeration leaks the existence of
 custody-gated objects, priced only for mesh members), **compare = presence** (a SAD is held or not;
-it has no state to diff), and a fetch that **respects replica scope and custody** — a node pulls the
-default-broadcast objects it should hold, plus scoped objects whose replica set names it. One
-deliberate carve-out: **deletion-bearing classes never ride this pass** — a `once` object
+it has no state to diff), and a fetch that **honors replica scope** — a node pulls the
+default-broadcast objects it should hold, plus scoped objects whose replica set names it; custody
+rides with the object, unenforced on this path, because it gates the **consumer** serve, not
+replication ([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface)).
+One deliberate carve-out: **deletion-bearing classes never ride this pass** — a `once` object
 (destructive read) and a recipient-scoped deposit (deleted by acknowledgment) are placed by their
 **sender's** act, and re-syncing them from a peer would resurrect a deliberate deletion; their
 absence is semantic, not loss. An expired object needs no carve-out — a re-arriving copy is refused
