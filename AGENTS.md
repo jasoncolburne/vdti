@@ -29,7 +29,9 @@ Load-bearing principles to internalize:
 Detailed doctrine lives in `docs/design/` — primitive specs (KEL / IEL / SEL), federation
 witnessing, federation bootstrap, kind-strict anchoring, divergence handling, irreconcilable-prefix
 surface, custody, policy DSL, verification. AGENTS.md does not duplicate; consult the design docs
-directly.
+directly. [`docs/design/AGENTS.md`](docs/design/AGENTS.md) is the design-tree reading guide, and
+[`docs/design/TOC.md`](docs/design/TOC.md) links every file and section in the tree for
+task-directed lookup.
 
 ## Repo Layout
 

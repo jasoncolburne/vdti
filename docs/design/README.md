@@ -124,7 +124,8 @@ Start here.
 
 Keep [`glossary.md`](glossary.md) open alongside — it gives a one-line definition of every
 load-bearing term (seal, tier, sealed branch, effective-SAID, …) with a pointer to the doc that owns
-it.
+it. For going straight to a section rather than reading in order, [`TOC.md`](TOC.md) links every
+file and section in the tree.
 
 ## 1 — The data substrate
 
