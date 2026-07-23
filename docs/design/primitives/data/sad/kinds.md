@@ -68,14 +68,15 @@ Every SAD carries one of these. **The chain events:**
 
 **The commitment SADs events reference:**
 
-| Kind                            | What it is                                                                                                                                                                                                                     |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `vdti/event/v1/roles/manifest`  | the role-grouped commitment SAD an event names                                                                                                                                                                                 |
-| `vdti/event/v1/roles/roster`    | a roster / threshold delta                                                                                                                                                                                                     |
-| `vdti/event/v1/roles/witnesses` | a witness-config `{ threshold, signers }`                                                                                                                                                                                      |
-| `vdti/event/v1/roles/pins`      | each participating member's prior KEL tip (`participation.previous`; an IEL's down-pins)                                                                                                                                       |
-| `vdti/sel/v1/grants/*`          | a grant-value a SEL `Gnt` seals: `directory-ml-kem-1024`, `directory-ml-kem-768`, `document-edit-membership`, `document-comment-membership`, `document-read-membership`, `groupkey-epoch-key`, `chat-membership`, `delegation` |
-| `vdti/witness/v1/receipts/*`    | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                                                                                                   |
+| Kind                               | What it is                                                                                                                                                                                                                     |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `vdti/event/v1/roles/manifest`     | the role-grouped commitment SAD an event names                                                                                                                                                                                 |
+| `vdti/event/v1/roles/roster`       | a roster / threshold delta                                                                                                                                                                                                     |
+| `vdti/event/v1/roles/witnesses`    | a witness-config `{ threshold, signers }`                                                                                                                                                                                      |
+| `vdti/event/v1/roles/pins`         | each participating member's prior KEL tip (`participation.previous`; an IEL's down-pins)                                                                                                                                       |
+| `vdti/sel/v1/grants/*`             | a grant-value a SEL `Gnt` seals: `directory-ml-kem-1024`, `directory-ml-kem-768`, `document-edit-membership`, `document-comment-membership`, `document-read-membership`, `groupkey-epoch-key`, `chat-membership`, `delegation` |
+| `vdti/witness/v1/receipts/*`       | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                                                                                                   |
+| `vdti/witness/v1/states/freshness` | a **freshness statement** — a witness-signed attestation of its held effective-SAIDs, the multi-source freshness evidence ([`shapes.md`](shapes.md))                                                                           |
 
 The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their
@@ -83,9 +84,10 @@ own.
 
 **The SAD-layer content SADs:**
 
-| Kind                       | What it is                                                                                                                                                                                                 |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/sad/v1/schemas/file` | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
+| Kind                           | What it is                                                                                                                                                                                                 |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/sad/v1/schemas/file`     | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
+| `vdti/sad/v1/schemas/replicas` | a **replica set** — the storage nodes an `availability.replicas` field scopes a SAD's bytes to, named by identity prefix ([`shapes.md`](shapes.md))                                                        |
 
 **The protocol-primitive SADs:**
 
@@ -115,10 +117,8 @@ label
 | `vdti/cred/v1/claims/*`        | credential claim SADs — the app-registered **claims container**; the framework reserves the **type-generic blinded-claim** entry kinds `blinded-{string,number,boolean,object,array}` (each `{ said, kind, nonce, data }`; `kind` names `data`'s JSON type, meaning rides `data`, and is committed into the blinded `said`) |
 | `vdti/policy/v1/{group}/*`     | policy documents, grouped by domain                                                                                                                                                                                                                                                                                         |
 
-A few further kinds are owed by forthcoming encodes: the **replica-set SAD** an
-`availability.replicas` field names ([`availability.md`](availability.md)) — its `kind` and layout
-land at the vdtid encode, alongside the storage service — and the **gated rescind-doc** a rescission
-`Trm`'s `bound` role commits ([`shapes.md`](shapes.md)), a feature-layer SAD landing under the
+One further kind is owed by a forthcoming encode: the **gated rescind-doc** a rescission `Trm`'s
+`bound` role commits ([`shapes.md`](shapes.md)), a feature-layer SAD landing under the
 already-listed `vdti/doc/v1/schemas/*` / `vdti/exchange/v1/schemas/*` families at the
 shared-documents and exchange encodes.
 
@@ -133,13 +133,13 @@ else**:
 - **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
   values a `Gnt` seals (`vdti/sel/v1/grants/*`), the **framework SADs a verifier resolves to
   evaluate** — a **policy** expression (`vdti/policy/v1/*`), an authorizing **`issuers`** list, a
-  credential's **`terms`**, and — when its forthcoming kind lands — the **replica-set SAD** that
-  `availability.replicas` names (the store itself resolves it, so it must be servable or replication
-  silently narrows to the fail-secure skip) — and content SADs (a public credential body, the **file
-  wrapper** `vdti/sad/v1/schemas/file`, or an application content kind the app has registered), each
-  gated by its own custody `readers`. A verifier walking a chain has to resolve the role SADs an
-  event commits to, so these have to be reachable by SAID. **Kind is only the first gate.** A served
-  SAD that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed back only to a
+  credential's **`terms`**, and the **replica-set SAD** that `availability.replicas` names (the
+  store itself resolves it, so it must be servable or replication silently narrows to the
+  fail-secure skip) — and content SADs (a public credential body, the **file wrapper**
+  `vdti/sad/v1/schemas/file`, or an application content kind the app has registered), each gated by
+  its own custody `readers`. A verifier walking a chain has to resolve the role SADs an event
+  commits to, so these have to be reachable by SAID. **Kind is only the first gate.** A served SAD
+  that carries a custody `readers` gate ([`custody.md`](custody.md)) is handed back only to a
   requester that gate admits, and one delivered member-to-member rather than published (its
   `availability`) is never in the store to serve at all. So a _public_ grant value — a directory
   receive key — is served to anyone. A _member-private_ one is not: a `groupkey-epoch-key` wrap is
@@ -176,8 +176,8 @@ states the "there is no SAID-to-event index" property that this makes real.
 This is why every SAD carries a `kind` ([`sad.md`](sad.md)): the sort has no fallback — a SAD with
 no kind cannot be placed on either side of it, so it is refused. The store's write path turns away a
 kind it will not serve; that enforcement lives with the store
-([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md),
-forthcoming), on the retrieval boundary [`availability.md`](availability.md) describes.
+([`../../../substrate/infrastructure/vdtid.md` §Serve-by-SAID](../../../substrate/infrastructure/vdtid.md#serve-by-said--an-enforced-rule-not-a-convention)),
+on the retrieval boundary [`availability.md`](availability.md) describes.
 
 ## Cross-references
 

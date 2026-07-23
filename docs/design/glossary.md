@@ -186,6 +186,21 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   sub-gossip among a position's selected witnesses for one still gathering receipts; encrypted and
   roster-scoped. ([`substrate/federation/topics.md`](substrate/federation/topics.md))
 
+### Services and consumers
+
+- **home node** — the one node a consumer calls for everything, mirror-style: all data flows through
+  it, nothing is trusted from it (every byte end-verifies; freshness evidence is signed by keys it
+  does not hold).
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+- **token store** — the consumer-side cache of verification tokens, reused behind the transitive
+  effective-SAID gate with a wall-clock freshness overlay recomputed at decision time; loss-of-trust
+  decisions add the multi-source bar.
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+- **freshness statement** — a witness-signed attestation of its held effective-SAIDs ("still this
+  value, as of τ"): the multi-source freshness evidence a loss-of-trust decision gathers
+  `threshold`-many of, relayable through an untrusted pipe because it is signed data.
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+
 ### Chain states
 
 - **Active / Forked / Disputed / Terminated** — the four per-node chain states, each **derived** by
