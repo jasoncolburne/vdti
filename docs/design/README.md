@@ -110,6 +110,7 @@ up to the one that builds on it; dotted edges are orientation and the cross-cut.
 - [6 — The protocol primitives](#6--the-protocol-primitives)
 - [7 — The feature layer](#7--the-feature-layer)
 - [8 — The services layer](#8--the-services-layer)
+- [9 — Example applications](#9--example-applications)
 - [Forthcoming](#forthcoming)
 
 ## 0 — Orientation
@@ -318,6 +319,61 @@ consumer-side machinery that keeps trust decisions fresh without trusting any no
 44. [`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md) — the witness,
     gossip, and sync daemon: key custody, the witness role and routing, freshness-statement service,
     deferred-dependency parking, and anti-entropy.
+
+## 9 — Example applications
+
+Validation by composition: each doc designs one application from the landed layers alone, citing
+every mechanism it leans on and stating honestly where the composition's edges are. One application
+per distinct feature/primitive combination; the set grows as the docs land.
+
+45. [`example-applications/drive.md`](example-applications/drive.md) — file storage and sync from
+    data with custody alone: the hash-tree drive, sharing as membership, and the honest edge that
+    points at logs.
+46. [`example-applications/ledger.md`](example-applications/ledger.md) — the append-only audit trail
+    from a log alone: witnessed entries, disinterested timestamps, and the audit read as the
+    ordinary walk.
+47. [`example-applications/pds.md`](example-applications/pds.md) — the personal data store from
+    custody plus logs: records as custodied SADs, indexes as owned chains, and the new-device
+    recovery story.
+48. [`example-applications/bbs.md`](example-applications/bbs.md) — the public message board from
+    shared documents alone: posts as comments, moderation as rescission, and the wiki and code host
+    absorbed by the version DAG.
+49. [`example-applications/tracker.md`](example-applications/tracker.md) — the issue tracker from
+    shared documents plus credentials: membership gates writing, credentials carry roles, and the
+    application combines the proofs.
+50. [`example-applications/sso.md`](example-applications/sso.md) — passwordless sign-in from
+    identity plus credentials: the ownership proof as the login, attestation as a presented
+    credential, no provider in the loop.
+51. [`example-applications/permit.md`](example-applications/permit.md) — licensing and permits from
+    credentials alone: the full lifecycle — issue, delegate, disclose, renew, revoke — and the
+    largest absorbed family.
+52. [`example-applications/passport.md`](example-applications/passport.md) — the digital product
+    passport from credentials plus a log: the maker's credential, the registry's dossier, and
+    third-party attestations collected by reference.
+53. [`example-applications/mail.md`](example-applications/mail.md) — sealed store-and-forward
+    messaging from exchange alone: the one-off mode as an app, with notifications, file transfer,
+    and key distribution absorbed.
+54. [`example-applications/chat.md`](example-applications/chat.md) — the ratcheting group
+    conversation: exchange's session mode, per-writer lanes, epochs, and membership churn from data
+    alone.
+55. [`example-applications/edit.md`](example-applications/edit.md) — the collaborative editor from
+    shared documents plus exchange: the checkpoint split, confidential collaboration, and the
+    sovereignty mode made usable.
+56. [`example-applications/trace.md`](example-applications/trace.md) — track-and-trace provenance
+    from credentials, logs, and exchange: per-actor legs, paired hand-off attestations, no central
+    tracker.
+57. [`example-applications/trade.md`](example-applications/trade.md) — trade documents from all
+    three features: issued instruments, the collaborative transaction file, sealed negotiation, and
+    title as issuer re-grant.
+58. [`example-applications/health.md`](example-applications/health.md) — patient-held records from
+    credentials plus exchange: provider-signed records, selective disclosure, custody without losing
+    provider assurance.
+59. [`example-applications/registrar.md`](example-applications/registrar.md) — binding people to
+    identities: the external-authority seam, migration-first enrollment, and the maintained
+    one-person-one-prefix invariant.
+60. [`example-applications/vote.md`](example-applications/vote.md) — auditable elections on the
+    registrar: eligibility credentials, spend-on-cast, anchored ballots, and the recomputable tally
+    — with the secret ballot scoped out honestly.
 
 ## Forthcoming
 
