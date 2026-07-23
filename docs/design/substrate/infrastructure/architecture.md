@@ -111,8 +111,9 @@ through to the next, and the serve rules hold at whichever store answers.
 Credentials, exchange, and shared documents are **libraries over the core and `vdtid`'s API**, never
 daemon modules and never daemons of their own. `vdtid` takes no plug-ins and stays tight; a feature
 is verification and composition logic, which end-verifiability already forces into the
-consumer-linked library. Anything that genuinely wants a server — a mail drop, a bulletin board — is
-an **application** deploying its own app-layer service on top, outside this architecture.
+consumer-linked library. Anything that genuinely wants a server — a search index, a matchmaking
+service, an app-curated feed — is an **application** deploying its own app-layer service on top,
+outside this architecture.
 
 ## Dependencies
 
@@ -121,13 +122,14 @@ where) is an operational choice, not part of the design:
 
 - **`vdtid`** depends on **PostgreSQL** (the chain log and receipt rows), an **S3-compatible object
   store** for SAD and blob bytes (the reference deployment uses SeaweedFS), and **Redis**.
-- **`witnessd`** depends on **Redis**.
+- **`witnessd`** depends on **Redis** and an **HSM** — the witness signing keys
+  ([`witnessd.md` §Key custody](witnessd.md#the-witness-identity-and-key-custody)).
 
 Redis is the coordination layer **between like processes** when a service scales horizontally —
 cache, pub-sub, and the shared ephemeral state (`witnessd`'s park map, watermarks, and stale set;
-`vdtid`'s cache invalidation). Durable state lives only in PostgreSQL and the object store; merge
-serialization rides PostgreSQL advisory locks, so `vdtid` replicas over one database serialize
-correctly with no extra machinery.
+`vdtid`'s cache invalidation). Data-plane durable state lives only in PostgreSQL and the object
+store (key material is custodied in the HSM); merge serialization rides PostgreSQL advisory locks,
+so `vdtid` replicas over one database serialize correctly with no extra machinery.
 
 ## Transport
 
@@ -147,7 +149,8 @@ correctly with no extra machinery.
 A consumer does not roam the federation. It has a **home node** — one node it calls for everything:
 chain pages, SADs, blobs, effective-SAIDs, freshness evidence. The same relationship the submit path
 already runs (a user submits to a **preferred witness**, which routes on their behalf —
-[`../federation/witnessing.md`](../federation/witnessing.md)) extends to the consume side.
+[`witnessd.md` §On-receiving-node routing](witnessd.md#on-receiving-node-routing)) extends to the
+consume side.
 
 The home node is a **mirror**: everything flows through it, and **nothing is trusted from it**.
 Chain data end-verifies; SADs re-derive their SAIDs; receipts carry witness signatures the consumer
@@ -169,9 +172,11 @@ enforces three gates:
   **every** chain it transitively leans on still matches — the KELs beneath an IEL, the IEL beneath
   a SEL, every delegator above it, and the federation that witnesses it. A lower-layer recovery can
   break an upper event while the upper chain's own value never moves; only the transitive check
-  catches it. Any moved value → fetch `since` the held position and `resume` (incremental, never a
-  from-scratch re-walk), with the to-tip negative checks — revocation, rescission, divergence —
-  re-run against the new tip.
+  catches it. Any moved value → fetch `since` the held position and `resume` — incremental rather
+  than from-scratch (a cursor the source cannot resolve, such as a fork or dispute synthetic, falls
+  back to a full, re-verified re-walk —
+  [caching and continuation](../../protocol-doctrine.md#caching-and-continuation)) — with the to-tip
+  negative checks — revocation, rescission, divergence — re-run against the new tip.
 - **The wall-clock overlay, recomputed at decision time.** The effective-SAID gate certifies
   **structure** (nothing moved ⇒ the walk stands); it does not certify **freshness**. Staleness is
   time-triggered — a witness key-window lapses with zero chain events — so the store caches
@@ -189,8 +194,8 @@ enforces three gates:
 
 A **freshness statement** is a witness-signed attestation of held state: _"my held effective-SAID
 for each of these prefixes is this value, as of this time."_ It is how the multi-source bar is met
-through a single untrusted pipe — the k independent views a loss-of-trust decision needs are
-**signed data relayed by the home node**, not k connections the consumer must hold open.
+through a single untrusted pipe — the independent views a loss-of-trust decision needs are **signed
+data relayed by the home node**, not connections the consumer must hold open.
 
 It is a SAD, on the same discipline as the witness receipt
 ([`../federation/witnessing.md` §The witness receipt](../federation/witnessing.md#the-witness-receipt)):
@@ -216,7 +221,8 @@ therefore deliver "this chain is disputed" as signed evidence, and any non-singl
 refusal directly.
 
 **Who signs, and how a statement verifies.** Any **current federation-roster member** may sign — a
-witnessed event propagates roster-wide, so every member's held state is equally informative; no
+witnessed event propagates roster-wide (receipts and announcements flood; bodies follow —
+[`topics.md`](../federation/topics.md)), so every member's held state is equally informative; no
 per-position selection applies. A consumer counts a statement when all of the following hold,
 checked with machinery it already runs for receipts:
 
@@ -227,21 +233,29 @@ checked with machinery it already runs for receipts:
 - `τ` is at most `now + CLOCK_TOLERANCE_BAND`, and no older than the consumer's **staleness
   threshold** for this decision.
 
-**The bar.** A prefix's freshness is confirmed when **`threshold`-many distinct current members**
-agree on the same value — the same `threshold` the chain's witnessing already trusts, for the same
-reason: under the standing fewer-than-`threshold`-byzantine assumption, any `threshold`-many
-distinct members include an honest one, and one honest current view is what the bar exists to
-guarantee. A consumer may demand more for a high-value decision; it never accepts fewer. A statement
-naming a **different** value than the consumer holds is not a failure — it is the anti-entropy
-signal: fetch, verify, re-evaluate.
+**The bar.** A prefix's freshness is confirmed when **federation-`threshold`-many distinct current
+members** agree on the same value — the `threshold` of the **federation's own witness-config**, in
+effect at the consumer's verified federation tip. That is the quantity the standing byzantine
+assumption is stated in ("fewer than `threshold` byzantine members" — the federation's receipting
+threshold, not its governance quorum), and the signers are drawn from the whole roster, so the bar
+must clear the roster-level tolerance: with byzantine members below it, any bar-meeting agreeing set
+includes an honest one. What one honest signer guarantees is an honest **view as of `τ`** — an
+honest member can itself lag propagation and truthfully attest a value it has not yet seen
+superseded — so the bar defeats **fabrication**; propagation lag stays inside the standing
+eventual-detection residual. A consumer may demand more for a high-value decision; it never accepts
+fewer. A statement naming a **different** value than the consumer holds is not a failure — it is the
+anti-entropy signal: fetch, verify, re-evaluate.
 
-**Amortization.** Statements are demand-driven and cache-shaped: a witness signs a given prefix at
-most once per staleness window (it caches its own signed statement until its held value moves or the
-window lapses), the home node gathers `threshold`-many over its existing mesh sessions and re-serves
-the bundle to every consumer behind it, and the multi-prefix `statements` list covers a decision's
-whole transitive dependency set in one signature per witness. Nothing floods — statements move by
-request and cache, unlike receipts. The staleness threshold is the cost dial: tighter freshness buys
-proportionally more signing.
+**Amortization.** Statements are demand-driven and cache-shaped: a witness re-signs a prefix only
+when its held value moves or its cached statement ages out of its serving window (an operational
+knob sized to typical consumer staleness thresholds — the consumer's own threshold governs
+acceptance regardless), the home node gathers federation-`threshold`-many over its existing mesh
+sessions and re-serves the bundle to every consumer behind it, and the multi-prefix `statements`
+list covers a decision's whole transitive dependency set in one signature per witness — per
+federation: a chain clears the bar of the federation that witnesses it, so a set spanning
+federations gathers from each. Nothing floods — statements move by request and cache, unlike
+receipts. The staleness threshold is the cost dial: tighter freshness buys proportionally more
+signing.
 
 **The live variant.** A consumer that cannot trust its own clock — or wants replay bounded to a
 single exchange rather than a staleness window — supplies a **`nonce`**, and the statement is signed
@@ -262,11 +276,13 @@ owner's own expectation rather than a peer's.
   statements makes the bar unmeetable → the decision **refuses** (fail-secure). Serving stale
   statements fails the consumer's staleness check; serving a stale _value_ under fresh signatures
   requires the signing members themselves to lie — the next point.
-- **Forging agreement costs `threshold` current members.** The statement bar re-uses the witnessing
-  trust root: fabricating "still current" for a chain that moved requires `threshold`-many distinct
-  current-roster signatures — the federation-compromise class, already the system's irreducible
-  residual, and **detectable after the fact**: the signed statements are durable evidence
-  contradicting the chain.
+- **Forging agreement costs the federation itself.** Fabricating "still current" for a chain that
+  moved requires **federation-`threshold`-many** distinct current-member signatures — exactly the
+  federation's own byzantine bar, so any bar-meeting agreeing set contains an honest signer and a
+  stale-value set cannot be assembled below the federation-compromise class (the same arithmetic
+  closes the withhold-honest-while-supplying-byzantine channel: the byzantine members alone can
+  never reach the bar). It is the system's irreducible residual, and **detectable after the fact**:
+  the signed statements are durable evidence contradicting the chain.
 - **The federation chain's own freshness rides the same bar.** A cut-out quorum attesting a stale
   roster as current is bounded by the key-window auto-expiry (`MAXIMUM_WITNESS_KEY_WINDOW`) and
   broken by a single honest member's statement (disagreement → fetch). Sustaining the illusion is a

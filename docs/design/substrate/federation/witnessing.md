@@ -425,11 +425,13 @@ window**.
 
 ## Query-scoping and the audit flag
 
-Events reach the nodes that need them over the federation's gossip mesh — roster-wide push-gossip
-for an event witnessed in full, and sub-gossip among a position's selected witnesses for one still
-gathering receipts. All mesh traffic is encrypted, so contents stay within the roster; the channels
-and the two-scope transport are [`topics.md`](topics.md); the channel underneath it — the handshake,
-the per-connection session keys, and the nonce discipline that makes reuse structural — is
+Events reach the nodes that need them over the federation's gossip mesh — roster-wide announcement
+flooding for an event witnessed in full (its receipts and its chain's effective-SAID announcement
+flood; nodes fetch the events they lack — [`topics.md`](topics.md)), and sub-gossip among a
+position's selected witnesses for one still gathering receipts. All mesh traffic is encrypted, so
+contents stay within the roster; the channels and the two-scope transport are
+[`topics.md`](topics.md); the channel underneath it — the handshake, the per-connection session
+keys, and the nonce discipline that makes reuse structural — is
 [`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md). What matters for
 witnessing is what a query returns.
 

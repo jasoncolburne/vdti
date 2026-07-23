@@ -18,10 +18,9 @@ separate store service.
 
 ## The API surface
 
-Reads use a safe, **body-carrying** query method — a prefix or SAID never rides a request line or
-query string, where it would leak into ordinary access and proxy logs
-([negative checks](../../protocol-doctrine.md#negative-checks-are-positive-lookups)); mutations use
-POST. Serving requires no verification — the receiver verifies what it gets
+Reads use a safe, **body-carrying** query method and mutations use POST — the log-leak rationale is
+[`architecture.md` §Transport](architecture.md#transport). Serving requires no verification — the
+receiver verifies what it gets
 ([operation categories](../../protocol-doctrine.md#operation-categories)).
 
 | Endpoint           | Method | Carries / returns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -29,12 +28,12 @@ POST. Serving requires no verification — the receiver verifies what it gets
 | **submit events**  | POST   | a batch of chain events with adjacent signatures (and any receipts that arrived with them); runs the merge write path; returns a merge transition, a merge rejection, or the typed deferred-dependencies response (below)                                                                                                                                                                                                                                                                                                                                 |
 | **submit SAD**     | POST   | a standalone SAD in fully-compacted canonical form; SAID-checked, kind-gated, custody-checked (below)                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | **upload payload** | POST   | bulk bytes uploaded **against a committing SAD already deposited** — the store reads that SAD's committed digest, hashes the blob and requires a match, checks a client nonce + timestamp (clock tolerance band; a bounded unseen-nonce cache closes replay), and authenticates the uploader per the committing kind — one round trip, idempotent (a replay re-stores identical bytes); the store never holds a blob nothing committed to ([exchange §The payload](../../features/exchange.md#the-payload--named-by-digest-uploaded-against-the-message)) |
-| **chain**          | QUERY  | a chain's events by prefix — paged, with a `since` cursor for incremental fetch, **receipts bundled with each page**; returns the full retained set (canonical branch plus retained competing branches and buried evidence) in canonical order (below)                                                                                                                                                                                                                                                                                                    |
+| **chain**          | QUERY  | a chain's events by prefix — paged, with a `since` cursor for incremental fetch, **receipts bundled with each page**; the response carries the **full retained set after the cursor** (competing branches live or since-settled, the burying seal-advancer, the cursor's own siblings), and with no cursor the whole retained set in canonical order (below)                                                                                                                                                                                              |
 | **effective-SAID** | QUERY  | a prefix's effective-SAID — a real tip SAID, or the verdict-tagged synthetic ([effective-SAID comparison](../../protocol-doctrine.md#effective-said-comparison))                                                                                                                                                                                                                                                                                                                                                                                          |
-| **exists**         | QUERY  | an existence probe by SAID — held or not; used by peers and clients to cheapen sync and dedupe                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **exists**         | QUERY  | an existence probe by SAID — answered **under the serve gates**: "held" only where a fetch by this requester would succeed, everything else the uniform "not present"; the wider answer sync and dedupe need is scoped to **mesh-authenticated federation peers** (the correlation exposure doctrine already prices for mesh membership)                                                                                                                                                                                                                  |
 | **SAD**            | QUERY  | a standalone SAD by SAID — subject to the serve-by-SAID allowlist, the custody `readers` gate, and any feature serve-time gate (below)                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | **SADs (batch)**   | QUERY  | a **bounded list of SAIDs in one request** — the walk-support fetch: a page walk resolves several commitment SADs per event (manifests, rosters, witness-configs, pins), so a page's whole resolution set moves in one round trip; each entry is gated individually by the same serve rules, and a refused or absent entry reads uniformly "not present"                                                                                                                                                                                                  |
-| **blob**           | QUERY  | bulk bytes by digest — served only to a **live-signed request** the committing SAD's gate admits (an exchange blob to a device of the recipient identity — an IEL-roster check, single-device; a chat blob to a current member — the membership check; a public wrapper's blob per its custody): the serve-time gate, load-bearing here because a bare blob carries no `custody` of its own                                                                                                                                                               |
+| **blob**           | QUERY  | bulk bytes by digest — the committing SAD's gate decides: an exchange blob only to a **live-signed request** proving a device of the recipient identity (an IEL-roster check, single-device); a chat blob only to a live-signed current member (the membership check); a **public** wrapper's blob per its custody — ungated when public. The request gate is load-bearing for the gated cases because a bare blob carries no `custody` of its own                                                                                                        |
 | **deposits**       | QUERY  | the discovery poll: enumerate the SADs deposited **for an identity** at this node (a recipient's mail inbox), live-signed by a current member device of that identity, `since`-cursored                                                                                                                                                                                                                                                                                                                                                                   |
 | **acknowledge**    | POST   | a recipient's delivery acknowledgment for a deposited message — the origin node deletes the bytes (the explicit-ack complement to `availability`'s `once` and TTL)                                                                                                                                                                                                                                                                                                                                                                                        |
 | **freshness**      | QUERY  | a freshness-statement bundle for a set of prefixes (optionally nonce-bearing); signed and gathered by `witnessd`, relayed and cached here — the statements end-verify, so the relay is untrusted plumbing ([`architecture.md`](architecture.md#the-freshness-statement))                                                                                                                                                                                                                                                                                  |
@@ -168,11 +167,13 @@ unresolvable set narrows replication to the fail-secure skip, never broadens it.
 
 [`kinds.md` §Fetch by SAID](../../primitives/data/sad/kinds.md#fetch-by-said--what-the-store-hands-back)
 states the rule; **this daemon is its enforcement point**, and the rule is load-bearing for privacy,
-not storage hygiene. The principle: **nothing whose SAID must stay opaque is fetchable by SAID.** An
-event SAID travels in the open as a commitment — inside a public identity's `anchors[]` — and an
-event body reached by SAID would let an observer walk those commitments back to the private chains
-they stand for (a lookup-SEL's revocation entries, an issuer's kill targets), turning the store into
-the inversion oracle that referencing events by prefix exists to deny.
+not storage hygiene. The **`exists` probe answers under these same gates** — "held" only where a
+fetch by this requester would succeed, everything else the uniform "not present" — so existence
+never leaks what fetching would refuse. The principle: **nothing whose SAID must stay opaque is
+fetchable by SAID.** An event SAID travels in the open as a commitment — inside a public identity's
+`anchors[]` — and an event body reached by SAID would let an observer walk those commitments back to
+the private chains they stand for (a lookup-SEL's revocation entries, an issuer's kill targets),
+turning the store into the inversion oracle that referencing events by prefix exists to deny.
 
 Enforcement is layered, default-deny:
 
@@ -192,9 +193,11 @@ The by-prefix chain read returns the **full retained set**: the canonical branch
 accepted branches (the `Disputed` evidence a data-local walk needs), and buried non-canonical
 evidence — in canonical order `(serial, kind sort-priority, said)`, paged, with a `has_more`
 indicator. Keep-all-data means burial is a **status, never deletion**: a buried content loser stays
-reachable here (and only here — never by SAID, and not via `since`, which cursors forward along the
-live window), so a full-history walk, an auditor, and a fork-forensics read all get truthful
-answers.
+reachable here (and only here — never by SAID). A **`since` fetch returns the full retained set
+after its cursor** — competing branches, live or since-settled, the burying seal-advancer, and the
+cursor's own siblings all ride the response; retained evidence **below** the cursor is the forensic
+case, reached only by this flat read. So a full-history walk, an auditor, and a fork-forensics read
+all get truthful answers.
 
 Receipts are **bundled with each page** — flat rows keyed at `(prefix, serial)`, served without
 verification (the consumer re-checks signatures). Bundling matters for divergence detection: the
@@ -202,12 +205,33 @@ receipts at a position enumerate every witnessed branch there (the beacon), so a
 learns the competing branch SAIDs from the same response that pages the chain, with no second
 round-trip.
 
+## Request bounds and rate limits
+
+Every request surface is bounded, and the limits are **operator knobs over a structural floor** —
+the hard resilience guarantee is the retention bound and the caps the primitives carry, never the
+rate limiter ([`residuals.md`](../../residuals.md#9-availability-caps-and-dos-bounds)):
+
+- **Request bounds.** A submit batch is capped at one page; request bodies carry a hard size cap;
+  every read's page limit clamps to the page size.
+- **A per-IP token bucket** on writes — a refill rate and a burst ceiling.
+- **A per-prefix daily event budget**, counted in **events, not submissions**, applied in two steps:
+  the **check** runs before the merge, with the candidate count, ahead of the lock — an over-budget
+  batch never contends — and the budget **accrues** after the merge with the count of events
+  actually inserted, so a deduplicated resubmit accrues nothing and idempotent redelivery is never
+  taxed.
+- **Bounded bookkeeping.** The limiter and nonce tables are swept by a periodic reaper, so
+  attacker-generated keys — fresh prefixes, fresh addresses — cannot grow them without bound.
+
 ## Scaling
 
 `vdtid` is stateless over its stores: replicas share one PostgreSQL and one object store, per-prefix
 advisory locks serialize merges per chain, and Redis carries the cross-replica cache invalidation
 and post-merge pub-sub. Nothing in the daemon holds per-consumer session state — a consumer's
 continuity lives in its own token store.
+
+Liveness and readiness are **distinct probes**: a node reports **ready** only once its `witnessd`
+has finished bootstrapping into the mesh — a fresh replica that served before syncing would answer
+with confidently stale state, so readiness gates serving on the sync engine having caught up.
 
 ## Adversarial framing
 

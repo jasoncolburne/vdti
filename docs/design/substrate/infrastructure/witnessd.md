@@ -48,8 +48,9 @@ fine:
 - The receiving node computes the selection locally — `select(prefix, serial, roster, signers)` over
   the roster it holds — and routes the event body, **targeted**, to the selected witnesses.
 - The selected witnesses verify, sign, and sub-gossip the body among themselves; their **receipts
-  flood** the roster. The body never floods — it moves targeted, and other nodes pull it on demand
-  when its content is wanted.
+  flood** the roster. The body never floods — it moves targeted to the selected witnesses, and every
+  other node fetches it when the chain's flooded announcement shows a value it lacks
+  ([`../federation/topics.md`](../federation/topics.md)).
 - The preferred witness answers "witnessed yet?" **from receipts alone** — counting `threshold`-many
   receipts agreeing on `(event SAID, threshold)`. The receipt-carried threshold is a **fast-path
   hint only**: on pull, the count is honored only on an exact match against the chain-committed
@@ -64,14 +65,42 @@ fine:
 
 - **Signing.** On demand, it attests its node's held effective-SAID for a set of prefixes — read
   from `vdtid`, computed by the core — with `τ` (and a consumer nonce, in the live variant) inside
-  the signed payload, under the HSM key. It caches its own signed statement per prefix and re-serves
-  it until the held value moves or the statement ages past the staleness window — so its signing
-  rate is bounded by demanded-prefixes per window, never by decision volume.
+  the signed payload, under the HSM key. It caches its own signed statement per prefix and re-signs
+  only when its held value moves or the statement ages out of its serving window (an operational
+  knob; the consumer's own staleness threshold governs acceptance regardless) — so its signing rate
+  is bounded by demanded-prefixes per window, never by decision volume.
 - **Gathering.** As a consumer's home node, it collects statements from peer witnesses over the
-  standing mesh sessions — enough distinct current members to clear the consumer's bar — and hands
-  the bundle to `vdtid` to serve and cache. The statements end-verify, so gathering and relaying are
-  untrusted plumbing; a peer's refusal or silence just shrinks the bundle, and an under-bar bundle
-  makes the consumer refuse.
+  standing mesh sessions — enough distinct current members to clear the consumer's bar (the
+  federation's witness-config `threshold`, by default) — and hands the bundle to `vdtid` to serve
+  and cache. The statements end-verify, so gathering and relaying are untrusted plumbing; a peer's
+  refusal or silence just shrinks the bundle, and an under-bar bundle makes the consumer refuse.
+
+## Bootstrap — a node serves nothing until it is in sync
+
+A fresh node joining the mesh runs a deliberate sequence, and **readiness gates serving** throughout
+([`vdtid.md` §Scaling](vdtid.md#scaling)):
+
+- **Establish identity first.** Two cases, split by whether the identity already exists:
+  - **A fresh replica or re-joining node of an existing member** authenticates as that member — its
+    identity is long witnessed, its admission long landed — and preloads immediately.
+  - **A brand-new witness** has no witnessed identity before admission: its `Fcp`-rooted chain's
+    consent act rides the admitting `Wit` itself (the federation ceremony —
+    [`../federation/witnessing.md` §Roster governance](../federation/witnessing.md#roster-governance)),
+    and the mesh **is** the roster, so pre-admission it can reach neither the encrypted channel nor
+    the member-only listing. Its preload **begins after admission lands** — its first duty cycle is
+    the cold enumeration — and operators MAY warm it beforehand by **operator-arranged
+    point-to-point provisioning** (the same posture genesis has: before the mesh, arrangement is
+    point-to-point — [`../federation/bootstrap.md`](../federation/bootstrap.md)). A just-admitted
+    witness is selectable while still preloading; the receipt redundancy (`signers − threshold`
+    slack) is what makes that safe.
+- **Preload is the anti-entropy enumeration, run cold.** There is no separate bootstrap protocol: a
+  fresh node pages each peer's update-sequence listing from an **empty watermark** — which is the
+  whole listing — and fetches everything that differs, exactly the standing loop below.
+- **Retry as a unit until clean.** The preload passes (each chain type, then the SAD-object pass)
+  repeat until none reports a sync failure — the poll-based backstop beneath park-and-drain, and
+  load-bearing for "we cannot serve until we are in sync." Peers' own readiness is probed before
+  dialing, so a starting cluster does not race ahead of peers still coming up.
+- **Only then mark ready** — and only then join the standing gossip and anti-entropy duty cycle.
 
 ## Deferred-dependency parking and drain
 
@@ -81,30 +110,46 @@ and **drains** it when its dependencies land:
 
 - **The park map** lives in Redis: a primary record per parked message, plus secondary indexes by
   awaited SAID and by awaited chain, each entry carrying the dependency chain's effective-SAID at
-  park time. Writes go **secondaries before primary**, and the primary self-expires — so a crash
-  orphans only a self-expiring primary, never dangling indexes.
+  park time. Writes go **secondaries before primary**, so that a primary, once landed, is **always
+  drain-reachable** — there is no window where a parked record exists unindexed, the failure that
+  would strand a park until its expiry. The crash residue is the benign one: dangling secondary
+  entries, harmless no-op drain triggers — and **every key, primary and secondaries alike, carries
+  the expiry**, so they age out on their own.
 - **Drain triggers.** A parked batch replays when an awaited SAID commits (the post-merge
-  notification), or when an awaited chain's effective-SAID **moves past its parked value** — the
+  notification), or when an awaited chain's effective-SAID **changes from its parked value** — the
   chain changed, so the dependency may now be satisfiable. Replay runs through the transfer engine
   into the ordinary merge path; a replay that defers again re-parks against the new value.
 - **Loss is tolerated by design.** The park map is reconstructible state: a lost park re-arrives by
   gossip or anti-entropy, so expiry bounds are safety-free — parking is a latency optimization on
-  convergence the sync loops guarantee anyway.
+  convergence the sync loops guarantee anyway. That guarantee has a coverage condition: **every
+  parkable dependency type — the chain types and the SAD-object await — runs its own anti-entropy
+  pass** — a park whose record expires while its awaited type has no pass of its own would strand
+  until random-sample luck, so the pass set matches the parkable-dependency set.
 
 ## Anti-entropy
 
-Gossip delivers what nodes push; **anti-entropy repairs what push missed** — the periodic loops that
-find and close silent divergence between this node's held state and its peers'. The **effective-SAID
-is the compare key** throughout
+Gossip delivers what nodes announce and fetch; **anti-entropy repairs what the announce-and-fetch
+cycle missed** — the periodic loops that find and close silent divergence between this node's held
+state and its peers'. The **effective-SAID is the compare key** throughout
 ([the anti-entropy trigger](../../protocol-doctrine.md#effective-said-comparison)): two nodes
 holding the same state compute the same value, so any difference — including a
 real-SAID-versus-synthetic difference — marks a prefix to sync.
 
 - **Phase one — targeted.** Prefixes known stale (a failed forward, a park that aged out, a peer
-  mismatch observed in passing) sit in a Redis stale set; the loop queries peers' effective-SAIDs
-  for them and syncs from any peer whose value differs.
+  mismatch observed in passing) sit in a Redis stale set — each entry carrying the peer that
+  surfaced the difference, retried **source-first** with backoff and a bounded retry count (an
+  unreachable answer ages out; it does not spin the loop forever). The loop queries peers'
+  effective-SAIDs for them and syncs from any peer whose value differs.
 - **Phase two — random sampling.** A random page of local prefixes against a random peer, skipped
   when phase one had work — the backstop that finds staleness nothing flagged.
+- **Pull-only, with bounded fan-out.** A node only ever pulls what it lacks: a sample showing the
+  peer **behind** is not this node's work — the peer pulls on its own cycle — so anti-entropy never
+  becomes push-repair or write amplification. Concurrent repair fetches are capped, so a large stale
+  set drains at a bounded rate instead of storming the store.
+- **Echo suppression.** A local commit triggers an announcement (the effective-SAID moved), but a
+  commit whose events just **arrived by gossip** must not re-announce them — the sync path keeps a
+  short-lived record of what it stored so the announcement trigger skips it, breaking the
+  announce-fetch-store-announce feedback loop.
 
 **Enumeration is by the peer's own update sequence.** A syncing node pages a peer's prefix listing
 ordered by the peer's **local, monotone update sequence** — bumped whenever a prefix's held state
@@ -113,18 +158,35 @@ changes, whatever the age of the arriving event — descending from the head dow
 advances to the scan-start sequence (anything moving mid-scan re-sorts above it and is caught next
 round). Delivery order is the one sound ordering for this listing: ordering by any **data** time — a
 witnessed timestamp — misses a late-gossiped old event permanently (its data-time sorts below the
-watermark even though the peer's held state just changed). The listing endpoint is part of the
-node-to-node surface, so conforming implementations expose the same shape.
+watermark even though the peer's held state just changed). The listing is **mesh-scoped** — a
+member-only surface riding the encrypted channel, never public (a prefix enumeration is itself
+correlation-sensitive data) — and conforming implementations expose the same shape.
 
 **The fetch is `since` the querier's own last seal.** On a mismatch, the syncing node pulls
 everything after its **own** last seal and dedupes by SAID. Bounded divergence makes this complete
-above the seal: a fork can only form after the last seal, so the window captures the canonical tip
-and every live competing branch, and the response includes the cursor's own siblings (so a node
-learns if the seal it anchors on is itself forked). A settled, buried branch does not move the value
-and is not chased — it is forensic, reached by the flat by-prefix fetch. When a value mismatch
-persists and `since` cannot close it (the escalation backstop — chiefly a cross-implementation
-synthetic-encoding drift, which the pinned encoding exists to prevent), the node escalates to a
-**flat by-prefix fetch**, so the loop converges rather than spins.
+above the seal: a fork can only form after the last seal, so the response carries the **full
+retained set after the cursor** — the canonical tip, every competing branch after it (live or
+since-settled) with its burying seal-advancer, and the cursor's own siblings (so a node learns if
+the seal it anchors on is itself forked) —
+[`vdtid.md` §The chain read](vdtid.md#the-chain-read--keep-all-data-served). A branch settled below
+**both** parties' seals produces no value mismatch and is not chased — below-cursor evidence is
+forensic, reached by the flat by-prefix read. When a value mismatch persists and `since` cannot
+close it (the escalation backstop — chiefly a cross-implementation synthetic-encoding drift, which
+the byte-exact encoding discipline exists to prevent — pinned at the encoding library, forthcoming;
+[residuals §Owed work](../../residuals.md#11-owed-work-and-unverified-assumptions)), the node
+escalates to a **flat by-prefix fetch**, so the loop converges rather than spins.
+
+**The SAD-object pass.** Standalone SADs sync by the keys an immutable, content-addressed object
+admits: **enumeration** by the peer store's own update-sequence listing of SAD SAIDs (the same
+watermark discipline, the same mesh-only scoping — a SAD enumeration leaks the existence of
+custody-gated objects, priced only for mesh members), **compare = presence** (a SAD is held or not;
+it has no state to diff), and a fetch that **respects replica scope and custody** — a node pulls the
+default-broadcast objects it should hold, plus scoped objects whose replica set names it. One
+deliberate carve-out: **deletion-bearing classes never ride this pass** — a `once` object
+(destructive read) and a recipient-scoped deposit (deleted by acknowledgment) are placed by their
+**sender's** act, and re-syncing them from a peer would resurrect a deliberate deletion; their
+absence is semantic, not loss. A TTL-expired object needs no carve-out — a re-arriving copy is
+refused by its own committed `ttl`.
 
 ## Send-side partitioning
 

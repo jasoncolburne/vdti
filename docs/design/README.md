@@ -67,7 +67,7 @@ flowchart BT
   L5["<b>5 · Document authorization</b><br/><i>policy · documents · evaluation</i>"]:::compose
   L6["<b>6 · Protocol primitives</b><br/><i>essr · ipex · receive-key-directory · group-key · membership · authored-dag</i>"]:::compose
   L7["<b>7 · Features</b><br/><i>credentials · exchange · shared-documents</i>"]:::compose
-  L8["apps · forthcoming"]:::future
+  L8["app layer · forthcoming"]:::future
 
   L0 -.->|read first| L1
   L1 --> L3
@@ -76,8 +76,8 @@ flowchart BT
   L3 -->|a federation is a restricted IEL| L4
   verified --> L5
   verified --> L6
-  L5 --> L7
   L6 --> L7
+  L5 -->|"the app's acceptance policy —<br/>features carry proofs, apps combine"| L8
   L7 --> L8
   LS["<b>8 · Services layer</b> — how it deploys<br/><i>architecture · vdtid · witnessd</i>"]:::found
   LS -.->|"stores, serves, and witnesses every layer's data"| verified

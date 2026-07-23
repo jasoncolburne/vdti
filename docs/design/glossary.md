@@ -168,8 +168,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   propagates and time-stamps, it never decides.
   ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
-  the multi-source freshness evidence for a chain.
-  ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+  the per-event witnessing attestation (the multi-source freshness evidence is the freshness
+  statement). ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **witnessing floor** — `threshold > signers/2`, a strict majority of the selected witnesses; it
   makes any two threshold-quorums at a position overlap, so a content fork cannot form.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
@@ -182,9 +182,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
   witness key-windows for freshness.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
-- **gossip** — the witness-mesh transport: roster-wide push-gossip for witnessed events, and
-  sub-gossip among a position's selected witnesses for one still gathering receipts; encrypted and
-  roster-scoped. ([`substrate/federation/topics.md`](substrate/federation/topics.md))
+- **gossip** — the witness-mesh transport: roster-wide announcement flooding for witnessed events
+  (receipts and effective-SAID announcements flood; bodies follow by fetch), and sub-gossip among a
+  position's selected witnesses for one still gathering receipts; encrypted and roster-scoped.
+  ([`substrate/federation/topics.md`](substrate/federation/topics.md))
 
 ### Services and consumers
 
@@ -198,7 +199,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
 - **freshness statement** — a witness-signed attestation of its held effective-SAIDs ("still this
   value, as of τ"): the multi-source freshness evidence a loss-of-trust decision gathers
-  `threshold`-many of, relayable through an untrusted pipe because it is signed data.
+  federation-`threshold`-many of (the federation's own witness-config threshold), relayable through
+  an untrusted pipe because it is signed data.
   ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
 
 ### Chain states
