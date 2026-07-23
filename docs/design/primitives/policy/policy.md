@@ -154,10 +154,11 @@ flowchart TD
   classDef leaf fill:#122a44,stroke:#1971c2,color:#fff
 ```
 
-Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol`) blue. `pol(said)` nests
-another whole tree by SAID; a `del` leaf's liveness is a **positive** rescission match (present →
-rescinded), never a scan. Every leaf resolves **as-issued** — as of the document's anchoring
-position; there is no live / current-mode evaluation.
+Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol` / `crd`) blue.
+`pol(said)` nests another whole tree by SAID; a `del` leaf's liveness is a **positive** rescission
+match (present → rescinded), never a scan. Every leaf resolves **as-issued** — as of the document's
+anchoring position; there is no live / current-mode evaluation (a leaf's liveness reads —
+rescission, revocation, expiry — are its own current-mode folds).
 
 ## Composition rules
 

@@ -50,6 +50,18 @@ Every mechanism is exchange's, used as specified
   chain — a witnessed, end-verifiable send-time any third party can check, per message, never by
   default.
 
+## Scenarios
+
+- **A rotation mid-flight.** The sender rotates between deposit and read: sender-key currency places
+  the message in the sender's witnessed key-state timeline, so the honest pre-rotation send still
+  opens — while a forgery signed later with the harvested old key lands outside its interval and
+  refuses.
+- **A dormant recipient returns.** Weeks offline, then one poll of their own nodes: everything
+  deposited in the interim is fetched under the serve gate, each message placed against the sender's
+  key state at its send time, acknowledged, and deleted at the origin.
+- **A mass notification.** One sender, many recipients: a one-off send per subscriber under a
+  `topic` discriminator — the pub-sub variant below, exercised as a flow.
+
 ## The absorbed variants
 
 - **Notifications / pub-sub** — a one-off send per subscriber with the payload `topic` as the
@@ -66,8 +78,9 @@ Every mechanism is exchange's, used as specified
 - **Offline confidential delivery with no trusted relay.** The store holds ciphertext it cannot
   read, serves it under a gate that limits harvesting, and is trusted for availability only;
   authenticity and confidentiality ride the data end to end.
-- **Metadata scoping is structural, not aspirational.** Who-mails-whom is exposed to the recipient's
-  chosen nodes, not gossiped federation-wide — the deliberate, stated bound.
+- **Metadata scoping is a deliberate, priced bound.** Who-mails-whom is exposed to the recipient's
+  chosen nodes, not gossiped federation-wide — a bound on the recipient's own reads,
+  sender-cooperative rather than sender-proof, with the residual carried in the limits below.
 - **Key rotation composes with async delivery.** The interval acceptance rule threads the needle the
   design promises: honest pre-rotation mail opens, post-compromise forgeries cannot read as current.
 

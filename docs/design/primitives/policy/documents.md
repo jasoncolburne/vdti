@@ -34,9 +34,10 @@ or a **delegated** issuer (`del(root, N)`) — there the relying party's express
 — the holder proves control of the issuee identity live (single-identity authentication) — handled
 by the presentation exchange, not the policy layer. A **read** gate on a document is likewise not a
 policy: it is a `readers` membership ([`../data/sad/custody.md`](../data/sad/custody.md)). Policies
-are **as-issued only**; there is no current-mode evaluation. (Durable **joint** presentation is a
-**shared IEL** — one issuee prefix whose roster carries the required threshold, satisfied by the
-same challenge; live multi-party consent is the exchange layer's, not the credential's.)
+are **as-issued only**; there is no current-mode evaluation (a leaf's liveness reads — rescission,
+revocation, expiry — are its own current-mode folds). (Durable **joint** presentation is a **shared
+IEL** — one issuee prefix whose roster carries the required threshold, satisfied by the same
+challenge; live multi-party consent is the exchange layer's, not the credential's.)
 
 ## The anchoring position — fixing the issuer context
 

@@ -42,11 +42,13 @@ Two constructs, joined by reference — each doing only what it is for:
 
 - **The product credential is the identity of the good.** The maker issues a credential whose claims
   describe the product — model, serial, materials, compliance brackets — anchored on the maker's
-  chain ([`../features/credentials.md`](../features/credentials.md)). It is typically
-  **bearer-shaped** (the good itself is not an identity holding keys; whoever holds the good
-  presents its passport), with the bearer caveats priced where reuse matters. Recalling a batch is
-  cohort revocation — the strike every downstream check sees, the `permit` composition at product
-  width ([`permit.md`](permit.md)).
+  chain ([`../features/credentials.md`](../features/credentials.md)). The good itself is not an
+  identity holding keys, and no holder presents this credential at all: the dossier commits it by
+  SAID and a reader verifies it as **referenced** data — the accepting checks minus ownership
+  ([`../features/credentials.md` §Edges / chaining](../features/credentials.md#edges--chaining)) —
+  so the repeated, holder-independent checks a product's life demands never touch the bearer rule's
+  single-use bound. Recalling a batch is cohort revocation — the strike every downstream check sees,
+  the `permit` composition at product width ([`permit.md`](permit.md)).
 - **The dossier is a content SEL the registry owns.** Per product, a single-owner log — `topic` the
   passport discriminator, entries committing dossier records by SAID
   ([`../primitives/data/event-logs/sel/log.md`](../primitives/data/event-logs/sel/log.md)). The log

@@ -58,11 +58,11 @@ online legs are the freshness and revocation reads, from any node.
   ([`../features/credentials.md` §Revocation](../features/credentials.md#revocation)). Restoring a
   suspended licence is a re-issue: a fresh credential, the old one dead — strikes are additive and
   final, which is what makes them trustworthy.
-- **Delegated issuing authority is the edge machinery.** A national authority accredits regional
-  offices; a licence issued by an office carries the committed delegation path, and acceptance walks
-  it — authority is derived by the verifier, never asserted by the office
-  ([`../features/credentials.md` §Edges / chaining](../features/credentials.md#edges--chaining)).
-  Rescinding an office's accreditation cuts future issuance without unwinding what it validly issued
+- **Delegated issuing authority is the delegation machinery.** A national authority delegates to
+  regional offices; a licence issued by an office carries its committed `delegationPath`, and
+  acceptance walks it — authority is derived by the verifier, never asserted by the office
+  ([`../primitives/policy/documents.md` §Delegation in a document](../primitives/policy/documents.md#delegation-in-a-document)).
+  Rescinding an office's delegation cuts future issuance without unwinding what it validly issued
   before the bound — the grandfather semantics a real licensing hierarchy needs. The checker's whole
   condition is one committed expression in the policy language —
   `crd(vdti/cred/v1/schemas/driving-licence, thr(1, [id(ministry), del(ministry, 2)]))` — a policy
@@ -75,10 +75,24 @@ online legs are the freshness and revocation reads, from any node.
   re-issues with fresh nonces: unlinkable across renewals, the bracket set extensible with no
   protocol change.
 
+## Scenarios
+
+- **A roadside check, offline.** The licensee presents from the wallet; integrity, issuance, claims,
+  and live ownership all verify holder-to-checker with no network. The freshness and revocation
+  reads run when connectivity allows — accepting in the gap is the fail-open trade, priced by the
+  checker, never silent.
+- **A suspension.** The ministry declares the kill on its own chain; every fail-secure check
+  everywhere turns the licence away from its next fresh read, and reinstatement is a fresh
+  credential — the old one stays dead.
+- **A regional office issues.** The office mints under its committed `delegationPath`; a checker
+  that adopted the ministry's policy SAD accepts the licence with no call to the ministry —
+  authority walked from the data, never asserted.
+
 ## The absorbed family
 
-Nine catalogue entries are this application with the nouns changed, and each maps to a lifecycle
-corner `permit` already exercises:
+Seven catalogue entries are this application with the nouns changed, and each maps to a lifecycle
+corner `permit` already exercises (authority checked at every use by the organization's own
+resources — access control and API keys — is the `iam` composition, [`iam.md`](iam.md)):
 
 - **Age / identity verification** — a claim-gated check (`ageGTE18`, disclosed alone) against a
   government-issued credential; the offline-verify posture is the licence check with the network leg
@@ -90,19 +104,16 @@ corner `permit` already exercises:
   trade, priced consciously).
 - **Recall management** — revocation at cohort width: the issuer strikes a batch's credentials and
   every holder's check fails secure, everywhere, at once.
-- **Certificate of authenticity** — the maker as issuer, the item's description as claims; often a
-  bearer instrument where transfer-by-copy is the point and redemption-as-revocation closes reuse
-  ([`../features/credentials.md` §Targeted vs bearer](../features/credentials.md#targeted-vs-bearer)).
-- **API keys / capability tokens** — a licence whose issuee is a service identity: scoped by claims,
-  checked by the resource on each use, revoked centrally, delegable down a committed path.
+- **Certificate of authenticity** — the maker as issuer, the item's description as claims; as a
+  bearer instrument it is single-use, redemption-as-revocation closing reuse
+  ([`../features/credentials.md` §Targeted vs bearer](../features/credentials.md#targeted-vs-bearer)),
+  and a certificate checked repeatedly across resales is targeted, transferred as a re-grant — the
+  title model ([`trade.md`](trade.md)).
 - **Supplier onboarding / KYB** — a reusable business-identity credential: verified once by the
   attestor, presented everywhere, revoked when standing lapses.
 - **Reputation / endorsements** — accumulated attestations: many small credentials from many
   issuers, each independently verifiable and revocable; the aggregation and weighting is the relying
   party's policy, as it must be.
-- **Compliance attestation** (credential half) — an auditor's attestation as a credential; where a
-  trail matters the log composes in, which is the digital product passport's case
-  ([`passport.md`](passport.md)).
 
 ## What this validates
 

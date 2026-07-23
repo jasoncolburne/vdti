@@ -255,7 +255,7 @@ Policy sits above the primitives — it governs documents, never the chain event
 `policy.md`.)
 
 30. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
-    / `pol` leaves; `thr` / `wgt` / `and` combinators).
+    / `pol` / `crd` leaves; `thr` / `wgt` / `and` combinators).
 31. [`primitives/policy/documents.md`](primitives/policy/documents.md) — the anchored issuer context
     a relying party's policy is matched against, and how a document anchors that context.
 32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — how a policy is evaluated
@@ -361,21 +361,21 @@ per distinct feature/primitive combination; the set grows as the docs land.
     shared documents plus exchange: the checkpoint split, confidential collaboration, and the
     sovereignty mode made usable.
 56. [`example-applications/trace.md`](example-applications/trace.md) — track-and-trace provenance
-    from credentials, logs, and exchange: per-actor legs, paired hand-off attestations, no central
-    tracker.
-57. [`example-applications/trade.md`](example-applications/trade.md) — trade documents from all
+    from credentials, logs, and exchange: per-actor legs, jointly attested hand-off records, no
+    central tracker.
+58. [`example-applications/trade.md`](example-applications/trade.md) — trade documents from all
     three features: issued instruments, the collaborative transaction file, sealed negotiation, and
     title as issuer re-grant.
-58. [`example-applications/health.md`](example-applications/health.md) — patient-held records from
+59. [`example-applications/health.md`](example-applications/health.md) — patient-held records from
     credentials plus exchange: provider-signed records, selective disclosure, custody without losing
     provider assurance.
-59. [`example-applications/registrar.md`](example-applications/registrar.md) — binding people to
+60. [`example-applications/registrar.md`](example-applications/registrar.md) — binding people to
     identities: the external-authority seam, migration-first enrollment, and the maintained
     one-person-one-prefix invariant.
-60. [`example-applications/vote.md`](example-applications/vote.md) — auditable elections on the
+61. [`example-applications/vote.md`](example-applications/vote.md) — auditable elections on the
     registrar: eligibility credentials, spend-on-cast, anchored ballots, and the recomputable tally
     — with the secret ballot scoped out honestly.
-61. [`example-applications/issuer.md`](example-applications/issuer.md) — the issuing organization's
+62. [`example-applications/issuer.md`](example-applications/issuer.md) — the issuing organization's
     console: kinds, minting, revocation, delegation, and published acceptance policies — the
     building block every other harness instantiates.
 

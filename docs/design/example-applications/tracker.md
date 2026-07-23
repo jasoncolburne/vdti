@@ -80,9 +80,9 @@ client renders the same state by evaluating the same committed policy against th
   every client). Two independent removals, because the two authorities are independent — write
   access and role weight — and the design keeps them so.
 - **A new maintainer's authority is checkable from outside.** An external contributor can verify
-  that the person closing their issue actually holds triage authority from the org — the
-  credential's anchor, delegation path, and revocation status are public structure. No forge answers
-  "who are the maintainers" from a database only it can read.
+  that the person closing their issue actually holds triage authority from the org — from the
+  presented credential, its anchor, delegation path, and revocation status all verify against the
+  public chains. No forge answers "who are the maintainers" from a database only it can read.
 
 ## What this validates
 

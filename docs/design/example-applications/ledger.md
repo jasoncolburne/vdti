@@ -52,8 +52,9 @@ small.
   declined by the witnessing floor rather than adjudicated after the fact
   ([`../primitives/data/event-logs/sel/log.md` §The SEL is its own witnessed chain](../primitives/data/event-logs/sel/log.md#the-sel-is-its-own-witnessed-chain)).
 - **Each entry carries a public, disinterested timestamp.** The witnesses' receipts assert `τ`
-  inside their signed payloads, and an event's witnessed time is a deterministic read over them — so
-  "when" in this trail is multi-party attested, not operator-asserted
+  inside their signed payloads, and an event's witnessed time is a deterministic read over them —
+  identical for every verifier holding the same receipt set, and moving only earlier as receipts
+  accumulate — so "when" in this trail is multi-party attested, not operator-asserted
   ([`../substrate/federation/witnessing.md` §An event's witnessed time](../substrate/federation/witnessing.md#an-events-witnessed-time)).
 - **Retirement is structural.** Closing the ledger is the SEL's terminal `Trm` — after it, nothing
   appends, and any later "entry" is refused by every verifier rather than by policy
@@ -74,6 +75,18 @@ and the entry SADs are standalone, so they take `custody`: a regulator-gated tra
 the entry SADs while the spine stays walkable by anyone — existence and integrity are public,
 content is gated. Selective disclosure inside one entry is the SAD layer's compaction machinery
 ([`../primitives/data/sad/compaction.md` §Partial disclosure](../primitives/data/sad/compaction.md#partial-disclosure)).
+
+## Scenarios
+
+- **An append.** The application mints the entry SAD, the organization's `t_use` threshold of
+  devices authors the anchoring `Ixn`, and the witnesses receipt it — the entry exists when the
+  floor says so, not when the operator's database does.
+- **An audit.** The auditor is handed the ledger's prefix and walks the chain from any node or their
+  own mirror — every check in the composition, none requiring the organization's cooperation or
+  honesty.
+- **An attempted rewrite.** The operator regrets an entry and authors a competing event at its
+  serial: the floor already receipted the first-seen event, so the rewrite is declined at witnessing
+  — there is nothing to adjudicate afterward, because the fork never lands.
 
 ## Event sourcing, absorbed
 

@@ -10,10 +10,10 @@ read the surface without misreading it. The repo-wide conventions are the root
 - **First pass — read in order.** [`README.md`](README.md) is the narrative reading order, built
   bottom-up by layer with a one-line summary per doc. Use it when you are new to the surface or the
   task spans layers.
-- **Task-directed — go straight to the section.** [`TOC.md`](TOC.md) lists **every file and every
-  section** in the tree as anchor links. Use it to jump to the owning section for a concept instead
-  of re-reading whole documents. It is generated (`scripts/generate-doc-toc.py`) — regenerate it if
-  you change headings.
+- **Task-directed — go straight to the section.** [`TOC.md`](TOC.md) lists **every file and its
+  top-level sections** as anchor links (deeper subsections live under those). Use it to jump to the
+  owning section for a concept instead of re-reading whole documents. It is generated
+  (`scripts/generate-doc-toc.py`) — regenerate it if you change headings.
 
 Whichever mode you enter by, keep [`glossary.md`](glossary.md) at hand: every load-bearing term has
 a one-line definition and a pointer to the doc that owns it. When a term surprises you, the glossary

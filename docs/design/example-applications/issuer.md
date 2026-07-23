@@ -81,9 +81,9 @@ Everything is the credentials feature's own machinery, operated:
   discloses fully to the issuer, the issuer recomputes every bracket, revokes the old credential,
   and issues fresh — the credentials feature's renewal loop as a workflow with a button on it.
 - **Standing up a regional office.** Grant the delegation, publish the updated acceptance policy
-  (now `thr(1, [id(org), del(org, 1)])`), and every relying party that adopted the policy SAID
-  accepts the office's issuances — or declines to adopt, visibly, which is decentralized authority
-  behaving as designed.
+  (its issuer slot now `thr(1, [id(org), del(org, 1)])`), and every relying party that adopted the
+  policy SAID accepts the office's issuances — or declines to adopt, visibly, which is decentralized
+  authority behaving as designed.
 
 ## What this validates
 

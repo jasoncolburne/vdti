@@ -30,8 +30,8 @@ flowchart LR
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
 ```
 
-The registrar is the one app in the set that must run a service, because its job is the seam: the
-grey box is the organization's existing world, reached only through the trait it implements.
+The registrar must run a service, because its job **is** the seam: the grey box is the
+organization's existing world, reached only through the trait it implements.
 
 ## The composition
 

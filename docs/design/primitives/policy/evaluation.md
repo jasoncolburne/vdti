@@ -153,7 +153,7 @@ it leans on (the devices beneath an identity, the delegators above it, the feder
 it), not on that one chain alone — so a change anywhere beneath an upper-layer event is visible to a
 holder of the upper token. The token mechanics, resume semantics, and the transitive freshness rule
 are the verification doctrine's ([`../../protocol-doctrine.md`](../../protocol-doctrine.md)); this
-layer only declares the three questions above and consumes the answers.
+layer only declares the four questions above and consumes the answers.
 
 ## What the primitives implement
 

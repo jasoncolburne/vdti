@@ -48,10 +48,12 @@ data.
   ([`../features/credentials.md` §Claim-gating](../features/credentials.md#claim-gating)).
   One-person-one-prefix plus one-credential-per-prefix is the double-vote defense at issuance. The
   acceptance rule itself is **committed before the polls open**: the authority publishes its policy
-  as a policy SAD — `crd(vdti/cred/v1/schemas/ballot, id(electionAuthority))`, the registrars it
-  honors named inside — so the recount checks every ballot against the declared expression, not a
-  rule inferred after the fact
+  as a policy SAD — `crd(vdti/cred/v1/schemas/ballot, id(electionAuthority))` — so the recount
+  checks every ballot against the declared expression, not a rule inferred after the fact
   ([`../primitives/policy/policy.md` §A policy is a SAD](../primitives/policy/policy.md#a-policy-is-a-sad)).
+  Which registrars the authority honors is issuance-side diligence — checked when a ballot
+  credential is granted, publishable the same way as the authority's own policy SAD over the
+  registrar-issued binding — so that commitment is on the record before the polls too.
 - **Casting is presentation plus a spent strike.** The voter presents the ballot credential —
   ownership proven live, audience-scoped to this election — and submits the marked ballot; the
   authority **revokes the credential on acceptance** (the single-use discipline —

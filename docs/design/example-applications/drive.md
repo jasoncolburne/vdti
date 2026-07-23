@@ -72,8 +72,9 @@ state — and unchanged subtrees are shared between versions by construction, so
 costs only the changed path. A directory carries its own `custody`, and `readers` does **not** flow
 downward — each SAD gates itself
 ([`../primitives/data/sad/compaction.md` §Privacy contract](../primitives/data/sad/compaction.md#privacy-contract))
-— so sharing a folder means stamping the shared read set on the subtree being shared, which the
-re-mint on the next change does anyway.
+— so sharing a folder is its own subtree-wide re-mint: the shared read set is stamped on every SAD
+under the shared root at share time, never deferred to the next change — a descendant left unstamped
+would keep its old gate.
 
 **The handle is the root SAID.** Whoever holds the current root SAID holds the drive: every device
 of the owner identity resolves the whole tree from it by SAID fetch — the batch SAD fetch moves a
