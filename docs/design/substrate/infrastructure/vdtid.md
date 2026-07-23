@@ -35,7 +35,7 @@ receiver verifies what it gets
 | **SADs (batch)**   | QUERY  | a **bounded list of SAIDs in one request** — the walk-support fetch: a page walk resolves several commitment SADs per event (manifests, rosters, witness-configs, pins), so a page's whole resolution set moves in one round trip; each entry is gated individually by the same serve rules, and a refused or absent entry reads uniformly "not present"                                                                                                                                                                                                  |
 | **blob**           | QUERY  | bulk bytes by digest — the committing SAD's gate decides: an exchange blob only to a **live-signed request** proving a device of the recipient identity (an IEL-roster check, single-device); a chat blob only to a live-signed current member (the membership check); a **public** wrapper's blob per its custody — ungated when public. The request gate is load-bearing for the gated cases because a bare blob carries no `custody` of its own                                                                                                        |
 | **deposits**       | QUERY  | the discovery poll: enumerate the SADs deposited **for an identity** at this node (a recipient's mail inbox), live-signed by a current member device of that identity, `since`-cursored                                                                                                                                                                                                                                                                                                                                                                   |
-| **acknowledge**    | POST   | a recipient's delivery acknowledgment for a deposited message — the origin node deletes the bytes (the explicit-ack complement to `availability`'s `once` and TTL)                                                                                                                                                                                                                                                                                                                                                                                        |
+| **acknowledge**    | POST   | a recipient's delivery acknowledgment for a deposited message — the origin node deletes the bytes (the explicit-ack complement to `availability`'s `once` and `expiry`)                                                                                                                                                                                                                                                                                                                                                                                   |
 | **freshness**      | QUERY  | a freshness-statement bundle for a set of prefixes (optionally nonce-bearing); signed and gathered by `witnessd`, relayed and cached here — the statements end-verify, so the relay is untrusted plumbing ([`architecture.md`](architecture.md#the-freshness-statement))                                                                                                                                                                                                                                                                                  |
 | **all-data**       | QUERY  | the opt-in forensic audit query: every event and receipt held, sub-threshold included — walk-ignored, forensic only ([query-scoping](../federation/witnessing.md#query-scoping-and-the-audit-flag))                                                                                                                                                                                                                                                                                                                                                       |
 
@@ -138,10 +138,11 @@ rejection:
   **operator write-gate** — rate-limited by default, credential-gated under lockdown — the standing
   flood posture ([`residuals.md`](../../residuals.md#anonymous-write-flood-operator-gate)).
 - **Availability enforcement.** The storage boundary applies the SAD's own `availability`
-  declaration ([`availability.md`](../../primitives/data/sad/availability.md)): TTL expiry
-  garbage-collects; a `once` SAD is removed on first successful read; `replicas` scopes replication
-  to the nodes a replica-set SAD names, **failing secure to skip** when the set cannot be resolved.
-  Expired, consumed, and never-existed are indistinguishable — one uniform "not present."
+  declaration ([`availability.md`](../../primitives/data/sad/availability.md)): `expiry`
+  garbage-collects past its instant; a `once` SAD is removed on first successful read; `replicas`
+  scopes replication to the nodes a replica-set SAD names, **failing secure to skip** when the set
+  cannot be resolved. Expired, consumed, and never-existed are indistinguishable — one uniform "not
+  present."
 
 ### The replica-set SAD
 
@@ -262,7 +263,7 @@ with confidently stale state, so readiness gates serving on the sync engine havi
 - [`../../primitives/data/sad/custody.md`](../../primitives/data/sad/custody.md) — the `readers`
   gate composed on every by-SAID serve.
 - [`../../primitives/data/sad/availability.md`](../../primitives/data/sad/availability.md) — the
-  per-SAD replication, TTL, and one-shot axes enforced here.
+  per-SAD replication, expiry, and one-shot axes enforced here.
 - [`../../primitives/data/sad/compaction.md`](../../primitives/data/sad/compaction.md) — the
   canonical fully-compacted form submission requires.
 - [`../../primitives/data/event-logs/kel/merge.md`](../../primitives/data/event-logs/kel/merge.md) —

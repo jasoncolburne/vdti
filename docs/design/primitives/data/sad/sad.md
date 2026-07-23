@@ -132,7 +132,7 @@ A content-addressed blob is **not itself a SAD** — it is opaque bytes, so it c
 `custody`, no nested structure. Everything structured about it — its type, who wrote it, who may
 read it, where the bytes live and for how long — rides the **`file` SAD** that names it
 ([`shapes.md`](shapes.md)); the blob is only that SAD's payload, governed by the SAD's
-[`availability`](availability.md) (replication scope, TTL, one-shot) and written under an
+[`availability`](availability.md) (replication scope, expiry, one-shot) and written under an
 authorization the storage service enforces
 ([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)).
 

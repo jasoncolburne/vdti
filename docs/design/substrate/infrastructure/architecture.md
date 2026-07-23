@@ -125,11 +125,12 @@ where) is an operational choice, not part of the design:
 - **`witnessd`** depends on **Redis** and an **HSM** — the witness signing keys
   ([`witnessd.md` §Key custody](witnessd.md#the-witness-identity-and-key-custody)).
 
-Redis is the coordination layer **between like processes** when a service scales horizontally —
-cache, pub-sub, and the shared ephemeral state (`witnessd`'s park map, watermarks, and stale set;
-`vdtid`'s cache invalidation). Data-plane durable state lives only in PostgreSQL and the object
-store (key material is custodied in the HSM); merge serialization rides PostgreSQL advisory locks,
-so `vdtid` replicas over one database serialize correctly with no extra machinery.
+Redis is the coordination layer **between processes** — cache, pub-sub (the post-merge notification
+`witnessd`'s drain listens on rides it), and the shared ephemeral state (`witnessd`'s park map,
+watermarks, and stale set; `vdtid`'s cache invalidation). Data-plane durable state lives only in
+PostgreSQL and the object store (key material is custodied in the HSM); merge serialization rides
+PostgreSQL advisory locks, so `vdtid` replicas over one database serialize correctly with no extra
+machinery.
 
 ## Transport
 

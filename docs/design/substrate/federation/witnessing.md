@@ -642,12 +642,13 @@ reincept — and a merely _lost_ key is evicted or reincepted operationally.
 
 ## Security assumption and residual
 
-The federation's soundness assumes **fewer than `threshold` byzantine** members at attestation time;
-beyond that is operational recovery and reincept. The co-witnessing exclusivity carries its own
-tighter bound: it holds against fewer than `2·threshold − signers` byzantine double-signers within
-the selected set (the fork-cost), so for an over-provisioned config a coalition _within_ the blanket
-`< threshold` assumption can manufacture a co-witnessed content fork at fork-cost — priced, exposed,
-and evictable, not free. The irreducible residual is compromising `threshold`-many _current_ witness
+The federation's soundness assumes **fewer than `threshold` byzantine** members at attestation time
+(the witness-config's receipting `threshold`, not the `t_govern` governance quorum); beyond that is
+operational recovery and reincept. The co-witnessing exclusivity carries its own tighter bound: it
+holds against fewer than `2·threshold − signers` byzantine double-signers within the selected set
+(the fork-cost), so for an over-provisioned config a coalition _within_ the blanket `< threshold`
+assumption can manufacture a co-witnessed content fork at fork-cost — priced, exposed, and
+evictable, not free. The irreducible residual is compromising `threshold`-many _current_ witness
 keys, which is the federation itself being compromised — recovery is reincept, not a backdate via
 stale keys.
 

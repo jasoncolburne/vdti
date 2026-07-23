@@ -137,7 +137,7 @@ its own reading-order note in `sad.md`.)
 4. [`primitives/data/sad/custody.md`](primitives/data/sad/custody.md) — per-object authority: who
    may write, who may read.
 5. [`primitives/data/sad/availability.md`](primitives/data/sad/availability.md) — where the bytes
-   live: replicas, time-to-live, one-shot delivery.
+   live: replicas, expiry, one-shot delivery.
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
 

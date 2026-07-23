@@ -185,8 +185,9 @@ default-broadcast objects it should hold, plus scoped objects whose replica set 
 deliberate carve-out: **deletion-bearing classes never ride this pass** — a `once` object
 (destructive read) and a recipient-scoped deposit (deleted by acknowledgment) are placed by their
 **sender's** act, and re-syncing them from a peer would resurrect a deliberate deletion; their
-absence is semantic, not loss. A TTL-expired object needs no carve-out — a re-arriving copy is
-refused by its own committed `ttl`.
+absence is semantic, not loss. An expired object needs no carve-out — a re-arriving copy is refused
+by its own committed `expiry`, the absolute instant every holder reads the same way from the object
+alone ([`availability.md`](../../primitives/data/sad/availability.md)).
 
 ## Send-side partitioning
 

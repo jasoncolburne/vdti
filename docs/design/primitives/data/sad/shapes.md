@@ -51,8 +51,9 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
   list** of read-authorization SEL prefixes gating reads — a requester in **any** listed set may
   read (omitted → public; one element the common case, several a union like a shared document's edit
   ∪ comment ∪ read gate).
-- **`availability { replicas, ttl, once }`** — `replicas` the SAID of a replica-set SAD (absent →
-  everywhere), `ttl` a retention bound, `once` a destructive-read flag.
+- **`availability { replicas, expiry, once }`** — `replicas` the SAID of a replica-set SAD (absent →
+  everywhere), `expiry` the absolute instant past which the bytes need not be retained, `once` a
+  destructive-read flag.
 
 ## The file payload — `vdti/sad/v1/schemas/file`
 
@@ -71,9 +72,9 @@ encrypted payload, a file, media — as a **content-addressed blob** rather than
 | `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.       |
 
 The `custody` / `availability` wrapper applies as to any standalone SAD: `custody.readers` gates who
-may fetch, and `availability` governs the referenced **blob** (its replicas, TTL, one-shot) as well
-as the SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest** from
-the store's blob path and accepted only when its recomputed digest matches `digest`.
+may fetch, and `availability` governs the referenced **blob** (its replicas, expiry, one-shot) as
+well as the SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest**
+from the store's blob path and accepted only when its recomputed digest matches `digest`.
 
 ## The replica set — `vdti/sad/v1/schemas/replicas`
 
