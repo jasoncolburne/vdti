@@ -52,8 +52,8 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
   read (omitted → public; one element the common case, several a union like a shared document's edit
   ∪ comment ∪ read gate).
 - **`availability { replicas, expiry, once }`** — `replicas` the SAID of a replica-set SAD (absent →
-  everywhere), `expiry` the absolute instant past which the bytes need not be retained, `once` a
-  destructive-read flag.
+  everywhere), `expiry` a timestamp — the absolute instant past which the bytes need not be
+  retained, `once` a destructive-read flag.
 
 ## The file payload — `vdti/sad/v1/schemas/file`
 

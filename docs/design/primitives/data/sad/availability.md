@@ -5,8 +5,8 @@ retrieval is destructive. It is a top-level `availability` field on the standalo
 sibling to the [`custody`](custody.md) field, and is one of the per-object axes the wrapper carries.
 
 This doc states the structural role of `availability` and its three sub-axes. Per-axis policy
-expression — concrete encoding for replica references and the expiry instant, one-shot semantics —
-and storage-side enforcement live in
+expression — concrete encoding for replica references, one-shot semantics — and storage-side
+enforcement live in
 [`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md).
 
 ## What availability declares

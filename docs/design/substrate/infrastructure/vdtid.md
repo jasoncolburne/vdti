@@ -9,7 +9,7 @@ routing, storage, and locking.
 
 **Why one service.** Verification leans on the SAD store: a walk interleaves chain reads with
 targeted SAD lookups — the witness-config and roster in effect at a position, the specific manifests
-its pin locators name — and `vdtid` runs that path constantly (every merge re-verifies under the
+its pin locators lead to — and `vdtid` runs that path constantly (every merge re-verifies under the
 lock). Splitting the chain log from the SAD store would put a network hop inside the verifier's
 hottest dependency and split the write path's atomicity (an anchor and the SAD it commits should
 land in one transaction). So the store and the chain log are one service — and a `vdtid` deployed

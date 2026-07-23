@@ -637,8 +637,8 @@ above). So an all-windows-lapsed federation reads stale, then recovers via a cat
 self-attests under its new windows — stale-but-recoverable, never bricked. A lone broken or old key
 cannot mint a current window: a rotation is honored only as a federation `Wit`, needing `t_govern`
 authors and `threshold` self-attestation, which one key reaches neither. A current-window takeover
-therefore needs `≥ t_govern` current keys — the byzantine assumption violated, an operational
-reincept — and a merely _lost_ key is evicted or reincepted operationally.
+therefore needs `≥ t_govern` current keys — the governance-compromise case, an operational reincept
+— and a merely _lost_ key is evicted or reincepted operationally.
 
 ## Security assumption and residual
 
