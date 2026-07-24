@@ -169,7 +169,7 @@ never what the value is _for_:
 ```
 resolve_lookup(authority, topic, data):                       # a re-establishable value
     for n in 0 ..= MAXIMUM_SEL_LINEAGE:                   # lineage: 0, 1, 2, …
-        sel = fetch(lookup_prefix(owner, topic, data, lineage = n))
+        sel = fetch(lookup_prefix(authority, topic, data, lineage = n))
         if sel is absent:            return (not established, at lineage n)   # a gap ends the walk
         if lineage_n_dead(sel, n):   continue          # advance — a Trm on n's chain / Disputed / severed,
                                                         #   OR n's lineaged target in the owner's fresh kills[]

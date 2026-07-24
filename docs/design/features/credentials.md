@@ -275,6 +275,15 @@ forged revocation, no silent un-revocation.
   `del(Y, N)`, mirroring a delegated issuance condition, lets the up-chain strike what a defunct
   delegated issuer left outstanding — the issuer itself satisfies it by construction. **What could
   mint can revoke**, at the issuer's choice, fixed at issuance.
+- **The locus lives where `Y` lives.** A `del(Y, N)` satisfier's kill seals only where its
+  `delegationPath` to `Y` is reachable — the witness walks it over its own roster-scoped mesh — so
+  every validly-sealed foreign kill rides **`Y`'s federation**, and a verifier **follows `Y`**
+  (named in the policy, so its current federation is a positive lookup up its IEL) to read the locus
+  there. The delegation spine and the locus end-verify, so a verifier that cannot reach that
+  federation directly reads them **transferred from a current source** and re-checks end-to-end —
+  trust rests on `Y`'s federation's witnesses, not the transport. Satisfiers deliberately spread
+  across separate federations, out of `Y`'s reach, are a stated limit, not an open scatter (see
+  [Boundary / residuals](#boundary--residuals)).
 - **Status is read fail-secure by default** — compute the target and walk the issuer's **fresh**
   chain from the issuance position to the tip, matching the target against each kill; where the
   committed policy admits non-issuer revokers, also read the locus, recomputed from the credential's
@@ -421,9 +430,14 @@ The presentation flow uses a secure transport, but **credentials must not be tra
   fail-open lookup vs. timeout) — an application choice, not a protocol guarantee.
 - **Foreign-kill discovery is locus-only.** A kill authored under a widened `revocationPolicy` by a
   non-issuer is found at the revocation locus, not on a chain the verifier already walks: present
-  reads killed with full authority (a kill is monotone), but a miss has no walk to harden it — the
-  multi-source read narrows suppression to eclipse-class (the freshness machinery's adversary), with
-  quieter tripwires than the issuer-chain walk. Priced, not hidden.
+  reads killed with full authority (a kill is monotone), but a miss has no walk to harden it. The
+  locus resolves at **`Y`'s federation** (follow `Y`), so a satisfier not co-located with `Y` cannot
+  seal there and a miss requires suppressing `Y`'s-federation sources — genuinely **eclipse-class**
+  (the freshness machinery's adversary), not a structural elsewhere, with quieter tripwires than the
+  issuer-chain walk. Priced, not hidden. Two edges ride along: satisfiers spread beyond `Y`'s reach
+  are the cross-federation-reach limit (a future extension), and a widened policy hands **any**
+  in-scope satisfier irreversible over-revocation of the whole scope
+  ([`../residuals.md` §Delegation-scope surprises](../residuals.md#delegation-scope-surprises)).
 - **The bearer copy-race** (issuance to first redemption) and **registrar attestation** (single
   binding rests on the registrar not losing its own identity, and is attested by it rather than
   independently verifiable) are the standing residuals.

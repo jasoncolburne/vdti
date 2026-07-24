@@ -60,7 +60,13 @@ correlation resistance). There is no `derive()` function: the prefix is the two-
   since a different rule derives a different prefix. The restriction is structural, not stylistic:
   the SEL's chain-to-IEL relations — anchoring, the down-pin, federation inheritance, severance —
   assume **one IEL per chain**, which a kill lookup's single authored event preserves per instance
-  and a multi-satisfier composition would break. The consuming shape is credential revocation
+  and a multi-satisfier composition would break. The **divergence / first-seen** machine is
+  preserved too, even where several delegates may each strike a `del` locus: every satisfier's `Trm`
+  seals only in the federation the named root delegator is bound to — the witness walks the
+  furnished `delegationPath` over its **roster-scoped** mesh, so a satisfier not co-located with
+  that delegator produces no acceptable event — so first-seen collapses concurrent kills to one
+  accepted event, and a kill is monotone (present reads killed), so the outcome is the same
+  whichever wins. The consuming shape is credential revocation
   ([`../../../../features/credentials.md` §Revocation](../../../../features/credentials.md#revocation)).
 - **`topic`** — an application discriminator (the SEL's namespace or schema), opaque bytes to the
   chain. Together `authority` + `topic` + derivation **locate a SEL directly**: its address is a
@@ -230,11 +236,13 @@ a non-owner produces no valid anchor, so nothing lands at any locus. On a **poli
 lookup** the same gate runs with the generalized predicate: the anchor is the authoring identity's
 own IEL event — the batch's anchor chain must equal the `Trm`'s committed `author` — and the witness
 checks that author against the `authority` leaf in the very `Icp` the event extends, walking the
-`Trm`'s furnished `delegationPath`. An unsatisfying author produces no acceptable event, so the
-locus never fills with unauthorized kills (and a verifier re-checks the same predicate end-to-end
-regardless). And because a SEL **sealed** event's anchor is an IEL **sealed** event — never buried
-once accepted — an **accepted** SEL sealed branch always rests on an accepted anchor, so it is
-**never later severed** by a dead anchor
+`Trm`'s furnished `delegationPath` — a walk it can complete only within its own **roster-scoped**
+mesh, so a satisfier whose path to the named delegator is not reachable there produces no acceptable
+event, which keeps every sealable kill in that delegator's federation. An unsatisfying author
+produces no acceptable event, so the locus never fills with unauthorized kills (and a verifier
+re-checks the same predicate end-to-end regardless). And because a SEL **sealed** event's anchor is
+an IEL **sealed** event — never buried once accepted — an **accepted** SEL sealed branch always
+rests on an accepted anchor, so it is **never later severed** by a dead anchor
 ([`reconciliation.md` §Matrix 2](reconciliation.md#matrix-2-axis-a-crossed-with-axis-b-the-load-bearing-matrix)).
 Witnessing thus closes both threats: **equivocation** (first-seen at the SEL position) and
 **authorship-forgery** (the owner-signed anchor rides the batch). A verifier still re-derives the
