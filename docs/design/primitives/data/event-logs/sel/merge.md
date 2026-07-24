@@ -101,8 +101,9 @@ Any failure here is a structural error; the submission is `Invalid` regardless o
 particular:
 
 - SAID recomputation matches the declared SAID; at inception, the prefix recomputes from the
-  canonical bytes (the populated `owner` / `topic` / `data`, plus `content: true` on a content SEL
-  and `lineage` on a re-establishable value lookup) with `said` / `prefix` set to the placeholder.
+  canonical bytes (the populated `authority` / `topic` / `data`, plus `content: true` on a content
+  SEL and `lineage` on a re-establishable value lookup) with `said` / `prefix` set to the
+  placeholder.
 - Per-kind required / forbidden field presence — the `Icp` carries no `pin` / `manifest`, the `Pin`
   carries only the down-`pin` (no manifest, at any serial), an **`Ixn`'s manifest is required** (≥ 1
   `payload` SAD — a manifest-less `Ixn` is malformed; a pure re-pin is a `Pin`), `previousSeal` is

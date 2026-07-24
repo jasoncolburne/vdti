@@ -1381,15 +1381,15 @@ path with a fail-secure fall-through** — the posture is a function parameter, 
 algorithms:
 
 - **O(1) content-addressed read — always first.** Recompute the derived lookup-SEL address from its
-  inception content `(owner, topic, data)` and read it: **present → killed** (O(1), tamper-evident
-  and authoritative — done, no walk: a kill is **monotone**, never retracted, so
+  inception content `(authority, topic, data)` and read it: **present → killed** (O(1),
+  tamper-evident and authoritative — done, no walk: a kill is **monotone**, never retracted, so
   present-means-killed needs no freshness check). A monotone kill's address carries no lineage; a
   **value's** per-lineage check recomputes the lineaged address from
-  `(owner, topic, data, lineage: N)` for the specific `N` the positive walk landed on — the value's
-  live state is read from its own SEL chain, its per-lineage kill from the lineaged target
+  `(authority, topic, data, lineage: N)` for the specific `N` the positive walk landed on — the
+  value's live state is read from its own SEL chain, its per-lineage kill from the lineaged target
   ([`sel/log.md`](primitives/data/event-logs/sel/log.md#the-content-and-lineage-fields)).
 - **On a miss, fail-secure by default.** A withheld object reads not-found, so a miss is
-  authoritative only after the walk: compute `target = hash('{tag}:{owner}:{data}')` — the target
+  authoritative only after the walk: compute `target = hash('{tag}:{declarer}:{data}')` — the target
   **mirrors the killed address**: **non-lineaged** for a monotone kill, **lineaged** (`…:{lineage}`)
   for a **value rescission** (scoped to one instance), a literal `:content` for a **content
   (app-SEL) closure**

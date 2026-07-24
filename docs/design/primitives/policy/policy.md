@@ -23,10 +23,11 @@ its own authorization policy would let the author point that policy at a stale, 
 — the backdate surface the structural rules exist to close. A document that carried its own
 acceptance policy would be just as self-serving: an issuer would simply write "accept me," and every
 verifier would be bound by it. So the acceptance policy is the **relying party's**, never the
-document's — **who could issue a credential** is exactly the question a policy language answers,
-evaluated **as-issued** against the issuer context the document's anchoring fixes. (Who may
-_present_ a credential is a separate question, answered by a single-identity challenge to the
-issuee, not a policy — [`documents.md`](documents.md).)
+document's — **who could issue a document**, and via the `crd` leaf **who holds a live credential of
+a named kind**, is exactly the question a policy language answers, evaluated **as-issued** against
+the issuer context the anchoring fixes (a leaf's liveness reads — rescission, revocation, expiry —
+are its own current-mode folds). (Who may _present_ a credential is a separate question, answered by
+a single-identity challenge to the issuee, not a policy — [`documents.md`](documents.md).)
 
 **Reading order for this layer:** this doc (the language and the two mechanisms) →
 [`documents.md`](documents.md) (the anchored issuer context a policy is matched against) →
@@ -43,18 +44,20 @@ against the document's anchored facts. The document names no policy of its own.
 
 ## The policy language
 
-Three things a policy can name, and three ways to combine them.
+Four things a policy can name, and three ways to combine them.
 
 ```
 expr     ::= id(prefix)            # an identity
            | del(prefix, N)        # a live delegate of an identity, within N delegation hops
            | pol(said)             # another policy, by its SAID
+           | crd(kind, expr)       # a holder of a live credential of this kind, issued under expr
            | thr(M, [expr, ...])   # M of the listed sub-policies
            | wgt(M, [(expr, w), ...])   # weighted: sub-policies carry weights, total ≥ M
            | and(expr, ...)        # every listed sub-policy, each independently
 
 prefix   ::= an entity's IEL prefix        # identity = prefix
 said     ::= the SAID of another policy    # a point-in-time reference
+kind     ::= a registered credential kind, written in full   # e.g. vdti/cred/v1/schemas/triager
 M, w     ::= positive integers (≥ 1)
 N        ::= a positive integer (≥ 1) — a delegation hop count; del(X) abbreviates del(X, 1)
 ```
@@ -100,6 +103,25 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   reusable rule be named once and composed into many policies; the reference is by SAID, so the
   nested policy is fixed (a different rule is a different SAID).
 
+- **`crd(K, E)` — a holder of a live credential.** Satisfied by an acting party that **furnishes** a
+  credential `C` with `C.kind == K` — a registered credential kind, written **in full**
+  (`vdti/cred/v1/schemas/…`) — whose `issuee` is the party (the credited identity; a **bearer**
+  credential names no issuee and can never satisfy the leaf), whose issuance satisfies `E` **in the
+  issuer slot**, and which is live **now**: not revoked (the positive kill lookup, fail-secure by
+  default) and not past its `expires`. The policy **types** the credential, so the envelope's
+  well-defined fields are checkable — and a composer cannot carry an advisory upward, so inside a
+  policy "expired" folds to **deny**, the same current-mode fold as `del`'s liveness. In the issuer
+  slot the language reads as-issued against `C`'s **own** anchoring position: `id(X)` means `X` is
+  the anchored issuer, `del(X, N)` means `C`'s committed `delegationPath` reaches `X` within `N`
+  live, grandfathered hops ([`documents.md`](documents.md)), and a composer there is the
+  multi-identity attestation machinery. The credential is **furnished, never discovered** — there is
+  no holds-a-credential scan (negative checks are positive lookups); an unfurnished credential is
+  simply unsatisfied, fail-secure. The leaf answers **kind and issuer, never claims** — claim
+  brackets stay disclosure booleans checked at the application
+  ([`../../features/credentials.md` §Claim-gating](../../features/credentials.md#claim-gating)) —
+  and live control of the credited issuee stays the single-identity challenge outside the engine
+  (who may present is not a policy).
+
 ### The composers
 
 - **`thr(M, [...])` — threshold.** Satisfied when at least `M` of the listed sub-policies are
@@ -132,10 +154,11 @@ flowchart TD
   classDef leaf fill:#122a44,stroke:#1971c2,color:#fff
 ```
 
-Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol`) blue. `pol(said)` nests
-another whole tree by SAID; a `del` leaf's liveness is a **positive** rescission match (present →
-rescinded), never a scan. Every leaf resolves **as-issued** — as of the document's anchoring
-position; there is no live / current-mode evaluation.
+Composers (`thr` / `wgt` / `and`) are orange, leaves (`id` / `del` / `pol` / `crd`) blue.
+`pol(said)` nests another whole tree by SAID; a `del` leaf's liveness is a **positive** rescission
+match (present → rescinded), never a scan. Every leaf resolves **as-issued** — as of the document's
+anchoring position; there is no live / current-mode evaluation (a leaf's liveness reads —
+rescission, revocation, expiry — are its own current-mode folds).
 
 ## Composition rules
 
@@ -181,8 +204,8 @@ evaluated (see [`evaluation.md`](evaluation.md)).
   cycle would be a Blake3 preimage cycle, infeasible to construct (the same argument as
   [`documents.md`](documents.md)'s non-circular pinning) — so evaluation always **terminates**. Its
   **cost** is bounded by one verifier-wide budget covering tree depth and breadth, total `pol`
-  fetches, and total `del` hops together; exceeding it **denies** (fail-secure). A reused `pol` is
-  **memoized** — evaluated once, not once per path.
+  fetches, total `del` hops, and total `crd` credential verifications together; exceeding it
+  **denies** (fail-secure). A reused `pol` is **memoized** — evaluated once, not once per path.
 
 **Worked example — `thr` over multi-identity policies.** A branch can itself be a whole policy.
 `thr(2, [pol(A), pol(B), pol(C)])` means _any two of the three policies_ are satisfied — and each

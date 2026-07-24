@@ -34,9 +34,10 @@ or a **delegated** issuer (`del(root, N)`) — there the relying party's express
 — the holder proves control of the issuee identity live (single-identity authentication) — handled
 by the presentation exchange, not the policy layer. A **read** gate on a document is likewise not a
 policy: it is a `readers` membership ([`../data/sad/custody.md`](../data/sad/custody.md)). Policies
-are **as-issued only**; there is no current-mode evaluation. (Durable **joint** presentation is a
-**shared IEL** — one issuee prefix whose roster carries the required threshold, satisfied by the
-same challenge; live multi-party consent is the exchange layer's, not the credential's.)
+are **as-issued only**; there is no current-mode evaluation (a leaf's liveness reads — rescission,
+revocation, expiry — are its own current-mode folds). (Durable **joint** presentation is a **shared
+IEL** — one issuee prefix whose roster carries the required threshold, satisfied by the same
+challenge; live multi-party consent is the exchange layer's, not the credential's.)
 
 ## The anchoring position — fixing the issuer context
 
@@ -112,7 +113,8 @@ custodied **`issuers` SAD** — `{ issuers: [ prefix, … ] }` — and **each au
 its own attestation independently**: each authors its own attestation SEL over the document,
 self-flooring to its own IEL through that SEL's serial-1 `Pin` and self-locating by re-deriving its
 prefix. The attestation SEL is a **discoverable content SEL** with its derivation fully pinned: its
-`Icp` carries `owner` = the attesting identity's prefix, `topic` = `vdti/sel/v1/topics/attestation`
+`Icp` carries `authority` = `id` of the attesting identity, `topic` =
+`vdti/sel/v1/topics/attestation`
 ([`../data/event-logs/tags-and-topics.md`](../data/event-logs/tags-and-topics.md)), `data` = the
 attested SAD's **`said`** (never a prefix), and `content: true` — with no `lineage` and no nonce, so
 any relying party recomputes the same address (a private document's nonce'd `said` keeps the address

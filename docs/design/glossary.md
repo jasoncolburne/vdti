@@ -53,9 +53,14 @@ glossary read straight through.
 - **manifest** — the SAID of a SAD that groups an event's upward commitments **by named role**.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#the-manifest--what-an-event-commits-to-grouped-by-role))
 - **lookup-SEL** — a SEL whose **locus** — its derived lookup address (prefix) — is
-  blind-recomputable from its inception content `(owner, topic, data)`; a revocation / rescission
-  check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss — instead
-  of walking. ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
+  blind-recomputable from its inception content `(authority, topic, data)`; a revocation /
+  rescission check reads it first (O(1), present → killed) and may fail-open on it — trusting a miss
+  — instead of walking.
+  ([`protocol-doctrine.md`](protocol-doctrine.md#negative-checks-are-positive-lookups))
+- **revocation locus** — a credential's kill lookup-SEL, its `authority` slot the committed
+  `revocationPolicy` (`id(issuer)` where absent; `id(X)` or `del(Y, N)`, never composed), so any
+  identity satisfying the leaf may author the kill — the address commits the write rule.
+  ([`credentials.md`](features/credentials.md#revocation))
 - **custody** — a standalone SAD's per-object authority (who may write / read), via a top-level
   `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers[]`
   the read gate — a strictly ascending (sorted, distinct) list of read-authorization SEL prefixes,

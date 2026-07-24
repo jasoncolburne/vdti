@@ -152,7 +152,7 @@ enumerated for completeness, each with the one thing that makes it go away.
 | Mis-set rescission boundary                           | Recoverability · 5          | Human Error    | High (1500)     | You cut honest work or miss bad work                               | Cut at genesis when the loss time is unknown                                                                         |
 | Naive delegator rescission                            | Recoverability · 5          | Human Error    | High (1500)     | Sub-delegated creds keep being issued                              | Move the boundary before the sub-grant                                                                               |
 | Routing around a delegator                            | Recoverability · 5          | Human Error    | High (1500)     | A cred via another path stays valid                                | Rescind at the root, or issue under a threshold                                                                      |
-| Terminated identity freezes revocation and rescission | Recoverability · 3          | Human Error    | High (900)      | A retired issuer/delegator can't revoke, rescind, or close periods | Revoke and rescind before terminating                                                                                |
+| Terminated identity freezes revocation and rescission | Recoverability · 3          | Human Error    | High (900)      | A retired issuer/delegator can't revoke, rescind, or close periods | Revoke and rescind before terminating; mint under a widened `revocationPolicy` where successors must strike          |
 | Recovery breaks a dependent                           | Recoverability · 3          | Human Error    | High (900)      | A dependent event breaks                                           | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
 | Anonymous-write flood                                 | Availability · 1            | Human Error    | Medium (300)    | Your store fills with junk (until gated)                           | Rate-limit or gate anonymous writes                                                                                  |
 | Even-signers tie                                      | Availability · 1            | Human Error    | Medium (300)    | A position stalls (never forks)                                    | Use an odd number of signers                                                                                         |
@@ -439,7 +439,10 @@ Compromises short of a reserve theft: bounded, revocable, or recoverable — but
 "Is this revoked / rescinded / closed?" is answered by a **positive** match against a kill
 declaration on the owner's chain. The default is fail-secure (walk the fresh chain; a withheld
 object reads don't-honor). A consumer may deliberately **opt down** to a fast content-addressed
-lookup — and that opt-down is where these residuals live. The opt is always down, never up.
+lookup — and that opt-down is where these residuals live. The opt is always down, never up. (One
+read is locus-only by construction: a foreign kill under a widened `revocationPolicy` has no
+issuer-chain declaration to walk — the multi-source locus read is its floor, priced at
+[`credentials.md` §Revocation](features/credentials.md#revocation).)
 
 ### Fail-open negative-check opt-out
 
@@ -641,6 +644,15 @@ not gaps — retroactive undo would be a strictly worse weapon (a backdating kil
   reputation-anchored identities whose prefix carries its own credentials or other delegations, for
   which replace-don't-resume would throw away or fork that value. For scaling fleets it is exactly
   right.
+- **A widened `revocationPolicy` hands over-revocation to the whole satisfier set** — `del(Y, N)`
+  makes every live delegate of `Y` a revoker, so one compromised in-scope delegate can irreversibly
+  (kills are monotone) revoke **every** credential minted under that policy — an availability blast
+  radius the issuer-only default bounds to the issuer's own issuances. It is the inherent cost of
+  delegated revocation (the converse of the terminated-issuer trade, which buys reach with it);
+  recovery is re-issue. The reach is **`Y`'s federation** — a satisfier off it cannot seal (the
+  locus witness walks the `delegationPath` over its roster-scoped mesh), so cross-federation
+  revocation is a stated limit, not an open scatter
+  ([`features/credentials.md` §Revocation](features/credentials.md#revocation)).
 
 ### Burying rotation orphans a dependent anchor
 

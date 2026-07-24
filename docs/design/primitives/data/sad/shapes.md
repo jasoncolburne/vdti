@@ -109,8 +109,8 @@ envelope:
 | `previousSeal` | SAID   | On sealing kinds — the back-link to the prior seal-advancing event. |
 
 Kind-specific fields sit alongside — the KEL's `publicKey` / `rotationHash`, the federation binding
-`federation` / `federationPin`, the IEL's `pins` and `nonce`, the SEL's `owner` / `topic` / `data` /
-`content` / `lineage` / `pin`. Each event kind's full required/optional/forbidden table is
+`federation` / `federationPin`, the IEL's `pins` and `nonce`, the SEL's `authority` / `topic` /
+`data` / `content` / `lineage` / `pin`. Each event kind's full required/optional/forbidden table is
 [`event-shape.md` §Per-kind structural validation](../event-logs/event-shape.md); the shared field
 meanings are its §Common fields and §Cross-cutting fields.
 
