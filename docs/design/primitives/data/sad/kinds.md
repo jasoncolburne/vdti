@@ -16,7 +16,7 @@ Every identifier is **`vdti/{component}/v1/{category}/{name}`** — four segment
 
 - **`component`** — the subsystem that owns it: `kel` / `iel` / `sel` / `sad` / `event` / `witness`
   / `log` / `doc` / `exchange` / `essr` / `ipex` / `groupkey` / `directory` / `cred` / `policy` /
-  `gossip`.
+  `gossip` / `rooting`.
 - **`v1`** — the schema version.
 - **`category`** — the family within the component: `events` / `grants` / `receipts` / `roles` /
   `schemas` / `claims` / `protocols` / `tags` / `states` / `topics`. This is the common set; a
@@ -88,6 +88,15 @@ own.
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `vdti/sad/v1/schemas/file`     | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
 | `vdti/sad/v1/schemas/replicas` | a **replica set** — the storage nodes an `availability.replicas` field scopes a SAD's bytes to, named by identity prefix ([`shapes.md`](shapes.md))                                                        |
+
+**The rooting SADs** — the store's admission envelope and root pointers
+([`rooting.md`](rooting.md)):
+
+| Kind                                  | What it is                                                                                                                     |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `vdti/rooting/v1/submission/envelope` | the **submission envelope** — names the SAD being admitted and the root it claims ([`rooting.md`](rooting.md#the-submission))  |
+| `vdti/rooting/v1/{kel,iel,sel}/event` | an **event-root pointer** — the SAD is committed by a chain event's `manifest` or `pins`; carries `prefix` / `event` / `field` |
+| `vdti/rooting/v1/sad/field`           | a **SAD-field-root pointer** — the SAD is committed by an accepted parent SAD; carries `parent` / `field`                      |
 
 **The protocol-primitive SADs:**
 

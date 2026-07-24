@@ -21,4 +21,4 @@ docs/analysis
 docs/operations
 
 # --- Forthcoming design docs (one exact path each; add a line when a new ref lands) ---
-# (none at present)
+docs/design/substrate/federation/blocking.md

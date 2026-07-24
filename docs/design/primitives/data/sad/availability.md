@@ -66,6 +66,26 @@ Either axis composes independently with the other. The four-corners composition 
 replicated) is enumerated in
 [`custody.md` §Decoupling from availability](custody.md#decoupling-from-availability).
 
+## A root covers its children
+
+A standalone SAD may serve as a **root** for others — an accepted event or parent SAD whose
+commitment lets the store admit a child ([`rooting.md`](rooting.md)). A rooted child stays
+re-confirmable only while its root is still reachable, so a root's availability must **cover** every
+SAD it roots:
+
+- **`expiry`** — `child.expiry ≤ root.expiry`; a root with no expiry covers any child.
+- **`replicas`** — `child.replicas ⊆ root.replicas`; a child may live only on a subset of its root's
+  replicas, so the root is reachable wherever the child is and never has to widen — and leak — past
+  its own scope.
+- **`once`** — a root may **not** be `once`: deleted after one read it could cover nothing, and no
+  consumer can be guaranteed to grab a root and its child atomically. Data whose sub-parts must
+  vanish together is a single `once` object with **inline** sub-parts, not separate `once` SADs.
+
+A leaf that roots nothing is unconstrained, and a chain-event root is federation-wide and permanent,
+so only a parent-SAD root carries this check. It is enforced at admission from the two SADs' own
+`availability` fields — a child whose availability exceeds its root's is refused, the same
+fail-secure posture as an unresolvable replica scope.
+
 ## SAID commitment
 
 `availability` is a top-level field on the SAD wrapper and participates in canonical serialization,
