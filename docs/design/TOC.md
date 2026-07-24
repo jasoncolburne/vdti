@@ -142,7 +142,6 @@ straight to a section.
 - [The two shapes](primitives/data/sad/shapes.md#the-two-shapes)
 - [The standalone-SAD wrapper](primitives/data/sad/shapes.md#the-standalone-sad-wrapper)
 - [The file payload — vdti/sad/v1/schemas/file](primitives/data/sad/shapes.md#the-file-payload--vdtisadv1schemasfile)
-- [The replica set — vdti/sad/v1/schemas/replicas](primitives/data/sad/shapes.md#the-replica-set--vdtisadv1schemasreplicas)
 - [Rooting SADs — vdti/rooting/v1/](primitives/data/sad/shapes.md#rooting-sads--vdtirootingv1)
 - [Chain events](primitives/data/sad/shapes.md#chain-events)
 - [Commitment SADs — what a manifest names](primitives/data/sad/shapes.md#commitment-sads--what-a-manifest-names)
@@ -757,6 +756,15 @@ straight to a section.
 - [Scenarios](example-applications/registrar.md#scenarios)
 - [What this validates](example-applications/registrar.md#what-this-validates)
 - [Limits](example-applications/registrar.md#limits)
+
+### [`example-applications/sadstore.md`](example-applications/sadstore.md) — sadstore — off-federation SAD storage
+
+- [Deployment](example-applications/sadstore.md#deployment)
+- [The composition](example-applications/sadstore.md#the-composition)
+- [Scenarios](example-applications/sadstore.md#scenarios)
+- [What this validates](example-applications/sadstore.md#what-this-validates)
+- [Limits](example-applications/sadstore.md#limits)
+- [Cross-references](example-applications/sadstore.md#cross-references)
 
 ### [`example-applications/sso.md`](example-applications/sso.md) — sso — passwordless sign-in
 

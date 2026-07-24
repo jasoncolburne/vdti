@@ -72,7 +72,8 @@ glossary read straight through.
   `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers[]`
   the read gate — a strictly ascending (sorted, distinct) list of read-authorization SEL prefixes,
   union any-match, omitted → public). ([`custody.md`](primitives/data/sad/custody.md))
-- **availability** — a standalone SAD's per-object replication scope, expiry, and one-shot delivery.
+- **availability** — a standalone SAD's per-object retention (`expiry`) and one-shot (`once`)
+  delivery; where the bytes live is the client's cascading store, not an availability axis.
   ([`availability.md`](primitives/data/sad/availability.md))
 
 ### Event kinds

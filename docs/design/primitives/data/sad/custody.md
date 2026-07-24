@@ -3,8 +3,8 @@
 **Custody** is the per-SAD authority model for standalone (non-chain-event) [SADs](sad.md): a
 top-level `custody` field on the SAD wrapper whose value is an inline struct with three optional
 sub-fields declaring who may write the object (attested by a direct anchor on the owner's IEL) and
-who may read it. Custody is decoupled from **[availability](availability.md)** (replication and
-lifecycle), which lives in a sibling top-level field on the same wrapper.
+who may read it. Custody is decoupled from **[availability](availability.md)** (retention and
+one-shot delivery), which lives in a sibling top-level field on the same wrapper.
 
 Custody is scoped to the standalone-SAD subset because chain events have a fixed kind-specific
 schema with no slots for custody or availability fields (see
@@ -240,22 +240,26 @@ protocol supports without per-pattern carve-outs:
 
 ## Decoupling from availability
 
-Custody and [`availability`](availability.md) (a sibling top-level field declaring replication
-scope, expiry, and one-shot delivery) are independent axes:
+Custody is orthogonal to **where the bytes live** — the client-chosen placement across the
+[cascading store](../../../substrate/infrastructure/architecture.md#the-store-traits--one-interface-composed-in-sequence)
+(federation-published, or off-federation on a private
+[`sadstore`](../../../example-applications/sadstore.md)) — and to the SAD's own
+[`availability`](availability.md) `{ expiry, once }` (how long the bytes live, whether retrieval is
+destructive):
 
-- A SAD object can be **widely replicated and custody-gated**: the bytes live on many nodes but
-  every read fetch enforces `readers`.
-- A SAD object can be **unreplicated and permissive**: it lives on one node, but anyone who has its
-  SAID can fetch and read.
-- A SAD object can be **widely replicated and permissive**: a public credential available
+- A SAD object can be **federation-published and custody-gated**: the bytes live on every federation
+  witness but every read fetch still enforces `readers`.
+- A SAD object can be **kept on a single store and permissive**: it lives on one node (a private
+  `sadstore`), but anyone who has its SAID can fetch and read.
+- A SAD object can be **federation-published and permissive**: a public credential available
   everywhere.
-- A SAD object can be **unreplicated and custody-gated**: an ephemeral private object scoped to one
-  node.
+- A SAD object can be **kept on a single store and custody-gated**: an ephemeral private object kept
+  off the federation.
 
-The decoupling matters because availability is an operational decision (where the bytes live, how
-long they live, whether retrieval is destructive) while custody is an authority decision (who may
-write, who may read). The protocol treats them as orthogonal so application designers can compose
-either axis independently.
+The decoupling matters because placement and availability are operational decisions (where the bytes
+live, how long they live, whether retrieval is destructive) while custody is an authority decision
+(who may write, who may read). The protocol treats them as orthogonal so application designers can
+compose either axis independently.
 
 ## Adversarial framing
 

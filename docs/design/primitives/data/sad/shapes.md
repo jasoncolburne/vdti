@@ -36,12 +36,12 @@ A SAD is one of two shapes ([`sad.md` §Structural shapes](sad.md#structural-sha
 
 Every standalone SAD carries these top-level fields, then its kind-specific content:
 
-| Field          | Type   | Required | Meaning                                                                       |
-| -------------- | ------ | -------- | ----------------------------------------------------------------------------- |
-| `said`         | SAID   | yes      | The SAD's self-addressing identifier ([`said.md`](said.md)).                  |
-| `kind`         | string | yes      | The versioned type name ([`kinds.md`](kinds.md)); drives validation.          |
-| `custody`      | struct | no       | Per-object authority — who may write and read ([`custody.md`](custody.md)).   |
-| `availability` | struct | no       | Where the bytes live and for how long ([`availability.md`](availability.md)). |
+| Field          | Type   | Required | Meaning                                                                                              |
+| -------------- | ------ | -------- | ---------------------------------------------------------------------------------------------------- |
+| `said`         | SAID   | yes      | The SAD's self-addressing identifier ([`said.md`](said.md)).                                         |
+| `kind`         | string | yes      | The versioned type name ([`kinds.md`](kinds.md)); drives validation.                                 |
+| `custody`      | struct | no       | Per-object authority — who may write and read ([`custody.md`](custody.md)).                          |
+| `availability` | struct | no       | How long the bytes live and whether retrieval is destructive ([`availability.md`](availability.md)). |
 
 `custody` and `availability` are inline structs, each sub-field independently optional:
 
@@ -51,9 +51,10 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
   list** of read-authorization SEL prefixes gating reads — a requester in **any** listed set may
   read (omitted → public; one element the common case, several a union like a shared document's edit
   ∪ comment ∪ read gate).
-- **`availability { replicas, expiry, once }`** — `replicas` the SAID of a replica-set SAD (absent →
-  everywhere), `expiry` a timestamp — the absolute instant past which the bytes need not be
-  retained, `once` a destructive-read flag.
+- **`availability { expiry, once }`** — `expiry` a timestamp (the absolute instant past which the
+  bytes need not be retained), `once` a destructive-read flag. Where the bytes live is not an
+  availability axis — placement is the client's cascading store
+  ([`availability.md`](availability.md#what-availability-declares)).
 
 ## The file payload — `vdti/sad/v1/schemas/file`
 
@@ -72,31 +73,9 @@ encrypted payload, a file, media — as a **content-addressed blob** rather than
 | `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.       |
 
 The `custody` / `availability` wrapper applies as to any standalone SAD: `custody.readers` gates who
-may fetch, and `availability` governs the referenced **blob** (its replicas, expiry, one-shot) as
-well as the SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest**
-from the store's blob path and accepted only when its recomputed digest matches `digest`.
-
-## The replica set — `vdti/sad/v1/schemas/replicas`
-
-The replica-set SAD an `availability.replicas` field names ([`availability.md`](availability.md)):
-the eligible storage nodes for a SAD's bytes, named by **identity prefix** — the node identity a
-storage node authenticates as — never by address (endpoints move; identities rotate keys and
-survive). The store resolves it to place bytes, so it is on the serve-by-SAID list; an unresolvable
-set narrows replication to the fail-secure skip
-([`../../../substrate/infrastructure/vdtid.md` §The replica-set SAD](../../../substrate/infrastructure/vdtid.md#the-replica-set-sad)).
-
-A replica set names **only federation witnesses**, and **no one submits it**: the valid sets are the
-federation's roster snapshots — the `Fcp` roster and every `add` / `cut` — so each node **derives**
-them by walking the federation IEL and **seeds** any it lacks on startup. Because the SAD is
-content-addressed, every node computes identical bytes and the copies dedupe. So a replica set sits
-**outside the rooting write path** ([`rooting.md`](rooting.md)) — no admission gate, no
-`root ⊇ child` check ([`availability.md`](availability.md#a-root-covers-its-children)).
-
-| Field      | Type         | Required | Meaning                                                                   |
-| ---------- | ------------ | -------- | ------------------------------------------------------------------------- |
-| `said`     | SAID         | yes      | The replica set's own SAID.                                               |
-| `kind`     | string       | yes      | `vdti/sad/v1/schemas/replicas`.                                           |
-| `replicas` | list⟨prefix⟩ | yes      | The eligible storage nodes — a strictly ascending (sorted, distinct) set. |
+may fetch, and `availability` governs the referenced **blob** (its expiry, one-shot) as well as the
+SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest** from the
+store's blob path and accepted only when its recomputed digest matches `digest`.
 
 ## Rooting SADs — `vdti/rooting/v1/*`
 

@@ -52,14 +52,15 @@ mail from. A sender resolves those and, by default, **fans out**: it seals the m
 **each** of the recipient's device keys, so the message opens on any of the recipient's devices. An
 opaque `key_label` narrows a send to a **single** key instead, for a point-to-point delivery.
 
-Delivery is **scoped to the recipient**, built from `availability` with no new mechanism:
+Delivery is **scoped to the recipient** by where the sender deposits, with no new mechanism:
 
-- The sender sets the message SAD's
-  [`availability.replicas`](../primitives/data/sad/availability.md) to the recipient's inbox-node
-  hints, so the sealed content lives **only** on those nodes. The recipient polls **its own** nodes;
-  nothing about who-is-messaging-whom is gossiped federation-wide.
-- **Multiple hints replicate to all of them** — the recipient lists several nodes for redundancy,
-  and a send deposits to each.
+- The sender deposits the message SAD **to the recipient's inbox-node hints** — the
+  [`sadstore`](../example-applications/sadstore.md)s the recipient named in its receive-key
+  directory entry — so the sealed content lives **only** on those nodes, off the federation. The
+  recipient polls **its own** nodes; nothing about who-is-messaging-whom is gossiped
+  federation-wide.
+- **Multiple hints each get a copy** — the recipient lists several inbox nodes for redundancy, and a
+  send deposits to each.
 - **[`custody.readers`](../primitives/data/sad/custody.md)** on the message SAD MAY additionally
   gate who fetches _it_ — defense in depth, since ESSR already seals the payload. The ciphertext
   **blob** is a bare content-addressed object with no `custody`, so its bytes are gated by the
@@ -154,13 +155,14 @@ flowchart TD
   interval, so a live message passes; an honest message sent before a later rotation still falls in
   its now-closed interval and is **accepted**, so a rotation never strands in-flight mail. Because
   each boundary is an event's **own** witnessed time — not the federation clock, which ticks only at
-  federation governance events — it has **per-event granularity** at any rotation cadence, resolving
-  the quantization a governance clock would impose. Witnessed times are **not** self-ordering, so
-  the recipient **checks** the establishment times are in-bounds and non-decreasing along the chain
-  and **reports** on its verification token — a structural violation bails (fail-secure), an
-  in-bounds-but-out-of-order pair is reported **and the message whose interval that inversion makes
-  untrustworthy is refused**, never a silent empty interval. A chain read the infrastructure already
-  provides — **data-only**, leaning on no node's word.
+  federation events — governance rotations plus the rare block toggle — it has **per-event
+  granularity** at any rotation cadence, resolving the quantization a governance clock would impose.
+  Witnessed times are **not** self-ordering, so the recipient **checks** the establishment times are
+  in-bounds and non-decreasing along the chain and **reports** on its verification token — a
+  structural violation bails (fail-secure), an in-bounds-but-out-of-order pair is reported **and the
+  message whose interval that inversion makes untrustworthy is refused**, never a silent empty
+  interval. A chain read the infrastructure already provides — **data-only**, leaning on no node's
+  word.
 - **A divergent sender chain freezes a _current_ read, like any live `t_use` consumer.** A message
   claiming the sender's **current (open) interval** is the sender exercising **live** `t_use`
   authority, which the fork-gate freezes on **any** divergence — **Forked or Disputed → refuse**
@@ -219,7 +221,7 @@ the recipient find and fetch it:
 
 ```mermaid
 flowchart LR
-  send["sender: seal (ESSR) +<br/>availability.replicas = recipient's inbox hints"]:::der
+  send["sender: seal (ESSR) +<br/>deposit to recipient's inbox nodes"]:::der
   send -->|"deposit message SAD, then upload payload blob<br/>(payload endpoint: SAID + nonce + ts + sig)"| store[("recipient's inbox nodes")]:::store
   store -->|"recipient polls its own nodes"| disc["discover"]:::dee
   disc -->|"fetch blob — serve-time gate: a live sig proving control<br/>of the recipient prefix (any member device, IEL-roster check)"| open["open (ESSR) +<br/>sender-key currency"]:::dee
@@ -349,12 +351,12 @@ degenerate group of two** — the same machinery, no separate two-party construc
   chat blob nor drain one, and learning that a requester who showed up holds a grant is the
   mechanism working, not a leak.
 - **Delivery and retention are group-scoped.** A chat message's blob is one ciphertext readable by
-  every member, scoped by `availability.replicas` to the **group's nodes** (the members' inbox
-  hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
-  "recipient." Unlike a mail deposit, which the recipient acks-and-deletes, a chat blob is
-  **retained** across the catch-up window so a member offline for a while can still read the epochs
-  it was in on return — bounded by the key-epoch log's checkpoint reinception (the point past which
-  a cold reader need not walk).
+  every member, deposited to the **group's inbox nodes** (the members' inbox hints, or a
+  group-designated set) — the same recipient-scoping as mail, with the group as the "recipient."
+  Unlike a mail deposit, which the recipient acks-and-deletes, a chat blob is **retained** across
+  the catch-up window so a member offline for a while can still read the epochs it was in on return
+  — bounded by the key-epoch log's checkpoint reinception (the point past which a cold reader need
+  not walk).
 - **Anchoring is opt-in.** A message is signed for authenticity by default and anchored only when
   the app or user flags it for non-repudiation (as above).
 
@@ -409,12 +411,12 @@ epoch/roster/KDF names belong to those primitives; exchange defines none of them
 - **The communication graph is visible to the recipient's home nodes.** Recipient-scoped delivery
   limits the exposure to the storage nodes a recipient chose — far tighter than gossiping the graph
   to the whole federation, but those nodes still see who mails their user, when, and how large. The
-  scoping is **sender-cooperative**: an honest sender sets `availability.replicas` to the
-  recipient's inbox hints, but a sender bent on leaking could deposit elsewhere — so the bound
-  tightens the recipient's own reads, it does not gag a determined sender. And the inbox-node hints
-  are themselves **targeting metadata** — publishing "this identity's mail lives on these nodes"
-  tells an observer where to look, the cost of resolving a recipient without a federation-wide
-  gossip. Mixing and cover traffic are out of scope.
+  scoping is **sender-cooperative**: an honest sender deposits only to the recipient's inbox-node
+  hints, but a sender bent on leaking could deposit elsewhere — so the bound tightens the
+  recipient's own reads, it does not gag a determined sender. And the inbox-node hints are
+  themselves **targeting metadata** — publishing "this identity's mail lives on these nodes" tells
+  an observer where to look, the cost of resolving a recipient without a federation-wide gossip.
+  Mixing and cover traffic are out of scope.
 - **Signing-key compromise is bounded, and a rotation recovers messaging going forward.** A stolen
   key reaches only what its key-state authorizes, and the sender-key-currency window means a
   captured-then-rotated key can only produce messages that read as **stale** — backdated into the

@@ -2,8 +2,8 @@
 
 A **Self-Addressed Data** record (SAD) is a serializable object whose own identifier — its
 [SAID](said.md) — is derived from its content. Every content-bearing primitive in VDTI is a SAD:
-chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, replica sets,
-and the content payloads SEL events anchor.
+chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, and the
+content payloads SEL events anchor.
 
 This doc states the SAD shape and the structural patterns that follow from it. The derivation
 algorithm itself lives in [`said.md`](said.md); compaction and disclosure in
@@ -25,9 +25,9 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   exhaustive-schema rule ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) — those fields
   are rejected on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
-  replica sets, file payloads, and the content payloads SEL events anchor. Stored in the SAD object
-  store and retrieved by SAID. MAY carry per-object authority via a top-level
-  [`custody`](custody.md) field and per-object replication scope via an independent
+  file payloads, and the content payloads SEL events anchor. Stored in the SAD object store and
+  retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field
+  and per-object retention and one-shot delivery via an independent
   [`availability`](availability.md) field on the same wrapper.
 
 A chain event is a SAD with additional structural commitments — chain identity, monotonic position,
@@ -39,7 +39,7 @@ or "standalone SAD" where the distinction matters.
 flowchart TD
   sad["<b>SAD</b><br/>identity = its own content hash (said)"]:::start
   sad -->|"has chain-linkage fields"| ce["<b>chain event</b><br/>+ prefix · previous · serial · manifest / data<br/><i>indivisible unit — no custody / availability slot</i>"]:::q
-  sad -->|"no chain-linkage fields"| st["<b>standalone SAD</b><br/>credential · policy · envelope · replica-set · file<br/><i>MAY carry custody + availability</i>"]:::doc
+  sad -->|"no chain-linkage fields"| st["<b>standalone SAD</b><br/>credential · policy · envelope · file<br/><i>MAY carry custody + availability</i>"]:::doc
   ce --> ceS[("chain log —<br/>addressed by prefix,<br/>never served by SAID")]:::q
   st --> stS[("SAD object store —<br/>served by SAID")]:::doc
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
@@ -132,8 +132,8 @@ A content-addressed blob is **not itself a SAD** — it is opaque bytes, so it c
 `custody`, no nested structure. Everything structured about it — its type, who wrote it, who may
 read it, where the bytes live and for how long — rides the **`file` SAD** that names it
 ([`shapes.md`](shapes.md)); the blob is only that SAD's payload, governed by the SAD's
-[`availability`](availability.md) (replication scope, expiry, one-shot) and written under an
-authorization the storage service enforces
+[`availability`](availability.md) (expiry, one-shot) and written under an authorization the storage
+service enforces
 ([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)).
 
 The two reference mechanisms hang off one parent — **structured children by SAID**, **bulk bytes by

@@ -101,12 +101,6 @@ A fresh node joining the mesh runs a deliberate sequence, and **readiness gates 
     point-to-point — [`../federation/bootstrap.md`](../federation/bootstrap.md)). A just-admitted
     witness is selectable while still preloading; the receipt redundancy (`signers − threshold`
     slack) is what makes that safe.
-- **Seed the replica sets from the federation IEL.** The replica-set SADs are **derived, never
-  submitted**
-  ([`../../primitives/data/sad/shapes.md`](../../primitives/data/sad/shapes.md#the-replica-set--vdtisadv1schemasreplicas)):
-  the node walks the federation IEL — the `Fcp` roster and every `add` / `cut` — reconstructs each
-  roster snapshot as a witness-only set, and seeds any it lacks. Content-addressing makes the seed
-  idempotent and dedupe-convergent across nodes, so this is a local rebuild, not a sync.
 - **Preload is the anti-entropy enumeration, run cold.** There is no separate bootstrap protocol: a
   fresh node pages each peer's update-sequence listing from an **empty watermark** — which is the
   whole listing — and fetches everything that differs, exactly the standing loop below.
@@ -196,17 +190,22 @@ escalates to a **flat by-prefix fetch**, so the loop converges rather than spins
 admits: **enumeration** by the peer store's own update-sequence listing of SAD SAIDs (the same
 watermark discipline, the same mesh-only scoping — a SAD enumeration leaks the existence of
 custody-gated objects, priced only for mesh members), **compare = presence** (a SAD is held or not;
-it has no state to diff), and a fetch that **honors replica scope** — a node pulls the
-default-broadcast objects it should hold, plus scoped objects whose replica set names it; custody
-rides with the object, unenforced on this path, because it gates the **consumer** serve, not
-replication ([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface)).
-**Rootedness re-confirms on arrival**: a pulled SAD is re-run through the admission gate
-([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md)) — its root pointer
-rides the sync alongside it, so a below-threshold-compromised peer cannot push unrooted junk into an
-honest store, and a SAD whose root has not replicated yet parks on the **SAD-object await** until it
-lands. The re-confirm holds only while that pointer is within the operator retention window, which
-covers normal (fast) convergence; a node bootstrapping an old SAD past the window leans instead on
-the below-threshold mesh trust that already admitted it at the sending peer — not a spam vector,
+it has no state to diff), and a fetch that pulls **every SAD the peer holds that this node lacks** —
+a federation replicates every submitted SAD across all its witnesses, so there is no per-object
+scope to honor; custody rides with the object, unenforced on this path, because it gates the
+**consumer** serve, not replication
+([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface)). **Rootedness
+re-confirms on arrival where there is a root to check**: a pulled **rooted** SAD is re-run through
+the admission gate ([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md))
+— its root pointer rides the sync alongside it, so a below-threshold-compromised peer cannot push
+unrooted junk into an honest store, and a SAD whose root has not replicated yet parks on the
+**SAD-object await** until it lands. An **unrooted-floor** SAD (a document root, a drop-box —
+[rooting §The unrooted floor](../../primitives/data/sad/rooting.md#the-unrooted-floor)) carries no
+root pointer, so there is nothing to re-confirm; it rides on the roster-scoped, below-threshold mesh
+trust that admitted it at the sending peer, where the floor's live-identity check and forensic log
+already applied at public submission. The rooted re-confirm holds only while that pointer is within
+the operator retention window, which covers normal (fast) convergence; a node bootstrapping an old
+rooted SAD past the window leans instead on the same below-threshold mesh trust — not a spam vector,
 since the admission gate is the primary defense and the mesh is roster-scoped. One deliberate
 carve-out: **deletion-bearing classes never ride this pass** — a `once` object (destructive read)
 and a recipient-scoped deposit (deleted by acknowledgment) are placed by their **sender's** act, and

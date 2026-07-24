@@ -33,12 +33,9 @@ commitment: its identifier is committed as a one-way hash in the anchoring event
 `manifest.anchors`, and the store confirms membership by recomputing that hash
 ([`custody.md` §Attribution requires an anchor](custody.md#attribution-requires-an-anchor)). A few
 cases sit beside the rule and never reach this gate: **self-verifying** SADs (witness receipts and
-freshness statements, which prove themselves by signature and arrive through their own ingress),
+freshness statements, which prove themselves by signature and arrive through their own ingress) and
 **anonymous** SADs (the genuinely rootless residual — a document root, a drop-box — handled by
-[§The unrooted floor](#the-unrooted-floor)), and **derived** SADs — the **replica-set** kind, which
-no one submits: each node generates it from the federation IEL's roster (witness-only) and
-content-addressing converges the copies, so it sits outside the write path entirely
-([`availability.md` §A root covers its children](availability.md#a-root-covers-its-children)).
+[§The unrooted floor](#the-unrooted-floor)).
 
 ```mermaid
 flowchart TD
@@ -125,10 +122,6 @@ A rooted child stays re-confirmable only while its root is still reachable, so a
 
 - **In time** — `child.expiry ≤ root.expiry`. (A root with no expiry, the `∞` case, covers any
   child.)
-- **In space** — `child.replicas ⊆ root.replicas`. A private child of a public root is fine; a
-  public child of a private root is refused, because it would need the private root reachable where
-  it isn't — bounding the child, never widening the root, is what keeps the root from leaking past
-  its own scope.
 - **No `once` root.** A root deleted after one read can cover nothing, and no consumer can be
   guaranteed to grab a root and its child atomically; one-shot data whose sub-parts must vanish with
   it uses the inline rule instead (a single `once` object, no separate children).
@@ -210,8 +203,7 @@ is the admission floor; blocking is the last resort; the two together are the sp
   contract, two-phase storage.
 - [`custody.md`](custody.md) — the owner-anchor (the blinded event-root instance) and the inline
   structs.
-- [`availability.md`](availability.md) — `replicas` / `expiry` / `once`, and the `root ⊇ child`
-  rule.
+- [`availability.md`](availability.md) — `expiry` / `once`, and the `root ⊇ child` rule.
 - [`kinds.md`](kinds.md) — the `vdti/rooting/v1/*` family; [`shapes.md`](shapes.md) — its field
   shapes.
 - [`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md) — the

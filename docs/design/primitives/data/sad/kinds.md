@@ -84,10 +84,9 @@ own.
 
 **The SAD-layer content SADs:**
 
-| Kind                           | What it is                                                                                                                                                                                                 |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/sad/v1/schemas/file`     | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
-| `vdti/sad/v1/schemas/replicas` | a **replica set** — the storage nodes an `availability.replicas` field scopes a SAD's bytes to, named by identity prefix ([`shapes.md`](shapes.md))                                                        |
+| Kind                       | What it is                                                                                                                                                                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/sad/v1/schemas/file` | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
 
 **The rooting SADs** — the store's admission envelope and root pointers
 ([`rooting.md`](rooting.md)):
@@ -141,10 +140,8 @@ else**:
 
 - **Served by SAID** — the commitment SADs an event names (`vdti/event/v1/roles/*`), the grant
   values a `Gnt` seals (`vdti/sel/v1/grants/*`), the **framework SADs a verifier resolves to
-  evaluate** — a **policy** expression (`vdti/policy/v1/*`), an authorizing **`issuers`** list, a
-  credential's **`terms`**, and the **replica-set SAD** that `availability.replicas` names (the
-  store itself resolves it, so it must be servable or replication silently narrows to the
-  fail-secure skip) — and content SADs (a public credential body, the **file wrapper**
+  evaluate** — a **policy** expression (`vdti/policy/v1/*`), an authorizing **`issuers`** list, and
+  a credential's **`terms`** — and content SADs (a public credential body, the **file wrapper**
   `vdti/sad/v1/schemas/file`, or an application content kind the app has registered), each gated by
   its own custody `readers`. A verifier walking a chain has to resolve the role SADs an event
   commits to, so these have to be reachable by SAID. **Kind is only the first gate.** A served SAD

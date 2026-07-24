@@ -45,10 +45,11 @@ flowchart TD
   does **every consumer**, which is the load-bearing point (below).
 - **`vdtid`** — the storage daemon: the chain log and the SAD store, merged into one service,
   hosting the node's API — submit, fetch, existence, effective-SAID, the SAD and blob paths
-  ([`vdtid.md`](vdtid.md)). It runs with or without a `witnessd` beside it: a `vdtid` alone is a
-  **storage node** — a mirror, or an application's replica, the nodes a replica-set SAD names
-  ([`vdtid.md` §The replica-set SAD](vdtid.md#the-replica-set-sad)); adding `witnessd` is what makes
-  a node a federation member.
+  ([`vdtid.md`](vdtid.md)). It runs **beside a `witnessd`**: the pair is a **federation node**, its
+  witness KEL the node's identity. Off-federation storage is not a stripped-down `vdtid` — it is the
+  separate [`sadstore`](../../example-applications/sadstore.md) app, a subset of these endpoints run
+  as a cascading-store tier
+  ([§The store traits](#the-store-traits--one-interface-composed-in-sequence)).
 - **`witnessd`** — the federation-facing daemon: the witness role and its signing keys, the gossip
   mesh endpoint, deferred-dependency parking, and the anti-entropy loops
   ([`witnessd.md`](witnessd.md)).
@@ -105,6 +106,13 @@ returns the same bytes for a SAID or digest, so the sequence changes **where** a
 and what it costs, never what it means. Stores legitimately differ in what they _hold_: a read-gated
 record lives only where its gates admit, and some data stays local-only — a miss at one tier falls
 through to the next, and the serve rules hold at whichever store answers.
+
+**Write placement rides the same sequence.** Whether a SAD is **federation-published** or kept **off
+the federation** is the client choosing which tier(s) to write to — submit to a federation node
+(which replicates it across all its witnesses) or keep it on a local / private
+[`sadstore`](../../example-applications/sadstore.md) tier and not submit. Placement is application
+and deployment policy, never a field in the SAD
+([`../../primitives/data/sad/availability.md` §What availability declares](../../primitives/data/sad/availability.md#what-availability-declares)).
 
 ## Features are libraries — there are no feature daemons
 

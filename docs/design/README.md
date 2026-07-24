@@ -67,7 +67,7 @@ flowchart BT
   L5["<b>5 · Document authorization</b><br/><i>policy · documents · evaluation</i>"]:::compose
   L6["<b>6 · Protocol primitives</b><br/><i>essr · ipex · receive-key-directory · group-key · membership · authored-dag</i>"]:::compose
   L7["<b>7 · Features</b><br/><i>credentials · exchange · shared-documents</i>"]:::compose
-  L8["<b>9 · Example applications</b> — validation by composition<br/><i>eighteen app designs · drive → issuer</i>"]:::compose
+  L8["<b>9 · Example applications</b> — validation by composition<br/><i>nineteen app designs · drive → sadstore</i>"]:::compose
 
   L0 -.->|read first| L1
   L1 --> L3
@@ -138,8 +138,8 @@ its own reading-order note in `sad.md`.)
    canonicalization — the mechanism that makes end-verifiability work.
 4. [`primitives/data/sad/custody.md`](primitives/data/sad/custody.md) — per-object authority: who
    may write, who may read.
-5. [`primitives/data/sad/availability.md`](primitives/data/sad/availability.md) — where the bytes
-   live: replicas, expiry, one-shot delivery.
+5. [`primitives/data/sad/availability.md`](primitives/data/sad/availability.md) — how long the bytes
+   live and whether retrieval is destructive: expiry, one-shot delivery.
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
 
@@ -389,6 +389,10 @@ per distinct feature/primitive combination; the set grows as the docs land.
 62. [`example-applications/issuer.md`](example-applications/issuer.md) — the issuing organization's
     console: kinds, minting, revocation, delegation, and published acceptance policies — the
     building block every other harness instantiates.
+63. [`example-applications/sadstore.md`](example-applications/sadstore.md) — off-federation SAD
+    storage: a deployable store image that drops into a client's cascading store as an
+    off-federation tier, exposing a subset of `vdtid`'s SAD and blob endpoints — no witness role, no
+    chain log.
 
 ## Forthcoming
 

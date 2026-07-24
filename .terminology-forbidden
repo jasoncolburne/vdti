@@ -21,8 +21,10 @@
 \bFip\b
 
 # === Renamed services (kels consolidation) ===
-# sadstore + kels-service consolidated into vdtid; gossip-service → witnessd.
-\bsadstore\b
+# kels-service consolidated into vdtid; gossip-service → witnessd. sadstore was a
+# retired kels service name but is REVIVED as vdti's off-federation storage app
+# (docs/design/example-applications/sadstore.md), so the bare-token ban is lifted;
+# kels-sadstore stays retired.
 \bkels-service\b
 \bgossip-service\b
 \bkels-sadstore\b

@@ -22,12 +22,12 @@ flowchart LR
   reader["a shared-folder reader<br/>another identity"]:::ext
   subgraph sub["the substrate — federations run it"]
     node[("home node<br/>vdtid + witnessd")]:::svc
-    rep[("replica-scoped<br/>storage nodes")]:::svc
   end
+  rep[("home-region sadstore<br/>off-federation")]:::svc
   d1 --> lib
   d2 --> lib
-  lib -->|"mint · anchor · fetch by SAID"| node
-  node <-->|replication| rep
+  lib -->|"mint · anchor · published files"| node
+  lib -->|"private files — off-federation"| rep
   reader -->|"fetch — the readers gate"| node
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
@@ -55,13 +55,14 @@ the wrapper carries `digest`, `size`, advisory `mediaType` / `name`, and the man
   omits `readers`. The four custody combinations are exactly the drive's product surface: private
   files, published posts, an inbox folder anyone can deposit into, and shared folders
   ([`../primitives/data/sad/custody.md` §The four combinations](../primitives/data/sad/custody.md#the-four-combinations)).
-- **`availability { replicas, expiry, once }`** — where the bytes live and for how long: `replicas`
-  scopes a file to named storage nodes (a home-region drive, or a personal storage node — a store
-  daemon deployed without a witness beside it,
-  [`../substrate/infrastructure/architecture.md` §The decomposition](../substrate/infrastructure/architecture.md#the-decomposition)),
-  `expiry` gives trash a committed horizon, and `once` stays unused — a drive's files are fetched
-  repeatedly by many devices, the composition one-shot delivery is wrong for
+- **`availability { expiry, once }`** — how long the bytes live and whether retrieval is
+  destructive: `expiry` gives trash a committed horizon, and `once` stays unused — a drive's files
+  are fetched repeatedly by many devices, the composition one-shot delivery is wrong for
   ([`../primitives/data/sad/availability.md`](../primitives/data/sad/availability.md)).
+  **Placement** is the client's cascading store, not a field: published files go to the federation
+  (replicated across its witnesses), private ones stay off-federation on a home-region
+  [`sadstore`](sadstore.md) tier
+  ([`../substrate/infrastructure/architecture.md` §The store traits](../substrate/infrastructure/architecture.md#the-store-traits--one-interface-composed-in-sequence)).
 
 **Folders are composition by reference.** A directory is itself a SAD whose content lists its
 children by SAID, so a drive is a hash tree: the root directory's SAID commits, transitively, to

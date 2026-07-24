@@ -12,9 +12,11 @@ targeted SAD lookups — the witness-config and roster in effect at a position, 
 its pin locators lead to — and `vdtid` runs that path constantly (every merge re-verifies under the
 lock). Splitting the chain log from the SAD store would put a network hop inside the verifier's
 hottest dependency and split the write path's atomicity (an anchor and the SAD it commits should
-land in one transaction). So the store and the chain log are one service — and a `vdtid` deployed
-without a `witnessd` **is** the store-only storage node
-([`architecture.md`](architecture.md#the-decomposition)); there is no separate store service.
+land in one transaction). So the store and the chain log are one service. A `vdtid` runs beside a
+`witnessd` — the pair is a **federation node**
+([`architecture.md`](architecture.md#the-decomposition)); off-federation storage is the separate
+[`sadstore`](../../example-applications/sadstore.md) app, a subset of these endpoints, not a
+stripped-down `vdtid`.
 
 ## The API surface
 
@@ -62,17 +64,18 @@ Federation peers reach a second surface, authenticated by the mesh session
 replication and sync, and its admission rule differs from the consumer surface: **custody travels
 with an object and gates the consumer serve, not replication** — no node identity is ever a
 `readers[]` entry, confidential content protects itself with its seal, and the read gate limits
-store-side harvesting — so a peer is admitted by **mesh membership plus the object's replica
-scope**, never by the consumer gates.
+store-side harvesting — so a peer is admitted by **mesh membership**, never by the consumer gates. A
+federation replicates every admitted SAD across all its witnesses, so there is no per-object scope
+to narrow the peer serve.
 
-| Endpoint               | Method | Carries / returns                                                                                                                                                                                          |
-| ---------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **chain listing**      | QUERY  | the node's own update-sequence enumeration of chain changes, paged descending from the caller's per-peer watermark — the anti-entropy and bootstrap enumeration                                            |
-| **SAD listing**        | QUERY  | the update-sequence enumeration of held standalone-SAD SAIDs — the SAD-object pass's presence compare (the enumeration leaks the existence of custody-gated objects, priced only for mesh members)         |
-| **exists (peer)**      | QUERY  | the wider answer sync and dedupe need: held-or-not, regardless of the serve gates (the correlation exposure doctrine already prices for mesh membership)                                                   |
-| **chain fetch (peer)** | QUERY  | the same paged chain read as the public row, mesh-authenticated — query-scoping still serves a sub-threshold event only to a selected witness for its position                                             |
-| **SAD fetch (peer)**   | QUERY  | a held standalone SAD for replication — admitted by mesh membership and the object's replica scope; the deletion-bearing classes never ride sync ([`witnessd.md` §Anti-entropy](witnessd.md#anti-entropy)) |
-| **blob fetch (peer)**  | QUERY  | the committed bytes a replicated SAD names, under the same replication rule                                                                                                                                |
+| Endpoint               | Method | Carries / returns                                                                                                                                                                                  |
+| ---------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **chain listing**      | QUERY  | the node's own update-sequence enumeration of chain changes, paged descending from the caller's per-peer watermark — the anti-entropy and bootstrap enumeration                                    |
+| **SAD listing**        | QUERY  | the update-sequence enumeration of held standalone-SAD SAIDs — the SAD-object pass's presence compare (the enumeration leaks the existence of custody-gated objects, priced only for mesh members) |
+| **exists (peer)**      | QUERY  | the wider answer sync and dedupe need: held-or-not, regardless of the serve gates (the correlation exposure doctrine already prices for mesh membership)                                           |
+| **chain fetch (peer)** | QUERY  | the same paged chain read as the public row, mesh-authenticated — query-scoping still serves a sub-threshold event only to a selected witness for its position                                     |
+| **SAD fetch (peer)**   | QUERY  | a held standalone SAD for replication — admitted by mesh membership; the deletion-bearing classes never ride sync ([`witnessd.md` §Anti-entropy](witnessd.md#anti-entropy))                        |
+| **blob fetch (peer)**  | QUERY  | the committed bytes a replicated SAD names, under the same replication rule                                                                                                                        |
 
 ## The merge write path
 
@@ -155,9 +158,9 @@ rejection:
   pre-compact form; the data need not be stored compacted. Bulk bytes travel separately as
   content-addressed blobs.
 - **The kind gate.** `kind` is required on every SAD, and the write path **rejects event kinds
-  outright** (`vdti/{kel,iel,sel}/v1/events/*`): events live in the chain log, reached by prefix —
-  nothing legitimate ever needs an event body in the SAD store, and keeping event bodies out of the
-  store is what makes the serve rule below physically unable to leak one.
+  outright** (`vdti/{kel,iel,sel}/v1/events/*`) — events live in the chain log, reached by prefix,
+  and keeping their bodies out of the store is what makes the serve rule below physically unable to
+  leak one.
 - **Rootedness — the admission floor.** The envelope names the **root** that commits the SAD, and
   the store confirms it with one local lookup
   ([`rooting.md`](../../primitives/data/sad/rooting.md)): an **event root** (a chain event's
@@ -173,33 +176,8 @@ rejection:
   ([`residuals.md`](../../residuals.md#9-availability-caps-and-dos-bounds)).
 - **Availability enforcement.** The storage boundary applies the SAD's own `availability`
   declaration ([`availability.md`](../../primitives/data/sad/availability.md)): `expiry`
-  garbage-collects past its instant; a `once` SAD is removed on first successful read; `replicas`
-  scopes replication to the nodes a replica-set SAD names, **failing secure to skip** when the set
-  cannot be resolved. Expired, consumed, and never-existed are indistinguishable — one uniform "not
-  present."
-
-### The replica-set SAD
-
-The replica set `availability.replicas` references is its own SAD kind:
-
-```
-{
-  said,        // the replica set's own SAID
-  kind,        // vdti/sad/v1/schemas/replicas
-  replicas     // [prefix, …] — the eligible storage nodes, named by identity prefix;
-               //   a strictly ascending (sorted, distinct) set
-}
-```
-
-Replicas are named by **identity prefix** — the node identity a storage node authenticates as — not
-by address: endpoints move, identities rotate keys and survive. The set is strictly ascending like
-every set-valued field
-([`said.md`](../../primitives/data/sad/said.md#canonical-form-for-said-computation)), and it is on
-the serve-by-SAID allowlist because the store itself must resolve it to place bytes — an
-unresolvable set narrows replication to the fail-secure skip, never broadens it. These sets are
-**not submitted**: the node derives them from the federation IEL's roster (witness-only) and seeds
-them on startup, content-addressed so the copies dedupe, so the write path never gates them
-([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md)).
+  garbage-collects past its instant; a `once` SAD is removed on first successful read. Expired,
+  consumed, and never-existed are indistinguishable — one uniform "not present."
 
 ## Serve-by-SAID — an enforced rule, not a convention
 
@@ -305,7 +283,7 @@ with confidently stale state, so readiness gates serving on the sync engine havi
 - [`../../primitives/data/sad/custody.md`](../../primitives/data/sad/custody.md) — the `readers`
   gate composed on every by-SAID serve.
 - [`../../primitives/data/sad/availability.md`](../../primitives/data/sad/availability.md) — the
-  per-SAD replication, expiry, and one-shot axes enforced here.
+  per-SAD expiry and one-shot axes enforced here.
 - [`../../primitives/data/sad/compaction.md`](../../primitives/data/sad/compaction.md) — the
   canonical fully-compacted form submission requires.
 - [`../../primitives/data/event-logs/kel/merge.md`](../../primitives/data/event-logs/kel/merge.md) —
