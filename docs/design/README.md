@@ -238,7 +238,10 @@ Then the SEL (SAD Event Log) primitive, in order:
 
 The witnessing layer every KEL, IEL, and SEL rests on for its soundness. A federation is a
 restricted IEL whose roster is witness KELs directly; witnessing is what prevents a content fork
-from forming on an honest chain and makes a sealed fork detectable everywhere.
+from forming on an honest chain and makes a sealed fork detectable everywhere. This group also
+carries [`substrate/federation/blocking.md`](substrate/federation/blocking.md) — the second front of
+spam protection (with [rooting](primitives/data/sad/rooting.md)): a federation refusing to witness
+an abusive prefix, a reversible, quorum-gated per-prefix block against a valid-identity flood.
 
 26. [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — genesis and the
     configured trust root: the restricted-IEL shape, the dependency-ordered ceremony, and why there
