@@ -254,6 +254,11 @@ rate limiter ([`residuals.md`](../../residuals.md#9-availability-caps-and-dos-bo
   batch never contends — and the budget **accrues** after the merge with the count of events
   actually inserted, so a deduplicated resubmit accrues nothing and idempotent redelivery is never
   taxed.
+- **Blocked-author fast-reject.** A submission whose **authoring prefix reads blocked** by this
+  federation is rejected **before the merge lock**, alongside the other pre-lock checks
+  ([`../federation/blocking.md` §Serve, block, and store](../federation/blocking.md#serve-block-and-store)).
+  It is a witnessing-side refusal — a block withholds advancement, never information — so it never
+  touches the serve path: held data is still served, end-verifiable.
 - **Bounded bookkeeping.** The limiter and nonce tables are swept by a periodic reaper, so
   attacker-generated keys — fresh prefixes, fresh addresses — cannot grow them without bound.
 

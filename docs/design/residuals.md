@@ -432,6 +432,16 @@ Compromises short of a reserve theft: bounded, revocable, or recoverable — but
 - **Lost** — In-window malicious versions honored until rescission, plus a forced boundary trade
   (honest collateral vs malicious survival). Neither side is free.
 
+_(A **federation prefix block** turned on an honest prefix — a governance-compromised federation
+declining to witness it ([`substrate/federation/blocking.md`](substrate/federation/blocking.md)) —
+is an **instance** of this section, not a new class. It costs the same federation-governance quorum
+(a `t_authorize` reserve quorum on the federation IEL), is **visible** on the federation's public
+IEL (the `Ath` / `Dth` anchors), and is **escapable** by
+[rebinding](substrate/federation/witnessing.md#rebinding) to another federation while served data
+stays end-verifiable — a block withholds witnessing, never serving. It adds no censorship power a
+governance compromise did not already imply; a determined censor is whack-a-moled per federation,
+never a global ban — the honest limit of a decentralized system against a valid identity.)_
+
 ---
 
 ## 5. Negative-check fail-open
