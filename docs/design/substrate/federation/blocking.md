@@ -29,10 +29,10 @@ A block withholds **advancement**, never **information**:
 
 ## The mechanism — a per-prefix toggle at a derived address
 
-A block is not a public list. Each denial is its own small **SEL** at an address **derived** from
-the blocked prefix, owned by the federation:
-
-`derive(authority = id(federation), topic = vdti/sel/v1/topics/block, data = blocked-prefix)`
+A block is not a public list. Each denial is its own small **SEL**, owned by the federation, whose
+prefix a verifier **recomputes** as the two-hash digest over an inception body carrying
+`authority = id(federation)`, `topic = vdti/sel/v1/topics/block`, `data = blocked-prefix`, and a
+`lineage` counter — there is no `derive()` function; the address falls out of the inception content
 ([`../../primitives/data/event-logs/sel/log.md` §Prefix derivation](../../primitives/data/event-logs/sel/log.md#prefix-derivation)).
 
 The block state **toggles**, reusing the re-establishable-value **lineage walk** the receive-key
@@ -41,33 +41,41 @@ directory already runs
 polarity inverted — because that walk is meaning-blind, the same machinery serves a receive key (a
 live lineage means _available_) and a block (a live lineage means _blocked_):
 
-- **Block on** — the federation incepts a lineage and seals it (`Icp` + `Gnt`, the `Gnt` carrying an
-  optional **reason**), anchored by an **`Ath`** on the federation IEL.
+- **Block on** — the federation incepts a lineage and seals it (`Icp` + `Gnt`, the `Gnt` sealing a
+  **block marker** grant value — `vdti/sel/v1/grants/block`, carrying an optional **reason**),
+  anchored by an **`Ath`** on the federation IEL.
 - **Block off** — a **`Trm`** kills the live lineage, anchored by a **`Dth`**; the walk advances
   past the dead lineage to "no live lineage," which reads **not blocked**.
 - **Re-block** — a fresh lineage at the next counter, block-on again.
 
 Resolving is the ordinary lineage walk: the lowest **live** lineage reads **blocked** (carrying its
 reason); a gap or an all-dead run below the cap reads **not blocked** — the determinate no-block
-case, so an ordinary prefix is never caught. A prefix churned past `MAXIMUM_SEL_LINEAGE = 64` —
-pathological, nothing legitimate toggles that often — reads **blocked, fail-secure**: the
-indeterminate case denies.
+case, so an ordinary prefix is never caught. A prefix the federation toggles past
+`MAXIMUM_SEL_LINEAGE = 64` — pathological, nothing legitimate churns that often — reads **blocked,
+fail-secure**; and since there is no lineage beyond the cap, this is a **permanent** block at that
+federation, liftable only by the target rebinding away — so an operator should not churn a prefix
+into the cap.
 
 The block is **reversible** and **monotone-until-toggled** — it never auto-expires (that would
 silently un-block an abuser), only a `Dth`/`Trm` lifts it.
 
 ## `t_authorize` on the federation IEL
 
-The federation IEL is a [restricted IEL](witnessing.md) that, until now, carries only its governance
-`Wit`s (rotations and roster deltas, at `t_govern`). A block adds one capability: the federation IEL
-**admits `Ath` / `Dth` at a `t_authorize` threshold** the federation configures — reserve-backed, so
-a stolen signing key cannot forge a block, but lighter than full governance, so blocking stays
-**agile**. The operators "agree" by meeting `t_authorize`; the federation sets it where it likes —
-lower than `t_govern` for a fast response, higher for caution. Crucially, a federation's `Ath` /
-`Dth` may anchor **only a `topics/block` grant / kill** — never a delegation: a federation grants
-authority to no other identity, so trust stays per-federation and non-transitive, and a block on a
-prefix is the one non-governance thing it authorizes. Everything else — first-seen, the witnessing
-floor, the clock — is the federation IEL's existing machinery, unchanged.
+The federation IEL is a [restricted IEL](witnessing.md): it carries governance `Wit`s (rotations and
+roster deltas) at `t_govern`, and — for blocking — **admits `Ath` / `Dth` at a `t_authorize`
+threshold** the federation configures — reserve-backed, so a stolen signing key cannot forge a
+block, but lighter than full governance, so blocking stays **agile**. The operators "agree" by
+meeting `t_authorize`; the federation sets it where it likes — lower than `t_govern` for a fast
+response, higher for caution. Non-transitivity rests on one **enforced** check: a federation `Ath`
+**carries no `delegates`** — the sole manifest role that grants cross-identity authority — so a
+delegation `Ath` is malformed
+([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)),
+and a federation delegates to no one. What such an `Ath` _does_ anchor is a `topics/block` grant /
+kill; that topic is the federation's **use** of the capability, not a separately verifier-checked
+constraint (the IEL is meaning-blind to an anchored SEL's topic) — harmless, since every grant is
+honored only at an address derived from its own subject, never the federation, so an off-topic
+federation grant earns no authority. Everything else — first-seen, the witnessing floor, the clock —
+is the federation IEL's existing machinery, unchanged.
 
 ## The witness check
 

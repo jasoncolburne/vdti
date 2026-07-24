@@ -101,6 +101,12 @@ A fresh node joining the mesh runs a deliberate sequence, and **readiness gates 
     point-to-point — [`../federation/bootstrap.md`](../federation/bootstrap.md)). A just-admitted
     witness is selectable while still preloading; the receipt redundancy (`signers − threshold`
     slack) is what makes that safe.
+- **Seed the replica sets from the federation IEL.** The replica-set SADs are **derived, never
+  submitted**
+  ([`../../primitives/data/sad/shapes.md`](../../primitives/data/sad/shapes.md#the-replica-set--vdtisadv1schemasreplicas)):
+  the node walks the federation IEL — the `Fcp` roster and every `add` / `cut` — reconstructs each
+  roster snapshot as a witness-only set, and seeds any it lacks. Content-addressing makes the seed
+  idempotent and dedupe-convergent across nodes, so this is a local rebuild, not a sync.
 - **Preload is the anti-entropy enumeration, run cold.** There is no separate bootstrap protocol: a
   fresh node pages each peer's update-sequence listing from an **empty watermark** — which is the
   whole listing — and fetches everything that differs, exactly the standing loop below.

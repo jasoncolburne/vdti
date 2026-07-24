@@ -157,13 +157,13 @@ bounding per-event verifier work to `O(MAXIMUM_MANIFEST_LIST)`.
 | ----------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` (≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs (the general "we commit to this" role)                                                                         |
 | `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                      | the roster **delta** / threshold SAD SAID                                                                                         |
-| `delegates` | IEL `Ath`                                                                        | delegate **prefixes** (act for the delegator)                                                                                     |
+| `delegates` | IEL `Ath` (user only — a federation `Ath` carries none)                          | delegate **prefixes** (act for the delegator)                                                                                     |
 | `grant`     | SEL `Gnt`                                                                        | the grant-doc SAD SAID                                                                                                            |
 | `payload`   | SEL `Ixn`                                                                        | the payload SAD SAIDs the `Ixn` records (single-owner data)                                                                       |
 | `kills`     | IEL `Rev` / `Dth`                                                                | the revocation / rescission declaration `[{ target, bound? }]`                                                                    |
 | `bound`     | SEL `Trm`                                                                        | the gated rescind-doc — a feature rescission's participant-blind cutoff (doc-member grandfather / chat-membership per-lane bound) |
 | `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                | the witness-config SAD SAID                                                                                                       |
-| `clock`     | federation `Fcp` / `Wit` / `Trm`                                                 | the federation-clock timestamp (inline, non-SAID)                                                                                 |
+| `clock`     | federation `Fcp` / `Wit` / `Trm` / `Ath` / `Dth`                                 | the federation-clock timestamp (inline, non-SAID)                                                                                 |
 
 The roles that carry discrimination or shape rules, in prose:
 
@@ -462,17 +462,17 @@ KEL + federation doctrine — [`kel/`](kel/),
 
 ### IEL
 
-| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                |
-| ----- | ----- | ---- | ---------- | ------------- | ------------ | --------------------------------------------------------------------------------------- |
-| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`) |
-| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                     |
-| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                   |
-| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`)                                                      |
-| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |
-| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |
-| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                            |
-| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                   |
-| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                |
+| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                              |
+| ----- | ----- | ---- | ---------- | ------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
+| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`)               |
+| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                                   |
+| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                                 |
+| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`; a federation `Ath` carries `anchors` + `clock`, never `delegates`) |
+| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                              |
+| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Dth` adds `clock` req)                                         |
+| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                                          |
+| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                                 |
+| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                              |
 
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **required** (there is no direct mode) and `witnesses` is **mandatory**; on a `Wit` all three

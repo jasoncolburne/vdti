@@ -81,10 +81,17 @@ SAD it roots:
   consumer can be guaranteed to grab a root and its child atomically. Data whose sub-parts must
   vanish together is a single `once` object with **inline** sub-parts, not separate `once` SADs.
 
-A leaf that roots nothing is unconstrained, and a chain-event root is federation-wide and permanent,
-so only a parent-SAD root carries this check. It is enforced at admission from the two SADs' own
-`availability` fields — a child whose availability exceeds its root's is refused, the same
+A leaf that roots nothing is unconstrained **as a root**, but every SAD is still bound by this check
+**as a child of its own root**, whatever it roots. A chain-event root is federation-wide and
+permanent, so only a parent-SAD root carries this check. It is enforced at admission from the two
+SADs' own `availability` fields — a child whose availability exceeds its root's is refused, the same
 fail-secure posture as an unresolvable replica scope.
+
+The **replica-set** kind is exempt from this check, because it is never submitted: each node derives
+the valid sets from the federation IEL's roster (witness-only) and content-addressing converges the
+copies ([`shapes.md`](shapes.md), [`rooting.md`](rooting.md)). A replica set is the primitive that
+_defines_ placement and must stay broadly resolvable, so it is not scoped data the coverage rule
+should bound.
 
 ## SAID commitment
 

@@ -85,6 +85,13 @@ survive). The store resolves it to place bytes, so it is on the serve-by-SAID li
 set narrows replication to the fail-secure skip
 ([`../../../substrate/infrastructure/vdtid.md` §The replica-set SAD](../../../substrate/infrastructure/vdtid.md#the-replica-set-sad)).
 
+A replica set names **only federation witnesses**, and **no one submits it**: the valid sets are the
+federation's roster snapshots — the `Fcp` roster and every `add` / `cut` — so each node **derives**
+them by walking the federation IEL and **seeds** any it lacks on startup. Because the SAD is
+content-addressed, every node computes identical bytes and the copies dedupe. So a replica set sits
+**outside the rooting write path** ([`rooting.md`](rooting.md)) — no admission gate, no
+`root ⊇ child` check ([`availability.md`](availability.md#a-root-covers-its-children)).
+
 | Field      | Type         | Required | Meaning                                                                   |
 | ---------- | ------------ | -------- | ------------------------------------------------------------------------- |
 | `said`     | SAID         | yes      | The replica set's own SAID.                                               |
@@ -263,6 +270,7 @@ value it carries is the sealed thing itself.
 | `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**.                                                                                                                                                                                                                                                                                             | forthcoming |
 | `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role.                                                                                              | forthcoming |
 | `vdti/sel/v1/grants/delegation`                  | A **delegation marker** — the tier-2 signpost a delegating-link `{Icp, Gnt}` seals; commits a **blinded reference to the delegate** (checked by the `del(X, N)` walk against the anchoring `Ath`'s `delegates`), and carries no authority itself — [`../event-logs/iel/delegation.md`](../event-logs/iel/delegation.md). | forthcoming |
+| `vdti/sel/v1/grants/block`                       | A **block marker** — the signpost a federation's [prefix-block](../../../substrate/federation/blocking.md) lineage `{Icp, Gnt}` seals; `{ said, kind, reason? }`, carrying an optional `reason` and no authority of its own (the live lineage _is_ the block).                                                           | forthcoming |
 
 Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
 encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the

@@ -196,7 +196,10 @@ by address: endpoints move, identities rotate keys and survive. The set is stric
 every set-valued field
 ([`said.md`](../../primitives/data/sad/said.md#canonical-form-for-said-computation)), and it is on
 the serve-by-SAID allowlist because the store itself must resolve it to place bytes — an
-unresolvable set narrows replication to the fail-secure skip, never broadens it.
+unresolvable set narrows replication to the fail-secure skip, never broadens it. These sets are
+**not submitted**: the node derives them from the federation IEL's roster (witness-only) and seeds
+them on startup, content-addressed so the copies dedupe, so the write path never gates them
+([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md)).
 
 ## Serve-by-SAID — an enforced rule, not a convention
 

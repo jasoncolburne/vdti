@@ -258,13 +258,14 @@ standing tier-2 requirement), never on retaining an old signing key.
 The currency gate governs _roster version_; the **federation clock** governs _time_, closing the
 harvested-old-key forgery that the forward-floor alone cannot reach.
 
-The clock is the **`clock` role** in each federation governance event's manifest — an **inline
-timestamp value**, not a separate SEL, event kind, or nested SAD (nothing dereferences it by its own
-SAID, so the manifest commits the value directly). Every federation governance `Wit` — a rotation,
-optionally also a roster change — commits a `clock` timestamp, and so do the genesis `Fcp` and the
-terminal `Trm`. The `Wit` is sealed and the timeline is **monotonic** (each clock time ≥ the prior,
-enforced at the seal), so it cannot be rolled back. Consumers read the timeline by walking the
-federation IEL they already walk for the roster.
+The clock is the **`clock` role** in each **federation event's** manifest — an **inline timestamp
+value**, not a separate SEL, event kind, or nested SAD (nothing dereferences it by its own SAID, so
+the manifest commits the value directly). A federation authors no `Ixn`, so **every** federation
+event carries a `clock`: the governance `Wit`s (a rotation, optionally also a roster change), the
+genesis `Fcp`, the terminal `Trm`, and the `Ath` / `Dth` block toggles. Each is sealed and the
+timeline is **monotonic** (each clock time ≥ the prior, enforced at the seal), so it cannot be
+rolled back. Consumers read the timeline by walking the federation IEL they already walk for the
+roster.
 
 **Key-windows.** Each witness has a key-validity window `[T_join, T_end]` in clock time: `T_join` is
 the clock at the `Wit` that admitted or last rotated the key, `T_end` the clock at the `Wit` that
@@ -408,15 +409,15 @@ key-window, so a rogue future- or past-dated `τ` is discarded before it can ske
 witnessed time is therefore a consensus timestamp for **when an event became final**, carried by the
 same receipts the currency gate already trusts threshold-many-strong.
 
-This is **distinct from the federation clock**. The clock (a governance-authored `clock` role) times
-**federation governance events** and bounds **witness** key-windows — which cannot be
-receipt-derived without circularity, since a receipt counts only if its `τ` sits inside the signer's
-window. An ordinary event (a user's rotation, a group-key epoch) has no such circularity — its
-authors are not its witnesses — so its finality time is read from its **own** receipts. Because the
-witnessed time comes from the event's own receipts rather than the federation clock (which advances
-only at federation governance events, roughly yearly), it gives **per-event granularity** — a user
-rotating monthly, an epoch turning hourly, each gets its **own** boundary — resolving the
-quantization a governance-cadence clock would impose.
+This is **distinct from the federation clock**. The clock (a federation-authored `clock` role) times
+**federation events** and bounds **witness** key-windows — which cannot be receipt-derived without
+circularity, since a receipt counts only if its `τ` sits inside the signer's window. An ordinary
+event (a user's rotation, a group-key epoch) has no such circularity — its authors are not its
+witnesses — so its finality time is read from its **own** receipts. Because the witnessed time comes
+from the event's own receipts rather than the federation clock (which advances only at federation
+events — governance rotations plus the rare block toggle, so coarse in practice), it gives
+**per-event granularity** — a user rotating monthly, an epoch turning hourly, each gets its **own**
+boundary — resolving the quantization a coarse federation-cadence clock would impose.
 
 Witnessed times are **not self-ordering**, though: two establishment events witnessed within a
 tolerance band can come out inverted. So a currency consumer **checks** the establishment times it

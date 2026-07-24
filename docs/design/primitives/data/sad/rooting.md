@@ -12,10 +12,10 @@ This is the store's structural admission floor. Without it, the one class the st
 Most data already earns its place — a credential is anchored on its issuer's chain, a document
 version on its editor's — but a great many legitimate SADs carry **no writer binding of their own
 yet are committed by something that does**: a credential's `terms` and `claims`, a co-issuer list, a
-`Gnt`'s grant value, an event's manifest role SADs, a replica set. Each rides the anonymous gate
-today, so tightening that gate against spam also turns away the framework's own building blocks.
-Rooting gives those committed-but-ownerless SADs an admission path of their own, which is what lets
-the anonymous gate close.
+`Gnt`'s grant value, an event's manifest role SADs. Each rides the anonymous gate today, so
+tightening that gate against spam also turns away the framework's own building blocks. Rooting gives
+those committed-but-ownerless SADs an admission path of their own, which is what lets the anonymous
+gate close.
 
 ## The rule
 
@@ -31,11 +31,14 @@ The manifest is not special — it is a [SAD](sad.md), so its contents root the 
 do. An owner-anchored object (a credential, a custodied file) is this same rule with a **blinded**
 commitment: its identifier is committed as a one-way hash in the anchoring event's
 `manifest.anchors`, and the store confirms membership by recomputing that hash
-([`custody.md` §Attribution requires an anchor](custody.md#attribution-requires-an-anchor)). Two
-escape hatches sit beside the rule and never reach this gate: **self-verifying** SADs (witness
-receipts and freshness statements, which prove themselves by signature and arrive through their own
-ingress) and **anonymous** SADs (the genuinely rootless residual — a document root, a drop-box —
-handled by [§The unrooted floor](#the-unrooted-floor)).
+([`custody.md` §Attribution requires an anchor](custody.md#attribution-requires-an-anchor)). A few
+cases sit beside the rule and never reach this gate: **self-verifying** SADs (witness receipts and
+freshness statements, which prove themselves by signature and arrive through their own ingress),
+**anonymous** SADs (the genuinely rootless residual — a document root, a drop-box — handled by
+[§The unrooted floor](#the-unrooted-floor)), and **derived** SADs — the **replica-set** kind, which
+no one submits: each node generates it from the federation IEL's roster (witness-only) and
+content-addressing converges the copies, so it sits outside the write path entirely
+([`availability.md` §A root covers its children](availability.md#a-root-covers-its-children)).
 
 ```mermaid
 flowchart TD
@@ -139,7 +142,10 @@ already does. The rule is enforced at admission from the SADs' own `availability
 
 What can't be rooted still needs a floor, now that it is a named minority rather than the default: a
 document's founding root (a competing one is always mintable; legitimacy is social), a drop-box
-(anonymous writing is its point), a public publication. Two parts:
+(anonymous writing is its point), a public publication — including a **policy** SAD published
+standalone, ahead of any field that would root it (once a credential's `revocationPolicy` or a
+`pol(said)` names it, it is `sad/field`-rooted like any child; a policy furnished at evaluation is
+never stored at all). Two parts:
 
 - **A live identity check.** An unrooted submission must carry a live signature from **any valid
   identity**. That authorizes no specific writer — it only proves a real, witnessed identity stands
@@ -177,7 +183,12 @@ is the admission floor; blocking is the last resort; the two together are the sp
 - **The anonymous flood is closed by construction.** Under the deny-anonymous posture, a rootable
   kind with no root evidence is refused; to place a SAD an adversary must exhibit an accepted root,
   and a root costs a witnessed, per-prefix-budgeted chain event. Spam resistance moves from an
-  operator knob to a structural floor.
+  operator knob to a structural floor. The gate is an **admission-time** check — not a continuously
+  maintained invariant — applied at the **public submit boundary** and **re-applied on each mesh
+  replication** while the root is within its retention window
+  ([`../../../substrate/infrastructure/witnessd.md` §Anti-entropy](../../../substrate/infrastructure/witnessd.md#anti-entropy)),
+  so a below-threshold-compromised peer cannot inject unrooted junk; past that window replication
+  trusts the admitting node's decision, roster-scoped and below-threshold.
 - **Confirm-not-correlate is preserved.** The store never inverts an identifier to find a root and
   keeps no reverse index; a blinded anchor is matched by recomputation, never by search. The
   serve-by-SAID anti-correlation property ([`sad.md`](sad.md#structural-shapes)) is untouched — the

@@ -1041,12 +1041,12 @@ advisory and checked by the verifier against its own clock). None influence chai
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
 consensus-attested clock **for freshness / staleness detection only** — the `clock` role on each
-federation `Fcp` / `Wit` / `Trm` (an inline timestamp value in the `manifest`, one per such sealed
-event), sealed and monotonic, **not** a field on any chain event. It bounds each witness key's
-validity window so a closed-window key can only stamp old receipts, which makes a backdated
-dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats** backdating rather
-than inviting it, and intra-chain ordering stays pin-based, so it honors this rule's intent; the
-bytes live in a SAD, so the primitives stay timestamp-free. See
+federation `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` (an inline timestamp value in the `manifest`, one
+per such sealed event), sealed and monotonic, **not** a field on any chain event. It bounds each
+witness key's validity window so a closed-window key can only stamp old receipts, which makes a
+backdated dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats** backdating
+rather than inviting it, and intra-chain ordering stays pin-based, so it honors this rule's intent;
+the bytes live in a SAD, so the primitives stay timestamp-free. See
 [§Federation convergence](#federation-convergence) and
 [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 

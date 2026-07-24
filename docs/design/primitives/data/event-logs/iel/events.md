@@ -372,14 +372,14 @@ A manifest carrying any role outside its kind's vocabulary is malformed and reje
 consumed only after dispatching on a kind permitted to carry it (**read kind-first** —
 load-bearing).
 
-| Role        | Carried by                                       | Commits to                                                                                                          |
-| ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
-| `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list                                                                   |
-| `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
-| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                     |
-| `clock`     | `Fcp` / `Wit` / `Trm` (federation)               | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                          |
+| Role        | Carried by                                          | Commits to                                                                                                          |
+| ----------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation)    | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`    | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
+| `delegates` | `Ath` (user only — a federation `Ath` carries none) | delegate **prefixes** — a positive inclusion list                                                                   |
+| `kills`     | `Rev` / `Dth`                                       | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
+| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)           | the witness-config SAD `{ threshold, signers }`                                                                     |
+| `clock`     | `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` (federation)  | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                          |
 
 The **directly-consumed** roles (`roster`, `delegates`, `kills`, `clock`, and the `witnesses`
 config) have **no** downstream type-check — the kind → role allowlist is their **only** protection,
