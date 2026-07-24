@@ -1,4 +1,4 @@
-.PHONY: all lint-terminology lint-docs fmt-md fmt-md-check working-tarball
+.PHONY: all lint-terminology lint-docs fmt-md fmt-md-check toc toc-check working-tarball
 
 # Phase 0 — lint-terminology, lint-docs, and fmt-md-check are the
 # meaningful targets. Markdown formatting (prettier) is wired now; the Rust
@@ -18,7 +18,7 @@ WORKING_TARBALL := working.tar.xz
 # there and they drop out of the snapshot with no edit to this file.
 WORKING_FILES := $(notdir $(wildcard $(WORKING_DIR)/*.md))
 
-all: lint-terminology lint-docs fmt-md-check
+all: lint-terminology lint-docs fmt-md-check toc-check
 
 lint-terminology:
 	@./scripts/lint-terminology.sh
@@ -42,3 +42,14 @@ fmt-md:
 # Gate / CI check — fails if any tracked Markdown isn't prettier-formatted.
 fmt-md-check:
 	@$(PRETTIER) --check '**/*.md'
+
+# Regenerate docs/design/TOC.md from the design tree's headings, then prettier-normalize
+# so the committed TOC is the canonical (generator + prettier) form.
+toc:
+	@./scripts/generate-doc-toc.py
+	@$(PRETTIER) --write docs/design/TOC.md >/dev/null
+
+# Gate / CI check — regenerates the TOC and fails if it drifted from the committed copy.
+toc-check: toc
+	@git diff --exit-code -- docs/design/TOC.md \
+	  || { echo "docs/design/TOC.md is out of date — run 'make toc' and commit the result." >&2; exit 1; }

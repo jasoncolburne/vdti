@@ -78,6 +78,7 @@ straight to a section.
 - [What availability declares](primitives/data/sad/availability.md#what-availability-declares)
 - [Scope](primitives/data/sad/availability.md#scope)
 - [Decoupling from custody](primitives/data/sad/availability.md#decoupling-from-custody)
+- [A root covers its children](primitives/data/sad/availability.md#a-root-covers-its-children)
 - [SAID commitment](primitives/data/sad/availability.md#said-commitment)
 - [Adversarial framing](primitives/data/sad/availability.md#adversarial-framing)
 
@@ -108,6 +109,17 @@ straight to a section.
 - [Fetch by SAID — what the store hands back](primitives/data/sad/kinds.md#fetch-by-said--what-the-store-hands-back)
 - [Cross-references](primitives/data/sad/kinds.md#cross-references)
 
+### [`primitives/data/sad/rooting.md`](primitives/data/sad/rooting.md) — Rooting — how the store decides a SAD belongs
+
+- [The rule](primitives/data/sad/rooting.md#the-rule)
+- [The submission](primitives/data/sad/rooting.md#the-submission)
+- [Two invariants it rests on](primitives/data/sad/rooting.md#two-invariants-it-rests-on)
+- [A root's availability covers its children's](primitives/data/sad/rooting.md#a-roots-availability-covers-its-childrens)
+- [The unrooted floor](primitives/data/sad/rooting.md#the-unrooted-floor)
+- [Rooting does not stop a valid identity](primitives/data/sad/rooting.md#rooting-does-not-stop-a-valid-identity)
+- [Adversarial framing](primitives/data/sad/rooting.md#adversarial-framing)
+- [Cross-references](primitives/data/sad/rooting.md#cross-references)
+
 ### [`primitives/data/sad/sad.md`](primitives/data/sad/sad.md) — SAD — Self-Addressed Data
 
 - [Structural shapes](primitives/data/sad/sad.md#structural-shapes)
@@ -131,6 +143,7 @@ straight to a section.
 - [The standalone-SAD wrapper](primitives/data/sad/shapes.md#the-standalone-sad-wrapper)
 - [The file payload — vdti/sad/v1/schemas/file](primitives/data/sad/shapes.md#the-file-payload--vdtisadv1schemasfile)
 - [The replica set — vdti/sad/v1/schemas/replicas](primitives/data/sad/shapes.md#the-replica-set--vdtisadv1schemasreplicas)
+- [Rooting SADs — vdti/rooting/v1/](primitives/data/sad/shapes.md#rooting-sads--vdtirootingv1)
 - [Chain events](primitives/data/sad/shapes.md#chain-events)
 - [Commitment SADs — what a manifest names](primitives/data/sad/shapes.md#commitment-sads--what-a-manifest-names)
 - [Witness receipts](primitives/data/sad/shapes.md#witness-receipts)
@@ -396,6 +409,18 @@ straight to a section.
 - [Cross-references](primitives/data/event-logs/sel/verification.md#cross-references)
 
 ## substrate/federation
+
+### [`substrate/federation/blocking.md`](substrate/federation/blocking.md) — Blocking a prefix — the last resort against a valid-identity flood
+
+- [What a block does, and does not](substrate/federation/blocking.md#what-a-block-does-and-does-not)
+- [The mechanism — a per-prefix toggle at a derived address](substrate/federation/blocking.md#the-mechanism--a-per-prefix-toggle-at-a-derived-address)
+- [tauthorize on the federation IEL](substrate/federation/blocking.md#t_authorize-on-the-federation-iel)
+- [The witness check](substrate/federation/blocking.md#the-witness-check)
+- [Non-enumerable — accountable, not a public shame-list](substrate/federation/blocking.md#non-enumerable--accountable-not-a-public-shame-list)
+- [Serve, block, and store](substrate/federation/blocking.md#serve-block-and-store)
+- [Operator posture](substrate/federation/blocking.md#operator-posture)
+- [Adversarial framing](substrate/federation/blocking.md#adversarial-framing)
+- [Cross-references](substrate/federation/blocking.md#cross-references)
 
 ### [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — Federation bootstrap — genesis and the trust root
 
