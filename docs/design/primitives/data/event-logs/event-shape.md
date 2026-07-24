@@ -359,11 +359,14 @@ doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../substrate/federa
 - ᵈ **`Dth`** — its `kills[]` entry carries the rescission `bound` (a delegate's public, a
   doc-member's or chat-membership's gated); non-terminal like `Rev`.
 
-A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker — `Fcp` / `Wit` / `Trm`
-only (`Wit` is its governance kind — witness rotation and/or a roster delta — replacing the user
-`Evl`; no `Ixn`, so it authors no content; a competing sealed sibling is first-seen-declined
-(exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is terminal; no
-`Ath`, since trust is per-federation and non-transitive). Its roster is witness KELs directly. See
+A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker — `Fcp` / `Wit` /
+`Trm`, plus `Ath` / `Dth` at `t_authorize` for
+[prefix-block](../../../substrate/federation/blocking.md) SELs only (`Wit` is its governance kind —
+witness rotation and/or a roster delta — replacing the user `Evl`; no `Ixn`, so it authors no
+content; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so only a
+witness-colluded two-accepted conflict is terminal; its `Ath` / `Dth` anchor only prefix-block SELs,
+never delegation, so trust stays per-federation and non-transitive). Its roster is witness KELs
+directly. See
 [`../../../protocol-doctrine.md` §Federation convergence](../../../protocol-doctrine.md#federation-convergence)
 and [`substrate/federation/`](../../../substrate/federation/).
 

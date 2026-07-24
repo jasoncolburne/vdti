@@ -97,6 +97,13 @@ custody names. A kind that carries its writer-binding in body fields, like the c
 **not** also populate `custody.owner`/`pin` — the body fields are that instance, and acceptance
 reads them.
 
+This owner-anchored path is the **event-root instance of [rooting](rooting.md)**, the store's
+general admission floor: the SAD is accepted because a chain event — here the owner's `Ixn` —
+commits it, the commitment **blinded** so the raw `said` never appears on the public IEL, confirmed
+by recompute-and-membership. Rooting generalizes this one case to every committed-but-ownerless SAD
+([`rooting.md` §The rule](rooting.md#the-rule)), so the `pin` here is exactly the `event` locator a
+rooting event-root pointer carries ([`shapes.md`](shapes.md)).
+
 - **The `pin` locates the anchor.** `pin` is the SAID of that anchoring `Ixn`'s `previous`, so the
   `Ixn` sits at `pin`'s serial + 1 on the owner's canonical IEL. A verifier goes straight there and
   opens **one** manifest to confirm `previous == pin`, the event's kind is `Ixn`, and the issuance

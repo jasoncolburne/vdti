@@ -91,6 +91,51 @@ set narrows replication to the fail-secure skip
 | `kind`     | string       | yes      | `vdti/sad/v1/schemas/replicas`.                                           |
 | `replicas` | list⟨prefix⟩ | yes      | The eligible storage nodes — a strictly ascending (sorted, distinct) set. |
 
+## Rooting SADs — `vdti/rooting/v1/*`
+
+The store's admission wrapper and its two root pointers ([`rooting.md`](rooting.md)): a submission
+names the SAD being admitted and the **root** that commits it, and the store dispatches on the
+root's `kind`. These ride the `submit SAD` write path
+([`../../../substrate/infrastructure/vdtid.md` §The SAD store write path](../../../substrate/infrastructure/vdtid.md#the-sad-store-write-path));
+the envelope is the wire form the store unwraps, not a stored, serve-by-SAID object.
+
+The **submission envelope** — `vdti/rooting/v1/submission/envelope`:
+
+| Field  | Type   | Required | Meaning                                                                     |
+| ------ | ------ | -------- | --------------------------------------------------------------------------- |
+| `said` | SAID   | yes      | The envelope's own SAID.                                                    |
+| `kind` | string | yes      | `vdti/rooting/v1/submission/envelope`.                                      |
+| `sad`  | SAD    | yes      | The SAD being admitted (nested; travels expanded, so the store recomputes). |
+| `root` | SAD    | yes      | The root pointer — one of the two nested rooting SADs below.                |
+
+The **event-root pointer** — `vdti/rooting/v1/{kel,iel,sel}/event`, when a chain event commits the
+SAD:
+
+| Field    | Type   | Required | Meaning                                                                                                                                                      |
+| -------- | ------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `said`   | SAID   | yes      | The pointer's own SAID.                                                                                                                                      |
+| `kind`   | string | yes      | `vdti/rooting/v1/{kel,iel,sel}/event` — the log whose event commits the SAD.                                                                                 |
+| `prefix` | prefix | yes      | The committing chain's prefix.                                                                                                                               |
+| `event`  | SAID   | yes      | The anchoring event's `previous` — the committing event sits at its serial + 1, the same locator `custody.pin` uses.                                         |
+| `field`  | string | yes      | The committing event-body field — `manifest` or `pins`, the only two that name a store SAD ([`../event-logs/event-shape.md`](../event-logs/event-shape.md)). |
+
+The **SAD-field-root pointer** — `vdti/rooting/v1/sad/field`, when an accepted parent SAD commits
+the SAD:
+
+| Field    | Type   | Required | Meaning                                                                                       |
+| -------- | ------ | -------- | --------------------------------------------------------------------------------------------- |
+| `said`   | SAID   | yes      | The pointer's own SAID.                                                                       |
+| `kind`   | string | yes      | `vdti/rooting/v1/sad/field`.                                                                  |
+| `parent` | SAID   | yes      | The accepted parent SAD's identifier.                                                         |
+| `field`  | string | yes      | The parent field that commits the child (a manifest role, a credential's `terms` / `claims`). |
+
+The child does **not** name its parent in its own bytes (that would bind it to one parent and leak
+the composition), so the `sad/field` pointer is a checked request hint, not part of the admitted
+SAD. The store reads `field`'s declared type from the root kind's schema and confirms accordingly —
+a direct child reference by **identifier equality**, a blinded-commitment list (`anchors`) by
+**recompute-and-membership** ([`rooting.md` §The submission](rooting.md#the-submission)); a failed
+confirm is a rejection, not a fall-through to the anonymous floor.
+
 ## Chain events
 
 Every event (KEL, IEL, SEL) shares one envelope; the per-kind fields on top of it — and which

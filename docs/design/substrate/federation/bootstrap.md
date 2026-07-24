@@ -27,15 +27,20 @@ ways, all fixed at inception by the `Fcp` root kind:
   document layer — [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md)). A
   witness is a device (a KEL), HSM-backed and horizontally replicated; the model sees one logical
   KEL per witness key.
-- **The kind set is exactly `Fcp` / `Wit` / `Trm`.** `Fcp` is the inception marker; `Wit` is the
-  single governance kind — it stands in for the user IEL's `Evl`, carrying every roster change and
-  every witness rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation
-  authors no content) and **no `Ath`** (trust is per-federation and non-transitive, so there is
-  nothing to delegate).
-- **The threshold vector is exactly `{ govern }`.** With no `Ixn` and no `Ath` there is no `t_use`
-  or `t_authorize` to declare — a threshold exists only when its consuming kind is in the kind set
-  ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)),
-  so a federation `Fcp` that declares either is malformed and rejected.
+- **The kind set is `Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` for blocking only.** `Fcp` is the
+  inception marker; `Wit` is the single governance kind — it stands in for the user IEL's `Evl`,
+  carrying every roster change and every witness rotation; `Trm` terminates the federation. There is
+  **no `Ixn`** (a federation authors no content). `Ath` / `Dth` are admitted **solely to anchor the
+  federation's own [prefix-block](blocking.md) SELs** — a `topics/block` grant / kill and nothing
+  else; a delegation `Ath` is malformed. So a federation still **delegates to no other identity**
+  and trust stays per-federation and non-transitive; the one non-governance thing it authorizes is a
+  block on a prefix.
+- **The threshold vector is `{ govern, authorize }`.** `t_govern` gates the governance `Wit`s;
+  `t_authorize` gates the block `Ath` / `Dth` (typically set below `t_govern`, so a block stays
+  agile while still reserve-backed). There is no `t_use` — with no `Ixn`, a federation `Fcp` that
+  declares `t_use` is malformed, since a threshold exists only when its consuming kind is in the
+  kind set
+  ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)).
 
 A witness KEL is **single-federation**: it is `Fcp`-rooted infrastructure, governed _into_ one
 roster and never self-bound. To serve a second federation, an operator stands up a **new** witness
@@ -163,8 +168,8 @@ A verifier validates a received genesis against the configured prefix as follows
   the inception content `(roster, threshold, nonce)`, so this both places the chain and confirms the
   founder set is exactly the configured one.
 - **The `Fcp` is well-formed as a federation inception** — the restricted kind set is in force, the
-  threshold vector is exactly `{ govern }`, `|roster| ≥ 4`, and the witness-config clears its floors
-  ([`witnessing.md`](witnessing.md)).
+  threshold vector is `{ govern, authorize }`, `|roster| ≥ 4`, and the witness-config clears its
+  floors ([`witnessing.md`](witnessing.md)).
 - **All founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2 → tier 2)** — every
   founder anchors, so no founder lands in the founding roster without consenting to it, and the
   founders' `Rot`s satisfy the inception threshold; a partial genesis (any founder's `Rot` absent)

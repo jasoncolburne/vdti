@@ -165,6 +165,13 @@ ancestor-attach shape needs is not misbehavior. Only a second receipt over two d
 `eventSaid`s, or a second distinct _sealed_ sibling, at one position is proof of misbehavior. That
 clean attribution is what the fork-cost pricing rests on.
 
+**A blocked prefix is declined.** Beyond structural validity, a selected witness declines to witness
+an event whose authoring identity the federation has **blocked** — a reversible, quorum-gated,
+per-prefix refusal that is the second front of spam protection against a valid-identity flood
+([`blocking.md`](blocking.md)). The check derives the block's address from the author and reads a
+cached lineage state, so it is constant-time on the signing path; a blocked prefix's events stay
+sub-threshold and cannot advance, while already-witnessed history and all serving stay untouched.
+
 ## Deterministic selection
 
 Which witnesses are asked to receipt an event is a deterministic function of its **position**, over

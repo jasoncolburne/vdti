@@ -1062,22 +1062,22 @@ verdict.
 
 The federation is **a restricted IEL rooted at an `Fcp` inception marker** — there is no separate
 consensus algorithm and no central state machine. Its roster is **witness KELs directly**; its kind
-set is restricted to `Fcp` / `Wit` / `Trm` (no content, so it never has a **Forked** fork and needs
-no burying event; every federation fork is sealed — a `{Wit, Wit}` / `{Trm, Trm}` race is
-first-seen-declined under an honest partition (one sibling accepted, the other deferred), and only a
-**witness-colluded two-accepted** race is **Disputed**, terminal — which is why a federation runs a
-hard recoverability ceiling and `|roster| ≥ 4` with serialized sealing; no delegation, since trust
-is per-federation and non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose
-**`add` carries exactly one prefix per `Wit`** — one witness added at a time, the `Fcp` inception
-alone standing up the founding roster wholesale (`cut` is unrestricted in count: cuts remove synced
-witnesses, so emergency multi-eviction is unaffected — evict-and-replace is `cut: [..], add: one`).
-Standing up a witness is deliberate infrastructure, never bulk — and structurally, a governance
-transition then introduces at most **one** unsynced witness, which alone cannot reach a majority
-`threshold` against synced co-selectees that decline by first-seen — so the benign
-two-fresh-witnesses straddle (two full quorums under disjoint contexts) collapses into the priced
-witness-compromise residual (a fresh sibling needs a byzantine synced co-signer). Its trust root is
-a **config-pinned federation prefix** (runtime-configured, empty by default — fail-secure) — the
-prefix derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding
+set is restricted to `Fcp` / `Wit` / `Trm` plus block-only `Ath` / `Dth` (no content, so it never
+has a **Forked** fork and needs no burying event; every federation fork is sealed — a `{Wit, Wit}` /
+`{Trm, Trm}` race is first-seen-declined under an honest partition (one sibling accepted, the other
+deferred), and only a **witness-colluded two-accepted** race is **Disputed**, terminal — which is
+why a federation runs a hard recoverability ceiling and `|roster| ≥ 4` with serialized sealing; no
+delegation, since trust is per-federation and non-transitive). Its roster changes ride the `Wit`'s
+**roster delta**, whose **`add` carries exactly one prefix per `Wit`** — one witness added at a
+time, the `Fcp` inception alone standing up the founding roster wholesale (`cut` is unrestricted in
+count: cuts remove synced witnesses, so emergency multi-eviction is unaffected — evict-and-replace
+is `cut: [..], add: one`). Standing up a witness is deliberate infrastructure, never bulk — and
+structurally, a governance transition then introduces at most **one** unsynced witness, which alone
+cannot reach a majority `threshold` against synced co-selectees that decline by first-seen — so the
+benign two-fresh-witnesses straddle (two full quorums under disjoint contexts) collapses into the
+priced witness-compromise residual (a fresh sibling needs a byzantine synced co-signer). Its trust
+root is a **config-pinned federation prefix** (runtime-configured, empty by default — fail-secure) —
+the prefix derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding
 commitment to the exact founder set. There is **no self-witnessing carve-out** — the `Fcp` is a
 structural marker the verifier dispatches on, not a trust shortcut: authorization is ordinary
 member-anchoring (the founders' `Rot`s anchor the federation `Fcp`), trust roots in the config-pin,

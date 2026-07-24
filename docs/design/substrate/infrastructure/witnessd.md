@@ -39,6 +39,14 @@ What `witnessd` runs, per the federation doctrine:
 - **The beacon.** Receipts are keyed at `(prefix, serial)`, so the position-indexed receipt query
   enumerates every witnessed branch at a position — the detection signal a `disputed` read rests on.
   `witnessd` answers it from the receipt rows `vdtid` stores.
+- **Block check on the signing path.** Before signing, a selected witness **declines to witness an
+  event authored by a blocked prefix** — the federation's per-prefix block toggle
+  ([`../federation/blocking.md` §The witness check](../federation/blocking.md#the-witness-check)).
+  Running before **every** witnessing, the check must be cheap, so `witnessd` holds the block state
+  as an **on-demand, per-author cache** — a memoized constant-time lookup keyed on the authoring
+  prefix, materialized from the derived block SEL and refreshed over the Redis pub-sub the daemon
+  already runs — never enumerating the full set (the derived addresses are non-listable), only
+  deriving the one address for the author in front of it.
 
 ## On-receiving-node routing
 
@@ -186,12 +194,20 @@ it has no state to diff), and a fetch that **honors replica scope** — a node p
 default-broadcast objects it should hold, plus scoped objects whose replica set names it; custody
 rides with the object, unenforced on this path, because it gates the **consumer** serve, not
 replication ([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface)).
-One deliberate carve-out: **deletion-bearing classes never ride this pass** — a `once` object
-(destructive read) and a recipient-scoped deposit (deleted by acknowledgment) are placed by their
-**sender's** act, and re-syncing them from a peer would resurrect a deliberate deletion; their
-absence is semantic, not loss. An expired object needs no carve-out — a re-arriving copy is refused
-by its own committed `expiry`, the absolute instant every holder reads the same way from the object
-alone ([`availability.md`](../../primitives/data/sad/availability.md)).
+**Rootedness re-confirms on arrival**: a pulled SAD is re-run through the admission gate
+([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md)) — its root pointer
+rides the sync alongside it, so a below-threshold-compromised peer cannot push unrooted junk into an
+honest store, and a SAD whose root has not replicated yet parks on the **SAD-object await** until it
+lands. The re-confirm holds only while that pointer is within the operator retention window, which
+covers normal (fast) convergence; a node bootstrapping an old SAD past the window leans instead on
+the below-threshold mesh trust that already admitted it at the sending peer — not a spam vector,
+since the admission gate is the primary defense and the mesh is roster-scoped. One deliberate
+carve-out: **deletion-bearing classes never ride this pass** — a `once` object (destructive read)
+and a recipient-scoped deposit (deleted by acknowledgment) are placed by their **sender's** act, and
+re-syncing them from a peer would resurrect a deliberate deletion; their absence is semantic, not
+loss. An expired object needs no carve-out — a re-arriving copy is refused by its own committed
+`expiry`, the absolute instant every holder reads the same way from the object alone
+([`availability.md`](../../primitives/data/sad/availability.md)).
 
 ## Send-side partitioning
 

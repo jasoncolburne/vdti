@@ -143,6 +143,11 @@ its own reading-order note in `sad.md`.)
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
 
+Building on all of these, [`primitives/data/sad/rooting.md`](primitives/data/sad/rooting.md) states
+how the SAD store decides a submitted SAD belongs — the **rooting** admission rule that turns spam
+resistance from an operator knob into a structural floor (paired with a federation's
+[prefix block](substrate/federation/blocking.md) against a valid-identity flood).
+
 Alongside these, three **identifier catalogues** define the naming conventions used surface-wide
 (all on the shared `vdti/{component}/v1/{category}/{name}` convention) — read one when a `kind`,
 `tag`, or `topic` first puzzles you: [`primitives/data/sad/kinds.md`](primitives/data/sad/kinds.md)
@@ -233,7 +238,10 @@ Then the SEL (SAD Event Log) primitive, in order:
 
 The witnessing layer every KEL, IEL, and SEL rests on for its soundness. A federation is a
 restricted IEL whose roster is witness KELs directly; witnessing is what prevents a content fork
-from forming on an honest chain and makes a sealed fork detectable everywhere.
+from forming on an honest chain and makes a sealed fork detectable everywhere. This group also
+carries [`substrate/federation/blocking.md`](substrate/federation/blocking.md) — the second front of
+spam protection (with [rooting](primitives/data/sad/rooting.md)): a federation refusing to witness
+an abusive prefix, a reversible, quorum-gated per-prefix block against a valid-identity flood.
 
 26. [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — genesis and the
     configured trust root: the restricted-IEL shape, the dependency-ordered ceremony, and why there

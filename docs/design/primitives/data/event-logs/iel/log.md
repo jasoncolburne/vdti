@@ -284,10 +284,10 @@ inception fixes:
   **position gate**, [`merge.md`](merge.md#the-content-versus-sealed-split)), and its `Wit` is the
   federation **rebind**.
 - A **federation IEL** roots at the `Fcp` marker and uses the restricted set `Fcp` / `Wit` / `Trm`
-  only — its roster is witness KELs directly, it authors no content, and its `Wit` is **governance**
-  (roster + rotation + clock). Every federation event is sealed → record-both; a competing sealed
-  sibling is first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded
-  two-accepted conflict is a schism (disputed / terminal).
+  plus block-only `Ath` / `Dth` — its roster is witness KELs directly, it authors no content, and
+  its `Wit` is **governance** (roster + rotation + clock). Every federation event is sealed →
+  record-both; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so
+  only a witness-colluded two-accepted conflict is a schism (disputed / terminal).
 
 The `Fcp` marker is a **structural disambiguator the verifier dispatches on, not a trust carve-out**
 — the config-pinned federation prefix still roots trust. The facet governs which roles a `Wit` may

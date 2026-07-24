@@ -16,7 +16,10 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 ## Event taxonomy
 
 An identity's IEL is one of two facets, fixed by its inception root (§Two-kind inception). A **user
-IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`.
+IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`, plus
+`Ath` / `Dth` at `t_authorize` admitted **only to anchor its own
+[prefix-block](../../../../substrate/federation/blocking.md) SELs** (never delegation — a federation
+grants no authority to another identity).
 
 | Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,7 +57,7 @@ at inception and carries it on the token
 | Kind  | Facet         | Roster                | Federation binding                        | Kind set                                                      |
 | ----- | ------------- | --------------------- | ----------------------------------------- | ------------------------------------------------------------- |
 | `Icp` | user identity | member device KELs    | `federation` + `federationPin` (required) | `Icp` / `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Trm` / `Wit` |
-| `Fcp` | federation    | witness KELs directly | none (it _is_ the federation)             | `Fcp` / `Wit` / `Trm`                                         |
+| `Fcp` | federation    | witness KELs directly | none (it _is_ the federation)             | `Fcp` / `Wit` / `Trm` + `Ath` / `Dth` (block SELs only)       |
 
 - `Icp` → a **user identity**. It is federation-bound from inception: `federation` (the federation
   IEL prefix) and `federationPin` (the as-of federation position) are **required**, and the
@@ -153,12 +156,13 @@ flowchart TD
 The **`Icp` declares the active threshold set** — exactly the authority kinds the IEL will ever use.
 A threshold is declared **iff its consuming kind is in the IEL's kind set**: a user IEL declares
 `t_govern` **mandatory** and `t_use` / `t_authorize` **optional and lockable**; a federation IEL
-(`Fcp` / `Wit` / `Trm`, no `Ixn` / `Ath`) declares **exactly `{ govern }`** (declaring `t_use` or
-`t_authorize` is malformed → rejected — the threshold-declaration analog of the facet role
-allowlist). A kind **omitted at `Icp` can never be exercised** — there is no first-introducing it
-later. Thereafter a roster delta carries a threshold field **only when it changes** (present ⇒ must
-change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit shape as the membership
-`add` / `cut`.
+(`Fcp` / `Wit` / `Trm` plus `Ath` / `Dth` for block SELs only, no `Ixn`) declares
+**`{ govern, authorize }`** — `t_govern` for its governance `Wit`s, `t_authorize` for the block
+`Ath` / `Dth`; declaring `t_use` is malformed → rejected (the threshold-declaration analog of the
+facet role allowlist). A kind **omitted at `Icp` can never be exercised** — there is no
+first-introducing it later. Thereafter a roster delta carries a threshold field **only when it
+changes** (present ⇒ must change; absent ⇒ unchanged) — the same present-is-delta /
+absent-is-inherit shape as the membership `add` / `cut`.
 
 ## Per-kind semantics
 
@@ -354,9 +358,9 @@ recoverability cap, the clock, roster-add consent) are federation doctrine —
 ### `Fcp` — the federation inception marker (federation IEL only)
 
 The federation IEL's inception (§Two-kind inception). It carries the initial witness-KEL roster, the
-initial `witnesses` config, and the initial `clock`, declares exactly `{ govern }`, and is anchored
-kind-strict by each founder's KEL `Rot`. Its structural role is the **spine root** of the federation
-IEL (`previousSeal` walks terminate there). See
+initial `witnesses` config, and the initial `clock`, declares `{ govern, authorize }`, and is
+anchored kind-strict by each founder's KEL `Rot`. Its structural role is the **spine root** of the
+federation IEL (`previousSeal` walks terminate there). See
 [§The restricted federation IEL](#the-restricted-federation-iel).
 
 ## The manifest — roles an IEL event carries
@@ -491,13 +495,16 @@ visible to anyone walking that identity's chain.
 
 ## The restricted federation IEL
 
-A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm` only. Its
-roster is **witness KELs directly** (a threshold over them; no per-witness identity wrapper, no
-aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every federation event is a
-key change → record-both; a competing sealed sibling is **first-seen-declined** (exclude-self
-peer-witnessing), so an honest conflict does **not** schism — only a witness-colluded
-**two-witnessed** `{Wit, Wit}` → disputed → reincept; and **no `Ath`** (trust is per-federation and
-non-transitive). Its threshold vector is exactly `{ govern }`.
+A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm`, plus `Ath`
+/ `Dth` at `t_authorize` **only to anchor its own
+[prefix-block](../../../../substrate/federation/blocking.md) SELs**. Its roster is **witness KELs
+directly** (a threshold over them; no per-witness identity wrapper, no aggregate-of-IELs recursion).
+It authors **no `Ixn`** (no content), so every governance event is a key change → record-both; a
+competing sealed sibling is **first-seen-declined** (exclude-self peer-witnessing), so an honest
+conflict does **not** schism — only a witness-colluded **two-witnessed** `{Wit, Wit}` → disputed →
+reincept. Its `Ath` / `Dth` **delegate nothing** — they anchor a `topics/block` grant / kill and
+nothing else (a delegation `Ath` is malformed), so trust stays per-federation and non-transitive.
+Its threshold vector is `{ govern, authorize }`.
 
 The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike a general identity,
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always

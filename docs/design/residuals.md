@@ -154,7 +154,7 @@ enumerated for completeness, each with the one thing that makes it go away.
 | Routing around a delegator                            | Recoverability · 5          | Human Error    | High (1500)     | A cred via another path stays valid                                | Rescind at the root, or issue under a threshold                                                                      |
 | Terminated identity freezes revocation and rescission | Recoverability · 3          | Human Error    | High (900)      | A retired issuer/delegator can't revoke, rescind, or close periods | Revoke and rescind before terminating; mint under a widened `revocationPolicy` where successors must strike          |
 | Recovery breaks a dependent                           | Recoverability · 3          | Human Error    | High (900)      | A dependent event breaks                                           | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
-| Anonymous-write flood                                 | Availability · 1            | Human Error    | Medium (300)    | Your store fills with junk (until gated)                           | Rate-limit or gate anonymous writes                                                                                  |
+| Fully-open anonymous kind                             | Availability · 1            | Human Error    | Medium (300)    | An opted-open anonymous kind fills with junk                       | Keep the deny-anonymous default; require the live-identity check + retention where a kind must stay open             |
 | Even-signers tie                                      | Availability · 1            | Human Error    | Medium (300)    | A position stalls (never forks)                                    | Use an odd number of signers                                                                                         |
 
 ### Inherent trade-offs — deliberate design costs, not attacks
@@ -431,6 +431,16 @@ Compromises short of a reserve theft: bounded, revocable, or recoverable — but
   after rotating the device.
 - **Lost** — In-window malicious versions honored until rescission, plus a forced boundary trade
   (honest collateral vs malicious survival). Neither side is free.
+
+_(A **federation prefix block** turned on an honest prefix — a governance-compromised federation
+declining to witness it ([`substrate/federation/blocking.md`](substrate/federation/blocking.md)) —
+is an **instance** of this section, not a new class. It costs the same federation-governance quorum
+(a `t_authorize` reserve quorum on the federation IEL), is **visible** on the federation's public
+IEL (the `Ath` / `Dth` anchors), and is **escapable** by
+[rebinding](substrate/federation/witnessing.md#rebinding) to another federation while served data
+stays end-verifiable — a block withholds witnessing, never serving. It adds no censorship power a
+governance compromise did not already imply; a determined censor is whack-a-moled per federation,
+never a global ban — the honest limit of a decentralized system against a valid identity.)_
 
 ---
 
@@ -719,16 +729,28 @@ are not exploitable breaks — they are the bounds themselves.
   ranked table's "Forced-dead receive key" row prices; both paths end in the same fail-closed
   outcome.
 
-### Anonymous-write flood (operator gate)
+### Unrooted-write flood and the valid-identity flood
 
-- **Attack** — An anonymous write carries no writer attestation; acceptance is gated only by
-  operator-configured policy (open with rate-limits by default). A permissive deployment accepts
-  unattested writes bounded only by rate limits, so an adversary floods storage / drop-box slots.
-- **Mitigation** — The operator write-gate (rate-limits by default, credential-or-policy-gated under
-  lockdown); identifier idempotency prevents repeat-submit inflation; two-phase storage bounds
-  amplification.
-- **Lost** — Spam / DoS resistance on anonymous writes is an operator-configuration property, not a
-  protocol floor.
+- **Attack** — Spam resistance rests on **rootedness**: the store admits a SAD only when an accepted
+  root commits it ([`rooting.md`](primitives/data/sad/rooting.md)), so unrooted junk is refused. Two
+  residues remain. (1) The **unrooted floor** — kinds that keep an anonymous path (a document root,
+  a drop-box) are gated by a live-identity check plus an operator-configured, bounded forensic log;
+  a deployment that sets a kind fully open (retention `0`) carries that kind's flood bounded only by
+  rate limits, and the forensic log — kept to catch abuse — de-anonymizes a legitimate source for
+  its retention window. (2) The **valid-identity flood** — rooting raises the cost of a _fake_
+  identity, not a _real_ one: a resourced adversary with many prefixes across many IPs roots its own
+  spam legitimately, past the per-prefix budget and per-IP limit.
+- **Mitigation** — Rooting makes the floor structural rather than a config property, and the
+  anonymous surface is a **named minority** (deny-anonymous is the default, opt-in per kind). The
+  valid-identity flood is the second front's target — a federation collectively refuses to witness
+  an abusive prefix ([`substrate/federation/blocking.md`](substrate/federation/blocking.md)),
+  reversibly and by quorum, with the per-prefix budget, per-IP limit, and lockdown posture
+  (credential-gated participation) bounding the diffuse-sybil tail. Identifier idempotency and
+  two-phase storage bound amplification.
+- **Lost** — For a kind an operator opts fully open, spam resistance on that kind is a configuration
+  property; the forensic log is a bounded operator-local correlation surface where retention is
+  enabled; and blocking is per-federation, so a determined abuser is whack-a-moled across
+  federations rather than globally stopped — the accepted decentralized cost.
 
 ### Referenced content expires or is withheld
 

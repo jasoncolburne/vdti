@@ -42,6 +42,13 @@ glossary read straight through.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
 - **SEL** — SAD Event Log: one owner's single-owner data log — its **own witnessed chain**, rooted
   in (and anchored to) an owning IEL. ([`sel/log.md`](primitives/data/event-logs/sel/log.md))
+- **rooting / rooted** — the SAD-store admission rule: a standalone SAD is accepted only when an
+  already-accepted **root** (a chain event, or an accepted parent SAD) commits its identifier; the
+  submitter names the root and the store confirms it, never searches.
+  ([`rooting.md`](primitives/data/sad/rooting.md))
+- **root pointer** — the typed reference in a submission envelope naming the root that commits a SAD
+  — an `{kel,iel,sel}/event` or a `sad/field` pointer.
+  ([`rooting.md`](primitives/data/sad/rooting.md#the-submission))
 - **credential (cred)** — a bounded, revocable claim an issuer makes about a subject (targeted to an
   `issuee`, or bearer); a **direct-anchored SAD** (the issuer anchors its issuance commitment on its
   own IEL), revoked by a `kills[]` declaration.
@@ -169,7 +176,8 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 ### Federation and witnessing
 
-- **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`) whose roster is witness KELs; it
+- **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` at `t_authorize` for
+  [prefix blocks](substrate/federation/blocking.md) only) whose roster is witness KELs; it
   propagates and time-stamps, it never decides.
   ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
@@ -184,6 +192,10 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **beacon** — the receipt broadcast that enumerates a position's competing branches so a one-branch
   holder can fetch and walk them.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+- **prefix block** — a federation's reversible, quorum-gated refusal to witness an abusive prefix
+  (the second front of spam protection): a per-prefix toggle SEL at a derived address; witnesses
+  decline the blocked prefix's new events, while serving is never affected.
+  ([`substrate/federation/blocking.md`](substrate/federation/blocking.md))
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
   witness key-windows for freshness.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))

@@ -30,7 +30,7 @@ endpoints serve federation peers, and exist for replication and sync.
 | Endpoint           | Method | Carries / returns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **submit events**  | POST   | a batch of chain events with adjacent signatures (and any receipts that arrived with them); runs the merge write path; returns a merge transition, a merge rejection, or the typed deferred-dependencies response (below)                                                                                                                                                                                                                                                                                                                                 |
-| **submit SAD**     | POST   | a standalone SAD in fully-compacted canonical form; SAID-checked, kind-gated, custody-checked (below)                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **submit SAD**     | POST   | a standalone SAD (compacted or expanded) inside a rooting envelope; SAID-checked, kind-gated, rooted (below)                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | **upload payload** | POST   | bulk bytes uploaded **against a committing SAD already deposited** — the store reads that SAD's committed digest, hashes the blob and requires a match, checks a client nonce + timestamp (clock tolerance band; a bounded unseen-nonce cache closes replay), and authenticates the uploader per the committing kind — one round trip, idempotent (a replay re-stores identical bytes); the store never holds a blob nothing committed to ([exchange §The payload](../../features/exchange.md#the-payload--named-by-digest-uploaded-against-the-message)) |
 | **chain**          | QUERY  | a chain's events by prefix — paged, with a `since` cursor for incremental fetch, **receipts bundled with each page**; the response carries the **full retained set after the cursor** (competing branches live or since-settled, the burying seal-advancer, the cursor's own siblings), and with no cursor the whole retained set in canonical order (below)                                                                                                                                                                                              |
 | **effective-SAID** | QUERY  | a prefix's effective-SAID — a real tip SAID, or the verdict-tagged synthetic ([effective-SAID comparison](../../protocol-doctrine.md#effective-said-comparison))                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -146,20 +146,31 @@ rejection:
 
 ## The SAD store write path
 
-- **Compacted-only submission.** A SAD is submitted in its **fully-compacted canonical form** — the
-  form its SAID is defined over ([`compaction.md`](../../primitives/data/sad/compaction.md)). The
-  write path recomputes the SAID from the submitted bytes and rejects a mismatch, which rejects any
-  non-canonical (partially expanded) form. Clients compact before submitting; bulk bytes travel
-  separately as content-addressed blobs.
+- **Submission form.** A SAD is submitted inside a rooting envelope
+  ([`rooting.md` §The submission](../../primitives/data/sad/rooting.md#the-submission)) and may
+  travel **compacted or expanded** — the write path recomputes the SAID over the **pre-compact**
+  (fully-compacted) form the SAID is defined over
+  ([`compaction.md`](../../primitives/data/sad/compaction.md)), recompacting an expanded body and
+  verifying each child, and rejects a mismatch. Signatures and verifications are over that
+  pre-compact form; the data need not be stored compacted. Bulk bytes travel separately as
+  content-addressed blobs.
 - **The kind gate.** `kind` is required on every SAD, and the write path **rejects event kinds
   outright** (`vdti/{kel,iel,sel}/v1/events/*`): events live in the chain log, reached by prefix —
   nothing legitimate ever needs an event body in the SAD store, and keeping event bodies out of the
   store is what makes the serve rule below physically unable to leak one.
-- **Custody.** A custodied SAD's writer binding — `owner` plus `pin`, anchored on the owner's IEL —
-  is verified through the core before acceptance; an anchored SAD and its anchoring event land
-  consistently (one service, one transaction). Anonymous-write kinds are accepted under the
-  **operator write-gate** — rate-limited by default, credential-gated under lockdown — the standing
-  flood posture ([`residuals.md`](../../residuals.md#anonymous-write-flood-operator-gate)).
+- **Rootedness — the admission floor.** The envelope names the **root** that commits the SAD, and
+  the store confirms it with one local lookup
+  ([`rooting.md`](../../primitives/data/sad/rooting.md)): an **event root** (a chain event's
+  `manifest` / `pins` — the owner-anchor is its blinded instance, verified through the core as one
+  transaction with its anchoring event) or a **SAD-field root** (an accepted parent SAD's committed
+  child, whose `availability` the store checks **covers** the child's — `root ⊇ child`,
+  [`availability.md`](../../primitives/data/sad/availability.md#a-root-covers-its-children)). The
+  store keeps no reverse index and never inverts an identifier to find a root; a root that has not
+  landed yet parks in the deferred-dependency queue and drains when it arrives. An **unrooted**
+  submission meets the **unrooted floor** — a live signature from any valid identity plus an
+  operator-configured, bounded forensic log, chosen per anonymous kind (deny-anonymous by default) —
+  the residual flood surface, now a named minority
+  ([`residuals.md`](../../residuals.md#9-availability-caps-and-dos-bounds)).
 - **Availability enforcement.** The storage boundary applies the SAD's own `availability`
   declaration ([`availability.md`](../../primitives/data/sad/availability.md)): `expiry`
   garbage-collects past its instant; a `once` SAD is removed on first successful read; `replicas`
@@ -243,6 +254,11 @@ rate limiter ([`residuals.md`](../../residuals.md#9-availability-caps-and-dos-bo
   batch never contends — and the budget **accrues** after the merge with the count of events
   actually inserted, so a deduplicated resubmit accrues nothing and idempotent redelivery is never
   taxed.
+- **Blocked-author fast-reject.** A submission whose **authoring prefix reads blocked** by this
+  federation is rejected **before the merge lock**, alongside the other pre-lock checks
+  ([`../federation/blocking.md` §Serve, block, and store](../federation/blocking.md#serve-block-and-store)).
+  It is a witnessing-side refusal — a block withholds advancement, never information — so it never
+  touches the serve path: held data is still served, end-verifiable.
 - **Bounded bookkeeping.** The limiter and nonce tables are swept by a periodic reaper, so
   attacker-generated keys — fresh prefixes, fresh addresses — cannot grow them without bound.
 

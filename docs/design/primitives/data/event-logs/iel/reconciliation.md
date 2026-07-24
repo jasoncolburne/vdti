@@ -344,16 +344,16 @@ its seal sits) is terminal — is the chain's, enforced by the witnessing floor.
 
 ### The federation IEL — always sealed, still first-seen-gated
 
-A **federation** IEL authors **no content** (`Fcp` / `Wit` / `Trm` only), so every federation
-conflict is a sealed-versus-sealed race — but the **exclude-self position gate declines the second
-sibling first-seen**, exactly as on a user chain, so an honest race does **not** dispute: only a
-witness-colluded **two-witnessed** race → **Disputed → terminal → reincept** (a global federation
-rebind). There is no `{sealed, content}` recoverable case on the federation chain — it is the pure
-case of this matrix. A `{Wit, Wit}` federation race reads `disputed` data-locally exactly as
-`{Evl, Evl}` does on a user chain — and needs the same collusion. The federation's own witnesses
-witness each other exclude-self, and the beacon propagates the competing branches. The
-federation-witnessing mechanics (self-attestation, the clock, the recoverability cap) are federation
-doctrine —
+A **federation** IEL authors **no content** (`Fcp` / `Wit` / `Trm`, plus block-only `Ath` / `Dth`,
+all sealed — no `Ixn`), so every federation conflict is a sealed-versus-sealed race — but the
+**exclude-self position gate declines the second sibling first-seen**, exactly as on a user chain,
+so an honest race does **not** dispute: only a witness-colluded **two-witnessed** race → **Disputed
+→ terminal → reincept** (a global federation rebind). There is no `{sealed, content}` recoverable
+case on the federation chain — it is the pure case of this matrix. A `{Wit, Wit}` federation race
+reads `disputed` data-locally exactly as `{Evl, Evl}` does on a user chain — and needs the same
+collusion. The federation's own witnesses witness each other exclude-self, and the beacon propagates
+the competing branches. The federation-witnessing mechanics (self-attestation, the clock, the
+recoverability cap) are federation doctrine —
 [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 The seal-cap stays **unconditional**: relaxing it to admit a competing event as a canonical
