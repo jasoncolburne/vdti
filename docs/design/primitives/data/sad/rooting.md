@@ -131,6 +131,12 @@ permanent, so only a parent-SAD root needs the check, which rides the admission 
 already does. The rule is enforced at admission from the SADs' own `availability` fields
 ([`availability.md`](availability.md#a-root-covers-its-children)).
 
+This co-presence is **load-bearing beyond admission**: it is what lets a `sad/field` child re-verify
+on the mesh (§Adversarial framing) against a parent reachable wherever the child is — `root ⊇ child`
+plus the admission gate's **local-lookup** keep it so, and re-verification reads the parent
+**forward**, never a stored back-pointer. The local-lookup rule therefore carries weight twice over,
+and must not be weakened.
+
 ## The unrooted floor
 
 What can't be rooted still needs a floor, now that it is a named minority rather than the default: a
@@ -138,24 +144,43 @@ document's founding root (a competing one is always mintable; legitimacy is soci
 (anonymous writing is its point), a public publication — including a **policy** SAD published
 standalone, ahead of any field that would root it (once a credential's `revocationPolicy` or a
 `pol(said)` names it, it is `sad/field`-rooted like any child; a policy furnished at evaluation is
-never stored at all). Two parts:
+never stored at all).
 
-- **A live identity check.** An unrooted submission must carry a live signature from **any valid
-  identity**. That authorizes no specific writer — it only proves a real, witnessed identity stands
-  behind the write, which is expensive to forge at scale (identities cost witnessed events). The
-  store resolves the identity from its own federation or the submitter presents it — either way
-  end-verifiable, no standing index.
-- **A bounded, operator-set forensic log.** The store keeps a record of the proven submitter — not
-  to run the system (it never needs it for that; an author proves rooting on demand by furnishing
-  it) but for emergencies: rate-limiting abuse and evidence if a drop-box is misused. It is
-  **operator-local** (never on a chain, never gossiped), so it widens no federation-visible surface,
-  and its **retention is a dial** the operator sets — 7–30 days recommended (90 the exceptional
-  case), `0` allowed behind a prominent warning that it forgoes spam protection. The same retention
-  that catches an abuser de-anonymizes a legitimate source, so a source-protection drop-box wants
-  `0` and an accountable one wants retention
-  ([`../../../residuals.md`](../../../residuals.md#9-availability-caps-and-dos-bounds)).
+**A live signature, converted to a witness attestation.** An unrooted submission carries a live
+signature from **any valid identity** — authorizing no specific writer, only proving a real,
+witnessed identity stands behind the write, which is expensive to forge at scale (identities cost
+witnessed events). But a signature that had to _survive_ — to re-verify on mesh sync, and for a node
+bootstrapping the federation later — would be a standing, federation-wide record of who wrote what.
+So the store never keeps or forwards it. The **admitting witness converts it** instead:
 
-The floor is **operator-configured per anonymous kind**, not a protocol registry: a table maps kind
+- The witness verifies the live signature, then signs its own **attestation** over the root's
+  identifier — _"a valid identity live-signed this"_ — a witness-signed SAD on the same discipline
+  as a receipt (`vdti/witness/v1/attestations/unrooted`; the signature rides **adjacent**, verified
+  against the witness's KEL at a pin — [`shapes.md`](shapes.md#witness-attestations),
+  [`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md)). The
+  live signature is then **dropped — never stored, never gossiped** — so the submitter is seen by
+  exactly one witness, once.
+- The attestation is **durable and independently verifiable**. It rides with its root on the mesh
+  and persists in the store's index of top-level unrooted SADs (kept by kind, for the bootstrap
+  enumeration —
+  [`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md#the-sad-store-write-path)),
+  so a peer or a bootstrapping node re-checks the attestation against the attesting witness's KEL
+  rather than trusting whoever sent it — with no live signature to re-verify or leak. **One witness
+  suffices; no quorum** — this is a mesh-internal spam-admission decision, not a consumer trust
+  decision, and a compromised attester is bounded by the storage budget, not by correctness
+  (§Adversarial framing).
+- **Two submitters of the same content** produce the same identifier and one attestation; the second
+  dedups.
+
+**A shrunken forensic log.** With re-verification carried by the attestation, the submitter record
+is no longer load-bearing. What remains is an **operator-local** log at the admitting witness —
+never on a chain, never gossiped — kept only for **accountability** (rate-limiting abuse, evidence
+if a drop-box is misused). Its retention is a dial — 7–30 days for an accountable kind, **`0`** for
+a source-protection drop-box — and because re-verification rides the attestation, not the log, that
+`0` costs nothing structural: the root still re-verifies everywhere
+([`../../../residuals.md`](../../../residuals.md#9-availability-caps-and-dos-bounds)).
+
+The floor is **operator-configured per unrooted kind**, not a protocol registry: a table maps kind
 to floor, a `"*"` entry is the blanket default overridden by any exact-kind entry, and with no entry
 at all the kind is **refused** — the fail-secure default and the deny-anonymous-by-default posture
 the whole design turns on. The store's order: refuse unknown kinds, confirm rooted ones, else the
@@ -177,23 +202,38 @@ is the admission floor; blocking is the last resort; the two together are the sp
   kind with no root evidence is refused; to place a SAD an adversary must exhibit an accepted root,
   and a root costs a witnessed, per-prefix-budgeted chain event. Spam resistance moves from an
   operator knob to a structural floor. The gate is an **admission-time** check — not a continuously
-  maintained invariant — applied at the **public submit boundary** and **re-applied on each mesh
-  replication** while the root is within its retention window
-  ([`../../../substrate/infrastructure/witnessd.md` §Anti-entropy](../../../substrate/infrastructure/witnessd.md#anti-entropy)),
-  so a below-threshold-compromised peer cannot inject unrooted junk; past that window replication
-  trusts the admitting node's decision, roster-scoped and below-threshold.
+  maintained invariant — applied at the **public submit boundary**, and on the mesh **each object
+  re-verifies the proof it carries**: an event-rooted SAD against its permanent committing event, an
+  owner-anchored one by recomputing its blinded anchor, a `sad/field` child against its parent
+  (co-present by `root ⊇ child`, and shipped in the same bundle), and an **unrooted root against its
+  witness attestation** ([§The unrooted floor](#the-unrooted-floor)). So an honest node never takes
+  an unrooted write on the sending peer's word — it re-checks — and there is no blind-trust window
+  on the sync path
+  ([`../../../substrate/infrastructure/witnessd.md` §Anti-entropy](../../../substrate/infrastructure/witnessd.md#anti-entropy)).
+- **The unrooted floor's trust shifts to the attester, cap-bounded.** Because the live signature is
+  dropped, an honest node cannot re-verify the original vouch on the mesh — it verifies the
+  **witness attestation** instead. A below-threshold-compromised witness can therefore attest a root
+  it never validly saw signed, and peers store it without re-checking the absent signature. That is
+  a **storage-flooding amplification bounded by the per-witness / per-prefix budget**, never a
+  correctness break: no consumer makes a trust decision on an unrooted root, the exposure is
+  roster-scoped and mesh-internal, and it is a strict improvement over trusting an unverifiable
+  claim. An adversary who merely wants a free write still pays for a witnessed identity, a
+  source-protection drop-box uses an ephemeral one, and a hard write-gate is a federation access
+  decision, not the store's to make.
 - **Confirm-not-correlate is preserved.** The store never inverts an identifier to find a root and
-  keeps no reverse index; a blinded anchor is matched by recomputation, never by search. The
-  serve-by-SAID anti-correlation property ([`sad.md`](sad.md#structural-shapes)) is untouched — the
-  store still cannot walk an identifier back to the chain it stands for.
+  keeps no reverse index; a blinded anchor is matched by recomputation, never by search — and the
+  mesh re-verification is forward the same way: a proof rides with its object and a `sad/field`
+  child is read from its co-present parent, never a stored inverse. The serve-by-SAID
+  anti-correlation property ([`sad.md`](sad.md#structural-shapes)) is untouched — the store still
+  cannot walk an identifier back to the chain it stands for.
 - **Bounded fan-out from a rooted parent.** A valid rooted parent can reference many junk children,
   but the child set is fixed by the parent's bytes, which the request size cap bounds — one root
   admits a bounded, not unbounded, fan. The parked-await set is bounded by the same reaper that
   sweeps the store's other transient tables
   ([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md#request-bounds-and-rate-limits)).
 - **The residual is the valid-identity flood**, addressed by
-  [blocking](../../../substrate/federation/blocking.md), and — for the kinds that keep an anonymous
-  floor — the operator-local forensic log, priced in
+  [blocking](../../../substrate/federation/blocking.md), and — for the unrooted floor — the
+  attester-trust bound above plus the operator-local accountability log, priced in
   [residuals](../../../residuals.md#9-availability-caps-and-dos-bounds).
 
 ## Cross-references
@@ -207,6 +247,8 @@ is the admission floor; blocking is the last resort; the two together are the sp
 - [`kinds.md`](kinds.md) — the `vdti/rooting/v1/*` family; [`shapes.md`](shapes.md) — its field
   shapes.
 - [`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md) — the
-  write path that enforces rooting and the anonymous floor.
+  write path that enforces rooting and the anonymous floor, and the top-level-SAD index.
+- [`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md) — the
+  witness attestation the unrooted floor converts a live signature into.
 - [`../../../substrate/federation/blocking.md`](../../../substrate/federation/blocking.md) — the
   second front against a valid-identity flood.

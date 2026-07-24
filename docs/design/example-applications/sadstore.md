@@ -53,10 +53,15 @@ is answered by whichever tier holds the bytes, the serve rules identical at each
   ([`../substrate/infrastructure/architecture.md` §The store traits](../substrate/infrastructure/architecture.md#the-store-traits--one-interface-composed-in-sequence)).
   One object model expresses both placements — the application owns the choice, off to the side of
   the protocol.
-- **Everything still verifies.** A `sadstore` is untrusted like every store — bytes
-  content-addressed (SAID / blob digest), reads gated by custody `readers`, the consumer verifying
-  what it fetches through the same core library. Moving data between a `sadstore` and anywhere else
-  is cost, not trust
+- **Everything still verifies — with one dependency named.** A `sadstore` is untrusted like every
+  store — bytes content-addressed (SAID / blob digest), the consumer verifying what it fetches
+  through the same core library. A custody `readers` gate it enforces resolves the
+  read-authorization **SEL against a chain**, which a store with no chain log of its own can only do
+  as an **end-verifying consumer of the federation** that holds that SEL — the gate is real but
+  leans on federation state, not on the `sadstore`. And a `sadstore` runs **no rooting floor**
+  (admission is a federation's decision): its writes are the **client's own placement**, gated by
+  whatever the deploying application decides, not by a witness attestation. Moving data between a
+  `sadstore` and anywhere else is cost, not trust
   ([`../system-thesis.md` §End-verifiability](../system-thesis.md#end-verifiability)).
 
 ## Scenarios

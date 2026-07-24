@@ -234,6 +234,27 @@ Like a receipt, it is a SAD whose witness signature rides **adjacent**, never in
 | `nonce`         | bytes     | no       | A consumer-supplied challenge — present in the live (challenge-response) variant.                                       |
 | `witnessPrefix` | prefix    | yes      | The signing witness's KEL prefix.                                                                                       |
 
+## Witness attestations
+
+A **witness attestation** vouches that a valid identity **live-signed an unrooted root** — the
+durable, independently verifiable form the unrooted floor converts a submitter's live signature
+into, so the signature itself is never stored or gossiped
+([`rooting.md` §The unrooted floor](rooting.md#the-unrooted-floor)). Like a receipt, it is a SAD
+whose witness signature rides **adjacent**, never in the body.
+
+| Field           | Type      | Required | Meaning                                                                            |
+| --------------- | --------- | -------- | ---------------------------------------------------------------------------------- |
+| `said`          | SAID      | yes      | The attestation's own SAID.                                                        |
+| `kind`          | string    | yes      | `vdti/witness/v1/attestations/unrooted`.                                           |
+| `root`          | SAID      | yes      | The unrooted-root SAD this attests — a valid identity was seen to live-sign it.    |
+| `timestamp`     | timestamp | yes      | The witness's asserted time (inside the signed payload).                           |
+| `witnessPrefix` | prefix    | yes      | The attesting witness's KEL prefix.                                                |
+| `witnessPin`    | SAID      | yes      | The witness's establishment event current at signing — resolves the verifying key. |
+
+One attestation per unrooted root (a second submitter of the same content dedups), by a **single**
+witness — no quorum, because it is a mesh-internal spam-admission vouch, not a consumer trust
+decision ([`rooting.md` §Adversarial framing](rooting.md#adversarial-framing)).
+
 ## Grant values — what a SEL `Gnt` seals
 
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The

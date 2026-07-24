@@ -376,6 +376,35 @@ Resubmission is idempotent (dedup by SAID), so resubmitting any event doubles as
 resubmitting a _stale-pin_ event never fixes it (the pin is baked into its SAID) — the fix is
 rebind, then submit a new event.
 
+## The unrooted-root attestation
+
+The [unrooted floor](../../primitives/data/sad/rooting.md#the-unrooted-floor) is the one admission a
+witness signs for that is **not** a chain event. When `vdtid` admits an unrooted SAD — a document
+V0, a standalone policy, a drop-box entry — the **admitting node's witness verifies the submitter's
+live signature** (a valid, witnessed identity signed the root), then signs a **witness attestation**
+over the root's identifier: _"a valid identity live-signed this."_ The live signature is **dropped**
+— never stored, never gossiped — so the submitter is seen by exactly one witness, once.
+
+The attestation is a witness-signed SAD on the **same discipline as the receipt** — its signature
+rides adjacent, its asserted time and the attested root ride inside the signed payload, and it
+verifies against the witness's KEL at the pin it names
+([`../../primitives/data/sad/shapes.md` §Witness attestations](../../primitives/data/sad/shapes.md#witness-attestations)).
+It rides sync with its root and persists in the store's top-level-SAD index, so any peer or a
+bootstrapping node re-checks it against the attesting witness's KEL instead of trusting whoever sent
+the bytes.
+
+Two things set it apart from a receipt, and both are deliberate:
+
+- **A single witness, no quorum.** A receipt gathers to `threshold` because a consumer makes a trust
+  decision on the witnessed event; an unrooted-root attestation is a **mesh-internal spam-admission
+  vouch**, never a consumer trust input, so one witness suffices. A below-threshold-compromised
+  attester can vouch for junk, but the blast radius is **storage bounded by the budget**, not
+  correctness
+  ([`../../primitives/data/sad/rooting.md` §Adversarial framing](../../primitives/data/sad/rooting.md#adversarial-framing)).
+- **No position, no selection.** An unrooted SAD sits on no chain and has no `(prefix, serial)`, so
+  there is no deterministic selection or first-seen slot — the attester is simply the node that
+  admitted it, and a second submission of the same content dedups to the one attestation.
+
 ## An event's witnessed time
 
 A witnessed event gathers receipts, each carrying its witness's asserted time `τ` inside the signed

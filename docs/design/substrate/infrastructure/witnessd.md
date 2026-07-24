@@ -47,6 +47,15 @@ What `witnessd` runs, per the federation doctrine:
   prefix, materialized from the derived block SEL and refreshed over the Redis pub-sub the daemon
   already runs — never enumerating the full set (the derived addresses are non-listable), only
   deriving the one address for the author in front of it.
+- **Unrooted-root attestation.** When `vdtid` admits an
+  [unrooted-floor](../../primitives/data/sad/rooting.md#the-unrooted-floor) SAD, the **admitting
+  node's witness verifies the submitter's live signature** — a valid, witnessed identity signed the
+  root — then signs a **witness attestation** over the root's identifier
+  ([`../federation/witnessing.md` §The unrooted-root attestation](../federation/witnessing.md#the-unrooted-root-attestation)).
+  The attestation is the durable, independently re-verifiable vouch that replaces the live
+  signature, which is **dropped and never propagated**, so the submitter is seen once. **One witness
+  attests; no quorum** — a mesh-internal spam-admission vouch, cost-bounded by the storage budget,
+  not consensus.
 
 ## On-receiving-node routing
 
@@ -103,7 +112,9 @@ A fresh node joining the mesh runs a deliberate sequence, and **readiness gates 
     slack) is what makes that safe.
 - **Preload is the anti-entropy enumeration, run cold.** There is no separate bootstrap protocol: a
   fresh node pages each peer's update-sequence listing from an **empty watermark** — which is the
-  whole listing — and fetches everything that differs, exactly the standing loop below.
+  whole listing — and fetches everything that differs, **re-verifying each object by the proof it
+  carries** (§Anti-entropy) — unrooted roots included, via their witness attestation — so a joining
+  node trusts no peer's word for what it admits.
 - **Retry as a unit until clean.** The preload passes (each chain type, then the SAD-object pass)
   repeat until none reports a sync failure — the poll-based backstop beneath park-and-drain, and
   load-bearing for "we cannot serve until we are in sync." Peers' own readiness is probed before
@@ -195,23 +206,26 @@ a federation replicates every submitted SAD across all its witnesses, so there i
 scope to honor; custody rides with the object, unenforced on this path, because it gates the
 **consumer** serve, not replication
 ([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface)). **Rootedness
-re-confirms on arrival where there is a root to check**: a pulled **rooted** SAD is re-run through
-the admission gate ([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md))
-— its root pointer rides the sync alongside it, so a below-threshold-compromised peer cannot push
-unrooted junk into an honest store, and a SAD whose root has not replicated yet parks on the
-**SAD-object await** until it lands. An **unrooted-floor** SAD (a document root, a drop-box —
-[rooting §The unrooted floor](../../primitives/data/sad/rooting.md#the-unrooted-floor)) carries no
-root pointer, so there is nothing to re-confirm; it rides on the roster-scoped, below-threshold mesh
-trust that admitted it at the sending peer, where the floor's live-identity check and forensic log
-already applied at public submission. The rooted re-confirm holds only while that pointer is within
-the operator retention window, which covers normal (fast) convergence; a node bootstrapping an old
-rooted SAD past the window leans instead on the same below-threshold mesh trust — not a spam vector,
-since the admission gate is the primary defense and the mesh is roster-scoped. One deliberate
-carve-out: **deletion-bearing classes never ride this pass** — a `once` object (destructive read)
-and a recipient-scoped deposit (deleted by acknowledgment) are placed by their **sender's** act, and
-re-syncing them from a peer would resurrect a deliberate deletion; their absence is semantic, not
-loss. An expired object needs no carve-out — a re-arriving copy is refused by its own committed
-`expiry`, the absolute instant every holder reads the same way from the object alone
+re-verifies on arrival — every object re-checks the proof it carries**, so an honest node never
+takes a write on the sending peer's word
+([`../../primitives/data/sad/rooting.md` §Adversarial framing](../../primitives/data/sad/rooting.md#adversarial-framing)):
+an **event-rooted** SAD re-confirms against its committing event (walk the chain — permanent, always
+reachable); an **owner-anchored** SAD recomputes its blinded anchor from its own `owner` + `pin`; a
+**`sad/field`** child re-confirms against its **parent** — co-present by `root ⊇ child` and shipped
+in the same bundle, read **forward**, never a stored back-pointer (a child whose parent has not
+landed parks on the **SAD-object await** until it does); and an **unrooted-floor** root re-confirms
+against its **witness attestation** — a single witness's durable, KEL-verifiable vouch that a valid
+identity live-signed it
+([`../../primitives/data/sad/rooting.md` §The unrooted floor](../../primitives/data/sad/rooting.md#the-unrooted-floor)),
+the live signature itself having been dropped at admission. There is **no retention window and no
+"trust the admitting node" fallback**: every class re-verifies from permanent state (a chain), a
+co-present root, or a durable attestation, so an old SAD a bootstrapping node pulls re-verifies
+exactly as a fresh one does. One deliberate carve-out: **deletion-bearing classes never ride this
+pass** — a `once` object (destructive read) and a recipient-scoped deposit (deleted by
+acknowledgment) are placed by their **sender's** act, and re-syncing them from a peer would
+resurrect a deliberate deletion; their absence is semantic, not loss. An expired object needs no
+carve-out — a re-arriving copy is refused by its own committed `expiry`, the absolute instant every
+holder reads the same way from the object alone
 ([`availability.md`](../../primitives/data/sad/availability.md)).
 
 ## Send-side partitioning

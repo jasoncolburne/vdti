@@ -170,14 +170,26 @@ rejection:
   [`availability.md`](../../primitives/data/sad/availability.md#a-root-covers-its-children)). The
   store keeps no reverse index and never inverts an identifier to find a root; a root that has not
   landed yet parks in the deferred-dependency queue and drains when it arrives. An **unrooted**
-  submission meets the **unrooted floor** — a live signature from any valid identity plus an
-  operator-configured, bounded forensic log, chosen per anonymous kind (deny-anonymous by default) —
-  the residual flood surface, now a named minority
+  submission meets the **unrooted floor** — a live signature from any valid identity, which the
+  admitting witness **verifies and converts into a durable
+  [witness attestation](../../primitives/data/sad/rooting.md#the-unrooted-floor)** (the live
+  signature then **dropped**, never stored or gossiped). The attestation is kept in the
+  top-level-SAD index (below), so it rides sync and re-verifies on bootstrap; an operator-local,
+  `0`-able accountability log is all that records the submitter. The floor is chosen per unrooted
+  kind, deny-anonymous by default — the residual flood surface, now a named minority
   ([`residuals.md`](../../residuals.md#9-availability-caps-and-dos-bounds)).
 - **Availability enforcement.** The storage boundary applies the SAD's own `availability`
   declaration ([`availability.md`](../../primitives/data/sad/availability.md)): `expiry`
   garbage-collects past its instant; a `once` SAD is removed on first successful read. Expired,
   consumed, and never-existed are indistinguishable — one uniform "not present."
+- **The top-level-SAD index.** Unrooted roots have no chain and no parent to reach them by, so the
+  store keeps a small index of them **keyed by `kind`** — each with the
+  [witness attestation](../../primitives/data/sad/rooting.md#the-unrooted-floor) that admitted it.
+  It is what a bootstrapping node enumerates to pull and re-verify the unrooted minority
+  (event-rooted trees are reached by walking chains to their anchors, so they need no such index).
+  Keyed by kind and rebuildable by scanning the store, it is an **enumeration aid, not a reverse
+  index** and not new ground truth — the store still never inverts an identifier to find what
+  commits it.
 
 ## Serve-by-SAID — an enforced rule, not a convention
 

@@ -734,23 +734,29 @@ are not exploitable breaks — they are the bounds themselves.
 - **Attack** — Spam resistance rests on **rootedness**: the store admits a SAD only when an accepted
   root commits it ([`rooting.md`](primitives/data/sad/rooting.md)), so unrooted junk is refused. Two
   residues remain. (1) The **unrooted floor** — kinds that keep an anonymous path (a document root,
-  a drop-box) are gated by a live-identity check plus an operator-configured, bounded forensic log;
-  a deployment that sets a kind fully open (retention `0`) carries that kind's flood bounded only by
-  rate limits, and the forensic log — kept to catch abuse — de-anonymizes a legitimate source for
-  its retention window. (2) The **valid-identity flood** — rooting raises the cost of a _fake_
-  identity, not a _real_ one: a resourced adversary with many prefixes across many IPs roots its own
-  spam legitimately, past the per-prefix budget and per-IP limit.
+  a drop-box) are admitted on a **live signature the admitting witness verifies and converts into a
+  durable attestation**, then drops. A below-threshold-compromised witness can attest a root it
+  never validly saw signed, and a deployment that opts a kind open carries that kind's flood
+  **bounded by the per-witness / per-prefix budget**, not re-verification. (2) The **valid-identity
+  flood** — rooting raises the cost of a _fake_ identity, not a _real_ one: a resourced adversary
+  with many prefixes across many IPs roots its own spam legitimately, past the per-prefix budget and
+  per-IP limit.
 - **Mitigation** — Rooting makes the floor structural rather than a config property, and the
-  anonymous surface is a **named minority** (deny-anonymous is the default, opt-in per kind). The
-  valid-identity flood is the second front's target — a federation collectively refuses to witness
-  an abusive prefix ([`substrate/federation/blocking.md`](substrate/federation/blocking.md)),
-  reversibly and by quorum, with the per-prefix budget, per-IP limit, and lockdown posture
-  (credential-gated participation) bounding the diffuse-sybil tail. Identifier idempotency and
-  two-phase storage bound amplification.
-- **Lost** — For a kind an operator opts fully open, spam resistance on that kind is a configuration
-  property; the forensic log is a bounded operator-local correlation surface where retention is
-  enabled; and blocking is per-federation, so a determined abuser is whack-a-moled across
-  federations rather than globally stopped — the accepted decentralized cost.
+  anonymous surface is a **named minority** (deny-anonymous is the default, opt-in per kind); the
+  witness attestation makes even that minority **re-verifiable on sync and bootstrap** — no node
+  trusts the sender — while the submitter's signature is seen by one witness and dropped, never a
+  federation-wide record. The valid-identity flood is the second front's target — a federation
+  collectively refuses to witness an abusive prefix
+  ([`substrate/federation/blocking.md`](substrate/federation/blocking.md)), reversibly and by
+  quorum, with the per-prefix budget, per-IP limit, and lockdown posture (credential-gated
+  participation) bounding the diffuse-sybil tail. Identifier idempotency and two-phase storage bound
+  amplification.
+- **Lost** — For a kind an operator opts open, unrooted-floor spam resistance shifts from
+  re-verification to **one witness's attestation plus the storage budget** — a compromised attester
+  can push cap-bounded junk; the operator-local accountability log (where an operator enables it) is
+  a bounded correlation surface **at the admitting witness only**; and blocking is per-federation,
+  so a determined abuser is whack-a-moled across federations rather than globally stopped — the
+  accepted decentralized cost.
 
 ### Referenced content expires or is withheld
 
