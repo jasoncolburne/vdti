@@ -91,7 +91,12 @@ die "grep-terms: no files to search"
 
 # --- build a marker+wrap-tolerant regex per phrase ---
 my $MK  = '[*_`~]*';              # an optional run of emphasis/code markers
-my $GAP = $MK . '\s+' . $MK;      # inter-token gap: markers, whitespace (\n included), markers
+# The gap must also cross a BLOCKQUOTE continuation prefix ("> ", nested "> > "): a phrase that
+# wraps inside a blockquote puts "\n> " between two of its words, and a gap of bare \s+ returned
+# ZERO SILENTLY — the third silent-wrong-clean defect, and it bites hardest on exactly the material
+# that lives in blockquotes (normative rules, constants). Mid-line "a > b" now also matches "a b";
+# over-reporting is the correct failure direction for a sweep tool.
+my $GAP = $MK . '(?:\s+(?:>[ \t]*)*)+' . $MK;   # inter-token gap: markers, whitespace (+ "> " prefixes), markers
 sub build {
     my ($p) = @_;
     my @tok = grep { length } split /\s+/, $p;   # only literal-space phrases get widened

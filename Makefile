@@ -27,6 +27,9 @@ all: lint-tools lint-terminology lint-docs fmt-md-check toc-check
 lint-tools:
 	@./scripts/grep-terms.pl '≥ 2' -- docs/design/protocol-doctrine.md >/dev/null \
 	  || { echo 'grep-terms.pl: non-ASCII phrase search is broken (see the decode_utf8 on @ARGV)'; exit 1; }
+	@t=$$(mktemp); printf '> alpha bravo\n> charlie delta\n' > $$t; \
+	  ./scripts/grep-terms.pl 'bravo charlie' -- $$t >/dev/null; r=$$?; rm -f $$t; \
+	  [ $$r -eq 0 ] || { echo 'grep-terms.pl: blockquote-wrapped phrase search is broken (the GAP must cross "> " prefixes)'; exit 1; }
 
 lint-terminology:
 	@./scripts/lint-terminology.sh
