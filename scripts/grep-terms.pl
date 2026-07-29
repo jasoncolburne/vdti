@@ -66,12 +66,28 @@ if ($o{F}) {
 } elsif (@paths) {
     for my $p (@paths) {
         if    (-f $p) { push @files, $p; }
-        elsif (-d $p) { push @files, split /\n/, `git ls-files -- '$p/**/*.md' '$p/*.md' 2>/dev/null`; }
+        elsif (-d $p) {
+            # A directory of UNTRACKED files (e.g. .working/) expands to nothing via git —
+            # fall back to a filesystem walk so the sweep searches what the caller named.
+            my @g = grep { length } split /\n/, `git ls-files -- '$p/**/*.md' '$p/*.md' 2>/dev/null`;
+            @g = grep { length } split /\n/, `find '$p' -type f -name '*.md' 2>/dev/null` unless @g;
+            push @files, @g;
+        }
         else          { push @files, split /\n/, `git ls-files -- '$p' 2>/dev/null`; }
     }
 } else {
     @files = split /\n/, `git ls-files -- '*.md' 2>/dev/null`;
 }
+@files = grep { length } @files;
+
+# An EMPTY file list must never look like a clean sweep. A nonexistent path, an unsplit
+# shell variable of paths, or a directory whose files are untracked all resolved to zero
+# files and exited 1 with no output — indistinguishable from "searched everything, found
+# nothing". Same silent-wrong-clean class as the byte/char defect. Fail as a usage error.
+die "grep-terms: no files to search"
+  . (@paths ? " (paths resolved to nothing: @paths)" : "")
+  . " — a zero-file sweep is not a clean sweep\n"
+  unless @files;
 
 # --- build a marker+wrap-tolerant regex per phrase ---
 my $MK  = '[*_`~]*';              # an optional run of emphasis/code markers
