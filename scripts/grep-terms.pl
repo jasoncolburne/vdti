@@ -38,8 +38,38 @@ for my $i (0 .. $#ARGV) {
     }
 }
 
+sub usage {
+    print <<'EOF';
+grep-terms — decoration- and wrap-tolerant phrase search over Markdown.
+
+Finds a phrase through the forms plain grep misses: **bold**/`code`/_em_/~strike~ markers at word
+boundaries, line wraps (including inside "> " blockquotes), and sentence-case first letters.
+
+Usage:
+  scripts/grep-terms.pl [-i] [-w] PHRASE [PHRASE ...] [-- PATH ...]
+  scripts/grep-terms.pl --regex --novel -f PATTERNS -F FILES     (lint use)
+
+Flags:
+  -i          fully case-insensitive (NOTE: default widening is first-letter only — an ALL-CAPS
+              word like "LIVE" or "STATES" needs -i to match its lowercase form)
+  -w          word-ish boundaries (use for short terms: "TTL", "seal" — avoids substring hits)
+  -r, --regex treat tokens as ERE instead of literals
+  --novel     report only decorated/wrapped hits a same-line grep would miss
+  -f FILE     read patterns from FILE, one per line
+  -F FILE     read the file list from FILE, one per line
+
+Paths after "--" default to every git-tracked *.md; files/dirs/globs narrow it (untracked dirs are
+walked). A zero-file resolution is a hard error, never a clean sweep — in zsh remember $VAR does not
+word-split; use ${=VAR} or list paths explicitly.
+
+Exit: 0 = matches, 1 = none, 2 = usage error. Output is grep-style file:line with the full source
+line(s), whitespace-collapsed. Full documentation in this script's header comment.
+EOF
+    exit 0;
+}
+
 my %o;
-GetOptions(\%o, 'i', 'w', 'regex|r', 'novel', 'f=s', 'F=s') or exit 2;
+GetOptions(\%o, 'i', 'w', 'regex|r', 'novel', 'f=s', 'F=s', 'help|h' => \&usage) or exit 2;
 
 # --- patterns: from -f FILE (one per line) and/or the remaining positional args ---
 my @phrases;
