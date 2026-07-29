@@ -24,6 +24,7 @@ use strict;
 use warnings;
 use utf8;
 use open qw(:std :encoding(UTF-8));
+use Encode qw(decode_utf8);
 use Getopt::Long qw(:config bundling no_ignore_case);
 
 # Split trailing paths off at the first "--" BEFORE GetOptions (which would
@@ -47,7 +48,13 @@ if ($o{f}) {
     push @phrases, grep { length } map { chomp; $_ } <$h>;
     close $h;
 }
-push @phrases, @ARGV;
+# Command-line args arrive as raw BYTES; file contents are read as CHARACTERS (the
+# `use open` layer above). Matching an undecoded byte-string pattern against a decoded
+# subject can never hit, so any phrase containing a non-ASCII character — "≥ 2",
+# "(MIN − 2)/4", an arrow, a ★ — returned ZERO SILENTLY, which reads as "clean".
+# Decode the phrases only: paths and -f/-F filenames stay bytes, which is what open()
+# and -f want. Phrases from -f are already decoded by the layer.
+push @phrases, map { decode_utf8($_) } @ARGV;
 die "grep-terms: no phrases (give them positionally or via -f)\n" unless @phrases;
 
 # --- files: from -F FILE, else the given paths (dirs/globs expanded via git), else all tracked *.md ---

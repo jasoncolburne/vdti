@@ -18,7 +18,15 @@ WORKING_TARBALL := working.tar.xz
 # there and they drop out of the snapshot with no edit to this file.
 WORKING_FILES := $(notdir $(wildcard $(WORKING_DIR)/*.md))
 
-all: lint-terminology lint-docs fmt-md-check toc-check
+all: lint-tools lint-terminology lint-docs fmt-md-check toc-check
+
+# grep-terms.pl once returned ZERO SILENTLY for any phrase containing a non-ASCII
+# character (args arrive as bytes, files are read as characters), so sweeps for
+# "≥ 2" or "(MINIMUM_PAGE_SIZE − 1)/2" read as clean when they were not. A silent
+# wrong answer in a search tool is worse than a broken one, so assert it round-trips.
+lint-tools:
+	@./scripts/grep-terms.pl '≥ 2' -- docs/design/protocol-doctrine.md >/dev/null \
+	  || { echo 'grep-terms.pl: non-ASCII phrase search is broken (see the decode_utf8 on @ARGV)'; exit 1; }
 
 lint-terminology:
 	@./scripts/lint-terminology.sh
