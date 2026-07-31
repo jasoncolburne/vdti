@@ -105,6 +105,15 @@ repo layout, 9-phase v1 sequencing, and acceptance criteria.
   shadow-node patterns.
 - [`docs/analysis/`](docs/analysis/) _(forthcoming)_ — attack surfaces, scale, protocol analysis.
 
+### Jason's favourite files (information at a glance)
+
+- [`system-thesis.md`](docs/design/system-thesis.md) — foundations.
+- [`event-shape.md`](docs/design/primitives/data/event-logs/event-shape.md) — comprehensive event
+  guide.
+- [`kinds.md`](docs/design/primitives/data/sad/kinds.md) — kinds of SAD (Self-addressing data).
+- [`shapes.md`](docs/design/primitives/data/sad/shapes.md) — shapes of SAD.
+- [`residuals.md`](docs/design/residuals.md) — the risks associated with operating.
+
 ## Contributing
 
 VDTI is in the design-completion phase; the core design is under self-review, with the services
