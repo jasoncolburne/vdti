@@ -121,7 +121,7 @@ and sits (a document author who endorses before editing), the `Icp` cannot hold 
 content. Where inception carries a first event that already floors (a first content `Ixn`, a lookup
 SEL's `Trm` or `Gnt`), no separate serial-1 `Pin` is needed.
 
-### `Gnt` — the grant (tier 2, `t_authorize`)
+### `Gnt` — the grant (tier 2)
 
 Seals a **typed value** — a value a third party depends on. Its `manifest.grant` names a
 **grant-value SAD** whose kind sits under `vdti/sel/v1/grants/*` (an owner-first namespace, capped

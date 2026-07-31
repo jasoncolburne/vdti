@@ -211,8 +211,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **counting conjunction** — the per-lineage rule for when a granted remote federation's receipt
   counts: within a live lineage's `bound`, or within a killed lineage's cut (`τ` at-or-before the
   un-grant's `clock`) **and** `bound`; killed windows are permanent counting authorities, and a
-  vouched key-window counts only if its `T_join` is at-or-before its vouching act's `clock` (the
-  vouch-time cap).
+  vouched key-window counts only if its `T_join` is at-or-before its vouching act's `clock` plus
+  `2 × CLOCK_TOLERANCE_BAND` (the vouch-time cap; the vouching act is the lineage's earliest `Gnt`
+  whose `bound` covers the window).
   ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
 - **`bound` (governance horizon)** — in a trusted-federation grant value, the highest remote
   federation position any receipt's resolution may use — a remote-federation-event SAID, monotone

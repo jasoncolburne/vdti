@@ -642,7 +642,9 @@ what changes is what the conjunction admits.
   un-withholdable. The `kills[]` declaration is stated because **trust fails open where blocking
   fails secure** — a withheld un-grant reads still-granted, so the walk's per-lineage check must
   read the killed target without depending on the withholdable leg. The emergency-speed case is
-  already served by per-prefix blocking — fast, scoped, reversible.
+  already served by per-prefix blocking — fast, scoped, reversible; a block rides `t_authorize`, so
+  under a decliner stall it outlives governance acts, surviving until the **witnessing** axis
+  (`|roster| − threshold − 1`) is the binding one, past which nothing of any tier lands.
 - **A refused tip never falls back to a retired grant.** The walk serves the live sealed tip and a
   retired value never surfaces, so a malformed refresh leaves the locus with **no servable value —
   not granted, federation-wide, fail-secure**; the repair is a corrected `Gnt` stacked forward where
@@ -701,9 +703,13 @@ vouch-time cap, §The counting conjunction), closes by the last refresh's clock 
 `MAXIMUM_WITNESS_KEY_WINDOW`; past that only backdated, stale-reading receipts still count — the
 tail the rogue-remote pricing already carries. In exit: below the guaranteed-stall count, a retried
 participation re-draws its selection and the un-grant itself eventually lands; from there up to
-`t_govern` decliners nothing governance lands — an eviction included — and the exit is reincept. At
-`t_govern` the case stops being a stall: the decliners author governance themselves, which is the
-compromise §Security assumption prices, recovered the same way. Priced in the catalog
+`t_govern` decliners nothing governance lands — an eviction included, while lower-slot acts (a
+`t_authorize` block among them) survive only until the witnessing axis binds — and the exit is the
+**federation's** reincept alone: its identities' chains are untouched, witnessed history standing,
+and each **rebinds away freely** — a rebind self-bootstraps into the federation it declares, so the
+frozen federation cannot hold what it can no longer govern (§Rebinding). At `t_govern` the case
+stops being a stall: the decliners author governance themselves, which is the compromise §Security
+assumption prices, recovered the same way. Priced in the catalog
 ([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
 
 ### The counting conjunction
@@ -730,16 +736,22 @@ never-granted federation are **discarded, never parked**; a formerly-granted fed
 fall to the conjunction — outside every lineage's window they are likewise discarded, never parked.
 
 **The vouch-time cap.** A vouched remote key-window counts only if its **`T_join` is at-or-before
-the `clock` of the governance `Wit` that anchored the `Gnt` vouching it**, with
-`CLOCK_TOLERANCE_BAND` absorbing cross-federation skew. Both values are committed bytes, so
-acceptance stays data-pure — no wall clock — and an honest refresh is unaffected: a real remote
-rotation precedes the local act that vouches it. What the cap closes is the **pre-minted future
-window**: future-clocked remote `Wit`s are monotone-valid and witnessable now under still-open prior
-windows, and the read-time wall-clock flag on a future timestamp defers rather than denies — without
-the cap, one refresh could vouch a ladder of them and hold windows that open long after the vouch,
-reading current indefinitely. With it, a window opening past its own vouching act never counts,
-anywhere, and the cap rides the conjunction to both of its consumers — the acceptance gate and the
-walk.
+the `clock` of its vouching act plus `2 × CLOCK_TOLERANCE_BAND`** — the design's own worst honest
+cross-federation skew, each side's NTP discipline contributing one band. **A window's vouching act
+is the lineage's earliest `Gnt` whose `bound` covers the window-establishing remote event's
+position** (a fresh lineage's v1 covers every position within its `bound`), and the comparison value
+is that `Gnt`'s anchoring governance `Wit`'s `clock`. Both values are committed bytes and the
+attribution is a pure function of the lineage — re-derivable by any walk, never batch or door-local
+state — so acceptance stays data-pure, no wall clock, and no honest vouch is refused within the
+deployment invariant: a real remote rotation precedes the local act that vouches it, and two
+in-tolerance clocks differ by at most the absorber. (A deployment skewed beyond its NTP bound can
+see an honest window refused — fail-secure, cured at the remote's next vouched rotation.) What the
+cap closes is the **pre-minted future window**: future-clocked remote `Wit`s are monotone-valid and
+witnessable now under still-open prior windows, and the read-time wall-clock flag on a future
+timestamp defers rather than denies — without the cap, one refresh could vouch a ladder of them and
+hold windows that open long after the vouch, reading current indefinitely. With it, a window opening
+past its own vouching act never counts, anywhere, and the cap rides the conjunction to both of its
+consumers — the acceptance gate and the walk.
 
 **`bound` is a position — a remote-federation-event SAID — and it is monotone non-decreasing.** A
 refresh can never void a receipt's already-established resolution; **only the un-grant** moves a
@@ -870,7 +882,10 @@ for any competing sibling there. Two counts gate acceptance, at two levels: the 
 **required count of participations** (`t_govern` for a governance `Wit`), and **each participation**
 is witnessed at the witness-config **`threshold`** — at the minimum federation, three participations
 each carrying two peer receipts. A declined competing sibling's participations stay sub-threshold —
-the position gate, realized through the anchors.
+the position gate, realized through the anchors. Because selection is a deterministic public
+function, **a sub-threshold participation names its non-signers**: persistent receipt absence across
+positions identifies a declining witness to the authoring members — the observation the
+decliner-eviction control rests on, no new signal.
 
 Because a federation is critical infrastructure, its recoverability ceiling is **hard**: it must
 always be able to evict one compromised witness and get the cut trusted. So for federation member
@@ -903,14 +918,17 @@ therefore needs `≥ t_govern` current keys — the governance-compromise case, 
 ## Security assumption and residual
 
 The federation's soundness assumes **fewer than `threshold` byzantine** members at attestation time
-(the witness-config's receipting `threshold`, not the `t_govern` governance quorum); beyond that is
-operational recovery and reincept. The co-witnessing exclusivity carries its own tighter bound: it
-holds against fewer than `2·threshold − signers` byzantine double-signers within the selected set
-(the fork-cost), so for an over-provisioned config a coalition _within_ the blanket `< threshold`
-assumption can manufacture a co-witnessed content fork at fork-cost — priced, exposed, and
-evictable, not free. The irreducible residual is compromising `threshold`-many _current_ witness
-keys, which is the federation itself being compromised — recovery is reincept, not a backdate via
-stale keys.
+(the witness-config's receipting `threshold`, not the `t_govern` governance quorum) — **and fewer
+than `t_govern` byzantine members at governance**: a member coalition reaching `t_govern` authors
+governance at will, honest witnesses receipting its structurally-valid participations, and the two
+axes are independent (a config may legally set `threshold > t_govern`, where the governance axis
+breaks first). Beyond either is operational recovery and reincept. The co-witnessing exclusivity
+carries its own tighter bound: it holds against fewer than `2·threshold − signers` byzantine
+double-signers within the selected set (the fork-cost), so for an over-provisioned config a
+coalition _within_ the blanket `< threshold` assumption can manufacture a co-witnessed content fork
+at fork-cost — priced, exposed, and evictable, not free. The irreducible residual is compromising
+`threshold`-many _current_ witness keys, which is the federation itself being compromised — recovery
+is reincept, not a backdate via stale keys.
 
 ## Cross-references
 

@@ -314,7 +314,8 @@ value it carries is the sealed thing itself.
 Each grant value is a SAD (`said` + `kind` + its value); each is **owned by the component that
 defines it** — the rows above point at the owning doc, and this catalogue is a registry, never the
 definition. The concrete value layouts land at the encoding library (the scheme-tagged keys and ESSR
-wraps) and the shared-documents encode (the role-lists).
+wraps), the shared-documents encode (the role-lists), and the exchange encode (the chat-membership
+grant-doc).
 
 The **directory receive-key** grant value carries the reachability a sender needs — the key to seal
 to and where to deliver:
