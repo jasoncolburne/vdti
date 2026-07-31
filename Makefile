@@ -1,9 +1,9 @@
-.PHONY: all lint-terminology lint-docs fmt-md fmt-md-check toc toc-check working-tarball
+.PHONY: all lint-terminology lint-docs lint-examples fmt-md fmt-md-check toc toc-check working-tarball
 
-# Phase 0 — lint-terminology, lint-docs, and fmt-md-check are the
-# meaningful targets. Markdown formatting (prettier) is wired now; the Rust
-# targets (cargo fmt/clippy/test/build) land alongside the Cargo workspace in
-# Phase 1.
+# Phase 0 — lint-terminology, lint-docs, lint-examples, fmt-md-check and
+# toc-check are the meaningful targets. Markdown formatting (prettier) is wired
+# now; the Rust targets (cargo fmt/clippy/test/build) land alongside the Cargo
+# workspace in Phase 1.
 
 # Pinned so local `fmt-md` and CI `fmt-md-check` agree byte-for-byte. The canon
 # under docs/canon/ (+ the .working/ surface) is exempt via .prettierignore (kept line-per-concept).
@@ -18,7 +18,7 @@ WORKING_TARBALL := working.tar.xz
 # there and they drop out of the snapshot with no edit to this file.
 WORKING_FILES := $(notdir $(wildcard $(WORKING_DIR)/*.md))
 
-all: lint-tools lint-terminology lint-docs fmt-md-check toc-check
+all: lint-tools lint-terminology lint-docs lint-examples fmt-md-check toc-check
 
 # grep-terms.pl once returned ZERO SILENTLY for any phrase containing a non-ASCII
 # character (args arrive as bytes, files are read as characters), so sweeps for
@@ -36,6 +36,13 @@ lint-terminology:
 
 lint-docs:
 	@./scripts/check-doc-xrefs.py
+
+# The SAD shape catalogue's example JSON carries DERIVED SAIDs — each recomputes from the
+# bytes printed beside it. Hand-editing an example (or its said) breaks that, silently, in a
+# doc whose whole point is that identifiers recompute; this re-derives every one. Regenerate
+# examples with scripts/generate-sad-examples.py rather than editing them in place.
+lint-examples:
+	@./scripts/check-sad-examples.py
 
 # Refresh the working-surface snapshot (working.tar.xz) from .working/.
 working-tarball:

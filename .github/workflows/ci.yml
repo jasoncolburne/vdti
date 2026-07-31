@@ -28,6 +28,17 @@ jobs:
       - uses: actions/checkout@v4
       - run: make lint-docs
 
+  lint-examples:
+    name: Lint Examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Blake3-256, to re-derive the SAIDs in the SAD shape catalogue's examples. The check
+      # prefers the b3sum binary and falls back to this module; unpinned because the digest is
+      # fixed by the algorithm, so no version computes a different answer.
+      - run: pip install blake3
+      - run: make lint-examples
+
   markdown-format:
     name: Markdown Format
     runs-on: ubuntu-latest

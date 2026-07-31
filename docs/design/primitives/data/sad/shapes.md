@@ -20,6 +20,20 @@ distinct from a scalar **SAID** reference like a `previous`, a pin, or an anchor
 **u64** — a non-negative JSON-number integer in the double-safe range ±(2⁵³−1)
 ([`said.md`](said.md)); **bool**; **bytes**; **timestamp** — an RFC 3339 time; **list⟨T⟩**.
 
+**The examples.** Each shape below carries one example instance — a plausible object, not every
+optional field populated. **Every example's `said` derives from exactly the JSON printed beside
+it**: JCS-canonicalized, `said` — and `prefix`, where the SAD is prefix-deriving — at the
+fixed-value placeholder, Blake3-256, qualified ([`said.md`](said.md)). The one slice, the wrapper
+example below, carries the `said` of the whole SAD it was lifted from. Text primitives carry the
+encoding library's type qualifiers: a Blake3-256 digest — every SAID, prefix, and blob digest — is a
+44-character `V` token, a 256-bit nonce an `N` token, an authenticated-cipher sealing nonce a `1AAN`
+token, a timestamp an RFC 3339 instant. A key, signature, or ciphertext runs to hundreds or
+thousands of characters, so those values print **elided**, their full qualified length in place of
+the middle; a value naming something not shown — a blob's storage key, a reference to an object
+elsewhere — is illustrative. Nested sub-SADs print **compacted**, by SAID, the form the canonical
+bytes carry; each has its own example under its own shape. Fields follow the table's order, wrapper
+fields first; JCS sorts keys, so an example is a logical view of a SAD, never its canonical bytes.
+
 ## The two shapes
 
 A SAD is one of two shapes ([`sad.md` §Structural shapes](sad.md#structural-shapes)):
@@ -56,6 +70,27 @@ Every standalone SAD carries these top-level fields, then its kind-specific cont
   availability axis — placement is the client's cascading store
   ([`availability.md`](availability.md#what-availability-declares)).
 
+The wrapper of a private file SAD — an attested write, read gated to the union of two sets, bytes
+retained until a stated instant (§The file payload shows the same SAD in full):
+
+```json
+{
+  "said": "VPXFC5bUlkbqJVWincvPXgfm7pivPjEgmaRH2J5ZdQZf",
+  "kind": "vdti/sad/v1/schemas/file",
+  "custody": {
+    "owner": "VMBm6mFNau5nMYbH4QuqFMHEx0t-LAgQzV9RSYU0vO70",
+    "pin": "VFkQ1XqZ9jFcefWJU1_tIIgWU0O0-bcWOwyyIIpckJAC",
+    "readers": [
+      "VAVpQsAJhhkWHmdc2GTPRJVFiq5EsdmfSfJ6O278AlqX",
+      "VN1qO8PqWQYOcjTa8u2luHTyMNkEA5sibS51eIeVR7_E"
+    ]
+  },
+  "availability": {
+    "expiry": "2027-05-01T00:00:00Z"
+  }
+}
+```
+
 ## The file payload — `vdti/sad/v1/schemas/file`
 
 The SAD layer's general content wrapper: a standalone SAD that names **bulk opaque bytes** — an
@@ -71,6 +106,32 @@ encrypted payload, a file, media — as a **content-addressed blob** rather than
 | `mediaType` | string | no       | Advisory MIME type.                                                                                                        |
 | `name`      | string | no       | Advisory filename.                                                                                                         |
 | `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.                                                                |
+
+A file SAD naming an encrypted attachment — the storage key its `said` commits, the advisory size
+and labels, and the mandatory nonce:
+
+```json
+{
+  "said": "VPXFC5bUlkbqJVWincvPXgfm7pivPjEgmaRH2J5ZdQZf",
+  "kind": "vdti/sad/v1/schemas/file",
+  "custody": {
+    "owner": "VMBm6mFNau5nMYbH4QuqFMHEx0t-LAgQzV9RSYU0vO70",
+    "pin": "VFkQ1XqZ9jFcefWJU1_tIIgWU0O0-bcWOwyyIIpckJAC",
+    "readers": [
+      "VAVpQsAJhhkWHmdc2GTPRJVFiq5EsdmfSfJ6O278AlqX",
+      "VN1qO8PqWQYOcjTa8u2luHTyMNkEA5sibS51eIeVR7_E"
+    ]
+  },
+  "availability": {
+    "expiry": "2027-05-01T00:00:00Z"
+  },
+  "digest": "VA3Ku19KbyCznq9XX2icil1P-oypkbgSeYPeouSpJIHz",
+  "size": 2456123,
+  "mediaType": "application/pdf",
+  "name": "quarterly-report.pdf",
+  "nonce": "NIbQXTQa4Og-JXWKz7H4mwn5Gh5LwhwTrhrJindl-nu1"
+}
+```
 
 The `custody` / `availability` wrapper applies as to any standalone SAD: `custody.readers` gates who
 may fetch the SAD, and the SAD's `availability` governs the **SAD**. The **payload's** availability
@@ -108,6 +169,20 @@ committing document's own kind** (a structurally sealed document — an ESSR env
 message — must carry the sealed kind; an ambiguous one defaults to **plaintext, fail-secure**, and
 opts down deliberately). An unmappable kind is **refused, fail-closed**
 ([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)).
+
+The bundle stored with that file's payload — the encrypted kind, a gated read, and a GC horizon its
+committing SAD's own availability covers:
+
+```json
+{
+  "said": "VNFE67girUzYaoSSWQwF-4FPqKqHXfg5T7fIzMmpbQ0s",
+  "kind": "vdti/sad/v1/schemas/sealed-blob-metadata",
+  "nonce": "NBTEYq-bDifJdNzmKtkjKkUMidiu6QSpRf4-vY0pnkej",
+  "blobDigest": "VA33V2wXbe7CwnAWwIVPH4cLHe-jgqB6mqC6nNPJgrgm",
+  "access": "VNTubie0UynSagEC61vVLk4T5AQxswMrighSYHlUDKBd",
+  "expiry": "2027-05-01T00:00:00Z"
+}
+```
 
 The bundle is **unsigned** — availability is anchored transitively by the committing document, which
 commits `S`, which fixes the bundle ([`sad.md`](sad.md)). And it is **not on the served-by-SAID
@@ -153,6 +228,17 @@ The **submission envelope** — `vdti/rooting/v1/submission/envelope`:
 | `sad`  | SAD    | yes      | The SAD being admitted (nested; travels compacted or expanded — the store recomputes). |
 | `root` | SAD    | yes      | The root pointer — one of the two nested rooting SADs below.                           |
 
+A submission admitting the file SAD above under an event root:
+
+```json
+{
+  "said": "VExubYy5x9bur0WGg3lZeUEkAAG0y7HhX6IvJbn1wWMy",
+  "kind": "vdti/rooting/v1/submission/envelope",
+  "sad": "VPXFC5bUlkbqJVWincvPXgfm7pivPjEgmaRH2J5ZdQZf",
+  "root": "VBc_qdCh5aZWmG-RBokYws9wF6u0duD7f1OeqCrhIKvn"
+}
+```
+
 The **event-root pointer** — `vdti/rooting/v1/{kel,iel,sel}/event`, when a chain event commits the
 SAD:
 
@@ -164,6 +250,19 @@ SAD:
 | `event`  | SAID   | yes      | The anchoring event's `previous` — the committing event sits at its serial + 1, the same locator `custody.pin` uses.                                         |
 | `field`  | string | yes      | The committing event-body field — `manifest` or `pins`, the only two that name a store SAD ([`../event-logs/event-shape.md`](../event-logs/event-shape.md)). |
 
+The event-root pointer it carries — the owner IEL `Ixn` at `event`'s serial + 1 commits the SAD in
+its `manifest`:
+
+```json
+{
+  "said": "VBc_qdCh5aZWmG-RBokYws9wF6u0duD7f1OeqCrhIKvn",
+  "kind": "vdti/rooting/v1/iel/event",
+  "prefix": "VMBm6mFNau5nMYbH4QuqFMHEx0t-LAgQzV9RSYU0vO70",
+  "event": "VFkQ1XqZ9jFcefWJU1_tIIgWU0O0-bcWOwyyIIpckJAC",
+  "field": "manifest"
+}
+```
+
 The **SAD-field-root pointer** — `vdti/rooting/v1/sad/field`, when an accepted parent SAD commits
 the SAD:
 
@@ -173,6 +272,18 @@ the SAD:
 | `kind`   | string | yes      | `vdti/rooting/v1/sad/field`.                                                                  |
 | `parent` | SAID   | yes      | The accepted parent SAD's identifier.                                                         |
 | `field`  | string | yes      | The parent field that commits the child (a manifest role, a credential's `terms` / `claims`). |
+
+A SAD-field-root pointer instead, when an accepted parent commits the child — here a credential's
+claims SAD:
+
+```json
+{
+  "said": "VDjRixereZ3LSIo7V4UJ1rqhiMe-BEchhGCF0TFFGoSI",
+  "kind": "vdti/rooting/v1/sad/field",
+  "parent": "VE4zuHh228ik_6Y2kKSdrEJsrUyfLBonw3DfhZvLfZFa",
+  "field": "claims"
+}
+```
 
 The child does **not** name its parent in its own bytes (that would bind it to one parent and leak
 the composition), so the `sad/field` pointer is a checked request hint, not part of the admitted
@@ -204,12 +315,55 @@ Kind-specific fields sit alongside — the KEL's `publicKey` / `rotationHash`, t
 [`event-shape.md` §Per-kind structural validation](../event-logs/event-shape.md); the shared field
 meanings are its §Common fields and §Cross-cutting fields.
 
+A KEL inception — `serial` 0, no `previous`, and a `prefix` derived from the whole inception content
+by the two-hash algorithm:
+
+```json
+{
+  "said": "VCCzeYhTBehR1gmWlt1PvPogGEFVQfPZIkEaJ-7YR0fs",
+  "prefix": "VAWux8uFtRyQ3v7ezyy3fBE4fTCRtAqCXcRPg267wPHG",
+  "serial": 0,
+  "kind": "vdti/kel/v1/events/icp",
+  "publicKey": "QGGIOk…2604 chars…JsfQ",
+  "rotationHash": "VDxHh07WH1k946HaX_WdYoRq6yr5KUpyKDv5yTgG9Pt9",
+  "federation": "VD1dGfv6l7xpf4oVIQqo0cQMhEXlOFRmmYCKHkvn4d5h",
+  "federationPin": "VGJJA8UftIdbz5TBFzP74lp3z493h2uWsQS6ehIs3Hz0",
+  "manifest": "VGKfdUpKACqeFzvg2ky2qRRcCf9e5_Sk11ABKuTZAZfd"
+}
+```
+
+The rotation that follows it — the inherited `prefix`, `previous` to the inception, and the
+`previousSeal` back-link that renders the spine:
+
+```json
+{
+  "said": "VEd1wXILtDgPJVAYII4y2atic3yJCQ95kwz53d6oPKqW",
+  "prefix": "VAWux8uFtRyQ3v7ezyy3fBE4fTCRtAqCXcRPg267wPHG",
+  "serial": 1,
+  "previous": "VCCzeYhTBehR1gmWlt1PvPogGEFVQfPZIkEaJ-7YR0fs",
+  "kind": "vdti/kel/v1/events/rot",
+  "publicKey": "Q5xqNP…2604 chars…uYJe",
+  "rotationHash": "VPpytkYGz_X7lDx8w3DJVJoIbloaNzhVvtXk7LQJEXLd",
+  "previousSeal": "VCCzeYhTBehR1gmWlt1PvPogGEFVQfPZIkEaJ-7YR0fs"
+}
+```
+
 ## Commitment SADs — what a `manifest` names
 
 A committing event's `manifest` is the SAID of a **role-grouped commitment SAD**:
 `{ said, <role>: <value>, … }`, where each role is a named commitment. The role vocabulary and which
 kind may carry which role are [`event-shape.md` §The manifest](../event-logs/event-shape.md); the
 roles that resolve to their **own** SAD are catalogued here.
+
+The manifest that inception names — one role, the witness-config SAD below:
+
+```json
+{
+  "said": "VGKfdUpKACqeFzvg2ky2qRRcCf9e5_Sk11ABKuTZAZfd",
+  "kind": "vdti/event/v1/roles/manifest",
+  "witnesses": "VDiGA02z3PUYCWNrVbxlh3folbGskM8OhuZvXR3KwdVx"
+}
+```
 
 ### `vdti/event/v1/roles/witnesses` — the witness-config
 
@@ -224,6 +378,17 @@ Bounded `signers/2 < threshold ≤ signers ≤ |roster|` (here `|roster|` is the
 witness roster, not the identity's own member roster), with a tighter recoverability cap on the
 federation IEL
 ([`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md)).
+
+A witness-config — five signers selected per event, three receipts required:
+
+```json
+{
+  "said": "VDiGA02z3PUYCWNrVbxlh3folbGskM8OhuZvXR3KwdVx",
+  "kind": "vdti/event/v1/roles/witnesses",
+  "threshold": 3,
+  "signers": 5
+}
+```
 
 ### `vdti/event/v1/roles/roster` — a roster / threshold delta
 
@@ -246,6 +411,27 @@ threshold bounds — `t_live`'s included — are re-checked on the post-delta co
 must carry **exactly one** prefix (one witness KEL added at a time) — the type stays `list⟨prefix⟩`;
 the one-at-a-time rule is a cardinality check on the federation facet, not a second shape.
 
+An initial roster and threshold vector, carried by a user IEL `Icp` — three member devices, content
+at one, authority at two:
+
+```json
+{
+  "said": "VJgSysDF0iotPxEPAl3UazXMSa7V5-hp-k_a9-1GwULh",
+  "kind": "vdti/event/v1/roles/roster",
+  "add": [
+    "VGPYmZDJUlWpsnQZzPhXsbvzHnQZ9cNWpsf2pjhHpjkm",
+    "VJiNH-8Yoqb6uuw9qqGB4Qs6RhvOBgXCY8O3agYRJha6",
+    "VOQCxejR14GK2VrqbLeFezR7mQfwSiKweS2I7FixKKGj"
+  ],
+  "threshold": {
+    "use": 1,
+    "authorize": 2,
+    "govern": 2
+  },
+  "t_live": 2
+}
+```
+
 ### `vdti/event/v1/roles/pins` — the participating member KEL SAIDs
 
 | Field  | Type       | Meaning                                                                                                                                                          |
@@ -253,6 +439,19 @@ the one-at-a-time rule is a cardinality check on the federation facet, not a sec
 | `said` | SAID       | The pins SAD's SAID.                                                                                                                                             |
 | `kind` | string     | `vdti/event/v1/roles/pins`.                                                                                                                                      |
 | `pins` | list⟨SAID⟩ | Each participating member's **prior KEL tip** (`participation.previous`; the anchoring KEL event sits one past it, so no SAID cycle) — an IEL event's down-pins. |
+
+The down-pins of an IEL event two of its members participated in:
+
+```json
+{
+  "said": "VLEOBGKW2yfAJdufFh6FCq1H3v4WatD1wU3f5oOSQB1j",
+  "kind": "vdti/event/v1/roles/pins",
+  "pins": [
+    "VAZMLlulk61LIwPe4T0StYk5UuTIf7TOghJ9lZGu7HtD",
+    "VPKhZf3wVE3gq-YRsq4TyqUDl4g135EZU1mzS0F3BnLM"
+  ]
+}
+```
 
 The remaining roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` — are
 carried **inline** in the manifest SAD, so they have no SAD of their own ([`kinds.md`](kinds.md));
@@ -278,6 +477,23 @@ sign over its own `said`). One kind per witnessed chain — `vdti/witness/v1/rec
 | `timestamp`     | timestamp | The witness's asserted time (inside the signed payload).          |
 | `witnessPrefix` | prefix    | The signing witness's KEL prefix.                                 |
 
+A witness receipt over an IEL event at serial 17:
+
+```json
+{
+  "said": "VE0ByZRMYKXrCWntTQFGKaVKpLQSGkQSO-eshM1MkCSk",
+  "kind": "vdti/witness/v1/receipts/iel",
+  "threshold": 3,
+  "signers": 5,
+  "federationPin": "VGJJA8UftIdbz5TBFzP74lp3z493h2uWsQS6ehIs3Hz0",
+  "chainPrefix": "VMBm6mFNau5nMYbH4QuqFMHEx0t-LAgQzV9RSYU0vO70",
+  "eventSaid": "VHCaP6Pbt9BCPhA3VJQoksW1hwD9IWdRh-HD_Q99vahF",
+  "eventSerial": 17,
+  "timestamp": "2026-11-04T18:22:07Z",
+  "witnessPrefix": "VKC51nmrADoKjgHLv9jhETUzRXrDsmHI99viOQsjEG8g"
+}
+```
+
 ## Freshness statements
 
 A **freshness statement** is a witness-signed attestation of held state — the multi-source freshness
@@ -293,6 +509,28 @@ Like a receipt, it is a SAD whose witness signature rides **adjacent**, never in
 | `timestamp`     | timestamp | yes      | The witness's asserted time (inside the signed payload).                                                                |
 | `nonce`         | bytes     | no       | A consumer-supplied challenge — present in the live (challenge-response) variant.                                       |
 | `witnessPrefix` | prefix    | yes      | The signing witness's KEL prefix.                                                                                       |
+
+A freshness statement answering a consumer's challenge, attesting the state it holds for two chains:
+
+```json
+{
+  "said": "VDoxg3e4nw10MjIv6cjjUBhF6xhHntTwGTvJiaMpHUbp",
+  "kind": "vdti/witness/v1/states/freshness",
+  "statements": [
+    {
+      "prefix": "VGWHQrCmXQ8RH-yINgLvg2HEg8pGCs67ecpZ6-ufT6WN",
+      "effectiveSaid": "VOVT1Vtze8OZQNRiV8zE6xEq4BqJk3r6g3LEQlI9AjaT"
+    },
+    {
+      "prefix": "VMBm6mFNau5nMYbH4QuqFMHEx0t-LAgQzV9RSYU0vO70",
+      "effectiveSaid": "VOq34m01F38MB3V5UkRCawpGhrx8Gz0s7XyFLaeHBRGb"
+    }
+  ],
+  "timestamp": "2026-11-04T18:22:09Z",
+  "nonce": "NFOC50W3Xgv2eKcKdYUXEjqd1UuRXI0c_psct3Le9iFd",
+  "witnessPrefix": "VKC51nmrADoKjgHLv9jhETUzRXrDsmHI99viOQsjEG8g"
+}
+```
 
 ## Grant values — what a SEL `Gnt` seals
 
@@ -331,6 +569,42 @@ to and where to deliver:
 (The scheme-tagged key and attestation byte layouts land at the encoding library; the structural
 fields — including the `receivers` exchange delivers against — are fixed here.)
 
+A published receive key and the services that hold a message sealed to it:
+
+```json
+{
+  "said": "VK9FT_Yl8-hUpIMMlYv_Hf8ChWirN807E3Q6PK4_O8-0",
+  "kind": "vdti/sel/v1/grants/directory-kem",
+  "receiveKey": "MT7EEX…1580 chars…rd8A",
+  "receivers": [
+    "VKqIjrn0Jj_mSHIk5QnypzjJDSZ5OwqRViXS_PU4tGJn",
+    "VLdfe34Rdsa_o-Z_29G9ZamDYCFTnA14wVbJ4ppLzW8e"
+  ]
+}
+```
+
+A prefix-block marker:
+
+```json
+{
+  "said": "VAqX6Bx4NInGWkJJHH1BjHQiZ7rBL1fdhlg508v00R9M",
+  "kind": "vdti/sel/v1/grants/block",
+  "reason": "sustained malformed submissions"
+}
+```
+
+A trusted-federation grant value — the remote federation and the governance horizon acceptance is
+bounded by:
+
+```json
+{
+  "said": "VK7xV6-Q6zqs_DCIKV6fGyNdxIKs0b9JVGB-SffxkhfX",
+  "kind": "vdti/sel/v1/grants/trusted-federation",
+  "remotePrefix": "VBI0tLmkTCs2Fls7eKB70Sqeu5wMtqtfwBbCYDyWzTkF",
+  "bound": "VCBX_UfgTk01aSM1ptm1SLAQulH_4ue3IsSq8quExNE_"
+}
+```
+
 ## Protocol SADs
 
 ### ESSR — `vdti/essr/v1/*`
@@ -350,6 +624,22 @@ adjacent ([`../../protocols/essr.md`](../../protocols/essr.md)):
 | `payloadSize`   | u64    | The stored payload's byte length — advisory (allocation / pre-fetch bound), not integrity.                                                                   |
 | `nonce`         | bytes  | The sealing nonce (fresh random per message).                                                                                                                |
 
+An ESSR envelope — the signed cleartext, committing its sealed inner by storage key:
+
+```json
+{
+  "said": "VH1Pe6mCOzc0HMaCy9-jfbRvI2geCSkaoFAdqsQKbGdV",
+  "kind": "vdti/essr/v1/schemas/envelope",
+  "sender": "VJXt6jL06zmOACv4c3WENNyxExknjh36ljnNDGbhSi_5",
+  "senderPin": "VKCPOaGtw7Pwo5C9AcYDi2ncOIs3QCWemKzUwO7thN-R",
+  "recipient": "VEpHnH2icPWTIkx3Jgfpt-MUqDvlE5eDtTFZwBtiViTe",
+  "kemCiphertext": "Y4N0EN…1452 chars…QrgJ",
+  "payloadDigest": "VHqv8IZiCBWcYL4zDh7BO7g7HDTP3fuppJg5ebPy4kod",
+  "payloadSize": 4192,
+  "nonce": "1AANiTHw6npkSzTNkRGB"
+}
+```
+
 The **inner** (`vdti/essr/v1/schemas/inner`, sealed) is `{ said, kind, sender, payload }` — the
 sender prefix (the binding that rides inside the sealed content) and the opaque payload; a message
 timestamp or protocol label rides _inside_ `payload`, not as an envelope field. The **sealed inner
@@ -360,6 +650,28 @@ mismatch, or a split-out blob failing `bundle.blobDigest`, is the tamper signal)
 advisory** (an allocation / pre-fetch bound, never treated as tamper-evidence). The **message**
 (`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the envelope SAD plus
 the sender's signature over `envelope.said`.
+
+The inner it seals:
+
+```json
+{
+  "said": "VFl7sd5qY0mHyiYIe40UsnkJB-ay7Bm4aL9pE2_L3N7N",
+  "kind": "vdti/essr/v1/schemas/inner",
+  "sender": "VJXt6jL06zmOACv4c3WENNyxExknjh36ljnNDGbhSi_5",
+  "payload": "jA4YJ…3128 chars…Dvoc"
+}
+```
+
+And the message handed to transport:
+
+```json
+{
+  "said": "VEBc2yjMsZlPeneUPUjizin3e05d41dSa8fo2IFlaSJa",
+  "kind": "vdti/essr/v1/schemas/message",
+  "envelope": "VH1Pe6mCOzc0HMaCy9-jfbRvI2geCSkaoFAdqsQKbGdV",
+  "signature": "1AAQtWdl_…4416 chars…swX6"
+}
+```
 
 ### IPEX — `vdti/ipex/v1/*`
 
@@ -378,6 +690,22 @@ threaded by `previous` ([`../../protocols/ipex.md`](../../protocols/ipex.md)). O
 | `created`   | timestamp | yes      | Bounds cache retention; never a trust input.                                                                |
 | `challenge` | bytes     | no       | Echoes the verifier's `apply` challenge (stronger-liveness mode).                                           |
 | `disclosed` | SAD       | yes      | The disclosed SAD (nested) — expanded inline at full disclosure, or the committed SAID at a graduated step. |
+
+An IPEX grant disclosing a credential to one verifier, echoing that verifier's challenge:
+
+```json
+{
+  "said": "VB594R2zxsPwt4GEezZiAMgvbXrS_uTaFsVxle4Rn5I_",
+  "kind": "vdti/ipex/v1/schemas/grant",
+  "previous": "VPqcFsdzU_0VNrwdacpCQpojFovhd9zeepSYeoGcazLJ",
+  "discloser": "VHtuYkcj-xvUt10PlrALbz9G6W32t_faH62mLM24cI__",
+  "audience": "VDlo7nhbKgLiU9BTODTJDy60RyRu1VHuOo7q7tvYN7zz",
+  "nonce": "NBIVXGamcIf9k1r_atIcU3vvFW1Yd5n5SwJa3o9IgFei",
+  "created": "2027-02-19T14:05:00Z",
+  "challenge": "NGnHdpCYVbQBkE63BNBvNPXxkvE4r6ApJA25IQ9VXvzJ",
+  "disclosed": "VE4zuHh228ik_6Y2kKSdrEJsrUyfLBonw3DfhZvLfZFa"
+}
+```
 
 The other five messages (`apply` / `offer` / `agree` / `admit` / `spurn`) are lightweight
 negotiation and acknowledgement SADs, each `{ said, kind, previous?, … }` signed by its sender;
@@ -406,6 +734,21 @@ below is common to every type.
 | `expires`        | timestamp    | no       | Expiry (advisory).                                                                                                                                                                                                                                                 |
 | `nonce`          | bytes        | yes      | High-entropy — every credential has one; makes `said` unguessable.                                                                                                                                                                                                 |
 
+A credential — issued to a named issuee, its claims committed as a nested SAD:
+
+```json
+{
+  "said": "VE4zuHh228ik_6Y2kKSdrEJsrUyfLBonw3DfhZvLfZFa",
+  "kind": "edu.example/cred/v1/schemas/diploma",
+  "issuer": "VElLsE-OyAXGgppj-erWYi8p9ZT8ESPM-mRG0mdGJWZs",
+  "issuerPin": "VI_HNqk8NS8FZpndtBIxghQ7e9HCoBrUIlKkG7ZDHtBK",
+  "issuee": "VHtuYkcj-xvUt10PlrALbz9G6W32t_faH62mLM24cI__",
+  "claims": "VPZZwj5IkgYKm7Y8Id2PDQs8qdDlTObguJALSR3i4IVw",
+  "issued": "2026-06-12T00:00:00Z",
+  "nonce": "NGHI7PQOXzRpR1IW92XiGjlJqLmS5U7az6PF_H9-RfkP"
+}
+```
+
 The `claims` field is the SAID of a **claims SAD** (`vdti/cred/v1/claims/*`, application-defined).
 Each gated predicate it carries is a **uniformly-shaped blinded claim** —
 `{ said, kind, nonce, data }`: the per-claim `said` is what the credential commits; its `kind` is a
@@ -415,6 +758,28 @@ high-entropy `nonce` blinds it so a compacted claim leaks neither presence nor v
 the application-shaped value (a boolean bracket like `ageGTE18`, a field). Disclosing a claim
 reveals its `{ kind, nonce, data }` and recomputes the `said` against the commitment
 ([claim-gating](../../../features/credentials.md#claim-gating)).
+
+The claims SAD it commits, each position a blinded claim:
+
+```json
+{
+  "said": "VPZZwj5IkgYKm7Y8Id2PDQs8qdDlTObguJALSR3i4IVw",
+  "kind": "vdti/cred/v1/claims/diploma",
+  "program": "VMAjOHlirOCjxmKvS9FhrB3rqY_wZDpgGDtt18LGwKCr",
+  "honours": "VAIv1BuHZKhmsiwkkC9QWSFhGnOkQ4iVem1M64GYEf46"
+}
+```
+
+And one of those blinded claims, disclosed:
+
+```json
+{
+  "said": "VMAjOHlirOCjxmKvS9FhrB3rqY_wZDpgGDtt18LGwKCr",
+  "kind": "vdti/cred/v1/claims/blinded-string",
+  "nonce": "NJbXoEyJmx4UyRjsK1YzWYwtUPJIWvs8xEAZaIUMRbdi",
+  "data": "Bachelor of Science, Mathematics"
+}
+```
 
 ### Shared documents — `vdti/doc/v1/schemas/*`
 
@@ -429,6 +794,26 @@ The **V0 constitution** (derives the doc prefix):
 | `custody` | struct | `{ readers[] }` — the initial read gate: the three `document-*-membership` SEL prefixes (edit ∪ comment ∪ read), sorted; omitted → public. |
 | `nonce`   | bytes  | Required, high-entropy — the governance chains derive from it (their `data`); makes the doc prefix unguessable if private.                 |
 
+A document constitution — the prefix derived from V0's whole content, read gated to the three
+membership sets:
+
+```json
+{
+  "said": "VCcxGlmMZoVFZkXRZaEVlTkKT1xIl7TWNfYojMGdm77z",
+  "kind": "vdti/doc/v1/schemas/inception",
+  "creator": "VPizZoOnwJRA49T4s4chJWaYitEGdaT9GnnfxLVJ3sOr",
+  "prefix": "VJtuETsV6ilSO862FC0tZwFJcH_3KvPEmqcaCPSLv57i",
+  "custody": {
+    "readers": [
+      "VAEG-JGv8VpxZDGLbgVSs2E2esUHNnhJIhZEQNbLEGU-",
+      "VKR8MWlkqxaB66cX0eBGSevGDVJEfpBH3GEWypzQzijW",
+      "VNn4P3wS2lsHKnHpgHuaQQdjQn4dLGI3CX2etZ3wyT4B"
+    ]
+  },
+  "nonce": "NEzNnqgUYDVcAZWim_hSFTX6ikDMtRA5JWk7df5tV3jE"
+}
+```
+
 A **version** SAD (custody-attributed, chained into the version DAG):
 
 | Field       | Type       | Meaning                                                                                    |
@@ -442,6 +827,30 @@ A **version** SAD (custody-attributed, chained into the version DAG):
 | `content`   | SAD        | The version body.                                                                          |
 | `edited`    | timestamp  | Advisory feature timestamp.                                                                |
 | `nonce`     | bytes      | High-entropy — makes the version SAID unguessable for a private doc (omitted when public). |
+
+A version of that document, attributed to its editor:
+
+```json
+{
+  "said": "VBkY_BEDBAxqATM51I1k34_kyzFEl8Be2cGcutMyoF3S",
+  "kind": "vdti/doc/v1/schemas/version",
+  "custody": {
+    "owner": "VLvUNGfh7zI4LbYHGxAZncd0xPKEBIOtMbo3VmHcw91y",
+    "pin": "VGHf6jFyEy8jA8XH8rWX4SraWj4brlnGF07QUrawiYxl",
+    "readers": [
+      "VAEG-JGv8VpxZDGLbgVSs2E2esUHNnhJIhZEQNbLEGU-",
+      "VKR8MWlkqxaB66cX0eBGSevGDVJEfpBH3GEWypzQzijW",
+      "VNn4P3wS2lsHKnHpgHuaQQdjQn4dLGI3CX2etZ3wyT4B"
+    ]
+  },
+  "ancestors": ["VGRMaOp65WuBcYIQd_zafR5LneVUiAU5sBCqh4jwlKAZ"],
+  "prefix": "VJtuETsV6ilSO862FC0tZwFJcH_3KvPEmqcaCPSLv57i",
+  "grant": "VH-JkJsNTy1fqb0_2DgJA8XbHeX4QQR4Pf-udu-suBJs",
+  "content": "VJgLs7j7PLDhX6DD_FJu999h3tg8N_8eqIk6wA-d9jpX",
+  "edited": "2027-01-22T16:41:12Z",
+  "nonce": "NDwiOm2W4zBEQbidp5g6Kq4juNc7VINJfXYnS4Fa8u-_"
+}
+```
 
 The **grant-doc** (the `{ grants, rescinds }` delta — one shape shared by the three instances
 `document-edit-membership` / `document-comment-membership` / `document-read-membership`, the kind
@@ -469,6 +878,29 @@ A **comment** (`vdti/doc/v1/schemas/comment`):
 | `supersedes` | SAID   | Optional — an earlier comment it edits (VDTI checks same `owner`).           |
 | `nonce`      | bytes  | High-entropy — makes the SAID unguessable for a private doc.                 |
 
+A comment on that version:
+
+```json
+{
+  "said": "VL4vaPWeNL6KsngSsHXn9FQMws3LrBIQK2ZfnBSOwFvu",
+  "kind": "vdti/doc/v1/schemas/comment",
+  "custody": {
+    "owner": "VEQ7-Dq2NJDkTZM9p9XdLV5nnZcCtc6r1oRnYF3_6iH2",
+    "pin": "VK-pt5WqdDIl7MVecGWmJW2-kKHV71nRzAM1lKkvcCF4",
+    "readers": [
+      "VAEG-JGv8VpxZDGLbgVSs2E2esUHNnhJIhZEQNbLEGU-",
+      "VKR8MWlkqxaB66cX0eBGSevGDVJEfpBH3GEWypzQzijW",
+      "VNn4P3wS2lsHKnHpgHuaQQdjQn4dLGI3CX2etZ3wyT4B"
+    ]
+  },
+  "prefix": "VJtuETsV6ilSO862FC0tZwFJcH_3KvPEmqcaCPSLv57i",
+  "target": "VBkY_BEDBAxqATM51I1k34_kyzFEl8Be2cGcutMyoF3S",
+  "locator": "cGFyYToxNy1yYW5nZTo0MDgsNDQx",
+  "content": "VGhpcyBjbGF1c2UgY29udHJhZGljdHMgwqcyLg",
+  "nonce": "NGx38x3H9me1bfM-FZdcNgmPzWz-mcn0GawBaANo20iv"
+}
+```
+
 A **comment-resolution** (`vdti/doc/v1/schemas/comment-resolution`, append-only):
 
 | Field      | Type   | Meaning                                                      |
@@ -480,6 +912,28 @@ A **comment-resolution** (`vdti/doc/v1/schemas/comment-resolution`, append-only)
 | `comment`  | SAID   | The comment SAID resolved / reopened.                        |
 | `resolved` | bool   | Resolved (`true`) or reopened (`false`).                     |
 | `nonce`    | bytes  | High-entropy — makes the SAID unguessable for a private doc. |
+
+And the resolution that closes it:
+
+```json
+{
+  "said": "VHgLpqfiuB4B3uvKB0M6KLYKOk9YSUKdKfdtN4w2rqkt",
+  "kind": "vdti/doc/v1/schemas/comment-resolution",
+  "custody": {
+    "owner": "VLvUNGfh7zI4LbYHGxAZncd0xPKEBIOtMbo3VmHcw91y",
+    "pin": "VGHf6jFyEy8jA8XH8rWX4SraWj4brlnGF07QUrawiYxl",
+    "readers": [
+      "VAEG-JGv8VpxZDGLbgVSs2E2esUHNnhJIhZEQNbLEGU-",
+      "VKR8MWlkqxaB66cX0eBGSevGDVJEfpBH3GEWypzQzijW",
+      "VNn4P3wS2lsHKnHpgHuaQQdjQn4dLGI3CX2etZ3wyT4B"
+    ]
+  },
+  "prefix": "VJtuETsV6ilSO862FC0tZwFJcH_3KvPEmqcaCPSLv57i",
+  "comment": "VL4vaPWeNL6KsngSsHXn9FQMws3LrBIQK2ZfnBSOwFvu",
+  "resolved": true,
+  "nonce": "NBTxVRJ-9FE5A0bOhdoEaq-KTA585FzBysCwLnssgDIm"
+}
+```
 
 ### Exchange — `vdti/exchange/v1/*`
 
@@ -500,6 +954,21 @@ The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on 
 | `payloadSize`   | u64       | The payload's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                                                                  |
 | `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                                                                                                                    |
 | `nonce`         | bytes     | High-entropy — makes `said` unguessable, so a **guessable** message body can't be confirmed against the public SAID (a known-plaintext oracle on the symmetric-encrypted chat content). Mandatory.                                                 |
+
+A chat message on its writer's lane — no sender field, because the lane is the writer:
+
+```json
+{
+  "said": "VDrwnP9OUhPgovSUYVEqjDPVFpurGBQHKmnlZUajYsWe",
+  "kind": "vdti/exchange/v1/schemas/message",
+  "previous": "VJxrsLs00bA2vthvN4ulLpdOQ3IsrpLpODTlkddIyfwZ",
+  "epoch": "VIjxuCYW-bRg1uee5aopht-UGHsnGtQbAALYciLiwkBi",
+  "payloadDigest": "VD7xHeI1Da4Ek6jq1xXq8Em_zojJd0om7fhBb7P9uiJ-",
+  "payloadSize": 1184,
+  "timestamp": "2027-03-08T21:14:33Z",
+  "nonce": "NDqJesTL9DIP8CxmI74PF-WLuoOWoV41G2ikGq6bbZF5"
+}
+```
 
 There is no `sender` field — the **lane is the writer**: the receiver derives the per-writer subkey
 from the lane, decrypts, and verifies the writer's signature. A lane **roots at a body-less join
