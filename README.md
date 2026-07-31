@@ -110,7 +110,7 @@ repo layout, 9-phase v1 sequencing, and acceptance criteria.
 - [`system-thesis.md`](docs/design/system-thesis.md) — foundations.
 - [`event-shape.md`](docs/design/primitives/data/event-logs/event-shape.md) — comprehensive event
   guide.
-- [`kinds.md`](docs/design/primitives/data/sad/kinds.md) — kinds of SAD (Self-addressing data).
+- [`kinds.md`](docs/design/primitives/data/sad/kinds.md) — kinds of SAD (self-addressing data).
 - [`shapes.md`](docs/design/primitives/data/sad/shapes.md) — shapes of SAD.
 - [`residuals.md`](docs/design/residuals.md) — the risks associated with operating.
 
