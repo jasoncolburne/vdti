@@ -425,8 +425,8 @@ owner-IEL anchor **severs** the SEL — the portion after the earliest dead anch
 with no repair. Credential **revocation and status** are a **feature** layered on the SEL primitive
 (issuance itself is the issuer's IEL anchor, not an SEL) —
 [`features/credentials.md`](../../../features/credentials.md); shared documents are another
-([`features/shared-documents.md`](../../../features/shared-documents.md), forthcoming), and
-value-bearing **receive keys** ride the SEL as a shared-core primitive (the
+([`features/shared-documents.md`](../../../features/shared-documents.md)), and value-bearing
+**receive keys** ride the SEL as a shared-core primitive (the
 [receive-key directory](../../protocols/receive-key-directory.md)).
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two

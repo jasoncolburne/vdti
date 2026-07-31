@@ -341,9 +341,11 @@ just shrinks the bundle, and an under-bar bundle makes the consumer refuse
 - **A flooding peer is attributable and evictable.** Off-federation, everything a peer pushes
   carries its signature; the per-peer rate cap bounds the flood until the roster act cuts it.
 - **A stalled stamper is not self-announcing.** A head that stops moving looks identical to an idle
-  store from the listing alone, so the store reports stamper liveness as its own signal beside the
-  head — otherwise a stalled stamper is a silent replication outage until an operator notices
-  ([`../../primitives/stores/log-store.md`](../../primitives/stores/log-store.md)).
+  store from the listing alone, so detecting the stall is the **operator's**: admissions arriving
+  while the published head stands still is the observable — derivable from state the store already
+  publishes ([`../../primitives/stores/log-store.md`](../../primitives/stores/log-store.md)), never
+  a new signal — and the restore residual prices the window a stall widens
+  ([`../../residuals.md`](../../residuals.md#9-availability-caps-and-dos-bounds)).
 
 ## Cross-references
 

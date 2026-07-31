@@ -365,8 +365,9 @@ collusion — one half's re-seal reaches threshold and the other **stalls** sub-
 `{Evl, Evl}` where **both** reach threshold is a collusion proof → Disputed, not an honest
 partition). So a **high-volume issuer serializes its content submissions** to avoid **wasted stalls
 and re-issues**, a discipline **separate from, and additional to, serializing sealing** (sealing
-events passing through **one designated submitter**, so two never race during a partition; operator
-doctrine, forthcoming). Both rails serialize only for **liveness / waste**, not safety:
+events passing through **one designated submitter**, so two never race during a partition — an
+operational discipline, stated here). Both rails serialize only for **liveness / waste**, not
+safety:
 
 - **The sealing rail.** A race between honest sealing events is resolved like a content race: the
   witnessing floor plus one-sealing-per-position **decline** the second sealed sibling (first-seen),
@@ -1060,12 +1061,13 @@ advisory and checked by the verifier against its own clock). None influence chai
 
 **Federation consensus clock (the one exception).** The federation publishes a coarse,
 consensus-attested clock **for freshness / staleness detection only** — the `clock` role on each
-federation `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` (an inline timestamp value in the `manifest`, one
-per such sealed event), sealed and monotonic, **not** a field on any chain event. It bounds each
-witness key's validity window so a closed-window key can only stamp old receipts, which makes a
-backdated dormant-chain forgery read **stale** — detectable, fail-secure. It **defeats** backdating
-rather than inviting it, and intra-chain ordering stays pin-based, so it honors this rule's intent;
-the bytes live in a SAD, so the primitives stay timestamp-free. See
+federation `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` / `Rev` (an inline timestamp value in the
+`manifest`, one per such sealed event; required on a federation `Rev` — its clock is a
+trusted-federation un-grant's counting cut), sealed and monotonic, **not** a field on any chain
+event. It bounds each witness key's validity window so a closed-window key can only stamp old
+receipts, which makes a backdated dormant-chain forgery read **stale** — detectable, fail-secure. It
+**defeats** backdating rather than inviting it, and intra-chain ordering stays pin-based, so it
+honors this rule's intent; the bytes live in a SAD, so the primitives stay timestamp-free. See
 [§Federation convergence](#federation-convergence) and
 [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
 
@@ -1081,26 +1083,26 @@ verdict.
 
 The federation is **a restricted IEL rooted at an `Fcp` inception marker** — there is no separate
 consensus algorithm and no central state machine. Its roster is **witness KELs directly**; its kind
-set is restricted to `Fcp` / `Wit` / `Trm` plus block-only `Ath` / `Dth` (no content, so it never
-has a **Forked** fork and needs no burying event; every federation fork is sealed — a `{Wit, Wit}` /
-`{Trm, Trm}` race is first-seen-declined under an honest partition (one sibling accepted, the other
-deferred), and only a **witness-colluded two-accepted** race is **Disputed**, terminal — which is
-why a federation runs a hard recoverability ceiling and `|roster| ≥ 4` with serialized sealing; no
-delegation, since trust is per-federation and non-transitive). Its roster changes ride the `Wit`'s
-**roster delta**, whose **`add` carries exactly one prefix per `Wit`** — one witness added at a
-time, the `Fcp` inception alone standing up the founding roster wholesale (`cut` is unrestricted in
-count: cuts remove synced witnesses, so emergency multi-eviction is unaffected — evict-and-replace
-is `cut: [..], add: one`). Standing up a witness is deliberate infrastructure, never bulk — and
-structurally, a governance transition then introduces at most **one** unsynced witness, which alone
-cannot reach a majority `threshold` against synced co-selectees that decline by first-seen — so the
-benign two-fresh-witnesses straddle (two full quorums under disjoint contexts) collapses into the
-priced witness-compromise residual (a fresh sibling needs a byzantine synced co-signer). Its trust
-root is a **config-pinned federation prefix** (runtime-configured, empty by default — fail-secure) —
-the prefix derives from the whole inception content `(roster, threshold, nonce)`, so it is a binding
-commitment to the exact founder set. There is **no self-witnessing carve-out** — the `Fcp` is a
-structural marker the verifier dispatches on, not a trust shortcut: authorization is ordinary
-member-anchoring (the founders' `Rot`s anchor the federation `Fcp`), trust roots in the config-pin,
-and everything post-genesis is witnessed normally.
+set is restricted to `Fcp` / `Wit` / `Trm`, plus block-only `Ath` / `Dth` and trusted-federation
+un-grant-only `Rev` (no content, so it never has a **Forked** fork and needs no burying event; every
+federation fork is sealed — a `{Wit, Wit}` / `{Trm, Trm}` race is first-seen-declined under an
+honest partition (one sibling accepted, the other deferred), and only a **witness-colluded
+two-accepted** race is **Disputed**, terminal — which is why a federation runs a hard recoverability
+ceiling and `|roster| ≥ 4` with serialized sealing; no delegation, since trust is per-federation and
+non-transitive). Its roster changes ride the `Wit`'s **roster delta**, whose **`add` carries exactly
+one prefix per `Wit`** — one witness added at a time, the `Fcp` inception alone standing up the
+founding roster wholesale (`cut` is unrestricted in count: cuts remove synced witnesses, so
+emergency multi-eviction is unaffected — evict-and-replace is `cut: [..], add: one`). Standing up a
+witness is deliberate infrastructure, never bulk — and structurally, a governance transition then
+introduces at most **one** unsynced witness, which alone cannot reach a majority `threshold` against
+synced co-selectees that decline by first-seen — so the benign two-fresh-witnesses straddle (two
+full quorums under disjoint contexts) collapses into the priced witness-compromise residual (a fresh
+sibling needs a byzantine synced co-signer). Its trust root is a **config-pinned federation prefix**
+(runtime-configured, empty by default — fail-secure) — the prefix derives from the whole inception
+content `(roster, threshold, nonce)`, so it is a binding commitment to the exact founder set. There
+is **no self-witnessing carve-out** — the `Fcp` is a structural marker the verifier dispatches on,
+not a trust shortcut: authorization is ordinary member-anchoring (the founders' `Rot`s anchor the
+federation `Fcp`), trust roots in the config-pin, and everything post-genesis is witnessed normally.
 
 The convergence model has three components:
 
@@ -1205,19 +1207,21 @@ determinable** on every node, without watcher infrastructure. **All inter-node m
 encrypted** (ML-KEM-1024 + AES-256-GCM) — the receipts and the events they propagate alike — and the
 mesh is the federation roster, so mesh contents stay within the federation.
 
-**Query-scoping and the audit flag.** A **not-yet-witnessed** (sub-threshold) event lives on the
+**Query scoping and the serve flags.** A **not-yet-witnessed** (sub-threshold) event lives on the
 selected witnesses' sub-gossip mesh while it gathers receipts, and is returned by a query **only to
 a selected witness** for that position — to every other node it is noise that could only skew a
-reading, so it is **not** returned. A non-witness therefore holds only **witnessed-in-full** events,
-which is what makes the data-local walk a pure function of **accepted** state on every node. (One
-nuance: an accepted event commits its whole ancestry — including an ancestor that never individually
-reached threshold; acceptance gates the tip, not each ancestor —
+reading, so it is **not** returned. For the **witnessed classes**, a non-witness therefore holds
+only **witnessed-in-full** events (an `Fcp`-rooted chain's unwitnessed steps are accepted on the
+admission dispatch's own grounds instead), which is what makes the data-local walk a pure function
+of **accepted** state on every node. (One nuance: an accepted event commits its whole ancestry —
+including an ancestor that never individually reached threshold; acceptance gates the tip, not each
+ancestor —
 [`kel/verification.md` §Acceptance requires threshold](primitives/data/event-logs/kel/verification.md#acceptance-requires-threshold--for-every-node).)
-An opt-in, non-default **`all-data` audit query** is the one exception: it returns **every** event
-and receipt a node holds, sub-threshold ones included — but the walk **ignores** anything not
-accepted, so surfacing them cannot skew a verdict. Its value is **forensic** (detecting injection or
-collusion attempts) and it carries an audit obligation. The mechanics are federation doctrine —
-[`substrate/federation/witnessing.md`](substrate/federation/witnessing.md).
+Two **opt-in, non-default serve flags** — `non-canonical` and `sub-threshold`, orthogonal because
+they gate for different reasons — surface the full retained set for forensics (detecting injection
+or collusion attempts), and each carries an audit obligation; the walk **ignores** anything not
+accepted, so surfacing the extra rows cannot skew a verdict. The mechanics are federation doctrine —
+[`substrate/federation/witnessing.md` §Query scoping and the serve flags](substrate/federation/witnessing.md#query-scoping-and-the-serve-flags).
 
 **The propagation premise and the split stall.** Prevention's success rate — never its safety —
 rests on prompt roster-wide propagation once an event is witnessed in full (the gossip mesh —
@@ -1498,10 +1502,13 @@ takes one of two forms:
 - **No single tip** (an unresolved fork — a live content fork, or **≥ 2 accepted sealed branches**,
   counted per branch wherever their seals sit) — a **type-tagged synthetic recoupled to the
   verdict** (`forked` / `disputed`), qualified by **prefix + the divergence ancestor** (both
-  synthetics key on the divergence `v_{d-1}`, not the seal positions, so every node computes the
-  same value) and **structurally distinct from any real SAID** (a distinct type tag, so a linear
-  state and a forked one cannot collide — the inequality that fires anti-entropy is _structural_,
-  never a probabilistic hash collision). **There is no digest over the competing tips.**
+  synthetics key on the divergence the verdict keys on — `forked`: the first divergence; `disputed`:
+  the earliest divergence carrying ≥ 2 accepted sealed branches, the two coinciding except in a
+  nested fork ([`tags-and-topics.md` §Tags](primitives/data/event-logs/tags-and-topics.md)) — never
+  the seal positions, so every node computes the same value) and **structurally distinct from any
+  real SAID** (a distinct type tag, so a linear state and a forked one cannot collide — the
+  inequality that fires anti-entropy is _structural_, never a probabilistic hash collision). **There
+  is no digest over the competing tips.**
 
 **Why a synthetic, not a digest over the live tips.** Under dishonest signers the competing-branch
 set is **adversarially extensible** — a compromised quorum can threshold-witness a third or Nth

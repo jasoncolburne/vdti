@@ -195,6 +195,8 @@ secrecy). A fleet deployment is a member device of the service's IEL
 - [`../../compositions/sad-server.md`](../../compositions/sad-server.md) /
   [`../../primitives/stores/sad-store.md`](../../primitives/stores/sad-store.md) — the composition
   this daemon deploys, and the dumb store beneath it.
+- [`logsd.md`](logsd.md) — the chain half of the node; the chain path routes there.
+- [`gossipd.md`](gossipd.md) — the sync daemon; federation readiness gates on its cold preload.
 - [`../../example-applications/pds.md`](../../example-applications/pds.md) /
   [`../../example-applications/drive.md`](../../example-applications/drive.md) /
   [`../../features/exchange.md`](../../features/exchange.md) — the compositions that place data on

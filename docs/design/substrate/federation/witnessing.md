@@ -276,10 +276,11 @@ The clock is the **`clock` role** in each **federation event's** manifest — an
 value**, not a separate SEL, event kind, or nested SAD (nothing dereferences it by its own SAID, so
 the manifest commits the value directly). A federation authors no `Ixn`, so **every** federation
 event carries a `clock`: the governance `Wit`s (a rotation, optionally also a roster change), the
-genesis `Fcp`, the terminal `Trm`, and the `Ath` / `Dth` block toggles. Each is sealed and the
-timeline is **monotonic** (each clock time ≥ the prior, enforced at the seal), so it cannot be
-rolled back. Consumers read the timeline by walking the federation IEL they already walk for the
-roster.
+genesis `Fcp`, the terminal `Trm`, the `Ath` / `Dth` block toggles, and the trusted-federation
+un-grant `Rev`s — required there, because a `Rev`'s clock is an un-grant's counting cut (§The trust
+grant chain). Each is sealed and the timeline is **monotonic** (each clock time ≥ the prior,
+enforced at the seal), so it cannot be rolled back. Consumers read the timeline by walking the
+federation IEL they already walk for the roster.
 
 **Key-windows.** Each witness has a key-validity window `[T_join, T_end]` in clock time: `T_join` is
 the clock at the `Wit` that admitted or last rotated the key, `T_end` the clock at the `Wit` that
@@ -676,14 +677,16 @@ can produce. A mismatch on an unresolvable or unrooted anchor is ordinary bad in
 silently: a SEL `Icp` is unsigned recomputable content anyone can fabricate, and the trust locus
 address derives from two public prefixes, so an ungated alarm is remote-inducible — an alarm-flood
 and false-flag generator worse than the silent non-honoring the alarm exists to avoid. **One
-residual rides the inert disposition, priced**: an inert `Trm` still spends the position's
-first-seen slot on any witness that signed it. Honest witnesses sign none (the same check is
-theirs), so the honest `Trm ← Rev` lands unopposed; under a witness set compromised at ≥ threshold,
-the position is spent while the lineage stays live, reincepting at the next lineage is no escape
-(the walk stops at the lowest live lineage), and trust becomes un-revocable at that federation —
-**fail-open**, collapsing into the priced federation-compromise residual (§Security assumption),
-stated here because for this locus the usual reincept recovery is unavailable and the failure
-direction inverts.
+residual is worth stating here, though the inert disposition does not cause it.** A structurally
+invalid event is never anyone's state: every durable write validates structure first, so a decoy is
+refused at the merge gate and dropped by the walk, and minting them buys an adversary nothing. What
+remains is that an un-grant is an ordinary event at an ordinary position — so a witness set
+compromised at ≥ `threshold` can stall it by declining to sign, exactly as it can stall anything
+(§Security assumption). What is specific to **this** locus is that the stall does not age out: the
+usual escape — republish at the next lineage — depends on the old lineage reading **dead**, and a
+stalled un-grant leaves it **live**, where a reader stops. Trust in that remote therefore stays
+granted until the compromised witnesses are evicted — **fail-open**, where the rest of this rail
+fails secure. It sits inside the priced federation-compromise residual rather than beside it.
 
 ### The counting conjunction
 
@@ -761,7 +764,8 @@ un-accepting.
   — an in-flight migration pauses at the horizon, resuming on refresh — and between refreshes
   **remote key retirements are invisible here**: a key the remote evicted, compromised keys
   included, keeps producing countable receipts for up to `MAXIMUM_WITNESS_KEY_WINDOW` past its last
-  vouched rotation. Both are priced residuals bounded by the refresh cadence, never implied closed.
+  vouched rotation. Both are priced residuals bounded by the refresh cadence, never implied closed
+  ([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
   And the cadence has a limit case: each chained refresh advances the horizon at most one submit
   batch, so a remote sustaining governance above roughly a batch per local refresh interval
   **outruns any cadence** — fail-secure (new remote traffic never counts; an in-flight migration

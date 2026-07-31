@@ -223,14 +223,14 @@ An IEL event's manifest may carry only these roles; one carrying any role outsid
 vocabulary is malformed and rejected, and a role is consumed only after dispatching on a kind
 permitted to carry it (read kind-first):
 
-| Role        | Carried by                                          | Commits to                                                                                                                                                                  |
-| ----------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation)    | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                                         |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`    | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`) |
-| `delegates` | `Ath` (user only — a federation `Ath` carries none) | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                                    |
-| `kills`     | `Rev` / `Dth`                                       | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration))                    |
-| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)           | the witness-config SAD `{ threshold, signers }`                                                                                                                             |
-| `clock`     | `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` (federation)  | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                                                                                  |
+| Role        | Carried by                                                 | Commits to                                                                                                                                                                  |
+| ----------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation)           | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                                         |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`           | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`) |
+| `delegates` | `Ath` (user only — a federation `Ath` carries none)        | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                                    |
+| `kills`     | `Rev` / `Dth`                                              | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration))                    |
+| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)                  | the witness-config SAD `{ threshold, signers }`                                                                                                                             |
+| `clock`     | `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` / `Rev` (federation) | the federation-clock timestamp (an inline scalar — the lone non-SAID role; required on a federation `Rev` — its clock is a trusted-federation un-grant's counting cut)      |
 
 The killed locus is named by `kills[].target` (a flat domain-qualified hash), separate from
 `anchors[]` (which names the sealing `Trm`): `anchors` establishes termination validity, `kills`
@@ -308,11 +308,12 @@ inception fixes:
   `{federation, federationPin}`), its content is majority-witnessed at its own position (the
   **position gate**, [`merge.md`](merge.md#the-content-versus-sealed-split)), and its `Wit` is the
   federation **rebind**.
-- A **federation IEL** roots at the `Fcp` marker and uses the restricted set `Fcp` / `Wit` / `Trm`
-  plus block-only `Ath` / `Dth` — its roster is witness KELs directly, it authors no content, and
-  its `Wit` is **governance** (roster + rotation + clock). Every federation event is sealed →
-  record-both; a competing sealed sibling is first-seen-declined (exclude-self peer-witnessing), so
-  only a witness-colluded two-accepted conflict is a schism (disputed / terminal).
+- A **federation IEL** roots at the `Fcp` marker and uses the restricted set `Fcp` / `Wit` / `Trm`,
+  plus block-only `Ath` / `Dth` and trusted-federation un-grant-only `Rev` — its roster is witness
+  KELs directly, it authors no content, and its `Wit` is **governance** (roster + rotation + clock).
+  Every federation event is sealed → record-both; a competing sealed sibling is first-seen-declined
+  (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is a schism
+  (disputed / terminal).
 
 The `Fcp` marker is a **structural disambiguator the verifier dispatches on, not a trust carve-out**
 — the config-pinned federation prefix still roots trust. The facet governs which roles a `Wit` may

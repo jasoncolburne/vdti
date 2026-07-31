@@ -75,7 +75,10 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   independently-controlled identities rather than expecting `id(X)` to mean `t_govern`. `id(X)`
   _defers to X_: it accepts whatever rule `X` sets for who acts as `X`, at `X`'s own `t_use`
   threshold. This is the recursive base of the language — a policy that names other identities
-  bottoms out in their IELs, which bottom out in member device keys.
+  bottoms out in their IELs, which bottom out in member device keys. An **`Fcp`-rooted `X` is a dead
+  configuration** — a federation declares no `t_use`, so `id(F)` is unsatisfiable — and authoring
+  tooling refuses it
+  ([`../data/event-logs/sel/log.md` §Prefix derivation](../data/event-logs/sel/log.md#prefix-derivation)).
 
 - **`del(X, N)` — a live delegate of `X`, within `N` hops.** Satisfied by a party that holds a live,
   non-rescinded delegation from `X`, reachable by walking **up** its own delegation chain to `X` in

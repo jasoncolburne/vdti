@@ -519,14 +519,15 @@ there is no signature field.
 
 A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../policy/policy.md)):
 
-| Form                     | Kind     | Meaning                                                                                      |
-| ------------------------ | -------- | -------------------------------------------------------------------------------------------- |
-| `id(prefix)`             | leaf     | An identity.                                                                                 |
-| `del(prefix, N)`         | leaf     | A live delegate of an identity, within `N` hops (`del(X)` = `del(X, 1)`).                    |
-| `pol(said)`              | leaf     | Another policy, by its SAID (the reference graph is acyclic).                                |
-| `thr(M, [expr, …])`      | composer | At least `M` of the listed sub-policies.                                                     |
-| `wgt(M, [(expr, w), …])` | composer | Sub-policies carry weights; satisfied when the satisfied weights total `≥ M`.                |
-| `and(expr, …)`           | composer | Every listed sub-policy (`≥ 2`); pools independent only when the author makes them disjoint. |
+| Form                     | Kind     | Meaning                                                                                                                       |
+| ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `id(prefix)`             | leaf     | An identity.                                                                                                                  |
+| `del(prefix, N)`         | leaf     | A live delegate of an identity, within `N` hops (`del(X)` = `del(X, 1)`).                                                     |
+| `pol(said)`              | leaf     | Another policy, by its SAID (the reference graph is acyclic).                                                                 |
+| `crd(kind, expr)`        | leaf     | A holder of a live credential of this kind, issued under `expr` ([`../../policy/evaluation.md`](../../policy/evaluation.md)). |
+| `thr(M, [expr, …])`      | composer | At least `M` of the listed sub-policies.                                                                                      |
+| `wgt(M, [(expr, w), …])` | composer | Sub-policies carry weights; satisfied when the satisfied weights total `≥ M`.                                                 |
+| `and(expr, …)`           | composer | Every listed sub-policy (`≥ 2`); pools independent only when the author makes them disjoint.                                  |
 
 ## Forthcoming shapes
 

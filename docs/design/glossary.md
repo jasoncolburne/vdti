@@ -199,9 +199,26 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 ### Federation and witnessing
 
 - **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` at `t_authorize` for
-  [prefix blocks](substrate/federation/blocking.md) only) whose roster is witness KELs; it
-  propagates and time-stamps, it never decides.
-  ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
+  [prefix blocks](substrate/federation/blocking.md) only and `Rev` at `t_govern` for
+  trusted-federation un-grants only) whose roster is witness KELs; it propagates and time-stamps, it
+  never decides. ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
+- **trust grant chain / trust-granted** — cross-federation trust as a federation-governed,
+  per-remote-federation derived SEL: **trust-granted** means a trust lineage **exists** for the
+  remote federation — live, or killed (established-then-dead); **never-granted** means no
+  established lineage at any index. The grant is a `Gnt ← federation Wit` at `t_govern`; the
+  un-grant a `Trm ← federation Rev`, symmetric.
+  ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
+- **counting conjunction** — the per-lineage rule for when a granted remote federation's receipt
+  counts: within a live lineage's `bound`, or within a killed lineage's cut (`τ` at-or-before the
+  un-grant's `clock`) **and** `bound`; killed windows are permanent counting authorities.
+  ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
+- **`bound` (governance horizon)** — in a trusted-federation grant value, the highest remote
+  federation position any receipt's resolution may use — a remote-federation-event SAID, monotone
+  non-decreasing across refreshes. Distinct from the two rescission senses of `bound`: the
+  grandfather cutoff in a `kills[]` entry, and the gated `bound` role on a SEL `Trm`.
+- **un-grant** — the governance act killing a trust lineage (`Trm ← federation Rev`, `t_govern`);
+  its `Rev`'s `clock` is the counting cut. Stops new counting; held data stays held; a re-grant
+  reincepts at the next lineage.
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
   the per-event witnessing attestation (the multi-source freshness evidence is the freshness
   statement). ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))

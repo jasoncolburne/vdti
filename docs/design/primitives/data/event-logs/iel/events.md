@@ -279,8 +279,7 @@ walked back forward by a `Dth`, never buried or overturned. An `Ath` whose `dele
 delegator's own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)` (the
 policy layer's delegation leaf — [`policy.md`](../../../policy/policy.md)). The document-layer grant
 mechanics live in
-[`../../../../features/shared-documents.md`](../../../../features/shared-documents.md)
-_(forthcoming)_.
+[`../../../../features/shared-documents.md`](../../../../features/shared-documents.md).
 
 ### `Rev` / `Dth` — the kill-anchors (tier 2)
 
@@ -322,14 +321,15 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
   and doc-member; the `data` distinguishes them). The target **mirrors the killed address**
   ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
   `hash('{tag}:{declarer}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
-  rescission), **lineaged** (`…:{lineage}`) for a **value rescission** (scoped to the one instance
-  it kills, so the re-established `lineage: N+1` survives), and a literal `:content` for a **content
-  (app-SEL) closure**. A value's positive resolution reads its own SEL chain; its per-lineage
-  negative check consults this lineaged target. The `tag` is **opaque to the IEL** — the IEL never
-  dereferences a target or interprets a bound. Placement (kind-strict) is the only structural rule;
-  all revocation and grandfather logic is the feature layer's
-  ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not** the
-  lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
+  rescission), **lineaged** (`…:{lineage}`) for a **value rescission** and for the `Rev`-anchored
+  **trusted-federation un-grant** — lineaged-ness is a property of the killed address, never of the
+  anchor kind (scoped to the one instance it kills, so the re-established `lineage: N+1` survives) —
+  and a literal `:content` for a **content (app-SEL) closure**. A value's positive resolution reads
+  its own SEL chain; its per-lineage negative check consults this lineaged target. The `tag` is
+  **opaque to the IEL** — the IEL never dereferences a target or interprets a bound. Placement
+  (kind-strict) is the only structural rule; all revocation and grandfather logic is the feature
+  layer's ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not**
+  the lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.
 - **`bound`** (rescission only) — the cutoff, the last honored event on the rescinded party's chain
   (a doc-member **grandfather** cutoff, or a chat-membership **per-lane bound**). One concept, two
@@ -543,14 +543,16 @@ visible to anyone walking that identity's chain.
 
 A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm`, plus `Ath`
 / `Dth` at `t_authorize` **only to anchor its own
-[prefix-block](../../../../substrate/federation/blocking.md) SELs**. Its roster is **witness KELs
-directly** (a threshold over them; no per-witness identity wrapper, no aggregate-of-IELs recursion).
-It authors **no `Ixn`** (no content), so every governance event is a key change → record-both; a
-competing sealed sibling is **first-seen-declined** (exclude-self peer-witnessing), so an honest
-conflict does **not** schism — only a witness-colluded **two-witnessed** `{Wit, Wit}` → disputed →
-reincept. Its `Ath` / `Dth` **delegate nothing** — they anchor a `topics/block` grant / kill and
-nothing else (a delegation `Ath` is malformed), so trust stays per-federation and non-transitive.
-Its threshold vector is `{ govern, authorize }`.
+[prefix-block](../../../../substrate/federation/blocking.md) SELs** and `Rev` at `t_govern` **only
+to anchor its own trusted-federation SEL `Trm`s**
+([`witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+Its roster is **witness KELs directly** (a threshold over them; no per-witness identity wrapper, no
+aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every governance event is a
+key change → record-both; a competing sealed sibling is **first-seen-declined** (exclude-self
+peer-witnessing), so an honest conflict does **not** schism — only a witness-colluded
+**two-witnessed** `{Wit, Wit}` → disputed → reincept. Its `Ath` / `Dth` **delegate nothing** — they
+anchor a `topics/block` grant / kill and nothing else (a delegation `Ath` is malformed), so trust
+stays per-federation and non-transitive. Its threshold vector is `{ govern, authorize }`.
 
 The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike a general identity,
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always
@@ -633,6 +635,6 @@ versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal **when
   revocation actions are interpreted (the feature layer; the IEL states only the kill-anchor
   structure).
 - [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md) — the
-  doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
+  doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound`.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing and the federation `Wit` governance mechanics.
