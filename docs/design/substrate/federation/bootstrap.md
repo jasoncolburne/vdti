@@ -47,9 +47,12 @@ ways, all fixed at inception by the `Fcp` root kind:
 
 A witness KEL is **single-federation**: it is `Fcp`-rooted infrastructure, governed _into_ one
 roster and never self-bound. To serve a second federation, an operator stands up a **new** witness
-KEL and has it governed into that federation's roster; the old KEL's events stay validly witnessed
-by the old federation. This contains a witness compromise to a single federation rather than fanning
-it out across every federation the witness might have served.
+KEL and has it governed into that federation's roster — the fresh chain is not operator etiquette
+but the roster's own
+[identity bond](../../primitives/data/event-logs/kel/events.md#the-identity-bond), which a
+previously-admitted chain fails; the old KEL's events stay validly witnessed by the old federation.
+This contains a witness compromise to a single federation rather than fanning it out across every
+federation the witness might have served.
 
 Because a federation is critical infrastructure, its recoverability ceiling is **hard**, not
 advisory: it must always be able to evict one compromised witness and recover without it. That

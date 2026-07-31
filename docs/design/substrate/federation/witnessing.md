@@ -781,10 +781,12 @@ un-accepting.
   sequence — accepted and durable page by page, the origin's receipts counted per its lineages'
   windows, the rebind last — under the ordinary rate limits, through the resumable admission walk. A
   chain whose origin was **never granted** is refused pre-stage, no carve-out. In the rebind-away
-  direction a chain that left is not accepted, not own-signed, not dragged — it ages out; in the
-  migration-in direction the ancestry drag makes the origin-witnessed range durable here —
-  migration's mechanism, priced as storage bounded by non-transitive trust (the range is inert for
-  every verifier not configured for the origin), with per-prefix blocking as the lever.
+  direction, everything witnessed here **stays held** — what is not accepted is the chain's new,
+  elsewhere-bound extension (not own-signed, not dragged; mesh-arrived copies stage and age out). In
+  the migration-in direction the range is durable **on its own counted receipts, page by page** —
+  the ancestry drag remains only the general ancestry rule (stale-pin recovery, split-stall), never
+  a migration mechanism — and the storage is priced by non-transitive trust (the range grounds
+  nothing for a consumer that does not trust the origin), with per-prefix blocking as the lever.
 
 ## Roster governance
 
