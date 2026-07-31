@@ -213,7 +213,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   un-grant's `clock`) **and** `bound`; killed windows are permanent counting authorities, and a
   vouched key-window counts only if its `T_join` is at-or-before its vouching act's `clock` plus
   `2 × CLOCK_TOLERANCE_BAND` (the vouch-time cap; the vouching act is the lineage's earliest `Gnt`
-  whose `bound` covers the window).
+  whose `bound` covers the window-establishing position).
   ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
 - **`bound` (governance horizon)** — in a trusted-federation grant value, the highest remote
   federation position any receipt's resolution may use — a remote-federation-event SAID, monotone

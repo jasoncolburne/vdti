@@ -332,12 +332,15 @@ wrong clock. When the federation is reachable, a live challenge-response is the 
 
 **Constants.** The tolerance **`CLOCK_TOLERANCE_BAND = 1 minute`** and
 **`MAXIMUM_WITNESS_KEY_WINDOW = 180 days`** are fixed protocol constants (deterministic — every
-verifier agrees). `CLOCK_TOLERANCE_BAND` absorbs honest clock skew at a window boundary; its
-security cost is nil, since the attack it faces is gross staleness, not boundary-seconds. Distinct
-from the **staleness threshold** ("how old before a tip is flagged"), which is consumer /
-loss-of-trust policy. Clock timestamps are **UTC, RFC 3339, exactly 6 fractional digits
-(microseconds), zero-padded**, so the manifest canonicalizes byte-identically; the 6-place precision
-is for deterministic serialization, not a claim of microsecond accuracy.
+verifier agrees). `CLOCK_TOLERANCE_BAND` absorbs honest clock skew at a window boundary (a two-clock
+comparison can straddle up to two bands; the extreme reads as a transient, fail-secure boundary
+refusal, priced nil — unlike the vouch-time cap's comparison of two **frozen committed** clocks,
+which is why that cap alone is sized at `2 ×`); its security cost is nil, since the attack it faces
+is gross staleness, not boundary-seconds. Distinct from the **staleness threshold** ("how old before
+a tip is flagged"), which is consumer / loss-of-trust policy. Clock timestamps are **UTC, RFC 3339,
+exactly 6 fractional digits (microseconds), zero-padded**, so the manifest canonicalizes
+byte-identically; the 6-place precision is for deterministic serialization, not a claim of
+microsecond accuracy.
 
 ## The witness receipt
 
@@ -643,8 +646,9 @@ what changes is what the conjunction admits.
   fails secure** — a withheld un-grant reads still-granted, so the walk's per-lineage check must
   read the killed target without depending on the withholdable leg. The emergency-speed case is
   already served by per-prefix blocking — fast, scoped, reversible; a block rides `t_authorize`, so
-  under a decliner stall it outlives governance acts, surviving until the **witnessing** axis
-  (`|roster| − threshold − 1`) is the binding one, past which nothing of any tier lands.
+  under a decliner stall it lands while the decliners number at most
+  **`min(|roster| − threshold − 1, |roster| − t_authorize)`** — outliving governance acts wherever
+  `t_authorize < t_govern` — and past the witnessing axis nothing of any tier lands.
 - **A refused tip never falls back to a retired grant.** The walk serves the live sealed tip and a
   retired value never surfaces, so a malformed refresh leaves the locus with **no servable value —
   not granted, federation-wide, fail-secure**; the repair is a corrected `Gnt` stacked forward where
@@ -703,13 +707,14 @@ vouch-time cap, §The counting conjunction), closes by the last refresh's clock 
 `MAXIMUM_WITNESS_KEY_WINDOW`; past that only backdated, stale-reading receipts still count — the
 tail the rogue-remote pricing already carries. In exit: below the guaranteed-stall count, a retried
 participation re-draws its selection and the un-grant itself eventually lands; from there up to
-`t_govern` decliners nothing governance lands — an eviction included, while lower-slot acts (a
-`t_authorize` block among them) survive only until the witnessing axis binds — and the exit is the
-**federation's** reincept alone: its identities' chains are untouched, witnessed history standing,
-and each **rebinds away freely** — a rebind self-bootstraps into the federation it declares, so the
-frozen federation cannot hold what it can no longer govern (§Rebinding). At `t_govern` the case
-stops being a stall: the decliners author governance themselves, which is the compromise §Security
-assumption prices, recovered the same way. Priced in the catalog
+`t_govern` decliners nothing governance lands — an eviction included, while a smaller-quorum act (a
+`t_authorize` block, where `t_authorize < t_govern`) survives to its own two-axis bound, never past
+the witnessing axis — and the exit is the **federation's** reincept alone: its identities' chains
+are untouched, witnessed history standing, and each **rebinds away freely** — a rebind
+self-bootstraps into the federation it declares, so the frozen federation cannot hold what it can no
+longer govern (§Rebinding). At `t_govern` the case stops being a stall: the decliners author
+governance themselves, which is the compromise §Security assumption prices, recovered the same way.
+Priced in the catalog
 ([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
 
 ### The counting conjunction
@@ -745,13 +750,13 @@ attribution is a pure function of the lineage — re-derivable by any walk, neve
 state — so acceptance stays data-pure, no wall clock, and no honest vouch is refused within the
 deployment invariant: a real remote rotation precedes the local act that vouches it, and two
 in-tolerance clocks differ by at most the absorber. (A deployment skewed beyond its NTP bound can
-see an honest window refused — fail-secure, cured at the remote's next vouched rotation.) What the
-cap closes is the **pre-minted future window**: future-clocked remote `Wit`s are monotone-valid and
-witnessable now under still-open prior windows, and the read-time wall-clock flag on a future
-timestamp defers rather than denies — without the cap, one refresh could vouch a ladder of them and
-hold windows that open long after the vouch, reading current indefinitely. With it, a window opening
-past its own vouching act never counts, anywhere, and the cap rides the conjunction to both of its
-consumers — the acceptance gate and the walk.
+see an honest window refused — fail-secure, cured at the remote's next vouched rotation once its
+clock is back within the bound.) What the cap closes is the **pre-minted future window**:
+future-clocked remote `Wit`s are monotone-valid and witnessable now under still-open prior windows,
+and the read-time wall-clock flag on a future timestamp defers rather than denies — without the cap,
+one refresh could vouch a ladder of them and hold windows that open long after the vouch, reading
+current indefinitely. With it, a window opening past its own vouching act never counts, anywhere,
+and the cap rides the conjunction to both of its consumers — the acceptance gate and the walk.
 
 **`bound` is a position — a remote-federation-event SAID — and it is monotone non-decreasing.** A
 refresh can never void a receipt's already-established resolution; **only the un-grant** moves a
@@ -926,9 +931,9 @@ breaks first). Beyond either is operational recovery and reincept. The co-witnes
 carries its own tighter bound: it holds against fewer than `2·threshold − signers` byzantine
 double-signers within the selected set (the fork-cost), so for an over-provisioned config a
 coalition _within_ the blanket `< threshold` assumption can manufacture a co-witnessed content fork
-at fork-cost — priced, exposed, and evictable, not free. The irreducible residual is compromising
-`threshold`-many _current_ witness keys, which is the federation itself being compromised — recovery
-is reincept, not a backdate via stale keys.
+at fork-cost — priced, exposed, and evictable, not free. On the attestation axis, the irreducible
+residual is compromising `threshold`-many _current_ witness keys, which is the federation itself
+being compromised — recovery is reincept, not a backdate via stale keys.
 
 ## Cross-references
 

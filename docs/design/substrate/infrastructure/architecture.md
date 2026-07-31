@@ -368,8 +368,8 @@ the owner's own expectation rather than a peer's.
   federation's own byzantine bar, so any bar-meeting agreeing set contains an honest signer and a
   stale-value set cannot be assembled below the federation-compromise class (the same arithmetic
   closes the withhold-honest-while-supplying-byzantine channel: the byzantine members alone can
-  never reach the bar). It is the system's irreducible residual, and **detectable after the fact**:
-  the signed statements are durable evidence contradicting the chain.
+  never reach the bar). It is the attestation axis's irreducible residual, and **detectable after
+  the fact**: the signed statements are durable evidence contradicting the chain.
 - **The federation chain's own freshness rides the same bar.** A cut-out quorum attesting a stale
   roster as current is bounded by the key-window auto-expiry (`MAXIMUM_WITNESS_KEY_WINDOW`) and
   broken by a single honest member's statement (disagreement → fetch). Sustaining the illusion is a
