@@ -375,11 +375,12 @@ A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker —
 `Trm`, plus `Ath` / `Dth` at `t_authorize` for
 [prefix-block](../../../substrate/federation/blocking.md) SELs only and `Rev` at `t_govern` for
 trusted-federation un-grants only (`Wit` is its governance kind — witness rotation and/or a roster
-delta — replacing the user `Evl`; no `Ixn`, so it authors no content; a competing sealed sibling is
-first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict
-is terminal; its `Ath` / `Dth` anchor only prefix-block SELs, never delegation, and its `Rev`
-anchors only its own trusted-federation SEL `Trm`s, so trust stays per-federation and
-non-transitive). Its roster is witness KELs directly. See
+delta — replacing the user `Evl`, and the one anchor of its trusted-federation SEL `Gnt`s, the trust
+grant; no `Ixn`, so it authors no content; a competing sealed sibling is first-seen-declined
+(exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is terminal; its
+`Ath` / `Dth` anchor only prefix-block SELs, never delegation, its `Wit` anchors only its
+trusted-federation `Gnt`s, and its `Rev` anchors only its own trusted-federation SEL `Trm`s, so
+trust stays per-federation and non-transitive). Its roster is witness KELs directly. See
 [`../../../protocol-doctrine.md` §Federation convergence](../../../protocol-doctrine.md#federation-convergence)
 and [`substrate/federation/`](../../../substrate/federation/).
 
@@ -390,15 +391,16 @@ and [`substrate/federation/`](../../../substrate/federation/).
 | `Icp` | `t_use`                                              | 1    | — (never anchored; v1 is)        | Inception — `authority` + `topic` + `data`? + `content: true`? (content only) + `lineage`? (re-establishable value lookup only); **no `pin`, no manifest**; **never itself anchored** (its v1 is).ᵃ                            |
 | `Ixn` | `t_use`                                              | 1    | `Ixn`                            | Payload SAD(s) (the `payload` role, **required** — always ≥ 1) + re-`pin`; ≤ 1 per SEL per IEL `Ixn`. **Divergeable, buriable** (as is `Pin`).                                                                                 |
 | `Pin` | `t_use`                                              | 1    | `Ixn`                            | The **pin-only re-pin** at any serial (top-level `pin` only, `fbd` manifest). Its serial-1 instance is the **issuance floor** (the `Icp` can't hold a pin); a pure re-pin is always a `Pin`. Buriable; **not** seal-advancing. |
-| `Gnt` | `t_authorize`                                        | 2    | `Ath`                            | The **grant** — seals a typed value (`manifest.grant` → a `vdti/sel/v1/grants/*` SAD). **Sealed on arrival, seal-advancing, non-buriable.**ᶜ                                                                                   |
+| `Gnt` | `t_authorize` · `t_govern` (federation trust)        | 2    | `Ath` · federation `Wit` (trust) | The **grant** — seals a typed value (`manifest.grant` → a `vdti/sel/v1/grants/*` SAD). **Sealed on arrival, seal-advancing, non-buriable.**ᶜ                                                                                   |
 | `Trm` | `t_govern` (revocation) · `t_authorize` (rescission) | 2    | `Rev` (revoke) / `Dth` (rescind) | The SEL **kill**. **Sealed on arrival, seal-advancing, terminal.**ᵇ                                                                                                                                                            |
 | `Sea` | `t_govern`                                           | 2    | `Evl`                            | The **neutral re-seal** — buries a content fork on a SEL with no natural `Gnt` / `Trm`. **Sealed on arrival, seal-advancing, non-terminal.**ᵈ                                                                                  |
 
 - ᵃ **`Icp`** — stays recomputable for lookup (§Prefix derivation); the SEL's **serial-1 event (its
   v1)** is what the owner IEL anchors with the **matching kind** (`Ixn` for content; `Ath` / `Rev` /
-  `Dth` for a lookup's `Gnt` / `Trm`), the `Icp` riding `v1.previous` (a bare `Pin` for
-  issue-and-sit, else the first event). A lookup SEL's `data` is the recompute input (the
-  grant-instance). A **credential is not a SEL** — it is a direct-anchored SAD (§Prefix derivation).
+  `Dth` for a lookup's `Gnt` / `Trm` — the federation trust lookup's `Gnt` by a governance `Wit`),
+  the `Icp` riding `v1.previous` (a bare `Pin` for issue-and-sit, else the first event). A lookup
+  SEL's `data` is the recompute input (the grant-instance). A **credential is not a SEL** — it is a
+  direct-anchored SAD (§Prefix derivation).
 - ᵇ **`Trm`** — the SEL kill, sealed by an IEL `Rev` (`t_govern`, a governed kill) or `Dth`
   (`t_authorize`, which rescinds what an `Ath` granted). The `Rev` / `Dth` also carries the
   `kills[]` declaration naming the killed locus; a rescission's `bound` rides that `kills[]` entry
@@ -477,17 +479,17 @@ KEL + federation doctrine — [`kel/`](kel/),
 
 ### IEL
 
-| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                              |
-| ----- | ----- | ---- | ---------- | ------------- | ------------ | ----------------------------------------------------------------------------------------------------- |
-| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`)               |
-| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                                   |
-| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                                 |
-| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`; a federation `Ath` carries `anchors` + `clock`, never `delegates`) |
-| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Rev` adds `clock` req)                                         |
-| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Dth` adds `clock` req)                                         |
-| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                                          |
-| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                                 |
-| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                              |
+| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                                                      |
+| ----- | ----- | ---- | ---------- | ------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`)                                       |
+| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                                                           |
+| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                                                         |
+| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`; a federation `Ath` carries `anchors` + `clock`, never `delegates`)                         |
+| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Rev` adds `clock` req)                                                                 |
+| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Dth` adds `clock` req)                                                                 |
+| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                                                                  |
+| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt + `anchors` opt — the trusted-federation SEL `Gnt` only) |
+| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                                                      |
 
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **required** (there is no direct mode) and `witnesses` is **mandatory**; on a `Wit` all three

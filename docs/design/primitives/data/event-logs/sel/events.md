@@ -57,9 +57,9 @@ classic error the model guards against.
    **orthogonal to count** — a content `Ixn` is tier 1 even at a high `t_use`. There is no third
    tier.
 3. **Anchor-kind → finality.** A content `Ixn` or `Pin` rides an owner-IEL `Ixn` → **first-seen /
-   buriable**; a `Gnt` rides an owner-IEL `Ath`, a `Trm` an owner-IEL `Rev` / `Dth`, and a `Sea` an
-   owner-IEL `Evl` → **sealed on arrival**. The anchor kind determines whether the SEL event can
-   ever be buried.
+   buriable**; a `Gnt` rides an owner-IEL `Ath` (federation facet: a governance `Wit`), a `Trm` an
+   owner-IEL `Rev` / `Dth`, and a `Sea` an owner-IEL `Evl` → **sealed on arrival**. The anchor kind
+   determines whether the SEL event can ever be buried.
 
 The axes are independent: the count is a dial, the tier is set by kind, and the finality follows the
 anchor kind. Tier-elevation (anchor tier ≥ event tier) is an **additional floor, not the check** — a
@@ -258,12 +258,12 @@ lookup-SEL shapes), so any first event can floor, with a bare `Pin` the fallback
 carries no other. `Sea` is the one non-`Icp` kind excluded — it buries a content fork, which cannot
 exist at inception. The four shapes are its instances:
 
-| SEL born as                     | v1 (serial-1)   | Anchored by (owner IEL) |
-| ------------------------------- | --------------- | ----------------------- |
-| a SEL that incepts and sits     | a bare `Pin`    | `Ixn`                   |
-| content, with a first amendment | a content `Ixn` | `Ixn`                   |
-| a kill lookup                   | the `Trm`       | `Rev` / `Dth`           |
-| a value lookup                  | the `Gnt`       | `Ath`                   |
+| SEL born as                     | v1 (serial-1)   | Anchored by (owner IEL)         |
+| ------------------------------- | --------------- | ------------------------------- |
+| a SEL that incepts and sits     | a bare `Pin`    | `Ixn`                           |
+| content, with a first amendment | a content `Ixn` | `Ixn`                           |
+| a kill lookup                   | the `Trm`       | `Rev` / `Dth`                   |
+| a value lookup                  | the `Gnt`       | `Ath` (federation trust: `Wit`) |
 
 **Authentication is the v1's anchor, never the `Icp`** — a SEL is validly established only if its v1
 resolves to a real owner-IEL event whose prefix equals the SEL's owner (the `authority` leaf's

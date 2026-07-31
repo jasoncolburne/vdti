@@ -319,7 +319,9 @@ receipts are never judged under the expired old windows).
 receipt `τ` — beyond **`now + CLOCK_TOLERANCE_BAND`**. This bounds a `t_govern`-compromised
 federation's ability to future-date a `Wit`'s clock (which would push every window forward, making
 closed windows read open) to roughly one `CLOCK_TOLERANCE_BAND`. It reads against the consumer's own
-wall clock.
+wall clock — a read-time flag, which **defers** a future window rather than denying it; on the trust
+rail deferral becomes denial, because a vouched remote window opening past its own vouching act
+never counts (the vouch-time cap, §The counting conjunction).
 
 **Deployment invariant.** Because these are wall-clock checks, a consumer **must stay NTP-synced to
 within `CLOCK_TOLERANCE_BAND`**. A consumer drifted by more than `CLOCK_TOLERANCE_BAND` cannot trust
@@ -607,7 +609,10 @@ toggled by witnessed governance acts. Operators agree at threshold; every node h
 chain state gives the same answer — synchrony is same-data-same-answer, and lag is staleness, never
 drift. **Consumers keep the configured set** (a trust root cannot come from data not yet trusted),
 and a federation node's **own** prefix is injected at the bootstrap ceremony, never derived from
-whatever claims to be self ([`bootstrap.md` §The trust root](bootstrap.md)).
+whatever claims to be self ([`bootstrap.md` §The trust root](bootstrap.md)). **The default posture
+grants none**: granting remote trust is an explicit opt-in — allowed, never required, and not the
+recommended default — and what a granting federation takes on is priced as a class
+([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
 
 **One definition, inherited by every rule here.** **Trust-granted** means a trust lineage **exists**
 for the remote federation — live, or killed (established-then-dead) — with the counting conjunction
@@ -680,18 +685,25 @@ and false-flag generator worse than the silent non-honoring the alarm exists to 
 residual is worth stating here, though the inert disposition does not cause it.** A structurally
 invalid event is never anyone's state: every durable write validates structure first, so a decoy is
 refused at the merge gate and dropped by the walk, and minting them buys an adversary nothing. What
-remains is that an un-grant is an ordinary event at an ordinary position — so a witness set
-compromised at ≥ `threshold` can stall it by declining to sign, exactly as it can stall anything
-(§Security assumption). What is specific to **this** locus is that the stall does not age out: the
-usual escape — republish at the next lineage — depends on the old lineage reading **dead**, and a
-stalled un-grant leaves it **live**, where a reader stops. Trust in that remote therefore stays
-granted while the stall holds — **fail-open**, where the rest of this rail fails secure — and the
-stall is bounded twice. In time: a stalled un-grant stalls refreshes too, so the vouched key-windows
-close within `MAXIMUM_WITNESS_KEY_WINDOW`, after which only backdated, stale-reading receipts still
-count — the tail the rogue-remote pricing already carries. In exit: below `|roster| − threshold`
-decliners, a retried participation re-draws its selection and the un-grant itself eventually lands;
-at or beyond that count no governance act lands — an eviction included — and the exit is reincept.
-Priced in the catalog
+remains is that an un-grant is an ordinary governance act at an ordinary position — witnesses that
+**decline to sign** can hold it unlanded, exactly as they can hold any governance act. Landing needs
+two resources — **`t_govern` willing authors** and each participation witnessed over the
+exclude-self pool — so it is possible only while the decliners number at most
+**`min(|roster| − threshold − 1, |roster| − t_govern)`**, and guaranteed-stalled past that. What is
+specific to **this** locus is that the stall does not age out: the usual escape — republish at the
+next lineage — depends on the old lineage reading **dead**, and a stalled un-grant leaves it
+**live**, where a reader stops. Trust in that remote therefore stays granted while the stall holds —
+**fail-open**, where the rest of this rail fails secure — and below the `t_govern` line the stall is
+bounded twice. In time: with fewer than `t_govern` decliners no refresh lands either — a refresh
+needs `t_govern` authors, honest members mid-un-grant author none, and the decliners cannot reach
+the count — so every countable window, its `T_join` at-or-before its vouching act's `clock` (the
+vouch-time cap, §The counting conjunction), closes by the last refresh's clock plus
+`MAXIMUM_WITNESS_KEY_WINDOW`; past that only backdated, stale-reading receipts still count — the
+tail the rogue-remote pricing already carries. In exit: below the guaranteed-stall count, a retried
+participation re-draws its selection and the un-grant itself eventually lands; from there up to
+`t_govern` decliners nothing governance lands — an eviction included — and the exit is reincept. At
+`t_govern` the case stops being a stall: the decliners author governance themselves, which is the
+compromise §Security assumption prices, recovered the same way. Priced in the catalog
 ([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
 
 ### The counting conjunction
@@ -716,6 +728,18 @@ is **no arrival-order leg anywhere**: acceptance is as data-pure as the walk, a 
 pre-cut migration still lands, and every node converges on the same acceptable set. Receipts of a
 never-granted federation are **discarded, never parked**; a formerly-granted federation's receipts
 fall to the conjunction — outside every lineage's window they are likewise discarded, never parked.
+
+**The vouch-time cap.** A vouched remote key-window counts only if its **`T_join` is at-or-before
+the `clock` of the governance `Wit` that anchored the `Gnt` vouching it**, with
+`CLOCK_TOLERANCE_BAND` absorbing cross-federation skew. Both values are committed bytes, so
+acceptance stays data-pure — no wall clock — and an honest refresh is unaffected: a real remote
+rotation precedes the local act that vouches it. What the cap closes is the **pre-minted future
+window**: future-clocked remote `Wit`s are monotone-valid and witnessable now under still-open prior
+windows, and the read-time wall-clock flag on a future timestamp defers rather than denies — without
+the cap, one refresh could vouch a ladder of them and hold windows that open long after the vouch,
+reading current indefinitely. With it, a window opening past its own vouching act never counts,
+anywhere, and the cap rides the conjunction to both of its consumers — the acceptance gate and the
+walk.
 
 **`bound` is a position — a remote-federation-event SAID — and it is monotone non-decreasing.** A
 refresh can never void a receipt's already-established resolution; **only the un-grant** moves a

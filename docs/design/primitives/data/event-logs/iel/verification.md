@@ -362,7 +362,8 @@ forked identity **seals its way out**, while a dispute (reincept) and terminatio
 The caller registers SAIDs of interest before the walk via `verifier.check_anchors(saids)`. As the
 verifier processes events, it checks each event's `manifest.anchors` against the registered SAIDs —
 the `anchors` role lives on `Ixn` (SEL v1s + credential issuance commitments), `Evl` (a `Sea`),
-`Ath` (a `Gnt`), and `Rev` / `Dth` (a `Trm`). Results are on the token via `is_said_anchored()` /
+`Ath` (a `Gnt`), `Rev` / `Dth` (a `Trm`), and — federation facet only — `Wit` (the
+trusted-federation `Gnt`). Results are on the token via `is_said_anchored()` /
 `anchors_all_saids()`. The token surfaces the **anchoring IEL event's kind** on each matched anchor,
 so a cross-chain consumer (the SEL verifier) can enforce the kind-strict anchor matrix
 ([`events.md` §The kind-strict anchor matrix](events.md#the-kind-strict-anchor-matrix)).

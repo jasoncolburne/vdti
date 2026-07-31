@@ -153,11 +153,12 @@ Active → `Recovered`.
 
 For events admitted past fork-detect, the verifier resolves the SEL event's **owner-IEL anchor** and
 checks that the anchoring IEL event carries the required count — the SEL event's kind drawing its
-slot from the owner IEL's threshold vector (`Ixn` / `Pin` ← `t_use`; `Gnt` ← `t_authorize`; `Trm` ←
-`t_govern` for a revocation, `t_authorize` for a rescission; `Sea` ← `t_govern`) — delivered by that
-IEL event's member KEL participations. The anchor is **kind-strict**: content rides an owner-IEL
-`Ixn`, a `Gnt` an `Ath`, a `Trm` a `Rev` / `Dth`, a `Sea` an `Evl`; tier-elevation is an additional
-floor, not the check
+slot from the owner IEL's threshold vector (`Ixn` / `Pin` ← `t_use`; `Gnt` ← `t_authorize`, or
+`t_govern` for the federation trust grant; `Trm` ← `t_govern` for a revocation, `t_authorize` for a
+rescission; `Sea` ← `t_govern`) — delivered by that IEL event's member KEL participations. The
+anchor is **kind-strict**: content rides an owner-IEL `Ixn`, a `Gnt` an `Ath` — or, on the
+federation facet only, a governance `Wit` (the trusted-federation grant) — a `Trm` a `Rev` / `Dth`,
+a `Sea` an `Evl`; tier-elevation is an additional floor, not the check
 ([`events.md` §The kind-strict cross-layer anchor matrix](events.md#the-kind-strict-cross-layer-anchor-matrix)).
 Authorization failure here is HARD: a SEL event whose owner-IEL anchor is absent, wrong-kind, or
 under threshold is rejected and never lands. The verifier reports structural validity; the merge

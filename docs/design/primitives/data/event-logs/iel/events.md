@@ -390,14 +390,15 @@ only mismatch that can arise.
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no
 `{federation, federationPin}`** (a federation witness is never self-bound) and instead carries the
-federation's own `witnesses` config, an optional roster delta, and the monotonic `clock`. The
-`Wit ↔ Wit` field-match here is the **witness-config only** — that config is the federation's new
-config the approvers jointly endorse; the roster delta rides the manifest (`Evl`-style,
-SAID-committed, each member endorsing the exact delta by anchoring the `Wit`'s SAID) and the `clock`
-is one authoritative IEL-side value, neither matched. A federation `Wit` is **always a rotation** of
-its participants and **advances the clock**, so the rotation + clock advance **is** the change — it
-has no must-change predicate. The federation-governance mechanics (self-attestation, the
-recoverability cap, the clock, roster-add consent) are federation doctrine —
+federation's own `witnesses` config, an optional roster delta, and the monotonic `clock` — plus, for
+a trust grant, the `anchors` role naming the trusted-federation SEL `Gnt` it seals. The `Wit ↔ Wit`
+field-match here is the **witness-config only** — that config is the federation's new config the
+approvers jointly endorse; the roster delta rides the manifest (`Evl`-style, SAID-committed, each
+member endorsing the exact delta by anchoring the `Wit`'s SAID) and the `clock` is one authoritative
+IEL-side value, neither matched. A federation `Wit` is **always a rotation** of its participants and
+**advances the clock**, so the rotation + clock advance **is** the change — it has no must-change
+predicate. The federation-governance mechanics (self-attestation, the recoverability cap, the clock,
+roster-add consent) are federation doctrine —
 [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ### `Fcp` — the federation inception marker (federation IEL only)
@@ -420,7 +421,7 @@ load-bearing).
 | Role        | Carried by                                                                                                                                      | Commits to                                                                                                          |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation)                                                                                                | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`                                                                                                | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`; federation `Wit` (opt — the trusted-federation SEL `Gnt` only)                                | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`, a federation `Wit` the trust `Gnt`           |
 | `delegates` | `Ath` (user only — a federation `Ath` carries none)                                                                                             | delegate **prefixes** — a positive inclusion list                                                                   |
 | `kills`     | `Rev` / `Dth`                                                                                                                                   | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
 | `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)                                                                                                       | the witness-config SAD `{ threshold, signers }`                                                                     |

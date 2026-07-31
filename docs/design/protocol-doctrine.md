@@ -238,10 +238,11 @@ have no intrinsic key state, so they reach a tier by **being anchored by a lower
 matching kind** — **kind-strict**. Each **IEL** kind is anchored by **exactly** the **KEL** kind
 that reveals the capability it exercises (content ← KEL `Ixn`; tier-2 establishment / governance /
 kill / terminal ← KEL `Rot`; the IEL `Wit` ← a KEL `Wit`); each **SEL** kind rides its matching
-**IEL** kind in turn (SEL content ← IEL `Ixn`, `Gnt` ← `Ath`, `Sea` ← `Evl`, the kill `Trm` ←
-`Rev`/`Dth`). A KEL `Wit` anchors **only** the IEL `Wit`. Kind-strict binding keeps content on a
-buriable host and closes the signing-key-only path to forging governance acts, grants, and terminals
-on the chains that root other chains' authority. The per-primitive anchor matrix is in
+**IEL** kind in turn (SEL content ← IEL `Ixn`, `Gnt` ← `Ath` — or, federation facet only, a
+governance `Wit`, the trust grant — `Sea` ← `Evl`, the kill `Trm` ← `Rev`/`Dth`). A KEL `Wit`
+anchors **only** the IEL `Wit`. Kind-strict binding keeps content on a buriable host and closes the
+signing-key-only path to forging governance acts, grants, and terminals on the chains that root
+other chains' authority. The per-primitive anchor matrix is in
 [`primitives/data/event-logs/`](primitives/data/event-logs/).
 
 #### Structural authorization
@@ -945,11 +946,12 @@ Inception tier follows what the inception establishes:
 - **SEL `Icp`** — tier 1. It establishes single-owner data, not governance. It carries **no `pin`**
   (it must stay recomputable for lookup) and is **never itself anchored** — the SEL's **serial-1
   event (its v1)** is what the owner IEL anchors — with the **matching kind** (an `Ixn` for content;
-  an `Ath` / `Rev` / `Dth` for a lookup's `Gnt` / `Trm`) — and the `Icp` rides `v1.previous`. That
-  v1 is a bare **`Pin`** when inception carries no other first event (issue-and-sit), otherwise the
-  first event itself. A **lookup SEL**'s `data` is the recompute input the verifier blind-recomputes
-  the prefix from (a grant-instance), and its rescission / revocation kill is a terminal `Trm`
-  sealed by an IEL `Dth` (rescission) or `Rev` (revocation).
+  an `Ath` / `Rev` / `Dth` for a lookup's `Gnt` / `Trm` — the federation trust lookup's `Gnt` by a
+  governance `Wit`) — and the `Icp` rides `v1.previous`. That v1 is a bare **`Pin`** when inception
+  carries no other first event (issue-and-sit), otherwise the first event itself. A **lookup SEL**'s
+  `data` is the recompute input the verifier blind-recomputes the prefix from (a grant-instance),
+  and its rescission / revocation kill is a terminal `Trm` sealed by an IEL `Dth` (rescission) or
+  `Rev` (revocation).
 
 A **credential is not a SEL** — it is a **direct-anchored SAD**: the issuer anchors its issuance
 commitment `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` on its own IEL via an `Ixn`,

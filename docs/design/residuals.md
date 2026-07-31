@@ -70,7 +70,9 @@ each band a multiple of the next, not a step.
 - **Human Intent** (100) — a **person** is compromised or acts on purpose: social-engineering, an
   insider, coercing a witness operator — or an actor deliberately misusing its **own** legitimate
   keys, no compromise needed. The operational-security risk — above the cryptographic bands because
-  a human is easier to turn (or to act) than a hardware key is to steal.
+  a human is easier to turn (or to act) than a hardware key is to steal. **Operator-behavior-only
+  attacks price here regardless of how many operators must collude** — witnesses declining to sign
+  need no key material, and the barrier below this line is the hardware.
 - _— the hardware / post-quantum barrier —_
 - **Signing** (30) — a `t_use` quorum of hardware-held PQ **signing** keys; reaches only buriable
   content.
@@ -109,10 +111,11 @@ is), and **Risk = Severity × Exploitability** (the band); it **sorts by Severit
 Three groups. The first is the **irreducible adversarial risk** — what a deployment carries even
 under tight config and correct operation, the honest answer to "if I am configured and operating
 securely, what am I exposed to?" The second is **avoidable** — extra exposure from opting out of a
-default, a weak or degenerate config, a skipped step, or an operational lapse, each with its
-one-line fix. The third is **inherent trade-offs** — deliberate design costs and properties (caps,
-finality, retention, minimum-disclosure metadata) that are not attacks you defend against but
-consequences you accept. An evaluator comparing solutions reads the first group.
+default, a weak or degenerate config, a skipped step, an operational lapse, or a capability
+deliberately opted into, each with its one-line fix. The third is **inherent trade-offs** —
+deliberate design costs and properties (caps, finality, retention, minimum-disclosure metadata) that
+are not attacks you defend against but consequences you accept. An evaluator comparing solutions
+reads the first group.
 
 Outcomes are what a user or operator would actually observe. (The detailed entries below are grouped
 by theme, not by these three groups; a handful of placements are noted in the entry.)
@@ -134,8 +137,10 @@ by theme, not by these three groups; a handful of placements are noted in the en
 
 ### Avoidable — loose config, opt-outs, and operational lapses
 
-These aren't the point — someone configured and operating correctly carries none of them. They are
-enumerated for completeness, each with the one thing that makes it go away.
+These aren't the point — someone configured and operating correctly, under the default posture,
+carries none of them. Most are lapses; the granted-remote rows are a **capability chosen on
+purpose** — granting remote trust is allowed, never required — avoidable by not granting it. Each
+row carries the one thing that makes it go away.
 
 | Residual                                              | Severity                    | Exploitability | Risk            | Outcome                                                                                       | Mitigation                                                                                                           |
 | ----------------------------------------------------- | --------------------------- | -------------- | --------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -151,9 +156,10 @@ enumerated for completeness, each with the one thing that makes it go away.
 | Leaked gated-record bytes                             | Privacy · 6                 | Human Error    | High (1800)     | Gated plaintext is readable once bytes escape                                                 | Encrypt sensitive content (use the exchange channel)                                                                 |
 | Consumer clock drifts backward                        | Freshness · 6               | Human Error    | High (1800)     | You accept backdated data unknowingly                                                         | Keep the clock NTP-synced within `CLOCK_TOLERANCE_BAND`                                                              |
 | Two-member identity                                   | Recoverability · 6          | Human Error    | High (1800)     | One bad device freezes you; reincept                                                          | Add a third key to become recoverable                                                                                |
+| Witness decliner quorum freezes federation governance | Recoverability · 6          | Human Intent   | High (600)      | No governance act lands — evictions included — until the federation reincepts                 | Provision the decliner margin; evict decliners early, while governance still lands                                   |
 | Never-rotated witness key                             | Freshness · 6               | Signing        | Medium (180)    | A stolen witness key forges up to 180 days                                                    | Rotate witness keys with margin                                                                                      |
 | Granted remote's retired keys stay countable          | Freshness · 6               | Signing        | Medium (180)    | Receipts from keys the remote no longer trusts still count here                               | Grant no remote trust (allowed, not the recommended default); once granted, refresh cadence is the dial              |
-| Compromised witness quorum stalls an un-grant         | Freshness · 6               | Witnesses      | Low (30)        | Trust in a remote you cut stays granted — fresh receipts count until the key-window bound     | Grant no remote trust; below the guaranteed-stall regime retries land the un-grant; at or beyond it, reincept        |
+| Compromised witness quorum stalls an un-grant         | Freshness · 6               | Human Intent   | High (600)      | Trust in a remote you cut stays granted — fresh receipts count until the key-window bound     | Grant no remote trust; retries land it below the guaranteed-stall count; past that, reincept                         |
 | Mis-set rescission boundary                           | Recoverability · 5          | Human Error    | High (1500)     | You cut honest work or miss bad work                                                          | Cut at genesis when the loss time is unknown                                                                         |
 | Naive delegator rescission                            | Recoverability · 5          | Human Error    | High (1500)     | Sub-delegated creds keep being issued                                                         | Move the boundary before the sub-grant                                                                               |
 | Routing around a delegator                            | Recoverability · 5          | Human Error    | High (1500)     | A cred via another path stays valid                                                           | Rescind at the root, or issue under a threshold                                                                      |
@@ -272,9 +278,10 @@ what happens at and past that boundary.
   something else: (a) **accept a fork** — but the competing events still need a valid author
   signature, so this pairs with a **key compromise** (the brick and forced-dead-key residuals); (b)
   **suppress or hide** honest branches, which is the eclipse residual; or (c) **decline to sign** —
-  the one power it holds alone: enough decliners stall any governance act, a transient availability
-  denial everywhere except an un-grant, where the stall holds trust open (the stalled-un-grant entry
-  below). Alone, a compromised quorum forges nothing.
+  the one power it holds alone: enough decliners stall any governance act — a transient denial below
+  the guaranteed-stall count, a federation-governance freeze whose exit is reincept at it (the
+  decliner-freeze row in the ranked summary), and fail-open at an un-grant, where the stall holds
+  trust open (the stalled-un-grant entry below). Alone, a compromised quorum forges nothing.
 - **Mitigation** — The below-threshold byzantine assumption is the trust root; the witnessing floor
   and fork-cost dial price the collusion, and a double-sign is provable. End-verifiability trusts
   only the data — receipts assist propagation and freshness, never authorship.
@@ -337,9 +344,9 @@ what happens at and past that boundary.
 
 - **Attack** — Federation members' keys are lost (the operator can't rotate them) but left in the
   roster; an adversary breaks each lost key's reserve, mints a fresh clock-window per key, and
-  cumulatively reaches the governance threshold — routing around the annual window expiry.
+  cumulatively reaches the governance threshold — routing around the key-window auto-expiry.
 - **Mitigation** — Bounded only by removing lost keys promptly (a cut takes a lost key out of the
-  count); an at-risk flag surfaces which member to remove. The annual expiry does **not** bound this
+  count); an at-risk flag surfaces which member to remove. The auto-expiry does **not** bound this
   path on its own.
 - **Lost** — Federation governance control, if lost keys are left un-cut. Needs multiple lost keys,
   reserve breaks, and operator negligence together.
@@ -395,7 +402,7 @@ what happens at and past that boundary.
 - **Lost** — Up to the refresh interval (bounded by the auto-expiry) of countable receipts from keys
   the remote no longer trusts. Avoided outright by granting no remote trust — granting is allowed,
   never required, and not the recommended default; once any remote is granted the class is
-  irreducible and the dial is cadence.
+  unavoidable and the dial is cadence.
 
 ### A rogue remote can keep minting countable receipts after an un-grant
 
@@ -411,26 +418,31 @@ what happens at and past that boundary.
   fabrications read **stale** to every freshness consumer; their ingress rides the ordinary per-IP
   and request bounds; no consumer's trust decision rests on them, since consumers keep their own
   configured set; and they cannot move a held chain's **divergence verdict**, because the walk drops
-  below-seal sealed stragglers as dead on ascent. Blocking the abusing prefixes is the local lever.
+  below-seal sealed stragglers as dead on ascent and a completed migration's remote-witnessed range
+  sits wholly below its rebind `Wit` — a seal-advancer — so no revivable sibling survives above the
+  live seal. Blocking the abusing prefixes is the local lever.
 - **Lost** — Storage and serving of freshly-minted remote data a federation has decided it no longer
   wants, until the abusing prefixes are blocked. A deliberate trade: the alternative (ordering by
   arrival) makes two nodes disagree permanently on the same bytes.
 
 ### A compromised witness quorum can stall an un-grant, holding trust open
 
-- **Attack** — An un-grant is an ordinary governance act, landed only when its participations are
-  witnessed — so witnesses that **decline to sign** can hold it unlanded (guaranteed once the
-  decliners reach `|roster| − threshold`; fewer stall only some selections, and retries re-draw).
-  Every other stall fails secure; this one fails **open**: the usual escape — republish at the next
+- **Attack** — An un-grant is an ordinary governance act — witnesses that **decline to sign** can
+  hold it unlanded. Landing needs `t_govern` willing authors **and** witnessable participations, so
+  it is possible only while the decliners number at most
+  `min(|roster| − threshold − 1, |roster| − t_govern)`, and guaranteed-stalled past that. Every
+  other stall fails secure; this one fails **open**: the usual escape — republish at the next
   lineage — needs the old lineage to read dead, and a stalled un-grant leaves it live, where a
   reader stops. Trust in the remote stays granted
   ([`witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
-- **Mitigation** — The stall bounds itself in time: it freezes refreshes too, so the vouched
-  key-windows close within `MAXIMUM_WITNESS_KEY_WINDOW`, after which only backdated, stale-reading
-  receipts still count (the rogue entry above). The exit is structural: below the guaranteed regime,
-  retried participations re-draw selection and the un-grant itself eventually lands; at or beyond
-  it, no governance act lands — an eviction included — and the exit is reincept. Avoided outright by
-  granting no remote trust.
+- **Mitigation** — Below `t_govern` decliners the stall bounds itself in time: no refresh lands
+  either, and the vouch-time cap pins every countable window's `T_join` at-or-before its vouching
+  act's clock, so all of them close by the last refresh's clock plus `MAXIMUM_WITNESS_KEY_WINDOW` —
+  past that only backdated, stale-reading receipts still count (the rogue entry above). The exit:
+  below the guaranteed-stall count, retried participations re-draw selection and the un-grant itself
+  eventually lands; from there up to `t_govern`, nothing governance lands — an eviction included —
+  and the exit is reincept (the decliner-freeze row); at `t_govern` the case is the governance
+  compromise, priced with the trust root. Avoided outright by granting no remote trust.
 - **Lost** — Fresh countable traffic from a remote the federation decided to cut, for up to the
   key-window bound; the indefinite tail is the rogue entry's, already priced.
 
@@ -853,16 +865,18 @@ are not exploitable breaks — they are the bounds themselves.
 ### Value-bearing lookup DoS (collusion-forced)
 
 - **Attack** — A value-bearing lookup — a system capability like a receive key, with no fallback
-  path — has the data log's own live state as its sole authority. Witness collusion that forces that
-  locus into dispute (dead) is a genuine denial of secure-receive: a sender can't safely pick a key
-  and fails closed.
+  path — has the data log's own live state as its sole authority. Forcing that locus into dispute
+  (dead) is a genuine denial of secure-receive: a sender can't safely pick a key and fails closed.
+  The dispute needs a second **accepted sealed** sibling, and a sealed SEL event rides an owner-IEL
+  tier-2 anchor — so the path is an owner-reserve compromise **plus** witness collusion to accept
+  it, never collusion alone (witnesses author nothing — the leg entry, §2).
 - **Mitigation** — A monotonic lineage field lets the owner re-establish a live key at the same
   discoverable address (the walk advances past dead lineages), capped at a fixed bound past which
   the read fails secure. (A non-owner cannot pre-empt the address: a data-log event is committed
   only batched with its owner-signed anchor, so an unanchored forgery never lands.)
 - **Lost** — Availability of secure-receive at that address until the owner reincepts a fresh
-  lineage — a bounded interruption, not a permanent loss, and it requires witness collusion to
-  force.
+  lineage — a bounded interruption, not a permanent loss, and it requires an owner-reserve
+  compromise plus witness collusion to force.
 - **Also reachable by** — forging a `Trm` rescind (a `t_authorize` reserve quorum) — the path the
   ranked table's "Forced-dead receive key" row prices; both paths end in the same fail-closed
   outcome.
