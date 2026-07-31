@@ -57,16 +57,19 @@ correlation resistance). There is no `derive()` function: the prefix is the two-
   identity), and no later event may change it. A **kill lookup only** may instead carry
   `del(prefix, N)` — a **policy-governed locus**, extendable by any live delegate of the named
   identity within `N` hops at the anchoring act's position; the address commits the write rule,
-  since a different rule derives a different prefix. The restriction is structural, not stylistic:
-  the SEL's chain-to-IEL relations — anchoring, the down-pin, federation inheritance, severance —
-  assume **one IEL per chain**, which a kill lookup's single authored event preserves per instance
-  and a multi-satisfier composition would break. The **divergence / first-seen** machine is
-  preserved too, even where several delegates may each strike a `del` locus: every satisfier's `Trm`
-  seals only in the federation the named root delegator is bound to — the witness walks the
-  furnished `delegationPath` over its **roster-scoped** mesh, so a satisfier not co-located with
-  that delegator produces no acceptable event — so first-seen collapses concurrent kills to one
-  accepted event, and a kill is monotone (present reads killed), so the outcome is the same
-  whichever wins. The consuming shape is credential revocation
+  since a different rule derives a different prefix. A user-minted leaf naming an **`Fcp`-rooted
+  prefix is a dead configuration** — a federation authors no content and delegates to no one, so the
+  locus could never be extended; authoring tooling refuses it (the federation's own trust and block
+  loci are not instances — federation-authored, never user-minted). The restriction is structural,
+  not stylistic: the SEL's chain-to-IEL relations — anchoring, the down-pin, federation inheritance,
+  severance — assume **one IEL per chain**, which a kill lookup's single authored event preserves
+  per instance and a multi-satisfier composition would break. The **divergence / first-seen**
+  machine is preserved too, even where several delegates may each strike a `del` locus: every
+  satisfier's `Trm` seals only in the federation the named root delegator is bound to — the witness
+  walks the furnished `delegationPath` over its **roster-scoped** mesh, so a satisfier not
+  co-located with that delegator produces no acceptable event — so first-seen collapses concurrent
+  kills to one accepted event, and a kill is monotone (present reads killed), so the outcome is the
+  same whichever wins. The consuming shape is credential revocation
   ([`../../../../features/credentials.md` §Revocation](../../../../features/credentials.md#revocation)).
 - **`topic`** — an application discriminator (the SEL's namespace or schema), opaque bytes to the
   chain. Together `authority` + `topic` + derivation **locate a SEL directly**: its address is a
@@ -288,6 +291,12 @@ The three advancers differ by what else they do:
 - **`Sea`** is the **neutral** advancer — a re-seal with no value and no kill, authored purely to
   bury a content fork on a SEL that has no natural `Gnt` or `Trm` to do the job (§Why the neutral
   advancer is needed).
+
+The seal-advance cap governs the SEL exactly as it does the KEL and IEL: a seal-advancer must land
+at least every `MAXIMUM_UNSEALED_RUN` content events per lineage
+([`events.md` §Seal-advance cap](events.md#seal-advance-cap)). **`MAXIMUM_UNSEALED_RUN = 64` is the
+primary constant**, and the page floor derives from it —
+`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3`, the same bound as the KEL and IEL.
 
 ### Why the neutral advancer is needed
 

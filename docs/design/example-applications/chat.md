@@ -18,8 +18,8 @@ flowchart LR
     bApp["chat app — reads all lanes"]:::app
   end
   ex["an ex-member"]:::ext
-  subgraph sub["the substrate — federations run it"]
-    gnode[("the group's nodes —<br/>membership-gated store")]:::svc
+  subgraph svc["the group's service — off the federation"]
+    gnode[("inbox nodes — sadd + blobsd,<br/>membership-gated")]:::svc
   end
   aApp -->|"deposit lane messages<br/>epoch-sealed, signed"| gnode
   bApp -->|"fetch — chat-membership check<br/>catch-up across own periods"| gnode
@@ -30,7 +30,8 @@ flowchart LR
 ```
 
 No key server exists anywhere in the picture: the epoch keys live with members, and the group's
-nodes hold ciphertext they cannot read behind a per-requester membership gate.
+nodes hold ciphertext they cannot read behind a per-requester membership gate. The federation holds
+the group's chains — membership and epochs — never its messages.
 
 ## The composition
 
@@ -83,10 +84,11 @@ Everything is the session mode as specified; the app adds rendering:
 
 ## Limits
 
-- **One device's signature, not a quorum.** A chat message authenticates a single writing device — a
-  deliberately lower bar than mail's `t_use` quorum, priced for volume; one compromised member
-  device authors in its identity's name within its windows, bounded by its lane and epochs.
-- **The group's home nodes see the writer set and volume-timing** — the stated residual; the
+- **One device's signature.** A chat message authenticates a single writing device — the base live
+  check, the same bar as mail's (step-up is a per-operation application choice, and chat must not
+  step up — one device by design, priced for volume); one compromised member device authors in its
+  identity's name within its windows, bounded by its lane and epochs.
+- **The group's inbox nodes see the writer set and volume-timing** — the stated residual; the
   membership graph itself stays participant-blind.
 - **The open epoch's future-dating gap** — accepted, self-harming, and closable by deployments that
   want mail's future-side clock bound; a dormant member's late history into epochs it held reads as

@@ -99,12 +99,20 @@ at-or-above the seal** is a transition, not a rejection: it moves the chain to `
 
 **Rejection and retention are separate; retention is witnessing-gated.** Whether the node also
 **retains** a competing branch as non-canonical evidence is governed by witnessing — a **sealed**
-competing branch is witnessed first-seen (one per position); a node accepts and retains up to two
-**witnessed** sealed branches per position (two are the `Disputed` proof); a losing **content**
-sibling on a witnessed chain is **prevented** (a selected witness declines it), so it never reaches
-threshold and the content fork does not form (outcome `Ignored`). Retained evidence — sealed
-branches, plus the residual content-fork evidence — is what lets any verifier read the chain as
-`Forked` / `Disputed` by a data-local walk
+competing branch is witnessed first-seen (one per position), and the bound is **two branches per
+rail per divergence, each direction mandatory**: retain **≥ 2** accepted sealed branches per
+divergence (fewer loses the `Disputed` proof), and **accept no event that would create a third live
+accepted branch** on a rail — counted in **branches**, never seals (a seal creating the _second_
+accepted sealed branch is always admitted; seals accepted before a floor retreat are retained and
+never counted against the gate). A losing **content** sibling on a witnessed chain is **prevented**
+(a selected witness declines it), so it never reaches threshold and the content fork does not form
+(outcome `Ignored`); in the witness-compromise residual the same two-per-rail bound governs the
+content rail. **The ceiling is the merge layer's, evaluated against admitted receipts with the
+exact-match re-check, only where a write would mark a branch accepted** — every durable event write
+passes structural validation, and a durable-not-accepted write (an own-sign, a dragged ancestor) is
+never counted by the ceiling and never blocked by it. Retained evidence — sealed branches, plus the
+residual content-fork evidence — is what lets any verifier read the chain as `Forked` / `Disputed`
+by a data-local walk
 ([§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 
 **Acceptance precedes the outcome — `deferred-pending`.** The transitions above name what an
@@ -206,8 +214,9 @@ decision) — and the burying event is **held**; **once it is itself accepted** 
 competing sealed branch — the fork is ≥ 2 accepted sealed → `Disputed` (reincept). A
 witness-declined attempt stays deferred-pending and is dropped (retain-and-count — dropping an
 accepted competing branch would split the reading permanently across nodes); the chain stays on the
-standing seal (Active, or Terminated when it is a `Trm`). Sealed branches are always retained
-(keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
+standing seal (Active, or Terminated when it is a `Trm`). An accepted sealed sibling is always
+within the two-per-rail retention floor — min-2 retention suffices to surface it — so an unnamed
+sealed sibling is caught, never sealed past.
 
 Authorization failure here is HARD: an event whose anchors do not reach threshold, or whose
 anchoring signature does not verify, is rejected and the new events never land. The verifier reports
@@ -274,8 +283,9 @@ commitment, no content-only guard walk. The mechanics are pure position + ascent
    sealed straggler that isn't accepted — witness-declined, below-seal, or **dead on ascent** (its
    fork-sibling is buried by this very seal, so its own later seal lands on the buried chain) — is
    **dropped**, not counted, and does not block the burial; the chain then stays on the standing
-   seal (Active, or Terminated when it is a `Trm`). Sealed branches are always retained, so an
-   unnamed sealed sibling is caught, never sealed past.
+   seal (Active, or Terminated when it is a `Trm`). An accepted sealed sibling is always within the
+   two-per-rail retention floor — min-2 retention suffices to surface it — so an unnamed sealed
+   sibling is caught, never sealed past.
 
 The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
 burying event; the competing content loser is validated from retained storage and need not co-reside
@@ -370,12 +380,13 @@ serial, cross-node convergence runs **data-locally** under acceptance gating. Ne
 accepted until it is threshold-witnessed; the two are competing **siblings at one position**, so a
 selected witness first-seen-signs one and **declines** the other — absent collusion, only one
 reaches threshold (**accepted**) and advances the seal, the nodes converge **Active** (or
-**Terminated**), and the declined sibling is retained as non-canonical evidence (keep-all-data)
-while the declined party **re-issues**. Only under **witness collusion** do both siblings reach
-threshold: each node then holds two **accepted** sealed branches and reads **Disputed** by a
-data-local walk. A `{Evl, Evl}` (two **accepted** sealed branches) is the disputed proof — a
-provable double-sign; the witness beacon enumerates the competing branch SAIDs but the verdict is
-the node's own.
+**Terminated**), and the declined sibling stays deferred-pending — staged until it ages out, durable
+only at a witness that own-signed it — while the declined party **re-issues**. Only under **witness
+collusion** do both siblings reach threshold: each node then holds two **accepted** sealed branches
+and reads **Disputed** by a data-local walk. A `{Evl, Evl}` (two **accepted** sealed branches) is
+the disputed proof — a provable double-sign; the witness beacon propagates competing branch SAIDs —
+bounded at two attested events per signer per position, always covering the dispute-proving pair —
+but the verdict is the node's own.
 
 Propagating a divergent IEL chain to another node requires more than ordering events by canonical
 chain order: the **sender partitions** the chain into sub-batches the receiver will accept under its

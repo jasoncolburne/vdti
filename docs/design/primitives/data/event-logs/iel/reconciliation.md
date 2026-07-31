@@ -55,12 +55,16 @@ safety claims hold _by construction_, not by observation.
    Combined with invariant 1 the fork is bounded on both axes: **depth** — each content-fork lineage
    extends at most `MAXIMUM_UNSEALED_RUN` events past the last seal (a member holding less than a
    rotation reserve can only author content participations, so a deeper lineage needs a sealing
-   event — tier 2); **breadth** — nodes retain ≥ 2 competing events per position as evidence and
-   drop the rest, with the one-content-sibling witnessing rule on top.
-3. **Bounded operations.** `MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, sized so the
-   canonical two-branch content fork anchored at the last seal — both lineages (≤
-   `MAXIMUM_UNSEALED_RUN` each) plus the burying seal — fits one page, which a source → sink
-   transfer of that shape needs (the sink holds neither branch).
+   event — tier 2); **breadth** — the two-per-rail bound: nodes retain **≥ 2 branches per rail per
+   divergence** as evidence (the floor), and the merge layer accepts **no event that would create a
+   third live accepted branch on a rail in the region** (the ceiling), with the one-content-sibling
+   witnessing rule on top.
+3. **Bounded operations.** `MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3` — the floor
+   position (re-read inclusively), two content-only runs, and two sealed branch runs with their
+   seals — bounds every seal-to-seal transfer window: with the two-per-rail ceiling in force, no
+   window exceeds it. The canonical two-branch content fork anchored at the last seal — both
+   lineages (≤ `MAXIMUM_UNSEALED_RUN` each) plus the burying seal — fits a fortiori, which a source
+   → sink transfer of that shape needs (the sink holds neither branch).
 4. **A sealed divergence is terminal; a content divergence is recoverable.** A sealing event (`Evl`
    / `Ath` / `Rev` / `Dth` / `Wit` / `Trm`) that would create or join a divergence does **not**
    extend the canonical chain — it is retained as non-canonical evidence rather than discarded. A
@@ -383,8 +387,9 @@ and everything built on it dead on ascent (**deadness ascends: an event whose pa
 dead**) — so a losing branch a lagging node grows after the burial is dead on ascent, growth-proof.
 The loser rides the **forked chain**, a bounded region: each dead lineage extends at most
 `MAXIMUM_UNSEALED_RUN` events past the last seal (a deeper event needs a sealing event, which on
-this dead branch is itself dead on ascent — dropped), and its breadth is bounded by retention (≥ 2
-competing events per position) with the one-content-sibling witnessing rule on top.
+this dead branch is itself dead on ascent — dropped), and its breadth is bounded by the two-per-rail
+bound (retain ≥ 2 branches per rail per divergence; accept no third live accepted branch on a rail)
+with the one-content-sibling witnessing rule on top.
 
 ### The completeness matrix
 
@@ -398,6 +403,10 @@ Rows = {tier of the losing branch} × {delivery timing}. Cell = reading + closin
 | **sealed** — a burial attempted against it, or a 2nd accepted sealed branch (wherever its seal sits) | ≥ 2 **witnessed** sealed branches (wherever their seals sit) → **Disputed** → reincept                                                                                       | a sealed branch is never buried; two **witnessed** sealed branches read Disputed (needs a provable witness double-sign); a **below-seal** sealed straggler is **dropped** (inert, backdate-safe) |
 | **sealed** — a **single** accepted branch, no competing seal                                         | the seal buries the content sibling → **Active** (a takeover you did not author reads Active node-agnostically, but forces _your_ reincept — operational, not a chain state) | invariant 4 (≥ 2 accepted sealed is the Disputed threshold; a **single** accepted sealed branch resolves to **Active**) — _not_ Disputed                                                         |
 | **≥ 2 accepted sealed branches**                                                                     | **Disputed** → reincept                                                                                                                                                      | invariant 4; [§Matrix 3](#matrix-3-race-matrix)                                                                                                                                                  |
+| **2 accepted sealed branches sealing at _different_ positions** (an eclipse formation)               | both retained — the budget is **per rail per divergence, never per position** → **Disputed**                                                                                 | the branch-shaped floor: the verdict counts per branch wherever the seals sit, so no per-position reading can drop one and read Forked                                                           |
+| **content**, offered as a **third** branch on the content rail                                       | refused at acceptance; the reading is unchanged                                                                                                                              | the ceiling — any two content branches prove the fork; `min(content, 2)` is unmoved                                                                                                              |
+| **sealed**, offered as a **third** accepted sealed branch (deeper collusion)                         | the third is refused; **Disputed** already                                                                                                                                   | the ceiling — any two of ≥ 2 prove it; the dispute-proving pair and each colluder's double-sign proof survive through the receipt gate                                                           |
+| a held **content** branch acquires an accepted seal, sealed rail full                                | the seal is refused by the branch ceiling (it would be the third accepted sealed branch) → **Disputed** (already)                                                            | the ceiling is per rail — the rail change is the third branch on the sealed rail; nothing already held is evicted                                                                                |
 | **`{Trm, content}` terminal tip** (no burial)                                                        | `Trm` wins on tier-rank, content buried non-canonical → **Terminated**; a late sealed sibling → **Disputed**                                                                 | tier-rank, no burial authored; the after-seal sealed asymmetry                                                                                                                                   |
 
 ### Eviction is atomic — the `cut` `Evl`
@@ -421,11 +430,13 @@ key rotation plays — an IEL burial rotates no identity key, so a culprit is ne
   below-seal or witness-declined straggler is dropped / deferred, not counted).
 - **No stale-authority revival.** Burial marks a subtree dead (by position + ascent), never extends
   or revives an event; there is no below-seal write operation, so the seal-cap stays unconditional.
-- **Bounded fork.** Depth ≤ `MAXIMUM_UNSEALED_RUN` events past the last seal per lineage; breadth
-  bounded by retention (≥ 2 per position) plus the one-content-sibling witnessing rule (a witness
-  signs the first content sibling and declines later ones; sealed siblings first-seen too — one per
-  position, a node accepts up to two witnessed). A signing-key (tier-1) re-forker can author more
-  content siblings, but they sit beyond the retained ≥ 2 → droppable + declined.
+- **Bounded fork.** Depth ≤ `MAXIMUM_UNSEALED_RUN` events past the last seal per lineage; breadth is
+  the two-per-rail bound — retain **≥ 2 branches per rail per divergence** (the floor), accept **no
+  third live accepted branch** on a rail (the ceiling) — plus the one-content-sibling witnessing
+  rule (a witness signs the first content sibling and declines later ones; sealed siblings
+  first-seen too — one per position; two accepted sealed branches, wherever their seals sit, prove
+  Disputed). A signing-key (tier-1) re-forker can author more content siblings, but they sit beyond
+  the two-per-rail budget → declined, staged, aged out.
 
 ### Convergence and termination
 

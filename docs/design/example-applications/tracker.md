@@ -20,19 +20,24 @@ flowchart LR
     capp["tracker client"]:::app
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes — chains: anchors ·<br/>memberships · policy SEL")]:::svc
   end
-  issr -->|"issue triager creds · publish policy"| node
-  mapp -->|"versions + furnished role cred"| node
-  capp -->|"comments · proposals"| node
+  tstore[("the organization's stores — off-federation<br/>sadd — issue versions · comments")]:::svc
+  issr -->|"anchor issuances — role creds ·<br/>seal the policy on its SEL"| node
+  mapp -->|"anchor versions"| node
+  capp -->|"anchor comments"| node
+  mapp -->|"deposit versions"| tstore
+  capp -->|"deposit comments · proposals"| tstore
   mapp <-.->|"each client evaluates the same policy SAID"| capp
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
 ```
 
-There is no tracker server: the organization's one operator surface is its issuer console, and every
-client renders the same state by evaluating the same committed policy against the same data.
+There is no tracker server: the organization's one operator surface is its issuer console, its
+stores are generic, and every client renders the same state by evaluating the same committed policy
+against the same data. The federation carries chains; the issue content lives on the organization's
+own stores.
 
 ## The composition
 
@@ -57,8 +62,8 @@ client renders the same state by evaluating the same committed policy against th
   This is the layering the design fixes — the features carry proofs, the application combines them
   with the relying party's policy; no role field rides the chain or the document
   ([`../features/credentials.md` §The two questions](../features/credentials.md#the-two-questions)).
-  And the rule itself is committable: the organization publishes "who may close" as a **policy SAD**
-  — `crd(vdti/cred/v1/schemas/triager, id(org))` in the policy language
+  And the rule itself is committable: the organization seals "who may close" as a **policy SAD** on
+  its policy SEL — `crd(tracker/cred/v1/schemas/triager, id(org))` in the policy language
   ([`../primitives/policy/policy.md` §The policy language](../primitives/policy/policy.md#the-policy-language))
   — named by SAID, so every client evaluates the same committed expression, with the author's role
   credential **furnished** to the evaluation the way a delegated credential furnishes its path.

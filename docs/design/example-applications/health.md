@@ -17,9 +17,9 @@ flowchart LR
     slib["provider client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
-  clinic -->|"issue record creds · revoke corrections"| node
+  clinic -->|"anchor issuances — record creds ·<br/>revoke corrections"| node
   clinic -->|"deliver sealed to the patient"| wallet
   wallet -->|"share — selective disclosure, sealed"| slib
   slib -->|"verify issuance · standing · freshness"| node

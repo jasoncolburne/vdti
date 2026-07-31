@@ -13,6 +13,14 @@ the data — signed, anchored, and witnessed — not the channel it arrived on
 ([`../../protocol-doctrine.md`](../../protocol-doctrine.md)). Encryption keeps mesh contents within
 the roster; it never decides what is true.
 
+This is the **mutual, mesh-scoped** handshake between federation peers. The **public face** a
+consumer dials is a different construction: a node publishes a **transport-key SAD** carrying a
+validity window, signed by a key current in its node KEL and re-signed on a timer; the client
+verifies it against the node's KEL, then runs an ephemeral-KEM handshake in which the transport key
+**signs** and is **never encapsulated to** ([`logsd.md` §Public face](logsd.md#public-face),
+[`sadd.md`](sadd.md#public-face), [`blobsd.md`](blobsd.md#public-face)). It is not the
+receive-key-directory pattern — a receive key is a KEM key, and that reading breaks forward secrecy.
+
 ## One crypto suite — vdti's own primitives
 
 The mesh is not a bespoke cryptographic stack. It is **vdti's crypto suite applied to the
@@ -35,17 +43,28 @@ A mesh link is an authenticated, encrypted session established once per connecti
 
 - **Authenticate.** The two nodes exchange identity prefixes and run an ML-KEM key exchange — the
   initiator offers a **fresh, per-connection** encapsulation key, the responder encapsulates to it —
-  yielding a shared secret. Each side then signs the handshake transcript with ML-DSA, and each
-  **verifies the peer's signature against that peer's witnessed identity**. A node whose signing key
-  does not match its current witnessed key state is refused: authentication is mutual and bound to
-  the witnessed chain, not to a self-asserted key. Because the encapsulation key is **ephemeral** —
-  generated for the connection, never a published or persistent key — the channel has **forward
-  secrecy**: a later compromise of a node's signing key cannot decrypt a past session, whose key
-  material is already gone.
+  yielding a shared secret. Each side then composes a **handshake SAD**
+  (`kind: vdti/gossip/v1/protocols/handshake`) committing the per-connection transcript — the
+  ephemeral KEM material and a nonce, so a captured handshake cannot replay — signs **over its
+  SAID** with ML-DSA, and **verifies the peer's signature against that peer's witnessed identity**.
+  A node whose signing key does not match its current witnessed key state is refused: authentication
+  is mutual and bound to the witnessed chain, not to a self-asserted key. Because the encapsulation
+  key is **ephemeral** — generated for the connection, never a published or persistent key — the
+  channel has **forward secrecy**: a later compromise of a node's signing key cannot decrypt a past
+  session, whose key material is already gone.
 - **Derive.** From the shared secret, blake3 derives **two** AES-256-GCM keys — one per direction —
   under a domain-separated context — `vdti/gossip/v1/protocols/kdf` — on the `vdti/gossip/v1/*`
   convention. The two directions never share a key.
 - **Scope.** The keys last the connection's lifetime. Nothing rides the mesh in the clear.
+
+The handshake SAD is **transient** — a wire artifact like the KDF-context labels, never stored and
+never served by SAID (it is not on the served list, so a bare fetch is refused by default; nothing
+expects it in a store). Signing over the SAID is the system-wide rule applied to the wire, and the
+kind is committed in it, which is what makes the signer's kind-gate sound: on a federation node the
+signature is minted by [`witnessd`](witnessd.md) through its kind-gated local endpoint —
+per-connection, local, low-frequency
+([`witnessd.md` §The local sign endpoint](witnessd.md#the-local-sign-endpoint--a-kind-gate)); an
+off-federation deployment signs with the device key it holds itself ([`gossipd.md`](gossipd.md)).
 
 ```mermaid
 sequenceDiagram
@@ -55,9 +74,9 @@ sequenceDiagram
   I->>R: identity prefix + fresh ephemeral ML-KEM encapsulation key
   R->>I: identity prefix + ML-KEM ciphertext (encapsulated to it)
   Note over I,R: both hold the ML-KEM shared secret<br/>ephemeral key ⇒ forward secrecy
-  I->>R: ML-DSA signature over the handshake transcript
-  R->>I: ML-DSA signature over the handshake transcript
-  Note over I,R: each verifies the peer's signature vs its WITNESSED KEL<br/>stale / rotated key ⇒ refused
+  I->>R: ML-DSA signature over the handshake SAD's SAID
+  R->>I: ML-DSA signature over the handshake SAD's SAID
+  Note over I,R: the SAD commits the transcript + a nonce<br/>each verifies the peer's signature vs its WITNESSED KEL<br/>stale / rotated key ⇒ refused
   Note over I,R: 2 — Derive: blake3(shared secret) ⇒ two AES-256-GCM keys<br/>one per direction · context vdti/gossip/v1/protocols/kdf
   Note over I,R: 3 — Nonce: each direction advances a monotonic 64-bit counter<br/>(key, nonce) can never recur ⇒ AES-GCM safe by construction
   I-->>R: encrypted frames (initiator→responder key)

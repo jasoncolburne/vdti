@@ -17,17 +17,20 @@ flowchart LR
     eapp["edit app — versions · comments<br/>+ live-sync channel between peers"]:::app
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes — governance chains + anchors;<br/>content gated, or off-node entirely")]:::svc
+    node[("nodes — governance chains<br/>+ anchors, never content")]:::svc
   end
+  dstore[("the document's store — off-federation<br/>sadd, gated · the stored mode")]:::svc
   capp -->|"membership acts — tier-2, witnessed"| node
-  eapp -->|"anchor versions · fetch or exchange content"| node
+  eapp -->|"anchor versions — witnessed"| node
+  eapp -->|"deposit · fetch versions<br/>in the stored mode"| dstore
   eapp <-.->|"sealed member-to-member delivery<br/>in the sovereignty mode"| eapp
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
 ```
 
-In the sovereignty mode the nodes hold nothing readable — opaque chains and anchors — while content
-moves member-to-member; the on-node mode trades that for availability, per document.
+In the sovereignty mode nothing readable lands anywhere — opaque chains and anchors — while content
+moves member-to-member; the stored mode trades that for availability, per document, on the
+document's own off-federation store. The federation holds chains in both.
 
 ## The composition
 

@@ -161,9 +161,12 @@ carries the grandfather `bound` publicly in the owner IEL `Dth`'s `kills[]` fiel
 rescission's `bound` is participant-identifying, so it rides a gated rescind-doc committed by that
 `Trm`'s **`bound` role** and the `kills[]` entry carries only a blind target; a chat-membership
 rescission's `bound` is participant-identifying the same way and rides the same gated role — a
-**per-lane list** (one bound per writing device lane), the chat instance of that gated cutoff. The
-read strategy that consumes this structure — the fail-secure `kills[]` walk and its fail-open lookup
-— is the feature layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
+**per-lane list** (one bound per writing device lane), exchange's instance of that gated cutoff; and
+a **trusted-federation un-grant carries no `bound` at all** — its horizon is always the killed
+lineage's live grant value, and its `kills[]` entry carries the lineaged target only
+([`../../../../substrate/federation/witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+The read strategy that consumes this structure — the fail-secure `kills[]` walk and its fail-open
+lookup — is the feature layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
 
 ### `Sea` — the neutral re-seal (tier 2, `t_govern`)
 
@@ -354,13 +357,14 @@ meaning.
 
 A seal-advancer (`Gnt` / `Trm` / `Sea`) must land at least every `MAXIMUM_UNSEALED_RUN` content
 events per lineage, so the content run since the last seal is bounded to `MAXIMUM_UNSEALED_RUN` on
-each branch and the canonical two-branch content fork plus the resolving burying seal fits one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, the same bound as the KEL and IEL). A busy
-SEL with no natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral
-advancer, the SEL analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at
-one position dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two
-**accepted** sealed branches → Disputed (a witness-declined second sibling stalls first-seen,
-forcing nothing), exactly as any two accepted sealed events would be.
+each branch, and a page — sized to the full seal-to-seal transfer window,
+`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3`, the same bound as the KEL and IEL — carries
+the canonical two-branch content fork plus the resolving burying seal a fortiori. A busy SEL with no
+natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral advancer, the SEL
+analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at one position
+dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two **accepted**
+sealed branches → Disputed (a witness-declined second sibling stalls first-seen, forcing nothing),
+exactly as any two accepted sealed events would be.
 
 ## Cross-references
 

@@ -24,14 +24,20 @@
 \bFederation-Dip\b
 \bFip\b
 
-# === Renamed services (kels consolidation) ===
-# kels-service consolidated into vdtid; gossip-service → witnessd. sadstore was a
-# retired kels service name but is REVIVED as vdti's off-federation storage app
-# (example-applications/sadstore.md), so the bare-token ban is lifted; kels-sadstore
-# stays retired.
+# === Renamed services (kels consolidation, then the vdti node split) ===
+# kels-service consolidated into a single interim daemon later split into the
+# four node daemons (logsd / sadd / witnessd / gossipd) — the consolidated name
+# vdtid is retired; gossip-service → witnessd, whose mesh loops live in gossipd.
+# sadstore — a retired kels service name, briefly revived as vdti's
+# off-federation storage app — is renamed sadd
+# (substrate/infrastructure/sadd.md), so the bare token is retired again;
+# kels-sadstore stays retired. The vdtid/sadstore bans are docs/-scoped, not
+# root: root governs .working/, whose specs quote both terms.
 \bkels-service\b
 \bgossip-service\b
 \bkels-sadstore\b
+\bvdtid\b
+\bsadstore\b
 
 # === kels-internal tool / agent names (out-of-context in vdti) ===
 # Distinctive enough to forbid; common words ("max", "min") rely on review.

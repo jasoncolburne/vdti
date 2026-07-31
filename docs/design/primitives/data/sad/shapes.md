@@ -62,27 +62,86 @@ The SAD layer's general content wrapper: a standalone SAD that names **bulk opaq
 encrypted payload, a file, media — as a **content-addressed blob** rather than inlining them
 ([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)).
 
-| Field       | Type   | Required | Meaning                                                           |
-| ----------- | ------ | -------- | ----------------------------------------------------------------- |
-| `said`      | SAID   | yes      | The file SAD's SAID.                                              |
-| `kind`      | string | yes      | `vdti/sad/v1/schemas/file`.                                       |
-| `digest`    | digest | yes      | Blake3-256 content-address of the raw blob — committed by `said`. |
-| `size`      | u64    | yes      | The blob's byte length.                                           |
-| `mediaType` | string | no       | Advisory MIME type.                                               |
-| `name`      | string | no       | Advisory filename.                                                |
-| `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.       |
+| Field       | Type   | Required | Meaning                                                                                                                    |
+| ----------- | ------ | -------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `said`      | SAID   | yes      | The file SAD's SAID.                                                                                                       |
+| `kind`      | string | yes      | `vdti/sad/v1/schemas/file`.                                                                                                |
+| `digest`    | digest | yes      | The **storage key `S`** — `hash(bundle.said ‖ blob)`, committing the stored payload (bundle + blob) — committed by `said`. |
+| `size`      | u64    | yes      | The stored payload's byte length — advisory (allocation / pre-fetch bound), not integrity.                                 |
+| `mediaType` | string | no       | Advisory MIME type.                                                                                                        |
+| `name`      | string | no       | Advisory filename.                                                                                                         |
+| `nonce`     | bytes  | yes      | High-entropy — makes `said` unguessable for a private file.                                                                |
 
 The `custody` / `availability` wrapper applies as to any standalone SAD: `custody.readers` gates who
-may fetch, and `availability` governs the referenced **blob** (its expiry, one-shot) as well as the
-SAD. The blob is opaque bytes — not a SAD, no `kind` of its own — fetched **by digest** from the
-store's blob path and accepted only when its recomputed digest matches `digest`.
+may fetch the SAD, and the SAD's `availability` governs the **SAD**. The **payload's** availability
+rides its own **bundle** (§The blob bundle below), and the coupling is the covering rule —
+**`D ⊇ payload`**: the committing SAD's availability must cover the payload's
+(`D.expiry ≥ payload.expiry`, and a `once` `D` roots nothing), checked at blob admission
+([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)). The blob is opaque bytes — not a SAD,
+no `kind` of its own — fetched **by `S`** from a blob store and accepted only when `hash(payload)`
+recomputes to `S` and the split-out blob matches `bundle.blobDigest`
+([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)).
+
+## The blob bundle — access and availability on the stored object
+
+Bulk opaque bytes are stored as a **payload** — `bundle.said ‖ blob` — addressed by the **storage
+key `S = hash(payload)`**, where the **bundle** is a small SAD the **client** composes to carry the
+blob's access and availability
+([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)):
+
+| Field        | Type      | Required | Meaning                                                                                                                                   |
+| ------------ | --------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`       | SAID      | yes      | The bundle's SAID — the payload's first, fixed-width, self-framing segment.                                                               |
+| `kind`       | string    | yes      | One of the **two bundle kinds** (below) — carries the encrypted/plaintext distinction structurally.                                       |
+| `nonce`      | bytes     | yes      | **Mandatory high-entropy** — makes a private blob's `S` unguessable; a low-entropy nonce would reopen an offline `S`-confirmation oracle. |
+| `blobDigest` | digest    | yes      | `hash(blob)` — the bundle **commits its blob**, so a `bundle.said` pairs with exactly one blob.                                           |
+| `access`     | SAD       | no       | The read gate the serving store enforces (the descriptor below). **`access` authorizes reads only.**                                      |
+| `once`       | bool      | no       | Destructive read — burns on the first serve, **gated or ungated** (an ungated `once` is a bearer one-time link).                          |
+| `expiry`     | timestamp | no       | GC horizon — composes with either ([`availability.md`](availability.md)).                                                                 |
+
+The two bundle kinds are `vdti/sad/v1/schemas/blob-metadata` (**plaintext** payload → the strict
+serve-currency tier) and `vdti/sad/v1/schemas/sealed-blob-metadata` (**encrypted** payload → the
+light tier). The distinction is a **kind, not a declared flag**: serve-currency must tier on
+something the store holds at serve time, and "is this ciphertext?" is not answerable from opaque
+bytes — and it is not self-asserted, because blob admission **validates the bundle kind against the
+committing document's own kind** (a structurally sealed document — an ESSR envelope, an epoch-sealed
+message — must carry the sealed kind; an ambiguous one defaults to **plaintext, fail-secure**, and
+opts down deliberately). An unmappable kind is **refused, fail-closed**
+([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)).
+
+The bundle is **unsigned** — availability is anchored transitively by the committing document, which
+commits `S`, which fixes the bundle ([`sad.md`](sad.md)). And it is **not on the served-by-SAID
+list**: like the mesh handshake SADs it is internal to its server, reachable only through the
+payload at `S`, so a bare `bundle.said` fetch is refused by default. Two submitters of one blob
+produce different bundles — a different `nonce` alone — hence different `S`: **separate stored
+objects, no cross-submitter dedup**, which is a privacy gain (dedup was a confirmation oracle).
+Public vs private is **inherited, not a flag**: a private blob's `S` is learned only from its
+(gated) committing document; a public blob's committing document is public, so its `S` is
+discoverable.
+
+The **`access` descriptor** dispatches on `check`:
+
+```
+access = { check: "roster",     identity }   // a current member DEVICE of the named recipient IEL
+        | { check: "membership", sets }      // a current member of any named grant chain, union over sets
+```
+
+A `roster` check admits a current member device of the named recipient IEL; a `membership` check
+admits a current member of any named grant-chain set
+([`../../protocols/membership.md`](../../protocols/membership.md)) — the same membership primitive
+wherever it appears. The gate is **operational, never the confidentiality boundary**
+([`custody.md`](custody.md)) — it is enforced on a live-signed request by the serving store
+([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)), and an unmappable `check` is
+**refused, fail-closed**. `access` authorizes **reads only**: deletion authority is not a bundle
+field and not a SAD-layer rule — who may remove an object is the deploying application's predicate
+([`blobsd.md` §Deletion](../../../substrate/infrastructure/blobsd.md#deletion-is-the-applications)).
 
 ## Rooting SADs — `vdti/rooting/v1/*`
 
 The store's admission wrapper and its two root pointers ([`rooting.md`](rooting.md)): a submission
 names the SAD being admitted and the **root** that commits it, and the store dispatches on the
 root's `kind`. These ride the `submit SAD` write path
-([`../../../substrate/infrastructure/vdtid.md` §The SAD store write path](../../../substrate/infrastructure/vdtid.md#the-sad-store-write-path));
+([`../../../substrate/infrastructure/sadd.md` §The SAD store write path](../../../substrate/infrastructure/sadd.md#the-sad-store-write-path));
 the envelope is the wire form the store unwraps, not a stored, serve-by-SAID object.
 
 The **submission envelope** — `vdti/rooting/v1/submission/envelope`:
@@ -171,17 +230,18 @@ federation IEL
 Carried by an IEL `Icp` (the initial roster + threshold vector), an `Evl` (a delta), and a
 federation `Fcp` / `Wit`:
 
-| Field            | Type                         | Meaning                                                                                               |
-| ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `said`           | SAID                         | The delta SAD's SAID.                                                                                 |
-| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                         |
-| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                        |
-| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                             |
-| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2). |
+| Field            | Type                         | Meaning                                                                                                                                                                                                                                                                                                                       |
+| ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`           | SAID                         | The delta SAD's SAID.                                                                                                                                                                                                                                                                                                         |
+| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                                                                                                                                                                                                                                                 |
+| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                                                                                                                                                                                                                                                |
+| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                                                                                                                                                                                                                                                     |
+| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2).                                                                                                                                                                                                                         |
+| `t_live`         | u64                          | The **step-up bar**, beside the vector, not in it: **required** at a user inception, **delta** thereafter (present ⇒ changed, absent ⇒ unchanged); `1 ≤ t_live ≤ \|roster\|`, `≥ 2` hard for `\|roster\| ≥ 2`; **forbidden on the federation facet**; no consuming event kind — read by live checks, never by event validity. |
 
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the
-threshold bounds are re-checked on the post-delta config
+threshold bounds — `t_live`'s included — are re-checked on the post-delta config
 ([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add`
 must carry **exactly one** prefix (one witness KEL added at a time) — the type stays `list⟨prefix⟩`;
 the one-at-a-time rule is a cardinality check on the federation facet, not a second shape.
@@ -234,61 +294,41 @@ Like a receipt, it is a SAD whose witness signature rides **adjacent**, never in
 | `nonce`         | bytes     | no       | A consumer-supplied challenge — present in the live (challenge-response) variant.                                       |
 | `witnessPrefix` | prefix    | yes      | The signing witness's KEL prefix.                                                                                       |
 
-## Witness attestations
-
-A **witness attestation** vouches that a valid identity **live-signed an unrooted root** — the
-durable, independently verifiable form the unrooted floor converts a submitter's live signature
-into, so the signature itself is never stored or gossiped
-([`rooting.md` §The unrooted floor](rooting.md#the-unrooted-floor)). Like a receipt, it is a SAD
-whose witness signature rides **adjacent**, never in the body.
-
-| Field           | Type      | Required | Meaning                                                                            |
-| --------------- | --------- | -------- | ---------------------------------------------------------------------------------- |
-| `said`          | SAID      | yes      | The attestation's own SAID.                                                        |
-| `kind`          | string    | yes      | `vdti/witness/v1/attestations/unrooted`.                                           |
-| `root`          | SAID      | yes      | The unrooted-root SAD this attests — a valid identity was seen to live-sign it.    |
-| `timestamp`     | timestamp | yes      | The witness's asserted time (inside the signed payload).                           |
-| `witnessPrefix` | prefix    | yes      | The attesting witness's KEL prefix.                                                |
-| `witnessPin`    | SAID      | yes      | The witness's establishment event current at signing — resolves the verifying key. |
-
-One attestation per unrooted root (a second submitter of the same content dedups), by a **single**
-witness — no quorum, because it is a mesh-internal spam-admission vouch, not a consumer trust
-decision ([`rooting.md` §Adversarial framing](rooting.md#adversarial-framing)).
-
 ## Grant values — what a SEL `Gnt` seals
 
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                             | Carries                                                                                                                                                                                                                                                                                                                  | Status      |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- |
-| `vdti/sel/v1/grants/directory-ml-kem-1024`       | A published ML-KEM-1024 receive key (scheme-tagged public key + optional hardware attestation) + inbox-node hints.                                                                                                                                                                                                       | forthcoming |
-| `vdti/sel/v1/grants/directory-ml-kem-768`        | The reduced-tier ML-KEM-768 receive key + inbox-node hints.                                                                                                                                                                                                                                                              | forthcoming |
-| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device.                                                                                                                                                                                                                                                                  | forthcoming |
-| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (shared documents, **editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role.                                                                                          | forthcoming |
-| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**.                                                                                                                                                                                                                                                                                          | forthcoming |
-| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**.                                                                                                                                                                                                                                                                                             | forthcoming |
-| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc (exchange) — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role.                                                                                              | forthcoming |
-| `vdti/sel/v1/grants/delegation`                  | A **delegation marker** — the tier-2 signpost a delegating-link `{Icp, Gnt}` seals; commits a **blinded reference to the delegate** (checked by the `del(X, N)` walk against the anchoring `Ath`'s `delegates`), and carries no authority itself — [`../event-logs/iel/delegation.md`](../event-logs/iel/delegation.md). | forthcoming |
-| `vdti/sel/v1/grants/block`                       | A **block marker** — the signpost a federation's [prefix-block](../../../substrate/federation/blocking.md) lineage `{Icp, Gnt}` seals; `{ said, kind, reason? }`, carrying an optional `reason` and no authority of its own (the live lineage _is_ the block).                                                           | forthcoming |
+| Kind                                             | Carries                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status      |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `vdti/sel/v1/grants/directory-kem`               | A published receive key — a **scheme-tagged** KEM public key (the tag carries the scheme and parameter set, so one kind covers every set) + optional hardware attestation + the `receivers` service list. Owned by the [receive-key directory](../../protocols/receive-key-directory.md).                                                                                                                                                    | forthcoming |
+| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device. Owned by [group-key](../../protocols/group-key.md).                                                                                                                                                                                                                                                                                                                                  | forthcoming |
+| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (**editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                            | forthcoming |
+| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                                                                                                                                                                                                          | forthcoming |
+| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                                                                                                                                                                                                             | forthcoming |
+| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role. Owned by [exchange](../../../features/exchange.md).                                                                                                                                                                         | forthcoming |
+| `vdti/sel/v1/grants/delegation`                  | A **delegation marker** — the tier-2 signpost a delegating-link `{Icp, Gnt}` seals; commits a **blinded reference to the delegate** (checked by the `del(X, N)` walk against the anchoring `Ath`'s `delegates`), and carries no authority itself — [`../event-logs/iel/delegation.md`](../event-logs/iel/delegation.md).                                                                                                                     | forthcoming |
+| `vdti/sel/v1/grants/block`                       | A **block marker** — the signpost a federation's [prefix-block](../../../substrate/federation/blocking.md) lineage `{Icp, Gnt}` seals; `{ said, kind, reason? }`, carrying an optional `reason` and no authority of its own (the live lineage _is_ the block).                                                                                                                                                                               | forthcoming |
+| `vdti/sel/v1/grants/trusted-federation`          | The **trusted-federation grant value** — `{ remotePrefix, bound }`: the remote federation's prefix (must equal the derived address's input — self-describing, never a second authority) and the governance horizon `bound`, a remote-federation-event SAID, monotone non-decreasing across refreshes ([`witnessing.md` §The trust grant chain](../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)). | forthcoming |
 
-Each grant value is a SAD (`said` + `kind` + its value); the concrete value layouts land at the
-encoding library (the scheme-tagged keys and ESSR wraps) and the shared-documents encode (the
-role-lists).
+Each grant value is a SAD (`said` + `kind` + its value); each is **owned by the component that
+defines it** — the rows above point at the owning doc, and this catalogue is a registry, never the
+definition. The concrete value layouts land at the encoding library (the scheme-tagged keys and ESSR
+wraps) and the shared-documents encode (the role-lists).
 
 The **directory receive-key** grant value carries the reachability a sender needs — the key to seal
 to and where to deliver:
 
-| Field         | Type         | Meaning                                                            |
-| ------------- | ------------ | ------------------------------------------------------------------ |
-| `said`        | SAID         | The grant value's SAID.                                            |
-| `kind`        | string       | `vdti/sel/v1/grants/directory-ml-kem-1024` (or `-768`).            |
-| `receiveKey`  | bytes        | The scheme-tagged ML-KEM public key others seal to.                |
-| `attestation` | bytes        | Optional — a vendor-signed hardware attestation.                   |
-| `nodeHints`   | list⟨string⟩ | The storage nodes where a message sealed to this key is deposited. |
+| Field         | Type         | Meaning                                                                                                                                                                                                              |
+| ------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`        | SAID         | The grant value's SAID.                                                                                                                                                                                              |
+| `kind`        | string       | `vdti/sel/v1/grants/directory-kem`.                                                                                                                                                                                  |
+| `receiveKey`  | bytes        | The **scheme-tagged** KEM public key others seal to — the tag names the scheme and parameter set, so the kind never multiplies per parameter set.                                                                    |
+| `attestation` | bytes        | Optional — a vendor-signed hardware attestation.                                                                                                                                                                     |
+| `receivers`   | list⟨prefix⟩ | The service identities whose deployments hold a message sealed to this key — each resolved to nodes via its roster and its endpoint lookup ([`receive-key-directory.md`](../../protocols/receive-key-directory.md)). |
 
 (The scheme-tagged key and attestation byte layouts land at the encoding library; the structural
-fields — including the `nodeHints` exchange delivers against — are fixed here.)
+fields — including the `receivers` exchange delivers against — are fixed here.)
 
 ## Protocol SADs
 
@@ -297,27 +337,28 @@ fields — including the `nodeHints` exchange delivers against — are fixed her
 The **envelope** (`vdti/essr/v1/schemas/envelope`) — the signed cleartext; its signature rides
 adjacent ([`../../protocols/essr.md`](../../protocols/essr.md)):
 
-| Field           | Type   | Meaning                                                                                                               |
-| --------------- | ------ | --------------------------------------------------------------------------------------------------------------------- |
-| `said`          | SAID   | The envelope SAID — commits every field below; the signature is over it.                                              |
-| `kind`          | string | `vdti/essr/v1/schemas/envelope`.                                                                                      |
-| `sender`        | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).                                              |
-| `senderPin`     | SAID   | The sender's establishment event current at signing — the verifying state.                                            |
-| `recipient`     | prefix | The recipient's IEL prefix (signed — the recipient binding).                                                          |
-| `kemCiphertext` | bytes  | The key-encapsulation to the recipient's receive key — small, inline (derives the key).                               |
-| `payloadDigest` | digest | Commitment to the sealed inner (the encrypted payload) — a content-addressed blob, not the bytes (integrity-bearing). |
-| `payloadSize`   | u64    | The encrypted payload's byte length — advisory (allocation / pre-fetch bound), not integrity.                         |
-| `nonce`         | bytes  | The sealing nonce (fresh random per message).                                                                         |
+| Field           | Type   | Meaning                                                                                                                                                      |
+| --------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `said`          | SAID   | The envelope SAID — commits every field below; the signature is over it.                                                                                     |
+| `kind`          | string | `vdti/essr/v1/schemas/envelope`.                                                                                                                             |
+| `sender`        | prefix | The sender's IEL prefix (cleartext — routes and fetches the verify key).                                                                                     |
+| `senderPin`     | SAID   | The sender's establishment event current at signing — the verifying state.                                                                                   |
+| `recipient`     | prefix | The recipient's IEL prefix (signed — the recipient binding).                                                                                                 |
+| `kemCiphertext` | bytes  | The key-encapsulation to the recipient's receive key — small, inline (derives the key).                                                                      |
+| `payloadDigest` | digest | Commitment to the sealed inner's stored **payload** — `bundle.said ‖ blob`, the ciphertext riding as the blob — the storage key **`S`** (integrity-bearing). |
+| `payloadSize`   | u64    | The stored payload's byte length — advisory (allocation / pre-fetch bound), not integrity.                                                                   |
+| `nonce`         | bytes  | The sealing nonce (fresh random per message).                                                                                                                |
 
 The **inner** (`vdti/essr/v1/schemas/inner`, sealed) is `{ said, kind, sender, payload }` — the
 sender prefix (the binding that rides inside the sealed content) and the opaque payload; a message
 timestamp or protocol label rides _inside_ `payload`, not as an envelope field. The **sealed inner
-(the ciphertext) is not carried in the envelope** — it rides as a content-addressed blob named by
-the envelope's `payloadDigest` (+ `payloadSize`), fetched by digest and checked before decryption:
-the **digest is integrity-bearing** (a recomputed-digest mismatch is the only tamper signal), the
-**size advisory** (an allocation / pre-fetch bound, never treated as tamper-evidence). The
-**message** (`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the envelope
-SAD plus the sender's signature over `envelope.said`.
+(the ciphertext) is not carried in the envelope** — it rides as the blob of a bundle-committed
+stored payload the envelope's `payloadDigest` names by storage key (+ `payloadSize`), fetched by `S`
+and checked before decryption: the **key is integrity-bearing** (a recomputed `hash(payload)`
+mismatch, or a split-out blob failing `bundle.blobDigest`, is the tamper signal), the **size
+advisory** (an allocation / pre-fetch bound, never treated as tamper-evidence). The **message**
+(`vdti/essr/v1/schemas/message`) is `{ said, kind, envelope, signature }` — the envelope SAD plus
+the sender's signature over `envelope.said`.
 
 ### IPEX — `vdti/ipex/v1/*`
 
@@ -343,7 +384,7 @@ their shapes land with [`../../protocols/ipex.md`](../../protocols/ipex.md).
 
 ## Feature SADs
 
-### Credentials — `vdti/cred/v1/schemas/*`
+### Credentials — `{namespace}/cred/v1/schemas/*`
 
 A credential is a **direct-anchored** SAD (its issuance is a commitment hash on the issuer's IEL
 `Ixn` — [`../../../features/credentials.md`](../../../features/credentials.md)), not a chain event.
@@ -353,7 +394,7 @@ below is common to every type.
 | Field            | Type         | Required | Meaning                                                                                                                                                                                                                                                            |
 | ---------------- | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `said`           | SAID         | yes      | The credential's SAID — its immutable anchor.                                                                                                                                                                                                                      |
-| `kind`           | string       | yes      | `vdti/cred/v1/schemas/*` — the credential's registered type.                                                                                                                                                                                                       |
+| `kind`           | string       | yes      | `{namespace}/cred/v1/schemas/*` — the credential's registered type, under the issuing application's own namespace.                                                                                                                                                 |
 | `issuer`         | prefix       | yes      | The issuer's IEL prefix.                                                                                                                                                                                                                                           |
 | `issuerPin`      | SAID         | yes      | The anchoring `Ixn`'s `previous` — locates the anchor at `previous.serial + 1`.                                                                                                                                                                                    |
 | `issuee`         | prefix       | no       | The issuee's IEL prefix; **absent → a bearer credential**.                                                                                                                                                                                                         |
@@ -442,9 +483,9 @@ A **comment-resolution** (`vdti/doc/v1/schemas/comment-resolution`, append-only)
 ### Exchange — `vdti/exchange/v1/*`
 
 Exchange defines one message SAD of its own — the **chat message**, on a per-sender lane. The
-one-off async message is the **ESSR message** (Protocol SADs above — its envelope names the payload
-by digest), scoped to the recipient's inbox nodes by `availability`; the issuance/presentation
-messages (`apply` / `offer` / …) are **IPEX**'s (above).
+one-off async message is the **ESSR message** (Protocol SADs above — its envelope commits its stored
+payload by storage key), scoped to the recipient's inbox nodes by `availability`; the
+issuance/presentation messages (`apply` / `offer` / …) are **IPEX**'s (above).
 
 The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on the writer's lane:
 
@@ -454,8 +495,8 @@ The **chat message** (`vdti/exchange/v1/schemas/message`) — sender-signed, on 
 | `kind`          | string    | `vdti/exchange/v1/schemas/message`.                                                                                                                                                                                                                |
 | `previous`      | SAID      | The writer's **own** prior node on this lane — the join **marker** at lane start, else a prior message. A message always chains; it never roots a lane (the body-less marker does, carrying the device prefix, attributed to its owning identity). |
 | `epoch`         | SAID      | The group-key epoch the body is encrypted under (the witnessed epoch window).                                                                                                                                                                      |
-| `payloadDigest` | digest    | The encrypted message body — a content-addressed blob (integrity-bearing).                                                                                                                                                                         |
-| `payloadSize`   | u64       | The body's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                                                                     |
+| `payloadDigest` | digest    | The encrypted message body's stored **payload** — the storage key `S` over `bundle.said ‖ blob` (integrity-bearing).                                                                                                                               |
+| `payloadSize`   | u64       | The payload's byte length — advisory (allocation/pre-fetch bound), not integrity.                                                                                                                                                                  |
 | `timestamp`     | timestamp | Orders messages within the epoch window (advisory; never establishes currency).                                                                                                                                                                    |
 | `nonce`         | bytes     | High-entropy — makes `said` unguessable, so a **guessable** message body can't be confirmed against the public SAID (a known-plaintext oracle on the symmetric-encrypted chat content). Mandatory.                                                 |
 
@@ -493,7 +534,7 @@ The kinds whose role is fixed but whose exact field layout is owed, with where e
 
 | Kind / SAD                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Lands at                                                     |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Cryptographic grant values (`directory-ml-kem-*`, `groupkey-epoch-key`)                                                                                                                                                                                                                                                                                                                                                                                          | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
+| Cryptographic grant values (`directory-kem`, `groupkey-epoch-key`)                                                                                                                                                                                                                                                                                                                                                                                               | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
 | Shared-document grant values (`document-edit-membership`, `document-comment-membership`, `document-read-membership`) + grant-doc + rescind-doc                                                                                                                                                                                                                                                                                                                   | the shared-documents encode                                  |
 | Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a grant-chain entry anchors a writing device's body-less lane-root marker; a `rescinds` entry records each device lane's `bound` on the rescission `Trm`'s `bound` role) + the body-less join-marker shape (commits the **device prefix + group prefix + membership period / grant-instance** — structurally bound to one group, single-use per period) | the exchange encode                                          |
 | Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals                                                                                                                                                                                                                                                                                                                           | the exchange encode                                          |

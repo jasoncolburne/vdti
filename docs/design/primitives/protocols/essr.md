@@ -55,7 +55,7 @@ the sender) at once. Neither the order nor where each identity sits is cosmetic.
 ```mermaid
 flowchart TB
   subgraph message["message → handed to transport"]
-    signature["<b>signature</b> — sender's t_use quorum over envelope.said"]:::sig
+    signature["<b>signature</b> — the sender's live signature over envelope.said"]:::sig
     subgraph envelope["envelope — signed cleartext (said commits all below)"]
       sndr["sender · senderPin — locate chain, fetch verify key"]:::fld
       rcpt["<b>recipient</b> — bound in signed cleartext<br/>defeats recipient-key substitution"]:::bind
@@ -63,7 +63,7 @@ flowchart TB
       dig["payloadDigest · payloadSize"]:::fld
     end
   end
-  dig -.->|"commits the sealed inner (a blob, not the bytes)"| inner
+  dig -.->|"commits the sealed inner's stored payload — the storage key S, not the bytes"| inner
   subgraph inner["inner — sealed under a fresh per-message key"]
     isndr["<b>sender</b> — bound in sealed content<br/>defeats strip-and-re-sign"]:::bind
     pl["payload — opaque; ESSR never inspects"]:::fld
@@ -100,11 +100,11 @@ envelope = {
   said,               // commits every field below; the signature is over this
   kind,               // vdti/essr/v1/schemas/envelope
   sender,             // the sender's IEL prefix — cleartext: locates the chain, routes, fetches the verify key
-  senderPin,          // SAID of the sender's IEL key-state position at signing — the roster + t_use threshold that verifies the signature
+  senderPin,          // SAID of the sender's IEL key-state position at signing — the key-state whose roster verifies the signature
   recipient,          // the recipient's IEL prefix — bound by the signature; the transport also routes on it
   kemCiphertext,      // key-encapsulation to the recipient's receive key — small, inline (derives the sealing key)
-  payloadDigest,      // commitment to the sealed inner (the encrypted payload) — a content-addressed blob, never the bytes
-  payloadSize,        // the encrypted payload's byte length
+  payloadDigest,      // commitment to the sealed inner's stored payload — bundle.said ‖ blob, the storage key S; never the bytes
+  payloadSize,        // the stored payload's byte length — advisory
   nonce,              // sealing nonce — fresh random; a per-message key means single use
 }
 ```
@@ -116,34 +116,39 @@ message = {
   said,
   kind,        // vdti/essr/v1/schemas/message
   envelope,    // the SAD above
-  signature,   // the sender's t_use quorum over envelope.said, riding adjacent
+  signature,   // the sender's live signature over envelope.said, riding adjacent
 }
 ```
 
 **To seal:** encapsulate to the recipient's receive key → a shared secret → derive a sealing key
 (domain-separation context `vdti/essr/v1/protocols/kdf`) → seal `inner` under a fresh nonce → the
-envelope commits that sealed inner by **`payloadDigest`** (+ `payloadSize`), the caller holding
-those bytes as a content-addressed blob → assemble `envelope` and compute its `said` → sign that
-`said`.
+envelope commits that sealed inner's **stored payload** by **`payloadDigest`** — the storage key `S`
+(+ `payloadSize`), the caller composing the blob bundle and holding the payload `bundle.said ‖ blob`
+([`shapes.md` §The blob bundle](../data/sad/shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object))
+→ assemble `envelope` and compute its `said` → sign that `said`.
 
 **To open:** **recompute `envelope.said` from the envelope fields and reject on any mismatch** — the
 ordinary SAD check, and what makes the signature (which is over `said`) bind every field → verify
-the signature over `said` against the sender's `t_use` key-state, resolved by the caller from
-`sender` + `senderPin` (ESSR does no lookup — see the boundary) → **assert `recipient` is the
-opener's own prefix** → decapsulate → derive the sealing key → **take the sealed-inner bytes the
-caller fetched by `payloadDigest` and check their digest matches** → open the inner → **assert
-`inner.sender == envelope.sender`**.
+the signature over `said` against the sender's key-state — a current member device, the base live
+check — resolved by the caller from `sender` + `senderPin` (ESSR does no lookup — see the boundary)
+→ **assert `recipient` is the opener's own prefix** → decapsulate → derive the sealing key → **take
+the stored payload the caller fetched by `payloadDigest` — the storage key — check its recomputed
+hash matches, and split out the sealed-inner blob against `bundle.blobDigest`** → open the inner →
+**assert `inner.sender == envelope.sender`**.
 
 Only `envelope.said` is signed, so only its recompute gates trust. `inner.said` and `message.said`
 are ordinary self-addresses, present by the universal [SAD](../data/sad/sad.md) rule — the sealed
-inner rides as a **content-addressed blob** the signed envelope commits by `payloadDigest`, so its
-bytes are protected by the sealing tag **and** the envelope signature, and the message by the
+inner rides as the blob of a **stored payload** the signed envelope commits by `payloadDigest` — the
+storage key `S`
+([`sad.md` §Bulk opaque bytes](../data/sad/sad.md#bulk-opaque-bytes--the-content-addressed-blob)) —
+so its bytes are protected by the sealing tag **and** the envelope signature, and the message by the
 envelope signature; none is separately load-bearing.
 
-**The sender signs with a quorum.** A `sender` is an IEL prefix — an identity that is a threshold
-over its member devices, not a single key — so the signature is the sender's `t_use` quorum (signing
-a message is a use act), exactly as a presentation's is ([`ipex.md`](ipex.md)). ESSR stays agnostic
-to this: the caller's signing capability produces the quorum signature, and the caller's resolver
+**The sender signs live.** A `sender` is an IEL prefix — an identity that is a threshold over its
+member devices, not a single key — and the envelope signature is a **live signature**: one current
+member device signs (the **base live check**), with step-up to `t_live` devices the application's
+per-operation choice, exactly as a presentation's ownership proof ([`ipex.md`](ipex.md)). ESSR stays
+agnostic to this: the caller's signing capability produces the signature, and the caller's resolver
 returns the key-state that `senderPin` names.
 
 **Crypto by what it is** (the strength tier is a parameter, not a separate code path): a **key

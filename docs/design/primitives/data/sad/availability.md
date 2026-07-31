@@ -5,8 +5,9 @@ destructive**. It is a top-level `availability` field on the standalone-SAD wrap
 [`custody`](custody.md) field, and is one of the per-object axes the wrapper carries.
 
 This doc states the structural role of `availability` and its two sub-axes. Per-axis policy
-expression — concrete encoding for one-shot semantics — and storage-side enforcement live in
-[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md).
+expression — concrete encoding for one-shot semantics — and storage-side enforcement live with the
+off-federation store daemons
+([`../../../substrate/infrastructure/sadd.md`](../../../substrate/infrastructure/sadd.md)).
 
 ## What availability declares
 
@@ -24,32 +25,53 @@ Each sub-field is independently optional and covers one operational axis:
   peer and start a fresh life at every hop. An absolute horizon reads the same from the object alone
   wherever it lands, so an expired copy is refusable on sight. Expired SADs are garbage-collected;
   fetches against an expired SAID return the same "not present" response a never-existed SAID would.
-- **`once`** — one-shot delivery. Whether retrieval is destructive. A `once` SAD is removed from
-  storage after the first successful read; subsequent fetches by the same or any other consumer
-  fail. So `once` composes poorly with a **blob shared across a fan-out**: if one ciphertext blob is
-  meant for a recipient's several devices (or a group's members), the first reader consumes it and
-  the rest fail. `once` fits a blob with a **single** consumer — per-device ESSR gives each device
-  its own ciphertext, where `once` is exactly right — not a shared one.
+- **`once`** — one-shot delivery. Whether retrieval is destructive. A `once` object is removed from
+  storage after the first successful read — **gated or ungated**: an ungated `once` payload (no
+  `access` on its bundle) is a **bearer one-time link**, first-reader-wins by `S`, protected only by
+  `S`-secrecy — and subsequent fetches by the same or any other consumer fail. So `once` composes
+  poorly with a **blob shared across a fan-out**: if one ciphertext blob is meant for a recipient's
+  several devices (or a group's members), the first reader consumes it and the rest fail. `once`
+  fits a blob with a **single** consumer — per-device ESSR gives each device its own ciphertext,
+  where a `once` **payload** is exactly right (the declaration rides the payload's own bundle, never
+  the message SAD — a `once` `D` roots nothing) — not a shared one.
 
 The two sub-fields compose freely — a SAD MAY declare any combination (e.g., an expiry with
 non-destructive read, or no expiry with one-shot delivery).
 
+**Both axes are off-federation axes: a federation `sadd` refuses a submission declaring either.**
+The federation is the permanent record — everything on it is rooted by a chain event or an accepted
+parent, `once` roots nothing ([§A root covers its children](#a-root-covers-its-children)), and there
+is no federation-side object whose disappearance would be legitimate: a manifest, a role SAD, a
+grant value, a roster, a witness-config, a receipt, or a freshness statement going away breaks a
+verification someone is entitled to run. (A freshness statement ages out of **relevance** —
+staleness is a property consumers evaluate — never out of storage by a submitter-declared
+availability.) Enforcement of `expiry` and `once` lives where the declaring data does, at the
+off-federation stores.
+
 **Where** the bytes live is not an availability axis. A SAD carries no placement field: the client's
 **cascading store**
-([`../../../substrate/infrastructure/architecture.md` §The store traits](../../../substrate/infrastructure/architecture.md#the-store-traits--one-interface-composed-in-sequence))
-routes a write — **federation-published** (submitted to a federation node, which replicates it
-across **all** the federation's witnesses) or **off-federation** (kept on a local or private
-[`sadstore`](../../../example-applications/sadstore.md) tier and not submitted) — by application and
-deployment policy, never by anything in the bytes. A federation replicates every SAD it admits
-across all its witnesses, so there is no per-object replication scope to declare.
+([`../../../substrate/infrastructure/architecture.md` §The cascading store](../../../substrate/infrastructure/architecture.md#the-cascading-store--one-interface-composed-in-sequence))
+routes a write across the client's **own** tiers — local, a private
+[`sadd`](../../../substrate/infrastructure/sadd.md), a service's replicated roster — by application
+and deployment policy, never by anything in the bytes. What the **federation** holds is fixed by the
+verification-necessary test, never by client choice: a grant value or manifest is **submitted** and
+replicated across **all** the federation's witnesses; application data has no federation tier to
+choose. So there is no per-object replication scope to declare either way.
 
-When a SAD names bulk bytes as a **content-addressed blob** rather than inlining them
-([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)), the blob is
-the bytes this `availability` governs: the `expiry` and `once` semantics apply to the referenced
-blob, not only the SAD wrapper. Where the blob lives follows the same client placement decision as
-any SAD — a `file` kept **off the federation** lives on a
-[`sadstore`](../../../example-applications/sadstore.md) tier of the cascading store (a recipient's
-inbox, a private drive), placed by the application, not on the federation's witnesses.
+When a SAD commits bulk bytes as a stored payload rather than inlining them
+([`sad.md` §Bulk opaque bytes](sad.md#bulk-opaque-bytes--the-content-addressed-blob)), each object
+carries its **own** availability: the SAD's `availability` governs the **SAD**, and the payload's
+governs the **payload** — it rides the payload's own **bundle**
+([`shapes.md` §The blob bundle](shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)),
+committed by `S`. The coupling is the covering rule, **`D ⊇ payload`**: the committing SAD's
+availability must cover the payload's ([§A root covers its children](#a-root-covers-its-children)),
+checked at blob admission ([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)). The bundle
+also carries the one read gate, **`access`** — a **custody-domain** read gate carried on the bundle
+for content-addressing, **not** a new availability axis ([`custody.md`](custody.md),
+[`../../protocols/membership.md`](../../protocols/membership.md)); it authorizes **reads only**. The
+**payload** always lives off-federation — a [`blobsd`](../../../substrate/infrastructure/blobsd.md)
+tier (a recipient's inbox, a private drive), placed by the application — while the committing SAD
+follows the same client placement decision as any SAD.
 
 ## Scope
 
@@ -103,9 +125,10 @@ The structural guarantees follow from the SAID commitment and from where enforce
   wrapper boundary surface as a SAID mismatch at the next verifier walk. An adversary cannot quietly
   convert a one-shot SAD to non-destructive or extend its expiry.
 - **Enforcement is at the storage boundary.** Expiry and one-shot semantics are applied by the
-  storage service (`vdtid`). A consumer fetching an expired or already-consumed one-shot SAD
-  receives a uniform "not present" response; the absence does not distinguish "expired" from
-  "one-shot consumed" from "never existed."
+  off-federation store holding the bytes; a federation `sadd` refuses both axes at admission
+  ([§What availability declares](#what-availability-declares)). A consumer fetching an expired or
+  already-consumed one-shot SAD receives a uniform "not present" response; the absence does not
+  distinguish "expired" from "one-shot consumed" from "never existed."
 - **One-shot is operational, not cryptographic.** A consumer who has retrieved a one-shot SAD can
   persist the bytes locally; the protocol cannot prevent that. `once` is an instruction to the
   storage service about deletion semantics, not a guarantee about post-retrieval consumer behavior.

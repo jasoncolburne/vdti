@@ -338,14 +338,18 @@ rejects any submission whose parent sits before the `Trm`; a direct `Trm`-child 
 is rejected by the terminal-state gate.
 
 **Bounds on the post-seal window.** KEL, IEL, and SEL bound the gap between seal-advancing events at
-`MAXIMUM_UNSEALED_RUN` non-seal-advancing events **per lineage**, so the canonical two-branch fork
-anchored at the last seal — both lineages (≤ `MAXIMUM_UNSEALED_RUN` each) plus the burying
-seal-advancer — fits one page on any conformant deployment
-(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, a protocol constant, not a per-deployment
-knob). The page carries **both** competing branches plus the burying seal because a source → sink
-transfer delivers the fork to a sink holding neither branch — the burying seal's content-only guard
-needs every branch to walk within one atomic unit; there is no separate repair event, the burying
-event is a single ordinary `Rot` / `Wit` / `Trm` (KEL) or sealing event (IEL).
+`MAXIMUM_UNSEALED_RUN` non-seal-advancing events **per lineage** — **`MAXIMUM_UNSEALED_RUN = 64` is
+the primary constant**, and the page floor derives from it:
+`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3`, a protocol constant, not a per-deployment
+knob, sized to the full **seal-to-seal transfer window** (the floor position re-read inclusively,
+two content-only runs, and two sealed branch runs with their seals —
+[`kel/log.md` §Seal-advance cap](primitives/data/event-logs/kel/log.md#seal-advance-cap) carries the
+derivation). The canonical two-branch fork anchored at the last seal — both lineages (≤
+`MAXIMUM_UNSEALED_RUN` each) plus the burying seal-advancer, `2·MAXIMUM_UNSEALED_RUN + 1 = 129` rows
+— fits a fortiori. The page carries **both** competing branches plus the burying seal because a
+source → sink transfer delivers the fork to a sink holding neither branch — the burying seal's
+content-only guard needs every branch to walk within one atomic unit; there is no separate repair
+event, the burying event is a single ordinary `Rot` / `Wit` / `Trm` (KEL) or sealing event (IEL).
 
 On the IEL the cap is just as load-bearing: content (`Ixn` — the **content rail**, the stream
 issuance rides via `anchors[]`) does **not** advance the seal, so trailing issuances accumulate and
@@ -731,16 +735,16 @@ not trusted — so no branch escapes by being unnamed. One shape guard runs at a
   event in any of them means ≥ 2 accepted sealed branches at or beyond the divergent serial →
   **Disputed**, never buried (a witness-declined or below-seal sealed straggler is **dropped**, not
   counted). A `Rot` cannot be hidden by leaving its branch unnamed and letting the seal advance past
-  it — sealed branches are always retained (keep-all-data), and every sealed KEL event is a
-  seal-advancer, so a buried rotation is a competing seal → a spine fork → Disputed independent of
-  any walk bound. A reserve-revealing seal authored against a fork that turns out to hold a sealed
-  branch is, **once accepted**, **retained as a competing sealed branch and counted** —
-  retain-and-count is the only convergent semantics **for an accepted competing seal**, because that
-  rejection is **branch-dependent** (a node that dropped it would read the prefix differently from
-  one that counted it). By contrast a burying seal that is **witness-declined or fails hard auth**
-  is **dropped, never counted** (a declined attempt stays deferred-pending) — those rejections are
-  deterministic from data every node holds uniformly, so every node drops identically and junk
-  submissions cannot terminalize a prefix.
+  it — an accepted sealed branch is always within the two-per-rail retention floor (min-2 retention
+  suffices to surface it), and every sealed KEL event is a seal-advancer, so a buried rotation is a
+  competing seal → a spine fork → Disputed independent of any walk bound. A reserve-revealing seal
+  authored against a fork that turns out to hold a sealed branch is, **once accepted**, **retained
+  as a competing sealed branch and counted** — retain-and-count is the only convergent semantics
+  **for an accepted competing seal**, because that rejection is **branch-dependent** (a node that
+  dropped it would read the prefix differently from one that counted it). By contrast a burying seal
+  that is **witness-declined or fails hard auth** is **dropped, never counted** (a declined attempt
+  stays deferred-pending) — those rejections are deterministic from data every node holds uniformly,
+  so every node drops identically and junk submissions cannot terminalize a prefix.
 
 Burial reaches no _live_ state — it marks a subtree dead, never extends or revives an event. There
 is **no below-seal burial operation**, and the seal-cap stays unconditional. A race whose retained
@@ -748,19 +752,19 @@ branch's **tip** is a **terminal `Trm`** — an identity/SEL terminate, whatever
 branch (a bare `Trm`, or a `[…, Rot, Trm]` run) — needs no burying event: this is the **tier-rank**
 resolution (the freeze rule's one carve-out). The terminal admits no successor, so it outranks the
 losing content outright — the chain terminates on the `Trm`, the content is buried non-canonical
-(retained as fork evidence per the ≥ 2-per-position bound, droppable only beyond that evidence set),
-and the resulting reading is the ordinary **Terminated** one (the effective SAID is the `Trm`'s SAID
-— the fork is resolved, so no synthetic applies). The rule exists because a `Trm` **admits no
-successor** — you cannot author a burying seal after it — so without it a benign terminate that
-collided with a stray content event would be forced to reincept; tier-rank keeps the `Trm` clean and
-the content **non-canonical**. It only ever lets **higher** authority (the reserve-backed `Trm`)
-override **lower** (T1 content); a **second sealed** branch (`{Trm, Rot}` / `{Trm, Trm}`, or the
-competing branch carrying a `Gnt`/`Evl` seal instead of plain content) is not this case — two
-**accepted** sealed branches → **Disputed** (wherever their seals sit). To resolve a content fork
-_and_ terminate, a `Trm` on the winning branch does both in one event — it buries the content loser
-below its own seal and terminates. (A `Rev`/`Dth` is **not** terminal — it seals a kill on a
-_target_, not its host IEL — so a `{Rev|Dth, content}` fork takes the ordinary recoverable path: the
-`Rev`/`Dth` is retained and the content buried, exactly like `{Evl, content}`.)
+(retained as fork evidence per the two-per-rail retention floor), and the resulting reading is the
+ordinary **Terminated** one (the effective SAID is the `Trm`'s SAID — the fork is resolved, so no
+synthetic applies). The rule exists because a `Trm` **admits no successor** — you cannot author a
+burying seal after it — so without it a benign terminate that collided with a stray content event
+would be forced to reincept; tier-rank keeps the `Trm` clean and the content **non-canonical**. It
+only ever lets **higher** authority (the reserve-backed `Trm`) override **lower** (T1 content); a
+**second sealed** branch (`{Trm, Rot}` / `{Trm, Trm}`, or the competing branch carrying a
+`Gnt`/`Evl` seal instead of plain content) is not this case — two **accepted** sealed branches →
+**Disputed** (wherever their seals sit). To resolve a content fork _and_ terminate, a `Trm` on the
+winning branch does both in one event — it buries the content loser below its own seal and
+terminates. (A `Rev`/`Dth` is **not** terminal — it seals a kill on a _target_, not its host IEL —
+so a `{Rev|Dth, content}` fork takes the ordinary recoverable path: the `Rev`/`Dth` is retained and
+the content buried, exactly like `{Evl, content}`.)
 
 A `{Trm, content}` race — the `Trm` retained, the competing content buried non-canonical, no burying
 event authored — looks like:
@@ -792,49 +796,61 @@ identical state — the reading is the walk's, not the arrival order's): a **con
 sealed branch) reads Forked until its burying seal lands, a fork **carrying** that seal reads
 Active, and **≥ 2 accepted sealed branches are Disputed**. So each node ends up holding both
 branches and **detects the divergence by a data-local walk**. The beacon's divergent witness
-receipts (see [§Federation convergence](#federation-convergence)) propagate the competing branch
-SAIDs to a node that has not yet received the events, but the verdict is the node's own. This is the
-deliberate trade-off: relaxing the seal bound to admit a competing sealed event as a _canonical_
-extension at a sealed serial would re-open the stale-authority kill-switch surface, so the bound
-stays unconditional — the chain does not extend onto the competing branch, it only retains it as the
+receipts (see [§Federation convergence](#federation-convergence)) propagate competing branch SAIDs
+to a node that has not yet received the events — bounded at two attested events per signer per
+position, so a node's beacon always covers the dispute-proving pair, with the **union across nodes**
+covering every branch accepted anywhere — but the verdict is the node's own. This is the deliberate
+trade-off: relaxing the seal bound to admit a competing sealed event as a _canonical_ extension at a
+sealed serial would re-open the stale-authority kill-switch surface, so the bound stays
+unconditional — the chain does not extend onto the competing branch, it only retains it as the
 evidence a data-local detection needs.
 
 **Retention is bounded — keep-all-data is not keep-everything.** **Buried** is a _status_ (a losing
-event is non-canonical, permanently), not a storage guarantee: a node need only **retain** a bounded
-set of the buried events as evidence, and may drop the rest. The bound is **≥ 2 competing events per
-position**, on both rails:
+event is non-canonical, permanently), not a storage guarantee. The bound is **two branches per rail
+per divergence** — canon's two numbers with the branch as their unit, each mandatory in its own
+direction:
 
-- **Sealed branches** are retained to ≥ 2 per spine position — at the **live** seal, two competing
-  **accepted** seals are the Disputed proof, so a node retains the second and stops. An adversary
-  holding a harvested old signing key can author unbounded distinct sealed events at a **spent**
-  position, but those are **dropped** (backdate-safe), never Disputed — an old-position straggler
-  proves nothing.
-- **Content siblings** are bounded the same way: keep ≥ 2 competing events per position as fork
-  evidence and drop the rest — a signing-key re-forker can author more, but they sit beyond the
-  retained set (droppable, a bounded query surface, never an unbounded fork).
+- **Floor, at retention** — retain **≥ 2 branches per rail per divergence**; fewer loses the proof.
+  Two accepted sealed branches are the Disputed proof **wherever their seals sit** — the verdict
+  counts per branch, never per position — and any two accepted content branches prove a fork. An
+  adversary holding a harvested old signing key can author unbounded distinct sealed events at a
+  **spent** position, but those are **dropped** (backdate-safe), never Disputed — an old-position
+  straggler proves nothing.
+- **Ceiling, at acceptance** — accept **no event that would create a third LIVE accepted branch on a
+  rail in the region**. Counted in **branches**, never seals (the region is derived-seal-relative
+  and the floor moves retroactively, so a seal count is undefined at the gate; a seal creating the
+  **second** accepted sealed branch is always admitted, and seals accepted before a floor retreat
+  are retained and never counted against the gate). Counted over **live** accepted branches —
+  deadness-precedence before the budgets (vacuous on the KEL and IEL, where branches die by burial,
+  which settles the divergence; it bites on the SEL, where severance kills one branch and leaves the
+  divergence live). The ceiling is **must not**, never "need not" — under a permissive ceiling a
+  generous node's own window overflows and the constant bounds a minimal node rather than the
+  protocol.
 
-_Which_ two are kept is immaterial — any two competing events prove the fork; the bound requires
-keeping at least two, not a particular two. This ≥ 2 is a **floor on retained evidence** (keep at
-least two; more is fine, fewer loses the proof), distinct from the **cap of two accepted witnessed
-branches** a reader needs to read `Disputed` — two are the proof, so a node accepts up to two and
-need not accept a third (the merge layer's "up to two witnessed sealed branches",
-[`kel/merge.md`](primitives/data/event-logs/kel/merge.md#merge-outcomes)). Deterministic witness
-co-location fixes the witness _set_, not arrival order, and the witnessing floor lets at most one
-content sibling per position ever go live (the tier-scoped witnessing counts — one content sibling,
-one sealed — are [§Federation convergence](#federation-convergence)'s), so arrival order decides
-only _which_, never whether a fork forms.
+The ceiling is evaluated by the **merge layer**, against admitted receipts with the exact-match
+re-check, before any accepting write — so nothing is ever written that would later need removing. It
+loses nothing: the reading is a function of nothing finer than none / one / many per rail —
+`min(sealed, 2)` and `min(content, 2)` — so **two slots is exactly the resolution needed**, a third
+branch proves what the second proved, and the receipt gate still guarantees the dispute-proving pair
+and every colluder's double-sign proof. _Which_ two fill a rail's slots is immaterial **within that
+rail** — any two prove the verdict; across rails the budgets are separate pools and no tie exists.
+Deterministic witness co-location fixes the witness _set_, not arrival order, and the witnessing
+floor lets at most one content sibling per position ever go live (the tier-scoped witnessing counts
+— one content sibling, one sealed — are [§Federation convergence](#federation-convergence)'s), so
+arrival order decides only _which_, never whether a fork forms.
 
-Dropping the rest is safe because **detection is content-independent**: the canonical run's bodies
-are kept and retrievable by prefix (the flat query returns them); a losing content sibling closes
-below the burying seal by position + ascent (every dead event's ancestry passes through a below-seal
-first event); and a sealed event re-validates against the prior seal's key state (reached via
+The bound is safe because **detection is content-independent**: the canonical run's bodies are kept
+and retrievable by prefix (the flat query returns them); a losing content sibling closes below the
+burying seal by position + ascent (every dead event's ancestry passes through a below-seal first
+event); and a sealed event re-validates against the prior seal's key state (reached via
 `previousSeal` on the retained spine) plus its own committed fields, never against this chain's
-below-seal content. So the evidence a data-local detection needs is bounded and always retained;
-dropping the uncommitted below-seal content flood beyond the ≥ 2-per-position set is a storage /
-audit tuning knob, not a detection gap. The chain's **reading** — Active / Forked / Disputed — is
-the walk over the canonical chain plus the retained set; the effective SAID is then the tip's real
-SAID when a single **confirmed** tip is held, or a **type-tagged synthetic recoupled to the
-verdict** (`forked` / `disputed`) when no single tip is — see
+below-seal content. So the evidence a data-local detection needs is bounded and always retained.
+What the ceiling refuses never enters the durable store at all — a declined sibling stages and ages
+out — and on a **federation node** what was accepted is kept forever: never-delete is enforced
+beneath the service, so there is no storage knob to tune. The chain's **reading** — Active / Forked
+/ Disputed — is the walk over the canonical chain plus the retained set; the effective SAID is then
+the tip's real SAID when a single **confirmed** tip is held, or a **type-tagged synthetic recoupled
+to the verdict** (`forked` / `disputed`) when no single tip is — see
 [§Effective-SAID comparison](#effective-said-comparison).
 
 **Pre-seal verifiability.** A seal is **clean** iff it carries **no competing accepted sealed branch
@@ -865,18 +881,21 @@ federations), and the count is **per branch** wherever the seals sit. When a sec
 surfaces, the reading flips **Active → Disputed** and the finality boundary retreats to `v_{d-1}` —
 the **fail-secure** direction (finality retreats on more data, never extends). Above-seal events
 carry tier-1-only auth — structurally indistinguishable from signing-key-only adversary capture —
-and become durable only when a later seal-advancing event lands cleanly past them. The clean seal is
-the boundary the protocol can defend.
+and ground new trust only when a later seal-advancing event lands cleanly past them. The clean seal
+is the boundary the protocol can defend.
 
 A **Forked** divergence resolves by a burying seal that seals its surviving branch, so that branch's
-above-seal anchors become durable; a **Disputed** divergence never seals, so its post-seal window
-grounds no new trust. The divergence's reach is bounded to that window — it does not retroactively
-alter the below-seal portion, whose structural finality is unchanged. That finality is
-**immutability, not a warrant of honest authorship**: an attacker already holding current keys can
-clean-rotate and seal its own content below the seal — the current-state-compromise limit (below),
-which a later divergence neither creates nor cures. Whether the **identity** survives a member KEL
-going terminal is decided one layer up, by IEL threshold redundancy and an `Evl` eviction, not by
-salvaging the suspect chain's own tail.
+above-seal anchors ground trust; a **Disputed** divergence never seals, so its post-seal window
+grounds no new trust — **ever**: the verdict is already fixed by `min(sealed, 2)`, so nothing above
+the competing seals can move it. That above-seal content is neither buried (no seal dominates its
+lineage) nor severed (its ancestry is intact and it verifies) — it is simply permanent evidence that
+grounds nothing, kept under never-delete and off the default serve path. The divergence's reach is
+bounded to that window — it does not retroactively alter the below-seal portion, whose structural
+finality is unchanged. That finality is **immutability, not a warrant of honest authorship**: an
+attacker already holding current keys can clean-rotate and seal its own content below the seal — the
+current-state-compromise limit (below), which a later divergence neither creates nor cures. Whether
+the **identity** survives a member KEL going terminal is decided one layer up, by IEL threshold
+redundancy and an `Evl` eviction, not by salvaging the suspect chain's own tail.
 
 **IEL distrust is forward-only.** An IEL event is trusted only when a threshold of members anchored
 it, so a single compromised member KEL cannot reach any threshold **greater than 1** on its own. (At
@@ -1176,14 +1195,15 @@ receipt set** at a position — a losing content sibling never reaches threshold
 witness** (which holds the sub-threshold sibling on the sub-gossip mesh) sees it as a
 **minority-dissent forensic signal**, **not** a verdict: its data-local walk still reads **Active**,
 because a **declined, sub-threshold** sibling is **never counted** (the Active / Forked / Disputed
-reading is over **accepted** events only). A **non-witness** holds only witnessed-in-full events
-(query-scoping, below), so the losing sibling never reaches it. Either way the content fork is
-**prevented** and reads **Active**; **Forked** takes **two accepted content siblings** — a witness
-compromise. Only the data-local walk over accepted events tells a node it is _forked_ or _disputed_
-(never a receipt count alone). This makes divergence **locally determinable** on every node, without
-watcher infrastructure. **All inter-node mesh traffic is encrypted** (ML-KEM-1024 + AES-256-GCM) —
-the receipts and the events they propagate alike — and the mesh is the federation roster, so mesh
-contents stay within the federation.
+reading is over **accepted** events only). A **non-witness** holds only witnessed-in-full events of
+the **witnessed classes** (query-scoping, below; an `Fcp`-rooted chain's unwitnessed steps are
+accepted on the admission dispatch's own grounds instead), so the losing sibling never reaches it.
+Either way the content fork is **prevented** and reads **Active**; **Forked** takes **two accepted
+content siblings** — a witness compromise. Only the data-local walk over accepted events tells a
+node it is _forked_ or _disputed_ (never a receipt count alone). This makes divergence **locally
+determinable** on every node, without watcher infrastructure. **All inter-node mesh traffic is
+encrypted** (ML-KEM-1024 + AES-256-GCM) — the receipts and the events they propagate alike — and the
+mesh is the federation roster, so mesh contents stay within the federation.
 
 **Query-scoping and the audit flag.** A **not-yet-witnessed** (sub-threshold) event lives on the
 selected witnesses' sub-gossip mesh while it gathers receipts, and is returned by a query **only to
@@ -1425,9 +1445,9 @@ classDef none fill:#2a2a2a,stroke:#888888,color:#fff
 A **credential is a direct-anchored SAD, not a SEL** — its issuance commitment is anchored by an IEL
 `Ixn` (the validity proof), and its revocation is a `kills[]` declaration on the issuer's witnessed
 IEL `Rev` plus a sealed `{Icp, Trm}` lookup SEL (the O(1) lookup object). Rescission and closure are
-the same shape on a `Dth`. The revocation check is the **consumer's**, not the store's — `vdtid` is
-a structural store, not a revocation authority (a revoked subject is still structurally-valid data),
-so the fail-secure / fail-open / timeout posture lives at the application layer.
+the same shape on a `Dth`. The revocation check is the **consumer's**, not the store's — the store
+is structural, not a revocation authority (a revoked subject is still structurally-valid data), so
+the fail-secure / fail-open / timeout posture lives at the application layer.
 
 Logs are referenced **by prefix**; a SAID is an integrity commitment, not a global lookup key —
 there is no SAID→event index — so a SAID harvested off a public chain does not invert to a private
@@ -1469,9 +1489,9 @@ The effective SAID is the canonical chain-state fingerprint across KEL, IEL, and
 recognize each other's state cheaply and is the universal "has state changed?" comparison behind
 token reuse, deferred-dependency draining (parking an event until a dependency on another chain
 lands, then replaying it — the parking-and-drain machinery,
-[`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md)), anti-entropy, and
-divergence handling. It is a **pure function of the events a node holds**, and it takes one of two
-forms:
+[`compositions/log-server.md`](compositions/log-server.md#deferred-dependency-parking)),
+anti-entropy, and divergence handling. It is a **pure function of the events a node holds**, and it
+takes one of two forms:
 
 - **A single confirmed tip** (Active or Terminated — a settled/recovered fork reads Active) — **that
   tip's real SAID** (a terminated chain's is its `Trm`).

@@ -75,6 +75,15 @@ glossary read straight through.
 - **availability** — a standalone SAD's per-object retention (`expiry`) and one-shot (`once`)
   delivery; where the bytes live is the client's cascading store, not an availability axis.
   ([`availability.md`](primitives/data/sad/availability.md))
+- **bundle / payload / storage key (`S`)** — the blob model: the **bundle** is the small typed SAD
+  naming a blob — its digest, a per-submitter `nonce`, and the optional `access` / `once` / `expiry`
+  declarations; the **payload** is `bundle.said ‖ blob`, the bytes a blob store actually holds; and
+  the **storage key** `S = hash(payload)` is what a committing document commits and a fetch names.
+  ([`sad.md` §Bulk opaque bytes](primitives/data/sad/sad.md#bulk-opaque-bytes--the-content-addressed-blob))
+- **`access`** — the bundle's read gate: a `roster` or `membership` check the blob store dispatches
+  on a live-signed fetch. It authorizes **reads only** — never deletion — and it is operational,
+  never the confidentiality boundary (sealed content is the real one).
+  ([`blobsd.md`](substrate/infrastructure/blobsd.md))
 
 ### Event kinds
 
@@ -140,6 +149,18 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **threshold vector** — an IEL's `{ use, authorize, govern }` — the **count** an act of each kind
   requires (orthogonal to tier).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#structural-authorization--the-three-mechanisms))
+- **base live check** — the one-device liveness proof: a live-signed request resolves to an
+  identity, and one current member device proves it — always one device, never a threshold.
+  ([`iel/events.md`](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
+- **`t_live` / step-up** — **step-up** is a second, different check at **`t_live`** devices;
+  `t_live` is the identity's published step-up bar, declared beside the threshold vector (not in it
+  — no consuming event kind; read by live checks, never by event validity), and the **relying party
+  demands** step-up per operation — no object declares it.
+  ([`iel/events.md`](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
+- **co-signing session** — the transport by which a quorum's devices co-sign: mutual device-KEL
+  authentication into one identity's roster over an ephemeral post-quantum KEM,
+  transcript-committed, co-present only — there is no asynchronous path.
+  ([`co-signing-transport.md`](primitives/protocols/co-signing-transport.md))
 - **authorization floor** — the bound `t_govern, t_authorize > |roster|/2` (a strict majority of the
   roster), so any two authorizing quorums overlap and a sealed fork always names a double-dealer.
   Distinct from the witnessing floor (`> signers/2`, over witness signers).
@@ -203,14 +224,31 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **gossip** — the witness-mesh transport: roster-wide announcement flooding for witnessed events
   (receipts and effective-SAID announcements flood; bodies follow by fetch), and sub-gossip among a
   position's selected witnesses for one still gathering receipts; encrypted and roster-scoped.
+  Gossip names the **pattern**; `gossipd` is the daemon that speaks it.
   ([`substrate/federation/topics.md`](substrate/federation/topics.md))
 
 ### Services and consumers
 
+- **store / server / client / `Source` / `Sink`** — the storage naming register, all PascalCase
+  library types: `LogStore` / `SadStore` / `BlobStore` are the **dumb persistence traits**;
+  `LogServer` / `SadServer` / `BlobServer` the logic modules composed over them; `LogClient` /
+  `SadClient` / `BlobClient` the interface to a server (in-process or over the wire); `Source` /
+  `Sink` the transfer layer built from clients.
+  ([`primitives/stores/log-store.md`](primitives/stores/log-store.md),
+  [`compositions/log-server.md`](compositions/log-server.md))
+- **the `*d` daemons** — lowercase names are **deployables**, each a thin composition of servers: a
+  federation node is `logsd` (chain logs) + `sadd` (SADs, deletes off) + `witnessd` (the HSM-bearing
+  witness, never public) + `gossipd` (the sync daemon); off-federation, `sadd` (deletes on) and
+  `blobsd` hold application data, and a service fleet runs `gossipd` over its own stores.
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
 - **home node** — the one node a consumer calls for everything, mirror-style: all data flows through
   it, nothing is trusted from it (every byte end-verifies; freshness evidence is signed by keys it
   does not hold).
   ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+- **inbox node** — a deployment of an off-federation message service (mail, chat): `sadd` + `blobsd`
+  holding sealed deposits for its users, replicated across the service's roster. Distinct from the
+  home node, which is a federation-facing consumer mirror.
+  ([`example-applications/mail.md`](example-applications/mail.md))
 - **token store** — the consumer-side cache of verification tokens, reused behind the transitive
   effective-SAID gate with a wall-clock freshness overlay recomputed at decision time; loss-of-trust
   decisions add the multi-source bar.
@@ -266,7 +304,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`primitives/protocols/group-key.md`](primitives/protocols/group-key.md))
 - **membership** — an **unbounded, never-enumerated, per-requester** gated set of identities (the
   store-authorization primitive); checked one identity at a time (fail-secure walk / O(1) rescission
-  lookup). `chat-membership` is the chat instance.
+  lookup). `chat-membership` is exchange's instance.
   ([`primitives/protocols/membership.md`](primitives/protocols/membership.md))
 - **authored DAG / lane** — a per-writer content graph: a chat **lane** is a writer's own
   `previous`-linked chain (the single-parent variant — the lane _is_ the writer, no sender field); a

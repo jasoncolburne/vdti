@@ -33,7 +33,9 @@ to the live branch, and on a `{Trm, content}` shape it drops the severed branch 
 survivor (the content → Active, or the `Trm` → Terminated). A **Disputed** SEL cannot be downgraded
 this way: its two sealed branches are **accepted**, and SEL acceptance gates on the owner-IEL anchor
 being accepted, so their (IEL sealed) anchors are themselves accepted and never buried — no
-severance reaches an accepted sealed branch. Axis A's machinery (a burying seal-advancer, the
+severance reaches an accepted sealed branch. The converse is a separate derivation: severance
+**removes** a branch and cannot manufacture an accepted sealed one, so inherited deadness alone
+never _creates_ a `Disputed` either. Axis A's machinery (a burying seal-advancer, the
 sealed-to-Disputed escalation) runs **only** on the all-live remainder.
 
 ## Invariants
@@ -117,26 +119,89 @@ submission on an Active chain is in one of three attach-positions.
 - **Terminated** — a submission chaining _from_ the `Trm` → `Terminal`; a sealed sibling →
   `Disputed`; a content sibling → buried below the `Trm`'s seal (`Buried`).
 
+### The two-per-rail bound, counted over LIVE branches
+
+The retention floor and the acceptance ceiling govern the SEL's rails exactly as they do the KEL's
+and IEL's — retain **≥ 2 branches per rail per divergence** (fewer loses the proof); accept **no
+event that would create a third live accepted branch on a rail in the region** — with the rails by
+kind: `Ixn` / `Pin` are the content rail, `Gnt` / `Trm` / `Sea` the sealed rail. On the SEL the
+**live** qualifier does real work, and **deadness-precedence applies before the budgets** — the
+order Matrix 2 already imposes: a severed branch vacates its rail slot before the budgets are
+counted. The SEL is the only log where live-versus-ever come apart: a KEL or IEL branch dies by
+**burial**, which settles the whole divergence and resets the budget, while **severance kills one
+branch and leaves the divergence live**. Without the ordering, a node that saw a branch sever before
+a third arrived and a node counting accepted-ever would hold different branch sets and read
+different verdicts.
+
+**A severance frees a content slot only — never a sealed one.** An accepted sealed branch's anchor
+never lands on a dead branch (the unreachable row in Matrix 2; the protection is lineage-transitive,
+since burying any ancestor's anchor would bury the sealed IEL branch above it). So the ceiling adds
+**retained-set variance on the content rail**: which branches fill a node's content slots varies
+with how far that node's owner-IEL walk has progressed — an **accepted convergent transient** that
+closes when the walks meet, while the verdict itself resolves by deadness-precedence at every depth.
+The verdict is never a function of which particular content branches a node retained.
+
 ## Matrix 2: Axis A crossed with Axis B (the load-bearing matrix)
 
 The SEL's characteristic matrix: for each combination of (the SEL's own divergence shape) × (the
 owner-IEL state beneath the losing anchor), what the SEL reads. Deadness-precedence resolves Axis B
 first.
 
-| SEL own state           | owner IEL beneath the losing / relevant anchor            | SEL reads                                                                                                                                                                                                                                                                                                                         |
-| ----------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| linear                  | linear                                                    | **Active**                                                                                                                                                                                                                                                                                                                        |
-| linear                  | a live-anchored event on a **dead** owner-IEL branch      | **Severed** at the earliest dead anchor → the pre-sever chain reads Active                                                                                                                                                                                                                                                        |
-| content fork            | losing anchor on a **dead** owner-IEL branch              | **auto-resolves** — the severed loser drops, the SEL shrinks to the shared tip → **Active** (no `Sea` needed)                                                                                                                                                                                                                     |
-| content fork            | losing anchor **live, at/above** the owner-IEL seal       | a **`Sea`** on the SEL is the normal path → **Active**; the owner IEL can instead deliberately fork and re-bury the losing anchor's branch (severance as a heavy side effect), not a symmetric free choice                                                                                                                        |
-| content fork            | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**                                                                                                                                                                                                                       |
-| `{Trm, content}`        | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                                                                                                                                                                                                                                     |
-| `{Trm, content}`        | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | **unreachable by construction** — a `Trm`'s sealed `Rev`/`Dth` anchor is never buried alone (only content is buriable; a Disputed owner IEL kills both → the both-dead row). For completeness, were it severed the content would survive → Active.                                                                                |
-| `{Trm, content}`        | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                                                                                                                                                                                                                            |
-| `{Trm, content}`        | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                                                                                                                                                                                                                                 |
-| `{Gnt \| Sea, content}` | live                                                      | the non-terminal seal-advancer buries the content → **Recovered → Active**; crossed with owner-IEL deadness it resolves like `{Trm, content}` but a surviving seal-advancer leaves the chain **Active** (not Terminated)                                                                                                          |
-| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → reincept (no severance available to downgrade it)                                                                                                                                                                                                                                                                  |
-| ≥ 2 sealed branches     | one branch's anchor on a **dead** owner-IEL branch        | **unreachable by construction** — SEL acceptance gates on the owner-IEL anchor being accepted, and a SEL sealed branch's anchor is an IEL **sealed** event, never buried once accepted; so an accepted sealed branch's anchor never lands on a dead branch. Were it severed, the SEL would drop to the live branch → recoverable. |
+| SEL own state           | owner IEL beneath the losing / relevant anchor            | SEL reads                                                                                                                                                                                                                                                                                                                               |
+| ----------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| linear                  | linear                                                    | **Active**                                                                                                                                                                                                                                                                                                                              |
+| linear                  | a live-anchored event on a **dead** owner-IEL branch      | **Severed** at the earliest dead anchor → the pre-sever chain reads Active                                                                                                                                                                                                                                                              |
+| content fork            | losing anchor on a **dead** owner-IEL branch              | **auto-resolves** — the severed loser drops, the SEL shrinks to the shared tip → **Active** (no `Sea` needed)                                                                                                                                                                                                                           |
+| content fork            | losing anchor **live, at/above** the owner-IEL seal       | a **`Sea`** on the SEL is the normal path → **Active**; the owner IEL can instead deliberately fork and re-bury the losing anchor's branch (severance as a heavy side effect), not a symmetric free choice                                                                                                                              |
+| content fork            | losing anchor **live, below** the owner-IEL seal (locked) | a **SEL seal-advancer at the tip** (a `Gnt` / `Trm` if natural, else a `Sea`) → **Active** / **Terminated**                                                                                                                                                                                                                             |
+| `{Trm, content}`        | live                                                      | **Terminated** — the `Trm` wins on tier-rank, the content buries (no owner-IEL burial needed)                                                                                                                                                                                                                                           |
+| `{Trm, content}`        | the **`Trm`'s** anchor on a **dead** owner-IEL branch     | **unreachable by construction** — a `Trm`'s sealed `Rev`/`Dth` anchor is never buried alone (only content is buriable; a **Disputed** owner IEL is the separate dispute-deadness class below, which severs by the divergence-ancestor boundary, never by burial). For completeness, were it severed the content would survive → Active. |
+| `{Trm, content}`        | the **content's** anchor on a **dead** owner-IEL branch   | the content severs and drops → the `Trm` stands alone → **Terminated**                                                                                                                                                                                                                                                                  |
+| `{Trm, content}`        | **both** anchors on **dead** owner-IEL branches           | **severed at the fork** — both branches drop, nothing past the fork is verifiable                                                                                                                                                                                                                                                       |
+| `{Gnt \| Sea, content}` | live                                                      | the non-terminal seal-advancer buries the content → **Recovered → Active**; crossed with owner-IEL deadness it resolves like `{Trm, content}` but a surviving seal-advancer leaves the chain **Active** (not Terminated)                                                                                                                |
+| ≥ 2 sealed branches     | both anchors **live** (linear owner IEL)                  | **Disputed** → reincept (no severance available to downgrade it)                                                                                                                                                                                                                                                                        |
+| ≥ 2 sealed branches     | one branch's anchor on a **dead** owner-IEL branch        | **unreachable by construction** — SEL acceptance gates on the owner-IEL anchor being accepted, and a SEL sealed branch's anchor is an IEL **sealed** event, never buried once accepted; so an accepted sealed branch's anchor never lands on a dead branch. Were it severed, the SEL would drop to the live branch → recoverable.       |
+| **any own state**       | owner IEL **Disputed**                                    | the **dispute-deadness** class (below), resolved with deadness-precedence first: the SEL severs at the earliest anchor **strictly above the IEL divergence ancestor `v_{d−1}`**; band anchors stay chain members but ground no new trust; the identity is terminal                                                                      |
+| ≥ 2 sealed branches     | owner IEL **Disputed** (one anchor per IEL branch)        | **reachable** — Disputed IEL branches are accepted, not dead, so both SEL sealed branches stand; the same dispute-deadness rule applies by the `v_{d−1}` boundary; the identity is terminal                                                                                                                                             |
+
+### Dispute-deadness — a Disputed owner IEL
+
+A **Disputed** owner IEL grounds no new trust on either branch, and the severance machinery above
+does not run on it: severance is defined over **buried** deadness, and a Disputed IEL buries neither
+branch. Dispute-deadness is its own class, resolved with deadness-precedence first, and it covers
+**every** own-state row of Matrix 2 — including the reachable **≥ 2-sealed × owner-Disputed** pair
+(one anchor per IEL branch; Disputed IEL branches are accepted, not dead, so the adjacent
+unreachable row's argument does not cover it). The rule:
+
+> The SEL **severs at the earliest anchor strictly above the IEL divergence ancestor `v_{d−1}`** —
+> the boundary is the divergence ancestor, never the competing seals' positions (the IEL may fork
+> content for a serial or more and seal later on each branch, so the seals may sit at different
+> serials). Below that boundary there are **three fates, not two**:
+>
+> - An anchor **at-or-below the last clean seal** — the last clean seal at or below `v_{d−1}`, which
+>   is generally not `v_{d−1}` itself (the divergence ancestor need not be a seal) — rides
+>   **pre-seal verifiability**.
+> - An anchor in the **band** between that seal and `v_{d−1}` sits on the shared lineage —
+>   **verifiable and accepted, but it grounds no new trust**: the third fate of above-seal content
+>   on a Disputed chain, permanent here because the IEL never seals cleanly past it. **Not severed;
+>   not final.** And the band's chain shape is explicit: band-anchored SEL events **remain chain
+>   members** — the SEL's tip, its effective SAID, and its served pages are **unchanged**; only
+>   trust is withheld. Severance **truncates** (the tip, the effective SAID, and serving retreat to
+>   the last live-anchored event); the band does not — a node that mis-reads the band as severed
+>   computes a different effective SAID than a conformant node, a permanent compare-key split on
+>   exactly these chains.
+> - An anchor **strictly above `v_{d−1}`** is **severed**.
+
+Canon's rule that a Disputed **SEL** is never downgraded by severance (§The two axes) is
+burial-grounded and does not collide with this class: dispute-deadness severs by the
+divergence-ancestor boundary, and it cannot downgrade an accepted SEL sealed pair either — their
+anchors, one per IEL branch, are accepted.
+
+The identity is terminal — no slot machinery, no admissible newcomer: witnesses decline any
+extension of a disputed chain. **Recovery is the identity's reincept, not the SEL's.** A reincept at
+a fresh lineage needs an author, and a Disputed owner has none — so the remedy mints a fresh
+**`declarer`**, hence fresh derived addresses (`hash('{tag}:{declarer}:{data}:{lineage}')`) for
+**every** lookup lineage that identity owned, and every reference to the old addresses dies with it.
 
 The load-bearing observation: **a content fork always resolves**, and _how_ keys on where the losing
 anchor sits — a dead branch gives severance for free (the common case, since owner-IEL divergences
@@ -214,20 +279,21 @@ impossible by construction. The verifier reads the `content` flag and the `linea
 All nodes must eventually agree on the effective SAID for each prefix — the value exchanged during
 anti-entropy:
 
-| State                  | Effective SAID (the value)                                                                                                                    | Converges?                                                                                                                                   |
-| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Active / Recovered** | the canonical **tip event SAID**                                                                                                              | ✓ (identical chains after gossip and after any burial or severance)                                                                          |
-| **Terminated**         | the `Trm`'s SAID — the canonical **tip**                                                                                                      | ✓ where the `Trm` landed uncontested; two accepted sealed siblings (collusion) read **Disputed**                                             |
-| **Forked / Disputed**  | a **type-tagged synthetic** recoupled to the verdict (`forked` / `disputed`), qualified by prefix + position — **not** a digest over the tips | ✓ **once the branches propagate** — the verdict and the value are both pure functions of the held event set; **fail-secure under partition** |
+| State                  | Effective SAID (the value)                                                                                                                    | Converges?                                                                                                                                               |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active / Recovered** | the canonical **tip event SAID**                                                                                                              | ✓ (identical chains after gossip and after any burial or severance)                                                                                      |
+| **Terminated**         | the `Trm`'s SAID — the canonical **tip**                                                                                                      | ✓ where the `Trm` landed uncontested; two accepted sealed siblings (collusion) read **Disputed**                                                         |
+| **Forked / Disputed**  | a **type-tagged synthetic** recoupled to the verdict (`forked` / `disputed`), qualified by prefix + position — **not** a digest over the tips | ✓ — the value is **set-independent**: nodes holding different branch pairs of a many-branch race compute the same value; **fail-secure under partition** |
 
 For a fork with no single confirmed tip the value is a **type-tagged synthetic** recoupled to the
 verdict, **not** a digest over the competing tips (that set is adversarially extensible →
 flood-unstable; the rationale is
 [§Effective-SAID comparison](../../../../protocol-doctrine.md#effective-said-comparison)'s). A
 data-local walk reads `forked` (no accepted sealed — a content-only fork) or `disputed` (≥ 2
-accepted sealed), and both the value and the verdict are pure functions of the held event set, in
-lockstep on every node. A content branch buried by a seal-advancer, and a severed portion, both drop
-out of the synthetic (forensic, reached by a by-prefix flat fetch).
+accepted sealed), and the value is a pure function of the **verdict**, never of the particular
+branch set held — nodes retaining different pairs read the same value. A content branch buried by a
+seal-advancer, and a severed portion, both drop out of the synthetic (forensic, reached by a
+by-prefix flat fetch).
 
 ## Transfer ordering
 
@@ -238,7 +304,8 @@ divergent cases reach the partitioning path:
 - **An unrecovered content fork** — the longer chain first as non-divergent appends; only the fork
   event from the shorter chain is sent, routed through the overlap path → Forked.
 - **A retained sealed branch** (a second accepted sealed branch of a Disputed fork) is evidence and
-  **must** propagate — dropping it would split the reading across nodes.
+  **must** propagate — the floor is ≥ 2 per rail per divergence, and dropping below it loses the
+  proof.
 
 Receive-side ordering can sort what arrived but cannot fix a batch composition the receiver's merge
 handler would reject — the same reason the owner IEL partitions send-side

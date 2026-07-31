@@ -31,9 +31,15 @@ A block withholds **advancement**, never **information**:
 
 A block is not a public list. Each denial is its own small **SEL**, owned by the federation, whose
 prefix a verifier **recomputes** as the two-hash digest over an inception body carrying
-`authority = id(federation)`, `topic = vdti/sel/v1/topics/block`, `data = blocked-prefix`, and a
+`authority = id(own federation)`, `topic = vdti/sel/v1/topics/block`, `data = blocked-prefix`, and a
 `lineage` counter — there is no `derive()` function; the address falls out of the inception content
 ([`../../primitives/data/event-logs/sel/log.md` §Prefix derivation](../../primitives/data/event-logs/sel/log.md#prefix-derivation)).
+The `authority` leg is pinned to **this node's own federation, always** — the class rule for every
+federation-owned derived locus, trust chain and block alike: a node also holds trust-granted remote
+federations' loci, and resolving a block under a remote federation's `id` would silently import that
+federation's censorship across the grant, which "a block is **local**" forbids. A prefix a remote
+federation blocks needs no local check at all — it simply never reaches threshold on that
+federation's own chains.
 
 The block state **toggles**, reusing the re-establishable-value **lineage walk** the receive-key
 directory already runs
@@ -107,10 +113,10 @@ never the prefixes — the same shape as the issuance-volume correlation the des
 
 ## Serve, block, and store
 
-`vdtid` short-circuits a blocked author on the way in: a submission whose authoring prefix reads
+`logsd` short-circuits a blocked author on the way in: a submission whose authoring prefix reads
 blocked is **fast-rejected before the merge lock**, the same shape as the other pre-lock request
 bounds
-([`../infrastructure/vdtid.md` §Request bounds](../infrastructure/vdtid.md#request-bounds-and-rate-limits)).
+([`../infrastructure/logsd.md` §Request bounds](../infrastructure/logsd.md#request-bounds-and-rate-limits)).
 This is a witnessing-side refusal, so it never touches the serve path — held data is still served.
 
 ## Operator posture
@@ -154,7 +160,7 @@ above.
   it reuses.
 - [`../../primitives/data/event-logs/tags-and-topics.md`](../../primitives/data/event-logs/tags-and-topics.md)
   — the `vdti/sel/v1/topics/block` topic.
-- [`../infrastructure/vdtid.md`](../infrastructure/vdtid.md) — the pre-lock fast-reject of a blocked
+- [`../infrastructure/logsd.md`](../infrastructure/logsd.md) — the pre-lock fast-reject of a blocked
   author.
 - [`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md) — the first front,
   whose valid-identity residual this closes.

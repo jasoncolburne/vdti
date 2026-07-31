@@ -1,6 +1,8 @@
 # vdti — token store (client-side verification-token cache) — idea capture
 
-**Status.** Idea (Jason, 2026-06-18). Captured for later; not yet spec'd. Composes with the "pin everything to
+**Status.** Idea (Jason, 2026-06-18); **landed 2026-07** — encoded as
+`docs/design/substrate/infrastructure/architecture.md` §The token store (with the token bundles of
+`docs/design/compositions/log-server.md`). This note stays as the idea-capture trail. Composes with the "pin everything to
 current state" log-primitive reshape (same session) — see notes at the bottom.
 
 ## The idea

@@ -154,7 +154,6 @@ enumerated for completeness, each with the one thing that makes it go away.
 | Routing around a delegator                            | Recoverability · 5          | Human Error    | High (1500)     | A cred via another path stays valid                                | Rescind at the root, or issue under a threshold                                                                      |
 | Terminated identity freezes revocation and rescission | Recoverability · 3          | Human Error    | High (900)      | A retired issuer/delegator can't revoke, rescind, or close periods | Revoke and rescind before terminating; mint under a widened `revocationPolicy` where successors must strike          |
 | Recovery breaks a dependent                           | Recoverability · 3          | Human Error    | High (900)      | A dependent event breaks                                           | Don't bury a branch your own anchors depend on (you shouldn't erase your own events)                                 |
-| Fully-open anonymous kind                             | Availability · 1            | Human Error    | Medium (300)    | An opted-open anonymous kind fills with junk                       | Keep the deny-anonymous default; require the live-identity check + retention where a kind must stay open             |
 | Even-signers tie                                      | Availability · 1            | Human Error    | Medium (300)    | A position stalls (never forks)                                    | Use an odd number of signers                                                                                         |
 
 ### Inherent trade-offs — deliberate design costs, not attacks
@@ -168,6 +167,7 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 | Config-pinned federation root                                                                     | Trust          | Trust roots arrive over an out-of-band channel — the universal bootstrap axiom (cf. CA roots). A mismatch simply fails; there is nothing to trust wrongly unless that channel itself is compromised                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | Forgeable document root                                                                           | Trust          | A document root is anonymous-write, so a competing root is always mintable; legitimacy is social and a holder self-authenticates against the derived prefix — the same out-of-band bootstrap axiom as the config-pinned root, one layer up                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | Referenced content gone                                                                           | Availability   | A referenced record can read "not present" — retention is an author window, not a lifetime guarantee for the reference                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Application-data durability is its owner's arrangement                                            | Availability   | The federation holds only what a verification walk must resolve; application data lives on off-federation stores, and published content's availability is whatever its owner arranges — replication across a service's roster, several named services, or nothing — never federation replication                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Roster / seal caps                                                                                | Availability   | Very large rosters and long content runs between seals are refused — deliberate ceilings that bound verifier work; an over-long rebind chain is refused by the general work bound, not a per-chain cap; a plain content log's periodic re-seal is priced at **governance tier** (a neutral re-seal anchored by an owner evolve at `t_govern`), so a high-volume log recurs that ceremony every 64 content events — a deployment planning one should budget the cadence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | Dead-branch flood                                                                                 | Availability   | A signing-key adversary can waste bounded storage / traffic; it is never canonical and self-resolves                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Dangling-parent flood                                                                             | Availability   | A junk flood denies only the flooder's own placement, never others                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -178,13 +178,16 @@ Listed so an evaluator sees the full picture; none is a defense you can add.
 | Issuance volume / timing                                                                          | Privacy        | An observer of the public chain sees issuance volume and timing, never which credential or to whom                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Addressable sub-records                                                                           | Privacy        | A composed record's shape and its ungated leaves are addressable — the price of partial disclosure                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | One-shot isn't deletion                                                                           | Privacy        | One-shot is delivery, not deletion — the first authorized reader keeps the bytes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| Communication graph at home nodes                                                                 | Privacy        | Recipient-scoped delivery limits exposure to the recipient's chosen storage nodes, but those nodes see who mails the user, when, and how large; the scoping is sender-cooperative — a determined sender can deposit elsewhere (exchange §Residuals)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| Inbox-node hints are targeting metadata                                                           | Privacy        | Publishing which nodes hold an identity's mail tells an observer where to look — the cost of resolving a recipient without federation-wide graph gossip                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| No cross-submitter dedup                                                                          | Privacy        | A payload's storage key varies per submitter (the bundle's nonce), so identical bytes store once per submitter — the storage cost that removes the dedup confirmation oracle ("are these bytes already here?"); a privacy gain bought with disk                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Communication graph at the recipient's services                                                   | Privacy        | Recipient-scoped delivery limits exposure to the services the recipient chose — each service's roster is public and auditable — but those services see who mails the user, when, and how large; the scoping is sender-cooperative — a determined sender can deposit elsewhere (exchange §Residuals)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `receivers` is targeting metadata                                                                 | Privacy        | Publishing which services hold an identity's mail tells an observer where to look — the cost of resolving a recipient without federation-wide graph gossip; the exposure set is each service's public, auditable roster, and listing a second service doubles the parties that see the graph                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Batch-anchor co-send linkage                                                                      | Privacy        | Anchoring several messages on one `Ixn` publishes that they were co-sent in one batch, confined to the sender's own messages — a linkage a per-message anchor avoids                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Self-lane message backdate is prevented (removed), detectable (live fork), or accounted (dormant) | Recoverability | A **current** chat member backdating below its advanced tip must fork its own lane (`(epoch, timestamp)` monotonicity makes a tip-append malformed) — a self-signed equivocation, undeniable once both siblings reach a common member (an eclipse / split delivery only defers, never hides it). A **removed** member is fully closed at the verifier: honored history is exactly the `chat-membership` removal `bound`'s ancestor-chain `[anchored root … bound]`, so any node off it — a forward-append past the bound, a **fork below it**, or a **fresh parentless root** — is not honored (a local interval check against the durable on-chain `bound`, not fork detection). Residual = a **dormant current** member (never removed, valid key) can forward-append into an epoch it held but was silent for — the accepted backdate-within-a-held-window class, confined to its own lane; plus the equivocation-convergence window for the fork case |
 | Open-epoch chat message future-dating                                                             | Recoverability | A chat message **future-dated within the current (open) epoch** is accepted when authored — the open epoch has no upper witnessed boundary yet — and reads **outside its window** only once the next epoch's witnessed time lands below the stamp, so its validity is **non-monotone** (accepted while open, retroactively out-of-window on close). **Self-harming:** it weakens only the author's own lane, never forges another's, and monotonicity within a lane and cross-lane fork-evidence are unaffected. A **closed** epoch instead refuses a future stamp outright (the next epoch's witnessed time bounds it); a deployment wanting monotone open-epoch validity adds mail's future-side `timestamp ≤ now + CLOCK_TOLERANCE_BAND` bound (exchange §The session mode — chat)                                                                                                                                                                     |
-| Chat authenticity is one device's signature, not a `t_use` quorum                                 | Trust          | Mail authenticates with the sender's `t_use` quorum; a chat message is signed by a **single** writing device, attributed to its owning identity — so one compromised member device can author chat history in that identity's name, bounded by its KEL window, epoch membership, and its own lane. A strictly lower bar than mail's quorum, deliberate (a per-message quorum is impractical for a high-volume conversation)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| Chat's home nodes see the writer set                                                              | Privacy        | A lane-root marker carries the writing device's KEL prefix in cleartext (the receiver needs it to pick the per-writer subkey), so the group's storage nodes passively learn who wrote and when — the chat instance of the communication-graph-at-home-nodes residual                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Message authenticity is one device's signature — mail and chat alike                              | Trust          | Both authenticate with a **single** current member device's signature (the base live check; step-up is the application's per-operation choice, never a structural quorum) — so one compromised member device can author messages in that identity's name. Chat's exposure is bounded to the device's KEL window, epoch membership, and its own lane; **mail's blast radius is its own residual: mail reaches anyone**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| A step-up act needs its devices in hand                                                           | Recoverability | Step-up's strength is physical possession of `t_live` devices at one moment — there is no asynchronous co-signing path — so a step-up act is unavailable while a required device is unreachable; an identity for which that posture is wrong lowers `t_live` by an `Evl`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| An identity whose chain is not Active cannot read its own data                                    | Recoverability | The divergence freeze covers every live check — a `deposits` query and a store's serve gate included — so an attacker who forks your IEL cuts you off from your own inbox until you **seal out** (a T2 act, reachable through the co-signing session). The freeze blocks the store's `delete` gate too, so a revocation executed by deleting an old payload also waits for the seal-out — the priced cost of choosing fail-secure                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Chat's inbox nodes see the writer set                                                             | Privacy        | A lane-root marker carries the writing device's KEL prefix in cleartext (the receiver needs it to pick the per-writer subkey), so the group's storage nodes passively learn who wrote and when — the chat instance of the communication-graph-at-the-recipient's-services residual                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | A member's prefix is visible in its roster delta                                                  | Privacy        | Being added to an identity's roster names the member's prefix in that `Wit` / `Evl` `add`, so anyone walking that identity's chain learns the membership — a correlation exposure only; the roster grants the naming identity **no** authority over the member's keys, and a conscripted member rotates-and-refuses (or is cut)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
@@ -321,6 +324,42 @@ what happens at and past that boundary.
 - **Lost** — Federation governance control, if lost keys are left un-cut. Needs multiple lost keys,
   reserve breaks, and operator negligence together.
 
+### A compromised sync daemon cannot suppress or plant a witness's vote
+
+- **Attack** — The sync daemon writes receipts into the shared stores, so compromising it looks like
+  a way to corrupt witnessing without touching a key: **suppress** the record that this node's
+  witness signed at a position — its first-seen check then sees nothing and signs a second sibling,
+  a forced double-sign — or **plant** a fabricated row claiming the witness signed at a position it
+  never did, so the first-seen check declines the legitimate event and the chain stalls there,
+  repeatably. Content-addressing does not help on its own: a fabricated receipt row is well-formed,
+  not tampered.
+- **Mitigation** — The first-seen check never reads the shared receipt rows: it reads the witness's
+  **own signing record** — written inside the per-prefix lock by the signing path, never deleted,
+  unwritable by any other service, and read **signature-verified** against the witness's own key
+  ([`witnessd.md` §The signing record](substrate/infrastructure/witnessd.md#the-signing-record)) —
+  so a planted row is inert and the record cannot be reached by the daemon that never could write
+  it. A double-sign that does occur is externally provable, and the node is evicted.
+- **Lost** — Nothing structural. Named because the shared-store composition makes it the obvious
+  worry: receipts assist propagation, but witnessing's memory is the signature-verified signing
+  record, never the shared receipt store.
+
+### An owner continuing on two federations is author equivocation
+
+- **Attack** — An owner rebinds their chain to a second federation and keeps authoring on **both**
+  sides — two competing events at one serial, each carried by the owner's own signatures. No
+  collusion and no compromise is needed; each federation's nodes see one clean, witnessed chain, and
+  neither ever sees the dispute.
+- **Mitigation** — The double-sign is provable by **anyone holding both sides**: the owner's own
+  signatures on two competing events at one serial. Surfacing belongs to verifiers whose trusted set
+  spans both federations — a [monitor](monitoring.md) — never to either federation's beacon, which
+  speaks for one federation's view and cannot certify another's. And the catch is cheap: one
+  observer's ordinary cross-side transfer of the immutable events with their receipts **delivers**
+  the proof to both sides, where it is durable at the observer and at any span-trusting node,
+  whatever verdict each side's trust state then produces.
+- **Lost** — Until an observer spans the sides, each federation honors its own branch — the
+  per-verifier relativity of a trusted set. This is the one residual whose audience sits outside the
+  federation: a single-federation verifier cannot see it by construction.
+
 _(Escaping a compromised federation is **not a trap**, and not a residual: you rebind away with a
 **`Wit`** declaring the new `{federation, federationPin}` — it self-bootstraps into the federation
 it names, and the old one can't block it (witnesses can't author your events). You **keep your
@@ -351,7 +390,11 @@ backstop is fail-secure refusal when freshness can't be confirmed.
   exists. More independent sources make a full eclipse harder. (A "stale federation roster" is the
   same attack, not a separate one: a since-removed witness only hides anything if it is the
   compromised source you query — an honest one still returns the events, pinned to real federation
-  events — so it collapses into this.)
+  events — so it collapses into this.) (A store's serve gate prices the same window: a
+  plaintext-gated serve — and any destructive act, a `once` burn or a delete — runs the strict
+  multi-source bar so an evicted party is refused fail-secure, and what remains is exactly this
+  propagation window —
+  [`blobsd.md` §The serve gate](substrate/infrastructure/blobsd.md#the-serve-gate).)
 - **Lost** — Under a successful full eclipse, decision-time fork-detection — the fail-secure posture
   turns it into a refusal (availability) rather than a wrong bind, and the divergence surfaces
   post-resolution when the partition heals.
@@ -596,8 +639,29 @@ it. There is no content encryption tied to a read gate (that is a forward direct
 - **Attack** — A one-shot record instructs the store to delete after the first read; it says nothing
   about what the first reader does with the bytes it already holds.
 - **Mitigation** — Server-side deletion after first read; a uniform "not present" afterward. Bounds
-  re-fetch from storage, not the retained copy.
+  re-fetch from storage, not the retained copy. And the burn is **per store**: on a replicated
+  deployment each store's copy burns on its own first read, so `once` bounds reads per node, never
+  globally — a deployment that needs a real drain relies on an explicit delete, as mail does
+  ([`mail.md`](example-applications/mail.md)).
 - **Lost** — No post-retrieval guarantee: a single authorized read can retain the content forever.
+
+### Re-gating is a revocation only if the old payload is deleted
+
+- **Attack** — A shared file's read gate rides its content-addressed bundle, so changing **which
+  sets gate** a file re-mints the bundle and with it the storage key: the bytes re-upload, and the
+  **old** payload stays where it was — gated by the **removed** set, whose members are still current
+  members of _that_ set, so they keep reading it. (An ordinary share or un-share — a grant or
+  rescission _inside_ an existing read-authorization set — changes no prefix, no bundle, and no
+  storage key, and costs nothing; only changing the set list itself pays.)
+- **Mitigation** — **A re-gate is a revocation only if the prior payload is deleted**: the re-gating
+  client issues the delete on each old storage key, under the deploying application's own delete
+  predicate — drive's is the file's `custody.owner`
+  ([`drive.md` §The composition](example-applications/drive.md#the-composition)). An operator
+  additionally retains an out-of-band administrative delete on its own disk — the protocol
+  authorizes requests, it does not bind an operator's `rm`.
+- **Lost** — The re-upload of a subtree's bytes on every gate change; and, where the old payload is
+  left undeleted, continued readability by the removed set until the payload's `expiry` — which a
+  typical drive file does not carry.
 
 ---
 
@@ -729,34 +793,146 @@ are not exploitable breaks — they are the bounds themselves.
   ranked table's "Forced-dead receive key" row prices; both paths end in the same fail-closed
   outcome.
 
-### Unrooted-write flood and the valid-identity flood
+### Rooted admission and the valid-identity flood
 
-- **Attack** — Spam resistance rests on **rootedness**: the store admits a SAD only when an accepted
-  root commits it ([`rooting.md`](primitives/data/sad/rooting.md)), so unrooted junk is refused. Two
-  residues remain. (1) The **unrooted floor** — kinds that keep an anonymous path (a document root,
-  a drop-box) are admitted on a **live signature the admitting witness verifies and converts into a
-  durable attestation**, then drops. A below-threshold-compromised witness can attest a root it
-  never validly saw signed, and a deployment that opts a kind open carries that kind's flood
-  **bounded by the per-witness / per-prefix budget**, not re-verification. (2) The **valid-identity
-  flood** — rooting raises the cost of a _fake_ identity, not a _real_ one: a resourced adversary
-  with many prefixes across many IPs roots its own spam legitimately, past the per-prefix budget and
-  per-IP limit.
-- **Mitigation** — Rooting makes the floor structural rather than a config property, and the
-  anonymous surface is a **named minority** (deny-anonymous is the default, opt-in per kind); the
-  witness attestation makes even that minority **re-verifiable on sync and bootstrap** — no node
-  trusts the sender — while the submitter's signature is seen by one witness and dropped, never a
-  federation-wide record. The valid-identity flood is the second front's target — a federation
+- **Attack** — Spam resistance rests on **rootedness**: the federation admits a SAD only when an
+  accepted root commits it ([`rooting.md`](primitives/data/sad/rooting.md)) — no anonymous class
+  exists, so unrooted junk is refused outright. The residue is the **valid-identity flood** —
+  rooting raises the cost of a _fake_ identity, not a _real_ one: a resourced adversary with many
+  prefixes across many IPs roots its own spam legitimately, past the per-prefix budget and per-IP
+  limit.
+- **Mitigation** — Rooting makes the floor structural rather than a config property; federation-side
+  the storage bound is the **per-prefix event budget plus the request caps**, never an expiry (the
+  federation never deletes). The valid-identity flood is the second front's target — a federation
   collectively refuses to witness an abusive prefix
   ([`substrate/federation/blocking.md`](substrate/federation/blocking.md)), reversibly and by
   quorum, with the per-prefix budget, per-IP limit, and lockdown posture (credential-gated
   participation) bounding the diffuse-sybil tail. Identifier idempotency and two-phase storage bound
   amplification.
-- **Lost** — For a kind an operator opts open, unrooted-floor spam resistance shifts from
-  re-verification to **one witness's attestation plus the storage budget** — a compromised attester
-  can push cap-bounded junk; the operator-local accountability log (where an operator enables it) is
-  a bounded correlation surface **at the admitting witness only**; and blocking is per-federation,
-  so a determined abuser is whack-a-moled across federations rather than globally stopped — the
-  accepted decentralized cost.
+- **Lost** — Genuinely rootless data — a document's founding root, a drop-box deposit — has no
+  federation admission path at all; it lives on off-federation stores, admitted on the submitter's
+  own live signature and bounded by the store's **blinded per-identity rate** and per-IP caps
+  ([`sadd.md` §Request bounds](substrate/infrastructure/sadd.md#request-bounds-and-rate-limits)), so
+  that class's flood surface is the operator's to bound. And blocking is per-federation, so a
+  determined abuser is whack-a-moled across federations rather than globally stopped — the accepted
+  decentralized cost.
+
+### A blob costs a committing document — and the rate limit is load-bearing
+
+- **Attack** — Blob storage would otherwise be free bytes. Admission prices it: every stored blob
+  costs a real, anchored **committing document** — the SAD spam model applied to bulk bytes (for a
+  chat lane the anchor is the **lane root's** grant-chain act, so the per-message cost is a
+  witnessed identity's rate quota). The residue is the flood a **real** identity can still mount:
+  unlike on-chain spam, where the per-prefix event budget is the floor, a blob's anchor is a **free
+  signature** — an ESSR envelope, a device signature — not a budgeted chain event.
+- **Mitigation** — For the blob and mail classes the **blinded per-identity rate plus the per-IP
+  caps are the load-bearing bound**
+  ([`blobsd.md` §Request bounds](substrate/infrastructure/blobsd.md#request-bounds)): each admission
+  floor yields the identity to charge — the anchoring owner, the resolved sender, the resolved chat
+  member, or the unrooted submitter's own live signature — blinded into a rate target. A size cap
+  bounds each payload.
+- **Lost** — A real, witnessed identity floods an off-federation store up to its rate, per identity
+  and per IP, until the operator tightens the caps or the store stops serving it — the accepted cost
+  of a class whose writes no chain event prices.
+
+### Off-federation admission is verification-coupled to the federation
+
+- **Attack** — Nothing adversarial: a partition. An off-federation store admits a deposit by walking
+  the committing document's anchor as an end-verifying consumer, so a store partitioned — or
+  eclipsed — from the federation **refuses deposits**. The coupling is not write-side only: a gated
+  serve resolves membership against chains too, so the **first** fetch against a gate whose chain
+  the store has never seen also needs the federation and refuses under partition.
+- **Mitigation** — The store maintains a **cached chain view** for the gates it serves: write-side
+  the dependency is unconditional; read-side it is first-contact-per-gate, and the sealed-kind serve
+  tier deliberately runs on the held view so a partition never blocks a recipient's own mail
+  ([`blobsd.md` §The serve gate](substrate/infrastructure/blobsd.md#the-serve-gate)). Token bundles
+  amortize the walk across requests; they do not remove the dependency.
+- **Lost** — Deposit availability, and first-contact gated reads, during a federation partition — a
+  fail-secure refusal, never a wrong admit.
+
+### The two stores of a deposit are coupled only by the client
+
+- **Attack** — A deposit is two objects on two independent stores — the committing SAD on one, the
+  payload on the other — and their retention coupling is the **client's**: the client that deletes
+  one deletes the other. The delete fan self-corrects for the **SAD half only** — a delete that
+  reaches one store and not another is repaired because the client **discovers** the surviving SAD
+  on its next poll and deletes again ([`mail.md`](example-applications/mail.md)). A stray
+  **payload** whose SAD is already gone has no discovery path: nothing lists it to the client, and
+  no reaper looks for it.
+- **Mitigation** — A bundle carrying an `expiry` bounds the stray payload's lifetime; an unexpiring
+  one sits until an operator intervenes on its own disk. The reverse orphan is fail-secure: where a
+  store loses or garbage-collects the committing SAD early, a later fetch of the payload **fails
+  verification** — no committing document to anchor the storage key or run currency against — an
+  availability loss, never a forgery.
+- **Lost** — Stray payload bytes on one store until `expiry`, indefinitely without one; and
+  availability of a payload whose committing SAD is gone.
+
+### The inbox's two compromise windows
+
+- **Attack** — Mail's deposit floor is the sender's full-IEL-verified envelope signature, with
+  **currency deferred to the recipient's on-open check** — so a harvested, since-rotated-out sender
+  key deposits spam that clears the floor and is rejected only on open. And drain authorization
+  resolves the requester live — an **evicted** device can neither drain nor delete — but a
+  **current-but-compromised** recipient device passes that check and drains the inbox.
+- **Mitigation** — The stale-key deposit is bounded by the blinded per-identity rate, the per-IP
+  caps, and the inbox's own caps — the captured-then-rotated-key residual reaching the deposit
+  boundary, not only the read ([`exchange.md` §Residuals](features/exchange.md#residuals)). The
+  drain is the current-state-compromise limit doing what it always does: a current device's acts are
+  the identity's until it is cut; the recipient rotates the device out and the store's live check
+  refuses it from that moment.
+- **Lost** — Rate-bounded spam absorbed between a sender-key harvest and its on-open rejection; and
+  an inbox's not-yet-fetched messages, drained inside a device's compromise-to-cut window.
+
+### Replication's bound is attribution — and two things it does not cover
+
+- **Attack** — A compromised roster member of a replicated service floods its peers with signed junk
+  — and, because anti-entropy is a **pull**, reads everything the fleet holds regardless of what it
+  forwards.
+- **Mitigation** — Every forwarded object carries the forwarding deployment's signature, and the
+  receiver verifies the signer's KEL against the service's roster — so the bound is **attribution
+  and evictability**: the flooder is identified by its own signature and cut from the roster in one
+  act ([`gossipd.md` §Anti-entropy](substrate/infrastructure/gossipd.md#anti-entropy)). Two things
+  that bound does not cover, said plainly: the **pull direction** — every node in the roster reads
+  everything the fleet holds, so the honest blast radius is the roster itself, a public list — and
+  **eviction is an operator act**, so between compromise and cut the flood runs at link rate unless
+  the receiving side applies a **per-peer rate cap**.
+- **Lost** — Storage flooding at link rate inside the compromise-to-cut window, and full-corpus read
+  access for every roster member — priced by the roster the deployer chose.
+
+### What a restore cannot recover
+
+- **Attack** — A store restored from a snapshot rewinds to the snapshot's instant, and two windows
+  follow. An object admitted from a client that **no peer had pulled yet** is simply gone — one copy
+  existed, on that disk. Its window is one poll interval **plus the publication cycle** (a
+  just-admitted object is not yet listed for peers), and it is **unbounded while the stamper is
+  stalled**, since nothing is listed for a peer to pull at all. And a peer **absent across the
+  restore** that returns only after a **later** stamper-lock handoff has re-minted the resume point
+  compares its stale watermark against the later, higher point, sees nothing to lower, and
+  **permanently misses the restored window**. Compound — but the minting class is every stamper-lock
+  handoff (lease churn, a failover, every rolling deploy), so it is priced compound, never "rare."
+- **Mitigation** — Everything adjacent is recovered by the machinery: an object a peer **had**
+  pulled comes back on the restored store's own catch-up, and an object admitted **after** the
+  restore is enumerated normally once the new incarnation lowers the peers' watermarks
+  ([`gossipd.md` §Anti-entropy](substrate/infrastructure/gossipd.md#anti-entropy)). For the two
+  windows above, recovery is **resubmission** — the durability-is-the-operator's line arriving at
+  the store layer — or, for the absent peer, an operator-forced full rescan.
+- **Lost** — Durability of a deposit inside the unreplicated window (the client resubmits), and
+  completeness at the one absent peer for the restored window — under-replication, not fleet-wide
+  loss.
+
+### Repeated burials grow storage without bound
+
+- **Attack** — A federation node never deletes, and a burying rotation retains the buried branch as
+  evidence — so an owner, or an adversary holding an owner's keys, that buries repeatedly grows
+  every node's storage with each pass. There is no retention knob to turn: for a federation node
+  retention is fixed at **keep**.
+- **Mitigation** — Rate limiting bounds the slope (a burying rotation is a chain event against the
+  per-prefix budget), and **blocking** is the lever — the federation collectively refuses to witness
+  an abusive prefix ([`blocking.md`](substrate/federation/blocking.md)). The growth is observable:
+  the merge layer counts burials per prefix, surfaced as an operations view
+  ([`architecture.md` §Operational surfaces](substrate/infrastructure/architecture.md#operational-surfaces)).
+- **Lost** — Bounded-slope storage growth on every node for as long as an abusive prefix goes
+  unblocked — an accepted never-delete cost, never a correctness break.
 
 ### Referenced content expires or is withheld
 
@@ -777,15 +953,23 @@ are not exploitable breaks — they are the bounds themselves.
   only unusually large use. (Federation **rebinds** are **not** capped per chain — an over-long
   rebind chain is refused by the general verification work bound, not a dedicated cap.)
 - **Bounded dead-branch flood** — A content-tier adversary extending a dead branch spews events that
-  are never canonical but are still propagated and retained — bounded on both axes (a depth cap per
-  lineage forcing resolution, and retain-at-least-two-per-position). A bounded waste, not a trust
-  break.
+  are never canonical but are still propagated — bounded on both axes (a depth cap per lineage
+  forcing resolution, and the two-branches-per-rail-per-divergence bound). A bounded waste, not a
+  trust break.
 - **Even-signers tie stalls a position** — An even split with no majority stalls the position
   fail-secure (consistency over availability); a minority partition therefore stalls, never forks.
   Odd-signer guidance avoids the pure tie; a burying seal-advancer is the exit.
 - **Self-denying dangling-parent flood** — Flooding versions that name parents a verifier doesn't
   hold forces bounded fetch work, but a junk flood denies only the flooder's own placement — it
   can't brick the document or deny others.
+- **Expired staged ancestor** — A stale-pin recovery that outruns the staged TTL costs the submitter
+  a resubmission — an availability cost on the submitter's own chain, with idempotent recovery
+  (dedup by SAID), never an unverifiable accepted tip: a witness cannot sign an event without
+  walking its ancestor, so an accepted tip with a missing ancestor is unreachable, not merely
+  guarded against.
+- **Untrusted-origin stage-and-age-out churn** — A submission from an untrusted origin stages and
+  expires; it is bounded by the per-IP bucket, the request bounds, and the staged TTL, and its cost
+  is Redis churn only — stated so nobody re-invents a budget for it.
 
 ---
 
@@ -856,8 +1040,8 @@ witnessing model.
 
 ## 11. Owed work and unverified assumptions
 
-Two forward items — a cross-implementation encoding discipline and a feature-layer obligation that
-lands with the value-lookup feature. Neither is a known exploit.
+Forward items — encoding discipline, feature-layer obligations, and notes to validate in an
+implementation. None is a known exploit.
 
 - **Cross-implementation encoding drift — Low.** The synthetic marker for a forked or disputed state
   must be encoded byte-exactly across implementations; a drift would spin the anti-entropy loop
@@ -870,6 +1054,11 @@ lands with the value-lookup feature. Neither is a known exploit.
   value live and serves a **stale** value. The primitive does not backstop this — it is a
   feature-layer obligation ([`sel/verification.md`](primitives/data/event-logs/sel/verification.md),
   [`sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)).
+- **One log-store trait across the three tiers — validate the batch case in an implementation.** The
+  KEL, IEL, and SEL share one storage trait ([`LogStore`](primitives/stores/log-store.md)) on the
+  ground that the storage operations are identical and every per-primitive difference lives one
+  layer up. The case to prove out in an implementation is the **batch** arrival — already-verified
+  events landing beside new ones, dedup plus acceptance. A validation note, not a risk.
 
 ---
 

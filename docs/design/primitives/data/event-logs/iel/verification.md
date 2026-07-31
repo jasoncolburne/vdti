@@ -295,45 +295,67 @@ read-only component of the token, not an independent verified state). The seal t
   untouched, and a witness-declined sealed straggler never counts, so the **last-sealed** roster
   stays authoritative), or **`Terminated`**. It **errors on `Disputed`** (≥ 2 competing key-state
   rosters; the caller must name a tip via `roster(tip_said)`, and the error surfaces the competing
-  tips). **Live authority is tiered — T1 live vs T2 sealed.** A live **T1 action** — a `t_use`
-  ownership proof or content origination (`Ixn`) — is **frozen on any divergence**: it resolves only
-  when the chain is **Active**, so a **forked, disputed, or terminated** identity exercises no live
-  T1 authority (the forked tier itself is the one in doubt). Any **non-terminal T2 sealed act** —
-  `Evl` / `Ath` / `Rev` / `Dth` / `Wit`, each at its own threshold (`t_authorize` or `t_govern`) —
-  **seals**: it resolves against `roster()` and advances the seal, burying a content fork below it,
-  so **any such act is a way out of a fork** (a forked identity **seals** its way back to
-  **Active**); a **`Trm`** (also T2) buries the content but the chain goes **Terminated**. This is
-  sound because what a seal-out **buries** is the **T1 content loser**: a content fork's competing
-  branches are T1-authored and no T1 actor holds any **T2** quorum, so allowing T2 to seal out only
-  ever hands recovery to legitimate higher authority (the sealed branch of a mixed `{Evl, content}`
-  fork is itself a legitimate T2 act, not a thing being overturned); it proceeds wherever there is
-  one authoritative roster (**Active or Forked**), while a **disputed** (no single roster →
-  reincept) or **terminated** identity cannot. **Burial is not eviction:** any T2 seal buries the
-  current content loser, but an **adversarial, re-forking** causer is neutralized only by an `Evl` +
-  `cut` (`t_govern`) that evicts it — an IEL seal rotates no key, so a benign gossip-lag fork needs
-  only a seal while an adversarial one needs the cut. **Grants are not overturned** — `Ath` seals a
-  grant permanently, `Dth` rescinds **forward**, never retroactively. The rule: **on a fork, freeze
-  T1 actions; seal your way out with any T2 act (evict with `Evl` + `cut` if the causer re-forks).**
-  **As-issued** authority reads the roster at the historical anchoring position (single-tipped in
-  the past) and is untouched by the current tip's state.
+  tips). **Live authority is tiered — T1 live vs T2 sealed.** A live **T1 action** — **any live
+  check (base or step-up)** or content origination (`Ixn`) — is **frozen on any chain that is not
+  Active**: it resolves only when the chain is **Active**, so a **forked, disputed, or terminated**
+  identity exercises no live T1 authority (the forked tier itself is the one in doubt). The scope
+  word is **"not Active," never "diverged"** — `region()` puts Terminated at `trusted`, so a rule
+  quantified over divergence would let a `Trm`'d identity keep passing live checks. Any
+  **non-terminal T2 sealed act** — `Evl` / `Ath` / `Rev` / `Dth` / `Wit`, each at its own threshold
+  (`t_authorize` or `t_govern`) — **seals**: it resolves against `roster()` and advances the seal,
+  burying a content fork below it, so **any such act is a way out of a fork** (a forked identity
+  **seals** its way back to **Active**); a **`Trm`** (also T2) buries the content but the chain goes
+  **Terminated**. This is sound because what a seal-out **buries** is the **T1 content loser**: a
+  content fork's competing branches are T1-authored and no T1 actor holds any **T2** quorum, so
+  allowing T2 to seal out only ever hands recovery to legitimate higher authority (the sealed branch
+  of a mixed `{Evl, content}` fork is itself a legitimate T2 act, not a thing being overturned); it
+  proceeds wherever there is one authoritative roster (**Active or Forked**), while a **disputed**
+  (no single roster → reincept) or **terminated** identity cannot. **Burial is not eviction:** any
+  T2 seal buries the current content loser, but an **adversarial, re-forking** causer is neutralized
+  only by an `Evl` + `cut` (`t_govern`) that evicts it — an IEL seal rotates no key, so a benign
+  gossip-lag fork needs only a seal while an adversarial one needs the cut. **Grants are not
+  overturned** — `Ath` seals a grant permanently, `Dth` rescinds **forward**, never retroactively.
+  The rule: **on a fork, freeze T1 actions; seal your way out with any T2 act (evict with `Evl` +
+  `cut` if the causer re-forks).** **As-issued** authority reads the roster at the historical
+  anchoring position (single-tipped in the past) and is untouched by the current tip's state.
+
+**The freeze's subject, stated — authenticating a party as a current member of a roster is NOT a
+live check on that identity's authority.** The frozen class is acts that consume the identity's
+**authority to act now**: a credential presentation, an ownership proof, an `Ixn`, a store's serve
+or `delete` gate **for a requester outside the identity's own roster**, a `deposits` query, a mail
+currency check. Resolving _who someone is_ against a frozen roster is exactly what `roster()` on a
+non-Active chain **succeeds** in order to permit — so the co-signing session and a fleet member's
+mesh handshake are consequences of the rule, not named exceptions, and the T2 escape stays reachable
+(its co-signing session is each side authenticating the peer's device KEL into the same identity's
+roster — the base live check's _shape_, but identification, not authority). Two identities are in
+play at every store gate — the **service** operating the store and the **requester** being resolved;
+the freeze is about the **requester's** chain state, and the exclusion is for a requester inside the
+**service's own** roster (the fleet-mesh case) — so a `deposits` query by a mailbox owner whose own
+chain is not Active **is** frozen: the owner is a third party at its service's store, and that is
+the priced you-cannot-read-your-own-data cost, not a contradiction. The exclusion rests on
+`roster()` returning a single frozen roster, so **it holds on `Forked` and not on `Disputed`** —
+`roster()` errors there, a disputed fleet cannot resolve peer membership at all, its mesh closes,
+and its recovery is reincept (a new prefix, invalidating every `receivers` entry naming the old one)
+— the honest cost of a disputed service identity, and why the fleet constraints (`|roster| ≥ 3`,
+thresholds `≥ 2`, HSM) are worth following.
 
 The chain **states**, the `region()` trust projection, and the `effective_said` type tags are three
 views of the one data-local walk:
 
-| chain state | `region()` | `effective_said`     | `roster()`                    | T1 action (`t_use`) · T2 seal (`t_authorize`/`t_govern`) |
-| ----------- | ---------- | -------------------- | ----------------------------- | -------------------------------------------------------- |
-| Active      | `trusted`  | real tip SAID        | the roster                    | ✓ · ✓                                                    |
-| Forked      | `forked`   | `forked` synthetic   | the roster (frozen)           | ✗ · ✓ (seal out of the fork)                             |
-| Disputed    | `disputed` | `disputed` synthetic | `Err` — per-tip `roster(tip)` | ✗ · ✗ (reincept)                                         |
-| Terminated  | `trusted`  | real `Trm` SAID      | `Terminated`                  | ✗ · ✗ (retired)                                          |
+| chain state | `region()` | `effective_said`     | `roster()`                    | T1 action (live check · `Ixn`) · T2 seal (`t_authorize`/`t_govern`) |
+| ----------- | ---------- | -------------------- | ----------------------------- | ------------------------------------------------------------------- |
+| Active      | `trusted`  | real tip SAID        | the roster                    | ✓ · ✓                                                               |
+| Forked      | `forked`   | `forked` synthetic   | the roster (frozen)           | ✗ · ✓ (seal out of the fork)                                        |
+| Disputed    | `disputed` | `disputed` synthetic | `Err` — per-tip `roster(tip)` | ✗ · ✗ (reincept)                                                    |
+| Terminated  | `trusted`  | real `Trm` SAID      | `Terminated`                  | ✗ · ✗ (retired)                                                     |
 
 `region()` is the **divergence** axis, so Active and Terminated both project to `trusted`;
 termination rides the orthogonal `is_terminated()` accessor, and `roster()` is the **membership**
 axis — a third projection of the one walk, where Terminated resolves to no roster and Disputed to
-one roster per competing tip. A live-act gate reads them together: a **`t_use` (T1) action**
-proceeds only at **Active**; **any T2 sealed act** (`t_authorize` or `t_govern`) proceeds wherever
-`roster()` yields a single `Roster` — **Active or Forked** — so a forked identity **seals its way
-out**, while a dispute (reincept) and termination refuse.
+one roster per competing tip. A live-act gate reads them together: a **T1 action** — any live check
+(base or step-up), or an `Ixn` — proceeds only at **Active**; **any T2 sealed act** (`t_authorize`
+or `t_govern`) proceeds wherever `roster()` yields a single `Roster` — **Active or Forked** — so a
+forked identity **seals its way out**, while a dispute (reincept) and termination refuse.
 
 ## Inline anchor checking
 

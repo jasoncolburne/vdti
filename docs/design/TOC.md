@@ -115,7 +115,6 @@ straight to a section.
 - [The submission](primitives/data/sad/rooting.md#the-submission)
 - [Two invariants it rests on](primitives/data/sad/rooting.md#two-invariants-it-rests-on)
 - [A root's availability covers its children's](primitives/data/sad/rooting.md#a-roots-availability-covers-its-childrens)
-- [The unrooted floor](primitives/data/sad/rooting.md#the-unrooted-floor)
 - [Rooting does not stop a valid identity](primitives/data/sad/rooting.md#rooting-does-not-stop-a-valid-identity)
 - [Adversarial framing](primitives/data/sad/rooting.md#adversarial-framing)
 - [Cross-references](primitives/data/sad/rooting.md#cross-references)
@@ -142,12 +141,12 @@ straight to a section.
 - [The two shapes](primitives/data/sad/shapes.md#the-two-shapes)
 - [The standalone-SAD wrapper](primitives/data/sad/shapes.md#the-standalone-sad-wrapper)
 - [The file payload — vdti/sad/v1/schemas/file](primitives/data/sad/shapes.md#the-file-payload--vdtisadv1schemasfile)
+- [The blob bundle — access and availability on the stored object](primitives/data/sad/shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)
 - [Rooting SADs — vdti/rooting/v1/](primitives/data/sad/shapes.md#rooting-sads--vdtirootingv1)
 - [Chain events](primitives/data/sad/shapes.md#chain-events)
 - [Commitment SADs — what a manifest names](primitives/data/sad/shapes.md#commitment-sads--what-a-manifest-names)
 - [Witness receipts](primitives/data/sad/shapes.md#witness-receipts)
 - [Freshness statements](primitives/data/sad/shapes.md#freshness-statements)
-- [Witness attestations](primitives/data/sad/shapes.md#witness-attestations)
 - [Grant values — what a SEL Gnt seals](primitives/data/sad/shapes.md#grant-values--what-a-sel-gnt-seals)
 - [Protocol SADs](primitives/data/sad/shapes.md#protocol-sads)
 - [Feature SADs](primitives/data/sad/shapes.md#feature-sads)
@@ -445,12 +444,12 @@ straight to a section.
 - [As-of-context evaluation and the currency gate](substrate/federation/witnessing.md#as-of-context-evaluation-and-the-currency-gate)
 - [The federation clock](substrate/federation/witnessing.md#the-federation-clock)
 - [The witness receipt](substrate/federation/witnessing.md#the-witness-receipt)
-- [The unrooted-root attestation](substrate/federation/witnessing.md#the-unrooted-root-attestation)
 - [An event's witnessed time](substrate/federation/witnessing.md#an-events-witnessed-time)
-- [Query-scoping and the audit flag](substrate/federation/witnessing.md#query-scoping-and-the-audit-flag)
+- [Query scoping and the serve flags](substrate/federation/witnessing.md#query-scoping-and-the-serve-flags)
 - [No direct mode, and fail-secure](substrate/federation/witnessing.md#no-direct-mode-and-fail-secure)
 - [The token reports its own completeness](substrate/federation/witnessing.md#the-token-reports-its-own-completeness)
 - [Rebinding](substrate/federation/witnessing.md#rebinding)
+- [The trust grant chain — the federation boundary](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)
 - [Roster governance](substrate/federation/witnessing.md#roster-governance)
 - [The recoverability cap and exclude-self](substrate/federation/witnessing.md#the-recoverability-cap-and-exclude-self)
 - [Security assumption and residual](substrate/federation/witnessing.md#security-assumption-and-residual)
@@ -494,6 +493,16 @@ straight to a section.
 - [What this leaves standing (and to whom)](primitives/protocols/authored-dag.md#what-this-leaves-standing-and-to-whom)
 - [The boundary — what the authored DAG is not](primitives/protocols/authored-dag.md#the-boundary--what-the-authored-dag-is-not)
 - [Cross-references](primitives/protocols/authored-dag.md#cross-references)
+
+### [`primitives/protocols/co-signing-transport.md`](primitives/protocols/co-signing-transport.md) — The co-signing transport — how a quorum's devices reach each other
+
+- [The construction — the mesh handshake, with one substitution](primitives/protocols/co-signing-transport.md#the-construction--the-mesh-handshake-with-one-substitution)
+- [What the session is for](primitives/protocols/co-signing-transport.md#what-the-session-is-for)
+- [The co-signing device verifies independently](primitives/protocols/co-signing-transport.md#the-co-signing-device-verifies-independently)
+- [There is no asynchronous path, and that is the point](primitives/protocols/co-signing-transport.md#there-is-no-asynchronous-path-and-that-is-the-point)
+- [Considered — encapsulating to the published receive key](primitives/protocols/co-signing-transport.md#considered--encapsulating-to-the-published-receive-key)
+- [Primitive vs tooling](primitives/protocols/co-signing-transport.md#primitive-vs-tooling)
+- [Cross-references](primitives/protocols/co-signing-transport.md#cross-references)
 
 ### [`primitives/protocols/essr.md`](primitives/protocols/essr.md) — ESSR — the sealed, authenticated one-to-one envelope
 
@@ -542,6 +551,7 @@ straight to a section.
 - [Publishing a key](primitives/protocols/receive-key-directory.md#publishing-a-key)
 - [Hardware, and proving it](primitives/protocols/receive-key-directory.md#hardware-and-proving-it)
 - [Reaching an identity's devices](primitives/protocols/receive-key-directory.md#reaching-an-identitys-devices)
+- [The endpoint lookup — the same pattern, for a service's addresses](primitives/protocols/receive-key-directory.md#the-endpoint-lookup--the-same-pattern-for-a-services-addresses)
 - [Rotating and retiring a key](primitives/protocols/receive-key-directory.md#rotating-and-retiring-a-key)
 - [The boundary — what the directory is not](primitives/protocols/receive-key-directory.md#the-boundary--what-the-directory-is-not)
 - [Residuals](primitives/protocols/receive-key-directory.md#residuals)
@@ -572,7 +582,7 @@ straight to a section.
 - [What exchange composes](features/exchange.md#what-exchange-composes)
 - [Two modes over one spine](features/exchange.md#two-modes-over-one-spine)
 - [Addressing and delivery — scoped to the recipient's own nodes](features/exchange.md#addressing-and-delivery--scoped-to-the-recipients-own-nodes)
-- [The payload — named by digest, uploaded against the message](features/exchange.md#the-payload--named-by-digest-uploaded-against-the-message)
+- [The payload — committed by storage key, deposited beside the message](features/exchange.md#the-payload--committed-by-storage-key-deposited-beside-the-message)
 - [Sender-key currency](features/exchange.md#sender-key-currency)
 - [Mail — the store-and-forward transport](features/exchange.md#mail--the-store-and-forward-transport)
 - [The session mode — chat](features/exchange.md#the-session-mode--chat)
@@ -598,12 +608,12 @@ straight to a section.
 
 ## substrate/infrastructure
 
-### [`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md) — Service architecture — one verification core, two daemons
+### [`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md) — Service architecture — one verification core, four daemons
 
 - [The decomposition](substrate/infrastructure/architecture.md#the-decomposition)
 - [The core is a library because consumers must verify](substrate/infrastructure/architecture.md#the-core-is-a-library-because-consumers-must-verify)
 - [The transfer engine — the one sanctioned data-mover](substrate/infrastructure/architecture.md#the-transfer-engine--the-one-sanctioned-data-mover)
-- [The store traits — one interface, composed in sequence](substrate/infrastructure/architecture.md#the-store-traits--one-interface-composed-in-sequence)
+- [The cascading store — one interface, composed in sequence](substrate/infrastructure/architecture.md#the-cascading-store--one-interface-composed-in-sequence)
 - [Features are libraries — there are no feature daemons](substrate/infrastructure/architecture.md#features-are-libraries--there-are-no-feature-daemons)
 - [Dependencies](substrate/infrastructure/architecture.md#dependencies)
 - [Transport](substrate/infrastructure/architecture.md#transport)
@@ -612,6 +622,42 @@ straight to a section.
 - [The freshness statement](substrate/infrastructure/architecture.md#the-freshness-statement)
 - [Adversarial framing](substrate/infrastructure/architecture.md#adversarial-framing)
 - [Cross-references](substrate/infrastructure/architecture.md#cross-references)
+
+### [`substrate/infrastructure/blobsd.md`](substrate/infrastructure/blobsd.md) — blobsd — the blob store daemon
+
+- [The stored objects — bundle, payload, and the object index](substrate/infrastructure/blobsd.md#the-stored-objects--bundle-payload-and-the-object-index)
+- [Blob admission](substrate/infrastructure/blobsd.md#blob-admission)
+- [The serve gate](substrate/infrastructure/blobsd.md#the-serve-gate)
+- [Deletion is the application's](substrate/infrastructure/blobsd.md#deletion-is-the-applications)
+- [Durability rides the committing document](substrate/infrastructure/blobsd.md#durability-rides-the-committing-document)
+- [Public-blob discovery](substrate/infrastructure/blobsd.md#public-blob-discovery)
+- [Request bounds](substrate/infrastructure/blobsd.md#request-bounds)
+- [Public face](substrate/infrastructure/blobsd.md#public-face)
+- [Cross-references](substrate/infrastructure/blobsd.md#cross-references)
+
+### [`substrate/infrastructure/gossipd.md`](substrate/infrastructure/gossipd.md) — gossipd — the sync daemon
+
+- [Peer authentication — the roster check](substrate/infrastructure/gossipd.md#peer-authentication--the-roster-check)
+- [Mesh endpoints — the federation-peer surface](substrate/infrastructure/gossipd.md#mesh-endpoints--the-federation-peer-surface)
+- [Landing peer data — through the same gates as everything else](substrate/infrastructure/gossipd.md#landing-peer-data--through-the-same-gates-as-everything-else)
+- [On-receiving-node routing](substrate/infrastructure/gossipd.md#on-receiving-node-routing)
+- [Bootstrap — a node serves nothing until it is in sync](substrate/infrastructure/gossipd.md#bootstrap--a-node-serves-nothing-until-it-is-in-sync)
+- [Anti-entropy](substrate/infrastructure/gossipd.md#anti-entropy)
+- [Send-side partitioning](substrate/infrastructure/gossipd.md#send-side-partitioning)
+- [Freshness gathering](substrate/infrastructure/gossipd.md#freshness-gathering)
+- [Adversarial framing](substrate/infrastructure/gossipd.md#adversarial-framing)
+- [Cross-references](substrate/infrastructure/gossipd.md#cross-references)
+
+### [`substrate/infrastructure/logsd.md`](substrate/infrastructure/logsd.md) — logsd — the chain-log daemon
+
+- [The merge write path](substrate/infrastructure/logsd.md#the-merge-write-path)
+- [Deferred dependencies — the typed response](substrate/infrastructure/logsd.md#deferred-dependencies--the-typed-response)
+- [The chain read — keep all data, serve the accepted](substrate/infrastructure/logsd.md#the-chain-read--keep-all-data-serve-the-accepted)
+- [Request bounds and rate limits](substrate/infrastructure/logsd.md#request-bounds-and-rate-limits)
+- [Scaling](substrate/infrastructure/logsd.md#scaling)
+- [Public face](substrate/infrastructure/logsd.md#public-face)
+- [Adversarial framing](substrate/infrastructure/logsd.md#adversarial-framing)
+- [Cross-references](substrate/infrastructure/logsd.md#cross-references)
 
 ### [`substrate/infrastructure/mesh-transport.md`](substrate/infrastructure/mesh-transport.md) — Mesh transport — the authenticated, encrypted witness channel
 
@@ -623,29 +669,28 @@ straight to a section.
 - [Adversarial framing](substrate/infrastructure/mesh-transport.md#adversarial-framing)
 - [Cross-references](substrate/infrastructure/mesh-transport.md#cross-references)
 
-### [`substrate/infrastructure/vdtid.md`](substrate/infrastructure/vdtid.md) — vdtid — the chain-log and SAD store daemon
+### [`substrate/infrastructure/sadd.md`](substrate/infrastructure/sadd.md) — sadd — the SAD store daemon
 
-- [The API surface](substrate/infrastructure/vdtid.md#the-api-surface)
-- [The merge write path](substrate/infrastructure/vdtid.md#the-merge-write-path)
-- [Deferred dependencies — the typed response](substrate/infrastructure/vdtid.md#deferred-dependencies--the-typed-response)
-- [The SAD store write path](substrate/infrastructure/vdtid.md#the-sad-store-write-path)
-- [Serve-by-SAID — an enforced rule, not a convention](substrate/infrastructure/vdtid.md#serve-by-said--an-enforced-rule-not-a-convention)
-- [The chain read — keep-all-data served](substrate/infrastructure/vdtid.md#the-chain-read--keep-all-data-served)
-- [Request bounds and rate limits](substrate/infrastructure/vdtid.md#request-bounds-and-rate-limits)
-- [Scaling](substrate/infrastructure/vdtid.md#scaling)
-- [Adversarial framing](substrate/infrastructure/vdtid.md#adversarial-framing)
-- [Cross-references](substrate/infrastructure/vdtid.md#cross-references)
+- [Deployment](substrate/infrastructure/sadd.md#deployment)
+- [The composition](substrate/infrastructure/sadd.md#the-composition)
+- [The SAD store write path](substrate/infrastructure/sadd.md#the-sad-store-write-path)
+- [Serve-by-SAID — an enforced rule, not a convention](substrate/infrastructure/sadd.md#serve-by-said--an-enforced-rule-not-a-convention)
+- [Readiness](substrate/infrastructure/sadd.md#readiness)
+- [Request bounds and rate limits](substrate/infrastructure/sadd.md#request-bounds-and-rate-limits)
+- [Public face](substrate/infrastructure/sadd.md#public-face)
+- [Scenarios](substrate/infrastructure/sadd.md#scenarios)
+- [What this validates](substrate/infrastructure/sadd.md#what-this-validates)
+- [Limits](substrate/infrastructure/sadd.md#limits)
+- [Cross-references](substrate/infrastructure/sadd.md#cross-references)
 
-### [`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md) — witnessd — the witness, gossip, and sync daemon
+### [`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md) — witnessd — the witness
 
 - [The witness identity and key custody](substrate/infrastructure/witnessd.md#the-witness-identity-and-key-custody)
-- [The witness role](substrate/infrastructure/witnessd.md#the-witness-role)
-- [On-receiving-node routing](substrate/infrastructure/witnessd.md#on-receiving-node-routing)
-- [Freshness-statement service](substrate/infrastructure/witnessd.md#freshness-statement-service)
-- [Bootstrap — a node serves nothing until it is in sync](substrate/infrastructure/witnessd.md#bootstrap--a-node-serves-nothing-until-it-is-in-sync)
-- [Deferred-dependency parking and drain](substrate/infrastructure/witnessd.md#deferred-dependency-parking-and-drain)
-- [Anti-entropy](substrate/infrastructure/witnessd.md#anti-entropy)
-- [Send-side partitioning](substrate/infrastructure/witnessd.md#send-side-partitioning)
+- [The signing path — five gates](substrate/infrastructure/witnessd.md#the-signing-path--five-gates)
+- [The signing record](substrate/infrastructure/witnessd.md#the-signing-record)
+- [Receipts](substrate/infrastructure/witnessd.md#receipts)
+- [Freshness-statement signing](substrate/infrastructure/witnessd.md#freshness-statement-signing)
+- [The local sign endpoint — a kind-gate](substrate/infrastructure/witnessd.md#the-local-sign-endpoint--a-kind-gate)
 - [Adversarial framing](substrate/infrastructure/witnessd.md#adversarial-framing)
 - [Cross-references](substrate/infrastructure/witnessd.md#cross-references)
 
@@ -720,6 +765,7 @@ straight to a section.
 ### [`example-applications/mail.md`](example-applications/mail.md) — mail — sealed store-and-forward messaging
 
 - [Deployment](example-applications/mail.md#deployment)
+- [The mail service — one identity whose roster is its deployments](example-applications/mail.md#the-mail-service--one-identity-whose-roster-is-its-deployments)
 - [The composition](example-applications/mail.md#the-composition)
 - [Scenarios](example-applications/mail.md#scenarios)
 - [The absorbed variants](example-applications/mail.md#the-absorbed-variants)
@@ -758,15 +804,6 @@ straight to a section.
 - [Scenarios](example-applications/registrar.md#scenarios)
 - [What this validates](example-applications/registrar.md#what-this-validates)
 - [Limits](example-applications/registrar.md#limits)
-
-### [`example-applications/sadstore.md`](example-applications/sadstore.md) — sadstore — off-federation SAD storage
-
-- [Deployment](example-applications/sadstore.md#deployment)
-- [The composition](example-applications/sadstore.md#the-composition)
-- [Scenarios](example-applications/sadstore.md#scenarios)
-- [What this validates](example-applications/sadstore.md#what-this-validates)
-- [Limits](example-applications/sadstore.md#limits)
-- [Cross-references](example-applications/sadstore.md#cross-references)
 
 ### [`example-applications/sso.md`](example-applications/sso.md) — sso — passwordless sign-in
 
@@ -807,3 +844,53 @@ straight to a section.
 - [Scenarios](example-applications/vote.md#scenarios)
 - [What this validates](example-applications/vote.md#what-this-validates)
 - [Limits](example-applications/vote.md#limits)
+
+## compositions
+
+### [`compositions/blob-server.md`](compositions/blob-server.md) — BlobServer — the blob composition
+
+- [Cross-references](compositions/blob-server.md#cross-references)
+
+### [`compositions/log-server.md`](compositions/log-server.md) — LogServer — the chain-log composition
+
+- [The merge layer — every durable event write](compositions/log-server.md#the-merge-layer--every-durable-event-write)
+- [The admission dispatch — three legs on the root kind](compositions/log-server.md#the-admission-dispatch--three-legs-on-the-root-kind)
+- [The receipt admission gate](compositions/log-server.md#the-receipt-admission-gate)
+- [Durability — the three promote reasons](compositions/log-server.md#durability--the-three-promote-reasons)
+- [Serving — the acceptance gate and the spine](compositions/log-server.md#serving--the-acceptance-gate-and-the-spine)
+- [Migration ownership — one owner, several writers](compositions/log-server.md#migration-ownership--one-owner-several-writers)
+- [Deferred-dependency parking](compositions/log-server.md#deferred-dependency-parking)
+- [Capability tokens and token bundles](compositions/log-server.md#capability-tokens-and-token-bundles)
+- [Cross-references](compositions/log-server.md#cross-references)
+
+### [`compositions/sad-server.md`](compositions/sad-server.md) — SadServer — the SAD composition
+
+- [Admission is three things, not one](compositions/sad-server.md#admission-is-three-things-not-one)
+- [The serve gate is three gates](compositions/sad-server.md#the-serve-gate-is-three-gates)
+- [Availability and deletes](compositions/sad-server.md#availability-and-deletes)
+- [Cross-references](compositions/sad-server.md#cross-references)
+
+## primitives/stores
+
+### [`primitives/stores/blob-store.md`](primitives/stores/blob-store.md) — BlobStore — the dumb blob store
+
+- [The trait](primitives/stores/blob-store.md#the-trait)
+- [Capabilities](primitives/stores/blob-store.md#capabilities)
+- [What the store never does](primitives/stores/blob-store.md#what-the-store-never-does)
+- [Cross-references](primitives/stores/blob-store.md#cross-references)
+
+### [`primitives/stores/log-store.md`](primitives/stores/log-store.md) — LogStore — the dumb chain-log store
+
+- [The trait](primitives/stores/log-store.md#the-trait)
+- [place is a placement, not a verdict](primitives/stores/log-store.md#place-is-a-placement-not-a-verdict)
+- [effective is a bounded read — not a walk, and not the raw tip](primitives/stores/log-store.md#effective-is-a-bounded-read--not-a-walk-and-not-the-raw-tip)
+- [list(since) — the enumeration, ordered by commit](primitives/stores/log-store.md#listsince--the-enumeration-ordered-by-commit)
+- [What the store never does](primitives/stores/log-store.md#what-the-store-never-does)
+- [Cross-references](primitives/stores/log-store.md#cross-references)
+
+### [`primitives/stores/sad-store.md`](primitives/stores/sad-store.md) — SadStore — the dumb SAD store
+
+- [The trait](primitives/stores/sad-store.md#the-trait)
+- [Capabilities, not deployment rules](primitives/stores/sad-store.md#capabilities-not-deployment-rules)
+- [What the store never does](primitives/stores/sad-store.md#what-the-store-never-does)
+- [Cross-references](primitives/stores/sad-store.md#cross-references)

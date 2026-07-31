@@ -27,19 +27,22 @@ ways, all fixed at inception by the `Fcp` root kind:
   document layer — [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md)). A
   witness is a device (a KEL), HSM-backed and horizontally replicated; the model sees one logical
   KEL per witness key.
-- **The kind set is `Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` for blocking only.** `Fcp` is the
-  inception marker; `Wit` is the single governance kind — it stands in for the user IEL's `Evl`,
-  carrying every roster change and every witness rotation; `Trm` terminates the federation. There is
-  **no `Ixn`** (a federation authors no content). `Ath` / `Dth` are admitted **solely to anchor the
-  federation's own [prefix-block](blocking.md) SELs** — a `topics/block` grant / kill and nothing
-  else; a delegation `Ath` is malformed. So a federation still **delegates to no other identity**
-  and trust stays per-federation and non-transitive; the one non-governance thing it authorizes is a
-  block on a prefix.
-- **The threshold vector is `{ govern, authorize }`.** `t_govern` gates the governance `Wit`s;
-  `t_authorize` gates the block `Ath` / `Dth` (typically set below `t_govern`, so a block stays
-  agile while still reserve-backed). There is no `t_use` — with no `Ixn`, a federation `Fcp` that
-  declares `t_use` is malformed, since a threshold exists only when its consuming kind is in the
-  kind set
+- **The kind set is `Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` for blocking only and `Rev` for
+  trusted-federation un-grants only.** `Fcp` is the inception marker; `Wit` is the single governance
+  kind — it stands in for the user IEL's `Evl`, carrying every roster change and every witness
+  rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation authors no
+  content). `Ath` / `Dth` are admitted **solely to anchor the federation's own
+  [prefix-block](blocking.md) SELs** — a `topics/block` grant / kill and nothing else; a delegation
+  `Ath` is malformed. `Rev` is admitted **solely to anchor the federation's own trusted-federation
+  SEL `Trm`s** — the un-grant
+  ([`witnessing.md` §The trust grant chain](witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+  So a federation still **delegates to no other identity** and trust stays per-federation and
+  non-transitive; the one non-governance thing it authorizes is a block on a prefix.
+- **The threshold vector is `{ govern, authorize }`.** `t_govern` gates the governance `Wit`s and
+  the trusted-federation un-grant `Rev`s (no new slot — `Rev` is already `t_govern`); `t_authorize`
+  gates the block `Ath` / `Dth` (typically set below `t_govern`, so a block stays agile while still
+  reserve-backed). There is no `t_use` — with no `Ixn`, a federation `Fcp` that declares `t_use` is
+  malformed, since a threshold exists only when its consuming kind is in the kind set
   ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)).
 
 A witness KEL is **single-federation**: it is `Fcp`-rooted infrastructure, governed _into_ one
@@ -113,6 +116,12 @@ to trust** — provided at runtime by the application, empty by default. The lib
 trusted-federation set from the application; an **unconfigured** library trusts **nothing**, and its
 verification token reports that it cannot confirm any federation, so every downstream decision fails
 secure. There is no built-in default federation.
+
+The configured set is the **consumer's** trust root. A **federation node's** own prefix is injected
+at the bootstrap ceremony — found the IEL, then configure, then serve — and its trust in **other
+federations** is never per-node configuration: it is the federation-governed **trust grant chain**
+([`witnessing.md` §The trust grant chain](witnessing.md#the-trust-grant-chain--the-federation-boundary)),
+so every node of one federation gives the same cross-federation answer.
 
 The federation prefix is a Blake3 commitment to the whole inception content — the founder roster,
 the threshold, and the inception nonce — so it is a **binding commitment to the exact founder set**.

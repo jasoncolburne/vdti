@@ -30,6 +30,17 @@ A `*` below marks a family whose members are listed inline or defined by a featu
 identifier is **capped at 64 characters** — a DoS bound: the verifier rejects a longer identifier
 outright.
 
+**`vdti/` is the ecosystem's root — an application uses its own.** The protocol never defines a kind
+outside `vdti/`, and an application's kinds keep the shape with the root swapped:
+**`{namespace}/{component}/v1/{category}/{name}`** — `vote/cred/v1/schemas/ballot`. Category
+dispatch, tier dispatch, and the 64-character cap all keep working; the cap is now shared between
+the namespace and the name, so a long root eats real budget. A namespace SHOULD be
+**collision-resistant** — a reverse-DNS label, or the application's own identity prefix — because a
+kind is hashed into SAIDs and drives structural validation against a per-kind schema: two
+applications picking one root would hand a verifier two incompatible schemas at one kind. And a
+verifier **registers a kind per issuer, never globally**, so even a collision cannot make structural
+validation stop being a function.
+
 ## Schema — exhaustive and versioned
 
 A SAD carries **only** the fields its own kind defines; structural validation **rejects** any field
@@ -68,16 +79,15 @@ Every SAD carries one of these. **The chain events:**
 
 **The commitment SADs events reference:**
 
-| Kind                                    | What it is                                                                                                                                                                                                                                |
-| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/event/v1/roles/manifest`          | the role-grouped commitment SAD an event names                                                                                                                                                                                            |
-| `vdti/event/v1/roles/roster`            | a roster / threshold delta                                                                                                                                                                                                                |
-| `vdti/event/v1/roles/witnesses`         | a witness-config `{ threshold, signers }`                                                                                                                                                                                                 |
-| `vdti/event/v1/roles/pins`              | each participating member's prior KEL tip (`participation.previous`; an IEL's down-pins)                                                                                                                                                  |
-| `vdti/sel/v1/grants/*`                  | a grant-value a SEL `Gnt` seals: `directory-ml-kem-1024`, `directory-ml-kem-768`, `document-edit-membership`, `document-comment-membership`, `document-read-membership`, `groupkey-epoch-key`, `chat-membership`, `delegation`, `block`   |
-| `vdti/witness/v1/receipts/*`            | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                                                                                                              |
-| `vdti/witness/v1/states/freshness`      | a **freshness statement** — a witness-signed attestation of its held effective-SAIDs, the multi-source freshness evidence ([`shapes.md`](shapes.md))                                                                                      |
-| `vdti/witness/v1/attestations/unrooted` | a **witness attestation** — a witness vouch that a valid identity live-signed an [unrooted](rooting.md#the-unrooted-floor) root, the durable re-verifiable replacement for a stored or gossiped live signature ([`shapes.md`](shapes.md)) |
+| Kind                               | What it is                                                                                                                                                                                                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/event/v1/roles/manifest`     | the role-grouped commitment SAD an event names                                                                                                                                                                                |
+| `vdti/event/v1/roles/roster`       | a roster / threshold delta                                                                                                                                                                                                    |
+| `vdti/event/v1/roles/witnesses`    | a witness-config `{ threshold, signers }`                                                                                                                                                                                     |
+| `vdti/event/v1/roles/pins`         | each participating member's prior KEL tip (`participation.previous`; an IEL's down-pins)                                                                                                                                      |
+| `vdti/sel/v1/grants/*`             | a grant-value a SEL `Gnt` seals: `directory-kem`, `document-edit-membership`, `document-comment-membership`, `document-read-membership`, `groupkey-epoch-key`, `chat-membership`, `delegation`, `block`, `trusted-federation` |
+| `vdti/witness/v1/receipts/*`       | a witness receipt, by witnessed chain: `kel` / `iel` / `sel`                                                                                                                                                                  |
+| `vdti/witness/v1/states/freshness` | a **freshness statement** — a witness-signed attestation of its held effective-SAIDs, the multi-source freshness evidence ([`shapes.md`](shapes.md))                                                                          |
 
 The remaining manifest roles — `anchors`, `delegates`, `payload`, `kills`, and the scalar `clock` —
 are carried **inline** in the manifest SAD, so they are not separate SADs and have no kind of their
@@ -85,9 +95,10 @@ own.
 
 **The SAD-layer content SADs:**
 
-| Kind                       | What it is                                                                                                                                                                                                 |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/sad/v1/schemas/file` | a **file payload** — a general content wrapper that names a content-addressed binary blob by `{ digest, size }` ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by digest |
+| Kind                                                           | What it is                                                                                                                                                                                                                                                                                                                    |
+| -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/sad/v1/schemas/file`                                     | a **file payload** — a general content wrapper that commits a stored blob by its **storage key `S`** ([`shapes.md`](shapes.md)); the blob itself is opaque bytes (no `kind`), fetched by `S`                                                                                                                                  |
+| `vdti/sad/v1/schemas/blob-metadata` / `…/sealed-blob-metadata` | the **blob bundle** — the access + availability wrapper stored with a blob as `bundle.said ‖ blob` at `S`; the two kinds carry the plaintext/encrypted distinction structurally ([`shapes.md` §The blob bundle](shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)); **not on the served-by-SAID list** |
 
 **The rooting SADs** — the store's admission envelope and root pointers
 ([`rooting.md`](rooting.md)):
@@ -116,15 +127,15 @@ label
 
 **The feature / application SADs:**
 
-| Kind                           | What it is                                                                                                                                                                                                                                                                                                                  |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `vdti/doc/v1/schemas/*`        | shared-document SADs (`inception` / `version` / `comment` / `comment-resolution` / …)                                                                                                                                                                                                                                       |
-| `vdti/exchange/v1/schemas/*`   | exchange SADs                                                                                                                                                                                                                                                                                                               |
-| `vdti/cred/v1/schemas/*`       | credential SADs — the `kind` names the type (app-registered; the framework reserves `terms` and `issuers`, next two rows)                                                                                                                                                                                                   |
-| `vdti/cred/v1/schemas/terms`   | an **issuer-set terms-of-use** SAD — committed at issuance, nested in the credential, expanded and read on accept ([`shapes.md`](shapes.md))                                                                                                                                                                                |
-| `vdti/cred/v1/schemas/issuers` | a **multi-identity authorization** list `{ issuers: [prefix, …] }` — a credential's acceptance policy resolves it to confirm each named issuer signed ([`../../policy/documents.md`](../../policy/documents.md))                                                                                                            |
-| `vdti/cred/v1/claims/*`        | credential claim SADs — the app-registered **claims container**; the framework reserves the **type-generic blinded-claim** entry kinds `blinded-{string,number,boolean,object,array}` (each `{ said, kind, nonce, data }`; `kind` names `data`'s JSON type, meaning rides `data`, and is committed into the blinded `said`) |
-| `vdti/policy/v1/{group}/*`     | policy documents, grouped by domain                                                                                                                                                                                                                                                                                         |
+| Kind                            | What it is                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `vdti/doc/v1/schemas/*`         | shared-document SADs (`inception` / `version` / `comment` / `comment-resolution` / …)                                                                                                                                                                                                                                       |
+| `vdti/exchange/v1/schemas/*`    | exchange SADs                                                                                                                                                                                                                                                                                                               |
+| `{namespace}/cred/v1/schemas/*` | credential SADs — the `kind` names the type, registered by the issuing application under its **own** namespace (§The naming convention); the framework reserves `terms` and `issuers`, next two rows                                                                                                                        |
+| `vdti/cred/v1/schemas/terms`    | an **issuer-set terms-of-use** SAD — committed at issuance, nested in the credential, expanded and read on accept ([`shapes.md`](shapes.md))                                                                                                                                                                                |
+| `vdti/cred/v1/schemas/issuers`  | a **multi-identity authorization** list `{ issuers: [prefix, …] }` — a credential's acceptance policy resolves it to confirm each named issuer signed ([`../../policy/documents.md`](../../policy/documents.md))                                                                                                            |
+| `vdti/cred/v1/claims/*`         | credential claim SADs — the app-registered **claims container**; the framework reserves the **type-generic blinded-claim** entry kinds `blinded-{string,number,boolean,object,array}` (each `{ said, kind, nonce, data }`; `kind` names `data`'s JSON type, meaning rides `data`, and is committed into the blinded `said`) |
+| `vdti/policy/v1/{group}/*`      | policy documents, grouped by domain                                                                                                                                                                                                                                                                                         |
 
 One further kind is owed by a forthcoming encode: the **gated rescind-doc** a rescission `Trm`'s
 `bound` role commits ([`shapes.md`](shapes.md)), a feature-layer SAD landing under the
@@ -151,16 +162,20 @@ else**:
   `availability`) is never in the store to serve at all. So a _public_ grant value — a directory
   receive key — is served to anyone. A _member-private_ one is not: a `groupkey-epoch-key` wrap is
   **member-delivered** (**never published for fetch-by-SAID** — it names its recipient in the clear;
-  it moves over recipient-scoped mail, not the public object store), and a read-gated
-  shared-document grant is served only to a reader its `readers` gate admits. Serving the grant
-  family by SAID therefore never enumerates who a private grant was sealed to. A **chat message**
-  SAD is the third protection shape: it sits in the store with **no custody gate**, and the store
-  serves it only to a requester that passes the feature's **serve-time membership gate** — the
-  per-requester check against the chat's store-authorization SEL
-  ([exchange §Reserved names](../../../features/exchange.md#reserved-names)) on the signed request
-  itself. A **content-addressed blob** — the bulk bytes a `file` wrapper or an ESSR envelope names
-  by **digest** — is **not** served by this rule at all: it is a bare object fetched **by digest**
-  through its `availability` / serve-time request path, never by SAID.
+  it moves member-to-member over store-and-forward delivery, never through the public object store),
+  and a read-gated shared-document grant is served only to a reader its `readers` gate admits.
+  Serving the grant family by SAID therefore never enumerates who a private grant was sealed to. The
+  third protection shape is a SAD with **no custody gate** whose **owning feature declares a
+  serve-time gate**: the store serves it only to a requester that passes the feature's per-requester
+  membership check — dispatched on the SAD's `kind` — against the feature's store-authorization SEL,
+  on the signed request itself. A **chat message** is the instance
+  ([exchange §Reserved names](../../../features/exchange.md#reserved-names)). A **content-addressed
+  blob** — the bulk bytes a `file` wrapper or an ESSR envelope commits by **storage key `S`** — is
+  **not** served by this rule at all: it is a stored payload fetched **by `S`** through its bundle's
+  serve path ([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)), never by SAID — and its
+  **bundle** is not served by SAID either (internal to the blob server, reachable only through the
+  payload at `S` —
+  [`shapes.md` §The blob bundle](shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)).
 - **Never served by SAID** — the chain events themselves (`vdti/{kel,iel,sel}/v1/events/*`). An
   event lives in the chain log and is reached by prefix; asking the store for an event body by SAID
   gets back the same "not present" answer a SAID that never existed would.
@@ -183,7 +198,7 @@ states the "there is no SAID-to-event index" property that this makes real.
 This is why every SAD carries a `kind` ([`sad.md`](sad.md)): the sort has no fallback — a SAD with
 no kind cannot be placed on either side of it, so it is refused. The store's write path turns away a
 kind it will not serve; that enforcement lives with the store
-([`../../../substrate/infrastructure/vdtid.md` §Serve-by-SAID](../../../substrate/infrastructure/vdtid.md#serve-by-said--an-enforced-rule-not-a-convention)),
+([`../../../substrate/infrastructure/sadd.md` §Serve-by-SAID](../../../substrate/infrastructure/sadd.md#serve-by-said--an-enforced-rule-not-a-convention)),
 on the retrieval boundary [`availability.md`](availability.md) describes.
 
 ## Cross-references

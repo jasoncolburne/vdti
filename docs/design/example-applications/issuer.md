@@ -8,14 +8,16 @@ builds on an issuing organization, and `issuer` is that organization's app. Its 
 **credentials (the issuance side) plus exchange, plus policy publication** — the same signature
 family as `health` and `registrar`, kept as its own app for the same reason those two both stay: the
 role differs. `permit` is the relying party's lifecycle; `registrar` is issuance bound to external
-truth; `issuer` is issuance as a product surface.
+truth; `issuer` is issuance as a product surface. And an issuer is not merely the party that signs:
+it is the identity an application's **policy** hangs off — a gated application with no issuer has no
+verifiable policy.
 
 ## Deployment
 
 ```mermaid
 flowchart LR
   subgraph org["the issuing organization"]
-    con["issuer console — mint · revoke ·<br/>delegate · publish policy SADs"]:::org
+    con["issuer console — mint · revoke ·<br/>delegate · seal policy SADs"]:::org
   end
   office["a delegated office<br/>its own issuer console"]:::org
   subgraph holder["a holder"]
@@ -25,9 +27,9 @@ flowchart LR
     rlib["checker clients — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
-  con -->|"anchor issuances · kills · policies"| node
+  con -->|"anchor issuances · kills ·<br/>seal policies on its SEL"| node
   con -->|"Ath delegation"| office
   con -->|"deliver creds sealed"| wallet
   wallet -->|"present"| rlib
@@ -45,10 +47,10 @@ wallet per subject, a checker per relying party — the same topology every app 
 
 Everything is the credentials feature's own machinery, operated:
 
-- **Kinds and claims.** The organization registers its credential kinds (`vdti/cred/v1/schemas/…`,
-  application-registered) and bakes claims with the uniform-bracket discipline — every credential of
-  a type carries the same blinded claim keys, values produced and named by the shared derivation
-  helpers, so presence reveals nothing and selective disclosure works from day one
+- **Kinds and claims.** The organization registers its credential kinds under its **own** namespace
+  (`{namespace}/cred/v1/schemas/…`) and bakes claims with the uniform-bracket discipline — every
+  credential of a type carries the same blinded claim keys, values produced and named by the shared
+  derivation helpers, so presence reveals nothing and selective disclosure works from day one
   ([`../features/credentials.md` §Claim-gating](../features/credentials.md#claim-gating)).
 - **Mint and anchor.** A single issuance is the tip-atomic mint-and-anchor; a cohort is bulk
   issuance at width, with the linkability trade chosen per population
@@ -63,9 +65,20 @@ Everything is the credentials feature's own machinery, operated:
   its delegating link; the office's credentials carry their committed `delegationPath`, and
   rescinding the office cuts future issuance with the grandfather semantics intact
   ([`../primitives/policy/documents.md` §Delegation in a document](../primitives/policy/documents.md#delegation-in-a-document)).
-- **Publish the rule that consumes what you issue.** The org commits its acceptance expressions as
-  **policy SADs** — `crd(vdti/cred/v1/schemas/triager, id(org))`, or the delegated form over
-  `del(org, N)` — so relying parties configure by adopting a SAID rather than transcribing prose
+  **Keep the fleet flat — the root delegates directly to working sub-issuers, no interior hops.**
+  Eviction is rescission with a grandfather `bound`, checked per hop on that hop's own chain, so
+  cutting a **leaf** stops it and nothing else — while a compromised **interior** delegator leaves
+  its earlier sub-delegations issuing under the grandfather, and the operator chooses between
+  grandfathering an attacker's sub-issuer forever and cutting at genesis, which takes the honest
+  offices too ([`../residuals.md`](../residuals.md)). Depth is what costs you eviction. And **the
+  root satisfies its own policy** — `del(org, N)` includes the org at zero hops, so a fleet of one
+  issues from day one; operationally the org keeps the root cold and delegates to a working
+  sub-issuer, so rotating that sub-issuer never touches the policy.
+- **Publish the rule that consumes what you issue.** The org seals its acceptance expressions as
+  **policy SADs** on its **policy SEL** — owned by the org's IEL, changed at its `t_authorize` —
+  `crd(tracker/cred/v1/schemas/triager, id(org))`, or the delegated form over `del(org, N)` — so
+  relying parties configure by adopting a SAID rather than transcribing prose, and any third party
+  walks the current policy end to end
   ([`../primitives/policy/policy.md` §A policy is a SAD](../primitives/policy/policy.md#a-policy-is-a-sad)).
   The issuing side and the accepting side of an ecosystem meet in one committed, shareable object,
   which is what makes the `crd` leaf operational rather than aspirational.
@@ -80,9 +93,9 @@ Everything is the credentials feature's own machinery, operated:
 - **A threshold-crossing renewal.** A holder's bracket flips (a birthday, a tier change): the holder
   discloses fully to the issuer, the issuer recomputes every bracket, revokes the old credential,
   and issues fresh — the credentials feature's renewal loop as a workflow with a button on it.
-- **Standing up a regional office.** Grant the delegation, publish the updated acceptance policy
-  (its issuer slot now `thr(1, [id(org), del(org, 1)])`), and every relying party that adopted the
-  policy SAID accepts the office's issuances — or declines to adopt, visibly, which is decentralized
+- **Standing up a regional office.** Grant the delegation, seal the updated acceptance policy (its
+  issuer slot now `thr(1, [id(org), del(org, 1)])`), and every relying party that adopted the policy
+  SAID accepts the office's issuances — or declines to adopt, visibly, which is decentralized
   authority behaving as designed.
 
 ## What this validates

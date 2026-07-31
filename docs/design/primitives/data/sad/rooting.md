@@ -6,16 +6,14 @@ names that root, and the store confirms it with one local lookup and one check �
 index and never inverts an identifier to find a root, it only confirms the one it was handed.
 **Confirm, not correlate.**
 
-This is the store's structural admission floor. Without it, the one class the store can't vouch for
-— an anonymous write with no writer binding — is held back only by an operator's rate limit
-([`../../../residuals.md` §Anonymous-write flood](../../../residuals.md#9-availability-caps-and-dos-bounds)).
-Most data already earns its place — a credential is anchored on its issuer's chain, a document
-version on its editor's — but a great many legitimate SADs carry **no writer binding of their own
-yet are committed by something that does**: a credential's `terms` and `claims`, a co-issuer list, a
-`Gnt`'s grant value, an event's manifest role SADs. Each rides the anonymous gate today, so
-tightening that gate against spam also turns away the framework's own building blocks. Rooting gives
-those committed-but-ownerless SADs an admission path of their own, which is what lets the anonymous
-gate close.
+This is the federation's structural admission floor, and it is total: **every SAD on the federation
+is rooted** — by a chain event or by an accepted parent — and no anonymous class exists. Most data
+visibly earns its place — a credential is anchored on its issuer's chain, a document version on its
+editor's — and the many legitimate SADs that carry **no writer binding of their own** are committed
+by something that does: a credential's `terms` and `claims`, a co-issuer list, a `Gnt`'s grant
+value, an event's manifest role SADs. Rooting is the admission path for those
+committed-but-ownerless SADs, which is what lets the federation refuse everything else
+([`../../../residuals.md` §Availability caps](../../../residuals.md#9-availability-caps-and-dos-bounds)).
 
 ## The rule
 
@@ -31,11 +29,13 @@ The manifest is not special — it is a [SAD](sad.md), so its contents root the 
 do. An owner-anchored object (a credential, a custodied file) is this same rule with a **blinded**
 commitment: its identifier is committed as a one-way hash in the anchoring event's
 `manifest.anchors`, and the store confirms membership by recomputing that hash
-([`custody.md` §Attribution requires an anchor](custody.md#attribution-requires-an-anchor)). A few
-cases sit beside the rule and never reach this gate: **self-verifying** SADs (witness receipts and
-freshness statements, which prove themselves by signature and arrive through their own ingress) and
-**anonymous** SADs (the genuinely rootless residual — a document root, a drop-box — handled by
-[§The unrooted floor](#the-unrooted-floor)).
+([`custody.md` §Attribution requires an anchor](custody.md#attribution-requires-an-anchor)).
+Receipts and freshness statements sit beside the rule as **self-verifying** — they prove themselves
+by signature and arrive through their own ingress, never this gate. Genuinely rootless data — a
+document's founding root, a drop-box deposit, a publication ahead of anything that names it — is
+application data, and application data lives **off the federation**: an off-federation store admits
+an unrooted SAD on the **submitter's own live signature at its boundary**, rate-limited, under
+whatever policy its operator sets.
 
 ```mermaid
 flowchart TD
@@ -43,7 +43,7 @@ flowchart TD
   r -->|"a chain event commits it<br/>(manifest / pins)"| ev["<b>event root</b><br/>walk the chain to the event"]:::iel
   r -->|"an accepted parent SAD commits it<br/>(a field of the parent)"| sf["<b>SAD-field root</b><br/>fetch the parent by SAID"]:::doc
   r -->|"witness-signed<br/>(receipt / freshness)"| sv["<b>self-verifying</b><br/>own ingress · never this gate"]:::good
-  r -->|"nothing"| an["<b>anonymous</b><br/>the unrooted floor"]:::bad
+  r -->|"nothing"| an["<b>unrooted</b><br/>refused — application data<br/>lives off the federation"]:::bad
   ev --> ok["confirm one field · admit"]:::good
   sf --> ok
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
@@ -92,7 +92,7 @@ identifier; the identifier that is signed and verified is the **pre-compact** (f
 ([`compaction.md`](compaction.md#said-preservation-invariant)). The store recompacts and checks.
 When the named root has not landed yet — the parent or committing event has not arrived — the
 submission **waits**, reusing the deferred-dependency parking the store already runs
-([`../../../substrate/infrastructure/witnessd.md` §Deferred-dependency parking](../../../substrate/infrastructure/witnessd.md#deferred-dependency-parking-and-drain)),
+([`../../../compositions/log-server.md` §Deferred-dependency parking](../../../compositions/log-server.md#deferred-dependency-parking)),
 and admits itself when the root arrives. A parent and its children submitted together land in one
 step.
 
@@ -137,56 +137,6 @@ plus the admission gate's **local-lookup** keep it so, and re-verification reads
 **forward**, never a stored back-pointer. The local-lookup rule therefore carries weight twice over,
 and must not be weakened.
 
-## The unrooted floor
-
-What can't be rooted still needs a floor, now that it is a named minority rather than the default: a
-document's founding root (a competing one is always mintable; legitimacy is social), a drop-box
-(anonymous writing is its point), a public publication — including a **policy** SAD published
-standalone, ahead of any field that would root it (once a credential's `revocationPolicy` or a
-`pol(said)` names it, it is `sad/field`-rooted like any child; a policy furnished at evaluation is
-never stored at all).
-
-**A live signature, converted to a witness attestation.** An unrooted submission carries a live
-signature from **any valid identity** — authorizing no specific writer, only proving a real,
-witnessed identity stands behind the write, which is expensive to forge at scale (identities cost
-witnessed events). But a signature that had to _survive_ — to re-verify on mesh sync, and for a node
-bootstrapping the federation later — would be a standing, federation-wide record of who wrote what.
-So the store never keeps or forwards it. The **admitting witness converts it** instead:
-
-- The witness verifies the live signature, then signs its own **attestation** over the root's
-  identifier — _"a valid identity live-signed this"_ — a witness-signed SAD on the same discipline
-  as a receipt (`vdti/witness/v1/attestations/unrooted`; the signature rides **adjacent**, verified
-  against the witness's KEL at a pin — [`shapes.md`](shapes.md#witness-attestations),
-  [`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md)). The
-  live signature is then **dropped — never stored, never gossiped** — so the submitter is seen by
-  exactly one witness, once.
-- The attestation is **durable and independently verifiable**. It rides with its root on the mesh
-  and persists in the store's index of top-level unrooted SADs (kept by kind, for the bootstrap
-  enumeration —
-  [`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md#the-sad-store-write-path)),
-  so a peer or a bootstrapping node re-checks the attestation against the attesting witness's KEL
-  rather than trusting whoever sent it — with no live signature to re-verify or leak. **One witness
-  suffices; no quorum** — this is a mesh-internal spam-admission decision, not a consumer trust
-  decision, and a compromised attester is bounded by the storage budget, not by correctness
-  (§Adversarial framing).
-- **Two submitters of the same content** produce the same identifier and one attestation; the second
-  dedups.
-
-**A shrunken forensic log.** With re-verification carried by the attestation, the submitter record
-is no longer load-bearing. What remains is an **operator-local** log at the admitting witness —
-never on a chain, never gossiped — kept only for **accountability** (rate-limiting abuse, evidence
-if a drop-box is misused). Its retention is a dial — 7–30 days for an accountable kind, **`0`** for
-a source-protection drop-box — and because re-verification rides the attestation, not the log, that
-`0` costs nothing structural: the root still re-verifies everywhere
-([`../../../residuals.md`](../../../residuals.md#9-availability-caps-and-dos-bounds)).
-
-The floor is **operator-configured per unrooted kind**, not a protocol registry: a table maps kind
-to floor, a `"*"` entry is the blanket default overridden by any exact-kind entry, and with no entry
-at all the kind is **refused** — the fail-secure default and the deny-anonymous-by-default posture
-the whole design turns on. The store's order: refuse unknown kinds, confirm rooted ones, else the
-exact-kind floor, then `"*"`, then refuse. Enforcement is the storage boundary's
-([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md#the-sad-store-write-path)).
-
 ## Rooting does not stop a valid identity
 
 Rooting raises the cost of a **fake** identity; it does nothing about a **real** one that floods
@@ -198,28 +148,16 @@ is the admission floor; blocking is the last resort; the two together are the sp
 
 ## Adversarial framing
 
-- **The anonymous flood is closed by construction.** Under the deny-anonymous posture, a rootable
-  kind with no root evidence is refused; to place a SAD an adversary must exhibit an accepted root,
-  and a root costs a witnessed, per-prefix-budgeted chain event. Spam resistance moves from an
-  operator knob to a structural floor. The gate is an **admission-time** check — not a continuously
-  maintained invariant — applied at the **public submit boundary**, and on the mesh **each object
-  re-verifies the proof it carries**: an event-rooted SAD against its permanent committing event, an
-  owner-anchored one by recomputing its blinded anchor, a `sad/field` child against its parent
-  (co-present by `root ⊇ child`, and shipped in the same bundle), and an **unrooted root against its
-  witness attestation** ([§The unrooted floor](#the-unrooted-floor)). So an honest node never takes
-  an unrooted write on the sending peer's word — it re-checks — and there is no blind-trust window
-  on the sync path
-  ([`../../../substrate/infrastructure/witnessd.md` §Anti-entropy](../../../substrate/infrastructure/witnessd.md#anti-entropy)).
-- **The unrooted floor's trust shifts to the attester, cap-bounded.** Because the live signature is
-  dropped, an honest node cannot re-verify the original vouch on the mesh — it verifies the
-  **witness attestation** instead. A below-threshold-compromised witness can therefore attest a root
-  it never validly saw signed, and peers store it without re-checking the absent signature. That is
-  a **storage-flooding amplification bounded by the per-witness / per-prefix budget**, never a
-  correctness break: no consumer makes a trust decision on an unrooted root, the exposure is
-  roster-scoped and mesh-internal, and it is a strict improvement over trusting an unverifiable
-  claim. An adversary who merely wants a free write still pays for a witnessed identity, a
-  source-protection drop-box uses an ephemeral one, and a hard write-gate is a federation access
-  decision, not the store's to make.
+- **The anonymous flood is closed by construction.** No anonymous class exists on the federation: to
+  place a SAD an adversary must exhibit an accepted root, and a root costs a witnessed,
+  per-prefix-budgeted chain event. Spam resistance is a structural floor, not an operator knob. The
+  gate is an **admission-time** check — not a continuously maintained invariant — applied at the
+  **public submit boundary**, and on the mesh **each object re-verifies the proof it carries**: an
+  event-rooted SAD against its permanent committing event, an owner-anchored one by recomputing its
+  blinded anchor, and a `sad/field` child against its parent (co-present by `root ⊇ child`, and
+  shipped in the same bundle). So an honest node never takes a write on the sending peer's word — it
+  re-checks — and there is no blind-trust window on the sync path
+  ([`../../../substrate/infrastructure/gossipd.md` §Anti-entropy](../../../substrate/infrastructure/gossipd.md#anti-entropy)).
 - **Confirm-not-correlate is preserved.** The store never inverts an identifier to find a root and
   keeps no reverse index; a blinded anchor is matched by recomputation, never by search — and the
   mesh re-verification is forward the same way: a proof rides with its object and a `sad/field`
@@ -230,10 +168,9 @@ is the admission floor; blocking is the last resort; the two together are the sp
   but the child set is fixed by the parent's bytes, which the request size cap bounds — one root
   admits a bounded, not unbounded, fan. The parked-await set is bounded by the same reaper that
   sweeps the store's other transient tables
-  ([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md#request-bounds-and-rate-limits)).
+  ([`../../../substrate/infrastructure/sadd.md`](../../../substrate/infrastructure/sadd.md#request-bounds-and-rate-limits)).
 - **The residual is the valid-identity flood**, addressed by
-  [blocking](../../../substrate/federation/blocking.md), and — for the unrooted floor — the
-  attester-trust bound above plus the operator-local accountability log, priced in
+  [blocking](../../../substrate/federation/blocking.md) and priced in
   [residuals](../../../residuals.md#9-availability-caps-and-dos-bounds).
 
 ## Cross-references
@@ -246,9 +183,9 @@ is the admission floor; blocking is the last resort; the two together are the sp
 - [`availability.md`](availability.md) — `expiry` / `once`, and the `root ⊇ child` rule.
 - [`kinds.md`](kinds.md) — the `vdti/rooting/v1/*` family; [`shapes.md`](shapes.md) — its field
   shapes.
-- [`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md) — the
-  write path that enforces rooting and the anonymous floor, and the top-level-SAD index.
+- [`../../../substrate/infrastructure/sadd.md`](../../../substrate/infrastructure/sadd.md) — the
+  write path that enforces rooting.
 - [`../../../substrate/federation/witnessing.md`](../../../substrate/federation/witnessing.md) — the
-  witness attestation the unrooted floor converts a live signature into.
+  receipts and freshness statements that sit beside the rule as self-verifying.
 - [`../../../substrate/federation/blocking.md`](../../../substrate/federation/blocking.md) — the
   second front against a valid-identity flood.

@@ -411,7 +411,7 @@ period once the bad device is rotated out. No whole-document reincept.
   custody's read gate is already a **union with any-match**
   ([`../primitives/data/sad/custody.md`](../primitives/data/sad/custody.md)), the three-chain union
   **is** the custody gate — no separate feature check. Each listed set is checked **independently**
-  one at a time (the same fail-secure membership walk), so an on-node store can enforce the gate
+  one at a time (the same fail-secure membership walk), so the document's store can enforce the gate
   directly (each gated SAD's `readers[]` lists the three SEL prefixes literally; a holder of V0
   re-derives the canonical trio from `(creator, nonce)` to cross-check) and a verifier re-checks it
   authoritatively; the store gate and the read gate are the same set. An author trivially reads what
@@ -444,16 +444,21 @@ period once the bad device is rotated out. No whole-document reincept.
   grant-blind — a witness cannot even link a rescission to its grant. A witness sees only
   `creator ↔ document` (unavoidable — the governance chains name the creator in `authority`, and
   the doc prefix recomputes from their `data`, the nonce) plus grant and rescission volume-timing.
-- **Content off-node — the sovereignty mode.** A participant may submit only the **governance and
+- **Content member-side — the sovereignty mode.** A participant may submit only the **governance and
   rescission chains** (opaque, witnessed) and the **version anchors** on its own IEL (opaque
-  commitments), and **never land any content SAD** (versions, grant or rescind docs) on a node —
+  commitments), and **never land any content SAD** (versions, grant or rescind docs) on any store —
   holding the content on-device and sharing it peer-to-peer over the [exchange](exchange.md)
-  feature. This composes because a **node's role is chain-only**: chain validity and witnessing are
-  content-independent, and every feature check (the membership window, DAG placement, the honored
-  predicate) is participant-side, run by whoever holds the content. **No node operation may require
-  a content SAD.** Two tiers, a per-document choice: content off-node (maximum privacy; participants
-  bear availability) or content on-node but gated (`readers` + nonce'd SADs — node availability, the
-  mesh volume-timing residual).
+  feature. This composes because a **federation node's role is chain-only**: chain validity and
+  witnessing are content-independent, and every feature check (the membership window, DAG placement,
+  the honored predicate) is participant-side, run by whoever holds the content. **No node operation
+  may require a content SAD.** Two tiers, a per-document choice: content member-side (maximum
+  privacy; participants bear availability) or content on the **document's own store** — an
+  off-federation [`sadd`](../substrate/infrastructure/sadd.md), application content never landing on
+  the federation ([`architecture.md`](../substrate/infrastructure/architecture.md)) — gated
+  (`readers` + nonce'd SADs — store availability, the volume-timing residual). The
+  `document-*-membership` **grant values** are federation-side in either tier's machinery — a
+  membership walk resolves them — but a sovereignty document's participants simply never submit
+  theirs.
 
 ```mermaid
 flowchart TB
@@ -475,8 +480,8 @@ flowchart TB
   classDef iel fill:#12442a,stroke:#2f9e44,color:#fff
 ```
 
-In the off-node (sovereignty) mode a node holds a fully opaque chain and nothing content-readable —
-every feature check runs member-side. The membership graph stays **closed**: each of the three
+In the member-side (sovereignty) mode a node holds a fully opaque chain and nothing content-readable
+— every feature check runs member-side. The membership graph stays **closed**: each of the three
 chains blinds its members independently (participant- and grant-blind rescission keys), and no check
 links a member across chains, so a witness never recovers _who_ — or _how many_ — the members are.
 
@@ -632,9 +637,10 @@ shared removal locus `.../rescission` (the grant instance disambiguating which c
   bytes is the group-key primitive's job, chosen per document.
 - **Membership freshness** is bounded by the consumer's read strategy (fail-secure walk vs fail-open
   lookup) — an application choice, not a protocol guarantee.
-- **The mesh volume-timing residual** — for a content-on-node document a witness sees
-  `creator ↔ document` plus grant, rescission, and version-anchor volume-timing, never who the
-  members are. Content off-node removes even that, at the cost of participant-borne availability.
+- **The volume-timing residual** — a witness sees `creator ↔ document` plus grant, rescission, and
+  version-anchor volume-timing, never who the members are — in either tier, because the chains are
+  witnessed either way. A stored document's **store** additionally sees its deposit and gated-fetch
+  volume; the sovereignty tier removes that observer, at the cost of participant-borne availability.
 - **A named-but-non-consenting participant** — a creator can name anyone in a grant; crediting
   requires an honored version, but the social grief of being named is unmitigable.
 - **Whole-document recovery rests on out-of-band successor-authority** — nothing structural links a

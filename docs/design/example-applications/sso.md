@@ -17,11 +17,11 @@ flowchart LR
   end
   attestor["attesting organization<br/>issuer console"]:::org
   subgraph sub["the substrate — federations run it"]
-    node[("home node<br/>vdtid + witnessd")]:::svc
+    node[("home node<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
   dev -->|"ownership proof, audience-scoped<br/>+ furnished credential"| site
   site -->|"verify: key state · freshness · revocation"| node
-  attestor -->|"issue employee cred"| node
+  attestor -->|"anchor issuances — employee creds"| node
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
@@ -38,15 +38,16 @@ it verifies proofs against the substrate instead of keeping a credential databas
   there is no shared secret at all: the application never holds anything a breach of the application
   could leak that would let anyone sign in.
 - **Sign-in is the ownership proof.** The credential feature already defines the one live act the
-  system has — a fresh, audience-scoped `{ audience, nonce, created }` signed by the identity's
-  `t_use` quorum
+  system has — a fresh, audience-scoped `{ audience, nonce, created }` signed by the identity
+  **live** — one current member device (the base live check), or **`t_live`** devices where the
+  application demands **step-up** (a bank does; a forum does not)
   ([`../features/credentials.md` §Presentation](../features/credentials.md#presentation)). Sign-in
   is that act with the application as the audience: replay to another site fails the audience
   binding, replay to this site hits the nonce dedup, and phishing has nothing to steal — the
   signature binds to the verifier it was made for. The application verifies against the identity's
-  **current** key state, so a rotated-out device stops signing in with no deprovisioning step, and a
-  forked or disputed identity is frozen out fail-secure — the same divergence gate every ownership
-  proof carries
+  **current** key state, so a rotated-out device stops signing in with no deprovisioning step, and
+  an identity whose chain is not Active is frozen out fail-secure — the same divergence gate every
+  ownership proof carries
   ([`../features/credentials.md` §Accepting a presented credential](../features/credentials.md#accepting-a-presented-credential)).
 - **"And they are verified to be X" is a presented credential.** Where the application needs more
   than control of a prefix — an employer attestation, an age bracket, a customer tier — the person

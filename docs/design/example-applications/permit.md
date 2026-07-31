@@ -22,11 +22,11 @@ flowchart LR
     chk["checker client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
   min -->|"delegate — Ath"| off
-  min -->|"issue · revoke · publish policy"| node
-  off -->|"issue under delegationPath"| node
+  min -->|"anchor issuances · revoke ·<br/>seal policies on its SEL"| node
+  off -->|"anchor issuances under delegationPath"| node
   wallet -->|"present — selective disclosure"| chk
   chk -->|"freshness + revocation reads"| node
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
@@ -71,7 +71,7 @@ online legs are the freshness and revocation reads, from any node.
   Rescinding an office's delegation cuts future issuance without unwinding what it validly issued
   before the bound — the grandfather semantics a real licensing hierarchy needs. The checker's whole
   condition is one committed expression in the policy language —
-  `crd(vdti/cred/v1/schemas/driving-licence, thr(1, [id(ministry), del(ministry, 2)]))` — a policy
+  `crd(permit/cred/v1/schemas/driving-licence, thr(1, [id(ministry), del(ministry, 2)]))` — a policy
   SAD named by SAID, shared verbatim by every checker that adopts it
   ([`../primitives/policy/policy.md` §The policy language](../primitives/policy/policy.md#the-policy-language)).
 - **Conditions disclose selectively.** The claims carry issuer-precomputed brackets — the age

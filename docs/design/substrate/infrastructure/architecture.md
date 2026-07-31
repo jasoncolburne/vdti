@@ -1,11 +1,22 @@
-# Service architecture — one verification core, two daemons
+# Service architecture — one verification core, four daemons
 
-The deployable shape of the system: a **verification core** every party links, and two thin daemons
-over it — **`vdtid`**, the chain-log and SAD store ([`vdtid.md`](vdtid.md)), and **`witnessd`**, the
-witness, gossip, and sync daemon ([`witnessd.md`](witnessd.md)). This doc states the decomposition
-and the boundary rules that make it sound: why the verifier is a library rather than a service, what
-the core owns, how consumers reach the system, and how a consumer's trust decisions stay fresh
-without trusting any single node.
+The deployable shape of the system: a **verification core** every party links, and thin daemons over
+it — **`logsd`**, the chain-log daemon ([`logsd.md`](logsd.md)); **`sadd`**, the SAD store daemon
+([`sadd.md`](sadd.md)); **`witnessd`**, the witness ([`witnessd.md`](witnessd.md)); and
+**`gossipd`**, the sync daemon ([`gossipd.md`](gossipd.md)). This doc states the decomposition and
+the boundary rules that make it sound: why the verifier is a library rather than a service, what the
+core owns, how consumers reach the system, and how a consumer's trust decisions stay fresh without
+trusting any single node.
+
+**The federation exists to verify chains and to witness — nothing else.** It holds only what a
+verification walk must resolve: chain events, manifests and role SADs, grant values, receipts and
+freshness statements. Application data lives **off the federation**, on stores anyone can deploy
+([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md)). The store daemons
+are **general infrastructure**: an application developer runs their own `sadd` /
+[`blobsd`](blobsd.md) / `gossipd` and owns its admission policy, durability, and spam bounds. **Only
+`witnessd` is federation-only**, because it is the witnessing apparatus; `gossipd` is a federation
+service that is not federation-_only_ — an application fleet runs the same daemon over the same peer
+model, with different stores wired.
 
 The framing rule for everything here is
 [end-verifiability](../../system-thesis.md#end-verifiability): trust attaches to the **data** —
@@ -21,48 +32,51 @@ flowchart TD
     clib["<b>lib/vdti</b> — the verification core"]:::lib
     tks["token store"]:::lib
   end
-  subgraph node["a node (a federation member)"]
-    vdtid["<b>vdtid</b><br/>chain log + SAD store"]:::svc
-    witnessd["<b>witnessd</b><br/>witness · gossip · sync"]:::svc
-    nlib["<b>lib/vdti</b> — the same core"]:::lib
+  subgraph node["a federation node"]
+    logsd["<b>logsd</b><br/>chain log"]:::svc
+    sadd["<b>sadd</b><br/>SAD store, deletes off"]:::svc
+    witnessd["<b>witnessd</b><br/>witness · HSM · never public"]:::svc
+    gossipd["<b>gossipd</b><br/>the sync daemon"]:::svc
+    infra[("shared infra<br/>Postgres · object store · Redis · HSM")]:::peer
   end
   capp --> clib
   clib --> tks
-  consumer -->|"HTTP — the home-node relationship"| vdtid
-  vdtid <-->|HTTP| witnessd
-  witnessd <-->|"encrypted mesh"| peers["peer witnessd nodes"]:::peer
-  vdtid --- nlib
-  witnessd --- nlib
+  consumer -->|"HTTP — the home-node relationship"| logsd
+  consumer -->|HTTP| sadd
+  logsd --- infra
+  sadd --- infra
+  witnessd --- infra
+  gossipd --- infra
+  gossipd <-->|"encrypted mesh"| peers["peer nodes"]:::peer
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
   classDef peer fill:#20263a,stroke:#868e96,color:#e9ecef
 ```
 
-- **`lib/vdti`** — the verification core: the three chain verifiers and their tokens, merge, the
-  transfer engine, effective-SAID computation, the deferred-dependency types, SAD custody and
-  compaction, and policy evaluation. **All correctness lives here.** Both daemons link it — and so
-  does **every consumer**, which is the load-bearing point (below).
-- **`vdtid`** — the storage daemon: the chain log and the SAD store, merged into one service,
-  hosting the node's API — submit, fetch, existence, effective-SAID, the SAD and blob paths
-  ([`vdtid.md`](vdtid.md)). It runs **beside a `witnessd`**: the pair is a **federation node**, its
-  witness KEL the node's identity. Off-federation storage is not a stripped-down `vdtid` — it is the
-  separate [`sadstore`](../../example-applications/sadstore.md) app, a subset of these endpoints run
-  as a cascading-store tier
-  ([§The store traits](#the-store-traits--one-interface-composed-in-sequence)).
-- **`witnessd`** — the federation-facing daemon: the witness role and its signing keys, the gossip
-  mesh endpoint, deferred-dependency parking, and the anti-entropy loops
-  ([`witnessd.md`](witnessd.md)).
-- **Clients** — build and verify locally with the core, compact before submitting
-  ([`vdtid.md` §Compacted-only submission](vdtid.md#the-sad-store-write-path)), and maintain the
+- **`lib/vdti`** — the verification core: the chain verifiers and their tokens, merge, the transfer
+  engine, effective-SAID computation, the deferred-dependency types, SAD custody and compaction, and
+  policy evaluation — layered as store → server → client → source/sink
+  ([`../../primitives/stores/log-store.md`](../../primitives/stores/log-store.md),
+  [`../../compositions/log-server.md`](../../compositions/log-server.md)). **All correctness lives
+  here.** Every daemon links it — and so does **every consumer**, which is the load-bearing point
+  (below).
+- **A federation node = `logsd` + `sadd` (deletes off) + `witnessd` (HSM, never public) +
+  `gossipd`**, co-deployed over shared infra, addressable `logs.` / `sad.` / `witness.<node>`. A
+  deployable is a thin composition of servers plus a wire adapter — the same code runs in-process
+  where an application embeds it.
+- **Off-federation storage** is the same `sadd` with **deletes on**, plus `blobsd` — separate,
+  end-verifying consumers of the federation: no witnessing apparatus, no HSM, no witness role
+  ([`sadd.md`](sadd.md), [`blobsd.md`](blobsd.md)).
+- **Clients** — build and verify locally with the core, compact before submitting, and maintain the
   consumer-side **token store** (below).
 
 ## The core is a library because consumers must verify
 
-End-verifiability means a consumer **cannot trust `vdtid`** — a hostile or compromised daemon can
-serve anything, so the consumer re-verifies every chain and SAD itself, with the **same verifier**
-the daemon runs. That forces the boundary: the verifier is a **library both the daemons and every
-consumer link**, never service-internal logic.
+End-verifiability means a consumer **cannot trust a store daemon** — a hostile or compromised daemon
+can serve anything, so the consumer re-verifies every chain and SAD itself, with the **same
+verifier** the daemon runs. That forces the boundary: the verifier is a **library both the daemons
+and every consumer link**, never service-internal logic.
 
 Two properties make the boundary hold:
 
@@ -75,9 +89,10 @@ Two properties make the boundary hold:
   ([merge verification](../../protocol-doctrine.md#merge-verification-and-advisory-locking)). The
   daemon's store is a cache of the world, not an authority over it.
 
-The daemons are therefore **thin**: `vdtid` is routing, storage, and locking around the core's
-merge; `witnessd` is transport, scheduling, and key custody around the core's verification. A bug
-class that lives in a daemon is an availability bug; the correctness surface is the core.
+The daemons are therefore **thin**: `logsd` and `sadd` are routing, storage, and locking around the
+core's merge and serve compositions; `witnessd` is key custody and signing around the core's
+verification; `gossipd` is transport and scheduling around the core's transfer engine. A bug class
+that lives in a daemon is an availability bug; the correctness surface is the core.
 
 ## The transfer engine — the one sanctioned data-mover
 
@@ -89,37 +104,43 @@ deferred-dependency replay, and client-side verification all reuse it.
 The rule is strict because the engine is where tamper-evidence is enforced in motion: it pages in
 generation-aligned units (a divergent generation spanning a page boundary re-fetches rather than
 being processed half-observed) and it partitions a divergent run into sub-batches a receiving merge
-handler accepts ([`witnessd.md` §Send-side partitioning](witnessd.md#send-side-partitioning)).
+handler accepts ([`gossipd.md` §Send-side partitioning](gossipd.md#send-side-partitioning)).
 Hand-rolled pagination bypasses those guarantees — no other data-mover is permitted.
 
-## The store traits — one interface, composed in sequence
+## The cascading store — one interface, composed in sequence
 
-The core defines a store trait per primitive — `KelStore` / `IelStore` / `SelStore` for the chain
-logs, `SadStore` for standalone SADs — and every access to held data, in a daemon or a consumer,
-goes through them. Implementations are interchangeable: in-memory, filesystem, database-backed (the
-daemons' own), and **remote** — a `vdtid`'s API surfaced as a trait implementation.
+The store traits themselves — `LogStore`, `SadStore`, `BlobStore`, and the server / client /
+source-sink stack over them — are the storage primitives'
+([`../../primitives/stores/log-store.md`](../../primitives/stores/log-store.md),
+[`../../primitives/stores/sad-store.md`](../../primitives/stores/sad-store.md),
+[`../../primitives/stores/blob-store.md`](../../primitives/stores/blob-store.md)). What this doc
+keeps is the composition doctrine: a consumer instantiates a store over a **sequence** of
+implementations, searched in order — memory, then filesystem, then one or more remotes — so caching
+tiers and fallback stores compose with no new machinery: the **cascading store**. Content addressing
+is what makes the cascade sound — any store returns the same bytes for a SAID or digest, so the
+sequence changes **where** an answer comes from and what it costs, never what it means. Stores
+legitimately differ in what they _hold_: a read-gated record lives only where its gates admit, and
+some data stays local-only — a miss at one tier falls through to the next, and the serve rules hold
+at whichever store answers. A remote tier is a store daemon's API surfaced as a trait implementation
+— `get` and gated-`exists`, no enumeration
+([`../../primitives/stores/sad-store.md`](../../primitives/stores/sad-store.md)).
 
-A consumer instantiates a store over a **sequence** of implementations, searched in order — memory,
-then filesystem, then one or more remotes — so caching tiers and fallback stores compose with no new
-machinery: the **cascading store**. Content addressing is what makes the cascade sound — any store
-returns the same bytes for a SAID or digest, so the sequence changes **where** an answer comes from
-and what it costs, never what it means. Stores legitimately differ in what they _hold_: a read-gated
-record lives only where its gates admit, and some data stays local-only — a miss at one tier falls
-through to the next, and the serve rules hold at whichever store answers.
-
-**Write placement rides the same sequence.** Whether a SAD is **federation-published** or kept **off
-the federation** is the client choosing which tier(s) to write to — submit to a federation node
-(which replicates it across all its witnesses) or keep it on a local / private
-[`sadstore`](../../example-applications/sadstore.md) tier and not submit. Placement is application
-and deployment policy, never a field in the SAD
+**Write placement rides the same sequence, within what each tier admits.** A SAD carries no
+placement field: the client chooses which of **its own** tiers a write lands on — local disk, a
+private store, a service's replicated roster — and what the federation holds is fixed by the
+verification-necessary test, never by client choice: application data has no federation tier to
+choose ([`../../primitives/data/sad/rooting.md`](../../primitives/data/sad/rooting.md)). Placement
+is application and deployment policy, never a field in the bytes
 ([`../../primitives/data/sad/availability.md` §What availability declares](../../primitives/data/sad/availability.md#what-availability-declares)).
 
 ## Features are libraries — there are no feature daemons
 
-Credentials, exchange, and shared documents are **libraries over the core and `vdtid`'s API**, never
-daemon modules and never daemons of their own. `vdtid` takes no plug-ins and stays tight; a feature
-is verification and composition logic, which end-verifiability already forces into the
-consumer-linked library. Anything that genuinely wants a server — a search index, a matchmaking
+Credentials, exchange, and shared documents are **libraries over the core and the store daemons'
+APIs**, never daemon modules and never daemons of their own. **An application composes its storage
+at the client**: mail, chat, drive, a PDS all live in the client, fanning writes and reads across
+the generic `logsd` / `sadd` / `blobsd` stores, with no backend link between them and no per-app
+store daemon — the only services are the generic stores, and they all look the same. The scope of
+the rule is **storage**: anything that genuinely wants a server — a search index, a matchmaking
 service, an app-curated feed — is an **application** deploying its own app-layer service on top,
 outside this architecture.
 
@@ -128,37 +149,94 @@ outside this architecture.
 Stated as plain dependencies — deployment topology (which services share an instance, what runs
 where) is an operational choice, not part of the design:
 
-- **`vdtid`** depends on **PostgreSQL** (the chain log and receipt rows), an **S3-compatible object
-  store** for SAD and blob bytes (the reference deployment uses SeaweedFS), and **Redis**.
-- **`witnessd`** depends on **Redis** and an **HSM** — the witness signing keys
+- **`logsd` / `sadd`** depend on **PostgreSQL** (the chain log and receipt rows), an **S3-compatible
+  object store** for SAD bytes (the reference deployment uses SeaweedFS), and **Redis**.
+- **`witnessd`** depends on Postgres and Redis and an **HSM** — the witness signing keys
   ([`witnessd.md` §Key custody](witnessd.md#the-witness-identity-and-key-custody)).
+- **`gossipd`** depends on Redis and the stores it syncs.
 
 Redis is the coordination layer **between processes** — cache, pub-sub (the post-merge notification
-`witnessd`'s drain listens on rides it), and the shared ephemeral state (`witnessd`'s park map,
-watermarks, and stale set; `vdtid`'s cache invalidation). Data-plane durable state lives only in
-PostgreSQL and the object store (key material is custodied in the HSM); merge serialization rides
-PostgreSQL advisory locks, so `vdtid` replicas over one database serialize correctly with no extra
-machinery.
+the drain listens on), and the shared ephemeral state: the park map, the stale set, rate counters,
+token bundles, freshness statements, the unseen-nonce cache, and the staged (pre-promote) side.
+Data-plane durable state lives only in PostgreSQL and the object store (key material is custodied in
+the HSM); merge serialization rides PostgreSQL advisory locks, so replicas over one database
+serialize correctly with no extra machinery.
+
+**The federation never deletes stored data, and the rule is enforced beneath the services.** A
+service that _could_ delete but chooses not to buys nothing against a compromised service, which is
+the threat. So: each service connects as its **own Postgres role, and no role holds `DELETE` or
+`TRUNCATE`** on the durable tables — grants, not triggers (a trigger is droppable by whoever can
+drop it, and Postgres has no append-only table flag). The object store's policy denies the delete
+action, with object-lock as the stronger option that survives credential theft. **The scope is the
+federation's**: "no delete, ever" is the federation's grant, and an off-federation `sadd` / `blobsd`
+runs deletes — the capability split
+([`../../primitives/stores/sad-store.md`](../../primitives/stores/sad-store.md)). What is durable
+and what stages is the three-promote-reasons boundary
+([`../../compositions/log-server.md` §Durability](../../compositions/log-server.md#durability--the-three-promote-reasons)).
+
+**Three single-writer roles, kept distinct** — conflating them is the easy failure:
+
+- the **migration owner** — per data scope, a **separate role** used only during expand/contract
+  ([`../../compositions/log-server.md` §Migration ownership](../../compositions/log-server.md#migration-ownership--one-owner-several-writers));
+- the **store write-owner** — per scope, and **not** exclusive at runtime: a scope has several
+  runtime writers, serialized by the per-prefix advisory lock and content-addressed idempotency;
+- the **stamper** — per **store**, the single writer of the commit-ordered listing ordinal
+  ([`../../primitives/stores/log-store.md` §`list(since)`](../../primitives/stores/log-store.md#listsince--the-enumeration-ordered-by-commit)).
+  It sits off the admission path and is not the migration owner, and it does **not** make the store
+  single-writer for admissions.
+
+**A restore takes the services entirely down first — then restore, then up.** A bounded outage
+rather than a running service against a mid-restore store: restoring under a live service tier is
+already wrong for ordinary reasons (stale pools, caches newer than the store, killed in-flight
+transactions), and the ordering keeps the in-memory head check — the stamper's process-scoped
+high-water reference — a backstop and hygiene rather than a load-bearing detector
+([`gossipd.md`](gossipd.md)).
+
+### Operational surfaces
+
+Two node-local signals, both **ops surfaces, never protocol queries** — each makes no verifiability
+claim and lives in the transient carve-out beside the park map and rate counters:
+
+- **The burial leaderboard.** The merge layer already computes `Buried`, so a **per-prefix counter
+  increments where the burial is decided** — no scan, no second detection path — held in Redis,
+  **windowed**, surfaced as a sorted top-N by **recent** burials. Recency is the signal: honest
+  burials trickle (a genuine content race resolved by a burying seal), abuse runs at up to
+  `MAXIMUM_UNSEALED_RUN` per rotation — roughly two orders of magnitude apart. The lever is
+  **blocking** ([`../federation/blocking.md`](../federation/blocking.md)), not monitoring.
+- **The structural-validity alarm.** A durable row that fails canon's byte-pure structural-validity
+  set is **impossible via the protocol** — every durable event write is a merge-layer promote and
+  every durable receipt passes the admission gate, both of which validate — so its presence means
+  **direct database access**: tampering, corruption, or a bad migration. It is a statement about
+  **this node**, so it **pages an operator** rather than joining the leaderboard's sort-and-block
+  loop. The predicate is **well-formedness only** — the locked-portion bound is not in it and must
+  never page anyone (a below-current-seal parent is the ordinary condition of every historical row).
+  The walk already computes this and the change is to count and alarm instead of silently skipping.
 
 ## Transport
 
 - **Node-to-node (the mesh)** — the authenticated, encrypted channel of
   [`mesh-transport.md`](mesh-transport.md), carrying the gossip topics
-  ([`../federation/topics.md`](../federation/topics.md)).
-- **Everything else is HTTP** — consumer to node, and `vdtid` to `witnessd` alike. One protocol
-  surface: reads use a **safe, body-carrying query method**, because a prefix in a request line or
-  query string leaks into ordinary access and proxy logs
+  ([`../federation/topics.md`](../federation/topics.md)), terminated by `gossipd`.
+- **Consumer-to-node is HTTP.** Reads use a **safe, body-carrying query method**, because a prefix
+  in a request line or query string leaks into ordinary access and proxy logs
   ([negative checks](../../protocol-doctrine.md#negative-checks-are-positive-lookups)); mutations
-  use POST. Keeping the daemon-to-daemon link on HTTP also keeps the two daemons **separable onto
-  distinct hosts**, which the key-custody isolation below relies on
-  ([`witnessd.md` §Key custody](witnessd.md#the-witness-identity-and-key-custody)).
+  use POST.
+- **There is no trusted backend data RPC.** A server never consumes another server's **answer** —
+  the daemons couple only through the shared stores, each programming against the store trait
+  ([`../../compositions/log-server.md`](../../compositions/log-server.md)). A server may fetch data
+  it **end-verifies itself** — an off-federation store's federation query is a consumer read, not
+  backend RPC.
+- **`witnessd` is never public.** Its protection is **never-public + local infrastructure + the
+  kind-gate on its signing endpoint** — not host separation: signing capability is custodied behind
+  a service no public face reaches, whatever hosts the deployment uses
+  ([`witnessd.md`](witnessd.md)).
 
 ## The consumer topology — the home node
 
 A consumer does not roam the federation. It has a **home node** — one node it calls for everything:
-chain pages, SADs, blobs, effective-SAIDs, freshness evidence. The same relationship the submit path
+chain pages, SADs, effective-SAIDs, freshness evidence. The same relationship the submit path
 already runs (a user submits to a **preferred witness**, which routes on their behalf —
-[`witnessd.md` §On-receiving-node routing](witnessd.md#on-receiving-node-routing)) extends to the
+[`gossipd.md` §On-receiving-node routing](gossipd.md#on-receiving-node-routing)) extends to the
 consume side.
 
 The home node is a **mirror**: everything flows through it, and **nothing is trusted from it**.
@@ -273,10 +351,10 @@ fresh with the nonce inside the payload (the challenge-response path
 live variant defeats caching by construction, so it is the high-assurance opt-in, never the default.
 
 **Relationship to the beacon and to monitoring.** The receipt query at a position (the beacon)
-enumerates a position's competing branches to nodes; the freshness statement is how a **node's
-resulting held view exits the federation to a consumer** with its provenance intact. The owner-side
-twin is [`monitoring.md`](../../monitoring.md) — the same effective-SAID compared against the
-owner's own expectation rather than a peer's.
+enumerates a position's admitted competing branches to nodes; the freshness statement is how a
+**node's resulting held view exits the federation to a consumer** with its provenance intact. The
+owner-side twin is [`monitoring.md`](../../monitoring.md) — the same effective-SAID compared against
+the owner's own expectation rather than a peer's.
 
 ## Adversarial framing
 
@@ -304,23 +382,21 @@ owner's own expectation rather than a peer's.
   standing NTP deployment invariant
   ([`residuals.md`](../../residuals.md#consumer-clock-drifts-backward)).
 - **The library boundary is the trust boundary.** No daemon-side check is load-bearing for a
-  consumer: a compromised `vdtid` or `witnessd` yields wrong availability, wrong caching, wrong
-  routing — never a wrong verified answer downstream, because the consumer's own linked core
-  re-derives every answer that matters.
+  consumer: a compromised store daemon yields wrong availability, wrong caching, wrong routing —
+  never a wrong verified answer downstream, because the consumer's own linked core re-derives every
+  answer that matters.
 
 ## Cross-references
 
-- [`vdtid.md`](vdtid.md) — the chain-log and SAD store daemon: the API, the merge write path, the
-  serve-by-SAID rule.
-- [`witnessd.md`](witnessd.md) — the witness, gossip, and sync daemon: receipts, parking,
-  anti-entropy, freshness-statement service.
+- [`logsd.md`](logsd.md) / [`sadd.md`](sadd.md) / [`blobsd.md`](blobsd.md) /
+  [`witnessd.md`](witnessd.md) / [`gossipd.md`](gossipd.md) — the daemons.
+- [`../../primitives/stores/log-store.md`](../../primitives/stores/log-store.md) — the store traits;
+  [`../../compositions/log-server.md`](../../compositions/log-server.md) — the composed layer.
 - [`mesh-transport.md`](mesh-transport.md) — the authenticated, encrypted node-to-node channel.
 - [`../../protocol-doctrine.md`](../../protocol-doctrine.md) — operation categories, verification
   tokens, caching and continuation, effective-SAID comparison.
 - [`../federation/witnessing.md`](../federation/witnessing.md) — receipts, the witnessing floor, the
   clock and key-windows, query-scoping.
 - [`../../monitoring.md`](../../monitoring.md) — the owner-side effective-SAID watcher.
-- [`../../primitives/data/sad/kinds.md`](../../primitives/data/sad/kinds.md) — the identifier
-  catalogue the freshness-statement kind joins.
 - [`../../residuals.md`](../../residuals.md) — eclipse and freshness residuals; cross-cutting
   assumptions.
