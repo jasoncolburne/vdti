@@ -152,10 +152,11 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **base live check** — the one-device liveness proof: a live-signed request resolves to an
   identity, and one current member device proves it — always one device, never a threshold.
   ([`iel/events.md`](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
-- **`t_live` / step-up** — **step-up** is a second, different check at **`t_live`** devices;
-  `t_live` is the identity's published step-up bar, declared beside the threshold vector (not in it
-  — no consuming event kind; read by live checks, never by event validity), and the **relying party
-  demands** step-up per operation — no object declares it.
+- **`t_stepup` / step-up** — **step-up** is a second, different check at **`t_stepup`** devices;
+  `t_stepup` is the identity's published step-up bar, carried on the roster role as
+  `stepUpThreshold` and declared beside the threshold vector (not in it — no consuming event kind;
+  read by live checks, never by event validity), and the **relying party demands** step-up per
+  operation — no object declares it.
   ([`iel/events.md`](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
 - **co-signing session** — the transport by which a quorum's devices co-sign: mutual device-KEL
   authentication into one identity's roster over an ephemeral post-quantum KEM,

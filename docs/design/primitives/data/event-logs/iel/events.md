@@ -135,38 +135,40 @@ carries additional bounds — see
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and
 [§The restricted federation IEL](#the-restricted-federation-iel).
 
-**`t_live` — the step-up bar, declared beside the vector, not in it.** Threshold vectors govern
+**`t_stepup` — the step-up bar, declared beside the vector, not in it.** Threshold vectors govern
 **chain writes**; live checks are a separate mechanism and never read them. The **base live check is
 one device, always** — a live-signed request resolves to an identity, and one current member device
-proves it; **step-up is a second, different check at `t_live` devices**, and **the relying party
-demands it** — `t_live` is a published property of the identity, each verifier decides whether to
+proves it; **step-up is a second, different check at `t_stepup` devices**, and **the relying party
+demands it** — `t_stepup` is a published property of the identity, each verifier decides whether to
 require it, and **no object ever declares step-up** (an object-borne demand would be one party
 making a demand about someone else's act). Which operations step up is the application's call, per
-operation. `t_live` shares the `t_` naming and the `Evl` delta mechanics but sits **outside the
+operation. `t_stepup` shares the `t_` naming and the `Evl` delta mechanics but sits **outside the
 vector's kind-keyed declaration rule**, because it has **no consuming event kind** — it is read by
 store and application checks, never by event validity. That is what makes the decoupling structural
-rather than a convention: the vector governs chain events and no live check reads it; `t_live`
-governs step-up and no event validity reads it. Its letter:
+rather than a convention: the vector governs chain events and no live check reads it; `t_stepup`
+governs step-up and no event validity reads it. Its data key on the roster role is
+**`stepUpThreshold`** — `t_stepup` is the documentation label, as `t_use` is for the vector's `use`
+slot. Its letter:
 
-- **Always explicit; never absent as a state.** `t_live` is **required on a user `Icp`** and
+- **Always explicit; never absent as a state.** `t_stepup` is **required on a user `Icp`** and
   **delta-encoded** on `Evl` — present ⇒ changed, absent ⇒ unchanged — so it carries a value at all
   times, and it is **not** subject to the omitted-at-`Icp` rule (that rule keys on a threshold's
-  consuming kind, and `t_live` has none). An identity that cuts its roster to one explicitly sets
-  `t_live = 1` — there is no never-step-up state; `t_live = 1` already says step-up gives nothing
-  beyond the base check, the honest statement for a single-device identity.
-- **Bounds:** `1 ≤ t_live ≤ |roster|`, with **`t_live ≥ 2` hard for `|roster| ≥ 2`** (the security
-  floor's shape) and forced `1` at a singleton — re-checked on the post-delta config at every
-  config-changing event. **No recoverability ceiling**: `Evl` is not bound to `t_live`, so a bad
-  value is always fixable; `|roster|` is the only cap. No authorization floor.
-- **A federation IEL declares no `t_live`** — a per-facet **structural rule**
+  consuming kind, and `t_stepup` has none). An identity that cuts its roster to one explicitly sets
+  `t_stepup = 1` — there is no never-step-up state; `t_stepup = 1` already says step-up gives
+  nothing beyond the base check, the honest statement for a single-device identity.
+- **Bounds:** `1 ≤ t_stepup ≤ |roster|`, with **`t_stepup ≥ 2` hard for `|roster| ≥ 2`** (the
+  security floor's shape) and forced `1` at a singleton — re-checked on the post-delta config at
+  every config-changing event. **No recoverability ceiling**: `Evl` is not bound to `t_stepup`, so a
+  bad value is always fixable; `|roster|` is the only cap. No authorization floor.
+- **A federation IEL declares no `t_stepup`** — a per-facet **structural rule**
   ([`../event-shape.md` §Per-kind structural validation](../event-shape.md#per-kind-structural-validation)),
-  and a statement about scope, not a missing capability: `t_live` is read when an identity
+  and a statement about scope, not a missing capability: `t_stepup` is read when an identity
   **presents** — the audience-scoped ownership proof — and a federation is never a credential
   holder, so no relying party ever presents against one. The facet is **`Fcp`**, and a **service
-  fleet is `Icp`-rooted** — outside the exemption — so a fleet declares `t_live ≥ 2` like any
+  fleet is `Icp`-rooted** — outside the exemption — so a fleet declares `t_stepup ≥ 2` like any
   multi-member identity: a published capability no relying party will ever demand of a fleet, and
   that is harmless.
-- **Reads never step up.** A step-up read gate would put `t_live` devices on the hot path of
+- **Reads never step up.** A step-up read gate would put `t_stepup` devices on the hot path of
   fetching your own data; and "two people must be present" is two _identities_ — multi-party — which
   a live check inherently is not (a live check is about **one** identity).
 
@@ -200,7 +202,7 @@ already `t_govern`); declaring `t_use` is malformed → rejected (the threshold-
 the facet role allowlist). A kind **omitted at `Icp` can never be exercised** — there is no
 first-introducing it later. Thereafter a roster delta carries a threshold field **only when it
 changes** (present ⇒ must change; absent ⇒ unchanged) — the same present-is-delta /
-absent-is-inherit shape as the membership `add` / `cut`. **`t_live` rides beside this rule, not
+absent-is-inherit shape as the membership `add` / `cut`. **`t_stepup` rides beside this rule, not
 under it**: it is required on a user `Icp` and delta-thereafter, but it has no consuming event kind,
 so the omitted-at-`Icp` rule never applies to it
 ([§The threshold vector and its bounds](#the-threshold-vector-and-its-bounds)).

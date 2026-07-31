@@ -4,8 +4,8 @@ Thresholds above one require **multi-device co-signing**: the authority slots ca
 floor of `≥ 2` for every identity with `|roster| ≥ 2` — no single member exercises authority — so
 any identity with a phone and a laptop needs its devices to co-sign **every** governance act (key
 rotation, evicting a compromised device, revocation, federation rebind, the terminal `Trm`), and
-**step-up** ([`t_live`](../data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds)) is a
-declared capability nobody can exercise without a way for devices to co-sign. This doc states that
+**step-up** ([`t_stepup`](../data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds)) is
+a declared capability nobody can exercise without a way for devices to co-sign. This doc states that
 transport: its security properties are the substance; the medium is deliberately unconstrained.
 
 ## The construction — the mesh handshake, with one substitution
@@ -52,10 +52,10 @@ is somewhere else. So **nothing is deposited**: no co-signing-request kind, no s
 floor, no discovery index, no cleanup.
 
 This is what makes step-up's assurance claim precise: **step-up's strength is requiring physical
-possession of `t_live` devices at one moment** — not multi-party approval over time. An asynchronous
-path would spend exactly the property step-up exists to buy. The medium is irrelevant to the
-security — local link, QR, or over the network, the session is KEL-authenticated and forward-secret
-either way; proximity buys the assurance claim, it is not what protects the channel.
+possession of `t_stepup` devices at one moment** — not multi-party approval over time. An
+asynchronous path would spend exactly the property step-up exists to buy. The medium is irrelevant
+to the security — local link, QR, or over the network, the session is KEL-authenticated and
+forward-secret either way; proximity buys the assurance claim, it is not what protects the channel.
 
 ## Considered — encapsulating to the published receive key
 
@@ -77,7 +77,7 @@ presentation, batching, retry — the same line the federation's block console d
 ## Cross-references
 
 - [`../data/event-logs/iel/events.md`](../data/event-logs/iel/events.md) — the threshold vector, its
-  floors, and `t_live` (the step-up bar).
+  floors, and `t_stepup` (the step-up bar).
 - [`../data/event-logs/iel/verification.md`](../data/event-logs/iel/verification.md) — the
   divergence freeze, and why roster resolution succeeds on a forked chain.
 - [`receive-key-directory.md`](receive-key-directory.md) — the published KEM keys this transport

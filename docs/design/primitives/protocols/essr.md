@@ -146,7 +146,7 @@ envelope signature; none is separately load-bearing.
 
 **The sender signs live.** A `sender` is an IEL prefix — an identity that is a threshold over its
 member devices, not a single key — and the envelope signature is a **live signature**: one current
-member device signs (the **base live check**), with step-up to `t_live` devices the application's
+member device signs (the **base live check**), with step-up to `t_stepup` devices the application's
 per-operation choice, exactly as a presentation's ownership proof ([`ipex.md`](ipex.md)). ESSR stays
 agnostic to this: the caller's signing capability produces the signature, and the caller's resolver
 returns the key-state that `senderPin` names.

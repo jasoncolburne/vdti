@@ -41,8 +41,8 @@ An IEL inception event is a
 [prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): its prefix is
 the whole-content digest of the inception body —
 [`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic. What the **IEL** prefix
-commits to is the initial **roster**, the **threshold vector** (with **`t_live`**, the step-up bar,
-declared beside it — [`events.md`](events.md#the-threshold-vector-and-its-bounds)), and a
+commits to is the initial **roster**, the **threshold vector** (with **`t_stepup`**, the step-up
+bar, declared beside it — [`events.md`](events.md#the-threshold-vector-and-its-bounds)), and a
 high-entropy **`nonce`**.
 
 The `nonce` makes the IEL prefix **unpredictable** from outside — a camping (prefix-squatting)

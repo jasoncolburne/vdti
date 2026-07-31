@@ -103,7 +103,7 @@ policy lives on the credential or the chain.**
   on the credential. Delegated issuance is thus **derived**, not asserted.
 - **Does the presenter own it?** The uniform **ownership proof**: the presenter must prove the
   `issuee` identity's ownership **live** — the **base live check** (one current member device),
-  stepped up to **`t_live`** devices where the relying party demands it
+  stepped up to **`t_stepup`** devices where the relying party demands it
   ([`../primitives/data/event-logs/iel/events.md`](../primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
   — binding the disclosure to a fresh, audience-scoped `{ audience, nonce, created }` — realized as
   the IPEX `grant` signature, in one round trip, not a separate challenge exchange. This is the
@@ -173,7 +173,7 @@ Issuance and presentation are both **[IPEX](../primitives/protocols/ipex.md)** d
 discloser to a disclosee; issuance is the case where the discloser is the issuer). The credential is
 long-lived — its freshness is the anchor, revocation, and the advisory `expires`. A **presentation**
 is made fresh per use by the IPEX `grant` envelope, which carries `{ audience, nonce, created }` and
-is signed **live by the issuee** — a current member device (the base live check), or `t_live`
+is signed **live by the issuee** — a current member device (the base live check), or `t_stepup`
 devices where the relying party demands step-up. That signature does double duty: it proves
 **ownership** (the required signer resolves into the credential's committed `issuee`'s current
 roster, so control of the issuee's membership is the "who may present" answer) **and** binds the

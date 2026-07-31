@@ -39,7 +39,7 @@ it verifies proofs against the substrate instead of keeping a credential databas
   could leak that would let anyone sign in.
 - **Sign-in is the ownership proof.** The credential feature already defines the one live act the
   system has — a fresh, audience-scoped `{ audience, nonce, created }` signed by the identity
-  **live** — one current member device (the base live check), or **`t_live`** devices where the
+  **live** — one current member device (the base live check), or **`t_stepup`** devices where the
   application demands **step-up** (a bank does; a forum does not)
   ([`../features/credentials.md` §Presentation](../features/credentials.md#presentation)). Sign-in
   is that act with the application as the audience: replay to another site fails the audience

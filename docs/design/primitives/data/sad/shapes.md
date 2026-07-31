@@ -395,18 +395,18 @@ A witness-config — five signers selected per event, three receipts required:
 Carried by an IEL `Icp` (the initial roster + threshold vector), an `Evl` (a delta), and a
 federation `Fcp` / `Wit`:
 
-| Field            | Type                         | Meaning                                                                                                                                                                                                                                                                                                                       |
-| ---------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `said`           | SAID                         | The delta SAD's SAID.                                                                                                                                                                                                                                                                                                         |
-| `kind`           | string                       | `vdti/event/v1/roles/roster`.                                                                                                                                                                                                                                                                                                 |
-| `add`            | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                                                                                                                                                                                                                                                |
-| `cut`            | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                                                                                                                                                                                                                                                     |
-| threshold vector | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2).                                                                                                                                                                                                                         |
-| `t_live`         | u64                          | The **step-up bar**, beside the vector, not in it: **required** at a user inception, **delta** thereafter (present ⇒ changed, absent ⇒ unchanged); `1 ≤ t_live ≤ \|roster\|`, `≥ 2` hard for `\|roster\| ≥ 2`; **forbidden on the federation facet**; no consuming event kind — read by live checks, never by event validity. |
+| Field             | Type                         | Meaning                                                                                                                                                                                                                                                                                                                                               |
+| ----------------- | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `said`            | SAID                         | The delta SAD's SAID.                                                                                                                                                                                                                                                                                                                                 |
+| `kind`            | string                       | `vdti/event/v1/roles/roster`.                                                                                                                                                                                                                                                                                                                         |
+| `add`             | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                                                                                                                                                                                                                                                                        |
+| `cut`             | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                                                                                                                                                                                                                                                                             |
+| threshold vector  | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2).                                                                                                                                                                                                                                                 |
+| `stepUpThreshold` | u64                          | The **step-up bar** (`t_stepup` in prose), beside the vector, not in it: **required** at a user inception, **delta** thereafter (present ⇒ changed, absent ⇒ unchanged); `1 ≤ t_stepup ≤ \|roster\|`, `≥ 2` hard for `\|roster\| ≥ 2`; **forbidden on the federation facet**; no consuming event kind — read by live checks, never by event validity. |
 
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
 and the post-delta size `|roster| + |add| − |cut|` between `1` and `MAXIMUM_ROSTER_SIZE` (32); the
-threshold bounds — `t_live`'s included — are re-checked on the post-delta config
+threshold bounds — `t_stepup`'s included — are re-checked on the post-delta config
 ([`../event-logs/iel/events.md`](../event-logs/iel/events.md)). On a **federation `Wit`**, `add`
 must carry **exactly one** prefix (one witness KEL added at a time) — the type stays `list⟨prefix⟩`;
 the one-at-a-time rule is a cardinality check on the federation facet, not a second shape.
@@ -416,7 +416,7 @@ at one, authority at two:
 
 ```json
 {
-  "said": "VJgSysDF0iotPxEPAl3UazXMSa7V5-hp-k_a9-1GwULh",
+  "said": "VAe8bvQ1V8siW7uypKubPG76UvdQu3cBdM3O5rdKIwTB",
   "kind": "vdti/event/v1/roles/roster",
   "add": [
     "VGPYmZDJUlWpsnQZzPhXsbvzHnQZ9cNWpsf2pjhHpjkm",
@@ -428,7 +428,7 @@ at one, authority at two:
     "authorize": 2,
     "govern": 2
   },
-  "t_live": 2
+  "stepUpThreshold": 2
 }
 ```
 

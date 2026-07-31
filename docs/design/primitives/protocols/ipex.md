@@ -123,7 +123,7 @@ grant = {
 ```
 
 signed over the recomputed `grant.said` **live by the presenter** — a current member device of the
-issuee's roster (the **base live check**), or **`t_live`** devices where the verifier demands
+issuee's roster (the **base live check**), or **`t_stepup`** devices where the verifier demands
 **step-up**. That signature does **double duty**. It proves **ownership** — for a targeted
 disclosure the required signer is the disclosed SAD's committed **issuee** (not the self-declared
 `discloser`), so a valid signature means the presenter controls the issuee's identity live, which
@@ -202,8 +202,8 @@ un-replayed. It is a mode, not the baseline.
   is inherent to bearer credentials, stated in the credential residuals, not an IPEX defect.
 
 The "who may present" step is an **authentication of the issuee** — the **base live check** against
-its current roster, stepped up to **`t_live`** devices at the relying party's demand (`t_live` is
-the identity's published step-up bar; **issuing**, by contrast, is an anchored chain write at
+its current roster, stepped up to **`t_stepup`** devices at the relying party's demand (`t_stepup`
+is the identity's published step-up bar; **issuing**, by contrast, is an anchored chain write at
 `t_use`) — **not a policy**, and not part of the disclosed SAD's own authorization. IPEX realizes it
 as the `grant`'s live signature; a caller never writes a policy for it.
 
@@ -259,7 +259,7 @@ original serialization.
 - [`../data/sad/sad.md`](../data/sad/sad.md) / [`../data/sad/kinds.md`](../data/sad/kinds.md) — the
   SAD layer and the naming convention the `vdti/ipex/v1/*` message kinds follow.
 - [`../data/event-logs/iel/events.md`](../data/event-logs/iel/events.md) — the anchor that is proof
-  of issuance, the roster (and `t_live` step-up bar) the `grant` signature resolves against live,
+  of issuance, the roster (and `t_stepup` step-up bar) the `grant` signature resolves against live,
   and the revocation declaration the status check reads.
 - [`../../substrate/federation/witnessing.md`](../../substrate/federation/witnessing.md) — why the
   anchor is witnessed and how the current tip is read from any source.

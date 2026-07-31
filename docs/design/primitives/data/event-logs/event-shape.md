@@ -126,10 +126,10 @@ The slots carry bounds — `t_use ≥ 1`; a **security floor** (`≥ 2`) and **r
 **cap of `MAXIMUM_ROSTER_SIZE`** and the **never-emptied** floor (`|roster| + |add| − |cut| ≥ 1`);
 and, for a federation, the witness-config recoverability cap — all re-checked on the post-delta
 config at **every** config-changing event, not only inception. Declared **beside** the vector — not
-in it — rides **`t_live`**, the step-up bar: it has no consuming event kind (read by live checks,
-never by event validity), is required on a user `Icp` and delta-encoded thereafter, and is bounded
-`1 ≤ t_live ≤ |roster|` with `≥ 2` hard for `|roster| ≥ 2`. The bounds and their derivations are the
-IEL primitive's:
+in it — rides **`t_stepup`**, the step-up bar (the roster role's `stepUpThreshold` field): it has no
+consuming event kind (read by live checks, never by event validity), is required on a user `Icp` and
+delta-encoded thereafter, and is bounded `1 ≤ t_stepup ≤ |roster|` with `≥ 2` hard for
+`|roster| ≥ 2`. The bounds and their derivations are the IEL primitive's:
 [`iel/events.md` §The threshold vector and its bounds](iel/events.md#the-threshold-vector-and-its-bounds).
 
 The per-kind threshold/tier mapping and the bound derivations are the IEL primitive's —
@@ -503,11 +503,11 @@ carry `federationPin` (`opt`) for a **same-federation re-pin**, but never `feder
 the witness KELs); every IEL event is anchored by a threshold of members, so every IEL event carries
 it. An `Evl`'s `roster` delta follows the general well-formedness rules — `add`, `cut`, and
 `threshold` changes combine freely; a `cut` `Evl` is one whose delta includes a non-empty `cut`. The
-kind→role allowlist gates the role's _presence_; the delta shape is checked per-kind. **`t_live` is
-a per-facet field of the roster role**: **required** on a user `Icp`, **delta** on an `Evl` (present
-⇒ changed, absent ⇒ unchanged), and **forbidden on the federation facet** — a roster role carried by
-an `Fcp` or a federation `Wit` declaring `t_live` is malformed → rejected, beside the facet's
-no-`Ixn`/no-`t_use` split
+kind→role allowlist gates the role's _presence_; the delta shape is checked per-kind. **The step-up
+bar `t_stepup` is a per-facet field of the roster role**, carried as `stepUpThreshold`: **required**
+on a user `Icp`, **delta** on an `Evl` (present ⇒ changed, absent ⇒ unchanged), and **forbidden on
+the federation facet** — a roster role carried by an `Fcp` or a federation `Wit` declaring
+`stepUpThreshold` is malformed → rejected, beside the facet's no-`Ixn`/no-`t_use` split
 ([`iel/events.md` §The threshold vector and its bounds](iel/events.md#the-threshold-vector-and-its-bounds)).
 The exact roster delta SAD and pins-SAD schemas, the consent rule for additions, and the per-kind
 anchor matrix are IEL doctrine — [`iel/`](iel/).

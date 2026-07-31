@@ -160,7 +160,7 @@ flowchart TD
   `senderPin`'s **IEL establishment interval** was **open at that `timestamp`** — an eviction or
   roster change closes it, even though it never touches an evicted device's own KEL — and the
   signature resolves to a **current member device** of that establishment's roster (the **base live
-  check**; step-up to `t_live` devices is the application's per-operation choice —
+  check**; step-up to `t_stepup` devices is the application's per-operation choice —
   [`iel/events.md`](../primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds));
   **(ii)** each signing **device's KEL** key-window was **open at that same time** — a harvested
   rotated-out device key is closed here. Each interval is bounded by the **witnessed times** of the
@@ -503,7 +503,7 @@ epoch/roster/KDF names belong to those primitives; exchange defines none of them
   can transiently trust a stale read, and a high-value open re-verifies before acting.
 - **Message authenticity is one device's signature — mail and chat alike.** Both authenticate with a
   **single** current member device's signature (the base live check), attributed to its owning
-  identity; step-up to `t_live` devices is the application's per-operation choice, never a
+  identity; step-up to `t_stepup` devices is the application's per-operation choice, never a
   structural quorum. So one compromised member device can author messages in that identity's name.
   Chat's exposure is bounded by the device's KEL window, its epoch membership, and its own lane;
   **mail's blast radius is larger — mail reaches anyone** — its own priced residual, not an

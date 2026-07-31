@@ -251,7 +251,7 @@ roster = sad(
         sorted([token("member-kel-laptop"), token("member-kel-phone"), token("member-kel-token")]),
     ),
     ("threshold", OrderedDict([("use", 1), ("authorize", 2), ("govern", 2)])),
-    ("t_live", 2),
+    ("stepUpThreshold", 2),
 )
 
 pins = sad(
