@@ -214,8 +214,9 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
 - **`bound` (governance horizon)** — in a trusted-federation grant value, the highest remote
   federation position any receipt's resolution may use — a remote-federation-event SAID, monotone
-  non-decreasing across refreshes. Distinct from the two rescission senses of `bound`: the
-  grandfather cutoff in a `kills[]` entry, and the gated `bound` role on a SEL `Trm`.
+  non-decreasing across refreshes. Distinct from the rescission sense of `bound` — one concept in
+  two custody modes: the grandfather cutoff in a `kills[]` entry, and the gated `bound` role on a
+  SEL `Trm`.
 - **un-grant** — the governance act killing a trust lineage (`Trm ← federation Rev`, `t_govern`);
   its `Rev`'s `clock` is the counting cut. Stops new counting; held data stays held; a re-grant
   reincepts at the next lineage.

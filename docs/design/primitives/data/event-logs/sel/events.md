@@ -290,15 +290,15 @@ kind-first):
 The `payload` role is **directly consumed** with no downstream type-check, so the kind → role
 allowlist is its only protection — an `Icp` / `Pin` / `Sea` carrying a manifest at all is malformed,
 and an `Ixn` **without** one is malformed too (the role is never absent — a pure re-pin is a `Pin`).
-The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath`), so
-unlike `payload` it is not directly trusted. A `Trm`'s termination validity is carried by its
-anchoring `Rev` / `Dth`; its manifest is **opt**, and when present carries the **`bound`** role — a
-feature-layer gated rescind-doc holding a feature rescission's participant-blind cutoff (a
-doc-member grandfather, or a chat-membership per-lane bound list). This is the **gated custody
-mode** of the `bound` (a delegate rescission's rides the inline-public `kills[].bound` field on the
-owner IEL); like `grant`, it is a feature-layer SAD, not a directly-consumed role. The derivation
-inputs (`authority` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level
-structural**.
+The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath` — or, on
+the **federation facet only**, a governance `Wit`), so unlike `payload` it is not directly trusted.
+A `Trm`'s termination validity is carried by its anchoring `Rev` / `Dth`; its manifest is **opt**,
+and when present carries the **`bound`** role — a feature-layer gated rescind-doc holding a feature
+rescission's participant-blind cutoff (a doc-member grandfather, or a chat-membership per-lane bound
+list). This is the **gated custody mode** of the `bound` (a delegate rescission's rides the
+inline-public `kills[].bound` field on the owner IEL); like `grant`, it is a feature-layer SAD, not
+a directly-consumed role. The derivation inputs (`authority` / `topic` / `data` / `lineage`) and
+every event's down-`pin` are **top-level structural**.
 
 ## The kind-strict cross-layer anchor matrix
 

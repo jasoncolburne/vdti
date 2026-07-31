@@ -146,12 +146,12 @@ the envelope is the wire form the store unwraps, not a stored, serve-by-SAID obj
 
 The **submission envelope** — `vdti/rooting/v1/submission/envelope`:
 
-| Field  | Type   | Required | Meaning                                                                     |
-| ------ | ------ | -------- | --------------------------------------------------------------------------- |
-| `said` | SAID   | yes      | The envelope's own SAID.                                                    |
-| `kind` | string | yes      | `vdti/rooting/v1/submission/envelope`.                                      |
-| `sad`  | SAD    | yes      | The SAD being admitted (nested; travels expanded, so the store recomputes). |
-| `root` | SAD    | yes      | The root pointer — one of the two nested rooting SADs below.                |
+| Field  | Type   | Required | Meaning                                                                                |
+| ------ | ------ | -------- | -------------------------------------------------------------------------------------- |
+| `said` | SAID   | yes      | The envelope's own SAID.                                                               |
+| `kind` | string | yes      | `vdti/rooting/v1/submission/envelope`.                                                 |
+| `sad`  | SAD    | yes      | The SAD being admitted (nested; travels compacted or expanded — the store recomputes). |
+| `root` | SAD    | yes      | The root pointer — one of the two nested rooting SADs below.                           |
 
 The **event-root pointer** — `vdti/rooting/v1/{kel,iel,sel}/event`, when a chain event commits the
 SAD:

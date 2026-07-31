@@ -184,7 +184,7 @@ Compactor implementations defend by enforcing structural bounds at the storage l
 - **Two-phase storage.** A SAD object received for storage is parsed and validated in one pass
   without recursive expansion of its sub-SAD references; the second pass dedupes against
   already-stored SAIDs and persists only what is new — the dedupe pass is what absorbs every arrival
-  form: a submission may embed children (the rooting envelope travels expanded — a parent and its
+  form: a submission may embed children (a rooting envelope may travel expanded — a parent and its
   children land in one step, [`rooting.md`](rooting.md)), and batch and replication arrivals embed
   them too. Recursive expansion of children is deferred until a consumer explicitly requests them.
 - **Existence-check before write.** A SAID already present in the object store is idempotently

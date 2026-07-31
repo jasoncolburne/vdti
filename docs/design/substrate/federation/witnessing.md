@@ -299,13 +299,13 @@ byzantine residual). Wipe plus the clock together close the dormant-chain forger
 on a closed-window key is forced to carry old timestamps, so the tip reads **stale** and is
 detectable, fail-secure.
 
-**The 365-day auto-expiry.** A key-window may stay open at most
-**`MAXIMUM_WITNESS_KEY_WINDOW = 365 days`** — an un-refreshed window is treated as **closed at
-`T_join + 365 days`**, a fixed protocol constant, with no explicit `cut`. So a witness that never
+**The 180-day auto-expiry.** A key-window may stay open at most
+**`MAXIMUM_WITNESS_KEY_WINDOW = 180 days`** — an un-refreshed window is treated as **closed at
+`T_join + 180 days`**, a fixed protocol constant, with no explicit `cut`. So a witness that never
 participates in a `Wit` no longer keeps an indefinitely open window; it auto-expires and its later
-receipts read stale, the same closure a cut gives. Every witness therefore rotates **at least once a
-year** as standard practice (ML-DSA-87 handles the frequency easily); a slow-but-honest witness that
-lets its window lapse simply reads stale until it rotates, at no security cost. A member whose
+receipts read stale, the same closure a cut gives. Every witness therefore rotates **at least twice
+a year** as standard practice (ML-DSA-87 handles the frequency easily); a slow-but-honest witness
+that lets its window lapse simply reads stale until it rotates, at no security cost. A member whose
 window has auto-expired is **flagged at-risk** on the verification token — a data-local computed
 property, reported not raised — so operators evict-and-replace or reconfirm by rotation before
 cumulative loss reaches `t_govern`. There is no auto-eviction (removing a member is governance,
@@ -329,7 +329,7 @@ belongs in every deployment's operating requirements; a verifier cannot be defen
 wrong clock. When the federation is reachable, a live challenge-response is the no-local-clock path.
 
 **Constants.** The tolerance **`CLOCK_TOLERANCE_BAND = 1 minute`** and
-**`MAXIMUM_WITNESS_KEY_WINDOW = 365 days`** are fixed protocol constants (deterministic — every
+**`MAXIMUM_WITNESS_KEY_WINDOW = 180 days`** are fixed protocol constants (deterministic — every
 verifier agrees). `CLOCK_TOLERANCE_BAND` absorbs honest clock skew at a window boundary; its
 security cost is nil, since the attack it faces is gross staleness, not boundary-seconds. Distinct
 from the **staleness threshold** ("how old before a tip is flagged"), which is consumer /
@@ -685,8 +685,14 @@ compromised at ≥ `threshold` can stall it by declining to sign, exactly as it 
 (§Security assumption). What is specific to **this** locus is that the stall does not age out: the
 usual escape — republish at the next lineage — depends on the old lineage reading **dead**, and a
 stalled un-grant leaves it **live**, where a reader stops. Trust in that remote therefore stays
-granted until the compromised witnesses are evicted — **fail-open**, where the rest of this rail
-fails secure. It sits inside the priced federation-compromise residual rather than beside it.
+granted while the stall holds — **fail-open**, where the rest of this rail fails secure — and the
+stall is bounded twice. In time: a stalled un-grant stalls refreshes too, so the vouched key-windows
+close within `MAXIMUM_WITNESS_KEY_WINDOW`, after which only backdated, stale-reading receipts still
+count — the tail the rogue-remote pricing already carries. In exit: below `|roster| − threshold`
+decliners, a retried participation re-draws its selection and the un-grant itself eventually lands;
+at or beyond that count no governance act lands — an eviction included — and the exit is reincept.
+Priced in the catalog
+([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
 
 ### The counting conjunction
 

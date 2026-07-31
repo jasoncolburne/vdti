@@ -430,13 +430,15 @@ with no repair. Credential **revocation and status** are a **feature** layered o
 [receive-key directory](../../protocols/receive-key-directory.md)).
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two
-kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's type, and the `Evl`
-anchors a `Sea`:
+kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's type, the `Evl`
+anchors a `Sea`, and — on the **federation facet only** — a governance `Wit` anchors the
+trusted-federation `Gnt`:
 
 ```mermaid
 flowchart LR
   Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
   Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
+  Wit["federation IEL Wit"]:::iel ==>|manifest.anchors — trust grant| Gnt
   Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
   Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm
   Evl["IEL Evl"]:::iel ==>|manifest.anchors| Sea["SEL Sea"]:::sel
@@ -553,8 +555,9 @@ back down to its authority's current tip:
   SEL's serial-1 **v1** (the `Icp` rides `v1.previous`, never itself anchored) **and** a
   credential's **issuance commitment** (a flat hash, not a SEL event); a `Rev` / `Dth` for the SEL
   `Trm`s they seal (`Rev` a credential revocation, `Dth` a rescission); an `Ath` for a SEL `Gnt` —
-  each via `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL
-  kind, and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the
+  and, on the **federation facet only**, a governance `Wit` for the trusted-federation `Gnt` — each
+  via `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL
+  kind(s), and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the
   owner IEL tip via its `pin`, carried on its serial-1 event — a bare `Pin` when inception batches
   no other first event, otherwise the first event itself (the `Icp` stays pin-free for
   recomputability). The as-of authority is the **anchoring position** — the committing IEL event,

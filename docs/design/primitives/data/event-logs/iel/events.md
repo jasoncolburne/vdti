@@ -436,7 +436,8 @@ directions**:
 ### The kind-strict anchor matrix
 
 An IEL kind anchors **only** its matching SEL kind(s), and each SEL kind is valid **only** anchored
-by its matching IEL kind:
+by its matching IEL kind(s) — one deliberate widening: on the **federation facet only**, a
+governance `Wit` anchors the trusted-federation `Gnt`:
 
 | IEL kind                 | Anchors (SEL)                                                                             | Tier-elevation floor |
 | ------------------------ | ----------------------------------------------------------------------------------------- | -------------------- |
@@ -452,6 +453,7 @@ flowchart LR
   Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
   Evl["IEL Evl"]:::iel ==>|manifest.anchors| Sea["SEL Sea"]:::sel
   Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
+  Wit["federation IEL Wit"]:::iel ==>|manifest.anchors — trust grant| Gnt
   Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
   Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff

@@ -87,9 +87,9 @@ matches by **recompute-and-membership**. That one schema-driven step is what let
 cover every case, blinded owner-anchors included, with no third type. A failed confirm is a
 **rejection**, not a fall-through to the anonymous gate — a bad pointer is a malformed submission.
 
-The submission travels **expanded** — the whole body of `sad` — so the store can recompute its
-identifier; the identifier that is signed and verified is the **pre-compact** (fully-compacted) one
-([`compaction.md`](compaction.md#said-preservation-invariant)). The store recompacts and checks.
+The submission may travel **compacted or expanded** (an expanded body delivers a parent and its
+children together); the identifier that is signed and verified is the **fully-compacted** one either
+way ([`compaction.md`](compaction.md#said-preservation-invariant)). The store recompacts and checks.
 When the named root has not landed yet — the parent or committing event has not arrived — the
 submission **waits**, reusing the deferred-dependency parking the store already runs
 ([`../../../compositions/log-server.md` §Deferred-dependency parking](../../../compositions/log-server.md#deferred-dependency-parking)),
