@@ -441,6 +441,13 @@ resolution = sad(
 
 # --- exchange ------------------------------------------------------------------------------------
 
+mail_payload = sad(
+    ("kind", "vdti/exchange/v1/schemas/mail-payload"),
+    ("topic", "vdti/exchange/v1/topics/mail"),
+    ("timestamp", "2027-04-02T11:38:20Z"),
+    ("body", elided("mail-body", "", 2744)),
+)
+
 chat = sad(
     ("kind", "vdti/exchange/v1/schemas/message"),
     ("previous", token("prior-lane-message")),
@@ -538,6 +545,11 @@ block(
 block("doc-version", "A version of that document, attributed to its editor:", doc_version)
 block("doc-comment", "A comment on that version:", comment)
 block("doc-resolution", "And the resolution that closes it:", resolution)
+block(
+    "mail-payload",
+    "The payload a mail message seals — topic, the refuse-on-absent send time, and the body:",
+    mail_payload,
+)
 block(
     "chat",
     "A chat message on its writer's lane — no sender field, because the lane is the writer:",

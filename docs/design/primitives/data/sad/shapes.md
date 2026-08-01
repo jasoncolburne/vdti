@@ -538,23 +538,26 @@ A freshness statement answering a consumer's challenge, attesting the state it h
 A SEL `Gnt`'s `manifest.grant` names a **grant-value SAD** whose kind is `vdti/sel/v1/grants/*`. The
 value it carries is the sealed thing itself.
 
-| Kind                                             | Carries                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status      |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `vdti/sel/v1/grants/directory-kem`               | A published receive key — a **scheme-tagged** KEM public key (the tag carries the scheme and parameter set, so one kind covers every set) + optional hardware attestation + the `receivers` service list. Owned by the [receive-key directory](../../protocols/receive-key-directory.md).                                                                                                                                                    | forthcoming |
-| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device. Owned by [group-key](../../protocols/group-key.md).                                                                                                                                                                                                                                                                                                                                  | forthcoming |
-| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (**editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                            | forthcoming |
-| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                                                                                                                                                                                                          | forthcoming |
-| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                                                                                                                                                                                                             | forthcoming |
-| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role. Owned by [exchange](../../../features/exchange.md).                                                                                                                                                                         | forthcoming |
-| `vdti/sel/v1/grants/delegation`                  | A **delegation marker** — the tier-2 signpost a delegating-link `{Icp, Gnt}` seals; commits a **blinded reference to the delegate** (checked by the `del(X, N)` walk against the anchoring `Ath`'s `delegates`), and carries no authority itself — [`../event-logs/iel/delegation.md`](../event-logs/iel/delegation.md).                                                                                                                     | forthcoming |
-| `vdti/sel/v1/grants/block`                       | A **block marker** — the signpost a federation's [prefix-block](../../../substrate/federation/blocking.md) lineage `{Icp, Gnt}` seals; `{ said, kind, reason? }`, carrying an optional `reason` and no authority of its own (the live lineage _is_ the block).                                                                                                                                                                               | forthcoming |
-| `vdti/sel/v1/grants/trusted-federation`          | The **trusted-federation grant value** — `{ remotePrefix, bound }`: the remote federation's prefix (must equal the derived address's input — self-describing, never a second authority) and the governance horizon `bound`, a remote-federation-event SAID, monotone non-decreasing across refreshes ([`witnessing.md` §The trust grant chain](../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)). | forthcoming |
+| Kind                                             | Carries                                                                                                                                                                                                                                                                                                                                                                                                                                      | Status       |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `vdti/sel/v1/grants/directory-kem`               | A published receive key — a **scheme-tagged** KEM public key (the tag carries the scheme and parameter set, so one kind covers every set) + optional hardware attestation + the `receivers` service list. Owned by the [receive-key directory](../../protocols/receive-key-directory.md).                                                                                                                                                    | fields fixed |
+| `vdti/sel/v1/grants/groupkey-epoch-key`          | A group epoch key, ESSR-wrapped once per member device. Owned by [group-key](../../protocols/group-key.md).                                                                                                                                                                                                                                                                                                                                  | forthcoming  |
+| `vdti/sel/v1/grants/document-edit-membership`    | The `{ grants, rescinds }` membership-delta grant-doc (**editors**) — one shape shared by all three doc instances; a `rescinds` entry records the grandfather `bound` on the rescission `Trm`'s `bound` role. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                            | fields fixed |
+| `vdti/sel/v1/grants/document-comment-membership` | The same shape, **commenters**. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                                                                                                                                                                                                          | fields fixed |
+| `vdti/sel/v1/grants/document-read-membership`    | The same shape, **readers**. Owned by [shared documents](../../../features/shared-documents.md).                                                                                                                                                                                                                                                                                                                                             | fields fixed |
+| `vdti/sel/v1/grants/chat-membership`             | The `{ grants, rescinds }` membership-delta grant-doc — a `grants` entry anchors a writing device's body-less lane root; a `rescinds` entry records its lane-tip `bound` on the rescission `Trm`'s `bound` role. Owned by [exchange](../../../features/exchange.md).                                                                                                                                                                         | forthcoming  |
+| `vdti/sel/v1/grants/delegation`                  | A **delegation marker** — the tier-2 signpost a delegating-link `{Icp, Gnt}` seals; commits a **blinded reference to the delegate** (checked by the `del(X, N)` walk against the anchoring `Ath`'s `delegates`), and carries no authority itself — [`../event-logs/iel/delegation.md`](../event-logs/iel/delegation.md).                                                                                                                     | forthcoming  |
+| `vdti/sel/v1/grants/block`                       | A **block marker** — the signpost a federation's [prefix-block](../../../substrate/federation/blocking.md) lineage `{Icp, Gnt}` seals; `{ said, kind, reason? }`, carrying an optional `reason` and no authority of its own (the live lineage _is_ the block).                                                                                                                                                                               | fields fixed |
+| `vdti/sel/v1/grants/trusted-federation`          | The **trusted-federation grant value** — `{ remotePrefix, bound }`: the remote federation's prefix (must equal the derived address's input — self-describing, never a second authority) and the governance horizon `bound`, a remote-federation-event SAID, monotone non-decreasing across refreshes ([`witnessing.md` §The trust grant chain](../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)). | fields fixed |
 
 Each grant value is a SAD (`said` + `kind` + its value); each is **owned by the component that
 defines it** — the rows above point at the owning doc, and this catalogue is a registry, never the
-definition. The concrete value layouts land at the encoding library (the scheme-tagged keys and ESSR
-wraps), the shared-documents encode (the role-lists), and the exchange encode (the chat-membership
-grant-doc).
+definition. **Status** reads **fields fixed** where the field set is settled (here, or in the owning
+doc — the three document-membership rows are one shape, defined by
+[shared documents](../../../features/shared-documents.md)) and only the byte-level layout is owed at
+the encoding library; **forthcoming** where the field set itself is still owed — the ESSR wrap of a
+group epoch key, the chat-membership grant-doc at the exchange encode, and the delegation marker's
+blinded reference.
 
 The **directory receive-key** grant value carries the reachability a sender needs — the key to seal
 to and where to deliver:
@@ -853,11 +856,16 @@ A version of that document, attributed to its editor:
 }
 ```
 
-The **grant-doc** (the `{ grants, rescinds }` delta — one shape shared by the three instances
-`document-edit-membership` / `document-comment-membership` / `document-read-membership`, the kind
-naming the role) and the **gated rescind-doc** (the `Trm`'s `bound` role sealing a period cutoff)
-are **forthcoming** — shapes at the shared-documents encode
-([`../../../features/shared-documents.md`](../../../features/shared-documents.md)).
+The **grant-doc** — the `{ grants, rescinds }` delta a `Gnt` seals, one shape shared by the three
+instances `document-edit-membership` / `document-comment-membership` / `document-read-membership`,
+the kind naming the role — is `{ said, kind, custody{ readers[] }, grants, rescinds }`: `grants` a
+list of nonce'd blinded commitments `{ said, kind, <role>, from, nonce, custody{ readers[] } }`
+(each entry's role value is the member's IEL prefix, its `said` the rescission handle), `rescinds` a
+list of blinded targets. Each rescind also carries a per-member `{ Icp, Trm }` lookup whose `Trm`
+seals the grandfather cutoff in the gated **rescind-doc**
+`{ said, kind, custody{ readers[] }, <role>, bound, nonce }`. Both are **owned and defined by**
+[shared documents](../../../features/shared-documents.md) — this catalogue registers them; only
+their byte-level layout is owed.
 
 The **comment** kinds are direct-anchored SADs (no SEL topic, like a version), so both carry the
 same `custody { owner, pin, readers[] }` wrapper, `prefix`, and `nonce?` a version does; the
@@ -986,6 +994,30 @@ whether a fork is misbehavior is the group's policy, not automatic). The writer'
 `said` rides **adjacent** (the universal rule — a SAD carries no signature over its own SAID), so
 there is no signature field.
 
+The **mail payload** (`vdti/exchange/v1/schemas/mail-payload`) — the ESSR inner payload a mail
+message seals, so it rides inside the ciphertext and never on the envelope
+([`../../../features/exchange.md`](../../../features/exchange.md)):
+
+| Field       | Type      | Required | Meaning                                                                                            |
+| ----------- | --------- | -------- | -------------------------------------------------------------------------------------------------- |
+| `said`      | SAID      | yes      | The payload's own SAID.                                                                            |
+| `kind`      | string    | yes      | `vdti/exchange/v1/schemas/mail-payload`.                                                           |
+| `topic`     | string    | yes      | The message topic.                                                                                 |
+| `timestamp` | timestamp | yes      | The send time — checked **post-decrypt**, and **refuse-on-absent** (a missing one is fail-secure). |
+| `body`      | bytes     | yes      | The content — a message, or a carried SAD such as an IPEX message riding inside.                   |
+
+The payload a mail message seals — topic, the refuse-on-absent send time, and the body:
+
+```json
+{
+  "said": "VF05foHEfRDDoUeYcJRp3ZyhXLAGZ6nNNDkjvt0wt6x4",
+  "kind": "vdti/exchange/v1/schemas/mail-payload",
+  "topic": "vdti/exchange/v1/topics/mail",
+  "timestamp": "2027-04-02T11:38:20Z",
+  "body": "BDk7d…2744 chars…h3yc"
+}
+```
+
 ### Policy — `vdti/policy/v1/{group}/*`
 
 A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../policy/policy.md)):
@@ -1002,16 +1034,16 @@ A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../
 
 ## Forthcoming shapes
 
-The kinds whose role is fixed but whose exact field layout is owed, with where each lands:
+The kinds whose **field set** is still owed, with where each lands. A kind whose fields are fixed —
+here or in its owning doc — is **not** on this list even when its byte-level layout is owed; those
+are collected in the last row.
 
-| Kind / SAD                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Lands at                                                     |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| Cryptographic grant values (`directory-kem`, `groupkey-epoch-key`)                                                                                                                                                                                                                                                                                                                                                                                               | the encoding library (scheme-tagged key + ESSR-wrap layouts) |
-| Shared-document grant values (`document-edit-membership`, `document-comment-membership`, `document-read-membership`) + grant-doc + rescind-doc                                                                                                                                                                                                                                                                                                                   | the shared-documents encode                                  |
-| Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a grant-chain entry anchors a writing device's body-less lane-root marker; a `rescinds` entry records each device lane's `bound` on the rescission `Trm`'s `bound` role) + the body-less join-marker shape (commits the **device prefix + group prefix + membership period / grant-instance** — structurally bound to one group, single-use per period) | the exchange encode                                          |
-| Delegation marker (`delegation`) — the blinded-reference layout (how the delegate reference is blinded and checked against the anchoring `Ath`'s `delegates`)                                                                                                                                                                                                                                                                                                    | the encoding library                                         |
-| Block marker (`block`) and trusted-federation grant value (`trusted-federation`) — field sets fixed inline (`{ said, kind, reason? }`; `{ remotePrefix, bound }`), byte-level layouts owed                                                                                                                                                                                                                                                                       | the encoding library                                         |
-| Mail-payload inner shape (`vdti/exchange/v1/schemas/mail-payload`) — `{ topic, timestamp, body }`, the ESSR inner a mail message seals                                                                                                                                                                                                                                                                                                                           | the exchange encode                                          |
+| Kind / SAD                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Lands at                                |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Group epoch-key grant value (`groupkey-epoch-key`) — the per-device ESSR wrap (each names its recipient in the clear; the epoch key's at-rest form)                                                                                                                                                                                                                                                                                                              | the encoding library (ESSR-wrap layout) |
+| Chat-membership grant value (`chat-membership`) — the `{ grants, rescinds }` membership-delta grant-doc (a grant-chain entry anchors a writing device's body-less lane-root marker; a `rescinds` entry records each device lane's `bound` on the rescission `Trm`'s `bound` role) + the body-less join-marker shape (commits the **device prefix + group prefix + membership period / grant-instance** — structurally bound to one group, single-use per period) | the exchange encode                     |
+| Delegation marker (`delegation`) — the blinded-reference layout (how the delegate reference is blinded and checked against the anchoring `Ath`'s `delegates`)                                                                                                                                                                                                                                                                                                    | the encoding library                    |
+| **Fields fixed, byte-level layout owed** — the receive-key grant value (`directory-kem`, §Grant values), the block marker and trusted-federation grant value (`{ said, kind, reason? }`; `{ remotePrefix, bound }`), the mail payload (§Exchange), and the shared-document grant-doc / rescind-doc (§Shared documents)                                                                                                                                           | the encoding library                    |
 
 ## Cross-references
 

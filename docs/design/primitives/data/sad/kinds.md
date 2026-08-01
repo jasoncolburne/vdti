@@ -138,10 +138,12 @@ label
 | `vdti/cred/v1/claims/*`         | credential claim SADs — the app-registered **claims container**; the framework reserves the **type-generic blinded-claim** entry kinds `blinded-{string,number,boolean,object,array}` (each `{ said, kind, nonce, data }`; `kind` names `data`'s JSON type, meaning rides `data`, and is committed into the blinded `said`) |
 | `vdti/policy/v1/{group}/*`      | policy documents, grouped by domain                                                                                                                                                                                                                                                                                         |
 
-One further kind is owed by a forthcoming encode: the **gated rescind-doc** a rescission `Trm`'s
-`bound` role commits ([`shapes.md`](shapes.md)), a feature-layer SAD landing under the
-already-listed `vdti/doc/v1/schemas/*` / `vdti/exchange/v1/schemas/*` families at the
-shared-documents and exchange encodes.
+One further kind rides under the already-listed families: the **gated rescind-doc** a rescission
+`Trm`'s `bound` role commits ([`shapes.md`](shapes.md)), a feature-layer SAD. Its
+`vdti/doc/v1/schemas/*` instance is defined by
+[shared documents](../../../features/shared-documents.md) — `{ said, kind, custody{ readers[] },`
+`<role>, bound, nonce }`; its `vdti/exchange/v1/schemas/*` instance (the chat-membership per-lane
+bound) is owed at the exchange encode.
 
 ## Fetch by SAID — what the store hands back
 
