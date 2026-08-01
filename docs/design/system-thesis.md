@@ -315,6 +315,31 @@ SDK or a stream codec, and check its own work. This falls out of the uniform, de
 data-local design rather than being added for it — so a program acting on a user's behalf is a
 first-class operator, not an integration afterthought.
 
+### Verification is the client's, so a service is not a trust tier
+
+Every validity, authority, and provenance question is a pure function of the data, so the party that
+needs the answer computes it. A service holds bytes and serves them; it decides nothing a consumer
+must believe. Two consequences follow. The infrastructure is **uniform and cheap** — its cost tracks
+storage and bandwidth, never the complexity of any application's rules — and the verification logic
+exists **once**, in the library both sides link, so there is no server-side rule that can drift from
+the client-side one. A serve-time gate is operational, never the confidentiality or authority
+boundary.
+
+The consumer pays for this in compute, which the structure bounds rather than removes: the page is
+the unit of memory budget for the walk
+([`kel/log.md` §Page model](primitives/data/event-logs/kel/log.md#page-model)), and that page is a
+constant only because the seal-advance cap bounds the unsealed run. The cost is priced in
+[`residuals.md`](residuals.md).
+
+### Coordination is per position, never system-wide
+
+There is no global sequence, no agreement protocol, and no shared state to converge on: a chain's
+next position is first-seen, and witnessing attests one position of one chain at a time. Ordering is
+structural — `previous` and `serial` — not the output of a consensus round or a clock. So there is
+no global write bottleneck, no fee market, and no quorum whose failure stalls unrelated identities;
+a conflict is confined to the chain that produced it and resolved by the divergence rules, never by
+a vote.
+
 ### Greenfield — no migration path
 
 VDTI ships once. There is no rollback for a wrong design decision; protocol semantics propagate to

@@ -72,6 +72,28 @@ itself, with no watcher infrastructure. A compromise that leaves no fork — mos
 rotation reserve extending the chain — is caught by the owner's own cheap self-monitoring, not by a
 watcher network.
 
+## What you don't have to run
+
+Verification is the client's, so the service tier stays small and dumb:
+
+- **The server runs no application logic.** A store holds bytes and hands them back; every
+  authority, provenance, and validity decision is a pure function of the data, computed by whoever
+  needs the answer. There is no trust tier to design and no authorization service to operate — and
+  one verification library runs on both sides, so a server-side rule cannot drift from the
+  client-side one. Infrastructure cost stops tracking how complicated your rules are.
+- **No consensus, no global ordering.** Writes are per-chain and first-seen; witnesses attest one
+  position at a time. No mempool, no sequencer, no chain-wide agreement to reach, no fee market to
+  price it. Throughput scales per identity rather than globally.
+- **The federation never holds your application data.** It carries the chains, the commitments a
+  verification walk needs, and the receipts that witness them. Your content lives on stores you run
+  — so an application can be entirely private and still fully verifiable, and the federation's cost
+  does not grow with your traffic.
+- **You can run all of it yourself.** A node is four daemons, and an application's own object and
+  blob stores are ordinary verifying consumers that need no blessing from anyone.
+
+The client pays for this in compute — a bounded page at a time, which is what the seal-advance cap
+buys. That is the trade: paying it yourself is what removes the trusted server.
+
 ## Who runs it
 
 No central operator. The organizations that issue and rely on trust run the witnessing
