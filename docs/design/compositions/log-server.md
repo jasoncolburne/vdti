@@ -260,10 +260,21 @@ class: a chain await re-drives itself off the store's own federation-client poll
 
 A verification result is a token the **server** mints and hands to the store's write path — `Rooted`
 / `Verified` / `RateOk` — non-constructable by type: only the check that establishes the property
-can produce one, so a local write cannot skip verification. A **`Sink`** trusts no token and
-re-verifies — a token from another node is worthless. Receipts and freshness statements are the
-**wire's** proof tokens; no new signed replay or rate tokens cross the wire (replay and rate are
-node-local, and a signed per-request token is a correlation surface bought for nothing).
+can produce one, so a local write cannot skip verification.
+
+The three things this doc calls a token bind to different subjects, and the distinction is
+load-bearing. A **capability token** (`Rooted` / `Verified` / `RateOk`) binds to a **code path** —
+non-constructable by type, it establishes that the check ran, never that any particular batch was
+its subject, which is why it gates the writer handle rather than riding a call's arguments
+([`log-store.md`](../primitives/stores/log-store.md)). The **verification token** the merge write
+path holds is what binds a verification to the batch it verified — the chain verified under the
+per-prefix lock, the batch verified against that token, the write in the same transaction
+([`logsd.md` §The merge write path](../substrate/infrastructure/logsd.md#the-merge-write-path)). A
+**token bundle** names its subject by SAID because it alone outlives a single request. A **`Sink`**
+trusts no token and re-verifies — a token from another node is worthless. Receipts and freshness
+statements are the **wire's** proof tokens; no new signed replay or rate tokens cross the wire
+(replay and rate are node-local, and a signed per-request token is a correlation surface bought for
+nothing).
 
 An admission walk can be arbitrarily long — confirming a root or verifying a migrating chain can
 mean walking from inception — so the walk is **resumable across requests** and its accumulated

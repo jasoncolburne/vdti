@@ -17,12 +17,12 @@ that pronounced the verdict would be a store trusted about correctness, which no
 
 ## The trait
 
-| Operation                    | Returns                                                                                                                                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `page(prefix, since, limit)` | one page of a prefix's events, with their receipts — a read **within** one prefix; the cursor is serial-scoped and **inclusive** of the floor serial                                        |
-| `list(since)`                | the **prefix listing** the anti-entropy enumeration pages — one entry per prefix whose held state changed, ordered by the store's own commit-ordered update ordinal                         |
-| `insert(events)`             | persists a **decided** write — the merge layer's promote, atomic with the ancestry it drags — inside the caller's transaction; it reports that the rows are durable, never a domain outcome |
-| `effective(prefix)`          | the **compare key** — the real tip SAID when the chain holds a single confirmed tip, the **verdict-tagged synthetic** when it does not                                                      |
+| Operation                    | Returns                                                                                                                                                                                                                                                              |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `page(prefix, since, limit)` | one page of a prefix's events, with their receipts — a read **within** one prefix; the cursor is serial-scoped and **inclusive** of the floor serial                                                                                                                 |
+| `list(since)`                | the **prefix listing** the anti-entropy enumeration pages — one entry per prefix whose held state changed, ordered by the store's own commit-ordered update ordinal                                                                                                  |
+| `insert(events)`             | **`writer(scope)` only — that handle is what the admission tokens gate** — persists a **decided** write, the merge layer's promote, atomic with the ancestry it drags, inside the caller's transaction; it reports that the rows are durable, never a domain outcome |
+| `effective(prefix)`          | the **compare key** — the real tip SAID when the chain holds a single confirmed tip, the **verdict-tagged synthetic** when it does not                                                                                                                               |
 
 Every read is **fully paginated** — no unbounded read exists on the trait; an unbounded read is a
 resource-exhaustion surface, not a convenience.
@@ -37,6 +37,13 @@ carries `page` / `list` / `effective`; `LogStore::writer(scope)` adds `insert` p
 authority for that scope. The handle grants migration rights, never exclusive append — a scope has
 several runtime writers, serialized by the per-prefix advisory lock
 ([`log-server.md` §Migration ownership](../../compositions/log-server.md#migration-ownership--one-owner-several-writers)).
+
+The server's admission tokens — `Rooted` / `Verified` / `RateOk`, non-constructable by type
+([`log-server.md` §Capability tokens](../../compositions/log-server.md#capability-tokens-and-token-bundles))
+— gate **that handle**, never `insert`'s signature. A store taking a token as an argument would hold
+a property it cannot evaluate, and a store that cannot evaluate what it holds is being trusted to
+carry it. The store never inspects one; the type system does, which is what makes "a local write
+cannot skip verification" structural rather than a check the store runs.
 
 ## `effective` is a bounded read — not a walk, and not the raw tip
 
