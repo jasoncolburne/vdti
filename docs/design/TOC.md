@@ -883,7 +883,7 @@ straight to a section.
 
 - [The trait](primitives/stores/log-store.md#the-trait)
 - [effective is a bounded read — not a walk, and not the raw tip](primitives/stores/log-store.md#effective-is-a-bounded-read--not-a-walk-and-not-the-raw-tip)
-- [list(since) — the enumeration, ordered by commit](primitives/stores/log-store.md#listsince--the-enumeration-ordered-by-commit)
+- [enumerate(since) — the enumeration, ordered by commit](primitives/stores/log-store.md#enumeratesince--the-enumeration-ordered-by-commit)
 - [What the store never does](primitives/stores/log-store.md#what-the-store-never-does)
 - [Cross-references](primitives/stores/log-store.md#cross-references)
 

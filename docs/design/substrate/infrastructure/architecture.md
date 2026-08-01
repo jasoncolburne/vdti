@@ -181,7 +181,7 @@ and what stages is the three-promote-reasons boundary
 - the **store write-owner** — per scope, and **not** exclusive at runtime: a scope has several
   runtime writers, serialized by the per-prefix advisory lock and content-addressed idempotency;
 - the **stamper** — per **store**, the single writer of the commit-ordered listing ordinal
-  ([`../../primitives/stores/log-store.md` §`list(since)`](../../primitives/stores/log-store.md#listsince--the-enumeration-ordered-by-commit)).
+  ([`../../primitives/stores/log-store.md` §`enumerate(since)`](../../primitives/stores/log-store.md#enumeratesince--the-enumeration-ordered-by-commit)).
   It sits off the admission path and is not the migration owner, and it does **not** make the store
   single-writer for admissions.
 

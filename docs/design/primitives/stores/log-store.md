@@ -20,7 +20,7 @@ that pronounced the verdict would be a store trusted about correctness, which no
 | Operation                    | Returns                                                                                                                                                                                                                                                              |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `page(prefix, since, limit)` | one page of a prefix's events, with their receipts — a read **within** one prefix; the cursor is serial-scoped and **inclusive** of the floor serial                                                                                                                 |
-| `list(since)`                | the **prefix listing** the anti-entropy enumeration pages — one entry per prefix whose held state changed, ordered by the store's own commit-ordered update ordinal                                                                                                  |
+| `enumerate(since)`           | the **prefix listing** the anti-entropy enumeration pages — one entry per prefix whose held state changed, ordered by the store's own commit-ordered update ordinal                                                                                                  |
 | `insert(events)`             | **`writer(scope)` only — that handle is what the admission tokens gate** — persists a **decided** write, the merge layer's promote, atomic with the ancestry it drags, inside the caller's transaction; it reports that the rows are durable, never a domain outcome |
 | `effective(prefix)`          | the **compare key** — the real tip SAID when the chain holds a single confirmed tip, the **verdict-tagged synthetic** when it does not                                                                                                                               |
 
@@ -33,9 +33,9 @@ a point read has no honest consumer. (A SAD is content-addressed and self-verify
 [`SadStore`](sad-store.md) _does_ carry `get(said)`.)
 
 **A server gets a scoped handle, and migration authority is type-enforced.** `LogStore::reader()`
-carries `page` / `list` / `effective`; `LogStore::writer(scope)` adds `insert` plus **migration**
-authority for that scope. The handle grants migration rights, never exclusive append — a scope has
-several runtime writers, serialized by the per-prefix advisory lock
+carries `page` / `enumerate` / `effective`; `LogStore::writer(scope)` adds `insert` plus
+**migration** authority for that scope. The handle grants migration rights, never exclusive append —
+a scope has several runtime writers, serialized by the per-prefix advisory lock
 ([`log-server.md` §Migration ownership](../../compositions/log-server.md#migration-ownership--one-owner-several-writers)).
 
 The server's admission tokens — `Rooted` / `Verified` / `RateOk`, non-constructable by type
@@ -98,16 +98,16 @@ wiring serving to one and `effective` to the other would silently diverge exactl
 chains
 ([`log-server.md` §Serving](../../compositions/log-server.md#serving--the-acceptance-gate-and-the-spine)).
 
-## `list(since)` — the enumeration, ordered by commit
+## `enumerate(since)` — the enumeration, ordered by commit
 
-`list(since)` pages the store's prefixes by the store's **own local, monotone update ordinal** — one
-listing entry per prefix, **restamped when a receipt lands, not only an event** (a receipt changes
-held state). The ordinal is assigned in **commit order** by a **single-writer stamper**: allocation
-order is not commit order (allocation is cached and non-transactional), so an allocation-ordered
-listing permanently hides a lower ordinal that commits after a scan — and a data-time ordering (a
-witnessed timestamp) permanently misses a late-gossiped old event. Serializing allocation is
-rejected — that is the global write lock this design avoids; the mechanism is the implementation's
-(logical decoding, or a post-commit stamping step). The store publishes
+`enumerate(since)` pages the store's prefixes by the store's **own local, monotone update ordinal**
+— one listing entry per prefix, **restamped when a receipt lands, not only an event** (a receipt
+changes held state). The ordinal is assigned in **commit order** by a **single-writer stamper**:
+allocation order is not commit order (allocation is cached and non-transactional), so an
+allocation-ordered listing permanently hides a lower ordinal that commits after a scan — and a
+data-time ordering (a witnessed timestamp) permanently misses a late-gossiped old event. Serializing
+allocation is rejected — that is the global write lock this design avoids; the mechanism is the
+implementation's (logical decoding, or a post-commit stamping step). The store publishes
 `(incarnation, resumePoint, head)` beside the listing — the restore-recovery contract the sync layer
 consumes ([`gossipd.md`](../../substrate/infrastructure/gossipd.md)); `head` is the **stamper's
 high-water mark**, never `max(ordinal)` and never a row count.

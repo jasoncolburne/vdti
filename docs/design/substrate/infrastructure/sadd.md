@@ -120,7 +120,7 @@ Enforcement is layered, default-deny — the serve gate is **three gates**
 - **Chain path** — events are served **by prefix only**, through [`logsd`](logsd.md)'s chain read;
   there is no SAID-to-event index anywhere in the store.
 
-**Enumeration is never on a public face.** `page(since)` is in-process or mesh-scoped only
+**Enumeration is never on a public face.** `enumerate(since)` is in-process or mesh-scoped only
 ([`sad-store.md`](../../primitives/stores/sad-store.md)); an off-federation `sadd` exposes **no
 enumeration at all** — its only listing is the recipient-scoped, gated `deposits` query.
 
