@@ -147,8 +147,8 @@ Then the three **dumb store traits** the services layer composes — storage wit
 every correctness rule one layer up in the server compositions:
 
 7. [`primitives/stores/log-store.md`](primitives/stores/log-store.md) — the chain-event store trait:
-   paged reads within a prefix, the commit-ordered prefix listing, placement, and the effective-SAID
-   compare key.
+   paged reads within a prefix, the commit-ordered prefix listing, the decided insert, and the
+   effective-SAID compare key.
 8. [`primitives/stores/sad-store.md`](primitives/stores/sad-store.md) — the standalone-SAD store
    trait: content-addressed put/get with the capability rules on delete, enumeration, and existence.
 9. [`primitives/stores/blob-store.md`](primitives/stores/blob-store.md) — the blob store trait:

@@ -882,7 +882,6 @@ straight to a section.
 ### [`primitives/stores/log-store.md`](primitives/stores/log-store.md) — LogStore — the dumb chain-log store
 
 - [The trait](primitives/stores/log-store.md#the-trait)
-- [place is a placement, not a verdict](primitives/stores/log-store.md#place-is-a-placement-not-a-verdict)
 - [effective is a bounded read — not a walk, and not the raw tip](primitives/stores/log-store.md#effective-is-a-bounded-read--not-a-walk-and-not-the-raw-tip)
 - [list(since) — the enumeration, ordered by commit](primitives/stores/log-store.md#listsince--the-enumeration-ordered-by-commit)
 - [What the store never does](primitives/stores/log-store.md#what-the-store-never-does)

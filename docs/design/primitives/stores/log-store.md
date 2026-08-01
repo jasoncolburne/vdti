@@ -7,14 +7,22 @@ verification, witnessing — live one layer up, in the
 paginated, and **never verifies, never resolves an anchor, never checks a root**. Every correctness
 rule runs above it, in a server or a consumer's own walk.
 
+It decides nothing about **where** a write goes, either. The merge layer settles that before the
+call: its routing — a normal append, a new chain, or the full dedupe / fork-formation / recovery
+path — **is** the placement, computed under the per-prefix advisory lock against the verification
+token it already holds
+([`logsd.md` §The merge write path](../../substrate/infrastructure/logsd.md#the-merge-write-path)).
+A store that reported placement back would hand the caller what the caller just decided; a store
+that pronounced the verdict would be a store trusted about correctness, which no store is.
+
 ## The trait
 
-| Operation                    | Returns                                                                                                                                                             |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `page(prefix, since, limit)` | one page of a prefix's events, with their receipts — a read **within** one prefix; the cursor is serial-scoped and **inclusive** of the floor serial                |
-| `list(since)`                | the **prefix listing** the anti-entropy enumeration pages — one entry per prefix whose held state changed, ordered by the store's own commit-ordered update ordinal |
-| `place`                      | a **placement outcome** — where an appended event landed (before or adjacent to the tip, on a fork) — **not** the merge verdict, which is the `LogServer`'s         |
-| `effective(prefix)`          | the **compare key** — the real tip SAID when the chain holds a single confirmed tip, the **verdict-tagged synthetic** when it does not                              |
+| Operation                    | Returns                                                                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `page(prefix, since, limit)` | one page of a prefix's events, with their receipts — a read **within** one prefix; the cursor is serial-scoped and **inclusive** of the floor serial                                        |
+| `list(since)`                | the **prefix listing** the anti-entropy enumeration pages — one entry per prefix whose held state changed, ordered by the store's own commit-ordered update ordinal                         |
+| `insert(events)`             | persists a **decided** write — the merge layer's promote, atomic with the ancestry it drags — inside the caller's transaction; it reports that the rows are durable, never a domain outcome |
+| `effective(prefix)`          | the **compare key** — the real tip SAID when the chain holds a single confirmed tip, the **verdict-tagged synthetic** when it does not                                                      |
 
 Every read is **fully paginated** — no unbounded read exists on the trait; an unbounded read is a
 resource-exhaustion surface, not a convenience.
@@ -25,18 +33,10 @@ a point read has no honest consumer. (A SAD is content-addressed and self-verify
 [`SadStore`](sad-store.md) _does_ carry `get(said)`.)
 
 **A server gets a scoped handle, and migration authority is type-enforced.** `LogStore::reader()`
-carries `page` / `list` / `effective`; `LogStore::writer(scope)` adds `place` plus **migration**
+carries `page` / `list` / `effective`; `LogStore::writer(scope)` adds `insert` plus **migration**
 authority for that scope. The handle grants migration rights, never exclusive append — a scope has
 several runtime writers, serialized by the per-prefix advisory lock
 ([`log-server.md` §Migration ownership](../../compositions/log-server.md#migration-ownership--one-owner-several-writers)).
-
-## `place` is a placement, not a verdict
-
-`place` reports **where the event landed** — a linear append, a sibling at an existing serial, an
-attachment below the tip. It is deliberately not the merge-outcome vocabulary (`Extended` /
-`Recovered` / `Forked` / `Disputed` / …): the verdict needs acceptance state — admitted receipts,
-the threshold in effect, the ceiling — which is the `LogServer`'s to evaluate. A store that
-pronounced verdicts would be a store trusted about correctness, which no store is.
 
 ## `effective` is a bounded read — not a walk, and not the raw tip
 
