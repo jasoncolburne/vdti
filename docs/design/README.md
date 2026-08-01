@@ -150,7 +150,8 @@ every correctness rule one layer up in the server compositions:
    paged reads within a prefix, the commit-ordered prefix listing, the decided insert, and the
    effective-SAID compare key.
 8. [`primitives/stores/sad-store.md`](primitives/stores/sad-store.md) — the standalone-SAD store
-   trait: content-addressed put/get with the capability rules on delete, enumeration, and existence.
+   trait: content-addressed put/get with the capability rules on delete and enumeration, and why
+   there is no existence probe.
 9. [`primitives/stores/blob-store.md`](primitives/stores/blob-store.md) — the blob store trait:
    payloads by storage key over an object index, with the same paged enumeration and capabilities.
 

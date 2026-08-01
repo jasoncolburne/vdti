@@ -31,18 +31,21 @@ default:
   listing is the recipient-scoped, gated `deposits` query
   ([`sadd.md`](../../substrate/infrastructure/sadd.md)).
 
-**There is no existence probe.** A `get` a gate refuses returns the uniform **"not present"** —
-expired, consumed, gated, and never-existed are one answer — and no operation offers a cheaper way
-to ask what that fetch just declined. A probe would be a read-receipt oracle (a sender polls until
-the recipient drains), it would survive un-sharing, and gating it identically to `get` would leave
-it answering exactly what `get` answers while every wire adapter carried a standing obligation to
-keep the two gates in step. Cheapness is the point: unguessability is a **feature-layer** discipline
-([`custody.md`](../data/sad/custody.md)), not a general property, so a low-entropy SAD is
-dictionary-confirmable — and a probe is what makes that dictionary affordable. Sync needs none of
-it: anti-entropy is **pull by enumeration** (`enumerate(since)`, then fetch), which asks a peer what
-it holds rather than whether it holds one thing, and cross-submitter dedup does not exist by design
-(a per-submitter `nonce` gives one blob two keys —
-[`shapes.md` §The blob bundle](../data/sad/shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)).
+**There is no existence probe, because nothing needs one.** Gated identically to `get` — which it
+would have to be — a probe answers exactly what `get` answers, so it is a second operation for one
+question, and a standing obligation on every wire adapter to keep two gates in step forever. Sync
+does not want it either: anti-entropy is **pull by enumeration** (`enumerate(since)`, then fetch),
+which asks a peer what it holds rather than whether it holds one named thing, and cross-submitter
+dedup does not exist by design — a per-submitter `nonce` gives one blob two keys
+([`shapes.md` §The blob bundle](../data/sad/shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)).
+Redundancy is the whole argument; the absence needs no security case.
+
+The one place the two operations would genuinely differ is **`once`**: a `get` against a
+destructive-read object **consumes** it, so with no probe, checking whether a one-shot deposit is
+still there is what removes it. That cuts both ways and is stated, not solved — an honest client
+cannot look without taking, and neither can anyone else. A refused or exhausted fetch is the uniform
+**"not present"** ([`availability.md`](../data/sad/availability.md)), so gated, expired, consumed,
+and never-existed remain one answer.
 
 **A remote `SadStore`** — a store daemon's API surfaced as a trait implementation, the cascading
 store's remote tier — therefore implements `get` and **no `enumerate`**; the trait does not

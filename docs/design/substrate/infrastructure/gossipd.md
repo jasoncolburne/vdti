@@ -70,9 +70,14 @@ this surface.
 | ---------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **chain listing**      | QUERY  | the node's own update-sequence enumeration of chain changes, paged descending from the caller's per-peer watermark — the anti-entropy and bootstrap enumeration                                    |
 | **SAD listing**        | QUERY  | the update-sequence enumeration of held standalone-SAD SAIDs — the SAD-object pass's presence compare (the enumeration leaks the existence of custody-gated objects, priced only for mesh members) |
-| **exists (peer)**      | QUERY  | the wider answer sync and dedupe need: held-or-not, regardless of the serve gates (the correlation exposure doctrine already prices for mesh membership)                                           |
 | **chain fetch (peer)** | QUERY  | the same paged chain read as the public surface, mesh-authenticated — query-scoping still serves a sub-threshold event only to a selected witness for its position                                 |
 | **SAD fetch (peer)**   | QUERY  | a held standalone SAD for replication — admitted by mesh membership; deletion-bearing data lives off the federation and never reaches this surface                                                 |
+
+**There is no existence probe on this surface either.** A peer asks what the other holds — the
+listings above — and fetches what it lacks; it never asks whether one named object is held. That is
+not a leak argument (a mesh member already reads the SAD listing, which exposes the same existence)
+but a **redundancy** one: enumeration is the sync path, and the probe would answer a question the
+listing has already answered ([`sad-store.md`](../../primitives/stores/sad-store.md)).
 
 An off-federation deployment's mesh serves the same shape for the stores it wires — the SAD listing
 and fetch, and a **blob listing and fetch** over the object index's commit-ordered ordinal

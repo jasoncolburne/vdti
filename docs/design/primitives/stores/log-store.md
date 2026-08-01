@@ -42,8 +42,11 @@ The server's admission tokens — `Rooted` / `Verified` / `RateOk`, non-construc
 ([`log-server.md` §Capability tokens](../../compositions/log-server.md#capability-tokens-and-token-bundles))
 — gate **that handle**, never `insert`'s signature. A store taking a token as an argument would hold
 a property it cannot evaluate, and a store that cannot evaluate what it holds is being trusted to
-carry it. The store never inspects one; the type system does, which is what makes "a local write
-cannot skip verification" structural rather than a check the store runs.
+carry it. The store never inspects one; the type system does. Note precisely what that buys: a
+handle is long-lived, so gating its **acquisition** makes "no writer exists outside the checked
+path" structural — not "every write through it was verified." That second property is the merge
+layer's, from verifying and writing under one lock in one transaction
+([`log-server.md` §Capability tokens](../../compositions/log-server.md#capability-tokens-and-token-bundles)).
 
 ## `effective` is a bounded read — not a walk, and not the raw tip
 

@@ -40,7 +40,7 @@ is why `access` rides the bundle rather than being resolved from `D`.
 The `BlobStore` keeps an **object index**, and the replication listing rides it. It has to: `once`
 needs a burn flag, `expiry` needs a GC horizon, and the bundle ↔ payload GC pairing needs both
 sides — none of which a bare object store gives. So the index exists already, and it is where the
-**commit-ordered enumeration ordinal** lives, giving `BlobStore` a `enumerate(since)` beside
+**commit-ordered enumeration ordinal** lives, giving `BlobStore` an `enumerate(since)` beside
 `SadStore`'s — without it a replicated deployment syncs the message SAD and not the payload, which
 is the half that holds the bytes. The index is store-local derived state; nothing a reader trusts
 lives in it.

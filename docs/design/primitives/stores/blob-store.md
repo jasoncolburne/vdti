@@ -26,8 +26,8 @@ The same grants as [`SadStore`](sad-store.md)'s, for the same reasons: **`delete
 the composing server gates** (the deploying application supplies the predicate —
 [`blob-server.md`](../../compositions/blob-server.md)); **`enumerate` is `in-process | mesh`, never
 `public`** (a public enumeration of payload keys defeats digest-secrecy outright). And, as there,
-**there is no existence probe**: a refused fetch is the uniform "not present", and a probe would be
-a cheaper way to ask the same question — cheap is what makes an oracle worth running.
+**there is no existence probe** — gated as it would have to be, it answers exactly what `get`
+answers, so it is a second operation for one question ([`sad-store.md`](sad-store.md)).
 
 ## What the store never does
 

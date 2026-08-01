@@ -122,7 +122,7 @@ sequence changes **where** an answer comes from and what it costs, never what it
 legitimately differ in what they _hold_: a read-gated record lives only where its gates admit, and
 some data stays local-only — a miss at one tier falls through to the next, and the serve rules hold
 at whichever store answers. A remote tier is a store daemon's API surfaced as a trait implementation
-— `get` and gated-`exists`, no enumeration
+— `get` alone: no enumeration, and no existence probe
 ([`../../primitives/stores/sad-store.md`](../../primitives/stores/sad-store.md)).
 
 **Write placement rides the same sequence, within what each tier admits.** A SAD carries no
