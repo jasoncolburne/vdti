@@ -121,6 +121,8 @@ def check_file(path, verbose):
     try:
         text = open(path, encoding="utf-8").read()
     except OSError as exc:
+        # Deliberately an error, including a tracked file deleted but not yet staged: this check
+        # is worthless if it can pass having read less than it was asked to. Stage the deletion.
         print(f"ERROR  {path}  — {exc}", file=sys.stderr)
         return 0, 0, 0, [(path, "unreadable")]
 
@@ -220,6 +222,12 @@ def main():
         c, p, s, e = check_file(path, args.verbose)
         checked, prefix_deriving, slices = checked + c, prefix_deriving + p, slices + s
         errors += e
+
+    # A vacuous pass is the failure mode this check cannot have: reading nothing and reporting
+    # clean is indistinguishable from verifying everything. On the default (whole-tree) run the
+    # catalogue's examples must be found, so zero means the sweep broke, not that the tree is empty.
+    if not args.paths and checked + slices == 0:
+        errors.append(("(sweep)", "found no examples at all — the enumeration or the fences broke"))
 
     for where, msg in errors:
         print(f"ERROR  {where}  — {msg}", file=sys.stderr)
