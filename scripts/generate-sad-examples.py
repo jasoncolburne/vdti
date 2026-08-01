@@ -15,9 +15,12 @@ arbitrary tokens of the right shape; keys, signatures, and ciphertexts print eli
 enclosing `said` derives over the elided text exactly as shown. Examples that compose share
 values, so the cross-references between blocks recompute too.
 
-Regenerating does NOT rewrite the doc — it prints the blocks for a human to place. The published
-examples are checked in the gate by scripts/check-sad-examples.py, which re-derives every SAID
-from the doc itself.
+Regenerating does NOT rewrite the doc — it prints the blocks for a human to place. Run `make fmt-md`
+after inserting one: this prints JSON the way json.dumps does, and prettier reflows it (a short array
+collapses onto one line), so a verbatim paste fails fmt-md-check. That also means a text diff against
+this output is NOT a drift check — the published examples are checked in the gate by
+scripts/check-sad-examples.py, which re-derives every SAID from the doc itself, whitespace being no
+part of the canonical bytes.
 
 Usage:
     scripts/generate-sad-examples.py            # every block, section by section

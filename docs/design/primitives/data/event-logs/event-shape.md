@@ -140,7 +140,7 @@ documents — are the policy layer's ([`../../policy/policy.md`](../../policy/po
 
 An event commits to the things above it through a **`manifest`**: the SAID of a SAD that groups
 those commitments **by named role**. The manifest SAD reads
-`{ said, <role>: <said-or-list-or-scalar>, … }`, and each role reads as "the things this event
+`{ said, kind, <role>: <said-or-list-or-scalar>, … }`, and each role reads as "the things this event
 {anchors / roster / delegates / kills / …}." The event row holds only the manifest SAID; the grouped
 commitments live in the SAD, separately custody-able. A role value is either an **inline list** of
 SAIDs/prefixes — `anchors` / `payload` / `delegates` / `kills` — a **single SAID** naming a further

@@ -27,12 +27,13 @@ fixed-value placeholder, Blake3-256, qualified ([`said.md`](said.md)). The one s
 example below, carries the `said` of the whole SAD it was lifted from. Text primitives carry the
 encoding library's type qualifiers: a Blake3-256 digest — every SAID, prefix, and blob digest — is a
 44-character `V` token, a 256-bit nonce an `N` token, an authenticated-cipher sealing nonce a `1AAN`
-token, a timestamp an RFC 3339 instant. A key, signature, or ciphertext runs to hundreds or
-thousands of characters, so those values print **elided**, their full qualified length in place of
+token, a timestamp an RFC 3339 instant. A key, signature, ciphertext, or inlined payload runs to
+hundreds or thousands of characters, so those values print **elided**, their full length in place of
 the middle; a value naming something not shown — a blob's storage key, a reference to an object
 elsewhere — is illustrative. Nested sub-SADs print **compacted**, by SAID, the form the canonical
-bytes carry; each has its own example under its own shape. Fields follow the table's order, wrapper
-fields first; JCS sorts keys, so an example is a logical view of a SAD, never its canonical bytes.
+bytes carry; where the catalogue gives such a child a shape of its own, that shape carries its own
+example. Fields follow the table's order, wrapper fields first; JCS sorts keys, so an example is a
+logical view of a SAD, never its canonical bytes.
 
 ## The two shapes
 
@@ -351,9 +352,9 @@ The rotation that follows it — the inherited `prefix`, `previous` to the incep
 ## Commitment SADs — what a `manifest` names
 
 A committing event's `manifest` is the SAID of a **role-grouped commitment SAD**:
-`{ said, <role>: <value>, … }`, where each role is a named commitment. The role vocabulary and which
-kind may carry which role are [`event-shape.md` §The manifest](../event-logs/event-shape.md); the
-roles that resolve to their **own** SAD are catalogued here.
+`{ said, kind, <role>: <value>, … }`, where each role is a named commitment. The role vocabulary and
+which kind may carry which role are [`event-shape.md` §The manifest](../event-logs/event-shape.md);
+the roles that resolve to their **own** SAD are catalogued here.
 
 The manifest that inception names — one role, the witness-config SAD below:
 
@@ -401,7 +402,7 @@ federation `Fcp` / `Wit`:
 | `kind`            | string                       | `vdti/event/v1/roles/roster`.                                                                                                                                                                                                                                                                                                                         |
 | `add`             | list⟨prefix⟩                 | Member KEL prefixes added (the full initial set at inception).                                                                                                                                                                                                                                                                                        |
 | `cut`             | list⟨prefix⟩                 | Member KEL prefixes removed (a `cut` on an `Evl` evicts).                                                                                                                                                                                                                                                                                             |
-| threshold vector  | `{ use, authorize, govern }` | The declared or changed threshold counts — content (tier 1), authorization, governance (both tier 2).                                                                                                                                                                                                                                                 |
+| `threshold`       | `{ use, authorize, govern }` | The threshold vector — the declared or changed counts for content (tier 1), authorization, governance (both tier 2). Prose writes a slot as `t_use` / `t_authorize` / `t_govern`; those are documentation labels, and these are the data keys ([`../event-logs/iel/events.md`](../event-logs/iel/events.md#the-threshold-vector-and-its-bounds)).     |
 | `stepUpThreshold` | u64                          | The **step-up bar** (`t_stepup` in prose), beside the vector, not in it: **required** at a user inception, **delta** thereafter (present ⇒ changed, absent ⇒ unchanged); `1 ≤ t_stepup ≤ \|roster\|`, `≥ 2` hard for `\|roster\| ≥ 2`; **forbidden on the federation facet**; no consuming event kind — read by live checks, never by event validity. |
 
 A delta is a **set** change — well-formed only with `add ∉` the roster, `cut ⊆` it, `cut ∩ add = ∅`,
