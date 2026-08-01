@@ -456,8 +456,9 @@ Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
   mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
   `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and
   `body` is the content (a message, or a carried SAD such as an IPEX message rides). This gives the
-  fail-secure "no timestamp → refuse" rule a defined conforming form; exact field layout
-  forthcoming.
+  fail-secure "no timestamp → refuse" rule a defined conforming form; the field set is fixed here
+  (catalogued at [`shapes.md`](../primitives/data/sad/shapes.md)) and only its byte-level layout is
+  owed.
 
 The receive-key grants and directory topic, the ESSR envelope and its KDF context, and the group-key
 epoch/roster/KDF names belong to those primitives; exchange defines none of them.

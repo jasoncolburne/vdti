@@ -184,7 +184,8 @@ Every application above inherits, by construction and with no extra work:
   rely on it.
 - **Read-gating and retention are fields, not services** — who may read (`custody.readers`), how
   long the bytes live, and whether a read is destructive (`availability`) are declared on the object
-  and committed by its identifier. You neither build nor run either one.
+  and committed by its identifier — you build neither one; a store enforces them from the object's
+  own fields.
 - **No session tier** — authority is judged at an append-only position on the actor's own chain, so
   there is no token issuer, session store, or login service in the picture.
 - **Revocation is a lookup, not a scan** — a status check reads one derived address and fails secure

@@ -443,7 +443,7 @@ resolution = sad(
 
 mail_payload = sad(
     ("kind", "vdti/exchange/v1/schemas/mail-payload"),
-    ("topic", "vdti/exchange/v1/topics/mail"),
+    ("topic", "vdti/exchange/v1/topics/exchange"),
     ("timestamp", "2027-04-02T11:38:20Z"),
     ("body", elided("mail-body", "", 2744)),
 )

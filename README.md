@@ -78,9 +78,10 @@ Verification is the client's, so the service tier stays small and dumb:
 
 - **The server runs no application logic.** A store holds bytes and hands them back; every
   authority, provenance, and validity decision is a pure function of the data, computed by whoever
-  needs the answer. There is no trust tier to design and no authorization service to operate — and
-  one verification library runs on both sides, so a server-side rule cannot drift from the
-  client-side one. Infrastructure cost stops tracking how complicated your rules are.
+  needs the answer. There is no trust tier to design and no authorization service of your own to run
+  — the read gate a store applies at serve time is operational, never what your trust rests on. One
+  verification library runs on both sides, so a server-side rule cannot drift from the client-side
+  one, and infrastructure cost stops tracking how complicated your rules are.
 - **No consensus, no global ordering.** Writes are per-chain and first-seen; witnesses attest one
   position at a time. No mempool, no sequencer, no chain-wide agreement to reach, no fee market to
   price it. Throughput scales per identity rather than globally.

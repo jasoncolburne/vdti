@@ -1002,7 +1002,7 @@ message seals, so it rides inside the ciphertext and never on the envelope
 | ----------- | --------- | -------- | -------------------------------------------------------------------------------------------------- |
 | `said`      | SAID      | yes      | The payload's own SAID.                                                                            |
 | `kind`      | string    | yes      | `vdti/exchange/v1/schemas/mail-payload`.                                                           |
-| `topic`     | string    | yes      | The message topic.                                                                                 |
+| `topic`     | string    | yes      | The message topic — `vdti/exchange/v1/topics/exchange`, the one exchange reserves.                 |
 | `timestamp` | timestamp | yes      | The send time — checked **post-decrypt**, and **refuse-on-absent** (a missing one is fail-secure). |
 | `body`      | bytes     | yes      | The content — a message, or a carried SAD such as an IPEX message riding inside.                   |
 
@@ -1010,9 +1010,9 @@ The payload a mail message seals — topic, the refuse-on-absent send time, and 
 
 ```json
 {
-  "said": "VF05foHEfRDDoUeYcJRp3ZyhXLAGZ6nNNDkjvt0wt6x4",
+  "said": "VGR33HkBiGxY4t1RzsLxeiEq4LqzuQwOaSxz2RqielPa",
   "kind": "vdti/exchange/v1/schemas/mail-payload",
-  "topic": "vdti/exchange/v1/topics/mail",
+  "topic": "vdti/exchange/v1/topics/exchange",
   "timestamp": "2027-04-02T11:38:20Z",
   "body": "BDk7d…2744 chars…h3yc"
 }
@@ -1034,9 +1034,9 @@ A policy is a SAD carrying one **expression** ([`../../policy/policy.md`](../../
 
 ## Forthcoming shapes
 
-The kinds whose **field set** is still owed, with where each lands. A kind whose fields are fixed —
-here or in its owning doc — is **not** on this list even when its byte-level layout is owed; those
-are collected in the last row.
+Each row is a kind whose **field set** is still owed, and where it lands. The **final row** is
+different in kind: it collects the SADs whose fields are already fixed — here or in their owning doc
+— and owe only a byte-level layout.
 
 | Kind / SAD                                                                                                                                                                                                                                                                                                                                                                                                                                                       | Lands at                                |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
