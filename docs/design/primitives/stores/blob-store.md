@@ -13,7 +13,6 @@ one layer up, in the [`BlobServer`](../../compositions/blob-server.md).
 | `page(since)` | the update-ordered listing of held keys, over the store's object index |
 | `get`         | the bytes by key                                                       |
 | `put`         | store bytes by key                                                     |
-| `exists`      | an existence probe by key                                              |
 | `delete(S)`   | remove the bytes by key — a **capability** the composing server grants |
 
 `page(since)` exists because a replicated deployment's blobs need a sync path: without an
@@ -26,8 +25,9 @@ stores — no sync protocol beyond that, because the objects are immutable and s
 The same grants as [`SadStore`](sad-store.md)'s, for the same reasons: **`delete` is a capability
 the composing server gates** (the deploying application supplies the predicate —
 [`blob-server.md`](../../compositions/blob-server.md)); **`page` is `in-process | mesh`, never
-`public`** (a public enumeration of payload keys defeats digest-secrecy outright); **`exists`
-answers under the serve gate on any public face**, with the uniform "not present."
+`public`** (a public enumeration of payload keys defeats digest-secrecy outright). And, as there,
+**there is no existence probe**: a refused fetch is the uniform "not present", and a probe would be
+a cheaper way to ask the same question — cheap is what makes an oracle worth running.
 
 ## What the store never does
 

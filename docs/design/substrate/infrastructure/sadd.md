@@ -37,9 +37,9 @@ identical at each.
 
 - **It exposes the store half, not the chain half.** `sadd` deploys the
   [`SadServer`](../../compositions/sad-server.md) composition over a
-  [`SadStore`](../../primitives/stores/sad-store.md): the SAD write / fetch, the existence probe,
-  the `deposits` discovery poll — never `submit events`, receipts, or the gossip mesh. `sadd` is a
-  store, not a witness.
+  [`SadStore`](../../primitives/stores/sad-store.md): the SAD write / fetch and the `deposits`
+  discovery poll — never `submit events`, receipts, or the gossip mesh. `sadd` is a store, not a
+  witness.
 - **The cascading store is the routing signal.** There is no per-SAD placement field: the client
   decides which of its **own** tiers a write lands on — local, a private store, a service's
   replicated roster — and off-federation data is written there, never submitted. What reaches the
@@ -98,13 +98,14 @@ identical at each.
 
 [`kinds.md` §Fetch by SAID](../../primitives/data/sad/kinds.md#fetch-by-said--what-the-store-hands-back)
 states the rule; **this daemon is its enforcement point**, and the rule is load-bearing for privacy,
-not storage hygiene. The **`exists` probe answers under these same gates** — "held" only where a
-fetch by this requester would succeed, everything else the uniform "not present" — so existence
-never leaks what fetching would refuse. The principle: **nothing whose SAID must stay opaque is
-fetchable by SAID.** An event SAID travels in the open as a commitment — inside a public identity's
-`anchors[]` — and an event body reached by SAID would let an observer walk those commitments back to
-the private chains they stand for (a lookup-SEL's revocation entries, an issuer's kill targets),
-turning the store into the inversion oracle that referencing events by prefix exists to deny.
+not storage hygiene. A refused fetch is the uniform **"not present"** — gated, expired, consumed,
+and never-existed are one answer, so a refusal never leaks what a fetch would have found, and the
+store offers **no cheaper way to ask**: there is no existence probe to answer the question a fetch
+would refuse. The principle: **nothing whose SAID must stay opaque is fetchable by SAID.** An event
+SAID travels in the open as a commitment — inside a public identity's `anchors[]` — and an event
+body reached by SAID would let an observer walk those commitments back to the private chains they
+stand for (a lookup-SEL's revocation entries, an issuer's kill targets), turning the store into the
+inversion oracle that referencing events by prefix exists to deny.
 
 Enforcement is layered, default-deny — the serve gate is **three gates**
 ([`sad-server.md` §The serve gate](../../compositions/sad-server.md#the-serve-gate-is-three-gates)):

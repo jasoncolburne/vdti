@@ -11,13 +11,12 @@ serving logic live one layer up, in the [`SadServer`](../../compositions/sad-ser
 | `page(since)`  | the update-ordered listing of held SAD SAIDs — the anti-entropy enumeration                        |
 | `get(said)`    | the SAD's bytes by SAID (a SAD is content-addressed and self-verifying, so a point read is honest) |
 | `put`          | store bytes by their SAID                                                                          |
-| `exists`       | an existence probe by SAID                                                                         |
 | `delete(said)` | remove the bytes — a **capability** the composing server grants or withholds                       |
 
 ## Capabilities, not deployment rules
 
-Three of the trait's operations are reachable only through a handle the **composing server** grants
-— encoding each as a capability is what keeps a wire adapter from mapping it onto a public face by
+Two of the trait's operations are reachable only through a handle the **composing server** grants —
+encoding each as a capability is what keeps a wire adapter from mapping it onto a public face by
 default:
 
 - **`delete` is granted or withheld by the composing server.** A federation `sadd` runs deletes
@@ -30,16 +29,23 @@ default:
   without guessing anything. A federation node exposes `page` over the sync daemon's authenticated
   mesh; an off-federation `sadd` exposes **no enumeration at all** — its only listing is the
   recipient-scoped, gated `deposits` query ([`sadd.md`](../../substrate/infrastructure/sadd.md)).
-- **`exists` answers under the serve gate on any public face.** Ungated, it is a read-receipt oracle
-  (a sender polls until the recipient drains), it survives un-sharing, and it confirms an object
-  without passing any gate. So the public probe answers "held" only where a fetch by this requester
-  would succeed — everything else is the uniform **"not present"**, so expired, consumed, and
-  never-existed stay indistinguishable. The ungated wider answer — held-or-not, regardless of gates
-  — is **mesh-only**, for sync and dedup.
+
+**There is no existence probe.** A `get` a gate refuses returns the uniform **"not present"** —
+expired, consumed, gated, and never-existed are one answer — and no operation offers a cheaper way
+to ask what that fetch just declined. A probe would be a read-receipt oracle (a sender polls until
+the recipient drains), it would survive un-sharing, and gating it identically to `get` would leave
+it answering exactly what `get` answers while every wire adapter carried a standing obligation to
+keep the two gates in step. Cheapness is the point: unguessability is a **feature-layer** discipline
+([`custody.md`](../data/sad/custody.md)), not a general property, so a low-entropy SAD is
+dictionary-confirmable — and a probe is what makes that dictionary affordable. Sync needs none of
+it: anti-entropy is **pull by enumeration** (`page(since)`, then fetch), which asks a peer what it
+holds rather than whether it holds one thing, and cross-submitter dedup does not exist by design (a
+per-submitter `nonce` gives one blob two keys —
+[`shapes.md` §The blob bundle](../data/sad/shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)).
 
 **A remote `SadStore`** — a store daemon's API surfaced as a trait implementation, the cascading
-store's remote tier — therefore implements `get` and gated-`exists` and **no `page`**; the trait
-does not type-check a public enumeration into existence.
+store's remote tier — therefore implements `get` and **no `page`**; the trait does not type-check a
+public enumeration into existence.
 
 ## What the store never does
 

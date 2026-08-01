@@ -71,7 +71,8 @@ federation face as much as off it**:
    mechanism** — `roster` (a single identity's current devices) or `membership` (grant-chain sets) —
    encoded once ([`blob-server.md`](blob-server.md)).
 
-`exists` answers under these same gates on any public face; the ungated wider answer is mesh-only
+There is **no existence probe** — a fetch a gate refuses returns the uniform "not present", and no
+cheaper operation answers the question the fetch just declined
 ([`sad-store.md`](../primitives/stores/sad-store.md)). The serve gate is **operational, never the
 confidentiality boundary** — confidentiality is encryption; the gate bounds store-side harvesting.
 And it refuses a requester whose identity's chain is not Active, for a requester outside that
