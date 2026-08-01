@@ -12,8 +12,6 @@ model, not its history), no jargon. Humans and LLMs alike should work from there
 What remains in this directory is the **not-yet-encoded** working set, still line-per-concept and
 prettier-exempt:
 
-- [`vdti-area-vdtid-services.md`](vdti-area-vdtid-services.md) — the services / architecture area
-  (the design's leading edge; no landed counterpart yet).
 - [`vdti-implementation-notes.md`](vdti-implementation-notes.md) — build-shaping decisions that
   are deliberately not doctrine (storage, transport, locking).
 - [`supplemental/`](supplemental/) — ideas and external-comparison reference notes.

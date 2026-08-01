@@ -17,14 +17,14 @@ walk, [`verification.md`](verification.md).
 
 A SEL uses exactly six kinds; any other kind code is malformed.
 
-| Kind  | Kind string              | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                           |
-| ----- | ------------------------ | --------- | ---- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Icp` | `vdti/sel/v1/events/icp` | inception | 1    | `t_use`                                       | Inception — commits `authority` + `topic` + optional `data` (+ `content: true` for a content SEL, `lineage` for a re-establishable value lookup); **no `pin`, no manifest** (stays recomputable). Its serial-1 **v1** is anchored, not the `Icp`. |
-| `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records payload SAD(s) (the `payload` role, **required** — always ≥ 1) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`** (counting content). The divergeable content kind (first-seen, buriable).                       |
-| `Pin` | `vdti/sel/v1/events/pin` | content   | 1    | `t_use`                                       | The **pin-only re-pin** at any serial — carries only the down-`pin` (no manifest). A pure re-pin is always a `Pin`; its serial-1 instance is the issuance floor (incept-and-sit). Buriable; **not** a seal-advancer.                              |
-| `Gnt` | `vdti/sel/v1/events/gnt` | sealed    | 2    | `t_authorize`                                 | The **grant** — seals a typed value (`manifest.grant` names a `vdti/sel/v1/grants/*` SAD). Sealed on arrival, seal-advancing, non-buriable; walked back only by a rescission.                                                                     |
-| `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, seal-advancing, terminal.                                                                                                                                                                       |
-| `Sea` | `vdti/sel/v1/events/sea` | sealed    | 2    | `t_govern`                                    | The **neutral re-seal** — buries a content fork on a SEL that has no natural `Gnt` or `Trm` to advance the seal. Sealed on arrival, seal-advancing, non-terminal.                                                                                 |
+| Kind  | Kind string              | Class     | Tier | Count                                         | Purpose                                                                                                                                                                                                                                                                                      |
+| ----- | ------------------------ | --------- | ---- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Icp` | `vdti/sel/v1/events/icp` | inception | 1    | `t_use`                                       | Inception — commits `authority` + `topic` + optional `data` (+ `content: true` for a content SEL, `lineage` for a re-establishable value lookup); **no `pin`, no manifest** (stays recomputable). Its serial-1 **v1** is anchored, not the `Icp`.                                            |
+| `Ixn` | `vdti/sel/v1/events/ixn` | content   | 1    | `t_use`                                       | Content — records payload SAD(s) (the `payload` role, **required** — always ≥ 1) and re-pins to the owner IEL. **≤ 1 per SEL per owner-IEL `Ixn`** (counting content). The divergeable content kind (first-seen, buriable).                                                                  |
+| `Pin` | `vdti/sel/v1/events/pin` | content   | 1    | `t_use`                                       | The **pin-only re-pin** at any serial — carries only the down-`pin` (no manifest). A pure re-pin is always a `Pin`; its serial-1 instance is the issuance floor (incept-and-sit). Buriable; **not** a seal-advancer.                                                                         |
+| `Gnt` | `vdti/sel/v1/events/gnt` | sealed    | 2    | `t_authorize` · `t_govern` (federation trust) | The **grant** — seals a typed value (`manifest.grant` names a `vdti/sel/v1/grants/*` SAD). Anchored by an owner-IEL `Ath` — or, federation facet only, a governance `Wit` (the trusted-federation grant). Sealed on arrival, seal-advancing, non-buriable; walked back only by a rescission. |
+| `Trm` | `vdti/sel/v1/events/trm` | terminal  | 2    | `t_govern` (revoke) · `t_authorize` (rescind) | The **kill** — closes the SEL. Sealed on arrival, seal-advancing, terminal.                                                                                                                                                                                                                  |
+| `Sea` | `vdti/sel/v1/events/sea` | sealed    | 2    | `t_govern`                                    | The **neutral re-seal** — buries a content fork on a SEL that has no natural `Gnt` or `Trm` to advance the seal. Sealed on arrival, seal-advancing, non-terminal.                                                                                                                            |
 
 The `Icp` row's **Tier / Count is nominal**: the `Icp` is unsigned and proves nothing alone (below),
 so `tier 1 / t_use` prices only _submitting_ it. A lookup SEL's **establishment** is priced by its
@@ -57,9 +57,9 @@ classic error the model guards against.
    **orthogonal to count** — a content `Ixn` is tier 1 even at a high `t_use`. There is no third
    tier.
 3. **Anchor-kind → finality.** A content `Ixn` or `Pin` rides an owner-IEL `Ixn` → **first-seen /
-   buriable**; a `Gnt` rides an owner-IEL `Ath`, a `Trm` an owner-IEL `Rev` / `Dth`, and a `Sea` an
-   owner-IEL `Evl` → **sealed on arrival**. The anchor kind determines whether the SEL event can
-   ever be buried.
+   buriable**; a `Gnt` rides an owner-IEL `Ath` (federation facet: a governance `Wit`), a `Trm` an
+   owner-IEL `Rev` / `Dth`, and a `Sea` an owner-IEL `Evl` → **sealed on arrival**. The anchor kind
+   determines whether the SEL event can ever be buried.
 
 The axes are independent: the count is a dial, the tier is set by kind, and the finality follows the
 anchor kind. Tier-elevation (anchor tier ≥ event tier) is an **additional floor, not the check** — a
@@ -121,13 +121,16 @@ and sits (a document author who endorses before editing), the `Icp` cannot hold 
 content. Where inception carries a first event that already floors (a first content `Ixn`, a lookup
 SEL's `Trm` or `Gnt`), no separate serial-1 `Pin` is needed.
 
-### `Gnt` — the grant (tier 2, `t_authorize`)
+### `Gnt` — the grant (tier 2)
 
 Seals a **typed value** — a value a third party depends on. Its `manifest.grant` names a
 **grant-value SAD** whose kind sits under `vdti/sel/v1/grants/*` (an owner-first namespace, capped
 at 64 characters like any event or SAD kind). It is anchored by an owner-IEL **`Ath`** (kind-strict
-— an `Ath` anchors only `Gnt`s), sealed on arrival, seal-advancing, and **non-buriable**; it is
-walked back only by a later rescission (a `Trm` under an owner-IEL `Dth`), never overturned.
+— an `Ath` anchors only `Gnt`s) or, **federation facet only**, by a governance **`Wit`** — the
+trusted-federation grant, a deliberate widening at true `t_govern`
+([`witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+Sealed on arrival, seal-advancing, and **non-buriable**; it is walked back only by a later
+rescission (a `Trm` under an owner-IEL `Dth`), never overturned.
 
 A **value must ride a `Gnt`, never tier-1 content**, when a third party acts on it — a value a
 sender encrypts to, for instance, must not be swappable by a bare signing key, so changing it needs
@@ -135,10 +138,9 @@ the reserve. A **value lookup SEL** is established `{Icp, Gnt}` at tier 2, and *
 stacks another `Gnt`** (the walk serves the live sealed tip, so a retired value is never served).
 What a grant value _means_ — a document-governance grant, an encryption receive-key — is its
 **owner's**: a feature
-([`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
-forthcoming) or a **shared-core primitive** (the receive-key directory owns the encryption
-receive-key grant, group keying its epoch-key wrap); this primitive states only the
-seal-a-typed-value structure.
+([`../../../../features/shared-documents.md`](../../../../features/shared-documents.md)) or a
+**shared-core primitive** (the receive-key directory owns the encryption receive-key grant, group
+keying its epoch-key wrap); this primitive states only the seal-a-typed-value structure.
 
 ### `Trm` — the kill (tier 2)
 
@@ -161,9 +163,12 @@ carries the grandfather `bound` publicly in the owner IEL `Dth`'s `kills[]` fiel
 rescission's `bound` is participant-identifying, so it rides a gated rescind-doc committed by that
 `Trm`'s **`bound` role** and the `kills[]` entry carries only a blind target; a chat-membership
 rescission's `bound` is participant-identifying the same way and rides the same gated role — a
-**per-lane list** (one bound per writing device lane), the chat instance of that gated cutoff. The
-read strategy that consumes this structure — the fail-secure `kills[]` walk and its fail-open lookup
-— is the feature layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
+**per-lane list** (one bound per writing device lane), exchange's instance of that gated cutoff; and
+a **trusted-federation un-grant carries no `bound` at all** — its horizon is always the killed
+lineage's live grant value, and its `kills[]` entry carries the lineaged target only
+([`../../../../substrate/federation/witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+The read strategy that consumes this structure — the fail-secure `kills[]` walk and its fail-open
+lookup — is the feature layer's ([`../../../policy/documents.md`](../../../policy/documents.md)).
 
 ### `Sea` — the neutral re-seal (tier 2, `t_govern`)
 
@@ -253,12 +258,12 @@ lookup-SEL shapes), so any first event can floor, with a bare `Pin` the fallback
 carries no other. `Sea` is the one non-`Icp` kind excluded — it buries a content fork, which cannot
 exist at inception. The four shapes are its instances:
 
-| SEL born as                     | v1 (serial-1)   | Anchored by (owner IEL) |
-| ------------------------------- | --------------- | ----------------------- |
-| a SEL that incepts and sits     | a bare `Pin`    | `Ixn`                   |
-| content, with a first amendment | a content `Ixn` | `Ixn`                   |
-| a kill lookup                   | the `Trm`       | `Rev` / `Dth`           |
-| a value lookup                  | the `Gnt`       | `Ath`                   |
+| SEL born as                     | v1 (serial-1)   | Anchored by (owner IEL)         |
+| ------------------------------- | --------------- | ------------------------------- |
+| a SEL that incepts and sits     | a bare `Pin`    | `Ixn`                           |
+| content, with a first amendment | a content `Ixn` | `Ixn`                           |
+| a kill lookup                   | the `Trm`       | `Rev` / `Dth`                   |
+| a value lookup                  | the `Gnt`       | `Ath` (federation trust: `Wit`) |
 
 **Authentication is the v1's anchor, never the `Icp`** — a SEL is validly established only if its v1
 resolves to a real owner-IEL event whose prefix equals the SEL's owner (the `authority` leaf's
@@ -285,33 +290,36 @@ kind-first):
 The `payload` role is **directly consumed** with no downstream type-check, so the kind → role
 allowlist is its only protection — an `Icp` / `Pin` / `Sea` carrying a manifest at all is malformed,
 and an `Ixn` **without** one is malformed too (the role is never absent — a pure re-pin is a `Pin`).
-The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath`), so
-unlike `payload` it is not directly trusted. A `Trm`'s termination validity is carried by its
-anchoring `Rev` / `Dth`; its manifest is **opt**, and when present carries the **`bound`** role — a
-feature-layer gated rescind-doc holding a feature rescission's participant-blind cutoff (a
-doc-member grandfather, or a chat-membership per-lane bound list). This is the **gated custody
-mode** of the `bound` (a delegate rescission's rides the inline-public `kills[].bound` field on the
-owner IEL); like `grant`, it is a feature-layer SAD, not a directly-consumed role. The derivation
-inputs (`authority` / `topic` / `data` / `lineage`) and every event's down-`pin` are **top-level
-structural**.
+The `grant` role is **back-checked** (a `Gnt` is valid only anchored by an owner-IEL `Ath` — or, on
+the **federation facet only**, a governance `Wit`), so unlike `payload` it is not directly trusted.
+A `Trm`'s termination validity is carried by its anchoring `Rev` / `Dth`; its manifest is **opt**,
+and when present carries the **`bound`** role — a feature-layer gated rescind-doc holding a feature
+rescission's participant-blind cutoff (a doc-member grandfather, or a chat-membership per-lane bound
+list). This is the **gated custody mode** of the `bound` (a delegate rescission's rides the
+inline-public `kills[].bound` field on the owner IEL); like `grant`, it is a feature-layer SAD, not
+a directly-consumed role. The derivation inputs (`authority` / `topic` / `data` / `lineage`) and
+every event's down-`pin` are **top-level structural**.
 
 ## The kind-strict cross-layer anchor matrix
 
-Each SEL kind is valid **only** when anchored by exactly its matching owner-IEL kind, and each of
-those IEL kinds anchors **only** its matching SEL kind:
+Each SEL kind is valid **only** when anchored by its matching owner-IEL kind(s), and each of those
+IEL kinds anchors **only** its matching SEL kind — one deliberate widening: on the **federation
+facet only**, a governance `Wit` anchors the trusted-federation `Gnt`
+([`witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)):
 
-| SEL kind           | Anchored by (owner IEL) | Tier |
-| ------------------ | ----------------------- | ---- |
-| content `Ixn` / v1 | `Ixn`                   | 1    |
-| `Gnt`              | `Ath`                   | 2    |
-| `Trm` (revocation) | `Rev`                   | 2    |
-| `Trm` (rescission) | `Dth`                   | 2    |
-| `Sea`              | `Evl`                   | 2    |
+| SEL kind           | Anchored by (owner IEL)          | Tier |
+| ------------------ | -------------------------------- | ---- |
+| content `Ixn` / v1 | `Ixn`                            | 1    |
+| `Gnt`              | `Ath` · federation `Wit` (trust) | 2    |
+| `Trm` (revocation) | `Rev`                            | 2    |
+| `Trm` (rescission) | `Dth`                            | 2    |
+| `Sea`              | `Evl`                            | 2    |
 
 ```mermaid
 flowchart LR
   Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
   Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
+  Wit["federation IEL Wit"]:::iel ==>|manifest.anchors — trust grant| Gnt
   Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
   Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm
   Evl["IEL Evl"]:::iel ==>|manifest.anchors| Sea["SEL Sea"]:::sel
@@ -354,13 +362,14 @@ meaning.
 
 A seal-advancer (`Gnt` / `Trm` / `Sea`) must land at least every `MAXIMUM_UNSEALED_RUN` content
 events per lineage, so the content run since the last seal is bounded to `MAXIMUM_UNSEALED_RUN` on
-each branch and the canonical two-branch content fork plus the resolving burying seal fits one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`, the same bound as the KEL and IEL). A busy
-SEL with no natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral
-advancer, the SEL analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at
-one position dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two
-**accepted** sealed branches → Disputed (a witness-declined second sibling stalls first-seen,
-forcing nothing), exactly as any two accepted sealed events would be.
+each branch, and a page — sized to the full seal-to-seal transfer window,
+`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3`, the same bound as the KEL and IEL — carries
+the canonical two-branch content fork plus the resolving burying seal a fortiori. A busy SEL with no
+natural `Gnt` or `Trm` to advance the seal re-seals with a **`Sea`** — the neutral advancer, the SEL
+analog of the IEL re-sealing with a roster-less evolve. Two identical re-seals at one position
+dedupe (idempotent), while a `Sea` versus a real seal-advancer at one position is two **accepted**
+sealed branches → Disputed (a witness-declined second sibling stalls first-seen, forcing nothing),
+exactly as any two accepted sealed events would be.
 
 ## Cross-references
 
@@ -383,4 +392,4 @@ forcing nothing), exactly as any two accepted sealed events would be.
   or a rescission is interpreted (the feature layer; the SEL states only the kill structure).
 - [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md),
   [`../../../../features/exchange.md`](../../../../features/exchange.md) — the value-bearing `Gnt`
-  consumers (shared-documents forthcoming).
+  consumers.

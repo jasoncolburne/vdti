@@ -37,9 +37,9 @@ chain, named by the resulting state) or a **`MergeRejection`** when the batch ch
 
 **Transitions** — each is named for its action or the state the chain is in after the batch lands
 (`Extended` and `Recovered` both land **Active**). The Forked-versus-Disputed split is by the
-**accepted** sealed-branch count at the last seal (0 → Forked; a single accepted sealed branch
-buries the content → `Recovered`/Active; ≥ 2 → Disputed); the content-branch count does not affect
-it.
+**accepted** sealed-branch count past the divergence — counted **per branch, wherever the seals
+sit** (0 → Forked; a single accepted sealed branch buries the content → `Recovered`/Active; ≥ 2 →
+Disputed); the content-branch count does not affect it.
 
 | Transition     | Verdict                                                                                                                           | Triggering condition                                                                                                                                                                                                                               |
 | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -87,14 +87,30 @@ non-witnesses (the full rule lands with
 [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)):
 
 - A **sealed** competing branch (`Rot` / `Wit` / `Trm`) is witnessed **first-seen (one per
-  position)**; a node **accepts and retains up to two witnessed** sealed branches per position (two
-  are the `Disputed` proof) — the evidence the data-local walk that reads `Disputed` relies on. A
-  second, witness-declined sibling is deferred-pending and droppable unless witnesses collude.
+  position)**. The bound is **two branches per rail per divergence, each direction mandatory**: a
+  node retains **≥ 2** accepted sealed branches per divergence — fewer loses the `Disputed` proof
+  the data-local walk relies on — and **must not accept** an event that would create a **third live
+  accepted branch** on the rail. The ceiling is counted in **branches, never seals**: a seal
+  creating the _second_ accepted sealed branch is always admitted, however many seals the
+  till-then-Active branch carries above the divergence; seals accepted before a floor retreat are
+  retained and never counted against the gate; a further seal on an already-sealed branch in a live
+  divergent region needs no rule. A second, witness-declined sibling is deferred-pending and ages
+  out unless witnesses collude.
 - A losing **content** sibling on a witnessed chain is **prevented**, not turned into retained fork
   evidence: a selected witness declines it (one content sibling per position), so it never reaches
   `threshold` receipts and a non-witness never accepts it as a witnessed branch — the content fork
-  does not form (outcome `Ignored`). It survives only in the witness-compromise residual, retained
-  bounded to ≥ 2 per position (the rest droppable — a bounded query surface, never canonical).
+  does not form (outcome `Ignored`). It survives only in the witness-compromise residual, under the
+  same two-per-rail bound: retain ≥ 2 accepted content branches per divergence, accept no third —
+  anything declined stages and ages out, never canonical.
+
+**The ceiling is the merge layer's, and the merge layer runs two distinct checks.** Every durable
+event write passes **structural validation**; the **acceptance ceiling** is evaluated only where a
+write would mark a branch **accepted** — against admitted (countable) receipts, with the exact-match
+re-check against the chain-committed witness-config in effect at the position. A write that is
+durable without being accepted — a selected witness persisting what it own-signed, or an accepted
+tip's ancestry drag — is never counted by the ceiling and never blocked by it. The fetch trigger
+(threshold-many receipts held) decides what to **fetch**, never what to accept — fetching one extra
+body is harmless because the gate runs downstream of it.
 
 Retained evidence — sealed branches, plus the residual content fork evidence — is what lets any
 verifier read the chain as `Forked` / `Disputed` by a data-local walk
@@ -219,8 +235,9 @@ For events admitted past rule 3, kind-specific authorization fires:
   sealed branch — the fork is ≥ 2 **accepted** sealed → `Disputed` (reincept). A witness-declined
   attempt stays deferred-pending and is dropped, and the chain stays on the standing seal (Active,
   or Terminated when that seal is a `Trm`). This is what keeps a rotation from being buried below a
-  seal: the reserve defends the signing key, not the rotation key. Sealed branches are always
-  retained (keep-all-data), so an unnamed sealed sibling is caught, never sealed past.
+  seal: the reserve defends the signing key, not the rotation key. An accepted sealed sibling is
+  always within the two-per-rail retention floor — min-2 retention suffices to surface it — so an
+  unnamed sealed sibling is caught, never sealed past.
 - **`Wit` change-requirement (user facet)** — a **user** (`Icp`-rooted) `Wit` is a **rebind**: it
   must change at least one of (`federation`, `witnesses`). A no-op is `Invalid`; a same-federation
   re-pin (only `federationPin`) is **not** a `Wit` — it rides any body event. A
@@ -316,7 +333,7 @@ events held:
   (`previous = v_{d-1}.said`) on a fork that **already** carries a sealed branch, or a burying
   seal-advancer whose burial was rejected above → not admitted as a canonical extension; the chain
   moves to `Disputed`. The competing branch is retained as the `Disputed` proof (a node accepts up
-  to two witnessed sealed branches per position —
+  to two accepted sealed branches per divergence —
   [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery)).
 - Otherwise (a content event that neither extends cleanly nor buries the fork) → `Forked` (retained
   as evidence; the chain stays Forked). A second content sibling at a position is `Ignored`.
@@ -356,9 +373,10 @@ content-only guard walk. The mechanics are pure position + ascent:
    across nodes). A sealed straggler that isn't accepted — witness-declined, below-seal, or **dead
    on ascent** (its fork-sibling is buried by this very seal, so its own later seal lands on the
    buried chain) — is **dropped**, not counted, and does not block the burial; the chain then stays
-   on the standing seal (Active, or Terminated when it is a `Trm`). Sealed branches are always
-   retained (keep-all-data), so an unnamed sealed sibling is caught, never sealed past — the reserve
-   defends the signing key, not the rotation key.
+   on the standing seal (Active, or Terminated when it is a `Trm`). An accepted sealed sibling is
+   always within the two-per-rail retention floor — min-2 retention suffices to surface it — so an
+   unnamed sealed sibling is caught, never sealed past; the reserve defends the signing key, not the
+   rotation key.
 
 The hot page covers the retained (winning) branch (≤ `MAXIMUM_UNSEALED_RUN`, the fold) plus the
 burying event; the competing content loser is validated from retained storage and need not co-reside
@@ -483,9 +501,9 @@ serial, cross-node convergence runs **data-locally** under acceptance gating:
   collusion, only one reaches threshold (**accepted**) and the other stays sub-threshold
   (**deferred-pending**).
 - The accepted sibling advances the seal and becomes the canonical tip on every node as receipts
-  propagate; the declined sibling is retained as non-canonical evidence (keep-all-data), its parent
-  behind the advanced seal, never admitted as a canonical extension. The nodes converge **Active**
-  (or **Terminated**); the declined party **re-issues**.
+  propagate; the declined sibling stays deferred-pending — staged until it ages out, durable only at
+  a witness that own-signed it — its parent behind the advanced seal, never admitted as a canonical
+  extension. The nodes converge **Active** (or **Terminated**); the declined party **re-issues**.
 - Only under **witness collusion** do both siblings reach threshold: each node then holds two
   **accepted** sealed branches (per branch, wherever their seals sit) and **reads `Disputed` by a
   data-local walk** — a provable double-sign. The witness beacon propagates the competing branch
@@ -528,8 +546,9 @@ for truncation.
    [`events.md` §Per-kind sort priority](events.md#per-kind-sort-priority).
 2. **Only one divergent event added per overlap.** When divergence is detected, only the first
    conflicting event is written as the fork event; a byte-identical re-submission dedupes
-   (SAID-addressable), while a further **distinct** competing event is retained as non-canonical
-   evidence (keep-all-data), not added as another canonical branch.
+   (SAID-addressable), while a further **distinct** competing event is admitted only within the
+   two-per-rail budgets — retained as non-canonical evidence up to the floor, refused at the ceiling
+   — never added as another canonical branch.
 3. **Seal advance in a branch resolves or terminalizes the fork.** Once a seal-advancing event lands
    in a branch (typically via a node-local extension that hasn't gossiped to peers), it buries a
    content loser (→ `Recovered`, Active) or, if it would bury a sealed branch, the fork is

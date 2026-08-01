@@ -18,11 +18,11 @@ flowchart LR
     old[("the existing system<br/>accounts · auth · data")]:::ext
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
   dev -->|"bind request: old-system login<br/>+ signature by P"| reg
-  reg -->|"trait: authenticate · fetch data ·<br/>check the binding"| old
-  reg -->|"issue to P · anchor · record X to P"| node
+  reg -->|"trait: authenticate · fetch data ·<br/>check the binding · record X to P"| old
+  reg -->|"anchor issuances to P — witnessed"| node
   reg -->|"deliver the credential sealed"| dev
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef org fill:#3d2f12,stroke:#f08c00,color:#fff

@@ -32,7 +32,7 @@ For every event the verifier walks, it ensures:
   `previousSeal` presence rule (present on `Gnt` / `Trm` / `Sea`, forbidden on `Icp` / `Ixn` /
   `Pin`).
 - Serials start at 0 and increment by 1 with no gaps; the inception `Icp` has serial 0 and a valid
-  prefix (re-derived from the canonical bytes — the populated `owner` / `topic` / `data`, plus
+  prefix (re-derived from the canonical bytes — the populated `authority` / `topic` / `data`, plus
   `content: true` on a content SEL and `lineage` on a re-establishable value lookup — with `said` /
   `prefix` set to the placeholder), carries no `pin` and no manifest, and is **never itself
   anchored** (its serial-1 v1 is).
@@ -90,7 +90,7 @@ verify_event(event):
     # 5. Owner-rooting (the down-walk) + liveness
     anchor = resolve_owner_iel_anchor(event)         # the owner-IEL event naming this SEL event
     if anchor is on a dead owner-IEL branch: sever here            # inherited owner-IEL deadness → sever
-    verify_kind_strict(event.kind, anchor.kind)      # Ixn<-Ixn, Gnt<-Ath, Trm<-Rev/Dth, Sea<-Evl
+    verify_kind_strict(event.kind, anchor.kind)      # Ixn<-Ixn, Gnt<-Ath/fed-Wit, Trm<-Rev/Dth, Sea<-Evl
     verify_count(event.kind, anchor, owner_iel_token)  # the owner IEL delivers the count
     if event.kind == Ixn: assert anchor is not already the attributing Ixn of another content Ixn on this SEL  # ≤ 1 content Ixn per owner-IEL Ixn (anchor-identity dedup)
 
@@ -106,6 +106,18 @@ kind's allowlist is malformed and rejected. As a lightweight structural guard, a
 naming a SEL event at an **already-attributed** SEL serial is treated as malformed → inert;
 fork-prevention itself is the SEL's own witnessing, not this rule, which survives only for a node
 validating without full witnessing state.
+
+**One dispatch inside `verify_kind_strict` deliberately diverges from this block's error default.**
+A SEL event **anchored by a federation-facet IEL event** dispatches its admissible anchor kinds on
+the locus `topic`, and the facet admits exactly four rows
+([`witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+A mismatch there is **malformed → inert** — the precedented disposition, never this block's
+chain-level error: an error would make the locus unresolvable, an unresolvable trust input fails
+secure, and a mismatched `Trm` would read _not granted_ — a small-quorum denial lever. The inert
+event is dropped by the merge gate on admission and dropped by the walk when a held chain contains
+one; the tip stands and the position remains authorable. The **meaning-blind** rule below keeps its
+full force on the user facet — the exception is a property of the **anchor's root facet**, never of
+any locus.
 
 ## Owner-rooting — the authentication check
 
@@ -184,6 +196,12 @@ resolve_lookup(authority, topic, data):                       # a re-establishab
   walk; `Active` and `Forked` stop and return their reading (a `Forked` locus reads fail-secure).
   This is the anti-equivocation property too: anything above a live lineage is inert, so an
   equivocation attempt fails safe.
+- **A lineage whose accepted bytes cannot establish reads DEAD, and the walk advances.** A lineage
+  positively held whose v1 is rejected or inert establishes nothing — distinct from **absent**,
+  which ends the walk: the gap rule's anti-withholding purpose survives, because here the reader
+  holds bytes that provably establish nothing, not a fetch failure. (This is also what closes a
+  pre-adoption poison deposit at a derived locus: it costs one lineage index, and the honest act
+  lands at the next.)
 - **Contiguous from `lineage: 0`.** A gap — an absent lineage — ends the walk; a value is never
   established above an absent one.
 - **The cap `MAXIMUM_SEL_LINEAGE = 64`** bounds the walk; past it there is no live instance, which
@@ -347,11 +365,11 @@ configurable).
 
 | Property                | Verification method                                                                                                                                                                                                                                                                                                                        |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| SAID / prefix integrity | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from `owner` / `topic` / `data` / `lineage`).                                                                                                                                                                                    |
+| SAID / prefix integrity | Re-derive from canonical bytes with the placeholder; compare to declared (inception re-derives the prefix from `authority` / `topic` / `data` / `content` / `lineage`).                                                                                                                                                                    |
 | Event chaining          | `previous` resolves to a verified prior event; each seal-advancer's `previousSeal` resolves to the prior seal.                                                                                                                                                                                                                             |
 | Serial monotonicity     | Each event's serial equals the previous + 1; inception is serial 0.                                                                                                                                                                                                                                                                        |
 | Owner-rooting           | The serial-1 v1 resolves to a real owner-IEL event whose prefix equals `owner`; each event authorized by the anchor's threshold.                                                                                                                                                                                                           |
-| Kind-strict anchoring   | The anchoring owner-IEL event is the matching kind (`Ixn` / `Ath` / `Rev` / `Dth` / `Evl`); tier-elevation is an added floor, not the check.                                                                                                                                                                                               |
+| Kind-strict anchoring   | The anchoring owner-IEL event is the matching kind (`Ixn` / `Ath` / `Rev` / `Dth` / `Evl`, plus the federation-facet `Wit` → `Gnt` widening); tier-elevation is an added floor, not the check.                                                                                                                                             |
 | Severance               | A SEL event on a dead owner-IEL branch severs the chain at the earliest dead anchor.                                                                                                                                                                                                                                                       |
 | Down-pin floor          | A serial-1 v1's `pin` equals its anchoring IEL event's `previous`; each `Ixn` re-pins forward.                                                                                                                                                                                                                                             |
 | Manifest roles          | The `manifest` carries only roles in the kind's allowlist (`payload` on `Ixn`, `grant` on `Gnt`; none on `Icp` / `Pin` / `Sea`; a `Trm`'s manifest is opt — the `bound` role, a feature-layer gated rescind-doc). An `Ixn`'s manifest is **required** (≥ 1 `payload` SAD) — a manifest-less `Ixn` is malformed (a pure re-pin is a `Pin`). |

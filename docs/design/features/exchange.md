@@ -24,9 +24,10 @@ Everything below it already exists as a primitive:
   (chat) mode builds a conversation over.
 - **[IPEX](../primitives/protocols/ipex.md)** — the credential issuance/presentation exchange, one
   consumer of exchange's transport.
-- **The SAD store and mail** — a message is a [SAD](../primitives/data/sad/sad.md); its bytes live
-  and move under [`availability`](../primitives/data/sad/availability.md) and the store's delivery
-  path.
+- **The generic stores and mail** — a message is a [SAD](../primitives/data/sad/sad.md) deposited to
+  [`sadd`](../substrate/infrastructure/sadd.md), its payload to
+  [`blobsd`](../substrate/infrastructure/blobsd.md); the bytes live and move under
+  [`availability`](../primitives/data/sad/availability.md) and the stores' delivery path.
 
 ## Two modes over one spine
 
@@ -47,71 +48,87 @@ takes the session.
 ## Addressing and delivery — scoped to the recipient's own nodes
 
 Exchange addresses by **identity**, not by key. A recipient publishes, in its receive-key directory,
-both its per-device receive keys and a set of **inbox-node hints** — the storage nodes it reads its
-mail from. A sender resolves those and, by default, **fans out**: it seals the message once to
-**each** of the recipient's device keys, so the message opens on any of the recipient's devices. An
-opaque `key_label` narrows a send to a **single** key instead, for a point-to-point delivery.
+both its per-device receive keys and **`receivers`** — a list of **service identity prefixes**, each
+naming a mail service whose roster of deployments holds the recipient's deposits
+([the receive-key directory](../primitives/protocols/receive-key-directory.md)). A sender resolves
+those and, by default, **fans out**: it seals the message once to **each** of the recipient's device
+keys, so the message opens on any of the recipient's devices. An opaque `key_label` narrows a send
+to a **single** key instead, for a point-to-point delivery.
 
-Delivery is **scoped to the recipient**, built from `availability` with no new mechanism:
+Delivery is **scoped to the recipient** by where the sender deposits, with no new mechanism:
 
-- The sender sets the message SAD's
-  [`availability.replicas`](../primitives/data/sad/availability.md) to the recipient's inbox-node
-  hints, so the sealed content lives **only** on those nodes. The recipient polls **its own** nodes;
-  nothing about who-is-messaging-whom is gossiped federation-wide.
-- **Multiple hints replicate to all of them** — the recipient lists several nodes for redundancy,
-  and a send deposits to each.
+- The sender deposits the message SAD **once per service the recipient names**: it resolves each
+  `receivers` entry's IEL, reads the roster, picks a node **by KEL prefix**, and resolves that
+  node's address through the service's own endpoint lookup — so the sealed content lives **only** on
+  the recipient's chosen services, off the federation. The service replicates the deposit across its
+  own roster; the recipient polls **its own** services; nothing about who-is-messaging-whom is
+  gossiped federation-wide.
+- **Each listed service gets one copy** — redundancy _within_ a service is the service's roster; a
+  recipient that will not depend on a single service lists two.
 - **[`custody.readers`](../primitives/data/sad/custody.md)** on the message SAD MAY additionally
   gate who fetches _it_ — defense in depth, since ESSR already seals the payload. The ciphertext
-  **blob** is a bare content-addressed object with no `custody`, so its bytes are gated by the
-  serve-time request instead (the payload endpoint, below).
+  **payload** is opaque bytes carrying no `custody` of its own; its read gate rides its **bundle**'s
+  `access` descriptor — a `roster` check naming the recipient — enforced per-requester at serve time
+  (the payload, below).
 
 This is a deliberate choice over gossiping routing metadata to the whole federation: the
 communication graph — who mails whom, when, how large — is exposed only to the recipient's chosen
-home nodes, not to every node. (See [Residuals](#residuals).)
+inbox nodes, not to every node. (See [Residuals](#residuals).)
 
-## The payload — named by digest, uploaded against the message
+## The payload — committed by storage key, deposited beside the message
 
 A message carries structured, signed fields (who, the key-state pin, the sealed envelope) as SAD
 content, but its **bulk payload** — the ciphertext, and any file attachment — is not inlined. A
-canonical SAD is JCS text, so inlining large bytes base64-encodes them; instead the message **names
-the payload by digest** as a content-addressed blob (the general
-[file payload](../primitives/data/sad/shapes.md#the-file-payload--vdtisadv1schemasfile) and the
-[content-addressed blob](../primitives/data/sad/sad.md#bulk-opaque-bytes--the-content-addressed-blob)
-rule). Because the message's SAID commits the digest, the sender's signature covers the exact bytes
-by binding, and a recipient accepts the blob only when its recomputed digest matches. The message
-also commits a `payloadSize`: the **digest alone is integrity-bearing** — a recomputed-digest
-mismatch is the only tamper signal — while the **size is advisory**, a bound the recipient uses to
-cap its allocation and refuse an over-large fetch before hashing, never treated as tamper-evidence.
+canonical SAD is JCS text, so inlining large bytes base64-encodes them; instead the sender composes
+a **bundle** — a small SAD carrying the blob's access and availability — and the message commits the
+**storage key** `S = hash(bundle.said ‖ blob)`
+([`sad.md` §Bulk opaque bytes](../primitives/data/sad/sad.md#bulk-opaque-bytes--the-content-addressed-blob),
+[`shapes.md` §The blob bundle](../primitives/data/sad/shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)).
+Because the message's SAID commits `S`, and `S` fixes the payload — hence the bundle and every field
+on it — the sender's signature covers the exact bytes **and** the exact gate by binding: a recipient
+accepts the payload only when `hash(payload)` recomputes to `S` and the blob matches the bundle's
+committed `blobDigest`. For a mail message the bundle is the **sealed** kind (the blob is ESSR
+ciphertext) and carries an `access` descriptor — a `roster` check naming the recipient — the read
+gate required whenever the committing document declares one. The message also commits a
+`payloadSize`, measured over the payload: the **storage key alone is integrity-bearing** — a
+recompute mismatch is the only tamper signal — while the **size is advisory**, a bound the recipient
+uses to cap its allocation and refuse an over-large fetch before hashing, never treated as
+tamper-evidence.
 
-The bytes are uploaded through the store's **payload endpoint**, authorized by the message itself —
-**one round trip**, no store-issued challenge:
+The deposit **fans client-side** across the service's two stores — no per-app store daemon, no
+backend link between them:
 
-- The request carries the **message's SAID**, the blob, a client-chosen **nonce + timestamp**, and a
-  signature over them. The store looks the message up, reads its committed payload digest, hashes
-  the blob and requires a match, checks the timestamp is within the **clock tolerance band**
-  (`CLOCK_TOLERANCE_BAND` — so an NTP-conforming client is never falsely rejected; the unseen-nonce
-  cache, not a sub-band window, closes replay) and the nonce is unseen (a small, bounded replay
-  cache), and verifies the signature **authorizes the requester to write for this message**: for an
-  ESSR/mail message that is the **sender** named in the envelope, authenticating under its
-  **current** key (an identity-level upload gate — not a second currency check; the message's own
-  sender-key-currency check is `senderPin`-pinned and separate); for a sender-less **chat** message
-  it is a **current group member** (the participant-blind `chat-membership` check, resolved one
-  requester at a time). Then it stores the blob, scoped to the message's `availability`.
-- On upload the signature **authenticates the uploader** (rate-limiting who may write), and replay
-  protection stays light because the write is **content-addressed and idempotent** — a replay
-  re-stores identical bytes and changes nothing.
+- The **message SAD** deposits to the service's [`sadd`](../substrate/infrastructure/sadd.md); the
+  **payload** (`bundle.said ‖ blob`) deposits to its
+  [`blobsd`](../substrate/infrastructure/blobsd.md). Because the two stores never talk, each gates
+  independently — which is why the blob is **self-gating**: the bundle carries the gate, since the
+  blob store never sees the committing message at serve time.
+- **Blob admission is bundle-committed.** The depositor supplies the committing document — for mail
+  `D = { message, envelope }` — and the store checks that `D` commits `S`, that the payload splits
+  as `bundle.said ‖ blob` with a matching `blobDigest`, that `D`'s availability covers the
+  payload's, and that `D` is anchored by the floor its context supports — for a mail deposit the
+  **envelope signature under `senderPin`**, full-IEL-verified, so a real witnessed identity stands
+  behind every stored blob
+  ([`blobsd.md` §Blob admission](../substrate/infrastructure/blobsd.md#blob-admission)). All of it
+  runs one-shot, while the depositor's `D` is in hand; the store retains the bundle and the payload,
+  never `D`. The write is **content-addressed and idempotent** — a replay re-stores identical bytes
+  and changes nothing — and rate-limiting rides the identity the admission floor produced.
+- The two deposits are **independent** — neither store consults the other, so either may land first.
+  A recipient that sees the message before its payload reads "payload pending" and retries; a
+  committed `S` whose payload never arrives is simply absent, and the message rides its own store's
+  retention.
 - **Fetch is the mirror**, and there the nonce + freshness window is **load-bearing** rather than
-  belt-and-suspenders: the bytes are served only to a live-signed requester — an ESSR/mail blob to
-  one that proves it controls the **recipient prefix** (**any current member device** of the
-  recipient IEL suffices — an **IEL-roster check**, **not** a `t_use` quorum, so polling stays a
-  single-device act), a chat blob to a **current member** (the `chat-membership` check) — and a
-  captured signed fetch request, if replayable, would be a bearer token for the sealed bytes. A bare
-  content-addressed blob carries no `custody` of its own, so this request gate — not `readers` — is
-  what gates the bytes; the concrete endpoints are the store service's to specify.
-- The message is deposited **first** (the store needs its body to read the digest), then the payload
-  is uploaded against it. A recipient that sees the message before the blob lands reads "payload
-  pending" and retries; a digest that is referenced but never uploaded expires at the payload's
-  committed `expiry`.
+  belt-and-suspenders: the recipient polls the service's recipient-scoped `deposits` listing on
+  `sadd`, fetches the message under the SAD serve gate, and fetches the payload by `S` from `blobsd`
+  under the bundle's `access` gate — a live-signed request carrying a nonce and a freshness window,
+  because a captured signed fetch, if replayable, would be a bearer token for the sealed bytes. For
+  mail the `roster` check admits **any current member device** of the recipient IEL — the base live
+  check, so polling stays a single-device act; for a sender-less **chat** blob it is the
+  participant-blind `chat-membership` check ([the session mode](#the-session-mode--chat)). A sealed
+  bundle serves under the **light** currency tier — being wrong exposes ciphertext the requester
+  cannot read — so a partition never blocks a recipient from its own mail; the acknowledge's delete
+  is always **strict**
+  ([`blobsd.md` §The serve gate](../substrate/infrastructure/blobsd.md#the-serve-gate)).
 
 ## Sender-key currency
 
@@ -122,7 +139,7 @@ right now," which would strand honest mail sent before a routine rotation.
 ```mermaid
 flowchart TD
   msg["open a message — was the sender's signature<br/>current for its claimed timestamp?"]:::start
-  msg --> iel{"IEL establishment interval open at<br/>timestamp? (roster + t_use — an<br/>eviction / roster change closes it)"}:::qq
+  msg --> iel{"IEL establishment interval open at<br/>timestamp? (the signing device in the roster —<br/>an eviction / roster change closes it)"}:::qq
   iel -->|no| rej["refuse — fail-secure"]:::bad
   iel -->|yes| kel{"signing device's KEL window open<br/>at timestamp? (a harvested<br/>rotated-out key is closed here)"}:::qq
   kel -->|no| rej
@@ -142,29 +159,34 @@ flowchart TD
   fail-secure — and confirms the signature was current on **both** axes at the claimed time: **(i)**
   `senderPin`'s **IEL establishment interval** was **open at that `timestamp`** — an eviction or
   roster change closes it, even though it never touches an evicted device's own KEL — and the
-  signature meets that establishment's roster + `t_use`; **(ii)** each signing **device's KEL**
-  key-window was **open at that same time** — a harvested rotated-out device key is closed here.
-  Each interval is bounded by the **witnessed times** of the sender's own establishment events — its
-  IEL _spine_ (the events that establish each key-state) and its devices' KEL rotations — where an
-  event's **witnessed time** is the instant it became witnessed-in-full, the receipt τ that brought
-  it to threshold ([witnessing](../substrate/federation/witnessing.md#an-events-witnessed-time)), a
-  consensus value no byzantine minority can move. The message is accepted only if its `timestamp`
-  falls in the interval its key-state was current for **and is not future-dated**
+  signature resolves to a **current member device** of that establishment's roster (the **base live
+  check**; step-up to `t_stepup` devices is the application's per-operation choice —
+  [`iel/events.md`](../primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds));
+  **(ii)** each signing **device's KEL** key-window was **open at that same time** — a harvested
+  rotated-out device key is closed here. Each interval is bounded by the **witnessed times** of the
+  sender's own establishment events — its IEL _spine_ (the events that establish each key-state) and
+  its devices' KEL rotations — where an event's **witnessed time** is the instant it became
+  witnessed-in-full, the receipt τ that brought it to threshold
+  ([witnessing](../substrate/federation/witnessing.md#an-events-witnessed-time)), a consensus value
+  no byzantine minority can move. The message is accepted only if its `timestamp` falls in the
+  interval its key-state was current for **and is not future-dated**
   (`timestamp ≤ now + the clock tolerance band`). A still-current key-state has an **open**
   interval, so a live message passes; an honest message sent before a later rotation still falls in
   its now-closed interval and is **accepted**, so a rotation never strands in-flight mail. Because
   each boundary is an event's **own** witnessed time — not the federation clock, which ticks only at
-  federation governance events — it has **per-event granularity** at any rotation cadence, resolving
-  the quantization a governance clock would impose. Witnessed times are **not** self-ordering, so
-  the recipient **checks** the establishment times are in-bounds and non-decreasing along the chain
-  and **reports** on its verification token — a structural violation bails (fail-secure), an
-  in-bounds-but-out-of-order pair is reported **and the message whose interval that inversion makes
-  untrustworthy is refused**, never a silent empty interval. A chain read the infrastructure already
-  provides — **data-only**, leaning on no node's word.
-- **A divergent sender chain freezes a _current_ read, like any live `t_use` consumer.** A message
-  claiming the sender's **current (open) interval** is the sender exercising **live** `t_use`
-  authority, which the fork-gate freezes on **any** divergence — **Forked or Disputed → refuse**
-  (fail-secure), pending a T2 seal-out, exactly as IPEX and credentials freeze a live presentation.
+  federation events — governance rotations plus the rare block toggle — it has **per-event
+  granularity** at any rotation cadence, resolving the quantization a governance clock would impose.
+  Witnessed times are **not** self-ordering, so the recipient **checks** the establishment times are
+  in-bounds and non-decreasing along the chain and **reports** on its verification token — a
+  structural violation bails (fail-secure), an in-bounds-but-out-of-order pair is reported **and the
+  message whose interval that inversion makes untrustworthy is refused**, never a silent empty
+  interval. A chain read the infrastructure already provides — **data-only**, leaning on no node's
+  word.
+- **A sender chain that is not Active freezes a _current_ read, like any live-check consumer.** A
+  message claiming the sender's **current (open) interval** is the sender exercising **live
+  authority**, which the divergence freeze refuses on **any chain that is not Active** — refuse,
+  fail-secure, pending a T2 seal-out, exactly as IPEX and credentials freeze a live presentation
+  ([`iel/verification.md`](../primitives/data/event-logs/iel/verification.md#derived-accessors)).
   What still reads is **already-witnessed, closed-interval** history: it is **as-issued**, read at
   its historical anchoring position (single-tipped in the past), so a message sent **before** the
   divergence stays acceptable regardless of the current tip's state — on a **Disputed** sender too,
@@ -205,13 +227,17 @@ flowchart TD
 A mail deposit stores the sealed message (and its payload blob) at the recipient's nodes and lets
 the recipient find and fetch it:
 
-- **Deposit** the message SAD + upload its payload (above), scoped to the recipient's inbox nodes →
-  the recipient **discovers** it by polling its own nodes → **fetches** the blob through the
-  **serve-time gate** — the store serves the bytes only to a requester that proves, with a live
-  signature, that it controls the recipient prefix (any current member device — an IEL-roster check,
-  not a `t_use` quorum); the seal already protects confidentiality, so the gate limits store-side
-  harvesting, it does not add integrity → **opens** it (with sender-key currency) →
-  **acknowledges**, and the origin node deletes the bytes.
+- **Deposit** the message SAD and its payload (above), fanned to each service the recipient names —
+  the sealed bytes land only on the recipient's own services, and each service replicates the
+  deposit across its roster → the recipient **discovers** it by polling its own services'
+  recipient-scoped `deposits` listing → **fetches** the message and the payload through the serve
+  gates — the payload served only to a requester that proves, with a live signature, that it is a
+  current member device of the recipient IEL (the bundle's `roster` gate, the base live check); the
+  seal already protects confidentiality, so the gate limits store-side harvesting, it does not add
+  integrity → **opens** it (with sender-key currency) → **acknowledges** — a `delete(S)` (and the
+  message's own delete) that mail's store predicate authorizes for the **recipient**, issued by the
+  client across the service's roster: deposits ride the service's replication, deletes fan from the
+  client ([`mail.md`](../example-applications/mail.md)).
 - **Rate limits** bound abuse: per-sender-per-day, a per-recipient inbox cap, a per-node storage
   cap, a per-IP token bucket, a message TTL, and a short dedup window.
 - **Replay** is closed by the stable SAID: a recipient dedups by the message's SAID (the short dedup
@@ -219,11 +245,11 @@ the recipient find and fetch it:
 
 ```mermaid
 flowchart LR
-  send["sender: seal (ESSR) +<br/>availability.replicas = recipient's inbox hints"]:::der
-  send -->|"deposit message SAD, then upload payload blob<br/>(payload endpoint: SAID + nonce + ts + sig)"| store[("recipient's inbox nodes")]:::store
-  store -->|"recipient polls its own nodes"| disc["discover"]:::dee
-  disc -->|"fetch blob — serve-time gate: a live sig proving control<br/>of the recipient prefix (any member device, IEL-roster check)"| open["open (ESSR) +<br/>sender-key currency"]:::dee
-  open -->|"acknowledge → origin node deletes"| done["done"]:::good
+  send["sender: seal (ESSR) +<br/>deposit to recipient's services"]:::der
+  send -->|"message SAD → sadd · payload<br/>bundle.said ‖ blob → blobsd"| store[("recipient's inbox nodes —<br/>sadd + blobsd, off the federation")]:::store
+  store -->|"recipient polls its own services"| disc["discover"]:::dee
+  disc -->|"fetch payload by S — the bundle's roster gate:<br/>a live sig from any current recipient device"| open["open (ESSR) +<br/>sender-key currency"]:::dee
+  open -->|"acknowledge → recipient-authorized delete,<br/>fanned across the roster"| done["done"]:::good
   classDef der fill:#12442a,stroke:#2f9e44,color:#fff
   classDef store fill:#122a44,stroke:#1971c2,color:#fff
   classDef dee fill:#20263a,stroke:#4263eb,color:#e9ecef
@@ -348,13 +374,45 @@ degenerate group of two** — the same machinery, no separate two-party construc
   self-identifying requester, only ever confirms that one — so a non-member can neither deposit a
   chat blob nor drain one, and learning that a requester who showed up holds a grant is the
   mechanism working, not a leak.
+- **A chat blob's gate is verified against the lane — the store walks, records, and re-derives.** A
+  chat message carries **no field naming its own group** (its shape is
+  `{ said, kind, previous, epoch, payloadDigest, payloadSize, timestamp, nonce }` — and none is
+  added: the binding already exists structurally, so the store verifies the structure it has rather
+  than asking every message to carry a denormalized copy of a fact its lane already proves). What
+  ties a message to a group is its **position in a lane**, whose root is the body-less join marker
+  the group's grant chain anchored:
+  `message → previous → … → lane root → anchoring grant act → the group`. So at deposit the store
+  runs **two checks**: the requester **passes** `chat-membership` for the SEL it names (you can only
+  deposit a blob gated by a group you are currently in), **and** the message's lane **roots in that
+  group** — the store walks `previous` back to the root and checks the anchor lands on that SEL, the
+  submitter supplying what the object lacks (the SEL prefix, the lane root and its anchoring act if
+  unheld) and the store **verifying rather than trusting** it, paginating long walks under a token
+  bundle
+  ([`log-server.md` §Capability tokens](../compositions/log-server.md#capability-tokens-and-token-bundles)).
+  Together the two checks mean a depositor **cannot** gate a blob to a group its lane does not root
+  in — the gate is never looser than the committing document, with no chat exception. In the
+  **steady state the walk is one hop**: the store holds every earlier message in the lane and
+  verified each one's group when it admitted it, so message `N` reads `previous`, finds `N−1`'s
+  recorded group, and inherits — an induction whose base case is the anchored root, verified once;
+  the walk is long only for a cold lane or a replica catching up mid-lane. The store **records the
+  verified lane → group binding** — store-local derived state, like mail's recipient index, and it
+  is an **authorization input**: the recipient-scoped `deposits` listing and the serve gate's
+  feature dispatch run against it, so the node-local-state carve-out for state nothing trusts does
+  **not** cover it. What makes it safe is that the store **derived it by verification** — and a
+  reader still walks the lane itself and catches a wrong record. It is **verified on write, never on
+  read**: the walk happens once, at deposit; at serve time the store runs authorization only — the
+  per-requester `chat-membership` check above — and reads the recorded group as a lookup. And a
+  **replicating peer re-derives it; it does not inherit it**: a forwarder's signature vouches for
+  admission, never for a gate's input — inheriting would let one compromised roster member re-scope
+  read authorization fleet-wide — and re-deriving costs one hop, because the replica walks the lane
+  anyway as it catches up.
 - **Delivery and retention are group-scoped.** A chat message's blob is one ciphertext readable by
-  every member, scoped by `availability.replicas` to the **group's nodes** (the members' inbox
-  hints, or a group-designated set) — the same recipient-scoping as mail, with the group as the
-  "recipient." Unlike a mail deposit, which the recipient acks-and-deletes, a chat blob is
-  **retained** across the catch-up window so a member offline for a while can still read the epochs
-  it was in on return — bounded by the key-epoch log's checkpoint reinception (the point past which
-  a cold reader need not walk).
+  every member, deposited to the **group's stores** (the members' named services, or a
+  group-designated set) — the same recipient-scoping as mail, with the group as the "recipient."
+  Unlike a mail deposit, which the recipient acks-and-deletes, a chat blob is **retained** across
+  the catch-up window so a member offline for a while can still read the epochs it was in on return
+  — bounded by the key-epoch log's checkpoint reinception (the point past which a cold reader need
+  not walk).
 - **Anchoring is opt-in.** A message is signed for authenticity by default and anchored only when
   the app or user flags it for non-repudiation (as above).
 
@@ -398,21 +456,27 @@ Concept `exchange`, on the `vdti/{component}/v1/{category}/{name}` convention
   mail message seals: `{ topic, timestamp, body }`, where `topic` is the message topic above,
   `timestamp` is the **required** send-time field (checked post-decrypt, refuse-on-absent), and
   `body` is the content (a message, or a carried SAD such as an IPEX message rides). This gives the
-  fail-secure "no timestamp → refuse" rule a defined conforming form; exact field layout
-  forthcoming.
+  fail-secure "no timestamp → refuse" rule a defined conforming form; the field set is fixed here
+  (catalogued at [`shapes.md`](../primitives/data/sad/shapes.md)) and only its byte-level layout is
+  owed.
 
 The receive-key grants and directory topic, the ESSR envelope and its KDF context, and the group-key
 epoch/roster/KDF names belong to those primitives; exchange defines none of them.
 
 ## Residuals
 
-- **The communication graph is visible to the recipient's home nodes.** Recipient-scoped delivery
-  limits the exposure to the storage nodes a recipient chose — far tighter than gossiping the graph
-  to the whole federation, but those nodes still see who mails their user, when, and how large. The
-  scoping is **sender-cooperative**: an honest sender sets `availability.replicas` to the
-  recipient's inbox hints, but a sender bent on leaking could deposit elsewhere — so the bound
-  tightens the recipient's own reads, it does not gag a determined sender. And the inbox-node hints
-  are themselves **targeting metadata** — publishing "this identity's mail lives on these nodes"
+- **The communication graph is visible to the recipient's services.** Recipient-scoped delivery
+  limits the exposure to the services a recipient chose — far tighter than gossiping the graph to
+  the whole federation, but those services still see who mails their user, when, and how large. The
+  recipient chooses a **service**, never machines: each service's roster is **public and
+  auditable**, so the exposure set is inspectable at any time, and the durable thing is the KEL —
+  machines are ephemeral images beneath it. Confidentiality and authenticity are untouched (the
+  service can read no content and forge no authorship); what the recipient accepts is **denial of
+  service and correlation**, unless it runs its own service — and listing a second service doubles
+  the parties that see the graph. The scoping is **sender-cooperative**: an honest sender deposits
+  only to the recipient's named services, but a sender bent on leaking could deposit elsewhere — so
+  the bound tightens the recipient's own reads, it does not gag a determined sender. And `receivers`
+  is itself **targeting metadata** — publishing "this identity's mail lives with these services"
   tells an observer where to look, the cost of resolving a recipient without a federation-wide
   gossip. Mixing and cover traffic are out of scope.
 - **Signing-key compromise is bounded, and a rotation recovers messaging going forward.** A stolen
@@ -426,7 +490,11 @@ epoch/roster/KDF names belong to those primitives; exchange defines none of them
   per-IP, TTL, dedup) bound how much unwanted mail a recipient's nodes absorb, but an open inbox
   still accepts a deposit from anyone. Under an operator **lockdown**, the storage boundary MAY
   additionally gate deposits on a **credential or policy** write-gate (the `custody` write-gate), at
-  the cost of open reachability.
+  the cost of open reachability. And the deposit floor itself has a **currency window**: admission
+  verifies the sender's envelope signature against their witnessed IEL but defers **currency** to
+  the recipient's on-open check, so a harvested, **since-rotated-out** sender key can deposit spam
+  that clears the floor and is rejected only on open — the captured-then-rotated residual above,
+  reaching the deposit boundary and bounded by the same caps.
 - **The receive key's swap and rescind attacks are tier-2.** Both changing an identity's published
   receive key and rescinding it require a `t_authorize` act, not a signing key — the primitive's
   concern; see [the directory](../primitives/protocols/receive-key-directory.md).
@@ -434,14 +502,15 @@ epoch/roster/KDF names belong to those primitives; exchange defines none of them
   (fail-secure): the bar **shrinks the detection window, it does not close it** — a consumer
   eclipsed to a malicious subset sees the truth after the heal, so a decision made inside the window
   can transiently trust a stale read, and a high-value open re-verifies before acting.
-- **A chat message's authenticity is one device's signature, not a `t_use` quorum.** Mail
-  authenticates with the sender's `t_use` quorum; a chat message authenticates with a **single**
-  writing device's signature, attributed to its owning identity. So one compromised member device
-  can author chat history in that identity's name — bounded by the device's KEL window, its epoch
-  membership, and its own lane. A strictly lower bar than mail's quorum, deliberate (a per-message
-  quorum is impractical for a high-volume conversation).
-- **Chat's home nodes see the writer set.** A lane-root marker carries the writing device's KEL
+- **Message authenticity is one device's signature — mail and chat alike.** Both authenticate with a
+  **single** current member device's signature (the base live check), attributed to its owning
+  identity; step-up to `t_stepup` devices is the application's per-operation choice, never a
+  structural quorum. So one compromised member device can author messages in that identity's name.
+  Chat's exposure is bounded by the device's KEL window, its epoch membership, and its own lane;
+  **mail's blast radius is larger — mail reaches anyone** — its own priced residual, not an
+  extension of chat's ([`../residuals.md`](../residuals.md)).
+- **Chat's inbox nodes see the writer set.** A lane-root marker carries the writing device's KEL
   prefix in **cleartext** (the receiver needs it to pick the per-writer subkey), so the group's
   storage nodes passively learn who has written and when — the chat instance of the
-  communication-graph-at-home-nodes residual above, beyond the confirm-one-requester framing of the
+  communication-graph residual above, beyond the confirm-one-requester framing of the
   participant-blind store check.

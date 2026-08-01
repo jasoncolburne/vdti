@@ -41,7 +41,9 @@ An IEL inception event is a
 [prefix-deriving SAD](../../sad/said.md#chain-inception-events-prefix-deriving-sads): its prefix is
 the whole-content digest of the inception body —
 [`said.md` §Derivation](../../sad/said.md#derivation) owns the mechanic. What the **IEL** prefix
-commits to is the initial **roster**, the **threshold vector**, and a high-entropy **`nonce`**.
+commits to is the initial **roster**, the **threshold vector** (with **`t_stepup`**, the step-up
+bar, declared beside it — [`events.md`](events.md#the-threshold-vector-and-its-bounds)), and a
+high-entropy **`nonce`**.
 
 The `nonce` makes the IEL prefix **unpredictable** from outside — a camping (prefix-squatting)
 defense. Two distinct inception events cannot share a prefix without a Blake3-256 collision, and
@@ -171,10 +173,31 @@ The at-or-below-seal portion is permanently final — for the chain itself (no f
 it) and for consumers verifying anchors, credentials, and SEL bindings against it. An identity's
 roster and threshold as-of a below-seal position, a credential issued under that state, and a SEL
 bound there stay trust-evaluable indefinitely; the permanence claims run against the last **clean**
-seal (a **witnessed** sealed fork **at the last seal** flips the reading to `disputed` without
-rewriting any sealed event; a below-seal sealed straggler is dropped, inert — backdate-safe). See
+seal (a **witnessed** sealed fork — two or more accepted sealed branches, wherever their seals sit —
+flips the reading to `disputed` without rewriting any sealed event and retreats the clean seal to
+the divergence ancestor; a below-seal sealed straggler is dropped, inert — backdate-safe). See
 [§Divergence and recovery](../../../../protocol-doctrine.md#divergence-and-recovery) (_Pre-seal
 verifiability_) for the cross-primitive framing.
+
+### The clean seal, ⊥, and the bounded verdict window
+
+**The last clean seal and the derived seal are one event** — _clean_ names the property, _derived_
+names how it is found (the table above) — and serving and the effective-SAID read share that one
+boundary
+([`../kel/log.md` §The clean seal, ⊥, and the bounded verdict window](../kel/log.md#the-clean-seal--and-the-bounded-verdict-window)
+carries the shared statement). **The ordering bottoms out at ⊥, so the floor is total**: the
+inception (`Icp` / federation `Fcp`) is the spine root, a competing inception derives a different
+prefix, and a **one-element window means the tip is the floor** — no young-log special case, no NULL
+guard, the read inclusive of the floor position everywhere.
+
+**The verdict window is bounded by the same constants**: reading at-or-above the derived seal's
+position over lineages whose ancestry passes through the current floor seal, an Active window is ≤
+`MAXIMUM_UNSEALED_RUN + 1` = 65 rows, a live-Forked window ≤ `2·MAXIMUM_UNSEALED_RUN + 1` = 129, a
+Disputed window ≤ `4·MAXIMUM_UNSEALED_RUN + 3` = 259. The row count is evidence with the same
+qualifications: a served window over 129 **distinct SAIDs** (never page-length sums — the inclusive
+cursor re-delivers the floor row) is `Disputed`; over 259 is unreachable over the **served**
+population; the implication runs one way, and the count is a consequence, never a decision procedure
+— the verdict stays the walk's.
 
 ## Down-pins and the role-qualified manifest
 
@@ -200,14 +223,14 @@ An IEL event's manifest may carry only these roles; one carrying any role outsid
 vocabulary is malformed and rejected, and a role is consumed only after dispatching on a kind
 permitted to carry it (read kind-first):
 
-| Role        | Carried by                                       | Commits to                                                                                                                                                                  |
-| ----------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                                         |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`), the SEL `Trm` (`Rev` / `Dth`) |
-| `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                                    |
-| `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration))                    |
-| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                                                                             |
-| `clock`     | `Fcp` / `Wit` / `Trm` (federation)               | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                                                                                  |
+| Role        | Carried by                                                               | Commits to                                                                                                                                                                                                                    |
+| ----------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation)                         | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction                                                                                                           |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`; federation `Wit` (opt) | higher-layer SAIDs this event anchors — SEL v1s and a credential's issuance commitment (`Ixn`), the SEL `Sea` (`Evl`), the SEL `Gnt` (`Ath`; the trusted-federation `Gnt`: a federation `Wit`), the SEL `Trm` (`Rev` / `Dth`) |
+| `delegates` | `Ath` (user only — a federation `Ath` carries none)                      | delegate **prefixes** — a positive inclusion list (the party acts **for** the delegator)                                                                                                                                      |
+| `kills`     | `Rev` / `Dth`                                                            | the revocation / rescission declaration `[{ target, bound? }]` (below and [`events.md` §Kills](events.md#kills--the-fail-secure-revocation-declaration))                                                                      |
+| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)                                | the witness-config SAD `{ threshold, signers }`                                                                                                                                                                               |
+| `clock`     | `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` / `Rev` (federation)               | the federation-clock timestamp (an inline scalar — the lone non-SAID role; required on a federation `Rev` — its clock is a trusted-federation un-grant's counting cut)                                                        |
 
 The killed locus is named by `kills[].target` (a flat domain-qualified hash), separate from
 `anchors[]` (which names the sealing `Trm`): `anchors` establishes termination validity, `kills`
@@ -233,11 +256,14 @@ it. This is what the seal-cap sizes and what a burying seal resolves.
 
 A sealing event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
 but ends the chain) must land at least every `MAXIMUM_UNSEALED_RUN` content events **per lineage**.
-The cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` events on each branch,
-so the canonical two-branch content fork anchored at the last seal — both lineages (≤
-`MAXIMUM_UNSEALED_RUN` each) plus the burying seal — fits one page.
-`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1` is a protocol constant, the same bound as the
-KEL and SEL, so a fork-and-recover page produced on any conformant deployment fits on every other.
+**`MAXIMUM_UNSEALED_RUN = 64` is the primary constant** — the page size derives from it, never the
+reverse. The cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` events on each
+branch. A page is sized to the full seal-to-seal transfer window —
+`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3`, a protocol constant, the same bound as the
+KEL and SEL: the floor position (re-read inclusively), two content-only runs, and two sealed branch
+runs with their seals ([`../kel/log.md` §Seal-advance cap](../kel/log.md#seal-advance-cap) carries
+the derivation) — so the canonical two-branch content fork anchored at the last seal, both lineages
+(≤ `MAXIMUM_UNSEALED_RUN` each) plus the burying seal, fits a fortiori on any conformant deployment.
 
 The cap is **not optional** on the IEL. `Ixn` is content and does not advance the seal, and
 **issuance — the frequent operation — rides `Ixn`**, so without the cap the post-seal content window
@@ -258,10 +284,9 @@ Chains are read, verified, written, and replicated in **pages** of bounded size.
 unit of memory budget for the verifier walk, the unit of round-trip for storage reads, and the unit
 of atomicity for the merge handler.
 
-- **`MINIMUM_PAGE_SIZE` = 129** — protocol constant; the floor every conformant deployment must
-  support. The seal-advance cap — **`MAXIMUM_UNSEALED_RUN` = `(MINIMUM_PAGE_SIZE − 1)/2` = 64** per
-  lineage — is derived from it so a two-branch fork-and-recover page produced anywhere validates
-  anywhere.
+- **`MINIMUM_PAGE_SIZE` = 259** — protocol constant; the floor every conformant deployment must
+  support, derived **from** `MAXIMUM_UNSEALED_RUN = 64` as `4·MAXIMUM_UNSEALED_RUN + 3`
+  ([§Seal-advance cap](#seal-advance-cap)) — so a page produced anywhere validates anywhere.
 - **Page boundaries align with generations.** A generation is the set of events at the same serial.
   The verifier processes events in generation order (`serial ASC, kind sort_priority ASC, said ASC`)
   and re-fetches an incomplete generation at the next page boundary, so a divergent generation
@@ -283,11 +308,12 @@ inception fixes:
   `{federation, federationPin}`), its content is majority-witnessed at its own position (the
   **position gate**, [`merge.md`](merge.md#the-content-versus-sealed-split)), and its `Wit` is the
   federation **rebind**.
-- A **federation IEL** roots at the `Fcp` marker and uses the restricted set `Fcp` / `Wit` / `Trm`
-  only — its roster is witness KELs directly, it authors no content, and its `Wit` is **governance**
-  (roster + rotation + clock). Every federation event is sealed → record-both; a competing sealed
-  sibling is first-seen-declined (exclude-self peer-witnessing), so only a witness-colluded
-  two-accepted conflict is a schism (disputed / terminal).
+- A **federation IEL** roots at the `Fcp` marker and uses the restricted set `Fcp` / `Wit` / `Trm`,
+  plus block-only `Ath` / `Dth` and trusted-federation un-grant-only `Rev` — its roster is witness
+  KELs directly, it authors no content, and its `Wit` is **governance** (roster + rotation + clock).
+  Every federation event is sealed → record-both; a competing sealed sibling is first-seen-declined
+  (exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is a schism
+  (disputed / terminal).
 
 The `Fcp` marker is a **structural disambiguator the verifier dispatches on, not a trust carve-out**
 — the config-pinned federation prefix still roots trust. The facet governs which roles a `Wit` may

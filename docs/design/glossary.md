@@ -42,6 +42,13 @@ glossary read straight through.
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
 - **SEL** — SAD Event Log: one owner's single-owner data log — its **own witnessed chain**, rooted
   in (and anchored to) an owning IEL. ([`sel/log.md`](primitives/data/event-logs/sel/log.md))
+- **rooting / rooted** — the SAD-store admission rule: a standalone SAD is accepted only when an
+  already-accepted **root** (a chain event, or an accepted parent SAD) commits its identifier; the
+  submitter names the root and the store confirms it, never searches.
+  ([`rooting.md`](primitives/data/sad/rooting.md))
+- **root pointer** — the typed reference in a submission envelope naming the root that commits a SAD
+  — an `{kel,iel,sel}/event` or a `sad/field` pointer.
+  ([`rooting.md`](primitives/data/sad/rooting.md#the-submission))
 - **credential (cred)** — a bounded, revocable claim an issuer makes about a subject (targeted to an
   `issuee`, or bearer); a **direct-anchored SAD** (the issuer anchors its issuance commitment on its
   own IEL), revoked by a `kills[]` declaration.
@@ -65,29 +72,39 @@ glossary read straight through.
   `custody` field (`owner` + `pin` writer-binding, directly anchored on the owner's IEL; `readers[]`
   the read gate — a strictly ascending (sorted, distinct) list of read-authorization SEL prefixes,
   union any-match, omitted → public). ([`custody.md`](primitives/data/sad/custody.md))
-- **availability** — a standalone SAD's per-object replication scope, expiry, and one-shot delivery.
+- **availability** — a standalone SAD's per-object retention (`expiry`) and one-shot (`once`)
+  delivery; where the bytes live is the client's cascading store, not an availability axis.
   ([`availability.md`](primitives/data/sad/availability.md))
+- **bundle / payload / storage key (`S`)** — the blob model: the **bundle** is the small typed SAD
+  naming a blob — its digest, a per-submitter `nonce`, and the optional `access` / `once` / `expiry`
+  declarations; the **payload** is `bundle.said ‖ blob`, the bytes a blob store actually holds; and
+  the **storage key** `S = hash(payload)` is what a committing document commits and a fetch names.
+  ([`sad.md` §Bulk opaque bytes](primitives/data/sad/sad.md#bulk-opaque-bytes--the-content-addressed-blob))
+- **`access`** — the bundle's read gate: a `roster` or `membership` check the blob store dispatches
+  on a live-signed fetch. It authorizes **reads only** — never deletion — and it is operational,
+  never the confidentiality boundary (sealed content is the real one).
+  ([`blobsd.md`](substrate/infrastructure/blobsd.md))
 
 ### Event kinds
 
 The full set across KEL / IEL / SEL. A kind's precise role varies per log — the taxonomy tables are
 authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#event-taxonomy))
 
-| Kind  | Meaning                                                                                                                                                                                                                                                                                                                                                                                              |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Fcp` | Federation-infrastructure inception — a witness KEL root (genesis, or an added witness), and the federation IEL's inception marker. Roots the spine; advances no seal.                                                                                                                                                                                                                               |
-| `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root). Roots the spine; advances no seal.                                                                                                                                                                                                                                                                    |
-| `Ixn` | Interaction — content; anchors higher-layer SAIDs. The divergeable content kind — Tier 1, buriable (first-seen; on the SEL the `Pin` re-pin is tier-1 too). A SEL `Ixn` **always** carries payload (required) — a pure re-pin is a `Pin`.                                                                                                                                                            |
-| `Rot` | Rotation (KEL) — reveals the next signing key, commits the next reserve; signed with the reserve. Tier 2, seal-advancing.                                                                                                                                                                                                                                                                            |
-| `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). It **is** the rotation. Tier 2, seal-advancing.                                                                                                                                                                                                                                 |
-| `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta; a `cut` `Evl` also evicts. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                                                                       |
-| `Ath` | Authorize (IEL) — the "authorize a party to act" anchor. Carries `delegates` (a positive inclusion list of delegate prefixes) and/or `anchors` (the SEL `Gnt` grant it seals). Tier 2, `t_authorize`, seal-advancing.                                                                                                                                                                                |
-| `Gnt` | Grant (SEL) — seals a **typed value**: `manifest.grant` names a grant-value SAD kinded under `vdti/sel/v1/grants/*`. A value-bearing lookup is established `{Icp, Gnt}` at T2 (the doc-membership grant, the directory receive-key, and the delegating-link signpost are instances). The additive twin of the SEL `Trm` rescission; anchored by an IEL `Ath`. Tier 2, `t_authorize`, seal-advancing. |
-| `Sea` | Re-seal (SEL) — the **neutral** burying seal-advancer: advances the seal past a content fork without granting or terminating; anchored by an IEL `Evl` (`Sea ← Evl`). Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                            |
-| `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; carries a `kills[]` declaration and seals a SEL `Trm` that revokes a credential. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                |
-| `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; carries a `kills[]` declaration and seals a SEL `Trm` that rescinds a delegation or doc-membership grant. Tier 2, `t_authorize`, seal-advancing.                                                                                                                                                                         |
-| `Pin` | Pin (SEL) — the **pin-only re-pin** to the owner IEL's current tip at **any serial** (carries no manifest); its serial-1 instance is the issuance floor. A pure re-pin is always a `Pin`, never a payload-less `Ixn`. Tier 1. The pervasive epithet "the floor `Pin`" names this kind — its serial-1 instance is the floor; every `Pin`, at any serial, is tier-1 buriable content.                  |
-| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, seal-advancing (terminal); `t_govern` (identity-kill / SEL revoke) or `t_authorize` (SEL rescind).                                                                                                                                                                                               |
+| Kind  | Meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Fcp` | Federation-infrastructure inception — a witness KEL root (genesis, or an added witness), and the federation IEL's inception marker. Roots the spine; advances no seal.                                                                                                                                                                                                                                                                                                                                                                 |
+| `Icp` | Inception — a chain's first event (KEL device keys / IEL roster + thresholds / SEL data root). Roots the spine; advances no seal.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `Ixn` | Interaction — content; anchors higher-layer SAIDs. The divergeable content kind — Tier 1, buriable (first-seen; on the SEL the `Pin` re-pin is tier-1 too). A SEL `Ixn` **always** carries payload (required) — a pure re-pin is a `Pin`.                                                                                                                                                                                                                                                                                              |
+| `Rot` | Rotation (KEL) — reveals the next signing key, commits the next reserve; signed with the reserve. Tier 2, seal-advancing.                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `Wit` | Witness / federation — a user chain's federation (re)bind, or federation-IEL governance (witness rotation + roster). It **is** the rotation. Tier 2, seal-advancing.                                                                                                                                                                                                                                                                                                                                                                   |
+| `Evl` | Evolve (IEL) — a roster / threshold change, carried as a delta; a `cut` `Evl` also evicts. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `Ath` | Authorize (IEL) — the "authorize a party to act" anchor. Carries `delegates` (a positive inclusion list of delegate prefixes) and/or `anchors` (the SEL `Gnt` grant it seals). Tier 2, `t_authorize`, seal-advancing.                                                                                                                                                                                                                                                                                                                  |
+| `Gnt` | Grant (SEL) — seals a **typed value**: `manifest.grant` names a grant-value SAD kinded under `vdti/sel/v1/grants/*`. A value-bearing lookup is established `{Icp, Gnt}` at T2 (the doc-membership grant, the directory receive-key, and the delegating-link signpost are instances). The additive twin of the SEL `Trm` rescission; anchored by an IEL `Ath` — or, on the federation facet only, a governance `Wit` (the trusted-federation grant). Tier 2, `t_authorize` (`t_govern` for the federation trust grant), seal-advancing. |
+| `Sea` | Re-seal (SEL) — the **neutral** burying seal-advancer: advances the seal past a content fork without granting or terminating; anchored by an IEL `Evl` (`Sea ← Evl`). Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                                                                                                                              |
+| `Rev` | Revoke (IEL) — the sealed kill-anchor for an **owned artifact**; carries a `kills[]` declaration and seals a SEL `Trm` that revokes a credential. Tier 2, `t_govern`, seal-advancing.                                                                                                                                                                                                                                                                                                                                                  |
+| `Dth` | Deauthorize (IEL) — the sealed kill-anchor for a **granted authorization**; carries a `kills[]` declaration and seals a SEL `Trm` that rescinds a delegation or doc-membership grant. Tier 2, `t_authorize`, seal-advancing.                                                                                                                                                                                                                                                                                                           |
+| `Pin` | Pin (SEL) — the **pin-only re-pin** to the owner IEL's current tip at **any serial** (carries no manifest); its serial-1 instance is the issuance floor. A pure re-pin is always a `Pin`, never a payload-less `Ixn`. Tier 1. The pervasive epithet "the floor `Pin`" names this kind — its serial-1 instance is the floor; every `Pin`, at any serial, is tier-1 buriable content.                                                                                                                                                    |
+| `Trm` | Terminate — terminal kill (KEL / IEL identity-kill; SEL revocation / closure / rescission). Tier 2, seal-advancing (terminal); `t_govern` (identity-kill / SEL revoke) or `t_authorize` (SEL rescind).                                                                                                                                                                                                                                                                                                                                 |
 
 ### Chain structure
 
@@ -132,6 +149,19 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **threshold vector** — an IEL's `{ use, authorize, govern }` — the **count** an act of each kind
   requires (orthogonal to tier).
   ([`event-shape.md`](primitives/data/event-logs/event-shape.md#structural-authorization--the-three-mechanisms))
+- **base live check** — the one-device liveness proof: a live-signed request resolves to an
+  identity, and one current member device proves it — always one device, never a threshold.
+  ([`iel/events.md`](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
+- **`t_stepup` / step-up** — **step-up** is a second, different check at **`t_stepup`** devices;
+  `t_stepup` is the identity's published step-up bar, carried on the roster role as
+  `stepUpThreshold` and declared beside the threshold vector (not in it — no consuming event kind;
+  read by live checks, never by event validity), and the **relying party demands** step-up per
+  operation — no object declares it.
+  ([`iel/events.md`](primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
+- **co-signing session** — the transport by which a quorum's devices co-sign: mutual device-KEL
+  authentication into one identity's roster over an ephemeral post-quantum KEM,
+  transcript-committed, co-present only — there is no asynchronous path.
+  ([`co-signing-transport.md`](primitives/protocols/co-signing-transport.md))
 - **authorization floor** — the bound `t_govern, t_authorize > |roster|/2` (a strict majority of the
   roster), so any two authorizing quorums overlap and a sealed fork always names a double-dealer.
   Distinct from the witnessing floor (`> signers/2`, over witness signers).
@@ -169,9 +199,31 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 
 ### Federation and witnessing
 
-- **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`) whose roster is witness KELs; it
-  propagates and time-stamps, it never decides.
-  ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
+- **federation** — a restricted IEL (`Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` at `t_authorize` for
+  [prefix blocks](substrate/federation/blocking.md) only and `Rev` at `t_govern` for
+  trusted-federation un-grants only) whose roster is witness KELs; it propagates and time-stamps, it
+  never decides. ([`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md))
+- **trust grant chain / trust-granted** — cross-federation trust as a federation-governed,
+  per-remote-federation derived SEL: **trust-granted** means a trust lineage **exists** for the
+  remote federation — live, or killed (established-then-dead); **never-granted** means no
+  established lineage at any index. The grant is a `Gnt ← federation Wit` at `t_govern`; the
+  un-grant a `Trm ← federation Rev`, symmetric.
+  ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
+- **counting conjunction** — the per-lineage rule for when a granted remote federation's receipt
+  counts: within a live lineage's `bound`, or within a killed lineage's cut (`τ` at-or-before the
+  un-grant's `clock`) **and** `bound`; killed windows are permanent counting authorities, and a
+  vouched key-window counts only if its `T_join` is at-or-before its vouching act's `clock` plus
+  `2 × CLOCK_TOLERANCE_BAND` (the vouch-time cap; the vouching act is the lineage's earliest `Gnt`
+  whose `bound` covers the window-establishing position).
+  ([`substrate/federation/witnessing.md` §The trust grant chain](substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
+- **`bound` (governance horizon)** — in a trusted-federation grant value, the highest remote
+  federation position any receipt's resolution may use — a remote-federation-event SAID, monotone
+  non-decreasing across refreshes. Distinct from the rescission sense of `bound` — one concept in
+  two custody modes: the grandfather cutoff in a `kills[]` entry, and the gated `bound` role on a
+  SEL `Trm`.
+- **un-grant** — the governance act killing a trust lineage (`Trm ← federation Rev`, `t_govern`);
+  its `Rev`'s `clock` is the counting cut. Stops new counting; held data stays held; a re-grant
+  reincepts at the next lineage.
 - **witness / receipt** — a federation member that signs a receipt over `(prefix, serial, said)`,
   the per-event witnessing attestation (the multi-source freshness evidence is the freshness
   statement). ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
@@ -184,20 +236,41 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
 - **beacon** — the receipt broadcast that enumerates a position's competing branches so a one-branch
   holder can fetch and walk them.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
+- **prefix block** — a federation's reversible, quorum-gated refusal to witness an abusive prefix
+  (the second front of spam protection): a per-prefix toggle SEL at a derived address; witnesses
+  decline the blocked prefix's new events, while serving is never affected.
+  ([`substrate/federation/blocking.md`](substrate/federation/blocking.md))
 - **federation clock** — a coarse, consensus-attested timestamp (the `clock` role) that time-bounds
   witness key-windows for freshness.
   ([`substrate/federation/witnessing.md`](substrate/federation/witnessing.md))
 - **gossip** — the witness-mesh transport: roster-wide announcement flooding for witnessed events
   (receipts and effective-SAID announcements flood; bodies follow by fetch), and sub-gossip among a
   position's selected witnesses for one still gathering receipts; encrypted and roster-scoped.
+  Gossip names the **pattern**; `gossipd` is the daemon that speaks it.
   ([`substrate/federation/topics.md`](substrate/federation/topics.md))
 
 ### Services and consumers
 
+- **store / server / client / `Source` / `Sink`** — the storage naming register, all PascalCase
+  library types: `LogStore` / `SadStore` / `BlobStore` are the **dumb persistence traits**;
+  `LogServer` / `SadServer` / `BlobServer` the logic modules composed over them; `LogClient` /
+  `SadClient` / `BlobClient` the interface to a server (in-process or over the wire); `Source` /
+  `Sink` the transfer layer built from clients.
+  ([`primitives/stores/log-store.md`](primitives/stores/log-store.md),
+  [`compositions/log-server.md`](compositions/log-server.md))
+- **the `*d` daemons** — lowercase names are **deployables**, each a thin composition of servers: a
+  federation node is `logsd` (chain logs) + `sadd` (SADs, deletes off) + `witnessd` (the HSM-bearing
+  witness, never public) + `gossipd` (the sync daemon); off-federation, `sadd` (deletes on) and
+  `blobsd` hold application data, and a service fleet runs `gossipd` over its own stores.
+  ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
 - **home node** — the one node a consumer calls for everything, mirror-style: all data flows through
   it, nothing is trusted from it (every byte end-verifies; freshness evidence is signed by keys it
   does not hold).
   ([`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md))
+- **inbox node** — a deployment of an off-federation message service (mail, chat): `sadd` + `blobsd`
+  holding sealed deposits for its users, replicated across the service's roster. Distinct from the
+  home node, which is a federation-facing consumer mirror.
+  ([`example-applications/mail.md`](example-applications/mail.md))
 - **token store** — the consumer-side cache of verification tokens, reused behind the transitive
   effective-SAID gate with a wall-clock freshness overlay recomputed at decision time; loss-of-trust
   decisions add the multi-source bar.
@@ -253,7 +326,7 @@ authoritative. ([`event-shape.md`](primitives/data/event-logs/event-shape.md#eve
   ([`primitives/protocols/group-key.md`](primitives/protocols/group-key.md))
 - **membership** — an **unbounded, never-enumerated, per-requester** gated set of identities (the
   store-authorization primitive); checked one identity at a time (fail-secure walk / O(1) rescission
-  lookup). `chat-membership` is the chat instance.
+  lookup). `chat-membership` is exchange's instance.
   ([`primitives/protocols/membership.md`](primitives/protocols/membership.md))
 - **authored DAG / lane** — a per-writer content graph: a chat **lane** is a writer's own
   `previous`-linked chain (the single-parent variant — the lane _is_ the writer, no sender field); a

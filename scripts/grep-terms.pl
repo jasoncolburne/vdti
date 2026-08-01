@@ -24,6 +24,7 @@ use strict;
 use warnings;
 use utf8;
 use open qw(:std :encoding(UTF-8));
+use Encode qw(decode_utf8);
 use Getopt::Long qw(:config bundling no_ignore_case);
 
 # Split trailing paths off at the first "--" BEFORE GetOptions (which would
@@ -37,8 +38,38 @@ for my $i (0 .. $#ARGV) {
     }
 }
 
+sub usage {
+    print <<'EOF';
+grep-terms — decoration- and wrap-tolerant phrase search over Markdown.
+
+Finds a phrase through the forms plain grep misses: **bold**/`code`/_em_/~strike~ markers at word
+boundaries, line wraps (including inside "> " blockquotes), and sentence-case first letters.
+
+Usage:
+  scripts/grep-terms.pl [-i] [-w] PHRASE [PHRASE ...] [-- PATH ...]
+  scripts/grep-terms.pl --regex --novel -f PATTERNS -F FILES     (lint use)
+
+Flags:
+  -i          fully case-insensitive (NOTE: default widening is first-letter only — an ALL-CAPS
+              word like "LIVE" or "STATES" needs -i to match its lowercase form)
+  -w          word-ish boundaries (use for short terms: "TTL", "seal" — avoids substring hits)
+  -r, --regex treat tokens as ERE instead of literals
+  --novel     report only decorated/wrapped hits a same-line grep would miss
+  -f FILE     read patterns from FILE, one per line
+  -F FILE     read the file list from FILE, one per line
+
+Paths after "--" default to every git-tracked *.md; files/dirs/globs narrow it (untracked dirs are
+walked). A zero-file resolution is a hard error, never a clean sweep — in zsh remember $VAR does not
+word-split; use ${=VAR} or list paths explicitly.
+
+Exit: 0 = matches, 1 = none, 2 = usage error. Output is grep-style file:line with the full source
+line(s), whitespace-collapsed. Full documentation in this script's header comment.
+EOF
+    exit 0;
+}
+
 my %o;
-GetOptions(\%o, 'i', 'w', 'regex|r', 'novel', 'f=s', 'F=s') or exit 2;
+GetOptions(\%o, 'i', 'w', 'regex|r', 'novel', 'f=s', 'F=s', 'help|h' => \&usage) or exit 2;
 
 # --- patterns: from -f FILE (one per line) and/or the remaining positional args ---
 my @phrases;
@@ -47,7 +78,13 @@ if ($o{f}) {
     push @phrases, grep { length } map { chomp; $_ } <$h>;
     close $h;
 }
-push @phrases, @ARGV;
+# Command-line args arrive as raw BYTES; file contents are read as CHARACTERS (the
+# `use open` layer above). Matching an undecoded byte-string pattern against a decoded
+# subject can never hit, so any phrase containing a non-ASCII character — "≥ 2",
+# "(MIN − 2)/4", an arrow, a ★ — returned ZERO SILENTLY, which reads as "clean".
+# Decode the phrases only: paths and -f/-F filenames stay bytes, which is what open()
+# and -f want. Phrases from -f are already decoded by the layer.
+push @phrases, map { decode_utf8($_) } @ARGV;
 die "grep-terms: no phrases (give them positionally or via -f)\n" unless @phrases;
 
 # --- files: from -F FILE, else the given paths (dirs/globs expanded via git), else all tracked *.md ---
@@ -59,16 +96,37 @@ if ($o{F}) {
 } elsif (@paths) {
     for my $p (@paths) {
         if    (-f $p) { push @files, $p; }
-        elsif (-d $p) { push @files, split /\n/, `git ls-files -- '$p/**/*.md' '$p/*.md' 2>/dev/null`; }
+        elsif (-d $p) {
+            # A directory of UNTRACKED files (e.g. .working/) expands to nothing via git —
+            # fall back to a filesystem walk so the sweep searches what the caller named.
+            my @g = grep { length } split /\n/, `git ls-files -- '$p/**/*.md' '$p/*.md' 2>/dev/null`;
+            @g = grep { length } split /\n/, `find '$p' -type f -name '*.md' 2>/dev/null` unless @g;
+            push @files, @g;
+        }
         else          { push @files, split /\n/, `git ls-files -- '$p' 2>/dev/null`; }
     }
 } else {
     @files = split /\n/, `git ls-files -- '*.md' 2>/dev/null`;
 }
+@files = grep { length } @files;
+
+# An EMPTY file list must never look like a clean sweep. A nonexistent path, an unsplit
+# shell variable of paths, or a directory whose files are untracked all resolved to zero
+# files and exited 1 with no output — indistinguishable from "searched everything, found
+# nothing". Same silent-wrong-clean class as the byte/char defect. Fail as a usage error.
+die "grep-terms: no files to search"
+  . (@paths ? " (paths resolved to nothing: @paths)" : "")
+  . " — a zero-file sweep is not a clean sweep\n"
+  unless @files;
 
 # --- build a marker+wrap-tolerant regex per phrase ---
 my $MK  = '[*_`~]*';              # an optional run of emphasis/code markers
-my $GAP = $MK . '\s+' . $MK;      # inter-token gap: markers, whitespace (\n included), markers
+# The gap must also cross a BLOCKQUOTE continuation prefix ("> ", nested "> > "): a phrase that
+# wraps inside a blockquote puts "\n> " between two of its words, and a gap of bare \s+ returned
+# ZERO SILENTLY — the third silent-wrong-clean defect, and it bites hardest on exactly the material
+# that lives in blockquotes (normative rules, constants). Mid-line "a > b" now also matches "a b";
+# over-reporting is the correct failure direction for a sweep tool.
+my $GAP = $MK . '(?:\s+(?:>[ \t]*)*)+' . $MK;   # inter-token gap: markers, whitespace (+ "> " prefixes), markers
 sub build {
     my ($p) = @_;
     my @tok = grep { length } split /\s+/, $p;   # only literal-space phrases get widened

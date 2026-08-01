@@ -22,13 +22,16 @@ flowchart LR
     olib["observer client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes — chains: bindings ·<br/>issuance anchors · policy SEL")]:::svc
   end
+  bset[("the authority's stores — off-federation<br/>the published ballot set")]:::svc
   reg -->|"binds citizens"| node
-  ea -->|"issue one ballot cred per prefix<br/>· publish the policy SAD"| node
+  ea -->|"anchor issuances — one ballot cred per prefix<br/>· seal the acceptance policy on its SEL"| node
   vapp -->|"present + cast"| coll
   coll -->|"spend strike · anchor accepted ballots"| node
-  olib -->|"recount from the published set"| node
+  coll -->|"publish the ballot set"| bset
+  olib -->|"walk the chains"| node
+  olib -->|"recount from the published set"| bset
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
@@ -47,13 +50,14 @@ data.
   district, ballot form — so a polling check learns the district bracket, not the address
   ([`../features/credentials.md` §Claim-gating](../features/credentials.md#claim-gating)).
   One-person-one-prefix plus one-credential-per-prefix is the double-vote defense at issuance. The
-  acceptance rule itself is **committed before the polls open**: the authority publishes its policy
-  as a policy SAD — `crd(vdti/cred/v1/schemas/ballot, id(electionAuthority))` — so the recount
-  checks every ballot against the declared expression, not a rule inferred after the fact
+  acceptance rule itself is **committed before the polls open**: the authority seals its policy —
+  `crd(vote/cred/v1/schemas/ballot, id(electionAuthority))` — on its **policy SEL**, a `t_authorize`
+  act on a federation-witnessed chain anyone walks, so the recount checks every ballot against the
+  declared expression, not a rule inferred after the fact
   ([`../primitives/policy/policy.md` §A policy is a SAD](../primitives/policy/policy.md#a-policy-is-a-sad)).
   Which registrars the authority honors is issuance-side diligence — checked when a ballot
-  credential is granted, publishable the same way as the authority's own policy SAD over the
-  registrar-issued binding — so that commitment is on the record before the polls too.
+  credential is granted, sealed the same way on the authority's policy SEL — so that commitment is
+  on the record before the polls too.
 - **Casting is presentation plus a spent strike.** The voter presents the ballot credential —
   ownership proven live, audience-scoped to this election — and submits the marked ballot; the
   authority **revokes the credential on acceptance** (the single-use discipline —
@@ -62,8 +66,10 @@ data.
 - **An accepted ballot is anchored.** The authority anchors each accepted ballot's commitment on its
   election chain — an append-only, witnessed record of exactly which ballots entered the tally, in
   which order, with the ballot content itself a SAD the commitment binds. After close, the authority
-  publishes the ballot set; the anchors make omission and stuffing visible: a ballot without an
-  anchor is not in the tally, an anchor without a published ballot is a hole anyone can point at.
+  publishes the ballot set from its own off-federation stores — the chain commits every ballot, so
+  any copy verifies and observers mirror it freely. The anchors make omission and stuffing visible:
+  a ballot without an anchor is not in the tally, an anchor without a published ballot is a hole
+  anyone can point at.
 - **The tally is a recomputation, not a pronouncement.** Anyone holding the published set — a party,
   an observer, a citizen — recounts and checks: every ballot anchored, every anchor's credential
   validly issued and spent exactly once, every issuance registrar-backed. Delivery of ballots and

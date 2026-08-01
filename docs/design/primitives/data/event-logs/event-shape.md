@@ -125,8 +125,11 @@ The slots carry bounds — `t_use ≥ 1`; a **security floor** (`≥ 2`) and **r
 (`≤ |roster| − 1`) on the authority slots; the **authorization floor** (`> |roster|/2`); the roster
 **cap of `MAXIMUM_ROSTER_SIZE`** and the **never-emptied** floor (`|roster| + |add| − |cut| ≥ 1`);
 and, for a federation, the witness-config recoverability cap — all re-checked on the post-delta
-config at **every** config-changing event, not only inception. The bounds and their derivations are
-the IEL primitive's:
+config at **every** config-changing event, not only inception. Declared **beside** the vector — not
+in it — rides **`t_stepup`**, the step-up bar (the roster role's `stepUpThreshold` field): it has no
+consuming event kind (read by live checks, never by event validity), is required on a user `Icp` and
+delta-encoded thereafter, and is bounded `1 ≤ t_stepup ≤ |roster|` with `≥ 2` hard for
+`|roster| ≥ 2`. The bounds and their derivations are the IEL primitive's:
 [`iel/events.md` §The threshold vector and its bounds](iel/events.md#the-threshold-vector-and-its-bounds).
 
 The per-kind threshold/tier mapping and the bound derivations are the IEL primitive's —
@@ -137,7 +140,7 @@ documents — are the policy layer's ([`../../policy/policy.md`](../../policy/po
 
 An event commits to the things above it through a **`manifest`**: the SAID of a SAD that groups
 those commitments **by named role**. The manifest SAD reads
-`{ said, <role>: <said-or-list-or-scalar>, … }`, and each role reads as "the things this event
+`{ said, kind, <role>: <said-or-list-or-scalar>, … }`, and each role reads as "the things this event
 {anchors / roster / delegates / kills / …}." The event row holds only the manifest SAID; the grouped
 commitments live in the SAD, separately custody-able. A role value is either an **inline list** of
 SAIDs/prefixes — `anchors` / `payload` / `delegates` / `kills` — a **single SAID** naming a further
@@ -153,17 +156,17 @@ bounding per-event verifier work to `O(MAXIMUM_MANIFEST_LIST)`.
 
 **Role vocabulary:**
 
-| Role        | Carried by                                                                       | Commits to                                                                                                                        |
-| ----------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` (≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer SAIDs (the general "we commit to this" role)                                                                         |
-| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                      | the roster **delta** / threshold SAD SAID                                                                                         |
-| `delegates` | IEL `Ath`                                                                        | delegate **prefixes** (act for the delegator)                                                                                     |
-| `grant`     | SEL `Gnt`                                                                        | the grant-doc SAD SAID                                                                                                            |
-| `payload`   | SEL `Ixn`                                                                        | the payload SAD SAIDs the `Ixn` records (single-owner data)                                                                       |
-| `kills`     | IEL `Rev` / `Dth`                                                                | the revocation / rescission declaration `[{ target, bound? }]`                                                                    |
-| `bound`     | SEL `Trm`                                                                        | the gated rescind-doc — a feature rescission's participant-blind cutoff (doc-member grandfather / chat-membership per-lane bound) |
-| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                | the witness-config SAD SAID                                                                                                       |
-| `clock`     | federation `Fcp` / `Wit` / `Trm`                                                 | the federation-clock timestamp (inline, non-SAID)                                                                                 |
+| Role        | Carried by                                                                                                                                                                           | Commits to                                                                                                                        |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `anchors`   | KEL `Ixn` (≥ 1) / `Rot` / `Wit`; IEL `Ixn` (≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`; **federation-facet IEL `Wit`** (only to anchor the federation's own trusted-federation SEL `Gnt`s) | higher-layer SAIDs (the general "we commit to this" role)                                                                         |
+| `roster`    | IEL `Icp` / `Evl`; federation `Fcp` / `Wit`                                                                                                                                          | the roster **delta** / threshold SAD SAID                                                                                         |
+| `delegates` | IEL `Ath` (user only — a federation `Ath` carries none)                                                                                                                              | delegate **prefixes** (act for the delegator)                                                                                     |
+| `grant`     | SEL `Gnt`                                                                                                                                                                            | the grant-doc SAD SAID                                                                                                            |
+| `payload`   | SEL `Ixn`                                                                                                                                                                            | the payload SAD SAIDs the `Ixn` records (single-owner data)                                                                       |
+| `kills`     | IEL `Rev` / `Dth`                                                                                                                                                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                                    |
+| `bound`     | SEL `Trm`                                                                                                                                                                            | the gated rescind-doc — a feature rescission's participant-blind cutoff (doc-member grandfather / chat-membership per-lane bound) |
+| `witnesses` | KEL / IEL `Icp` / `Wit`; federation `Fcp` / `Wit`                                                                                                                                    | the witness-config SAD SAID                                                                                                       |
+| `clock`     | federation `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` / `Rev` (required on a federation `Rev` — its `clock` is a trusted-federation un-grant's counting cut)                              | the federation-clock timestamp (inline, non-SAID)                                                                                 |
 
 The roles that carry discrimination or shape rules, in prose:
 
@@ -172,14 +175,23 @@ The roles that carry discrimination or shape rules, in prose:
   SEL **v1s** (the `Icp` rides `v1.previous`, never itself anchored) **and** a credential's
   **issuance commitment** `hash('vdti/iel/v1/tags/commitment:{issuer}:{cred.said}')` (an immutable
   SAD, no credential-SEL — the anchor is the validity proof); `Ath` → SEL `Gnt`; `Rev` → SEL `Trm`
-  (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal recovery).
+  (revocation); `Dth` → SEL `Trm` (rescission); `Evl` → SEL `Sea` (the burying-seal recovery); and,
+  **federation facet only**, `Wit` → SEL `Gnt` (the trusted-federation grant — the one SEL act
+  anchored by a `Wit`, a deliberate widening at true `t_govern` —
+  [`witnessing.md` §The trust grant chain](../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
 - **`roster`** is a **delta**, never a snapshot (`{ add, cut, changed thresholds }`): `add` is a
   list on every kind — on a federation `Wit` it must carry **exactly one** element (one witness
   added at a time); an **eviction** is an `Evl` whose delta includes a **non-empty `cut`** — `add`
   and `threshold` changes may ride the same delta (device swap; singleton evict-and-replace), per
   the general well-formedness rules ([`../sad/shapes.md`](../sad/shapes.md)).
 - **`delegates`** is a positive inclusion list; the same `Ath` may also carry `anchors` (a `Gnt`) —
-  the two roles are independent.
+  the two roles are independent. **Every `delegates` entry must be `Icp`-rooted** — the mirror of
+  the roster rule, and the structural converse of "a federation grants no authority to another
+  identity": an `Fcp`-rooted delegate could never act (the federation facet's anchors admit only its
+  own two topics), so the entry class is subtracted rather than left as a dead configuration. Held
+  bytes minted before a deployment adopts the rule read **entry-inert, never event-malformed** — the
+  `Ath` stays valid, its other entries and anchors stand, the dead entry confers nothing, and
+  forward tooling refuses to mint one.
 - **`grant`** names the grant-doc: the `editors` / `commenters` and their `from` validity-period
   starts that the `Gnt` opens.
 - **`kills`** is the revocation / rescission **declaration** — a flat list `[{ target, bound? }]`
@@ -359,11 +371,16 @@ doctrine — [`kel/`](kel/), [`substrate/federation/`](../../../substrate/federa
 - ᵈ **`Dth`** — its `kills[]` entry carries the rescission `bound` (a delegate's public, a
   doc-member's or chat-membership's gated); non-terminal like `Rev`.
 
-A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker — `Fcp` / `Wit` / `Trm`
-only (`Wit` is its governance kind — witness rotation and/or a roster delta — replacing the user
-`Evl`; no `Ixn`, so it authors no content; a competing sealed sibling is first-seen-declined
-(exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is terminal; no
-`Ath`, since trust is per-federation and non-transitive). Its roster is witness KELs directly. See
+A federation is a **restricted IEL** rooted at an **`Fcp`** inception marker — `Fcp` / `Wit` /
+`Trm`, plus `Ath` / `Dth` at `t_authorize` for
+[prefix-block](../../../substrate/federation/blocking.md) SELs only and `Rev` at `t_govern` for
+trusted-federation un-grants only (`Wit` is its governance kind — witness rotation and/or a roster
+delta — replacing the user `Evl`, and the one anchor of its trusted-federation SEL `Gnt`s, the trust
+grant; no `Ixn`, so it authors no content; a competing sealed sibling is first-seen-declined
+(exclude-self peer-witnessing), so only a witness-colluded two-accepted conflict is terminal; its
+`Ath` / `Dth` anchor only prefix-block SELs, never delegation, its `Wit` anchors only its
+trusted-federation `Gnt`s, and its `Rev` anchors only its own trusted-federation SEL `Trm`s, so
+trust stays per-federation and non-transitive). Its roster is witness KELs directly. See
 [`../../../protocol-doctrine.md` §Federation convergence](../../../protocol-doctrine.md#federation-convergence)
 and [`substrate/federation/`](../../../substrate/federation/).
 
@@ -374,15 +391,16 @@ and [`substrate/federation/`](../../../substrate/federation/).
 | `Icp` | `t_use`                                              | 1    | — (never anchored; v1 is)        | Inception — `authority` + `topic` + `data`? + `content: true`? (content only) + `lineage`? (re-establishable value lookup only); **no `pin`, no manifest**; **never itself anchored** (its v1 is).ᵃ                            |
 | `Ixn` | `t_use`                                              | 1    | `Ixn`                            | Payload SAD(s) (the `payload` role, **required** — always ≥ 1) + re-`pin`; ≤ 1 per SEL per IEL `Ixn`. **Divergeable, buriable** (as is `Pin`).                                                                                 |
 | `Pin` | `t_use`                                              | 1    | `Ixn`                            | The **pin-only re-pin** at any serial (top-level `pin` only, `fbd` manifest). Its serial-1 instance is the **issuance floor** (the `Icp` can't hold a pin); a pure re-pin is always a `Pin`. Buriable; **not** seal-advancing. |
-| `Gnt` | `t_authorize`                                        | 2    | `Ath`                            | The **grant** — seals a typed value (`manifest.grant` → a `vdti/sel/v1/grants/*` SAD). **Sealed on arrival, seal-advancing, non-buriable.**ᶜ                                                                                   |
+| `Gnt` | `t_authorize` · `t_govern` (federation trust)        | 2    | `Ath` · federation `Wit` (trust) | The **grant** — seals a typed value (`manifest.grant` → a `vdti/sel/v1/grants/*` SAD). **Sealed on arrival, seal-advancing, non-buriable.**ᶜ                                                                                   |
 | `Trm` | `t_govern` (revocation) · `t_authorize` (rescission) | 2    | `Rev` (revoke) / `Dth` (rescind) | The SEL **kill**. **Sealed on arrival, seal-advancing, terminal.**ᵇ                                                                                                                                                            |
 | `Sea` | `t_govern`                                           | 2    | `Evl`                            | The **neutral re-seal** — buries a content fork on a SEL with no natural `Gnt` / `Trm`. **Sealed on arrival, seal-advancing, non-terminal.**ᵈ                                                                                  |
 
 - ᵃ **`Icp`** — stays recomputable for lookup (§Prefix derivation); the SEL's **serial-1 event (its
   v1)** is what the owner IEL anchors with the **matching kind** (`Ixn` for content; `Ath` / `Rev` /
-  `Dth` for a lookup's `Gnt` / `Trm`), the `Icp` riding `v1.previous` (a bare `Pin` for
-  issue-and-sit, else the first event). A lookup SEL's `data` is the recompute input (the
-  grant-instance). A **credential is not a SEL** — it is a direct-anchored SAD (§Prefix derivation).
+  `Dth` for a lookup's `Gnt` / `Trm` — the federation trust lookup's `Gnt` by a governance `Wit`),
+  the `Icp` riding `v1.previous` (a bare `Pin` for issue-and-sit, else the first event). A lookup
+  SEL's `data` is the recompute input (the grant-instance). A **credential is not a SEL** — it is a
+  direct-anchored SAD (§Prefix derivation).
 - ᵇ **`Trm`** — the SEL kill, sealed by an IEL `Rev` (`t_govern`, a governed kill) or `Dth`
   (`t_authorize`, which rescinds what an `Ath` granted). The `Rev` / `Dth` also carries the
   `kills[]` declaration naming the killed locus; a rescission's `bound` rides that `kills[]` entry
@@ -409,18 +427,20 @@ owner-IEL anchor **severs** the SEL — the portion after the earliest dead anch
 with no repair. Credential **revocation and status** are a **feature** layered on the SEL primitive
 (issuance itself is the issuer's IEL anchor, not an SEL) —
 [`features/credentials.md`](../../../features/credentials.md); shared documents are another
-([`features/shared-documents.md`](../../../features/shared-documents.md), forthcoming), and
-value-bearing **receive keys** ride the SEL as a shared-core primitive (the
+([`features/shared-documents.md`](../../../features/shared-documents.md)), and value-bearing
+**receive keys** ride the SEL as a shared-core primitive (the
 [receive-key directory](../../protocols/receive-key-directory.md)).
 
 The anchor matrix — each IEL kind anchors **only** its matching SEL kind(s) (kind-strict); the two
-kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's type, and the `Evl`
-anchors a `Sea`:
+kill-anchors `Rev` / `Dth` both seal an SEL `Trm`, discriminated by the SEL's type, the `Evl`
+anchors a `Sea`, and — on the **federation facet only** — a governance `Wit` anchors the
+trusted-federation `Gnt`:
 
 ```mermaid
 flowchart LR
   Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
   Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
+  Wit["federation IEL Wit"]:::iel ==>|manifest.anchors — trust grant| Gnt
   Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
   Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm
   Evl["IEL Evl"]:::iel ==>|manifest.anchors| Sea["SEL Sea"]:::sel
@@ -459,17 +479,17 @@ KEL + federation doctrine — [`kel/`](kel/),
 
 ### IEL
 
-| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                |
-| ----- | ----- | ---- | ---------- | ------------- | ------------ | --------------------------------------------------------------------------------------- |
-| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`) |
-| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                     |
-| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                   |
-| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`)                                                      |
-| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |
-| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`)                                                                |
-| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                            |
-| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt)                   |
-| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                |
+| Kind  | nonce | pins | federation | federationPin | previousSeal | manifest                                                                                                                      |
+| ----- | ----- | ---- | ---------- | ------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| `Icp` | req   | req  | req        | req           | fbd          | req (`roster`; `witnesses` mandatory — no direct mode; a federation `Fcp` adds `clock`)                                       |
+| `Ixn` | fbd   | req  | fbd        | opt           | fbd          | req (`anchors`, ≥1)                                                                                                           |
+| `Evl` | fbd   | req  | fbd        | opt           | req          | opt (`roster`; `anchors` → SEL `Sea`)                                                                                         |
+| `Ath` | fbd   | req  | fbd        | opt           | req          | req (`delegates` and/or `anchors`; a federation `Ath` carries `anchors` + `clock`, never `delegates`)                         |
+| `Rev` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Rev` adds `clock` req)                                                                 |
+| `Dth` | fbd   | req  | fbd        | opt           | req          | req (`anchors`, `kills`; a federation `Dth` adds `clock` req)                                                                 |
+| `Trm` | fbd   | req  | fbd        | opt\*         | req          | opt (a federation `Trm` carries `clock` req)                                                                                  |
+| `Wit` | fbd   | req  | opt\*      | opt\*         | req          | opt (`witnesses`; a federation `Wit` adds `clock` req + `roster` opt + `anchors` opt — the trusted-federation SEL `Gnt` only) |
+| `Fcp` | req   | req  | fbd        | fbd           | fbd          | req (`roster` + `witnesses` + `clock`) — federation IEL inception marker                                                      |
 
 A **user IEL `Icp`** mirrors the KEL `Icp` on the federation binding: `federation` / `federationPin`
 are **required** (there is no direct mode) and `witnesses` is **mandatory**; on a `Wit` all three
@@ -483,9 +503,14 @@ carry `federationPin` (`opt`) for a **same-federation re-pin**, but never `feder
 the witness KELs); every IEL event is anchored by a threshold of members, so every IEL event carries
 it. An `Evl`'s `roster` delta follows the general well-formedness rules — `add`, `cut`, and
 `threshold` changes combine freely; a `cut` `Evl` is one whose delta includes a non-empty `cut`. The
-kind→role allowlist gates the role's _presence_; the delta shape is checked per-kind. The exact
-roster delta SAD and pins-SAD schemas, the consent rule for additions, and the per-kind anchor
-matrix are IEL doctrine — [`iel/`](iel/).
+kind→role allowlist gates the role's _presence_; the delta shape is checked per-kind. **The step-up
+bar `t_stepup` is a per-facet field of the roster role**, carried as `stepUpThreshold`: **required**
+on a user `Icp`, **delta** on an `Evl` (present ⇒ changed, absent ⇒ unchanged), and **forbidden on
+the federation facet** — a roster role carried by an `Fcp` or a federation `Wit` declaring
+`stepUpThreshold` is malformed → rejected, beside the facet's no-`Ixn`/no-`t_use` split
+([`iel/events.md` §The threshold vector and its bounds](iel/events.md#the-threshold-vector-and-its-bounds)).
+The exact roster delta SAD and pins-SAD schemas, the consent rule for additions, and the per-kind
+anchor matrix are IEL doctrine — [`iel/`](iel/).
 
 ### SEL
 
@@ -532,8 +557,9 @@ back down to its authority's current tip:
   SEL's serial-1 **v1** (the `Icp` rides `v1.previous`, never itself anchored) **and** a
   credential's **issuance commitment** (a flat hash, not a SEL event); a `Rev` / `Dth` for the SEL
   `Trm`s they seal (`Rev` a credential revocation, `Dth` a rescission); an `Ath` for a SEL `Gnt` —
-  each via `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL
-  kind, and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the
+  and, on the **federation facet only**, a governance `Wit` for the trusted-federation `Gnt` — each
+  via `anchors`, **kind-strict** (each SEL kind is valid only when anchored by its matching IEL
+  kind(s), and each IEL kind anchors only its matching SEL kinds). The SEL event floors down to the
   owner IEL tip via its `pin`, carried on its serial-1 event — a bare `Pin` when inception batches
   no other first event, otherwise the first event itself (the `Icp` stays pin-free for
   recomputability). The as-of authority is the **anchoring position** — the committing IEL event,

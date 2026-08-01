@@ -182,5 +182,13 @@ Every application above inherits, by construction and with no extra work:
   issuer's chain (any source), failing secure by default (an application may opt into fail-open).
 - **No trusted backend** — you write the application; the infrastructure is run by the issuers who
   rely on it.
+- **Read-gating and retention are fields, not services** — who may read (`custody.readers`), how
+  long the bytes live, and whether a read is destructive (`availability`) are declared on the object
+  and committed by its identifier — you build neither one; a store enforces them from the object's
+  own fields.
+- **No session tier** — authority is judged at an append-only position on the actor's own chain, so
+  there is no token issuer, session store, or login service in the picture.
+- **Revocation is a lookup, not a scan** — a status check reads one derived address and fails secure
+  on a miss; nothing ever has to prove an absence.
 
 You write the app. The trust comes with the data.

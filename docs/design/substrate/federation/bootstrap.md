@@ -27,21 +27,32 @@ ways, all fixed at inception by the `Fcp` root kind:
   document layer — [`../../primitives/policy/policy.md`](../../primitives/policy/policy.md)). A
   witness is a device (a KEL), HSM-backed and horizontally replicated; the model sees one logical
   KEL per witness key.
-- **The kind set is exactly `Fcp` / `Wit` / `Trm`.** `Fcp` is the inception marker; `Wit` is the
-  single governance kind — it stands in for the user IEL's `Evl`, carrying every roster change and
-  every witness rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation
-  authors no content) and **no `Ath`** (trust is per-federation and non-transitive, so there is
-  nothing to delegate).
-- **The threshold vector is exactly `{ govern }`.** With no `Ixn` and no `Ath` there is no `t_use`
-  or `t_authorize` to declare — a threshold exists only when its consuming kind is in the kind set
-  ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)),
-  so a federation `Fcp` that declares either is malformed and rejected.
+- **The kind set is `Fcp` / `Wit` / `Trm`, plus `Ath` / `Dth` for blocking only and `Rev` for
+  trusted-federation un-grants only.** `Fcp` is the inception marker; `Wit` is the single governance
+  kind — it stands in for the user IEL's `Evl`, carrying every roster change and every witness
+  rotation; `Trm` terminates the federation. There is **no `Ixn`** (a federation authors no
+  content). `Ath` / `Dth` are admitted **solely to anchor the federation's own
+  [prefix-block](blocking.md) SELs** — a `topics/block` grant / kill and nothing else; a delegation
+  `Ath` is malformed. `Rev` is admitted **solely to anchor the federation's own trusted-federation
+  SEL `Trm`s** — the un-grant
+  ([`witnessing.md` §The trust grant chain](witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+  So a federation still **delegates to no other identity** and trust stays per-federation and
+  non-transitive; the one non-governance thing it authorizes is a block on a prefix.
+- **The threshold vector is `{ govern, authorize }`.** `t_govern` gates the governance `Wit`s and
+  the trusted-federation un-grant `Rev`s (no new slot — `Rev` is already `t_govern`); `t_authorize`
+  gates the block `Ath` / `Dth` (typically set below `t_govern`, so a block stays agile while still
+  reserve-backed). There is no `t_use` — with no `Ixn`, a federation `Fcp` that declares `t_use` is
+  malformed, since a threshold exists only when its consuming kind is in the kind set
+  ([`../../primitives/data/event-logs/iel/events.md`](../../primitives/data/event-logs/iel/events.md)).
 
 A witness KEL is **single-federation**: it is `Fcp`-rooted infrastructure, governed _into_ one
 roster and never self-bound. To serve a second federation, an operator stands up a **new** witness
-KEL and has it governed into that federation's roster; the old KEL's events stay validly witnessed
-by the old federation. This contains a witness compromise to a single federation rather than fanning
-it out across every federation the witness might have served.
+KEL and has it governed into that federation's roster — the fresh chain is not operator etiquette
+but the roster's own
+[identity bond](../../primitives/data/event-logs/kel/events.md#the-identity-bond), which a
+previously-admitted chain fails; the old KEL's events stay validly witnessed by the old federation.
+This contains a witness compromise to a single federation rather than fanning it out across every
+federation the witness might have served.
 
 Because a federation is critical infrastructure, its recoverability ceiling is **hard**, not
 advisory: it must always be able to evict one compromised witness and recover without it. That
@@ -109,6 +120,12 @@ trusted-federation set from the application; an **unconfigured** library trusts 
 verification token reports that it cannot confirm any federation, so every downstream decision fails
 secure. There is no built-in default federation.
 
+The configured set is the **consumer's** trust root. A **federation node's** own prefix is injected
+at the bootstrap ceremony — found the IEL, then configure, then serve — and its trust in **other
+federations** is never per-node configuration: it is the federation-governed **trust grant chain**
+([`witnessing.md` §The trust grant chain](witnessing.md#the-trust-grant-chain--the-federation-boundary)),
+so every node of one federation gives the same cross-federation answer.
+
 The federation prefix is a Blake3 commitment to the whole inception content — the founder roster,
 the threshold, and the inception nonce — so it is a **binding commitment to the exact founder set**.
 Matching a doctored root against the configured prefix would require finding a Blake3 preimage.
@@ -163,8 +180,8 @@ A verifier validates a received genesis against the configured prefix as follows
   the inception content `(roster, threshold, nonce)`, so this both places the chain and confirms the
   founder set is exactly the configured one.
 - **The `Fcp` is well-formed as a federation inception** — the restricted kind set is in force, the
-  threshold vector is exactly `{ govern }`, `|roster| ≥ 4`, and the witness-config clears its floors
-  ([`witnessing.md`](witnessing.md)).
+  threshold vector is `{ govern, authorize }`, `|roster| ≥ 4`, and the witness-config clears its
+  floors ([`witnessing.md`](witnessing.md)).
 - **All founders' `Rot`s anchor the federation `Fcp`, kind-strict (tier 2 → tier 2)** — every
   founder anchors, so no founder lands in the founding roster without consenting to it, and the
   founders' `Rot`s satisfy the inception threshold; a partial genesis (any founder's `Rot` absent)

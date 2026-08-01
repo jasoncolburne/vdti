@@ -331,13 +331,15 @@ KEL has one protocol-enforced cap (the seal-advance cap).
 A seal-advancing event (`Rot` / `Wit`; the terminal `Trm` also advances the seal but ends the chain)
 must land at least every `MAXIMUM_UNSEALED_RUN` non-seal-advancing events per lineage. The cap
 bounds the **fold** — the content run since the last seal — to `MAXIMUM_UNSEALED_RUN` events on each
-branch, so the canonical two-branch content fork plus the resolving burying seal-advancer is **sized
-to fit** one page (`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`): a source → sink transfer
-can carry both competing content branches plus the burying seal-advancer in one atomic page, since
-the sink holds neither branch in storage. A local node's hot page is smaller still (its retained
-branch ≤ `MAXIMUM_UNSEALED_RUN` plus the burying seal-advancer; the losing branch is buried by
-position + ascent, validated from retained storage). See
-[`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
+branch. A page is sized to the full seal-to-seal transfer window
+(`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3` —
+[`log.md` §Seal-advance cap](log.md#seal-advance-cap) carries the derivation), so the canonical
+two-branch content fork plus the resolving burying seal-advancer (`2·MAXIMUM_UNSEALED_RUN + 1 = 129`
+rows) fits a fortiori: a source → sink transfer can carry both competing content branches plus the
+burying seal-advancer in one atomic page, since the sink holds neither branch in storage. A local
+node's hot page is smaller still (its retained branch ≤ `MAXIMUM_UNSEALED_RUN` plus the burying
+seal-advancer; the losing branch is buried by position + ascent, validated from retained storage).
+See [`log.md` §Seal-advance cap](log.md#seal-advance-cap) and
 [§Forks are seal-bounded](../../../../protocol-doctrine.md#forks-are-seal-bounded).
 
 **Adversary bound.** The seal-advance cap bounds each of an adversary's fork lineages at

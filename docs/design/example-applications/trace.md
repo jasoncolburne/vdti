@@ -21,19 +21,20 @@ flowchart LR
     audlib["auditor client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
-  aApp -->|"leg entries · attest the hand-off record"| node
+  aApp -->|"anchor leg entries ·<br/>attest the hand-off record"| node
   bApp -->|"attest the same record, independently"| node
   aApp -->|"sealed dossier travels with the item"| bApp
-  audlib -->|"walk the records — two attestations each"| node
+  audlib -->|"walk the chains — verify<br/>two attestations per record"| node
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
 ```
 
 No consortium platform: each custodian writes only its own chains, the hand-off record collects both
-parties' independent attestations, and the auditor composes it all from any node.
+parties' independent attestations, and the auditor composes it from the chains and the dossier it is
+handed.
 
 ## The composition
 

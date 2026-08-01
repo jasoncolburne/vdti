@@ -1,9 +1,9 @@
-.PHONY: all lint-terminology lint-docs fmt-md fmt-md-check working-tarball
+.PHONY: all lint-terminology lint-docs lint-examples fmt-md fmt-md-check toc toc-check working-tarball
 
-# Phase 0 — lint-terminology, lint-docs, and fmt-md-check are the
-# meaningful targets. Markdown formatting (prettier) is wired now; the Rust
-# targets (cargo fmt/clippy/test/build) land alongside the Cargo workspace in
-# Phase 1.
+# Phase 0 — lint-terminology, lint-docs, lint-examples, fmt-md-check and
+# toc-check are the meaningful targets. Markdown formatting (prettier) is wired
+# now; the Rust targets (cargo fmt/clippy/test/build) land alongside the Cargo
+# workspace in Phase 1.
 
 # Pinned so local `fmt-md` and CI `fmt-md-check` agree byte-for-byte. The canon
 # under docs/canon/ (+ the .working/ surface) is exempt via .prettierignore (kept line-per-concept).
@@ -18,13 +18,31 @@ WORKING_TARBALL := working.tar.xz
 # there and they drop out of the snapshot with no edit to this file.
 WORKING_FILES := $(notdir $(wildcard $(WORKING_DIR)/*.md))
 
-all: lint-terminology lint-docs fmt-md-check
+all: lint-tools lint-terminology lint-docs lint-examples fmt-md-check toc-check
+
+# grep-terms.pl once returned ZERO SILENTLY for any phrase containing a non-ASCII
+# character (args arrive as bytes, files are read as characters), so sweeps for
+# "≥ 2" or "(MINIMUM_PAGE_SIZE − 1)/2" read as clean when they were not. A silent
+# wrong answer in a search tool is worse than a broken one, so assert it round-trips.
+lint-tools:
+	@./scripts/grep-terms.pl '≥ 2' -- docs/design/protocol-doctrine.md >/dev/null \
+	  || { echo 'grep-terms.pl: non-ASCII phrase search is broken (see the decode_utf8 on @ARGV)'; exit 1; }
+	@t=$$(mktemp); printf '> alpha bravo\n> charlie delta\n' > $$t; \
+	  ./scripts/grep-terms.pl 'bravo charlie' -- $$t >/dev/null; r=$$?; rm -f $$t; \
+	  [ $$r -eq 0 ] || { echo 'grep-terms.pl: blockquote-wrapped phrase search is broken (the GAP must cross "> " prefixes)'; exit 1; }
 
 lint-terminology:
 	@./scripts/lint-terminology.sh
 
 lint-docs:
 	@./scripts/check-doc-xrefs.py
+
+# The SAD shape catalogue's example JSON carries DERIVED SAIDs — each recomputes from the
+# bytes printed beside it. Hand-editing an example (or its said) breaks that, silently, in a
+# doc whose whole point is that identifiers recompute; this re-derives every one. Regenerate
+# examples with scripts/generate-sad-examples.py rather than editing them in place.
+lint-examples:
+	@./scripts/check-sad-examples.py
 
 # Refresh the working-surface snapshot (working.tar.xz) from .working/.
 working-tarball:
@@ -42,3 +60,14 @@ fmt-md:
 # Gate / CI check — fails if any tracked Markdown isn't prettier-formatted.
 fmt-md-check:
 	@$(PRETTIER) --check '**/*.md'
+
+# Regenerate docs/design/TOC.md from the design tree's headings, then prettier-normalize
+# so the committed TOC is the canonical (generator + prettier) form.
+toc:
+	@./scripts/generate-doc-toc.py
+	@$(PRETTIER) --write docs/design/TOC.md >/dev/null
+
+# Gate / CI check — regenerates the TOC and fails if it drifted from the committed copy.
+toc-check: toc
+	@git diff --exit-code -- docs/design/TOC.md \
+	  || { echo "docs/design/TOC.md is out of date — run 'make toc' and commit the result." >&2; exit 1; }

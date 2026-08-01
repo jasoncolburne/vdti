@@ -24,12 +24,20 @@
 \bFederation-Dip\b
 \bFip\b
 
-# === Renamed services (kels consolidation) ===
-# sadstore + kels-service consolidated into vdtid; gossip-service → witnessd.
-\bsadstore\b
+# === Renamed services (kels consolidation, then the vdti node split) ===
+# kels-service consolidated into a single interim daemon later split into the
+# four node daemons (logsd / sadd / witnessd / gossipd) — the consolidated name
+# vdtid is retired; gossip-service → witnessd, whose mesh loops live in gossipd.
+# sadstore — a retired kels service name, briefly revived as vdti's
+# off-federation storage app — is renamed sadd
+# (substrate/infrastructure/sadd.md), so the bare token is retired again;
+# kels-sadstore stays retired. The vdtid/sadstore bans are docs/-scoped, not
+# root: root governs .working/, whose specs quote both terms.
 \bkels-service\b
 \bgossip-service\b
 \bkels-sadstore\b
+\bvdtid\b
+\bsadstore\b
 
 # === kels-internal tool / agent names (out-of-context in vdti) ===
 # Distinctive enough to forbid; common words ("max", "min") rely on review.
@@ -335,7 +343,7 @@ majority floor
 # inception's topic — revocation / delegation / attestation). The old actions/
 # segment cut across the catalogue's two categories and is retired; revocation
 # split into tags/revocation + topics/revocation (nothing compares the strings —
-# the two derivations share only the user data). Frozen review files quote the
-# old strings verbatim — docs/design/reviews/ carries its own file WITHOUT this
-# ban (keep that file in sync when docs/ patterns change).
+# the two derivations share only the user data). Frozen review files quoting
+# the old strings live only in git history (the temporary docs/design/reviews/
+# dir is retired); no live surface carries an exemption.
 vdti/(iel|sel)/v1/actions/

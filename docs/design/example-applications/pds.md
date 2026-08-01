@@ -19,21 +19,22 @@ flowchart LR
     a["apps and agents"]:::app
     lib["lib/vdti — the cascading store<br/>memory → disk → remotes"]:::lib
   end
-  own[("personal storage node<br/>vdtid, store-only — no witnessd")]:::svc
+  own[("the person's sadd + blobsd<br/>off-federation stores")]:::svc
   subgraph sub["the substrate — federations run it"]
-    pub[("public home node<br/>vdtid + witnessd")]:::svc
+    pub[("public home node<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
   a --> lib
-  lib -->|"replica-scoped records"| own
-  lib -->|"chains · fallback fetch"| pub
-  own <-->|replication| pub
+  lib -->|"records and bytes — off-federation"| own
+  lib -->|"chains — anchors · indexes · witnessing"| pub
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
 ```
 
-The one optional server is the person's own: a store-only node — a `vdtid` with no witness beside it
-— slotted into the cascade between local disk and the public substrate.
+The one optional server is the person's own: a [`sadd`](../substrate/infrastructure/sadd.md) — an
+off-federation SAD store, with a [`blobsd`](../substrate/infrastructure/blobsd.md) beside it for
+bulk bytes — slotted into the cascade between local disk and the public substrate, which serves
+chains only.
 
 ## The composition
 
@@ -52,14 +53,16 @@ The one optional server is the person's own: a store-only node — a `vdtid` wit
   index with the chain vouching there is nothing newer being hidden — the freshness and divergence
   machinery of a witnessed chain, applied to "what is the current state of my stuff"
   ([`../primitives/data/event-logs/sel/log.md` §End-verifiability](../primitives/data/event-logs/sel/log.md#end-verifiability)).
-- **Placement is the person's.** `availability.replicas` scopes records to chosen storage — a
-  personal storage node is a store daemon with no witness beside it, first-class in the service
-  architecture
-  ([`../substrate/infrastructure/architecture.md` §The decomposition](../substrate/infrastructure/architecture.md#the-decomposition))
-  — and the consumer-side **cascading store** composes the tiers: memory, then local disk, then the
-  personal node, then a public node, one interface with the serve rules holding at whichever tier
+- **Placement is the person's.** Every record stays **off the federation**: the client's **cascading
+  store** writes it to the person's own [`sadd`](../substrate/infrastructure/sadd.md) tier — bulk
+  bytes to a [`blobsd`](../substrate/infrastructure/blobsd.md) — while the federation holds the
+  person's **chains**: the witnessed anchors and indexes that make each record attributable and each
+  index current. Publishing a record changes its gate and its discovery (the drive's publish case,
+  [`drive.md`](drive.md)), never its placement. The cascade composes the tiers — memory, then local
+  disk, then the personal stores — one interface with the serve rules holding at whichever tier
   answers
-  ([`../substrate/infrastructure/architecture.md` §The store traits](../substrate/infrastructure/architecture.md#the-store-traits--one-interface-composed-in-sequence)).
+  ([`../substrate/infrastructure/architecture.md` §The cascading store](../substrate/infrastructure/architecture.md#the-cascading-store--one-interface-composed-in-sequence)).
+  Placement is the person's choice of tier, not a field in the record.
 
 ## Scenarios
 
@@ -67,9 +70,9 @@ The one optional server is the person's own: a store-only node — a `vdtid` wit
   identity's chains: walk each index SEL to its tip, fetch every committed record by SAID, verify
   all of it locally. No backup file, no export format, no trust in the host it fetched from — the
   store _is_ its chains plus what they commit.
-- **Moving hosts.** Re-point `replicas` and let replication carry the bytes; every record verifies
-  identically from the new host. Source location is cost, not trust — exercised here as a practical
-  migration story rather than a slogan
+- **Moving hosts.** Stand up a `sadd` on the new host and repopulate it from the person's chains;
+  every record verifies identically from the new host. Source location is cost, not trust —
+  exercised here as a practical migration story rather than a slogan
   ([`../system-thesis.md` §End-verifiability](../system-thesis.md#end-verifiability)).
 - **An application acting for you.** A program operating the person's store reads and writes the
   same kinded SADs and chains everything else uses — one self-describing model it can generate,

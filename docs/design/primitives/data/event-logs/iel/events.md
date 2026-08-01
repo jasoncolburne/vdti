@@ -16,7 +16,12 @@ For chain lifecycle (states, the seal and spine, locked-portion bound, page mode
 ## Event taxonomy
 
 An identity's IEL is one of two facets, fixed by its inception root (§Two-kind inception). A **user
-IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`.
+IEL** uses all eight kinds; a **federation IEL** is the restricted set `Fcp` / `Wit` / `Trm`, plus
+`Ath` / `Dth` at `t_authorize` admitted **only to anchor its own
+[prefix-block](../../../../substrate/federation/blocking.md) SELs** and `Rev` at `t_govern` admitted
+**only to anchor its own trusted-federation SEL `Trm`s**
+([`witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary))
+— never delegation: a federation grants no authority to another identity.
 
 | Kind  | Kind string              | Class     | Tier | Count                                      | Purpose                                                                                                                                                                                                  |
 | ----- | ------------------------ | --------- | ---- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -51,10 +56,10 @@ IEL inception is one of two structurally distinct kinds dispatched by the kind d
 at inception and carries it on the token
 ([`verification.md` §Root facet](verification.md#root-facet-dispatch)).
 
-| Kind  | Facet         | Roster                | Federation binding                        | Kind set                                                      |
-| ----- | ------------- | --------------------- | ----------------------------------------- | ------------------------------------------------------------- |
-| `Icp` | user identity | member device KELs    | `federation` + `federationPin` (required) | `Icp` / `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Trm` / `Wit` |
-| `Fcp` | federation    | witness KELs directly | none (it _is_ the federation)             | `Fcp` / `Wit` / `Trm`                                         |
+| Kind  | Facet         | Roster                | Federation binding                        | Kind set                                                                                            |
+| ----- | ------------- | --------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `Icp` | user identity | member device KELs    | `federation` + `federationPin` (required) | `Icp` / `Ixn` / `Evl` / `Ath` / `Rev` / `Dth` / `Trm` / `Wit`                                       |
+| `Fcp` | federation    | witness KELs directly | none (it _is_ the federation)             | `Fcp` / `Wit` / `Trm` + `Ath` / `Dth` (block SELs only) + `Rev` (trusted-federation un-grants only) |
 
 - `Icp` → a **user identity**. It is federation-bound from inception: `federation` (the federation
   IEL prefix) and `federationPin` (the as-of federation position) are **required**, and the
@@ -130,6 +135,43 @@ carries additional bounds — see
 [§Federation convergence](../../../../protocol-doctrine.md#federation-convergence) and
 [§The restricted federation IEL](#the-restricted-federation-iel).
 
+**`t_stepup` — the step-up bar, declared beside the vector, not in it.** Threshold vectors govern
+**chain writes**; live checks are a separate mechanism and never read them. The **base live check is
+one device, always** — a live-signed request resolves to an identity, and one current member device
+proves it; **step-up is a second, different check at `t_stepup` devices**, and **the relying party
+demands it** — `t_stepup` is a published property of the identity, each verifier decides whether to
+require it, and **no object ever declares step-up** (an object-borne demand would be one party
+making a demand about someone else's act). Which operations step up is the application's call, per
+operation. `t_stepup` shares the `t_` naming and the `Evl` delta mechanics but sits **outside the
+vector's kind-keyed declaration rule**, because it has **no consuming event kind** — it is read by
+store and application checks, never by event validity. That is what makes the decoupling structural
+rather than a convention: the vector governs chain events and no live check reads it; `t_stepup`
+governs step-up and no event validity reads it. Its data key on the roster role is
+**`stepUpThreshold`** — `t_stepup` is the documentation label, as `t_use` is for the vector's `use`
+slot. Its letter:
+
+- **Always explicit; never absent as a state.** `t_stepup` is **required on a user `Icp`** and
+  **delta-encoded** on `Evl` — present ⇒ changed, absent ⇒ unchanged — so it carries a value at all
+  times, and it is **not** subject to the omitted-at-`Icp` rule (that rule keys on a threshold's
+  consuming kind, and `t_stepup` has none). An identity that cuts its roster to one explicitly sets
+  `t_stepup = 1` — there is no never-step-up state; `t_stepup = 1` already says step-up gives
+  nothing beyond the base check, the honest statement for a single-device identity.
+- **Bounds:** `1 ≤ t_stepup ≤ |roster|`, with **`t_stepup ≥ 2` hard for `|roster| ≥ 2`** (the
+  security floor's shape) and forced `1` at a singleton — re-checked on the post-delta config at
+  every config-changing event. **No recoverability ceiling**: `Evl` is not bound to `t_stepup`, so a
+  bad value is always fixable; `|roster|` is the only cap. No authorization floor.
+- **A federation IEL declares no `t_stepup`** — a per-facet **structural rule**
+  ([`../event-shape.md` §Per-kind structural validation](../event-shape.md#per-kind-structural-validation)),
+  and a statement about scope, not a missing capability: `t_stepup` is read when an identity
+  **presents** — the audience-scoped ownership proof — and a federation is never a credential
+  holder, so no relying party ever presents against one. The facet is **`Fcp`**, and a **service
+  fleet is `Icp`-rooted** — outside the exemption — so a fleet declares `t_stepup ≥ 2` like any
+  multi-member identity: a published capability no relying party will ever demand of a fleet, and
+  that is harmless.
+- **Reads never step up.** A step-up read gate would put `t_stepup` devices on the hot path of
+  fetching your own data; and "two people must be present" is two _identities_ — multi-party — which
+  a live check inherently is not (a live check is about **one** identity).
+
 ```mermaid
 flowchart TD
   tv["threshold vector { use, authorize, govern }<br/>the COUNT axis — orthogonal to tier"]:::iel
@@ -153,12 +195,17 @@ flowchart TD
 The **`Icp` declares the active threshold set** — exactly the authority kinds the IEL will ever use.
 A threshold is declared **iff its consuming kind is in the IEL's kind set**: a user IEL declares
 `t_govern` **mandatory** and `t_use` / `t_authorize` **optional and lockable**; a federation IEL
-(`Fcp` / `Wit` / `Trm`, no `Ixn` / `Ath`) declares **exactly `{ govern }`** (declaring `t_use` or
-`t_authorize` is malformed → rejected — the threshold-declaration analog of the facet role
-allowlist). A kind **omitted at `Icp` can never be exercised** — there is no first-introducing it
-later. Thereafter a roster delta carries a threshold field **only when it changes** (present ⇒ must
-change; absent ⇒ unchanged) — the same present-is-delta / absent-is-inherit shape as the membership
-`add` / `cut`.
+(`Fcp` / `Wit` / `Trm` plus `Ath` / `Dth` for block SELs only and `Rev` for trusted-federation
+un-grants only, no `Ixn`) declares **`{ govern, authorize }`** — `t_govern` for its governance
+`Wit`s and its `Rev`s, `t_authorize` for the block `Ath` / `Dth` (no new threshold slot: `Rev` is
+already `t_govern`); declaring `t_use` is malformed → rejected (the threshold-declaration analog of
+the facet role allowlist). A kind **omitted at `Icp` can never be exercised** — there is no
+first-introducing it later. Thereafter a roster delta carries a threshold field **only when it
+changes** (present ⇒ must change; absent ⇒ unchanged) — the same present-is-delta /
+absent-is-inherit shape as the membership `add` / `cut`. **`t_stepup` rides beside this rule, not
+under it**: it is required on a user `Icp` and delta-thereafter, but it has no consuming event kind,
+so the omitted-at-`Icp` rule never applies to it
+([§The threshold vector and its bounds](#the-threshold-vector-and-its-bounds)).
 
 ## Per-kind semantics
 
@@ -214,7 +261,11 @@ The unified authorization anchor, carrying **two manifest roles, both permitted 
 
 - **`delegates`** — a positive inclusion list of **delegate IEL prefixes** (the party acts **for**
   the delegator), capped like every inline manifest list at `MAXIMUM_MANIFEST_LIST = 128` entries
-  (event-shape). This is the delegation grant — see [`delegation.md`](delegation.md).
+  (event-shape). **Every entry must be `Icp`-rooted** — the mirror of the roster rule, and the
+  structural converse of "a federation grants no authority to another identity"; a pre-adoption
+  entry naming an `Fcp`-rooted prefix reads **entry-inert, never event-malformed**
+  ([event-shape](../event-shape.md)). This is the delegation grant — see
+  [`delegation.md`](delegation.md).
 - **`anchors`** — the downstream SEL **`Gnt`**(s) it seals. Kind-strict: `Ath.anchors` names
   **only** `Gnt`s. The `Gnt` may be a **doc-membership capability** (the party acts **as itself**)
   or a **delegation-marker** signpost (the discoverable index for a `delegates` grant — the
@@ -230,8 +281,7 @@ walked back forward by a `Dth`, never buried or overturned. An `Ath` whose `dele
 delegator's own prefix is rejected, so a self-grant cannot collapse `del(X, 1)` into `id(X)` (the
 policy layer's delegation leaf — [`policy.md`](../../../policy/policy.md)). The document-layer grant
 mechanics live in
-[`../../../../features/shared-documents.md`](../../../../features/shared-documents.md)
-_(forthcoming)_.
+[`../../../../features/shared-documents.md`](../../../../features/shared-documents.md).
 
 ### `Rev` / `Dth` — the kill-anchors (tier 2)
 
@@ -273,14 +323,15 @@ It is the revocation / rescission **declaration** the fail-secure walk consumes:
   and doc-member; the `data` distinguishes them). The target **mirrors the killed address**
   ([`sel/log.md`](../sel/log.md#the-content-and-lineage-fields)): **non-lineaged**
   `hash('{tag}:{declarer}:{data}')` for a **monotone kill** (cred revocation, delegate / doc-member
-  rescission), **lineaged** (`…:{lineage}`) for a **value rescission** (scoped to the one instance
-  it kills, so the re-established `lineage: N+1` survives), and a literal `:content` for a **content
-  (app-SEL) closure**. A value's positive resolution reads its own SEL chain; its per-lineage
-  negative check consults this lineaged target. The `tag` is **opaque to the IEL** — the IEL never
-  dereferences a target or interprets a bound. Placement (kind-strict) is the only structural rule;
-  all revocation and grandfather logic is the feature layer's
-  ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not** the
-  lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
+  rescission), **lineaged** (`…:{lineage}`) for a **value rescission** and for the `Rev`-anchored
+  **trusted-federation un-grant** — lineaged-ness is a property of the killed address, never of the
+  anchor kind (scoped to the one instance it kills, so the re-established `lineage: N+1` survives) —
+  and a literal `:content` for a **content (app-SEL) closure**. A value's positive resolution reads
+  its own SEL chain; its per-lineage negative check consults this lineaged target. The `tag` is
+  **opaque to the IEL** — the IEL never dereferences a target or interprets a bound. Placement
+  (kind-strict) is the only structural rule; all revocation and grandfather logic is the feature
+  layer's ([`../../../policy/documents.md`](../../../policy/documents.md)). The `target` is **not**
+  the lookup SEL's prefix (a separate two-pass derivation), so `kills[]` does not leak the killed
   object's address.
 - **`bound`** (rescission only) — the cutoff, the last honored event on the rescinded party's chain
   (a doc-member **grandfather** cutoff, or a chat-membership **per-lane bound**). One concept, two
@@ -341,22 +392,23 @@ only mismatch that can arise.
 **Federation IEL — governance.** A federation `Wit` is the analog of `Evl`, doing **everything**
 (roster add / cut **and** witness rotation) at tier 2. It carries **no
 `{federation, federationPin}`** (a federation witness is never self-bound) and instead carries the
-federation's own `witnesses` config, an optional roster delta, and the monotonic `clock`. The
-`Wit ↔ Wit` field-match here is the **witness-config only** — that config is the federation's new
-config the approvers jointly endorse; the roster delta rides the manifest (`Evl`-style,
-SAID-committed, each member endorsing the exact delta by anchoring the `Wit`'s SAID) and the `clock`
-is one authoritative IEL-side value, neither matched. A federation `Wit` is **always a rotation** of
-its participants and **advances the clock**, so the rotation + clock advance **is** the change — it
-has no must-change predicate. The federation-governance mechanics (self-attestation, the
-recoverability cap, the clock, roster-add consent) are federation doctrine —
+federation's own `witnesses` config, an optional roster delta, and the monotonic `clock` — plus, for
+a trust grant, the `anchors` role naming the trusted-federation SEL `Gnt` it seals. The `Wit ↔ Wit`
+field-match here is the **witness-config only** — that config is the federation's new config the
+approvers jointly endorse; the roster delta rides the manifest (`Evl`-style, SAID-committed, each
+member endorsing the exact delta by anchoring the `Wit`'s SAID) and the `clock` is one authoritative
+IEL-side value, neither matched. A federation `Wit` is **always a rotation** of its participants and
+**advances the clock**, so the rotation + clock advance **is** the change — it has no must-change
+predicate. The federation-governance mechanics (self-attestation, the recoverability cap, the clock,
+roster-add consent) are federation doctrine —
 [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md).
 
 ### `Fcp` — the federation inception marker (federation IEL only)
 
 The federation IEL's inception (§Two-kind inception). It carries the initial witness-KEL roster, the
-initial `witnesses` config, and the initial `clock`, declares exactly `{ govern }`, and is anchored
-kind-strict by each founder's KEL `Rot`. Its structural role is the **spine root** of the federation
-IEL (`previousSeal` walks terminate there). See
+initial `witnesses` config, and the initial `clock`, declares `{ govern, authorize }`, and is
+anchored kind-strict by each founder's KEL `Rot`. Its structural role is the **spine root** of the
+federation IEL (`previousSeal` walks terminate there). See
 [§The restricted federation IEL](#the-restricted-federation-iel).
 
 ## The manifest — roles an IEL event carries
@@ -368,14 +420,14 @@ A manifest carrying any role outside its kind's vocabulary is malformed and reje
 consumed only after dispatching on a kind permitted to carry it (**read kind-first** —
 load-bearing).
 
-| Role        | Carried by                                       | Commits to                                                                                                          |
-| ----------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation) | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
-| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth` | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`                                               |
-| `delegates` | `Ath`                                            | delegate **prefixes** — a positive inclusion list                                                                   |
-| `kills`     | `Rev` / `Dth`                                    | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
-| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)        | the witness-config SAD `{ threshold, signers }`                                                                     |
-| `clock`     | `Fcp` / `Wit` / `Trm` (federation)               | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                          |
+| Role        | Carried by                                                                                                                                      | Commits to                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `roster`    | `Icp` / `Evl` (user); `Fcp` / `Wit` (federation)                                                                                                | the roster / threshold **delta** SAD (`add` + `cut` + changed thresholds); an `Evl` `cut` also carries the eviction |
+| `anchors`   | `Ixn` (req, ≥ 1) / `Evl` / `Ath` / `Rev` / `Dth`; federation `Wit` (opt — the trusted-federation SEL `Gnt` only)                                | higher-layer event SAIDs (the up-commit); `Evl` anchors the SEL `Sea`, a federation `Wit` the trust `Gnt`           |
+| `delegates` | `Ath` (user only — a federation `Ath` carries none)                                                                                             | delegate **prefixes** — a positive inclusion list                                                                   |
+| `kills`     | `Rev` / `Dth`                                                                                                                                   | the revocation / rescission declaration `[{ target, bound? }]`                                                      |
+| `witnesses` | `Icp` / `Wit`; `Fcp` / `Wit` (federation)                                                                                                       | the witness-config SAD `{ threshold, signers }`                                                                     |
+| `clock`     | `Fcp` / `Wit` / `Trm` / `Ath` / `Dth` / `Rev` (federation; **required** on a federation `Rev` — the trusted-federation un-grant's counting cut) | the federation-clock timestamp (an inline scalar — the lone non-SAID role)                                          |
 
 The **directly-consumed** roles (`roster`, `delegates`, `kills`, `clock`, and the `witnesses`
 config) have **no** downstream type-check — the kind → role allowlist is their **only** protection,
@@ -387,21 +439,24 @@ directions**:
 ### The kind-strict anchor matrix
 
 An IEL kind anchors **only** its matching SEL kind(s), and each SEL kind is valid **only** anchored
-by its matching IEL kind:
+by its matching IEL kind(s) — one deliberate widening: on the **federation facet only**, a
+governance `Wit` anchors the trusted-federation `Gnt`:
 
-| IEL kind | Anchors (SEL)                                                                   | Tier-elevation floor |
-| -------- | ------------------------------------------------------------------------------- | -------------------- |
-| `Ixn`    | content SEL events, each content SEL's v1, and a credential issuance commitment | tier 1               |
-| `Evl`    | a SEL `Sea` (the neutral burying-seal recovery)                                 | tier 2               |
-| `Ath`    | a SEL `Gnt` (doc-membership grant)                                              | tier 2               |
-| `Rev`    | a revocation-SEL `Trm`                                                          | tier 2               |
-| `Dth`    | a rescission-SEL `Trm`                                                          | tier 2               |
+| IEL kind                 | Anchors (SEL)                                                                             | Tier-elevation floor |
+| ------------------------ | ----------------------------------------------------------------------------------------- | -------------------- |
+| `Ixn`                    | content SEL events, each content SEL's v1, and a credential issuance commitment           | tier 1               |
+| `Evl`                    | a SEL `Sea` (the neutral burying-seal recovery)                                           | tier 2               |
+| `Ath`                    | a SEL `Gnt` (doc-membership grant)                                                        | tier 2               |
+| `Rev`                    | a revocation-SEL `Trm`; **federation facet**: the trusted-federation SEL `Trm` (un-grant) | tier 2               |
+| `Dth`                    | a rescission-SEL `Trm`                                                                    | tier 2               |
+| `Wit` (federation facet) | the trusted-federation SEL `Gnt` — the one SEL act anchored by a `Wit`, true `t_govern`   | tier 2               |
 
 ```mermaid
 flowchart LR
   Ixn["IEL Ixn"]:::iel ==>|manifest.anchors| c["SEL content / v1"]:::sel
   Evl["IEL Evl"]:::iel ==>|manifest.anchors| Sea["SEL Sea"]:::sel
   Ath["IEL Ath"]:::iel ==>|manifest.anchors| Gnt["SEL Gnt"]:::sel
+  Wit["federation IEL Wit"]:::iel ==>|manifest.anchors — trust grant| Gnt
   Rev["IEL Rev"]:::iel ==>|manifest.anchors| Trm["SEL Trm"]:::sel
   Dth["IEL Dth"]:::iel ==>|manifest.anchors| Trm
   classDef iel fill:#12331c,stroke:#2f9e44,color:#fff
@@ -491,13 +546,18 @@ visible to anyone walking that identity's chain.
 
 ## The restricted federation IEL
 
-A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm` only. Its
-roster is **witness KELs directly** (a threshold over them; no per-witness identity wrapper, no
-aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every federation event is a
+A federation is a **restricted IEL** rooted at the `Fcp` marker — `Fcp` / `Wit` / `Trm`, plus `Ath`
+/ `Dth` at `t_authorize` **only to anchor its own
+[prefix-block](../../../../substrate/federation/blocking.md) SELs** and `Rev` at `t_govern` **only
+to anchor its own trusted-federation SEL `Trm`s**
+([`witnessing.md` §The trust grant chain](../../../../substrate/federation/witnessing.md#the-trust-grant-chain--the-federation-boundary)).
+Its roster is **witness KELs directly** (a threshold over them; no per-witness identity wrapper, no
+aggregate-of-IELs recursion). It authors **no `Ixn`** (no content), so every governance event is a
 key change → record-both; a competing sealed sibling is **first-seen-declined** (exclude-self
 peer-witnessing), so an honest conflict does **not** schism — only a witness-colluded
-**two-witnessed** `{Wit, Wit}` → disputed → reincept; and **no `Ath`** (trust is per-federation and
-non-transitive). Its threshold vector is exactly `{ govern }`.
+**two-witnessed** `{Wit, Wit}` → disputed → reincept. Its `Ath` / `Dth` **delegate nothing** — they
+anchor a `topics/block` grant / kill and nothing else (a delegation `Ath` is malformed), so trust
+stays per-federation and non-transitive. Its threshold vector is `{ govern, authorize }`.
 
 The federation's recoverability ceiling `≤ |roster| − 1` is **hard** (unlike a general identity,
 where it is advisory at `|roster| = 2`): the federation is critical infrastructure and must always
@@ -541,11 +601,12 @@ semantic meaning.
 
 A sealing event (`Evl` / `Ath` / `Rev` / `Dth` / `Wit`; the terminal `Trm` also advances the seal
 but ends the chain) must land at least every `MAXIMUM_UNSEALED_RUN` content events per lineage. The
-cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` on each branch, so the
-canonical two-branch content fork plus the resolving burying seal is sized to fit one page
-(`MINIMUM_PAGE_SIZE = 129 = 2·MAXIMUM_UNSEALED_RUN + 1`). It is **required**: `Ixn` is content and
-does not advance the seal, and issuance rides `Ixn`, so without the cap the content window would
-grow unbounded.
+cap bounds the content run since the last seal to `MAXIMUM_UNSEALED_RUN` on each branch. A page is
+sized to the full seal-to-seal transfer window
+(`MINIMUM_PAGE_SIZE = 259 = 4·MAXIMUM_UNSEALED_RUN + 3`, the same bound as the KEL), so the
+canonical two-branch content fork plus the resolving burying seal fits a fortiori. It is
+**required**: `Ixn` is content and does not advance the seal, and issuance rides `Ixn`, so without
+the cap the content window would grow unbounded.
 
 A busy issuer that fills the window **re-seals with a roster-less `Evl`** — a pure re-seal that
 omits `roster` (the seal advance via `previousSeal` is the change, not an empty delta). It is valid
@@ -579,6 +640,6 @@ versus a real `Evl` at one position diverges as `{Evl, Evl}` → terminal **when
   revocation actions are interpreted (the feature layer; the IEL states only the kill-anchor
   structure).
 - [`../../../../features/shared-documents.md`](../../../../features/shared-documents.md) — the
-  doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound` (forthcoming).
+  doc-membership grant (`Ath` → `Gnt`) and gated rescission `bound`.
 - [`../../../../substrate/federation/witnessing.md`](../../../../substrate/federation/witnessing.md)
   — federation witnessing and the federation `Wit` governance mechanics.

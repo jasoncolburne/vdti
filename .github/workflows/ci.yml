@@ -14,6 +14,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  lint-tools:
+    name: Lint Tools
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make lint-tools
+
   lint-terminology:
     name: Lint Terminology
     runs-on: ubuntu-latest
@@ -28,6 +35,18 @@ jobs:
       - uses: actions/checkout@v4
       - run: make lint-docs
 
+  lint-examples:
+    name: Lint Examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Blake3-256, to re-derive the SAIDs in the SAD shape catalogue's examples. The check
+      # prefers the b3sum binary and falls back to this module; unpinned because the digest is
+      # fixed by the algorithm, so no version computes a different answer. Verified green on
+      # ubuntu-24.04 — pip takes the user-install path here, so PEP 668 does not bite.
+      - run: pip install blake3
+      - run: make lint-examples
+
   markdown-format:
     name: Markdown Format
     runs-on: ubuntu-latest
@@ -37,6 +56,16 @@ jobs:
         with:
           node-version: 20
       - run: make fmt-md-check
+
+  toc-check:
+    name: TOC Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: make toc-check
 
   # Code-dependent jobs are commented out until the Cargo workspace lands in
   # Phase 1. Uncomment and adapt as each becomes meaningful. The conditional

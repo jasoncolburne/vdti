@@ -85,17 +85,28 @@ The rules for design are simple, now that I understand a bit more about how LLMs
 
 I now run a four agent (all Opus) topology:
 
-1. Design (xhigh)
-2. Implementation (high)
-3. Cold review (max)
-4. Warm review (max)
+1. Design Fable 5 (xhigh)
+2. Cold review Fable 5 (max)
+3. Warm review Opus 5 (max)
+4. Implementation Sonnet 5 (xhigh)
+5. Encoding Fable 5 (xhigh)
+
+When Fable was released, it actually coincided with a large part of this project landing in design
+and now the complexity requires Fable for any design work. I feel like Opus was working pretty well
+until then, and I do question whether its capabilities have been dialed back to provide more usage
+tiers with smoother scaling between them.
 
 I compact design and warm review, and each keeps a resume.md file current in the working surface and
 reads it after compaction to regain its own context.
 
+Encoding is the agent that turns specs into design documents.
+
 Cold and warm review produce different, decorrelated results and it's incredibly useful to use both.
 They don't share blind spots — warm is primed (checks fidelity, trusts the frame), cold is fresh
 (attacks soundness).
+
+Once they started including some Fable usage in the max plans I upgraded the cold reviewer - it's
+arguably the most important piece of this puzzle and finds the majority of soundness issues.
 
 ## The process
 

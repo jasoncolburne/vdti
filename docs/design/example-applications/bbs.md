@@ -19,19 +19,25 @@ flowchart LR
   end
   lurker["a reader"]:::ext
   subgraph sub["the substrate — federations run it"]
-    node[("the board's nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes — chains only:<br/>identities · grants · anchors")]:::svc
+  end
+  subgraph store["the board's content stores — off-federation"]
+    bstore[("sadd — post SADs")]:::svc
   end
   oapp -->|"membership grants and rescissions"| node
-  papp --> plib -->|"anchor + deposit posts"| node
-  lurker -->|"fetch and verify"| node
+  papp --> plib
+  plib -->|"anchor on the poster's IEL"| node
+  plib -->|"deposit posts"| bstore
+  lurker -->|"fetch posts"| bstore
+  lurker -->|"verify against the chains"| node
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
   classDef ext fill:#20263a,stroke:#868e96,color:#e9ecef
 ```
 
-The operators run no forum server — moderation authority is their creator identity, and every party,
-poster or lurker, reads the same verifiable data from any node.
+The operators run no forum server — moderation authority is their creator identity, the board's
+stores are generic, and every party, poster or lurker, reads the same verifiable data from any copy.
 
 ## The composition
 
@@ -61,13 +67,21 @@ the feature's parts with nothing invented:
   freeze (bound every bracket, terminate the grant chains); a locked thread is the application
   declining to render replies past a marker — structure the app arbitrates, as the feature
   prescribes for everything the data does not itself order.
+- **The chains are on the federation; the posts are not.** The board's constitution, its grant
+  chains, and every poster's anchor are witnessed chains; the post SADs themselves live
+  **off-federation** on the board's content stores — a replicated
+  [`sadd`](../substrate/infrastructure/sadd.md) deployment in the service shape mail demonstrates
+  ([`mail.md` §The mail service](mail.md#the-mail-service--one-identity-whose-roster-is-its-deployments)),
+  or any store the operators choose, since a reader end-verifies either way. Durability is copy
+  count: a popular board's readers hold most of it anyway, and the stores exist so a cold reader has
+  somewhere to fetch from.
 
 ## Scenarios
 
-- **Post and reply.** A member authors a comment SAD, anchors it on their own IEL, and hands it to
-  the board's nodes. Any reader verifies the post's authorship (the anchor), its standing (the
+- **Post and reply.** A member authors a comment SAD, anchors it on their own IEL, and deposits it
+  to the board's stores. Any reader verifies the post's authorship (the anchor), its standing (the
   poster's bracket was open at the anchor position), and its place in the thread (the parent chain)
-  — from the data, from any node.
+  — from the data, from any copy.
 - **Edit your post.** A `supersedes` comment by the same author; the tree renders the tip. The
   history stays — an edit on this board is honest by construction.
 - **Ban a spammer.** Rescind the poster's comment grant at the detection tip: their existing posts

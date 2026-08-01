@@ -19,11 +19,12 @@ flowchart LR
     plib["checker client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
-  carrier -->|"issue · re-grant title"| node
-  bank -->|"issue · attest release conditions"| node
-  papp -->|"file versions · sealed negotiation"| node
+  carrier -->|"anchor issuances · re-grants —<br/>the title registry"| node
+  bank -->|"anchor issuances ·<br/>attest release conditions"| node
+  papp -->|"anchor file versions ·<br/>membership acts — chains"| node
+  papp <-.->|"sealed negotiation + document delivery —<br/>member-to-member over exchange"| papp
   papp -->|"present with selective disclosure"| plib
   plib -->|"verify · current-holder read"| node
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff

@@ -14,14 +14,16 @@ knowing; see [Composing the protocols](#composing-the-protocols).
 ## The credential
 
 A credential is a **standalone SAD** — data that references identities, never a chain of its own.
-Its **`kind` names its type** (`vdti/cred/v1/schemas/*`, application-registered — a diploma, an
-accreditation), so a relying party can dispatch on _which_ credential it is looking at. The shape
-below is the common wrapper every type carries.
+Its **`kind` names its type** (`{namespace}/cred/v1/schemas/*` — registered by the issuing
+application under its **own** namespace, never `vdti/`'s
+([`kinds.md` §The naming convention](../primitives/data/sad/kinds.md#the-naming-convention)) — a
+diploma, an accreditation), so a relying party can dispatch on _which_ credential it is looking at.
+The shape below is the common wrapper every type carries.
 
 ```
 credential = {
   said,       // its self-address; the immutable anchor
-  kind,       // vdti/cred/v1/schemas/* — the registered type (see below)
+  kind,       // {namespace}/cred/v1/schemas/* — the registered type (see below)
   issuer,     // the issuer's identity prefix
   issuerPin,  // the anchoring event's `previous` SAID — locates the anchor (see below)
   issuee?,    // the subject's identity prefix; ABSENT → a bearer credential
@@ -99,11 +101,14 @@ policy lives on the credential or the chain.**
   simple case is "the issuer is who I trust"; the delegated case is "the issuer holds authority
   delegated N hops from a root I trust," evaluated by walking the **issuer's** chain — never carried
   on the credential. Delegated issuance is thus **derived**, not asserted.
-- **Does the presenter own it?** The uniform **ownership proof**: the presenter must satisfy the
-  `issuee` identity's `t_use` quorum, live, binding the disclosure to a fresh, audience-scoped
-  `{ audience, nonce, created }` — realized as the IPEX `grant` signature, in one round trip, not a
-  separate challenge exchange. This is the whole "who may present" answer — structural, not a
-  policy. A bearer credential (no `issuee`) skips it.
+- **Does the presenter own it?** The uniform **ownership proof**: the presenter must prove the
+  `issuee` identity's ownership **live** — the **base live check** (one current member device),
+  stepped up to **`t_stepup`** devices where the relying party demands it
+  ([`../primitives/data/event-logs/iel/events.md`](../primitives/data/event-logs/iel/events.md#the-threshold-vector-and-its-bounds))
+  — binding the disclosure to a fresh, audience-scoped `{ audience, nonce, created }` — realized as
+  the IPEX `grant` signature, in one round trip, not a separate challenge exchange. This is the
+  whole "who may present" answer — structural, not a policy. A bearer credential (no `issuee`) skips
+  it.
 
 Why these are as-issued and a live ownership proof, never a live multi-party policy: anchors compose
 without coordination (each party commits on its own chain at its own pace, so you never need several
@@ -135,13 +140,13 @@ conjunction:
   no longer be killed: **revoke before terminating** anything only you can revoke — a widened policy
   keeps the locus open to the parties it names ([Revocation](#revocation)).
 - **Not revoked** — the fail-secure revocation walk ([Revocation](#revocation)).
-- **Owned** — the presenter satisfies the `issuee`'s `t_use`, bound to a fresh, audience-scoped
-  `{ audience, nonce, created }` (the `grant` signature; a verifier-issued challenge is the optional
-  stronger-liveness mode). Proving ownership is a live **`t_use` action**, so it is **frozen on any
-  divergence**: a forked, disputed, or **terminated** issuee grounds no ownership and is refused — a
-  fork freezes actions until any **T2 sealed act** seals it out (`iel/verification.md` — not only
-  `t_govern`), a dispute is unreconcilable, and a retired identity is done. Bearer credentials skip
-  this.
+- **Owned** — the presenter proves the `issuee`'s ownership **live** — base or step-up at the
+  relying party's demand — bound to a fresh, audience-scoped `{ audience, nonce, created }` (the
+  `grant` signature; a verifier-issued challenge is the optional stronger-liveness mode). Proving
+  ownership is a **live check**, so it is **frozen on any chain that is not Active**: a forked,
+  disputed, or **terminated** issuee grounds no ownership and is refused — a fork freezes actions
+  until any **T2 sealed act** seals it out (`iel/verification.md` — not only `t_govern`), a dispute
+  is unreconcilable, and a retired identity is done. Bearer credentials skip this.
 - **Not expired** — advisory; the caller decides.
 
 ```mermaid
@@ -152,7 +157,7 @@ flowchart TD
   s2 --> s3["issuer trusted — the relying party's decision"]:::chk
   s3 --> s4["fresh to the tip — not forked / disputed, current,<br/>multi-source witnessed (a Trm issuer passes)"]:::chk
   s4 --> s5["not revoked — fail-secure walk:<br/>target vs kills[] on the issuer's fresh chain"]:::chk
-  s5 --> s6["owned — issuee's t_use quorum bound to<br/>{audience, nonce, created}; frozen on divergence (bearer skips)"]:::chk
+  s5 --> s6["owned — issuee's live check, base or step-up, bound to<br/>{audience, nonce, created}; frozen when not Active (bearer skips)"]:::chk
   s6 --> s7["not expired — advisory, caller decides"]:::chk
   s7 --> grant["accept ✓"]:::good
   acc -.->|"any check fails"| deny["deny — fail-secure"]:::bad
@@ -168,10 +173,11 @@ Issuance and presentation are both **[IPEX](../primitives/protocols/ipex.md)** d
 discloser to a disclosee; issuance is the case where the discloser is the issuer). The credential is
 long-lived — its freshness is the anchor, revocation, and the advisory `expires`. A **presentation**
 is made fresh per use by the IPEX `grant` envelope, which carries `{ audience, nonce, created }` and
-is signed by the **issuee's current-tip `t_use` quorum**. That one signature does double duty: it
-proves **ownership** (the required signer is the credential's committed `issuee`, so control of the
-issuee's keys is the "who may present" answer) **and** binds the disclosure to its audience, nonce,
-and time so it cannot be replayed.
+is signed **live by the issuee** — a current member device (the base live check), or `t_stepup`
+devices where the relying party demands step-up. That signature does double duty: it proves
+**ownership** (the required signer resolves into the credential's committed `issuee`'s current
+roster, so control of the issuee's membership is the "who may present" answer) **and** binds the
+disclosure to its audience, nonce, and time so it cannot be replayed.
 
 - **Copy-replay of a targeted credential is closed within a single `grant`.** Replay to the same
   verifier hits the nonce dedup; replay elsewhere fails the audience binding; presenting someone
@@ -265,7 +271,11 @@ forged revocation, no silent un-revocation.
   ([`../primitives/data/event-logs/sel/log.md` §Prefix derivation](../primitives/data/event-logs/sel/log.md#prefix-derivation)).
   A `revocationPolicy` is one of the two structural leaves — `id(X)` or `del(Y, N)` — never a
   composed expression: a SEL's authority must keep authorship one-identity-per-event, and the two
-  leaves keep the write check a prefix equality or one delegation walk. The address commits the
+  leaves keep the write check a prefix equality or one delegation walk. A leaf naming an
+  **`Fcp`-rooted prefix is a dead configuration** — a federation authors no content, delegates to no
+  one, and its anchors admit only its own two topics, so the advertised non-issuer revocation
+  surface could never fire; mint tooling **refuses** it (the federation's own trust and block loci
+  are not instances — they are federation-authored, never user-minted). The address commits the
   write rule (a locus under any other rule is a different address, which the credential's bytes
   never derive), and it never leaks from the public tag — different digests over different inputs.
   The locus `Trm` is valid anchored by **any** identity satisfying the expression at its anchoring

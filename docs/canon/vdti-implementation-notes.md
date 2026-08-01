@@ -49,8 +49,9 @@ Doctrine is the leading edge — these follow it.
     vdti delta: (a) on ≥ 2 live tips emit the **verdict-recoupled synthetic** (`forked:{prefix}`/`disputed:{prefix}`
     qualified by position), **not** a hash over the tips (kels emitted its own `divergent:`/`contested:` string
     synthetic, ~:344/:354; vdti keeps a synthetic but recouples it to the verdict); (b) drop the `is_contest`
-    branch (no `Cnt` kind); (c) add the window bound below; (d) **filter the enumerated leaves to the live ones — every tip at serial ≥ the last
-    clean seal** (Jason 2026-07-03). The **last clean seal (forward-anchored, revised 2026-07-11)** is the highest
+    branch (no `Cnt` kind); (c) replace the whole-prefix anti-join with the **floor-anchored forward
+    traversal** below — the live-leaf set falls out of the traversal, so there is no anti-join and no
+    serial-range filter (revised 2026-07-31, landed). The **last clean seal (forward-anchored, revised 2026-07-11)** is the highest
     seal-advancer with no **witnessed** competing sibling **at its own position** — found forward, **not** by
     walking its lineage backward. It is the trust boundary: a live fork sits above it; a resolved / buried loser
     is sealed past it (below it). A **below-seal** sealed straggler is **dropped** — it does **not** retreat the
@@ -60,47 +61,32 @@ Doctrine is the leading edge — these follow it.
     **witnessed** siblings (`disputed`), never a below-seal straggler. A **buried content** subtree is already
     off the live table (the burial moved it to non-canonical retained storage), so a grown dead branch never
     surfaces — and a below-seal sealed straggler is filtered the same way: **only a seal-vs-seal collision at the
-    last seal yields `disputed`; a below-seal sealed event settles (is dropped), it does not un-settle the chain.** All the query primitives
-    exist in `verifiable-storage-rs` (`not_exists` + `CorrelatedSubquery`, `group_by` +
-    `having_count_gt`, `gte`, `order_by`). **The last clean seal is cheap** — query (1)'s duplicate-serial
-    check finds any competing-sealed serial; the clean seal is the highest seal-advancer whose **own position**
+    last seal yields `disputed`; a below-seal sealed event settles (is dropped), it does not un-settle the chain.** **The last clean seal is cheap** — the highest seal-advancer whose **own position**
     carries no witnessed competing sibling (forward-anchored — a below-seal competing serial is **dropped**, not
     retreated into), usually just `last_seal_advancing_event`.
-  - **Why it must be bounded — the log is indefinite.** kels' anti-join and its divergence check
-    (`GROUP BY prefix, serial HAVING COUNT > 1`, `services/kels/src/repository.rs:212`) scan the **whole
-    prefix** — O(chain length). On an indefinite vdti chain that is unacceptable per computation, and
-    the effective SAID is computed constantly (token-reuse gate, anti-entropy compare, post-merge). The
-    **seal cap makes it boundable**: a live fork sits ≤ `MAXIMUM_UNSEALED_RUN`/lineage above a seal, an origination-frozen fork
-    sits at the very top (nothing originates new work onto a live fork), and resolved-fork losers are archived
-    out of the live table (below the last clean seal the live table is linear → no leaves there). So **every
-    live tip lands within one page below `MAX(serial)`**. Bound both queries to
-    `serial > MAX(serial) − MINIMUM_PAGE_SIZE` (129, generous — all leaves are within ≤ `MAXIMUM_UNSEALED_RUN` of the seal
-    and the seal is within ≤ `MAXIMUM_UNSEALED_RUN` of `MAX`) and they stay O(page).
-  - **Two queries** (matches kels' two-step and the expected shape): **(1)** `MAX(serial)` + a
-    duplicate-serial check over the window (`GROUP BY serial HAVING COUNT > 1`, `serial > floor`) — cheap;
-    a linear result (no duplicate) fast-paths to the max-serial tip's SAID. **(2)** only when divergent,
-    the `NOT EXISTS` tip enumeration over the window → the sorted-tip hash. The `NOT EXISTS` subsumes the
-    "end-of-a-duplicate-run tip **plus** n-tips-at-the-final-serial" enumeration uniformly (every leaf,
-    canonical included), so no serial-run bookkeeping is needed.
-  - **Why the 129 bound is sound (Jason 2026-07-03).** A **divergent chain is origination-frozen** — a node
-    does not originate a seal-advancer onto a **live** fork it holds (inv 13; a burying seal-advancer from a
-    peer resolves the fork, it does not extend it) — so a node's **own last seal always sits at-or-below any
-    live fork it holds**, and `since: {own last seal}` reaches that fork within the cap. **Events can't be backdated**
-    (serial is fixed by `previous`), so a fork can't be re-dated to slip below where a node looks. So all
-    live divergence is caught by ordinary since-sync + the windowed digest — each node's window is
-    anchored at its **own** `MAX(serial)`, so a behind node's value already differs and its own
-    since-fetch pulls the fork. **Include the cursor's own siblings in the `since` response**
-    (adjacent-to-cursor, Jason): a node then also learns if the seal it is anchoring on is **itself**
-    forked (the `Disputed` sealed-spine-fork case) — otherwise it could anchor on a forked seal unaware. Once
-    a divergence is seen at a position the cap bounds it — you need only the one competing event, never a
-    rescan.
+  - **Bounded by construction — the floor-anchored forward traversal (revised 2026-07-31; supersedes
+    the `MAX(serial)`-window two-query shape and its 129 constant).** kels' anti-join and its divergence
+    check (`GROUP BY prefix, serial HAVING COUNT > 1`, `services/kels/src/repository.rs:212`) scan the
+    **whole prefix** — O(chain length), unacceptable on an indefinite chain for a value computed
+    constantly (token-reuse gate, anti-entropy compare, post-merge). The windowed fix — bound the
+    queries to `serial > MAX(serial) − MINIMUM_PAGE_SIZE` — is superseded too: a serial-range filter's
+    *input* is O(retained history above the floor) on exactly the prefixes an abuser inflated, and
+    "bounded because the result is bounded" is circular. The landed shape
+    (`docs/design/primitives/stores/log-store.md` §effective): derive the floor seal from held accepted
+    rows; seed with one indexed read on `previous = floor.previous` (an `Icp` floor seeds at serial 0 —
+    `previous IS NULL` semantics — or the read returns an empty window on every young chain); descend
+    children by `previous`, pruning each lineage at its first dead-on-ascent row. Cost O(live rows +
+    rotations); the **result** window is bounded by `MINIMUM_PAGE_SIZE = 259` (the two-per-rail
+    ceiling), but that bound is an output property — the traversal takes no serial-window input. The
+    `since` cursor is **inclusive of the floor serial**, so a node also learns if the seal it anchors
+    on is itself forked (the `Disputed` sealed-spine-fork case) — the adjacent-to-cursor rule, kept.
   - **The deep-mint case is not a digest gap (D1).** A sealed event injected **below a node's
     already-advanced seal** (the harvested-reserve deep-mint — inv 8) is not reached by
     that node's own since-fetch — but it is **not a hole the digest must close**: whoever **holds** it
     reads `disputed` directly (holds-and-revalidates, FORCE-by-provenance), and a node that does **not**
     hold it sits in the standing **eclipse residual** (inv 8) — if the event is witnessed it propagates
     via the beacon regardless; if it is not, a lone unwitnessed sibling forces no one's reading (inert).
-    The windowed digest makes this no worse than the eclipse residual already accepted, so the bound
+    The bounded read makes this no worse than the eclipse residual already accepted, so the bound
     holds.
   - **No side table / no dedicated advisory lock for the value.** It is a deterministic function of the
     live tips, computed on demand; the merge advisory lock (`save_with_merge`) already serializes writes,
@@ -143,7 +129,7 @@ Doctrine is the leading edge — these follow it.
   witnessed τ is a **data-time, not a delivery-time**, so a late-gossiped old event (witnessed τ below the
   watermark) updates a prefix that never re-sorts above the watermark → missed permanently; witnessed-time
   subset-dependence (per-node τ differs by receipt subset) frays the same boundary. A peer-local sequence is
-  delivery-ordered, so late arrivals always resurface. Services-layer (vdtid) mechanism — the doctrine
+  delivery-ordered, so late arrivals always resurface. Services-layer (`gossipd`) mechanism — the doctrine
   carries only "the anti-entropy trigger is the effective-SAID delta".
 
 ## Merge / locking

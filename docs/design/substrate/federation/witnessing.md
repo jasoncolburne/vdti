@@ -96,6 +96,14 @@ itself proof the witnesses colluded (a provable double-sign → eviction), while
 spent preimage or a partition race, no witness fault). Two or more _accepted_ sealed branches
 (counted per branch, wherever their seals sit) are the definition of **disputed**.
 
+**Scope: first-seen operates on the receipt path.** An `Fcp`-rooted chain's unwitnessed steps —
+serials 0–1 of a witness KEL, and a federation IEL's genesis — gather no receipts and spend no
+first-seen slot: their acceptance ground is the admission dispatch's own
+([`../../compositions/log-server.md` §The admission dispatch](../../compositions/log-server.md#the-admission-dispatch--three-legs-on-the-root-kind)),
+and a same-federation serial-1 sibling never accepts because the serial-1 event a roster admission
+honors is the **specific consent event the admitting act itself commits** — an unnamed sibling has
+no ground.
+
 **Fork-cost `= 2·threshold − signers`** is therefore the **floor** price of manufacturing a fork on
 a witnessed chain — the attacker's best case, under total partition; absent delivery control the
 rival is carried by a full `threshold` of colluders
@@ -130,22 +138,24 @@ federation honestly signs its own (an author-equivocation dispute, not collusion
 **A below-seal sealed event is declined — the witness mirrors the seal-cap.** The "structurally
 valid" test a selected witness applies before signing includes the **seal-cap** (the merge
 shape-validity gate —
-[`../../primitives/data/event-logs/kel/merge.md`](../../primitives/data/event-logs/kel/merge.md)): a
-sealed event whose parent lies **below the chain's current seal** is inert and is **declined**, so
-it never reaches threshold. This is the **backdate defense**: keeping a below-seal sealed straggler
-off the receipt path stops a total-key-compromise adversary from minting a fabricated historical
-fork years later. The witness decline is the **fast prevention layer** — it holds under honest,
-well-connected operation; the **guarantee** is the walk itself, because a below-seal sealed event is
-**dead on ascent** (its parent is already buried by a later seal — you cannot seal a buried chain),
-so even a partitioned or colluding witness set that _does_ sign one cannot overturn the live seal
-(the position is already spent). The **only** reachable dispute is therefore a seal-vs-seal
-collision **at the last (live) seal** (two accepted seals there, which takes a provable witness
-double-sign — the `2·threshold − signers` collusion, the determinism price; **or**, for two rebinds
-naming different federations at that seal, honest witnesses on disjoint sets — author equivocation).
-This signing decision reads the event **body** and the witness's held chain state to locate the
-current seal; it is a different operation from the bodyless **receipt-counting** below
-([§Query-scoping](#query-scoping-and-the-audit-flag)), which only confirms a receipt came from a
-legitimately-selected witness — not whether to sign.
+[`../../primitives/data/event-logs/kel/merge.md`](../../primitives/data/event-logs/kel/merge.md))
+**and the federation-facet topic → anchor-kind binding** (§The trust grant chain below — a SEL event
+anchored by a federation-facet IEL event outside the facet's four admissible rows is inert and is
+declined): a sealed event whose parent lies **below the chain's current seal** is inert and is
+**declined**, so it never reaches threshold. This is the **backdate defense**: keeping a below-seal
+sealed straggler off the receipt path stops a total-key-compromise adversary from minting a
+fabricated historical fork years later. The witness decline is the **fast prevention layer** — it
+holds under honest, well-connected operation; the **guarantee** is the walk itself, because a
+below-seal sealed event is **dead on ascent** (its parent is already buried by a later seal — you
+cannot seal a buried chain), so even a partitioned or colluding witness set that _does_ sign one
+cannot overturn the live seal (the position is already spent). The **only** reachable dispute is
+therefore a seal-vs-seal collision **at the last (live) seal** (two accepted seals there, which
+takes a provable witness double-sign — the `2·threshold − signers` collusion, the determinism price;
+**or**, for two rebinds naming different federations at that seal, honest witnesses on disjoint sets
+— author equivocation). This signing decision reads the event **body** and the witness's held chain
+state to locate the current seal; it is a different operation from the bodyless **receipt-counting**
+below ([§Query scoping](#query-scoping-and-the-serve-flags)), which only confirms a receipt came
+from a legitimately-selected witness — not whether to sign.
 
 **The split-stall and its exit.** First-seen partitions the receipts at a contested content position
 (`a + b ≤ signers`); when neither sibling reaches a majority — an even-`signers` tie, abstentions,
@@ -164,6 +174,13 @@ Either way the seal reaches the majority. Odd `signers` avoids the pure tie.
 ancestor-attach shape needs is not misbehavior. Only a second receipt over two distinct _content_
 `eventSaid`s, or a second distinct _sealed_ sibling, at one position is proof of misbehavior. That
 clean attribution is what the fork-cost pricing rests on.
+
+**A blocked prefix is declined.** Beyond structural validity, a selected witness declines to witness
+an event whose authoring identity the federation has **blocked** — a reversible, quorum-gated,
+per-prefix refusal that is the second front of spam protection against a valid-identity flood
+([`blocking.md`](blocking.md)). The check derives the block's address from the author and reads a
+cached lineage state, so it is constant-time on the signing path; a blocked prefix's events stay
+sub-threshold and cannot advance, while already-witnessed history and all serving stay untouched.
 
 ## Deterministic selection
 
@@ -221,11 +238,15 @@ a rebind `Wit` — which was current when the event was witnessed; the `select` 
 re-derivation** of that past selection, never a fresh selection under an old pin. The federation IEL
 and the witness KELs are append-only, so `roster(F @ federationPin)` and each witness's key at that
 context are both fixed: **an event stays witnessed forever — there is no re-witnessing of historical
-data**, and a since-removed witness's _established_ receipts keep counting. Federation context
-attaches per layer: a KEL carries it, a user IEL records its own authoritative
-`{federation, federationPin}` (field-matched to its members' KEL `Wit`s), and a SEL inherits its
-owner IEL's. A SEL event selects witnesses under the `federationPin` of the owner-IEL event it pins
-to — fully derivable, no new mechanism.
+data**, and a since-removed witness's _established_ receipts keep counting. The invariant is scoped
+to **the trust set in force**: witnessedness is already relative across verifiers with different
+trusted sets, and the trust grant chain (below) makes one verifier's trust set vary **in time** — an
+un-grant, and nothing else, can move a past countability reading downward (a receipt whose `τ` falls
+past the cut, on an event a node accepted before seeing the un-grant, stops counting), while the
+acceptance latch keeps already-held data held. Federation context attaches per layer: a KEL carries
+it, a user IEL records its own authoritative `{federation, federationPin}` (field-matched to its
+members' KEL `Wit`s), and a SEL inherits its owner IEL's. A SEL event selects witnesses under the
+`federationPin` of the owner-IEL event it pins to — fully derivable, no new mechanism.
 
 **The acceptance-time currency gate.** To keep an active chain from pinning an ever-staler context,
 witnesses **refuse to witness an event whose `federationPin`'s roster membership is not current**.
@@ -251,11 +272,13 @@ standing tier-2 requirement), never on retaining an old signing key.
 The currency gate governs _roster version_; the **federation clock** governs _time_, closing the
 harvested-old-key forgery that the forward-floor alone cannot reach.
 
-The clock is the **`clock` role** in each federation governance event's manifest — an **inline
-timestamp value**, not a separate SEL, event kind, or nested SAD (nothing dereferences it by its own
-SAID, so the manifest commits the value directly). Every federation governance `Wit` — a rotation,
-optionally also a roster change — commits a `clock` timestamp, and so do the genesis `Fcp` and the
-terminal `Trm`. The `Wit` is sealed and the timeline is **monotonic** (each clock time ≥ the prior,
+The clock is the **`clock` role** in each **federation event's** manifest — an **inline timestamp
+value**, not a separate SEL, event kind, or nested SAD (nothing dereferences it by its own SAID, so
+the manifest commits the value directly). A federation authors no `Ixn`, so **every** federation
+event carries a `clock`: the governance `Wit`s (a rotation, optionally also a roster change), the
+genesis `Fcp`, the terminal `Trm`, the `Ath` / `Dth` block toggles, and the trusted-federation
+un-grant `Rev`s — required there, because a `Rev`'s clock is an un-grant's counting cut (§The trust
+grant chain). Each is sealed and the timeline is **monotonic** (each clock time ≥ the prior,
 enforced at the seal), so it cannot be rolled back. Consumers read the timeline by walking the
 federation IEL they already walk for the roster.
 
@@ -276,13 +299,13 @@ byzantine residual). Wipe plus the clock together close the dormant-chain forger
 on a closed-window key is forced to carry old timestamps, so the tip reads **stale** and is
 detectable, fail-secure.
 
-**The 365-day auto-expiry.** A key-window may stay open at most
-**`MAXIMUM_WITNESS_KEY_WINDOW = 365 days`** — an un-refreshed window is treated as **closed at
-`T_join + 365 days`**, a fixed protocol constant, with no explicit `cut`. So a witness that never
+**The 180-day auto-expiry.** A key-window may stay open at most
+**`MAXIMUM_WITNESS_KEY_WINDOW = 180 days`** — an un-refreshed window is treated as **closed at
+`T_join + 180 days`**, a fixed protocol constant, with no explicit `cut`. So a witness that never
 participates in a `Wit` no longer keeps an indefinitely open window; it auto-expires and its later
-receipts read stale, the same closure a cut gives. Every witness therefore rotates **at least once a
-year** as standard practice (ML-DSA-87 handles the frequency easily); a slow-but-honest witness that
-lets its window lapse simply reads stale until it rotates, at no security cost. A member whose
+receipts read stale, the same closure a cut gives. Every witness therefore rotates **at least twice
+a year** as standard practice (ML-DSA-87 handles the frequency easily); a slow-but-honest witness
+that lets its window lapse simply reads stale until it rotates, at no security cost. A member whose
 window has auto-expired is **flagged at-risk** on the verification token — a data-local computed
 property, reported not raised — so operators evict-and-replace or reconfirm by rotation before
 cumulative loss reaches `t_govern`. There is no auto-eviction (removing a member is governance,
@@ -296,7 +319,9 @@ receipts are never judged under the expired old windows).
 receipt `τ` — beyond **`now + CLOCK_TOLERANCE_BAND`**. This bounds a `t_govern`-compromised
 federation's ability to future-date a `Wit`'s clock (which would push every window forward, making
 closed windows read open) to roughly one `CLOCK_TOLERANCE_BAND`. It reads against the consumer's own
-wall clock.
+wall clock — a read-time flag, which **defers** a future window rather than denying it; on the trust
+rail deferral becomes denial, because a vouched remote window opening past its own vouching act
+never counts (the vouch-time cap, §The counting conjunction).
 
 **Deployment invariant.** Because these are wall-clock checks, a consumer **must stay NTP-synced to
 within `CLOCK_TOLERANCE_BAND`**. A consumer drifted by more than `CLOCK_TOLERANCE_BAND` cannot trust
@@ -306,13 +331,16 @@ belongs in every deployment's operating requirements; a verifier cannot be defen
 wrong clock. When the federation is reachable, a live challenge-response is the no-local-clock path.
 
 **Constants.** The tolerance **`CLOCK_TOLERANCE_BAND = 1 minute`** and
-**`MAXIMUM_WITNESS_KEY_WINDOW = 365 days`** are fixed protocol constants (deterministic — every
-verifier agrees). `CLOCK_TOLERANCE_BAND` absorbs honest clock skew at a window boundary; its
-security cost is nil, since the attack it faces is gross staleness, not boundary-seconds. Distinct
-from the **staleness threshold** ("how old before a tip is flagged"), which is consumer /
-loss-of-trust policy. Clock timestamps are **UTC, RFC 3339, exactly 6 fractional digits
-(microseconds), zero-padded**, so the manifest canonicalizes byte-identically; the 6-place precision
-is for deterministic serialization, not a claim of microsecond accuracy.
+**`MAXIMUM_WITNESS_KEY_WINDOW = 180 days`** are fixed protocol constants (deterministic — every
+verifier agrees). `CLOCK_TOLERANCE_BAND` absorbs honest clock skew at a window boundary (a two-clock
+comparison can straddle up to two bands; the extreme reads as a transient, fail-secure boundary
+refusal, priced nil — unlike the vouch-time cap's comparison of two **frozen committed** clocks,
+which is why that cap alone is sized at `2 ×`); its security cost is nil, since the attack it faces
+is gross staleness, not boundary-seconds. Distinct from the **staleness threshold** ("how old before
+a tip is flagged"), which is consumer / loss-of-trust policy. Clock timestamps are **UTC, RFC 3339,
+exactly 6 fractional digits (microseconds), zero-padded**, so the manifest canonicalizes
+byte-identically; the 6-place precision is for deterministic serialization, not a claim of
+microsecond accuracy.
 
 ## The witness receipt
 
@@ -401,15 +429,15 @@ key-window, so a rogue future- or past-dated `τ` is discarded before it can ske
 witnessed time is therefore a consensus timestamp for **when an event became final**, carried by the
 same receipts the currency gate already trusts threshold-many-strong.
 
-This is **distinct from the federation clock**. The clock (a governance-authored `clock` role) times
-**federation governance events** and bounds **witness** key-windows — which cannot be
-receipt-derived without circularity, since a receipt counts only if its `τ` sits inside the signer's
-window. An ordinary event (a user's rotation, a group-key epoch) has no such circularity — its
-authors are not its witnesses — so its finality time is read from its **own** receipts. Because the
-witnessed time comes from the event's own receipts rather than the federation clock (which advances
-only at federation governance events, roughly yearly), it gives **per-event granularity** — a user
-rotating monthly, an epoch turning hourly, each gets its **own** boundary — resolving the
-quantization a governance-cadence clock would impose.
+This is **distinct from the federation clock**. The clock (a federation-authored `clock` role) times
+**federation events** and bounds **witness** key-windows — which cannot be receipt-derived without
+circularity, since a receipt counts only if its `τ` sits inside the signer's window. An ordinary
+event (a user's rotation, a group-key epoch) has no such circularity — its authors are not its
+witnesses — so its finality time is read from its **own** receipts. Because the witnessed time comes
+from the event's own receipts rather than the federation clock (which advances only at federation
+events — governance rotations plus the rare block toggle, so coarse in practice), it gives
+**per-event granularity** — a user rotating monthly, an epoch turning hourly, each gets its **own**
+boundary — resolving the quantization a coarse federation-cadence clock would impose.
 
 Witnessed times are **not self-ordering**, though: two establishment events witnessed within a
 tolerance band can come out inverted. So a currency consumer **checks** the establishment times it
@@ -423,22 +451,26 @@ a witnessed event needs one: the **key-state validity intervals** a message's se
 reads ([`../../features/exchange.md`](../../features/exchange.md)) and a **group-key epoch's
 window**.
 
-## Query-scoping and the audit flag
+## Query scoping and the serve flags
 
 Events reach the nodes that need them over the federation's gossip mesh — roster-wide announcement
 flooding for an event witnessed in full (its receipts and its chain's effective-SAID announcement
 flood; nodes fetch the events they lack — [`topics.md`](topics.md)), and sub-gossip among a
 position's selected witnesses for one still gathering receipts. All mesh traffic is encrypted, so
 contents stay within the roster; the channels and the two-scope transport are
-[`topics.md`](topics.md); the channel underneath it — the handshake, the per-connection session
-keys, and the nonce discipline that makes reuse structural — is
+[`topics.md`](topics.md); [`../infrastructure/gossipd.md`](../infrastructure/gossipd.md) terminates
+the mesh and enforces the scoping below on the wire; the channel underneath — the handshake, the
+per-connection session keys, and the nonce discipline that makes reuse structural — is
 [`../infrastructure/mesh-transport.md`](../infrastructure/mesh-transport.md). What matters for
 witnessing is what a query returns.
 
 This position-indexed receipt query is **the beacon**: because receipts are keyed at
-`(prefix, serial)`, querying a position returns the receipts for **every** witnessed branch there,
-so a node holding one branch learns the others exist and fetches them to walk — the detection signal
-a `disputed` read rests on.
+`(prefix, serial)`, querying a position returns the receipts for the witnessed branches **admitted
+there** — so a node holding one branch learns the others exist and fetches them to walk, the
+detection signal a `disputed` read rests on. The enumeration is **bounded, not complete**: the
+receipt admission gate caps a node at two attested events per signer per position, so its beacon
+always covers the dispute-proving pair, and the **union across nodes** covers every branch accepted
+anywhere — understanding a race's full branch set means querying all nodes.
 
 **Witnessed-in-full is a receipt count, checked against the committed config.** Each receipt carries
 the `threshold` in effect at its position, so a node reads "witnessed in full" by counting
@@ -457,15 +489,23 @@ a matching threshold.
 
 A **not-yet-witnessed (sub-threshold) event is witness-scoped**: a query returns it **only to a
 selected witness** for that position; to every other node — a non-witness, or a witness not selected
-here — it is noise and is not returned. So **non-witnesses only ever hold witnessed-in-full
-events**, which is what makes the data-local walk a pure function of _accepted_ state on every node,
-and an attacker cannot feed a sub-threshold competing event to a non-witness to skew its reading.
+here — it is noise and is not returned. So, for the **witnessed classes**, non-witnesses only ever
+hold witnessed-in-full events — which is what makes the data-local walk a pure function of
+_accepted_ state on every node, and an attacker cannot feed a sub-threshold competing event to a
+non-witness to skew its reading. (The scope matters: an `Fcp`-rooted chain's unwitnessed steps are
+**accepted** on the admission dispatch's own grounds and served on that acceptance — they are not
+sub-threshold noise; the serve gate is acceptance per class —
+[`../../compositions/log-server.md`](../../compositions/log-server.md).)
 
-An **opt-in `all-data` audit query** is the one exception: it returns every event and receipt a node
-holds, sub-threshold noise included. It is **walk-ignored** — a sub-threshold event never enters a
-verdict, so surfacing it cannot skew a reading — and its value is purely **forensic**: a suppressed
-competing sibling is evidence of an injection or collusion attempt, so the flag makes attack-attempt
-detection possible for an auditor. The default stays scoped.
+The full retained set stays reachable off the default path through **two orthogonal, opt-in serve
+flags**
+([`../../compositions/log-server.md` §The two serve flags](../../compositions/log-server.md#the-two-serve-flags--non-canonical-and-sub-threshold-orthogonal)):
+**`non-canonical`** lifts the cost boundary (everything held off the served spine —
+accepted-and-dead, verifiable, skewing nothing), and **`sub-threshold`** lifts the witness-scoping
+above — an audit obligation attaches, and what it surfaces is **walk-ignored** (a sub-threshold
+event never enters a verdict, so surfacing it cannot skew a reading). Their value is **forensic**: a
+suppressed competing sibling is evidence of an injection or collusion attempt, so the flags make
+attack-attempt detection possible for an auditor. The default stays scoped.
 
 For a **sealed** event, sub-gossip means it reaches every selected witness, so there is no stable
 "witnessed but sub-threshold" state (the only ways to hold one sub-threshold are pure eclipse or a
@@ -562,6 +602,243 @@ cutover / reincept, not a graceful overlap.** Multi-federation orchestration is 
 the framework gives the per-federation, non-transitive primitives and the recommendations, not an
 orchestrated protocol.
 
+## The trust grant chain — the federation boundary
+
+Whose receipts count across a federation boundary is a **governed chain, never per-node
+configuration**. Per-operator config would let nodes of one federation disagree on acceptance —
+divergence inside the trust boundary — so cross-federation trust is a **federation-governed trust
+grant chain**, blocking's mirror: a **per-remote-federation derived SEL** under the federation IEL,
+toggled by witnessed governance acts. Operators agree at threshold; every node holding the same
+chain state gives the same answer — synchrony is same-data-same-answer, and lag is staleness, never
+drift. **Consumers keep the configured set** (a trust root cannot come from data not yet trusted),
+and a federation node's **own** prefix is injected at the bootstrap ceremony, never derived from
+whatever claims to be self ([`bootstrap.md` §The trust root](bootstrap.md)). **The default posture
+grants none**: granting remote trust is an explicit opt-in — allowed, never required, and not the
+recommended default — and what a granting federation takes on is priced as a class
+([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
+
+**One definition, inherited by every rule here.** **Trust-granted** means a trust lineage **exists**
+for the remote federation — live, or killed (established-then-dead) — with the counting conjunction
+below the sole counting authority; **untrusted / never-granted** means no **established** lineage at
+any lineage index (a lineage that never established — unestablishable accepted bytes included —
+grounds nothing). Membership in the classes never changes at an un-grant: the lineage still exists;
+what changes is what the conjunction admits.
+
+### The chain's mechanics
+
+- **Every federation-owned derived locus — trust and block alike — derives with
+  `authority = id(this federation)`.** A node holds granted remote federations' trust and block SELs
+  too, so the derivation must be pinned: resolving a block under a remote federation's `id` would
+  silently import that federation's censorship across the grant, which blocking's own doctrine
+  forbids — a block is **local** ([`blocking.md`](blocking.md)). A prefix a remote federation blocks
+  needs no local check at all: it simply never reaches threshold on that federation's own chains.
+- **The grant** is a **`Gnt` anchored on the federation's governance `Wit`** — true `t_govern` —
+  whose typed value is a `grants/trusted-federation` SAD carrying **`{remotePrefix, bound}`**. No
+  timestamp field: the committed times come from the anchoring acts' own `clock`s — the grant's from
+  its `Wit`, the un-grant's from its `Rev` — and a value-level copy would be a divergence surface.
+  `remotePrefix` must equal the derived address's input, checked at the consumer — the address
+  commits the prefix; the field makes the SAD self-describing, never a second authority.
+- **The un-grant is `t_govern`, symmetric with the grant** — trust in a remote federation moves only
+  by governance, both directions: the SEL **`Trm` anchored by a federation `Rev`**, canon's revoke
+  rail whole. The `Rev`'s `kills[]` entry declares the **lineaged target only — no `bound`**: the
+  horizon is always the killed lineage's live `Gnt` value, and the cut is the `Rev`'s own `clock`,
+  un-withholdable. The `kills[]` declaration is stated because **trust fails open where blocking
+  fails secure** — a withheld un-grant reads still-granted, so the walk's per-lineage check must
+  read the killed target without depending on the withholdable leg. The emergency-speed case is
+  already served by per-prefix blocking — fast, scoped, reversible; a block rides `t_authorize`, so
+  under a decliner stall it lands while the decliners number at most
+  **`min(|roster| − threshold − 1, |roster| − t_authorize)`** — outliving governance acts wherever
+  `t_authorize < t_govern` — and past the witnessing axis nothing of any tier lands.
+- **A refused tip never falls back to a retired grant.** The walk serves the live sealed tip and a
+  retired value never surfaces, so a malformed refresh leaves the locus with **no servable value —
+  not granted, federation-wide, fail-secure**; the repair is a corrected `Gnt` stacked forward where
+  the refused tip's `bound` still resolves forward. Falling back to the last good grant would make
+  the answer depend on which grants a node happens to hold — a fail-open divergence inside the trust
+  boundary.
+
+### The topic → anchor-kind binding — structural, total on the federation facet
+
+A SEL event **anchored by an `Fcp`-rooted (federation-facet) IEL event** dispatches its admissible
+anchor kinds on the locus `topic`, and the federation facet admits **exactly four rows**:
+`topics/trusted-federation` — `Gnt` under `Wit` only, `Trm` under `Rev` only; `topics/block` — `Gnt`
+under `Ath` only, `Trm` under `Dth` only. **Any other combination — any other topic included — is
+inadmissible and INERT.** The rule lives in **structural validity**, at both enforcement points —
+the SEL verifier, and the pre-sign test a selected witness applies (§First-seen) — and both are
+decidable by construction: the anchoring event's chain and root facet are held wherever the check
+runs, and the locus `Icp` resolves from held state or the submitted batch (a
+federation-facet-anchored SEL event whose `Icp` resolves to neither is **declined** — safe on this
+facet and no other, because a federation-facet `Icp` carries no secret, while a private lookup is
+user-anchored and never reaches the rule). Closure is safe on this facet because the federation's
+reachable SEL kinds are exactly `{Icp, Gnt, Trm}`; the **user facet keeps no exception at all** — a
+topic stays verifier-meaningless there. Consumer-side narrowing survives for the two grant rows as
+defense in depth.
+
+**The refusal disposition is INERT — never a chain-level error.** A mismatched event is inadmissible
+and inert — dropped by the merge gate on admission, dropped by the walk when a held chain contains
+one — so the `Gnt` tip stands, the lineage stays live and un-terminated, and the position remains
+authorable by a genuine `t_govern` un-grant. (An error disposition would make the locus
+unresolvable, an unresolvable trust input fails secure, and a mismatched `Trm` would read **not
+granted** — a small-quorum denial lever this design refuses.) Two implementer notes, stated because
+each inverts an instinct: the refusal polarities differ — a mismatched `Gnt` reads _not granted_
+(fail-secure) while a mismatched `Trm` reads **still granted**, which is correct (only `t_govern`
+may un-grant) but inverts the treat-as-killed reflex; and the mismatch **refuses always and alarms
+only** when the anchor resolved to a real, threshold-satisfied event on the anchoring federation's
+own IEL with only its kind/topic row wrong — the governance-compromise signal only the federation
+can produce. A mismatch on an unresolvable or unrooted anchor is ordinary bad input, refused
+silently: a SEL `Icp` is unsigned recomputable content anyone can fabricate, and the trust locus
+address derives from two public prefixes, so an ungated alarm is remote-inducible — an alarm-flood
+and false-flag generator worse than the silent non-honoring the alarm exists to avoid. **One
+residual is worth stating here, though the inert disposition does not cause it.** A structurally
+invalid event is never anyone's state: every durable write validates structure first, so a decoy is
+refused at the merge gate and dropped by the walk, and minting them buys an adversary nothing. What
+remains is that an un-grant is an ordinary governance act at an ordinary position — witnesses that
+**decline to sign** can hold it unlanded, exactly as they can hold any governance act. Landing needs
+two resources — **`t_govern` willing authors** and each participation witnessed over the
+exclude-self pool — so it is possible only while the decliners number at most
+**`min(|roster| − threshold − 1, |roster| − t_govern)`**, and guaranteed-stalled past that. What is
+specific to **this** locus is that the stall does not age out: the usual escape — republish at the
+next lineage — depends on the old lineage reading **dead**, and a stalled un-grant leaves it
+**live**, where a reader stops. Trust in that remote therefore stays granted while the stall holds —
+**fail-open**, where the rest of this rail fails secure — and below the `t_govern` line the stall is
+bounded twice. In time: with fewer than `t_govern` decliners no refresh lands either — a refresh
+needs `t_govern` authors, honest members mid-un-grant author none, and the decliners cannot reach
+the count — so every countable window, its `T_join` at-or-before its vouching act's `clock` (the
+vouch-time cap, §The counting conjunction), closes by the last refresh's clock plus
+`MAXIMUM_WITNESS_KEY_WINDOW`; past that only backdated, stale-reading receipts still count — the
+tail the rogue-remote pricing already carries. In exit: below the guaranteed-stall count, a retried
+participation re-draws its selection and the un-grant itself eventually lands; from there up to
+`t_govern` decliners nothing governance lands — an eviction included, while a smaller-quorum act (a
+`t_authorize` block, where `t_authorize < t_govern`) survives to its own two-axis bound, never past
+the witnessing axis — and the exit is the **federation's** reincept alone: its identities' chains
+are untouched, witnessed history standing, and each **rebinds away freely** — a rebind
+self-bootstraps into the federation it declares, so the frozen federation cannot hold what it can no
+longer govern (§Rebinding). At `t_govern` the case stops being a stall: the decliners author
+governance themselves, which is the compromise §Security assumption prices, recovered the same way.
+Priced in the catalog
+([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
+
+### The counting conjunction
+
+A receipt counts iff its signer resolves to a selected witness — selection as-of the position, over
+`roster(F @ pin)` — of a federation that is **the node's own, or trust-granted in the federation's
+trust chain and held** ("held" evaluated **as the batch lands**, never once at ingress against
+pre-batch state). A remote federation's receipts count only **within its trust lineages' windows**,
+and the rule is a **conjunction, evaluated per lineage**: a remote receipt counts iff **some** trust
+lineage's window admits it —
+
+- a **live** lineage admits a receipt whose position's roster and key-window resolution stays within
+  the lineage's **`bound`** (a live lineage has no cut);
+- a **killed** lineage admits a receipt whose **`τ` is at-or-before the un-grant's committed
+  `clock`** (the cut) **and** whose resolution stays within its `bound`.
+
+Killed windows are **permanent counting authorities**, and a re-grant only ever widens — without the
+existential per-lineage reading, a cautious re-grant whose new `bound` sat below a killed horizon
+would move held readings down, a _grant_ moving a reading downward. The conjunction is the rule at
+**both consumers of countability** — the acceptance gate on arrival and the walk on held data. There
+is **no arrival-order leg anywhere**: acceptance is as data-pure as the walk, a late-arriving
+pre-cut migration still lands, and every node converges on the same acceptable set. Receipts of a
+never-granted federation are **discarded, never parked**; a formerly-granted federation's receipts
+fall to the conjunction — outside every lineage's window they are likewise discarded, never parked.
+
+**The vouch-time cap.** A vouched remote key-window counts only if its **`T_join` is at-or-before
+the `clock` of its vouching act plus `2 × CLOCK_TOLERANCE_BAND`** — the design's own worst honest
+cross-federation skew, each side's NTP discipline contributing one band. **A window's vouching act
+is the lineage's earliest `Gnt` whose `bound` covers the window-establishing remote event's
+position** (a fresh lineage's v1 covers every position within its `bound`), and the comparison value
+is that `Gnt`'s anchoring governance `Wit`'s `clock`. Both values are committed bytes and the
+attribution is a pure function of the lineage — re-derivable by any walk, never batch or door-local
+state — so acceptance stays data-pure, no wall clock, and no honest vouch is refused within the
+deployment invariant: a real remote rotation precedes the local act that vouches it, and two
+in-tolerance clocks differ by at most the absorber. (A deployment skewed beyond its NTP bound can
+see an honest window refused — fail-secure, cured at the remote's next vouched rotation once its
+clock is back within the bound.) What the cap closes is the **pre-minted future window**:
+future-clocked remote `Wit`s are monotone-valid and witnessable now under still-open prior windows,
+and the read-time wall-clock flag on a future timestamp defers rather than denies — without the cap,
+one refresh could vouch a ladder of them and hold windows that open long after the vouch, reading
+current indefinitely. With it, a window opening past its own vouching act never counts, anywhere,
+and the cap rides the conjunction to both of its consumers — the acceptance gate and the walk.
+
+**`bound` is a position — a remote-federation-event SAID — and it is monotone non-decreasing.** A
+refresh can never void a receipt's already-established resolution; **only the un-grant** moves a
+reading downward (a `bound` typo'd backwards on routine maintenance would otherwise silently
+un-witness a slice of accepted remote history). The `bound` is **refreshed by stacking another
+`Gnt`** on the live lineage — the rail's own value-rotation shape — and the monotonicity
+comparison's inputs are the dispatch's own: **held state or the submitted batch, the same at every
+selected witness, never door-local staging** (the refresh is submitted with the remote extension it
+vouches for; ancestry is pure chain linkage, covered by the staged-read license, conferring
+nothing). A refresh whose `bound` resolves from neither is **declined** — a liveness cost cured by
+resubmission-with-bytes — never inert; **inert is the disposition only for a resolved
+not-at-or-after**. Sequencing needs no new machinery: the refresh accepts first (its own
+federation's receipts; its monotonicity read resolves from the batch), the batched remote extension
+accepts second (resolution now within the new `bound`), parked dependents drain on presence
+throughout. **A single refresh vouches at most one submit batch of remote ancestry beyond held
+state**; a longer lapse is serviced by **chained refreshes** — each `Gnt` advancing `bound` at most
+a batch past the last accepted horizon, each vouched extension becoming held before the next
+comparison. The monotone baseline is structural, not reality-checked, and the residual is priced: a
+refresh whose `bound` names a fabricated, never-accepting SAID passes the linkage read and accepts —
+after which **an unresolvable horizon admits nothing**: the lineage's counting freezes outright,
+fail-secure (readings only move down, nothing false accepts), every corrective refresh reads as a
+resolved not-at-or-after and is inert, and **the repair is the un-grant plus reincept at the next
+lineage** — the un-grant's validity never reads the `bound`, the fresh lineage's first `Gnt` is a v1
+with no baseline, and the per-lineage existential read then re-admits everything within the fresh
+window, which is what makes the freeze transient rather than lossy.
+
+**The cut's threat model is the honest federation no longer wanted** — a compliance or regulation
+change — and against it the stop is immediate: post-change data honestly carries post-cut `τ` and is
+refused. **Against a rogue remote the cut does not close, and that is an accepted risk**: `τ` is
+capped above only, so a rogue can keep minting receipts indefinitely with backdated `τ` at or below
+the cut, from key-windows vouched within `bound` — byte-indistinguishable from genuinely late
+pre-cut receipts, which is why no data-pure closure exists. Priced four ways: such fabrications read
+**stale** to every freshness consumer (new-but-reads-old is the detectable shape); their ingress
+rides the ordinary per-IP and request bounds like any other spam; trust decisions never rest on them
+— consumers keep their own configured set; and they cannot move a held chain's **divergence
+verdict**, because the walk drops below-seal sealed stragglers as dead on ascent and a completed
+migration's remote-witnessed range sits wholly below its rebind `Wit` — a seal-advancer — so no
+revivable sibling survives above the live seal. The structural closure is the **`bound` leg**:
+post-cut remote governance sits past the horizon and never accepts — rogue included — so the
+pause-at-the-horizon posture never rests on honest timestamps.
+
+**Acceptance is a latch; countability is a pure function of committed bytes.** Held stays held,
+nothing un-accepts — so two nodes may permanently disagree on events witnessed after a cut that one
+accepted before seeing the un-grant: a **storage-and-serving** divergence, never correctness, since
+consumers keep the configured set and end-verify what they read. Do not "fix" the latch by
+un-accepting.
+
+### Cadence, provisioning, and migration
+
+- **A grant decays as the remote federation governs.** The currency gate re-pins every remote chain
+  at the remote's next membership change, so new remote traffic stops counting here until a refresh
+  — an in-flight migration pauses at the horizon, resuming on refresh — and between refreshes
+  **remote key retirements are invisible here**: a key the remote evicted, compromised keys
+  included, keeps producing countable receipts for up to `MAXIMUM_WITNESS_KEY_WINDOW` past its last
+  vouched rotation. Both are priced residuals bounded by the refresh cadence, never implied closed
+  ([`residuals.md` §Witness and federation trust](../../residuals.md#2-witness-and-federation-trust)).
+  And the cadence has a limit case: each chained refresh advances the horizon at most one submit
+  batch, so a remote sustaining governance above roughly a batch per local refresh interval
+  **outruns any cadence** — fail-secure (new remote traffic never counts; an in-flight migration
+  pauses permanently), reachable only by a remote churning its own membership, and the escape is the
+  stated posture for a hostile origin: hard cutover / reincept (§Rebinding).
+- **Making a grant functional is a provisioning obligation, discharged by ordinary submission of
+  authentic data — open to anyone.** Page the remote federation's public by-prefix surface and
+  submit its chains as correctly-shaped bundles **with their receipts** — the federation IEL first
+  (self-grounding against the granted prefix), then member KELs (now countable), then chains — all
+  through the merge layer and the receipt gate; a newly granted federation's chains arrive by
+  exactly this resubmission, with nothing staged promoted retroactively. The verifiability ordering
+  falls out of the admission dispatch rather than needing enforcement. And the classes never move
+  backward: an un-grant does not return a federation to the never-granted class — the lineage still
+  exists; the conjunction bounds what counts.
+- **Migration is ordinary traffic.** An application cannot migrate data to a federation that does
+  not trust the origin; where the destination has **trust-granted** the origin, the chain submits in
+  sequence — accepted and durable page by page, the origin's receipts counted per its lineages'
+  windows, the rebind last — under the ordinary rate limits, through the resumable admission walk. A
+  chain whose origin was **never granted** is refused pre-stage, no carve-out. In the rebind-away
+  direction, everything witnessed here **stays held** — what is not accepted is the chain's new,
+  elsewhere-bound extension (not own-signed, not dragged; mesh-arrived copies stage and age out). In
+  the migration-in direction the range is durable **on its own counted receipts, page by page** —
+  the ancestry drag remains only the general ancestry rule (stale-pin recovery, split-stall), never
+  a migration mechanism — and the storage is priced by non-transitive trust (the range grounds
+  nothing for a consumer that does not trust the origin), with per-prefix blocking as the lever.
+
 ## Roster governance
 
 A federation's roster changes ride the `Wit`'s **roster delta** — never a full snapshot. A `Wit`
@@ -610,7 +887,10 @@ for any competing sibling there. Two counts gate acceptance, at two levels: the 
 **required count of participations** (`t_govern` for a governance `Wit`), and **each participation**
 is witnessed at the witness-config **`threshold`** — at the minimum federation, three participations
 each carrying two peer receipts. A declined competing sibling's participations stay sub-threshold —
-the position gate, realized through the anchors.
+the position gate, realized through the anchors. Because selection is a deterministic public
+function, **a sub-threshold participation names its non-signers**: persistent receipt absence across
+positions identifies a declining witness to the authoring members — the observation the
+decliner-eviction control rests on, no new signal.
 
 Because a federation is critical infrastructure, its recoverability ceiling is **hard**: it must
 always be able to evict one compromised witness and get the cut trusted. So for federation member
@@ -643,14 +923,17 @@ therefore needs `≥ t_govern` current keys — the governance-compromise case, 
 ## Security assumption and residual
 
 The federation's soundness assumes **fewer than `threshold` byzantine** members at attestation time
-(the witness-config's receipting `threshold`, not the `t_govern` governance quorum); beyond that is
-operational recovery and reincept. The co-witnessing exclusivity carries its own tighter bound: it
-holds against fewer than `2·threshold − signers` byzantine double-signers within the selected set
-(the fork-cost), so for an over-provisioned config a coalition _within_ the blanket `< threshold`
-assumption can manufacture a co-witnessed content fork at fork-cost — priced, exposed, and
-evictable, not free. The irreducible residual is compromising `threshold`-many _current_ witness
-keys, which is the federation itself being compromised — recovery is reincept, not a backdate via
-stale keys.
+(the witness-config's receipting `threshold`, not the `t_govern` governance quorum) — **and fewer
+than `t_govern` byzantine members at governance**: a member coalition reaching `t_govern` authors
+governance at will, honest witnesses receipting its structurally-valid participations, and the two
+axes are independent (a config may legally set `threshold > t_govern`, where the governance axis
+breaks first). Beyond either is operational recovery and reincept. The co-witnessing exclusivity
+carries its own tighter bound: it holds against fewer than `2·threshold − signers` byzantine
+double-signers within the selected set (the fork-cost), so for an over-provisioned config a
+coalition _within_ the blanket `< threshold` assumption can manufacture a co-witnessed content fork
+at fork-cost — priced, exposed, and evictable, not free. On the attestation axis, the irreducible
+residual is compromising `threshold`-many _current_ witness keys, which is the federation itself
+being compromised — recovery is reincept, not a backdate via stale keys.
 
 ## Cross-references
 

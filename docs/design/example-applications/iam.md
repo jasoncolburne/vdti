@@ -29,9 +29,9 @@ flowchart LR
     r2["resource B — lib/vdti<br/>evaluates the adopted policy"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
-  issr -->|"issue grants · revoke · publish policy"| node
+  issr -->|"anchor grants · revoke ·<br/>seal policies on its SEL"| node
   emp -->|"request + furnished grant"| r1
   sid -->|"request + furnished grant"| r2
   r1 -->|"freshness + revocation reads"| node
@@ -56,8 +56,8 @@ there is no policy decision service to stand up, scale, or take down.
   service holds an identity and grants name it — API keys and capability tokens are this bullet
   verbatim.
 - **The rules are committed policy SADs.** What a resource requires is one expression in the policy
-  language — `crd(vdti/cred/v1/schemas/deployer, thr(1, [id(org), del(org, 2)]))` — published by the
-  organization and adopted by SAID
+  language — `crd(iam/cred/v1/schemas/deployer, thr(1, [id(org), del(org, 2)]))` — sealed on the
+  organization's policy SEL and adopted by SAID
   ([`../primitives/policy/policy.md` §The policy language](../primitives/policy/policy.md#the-policy-language),
   [§A policy is a SAD](../primitives/policy/policy.md#a-policy-is-a-sad)). Two resources naming the
   same SAID enforce the same rule by construction; changing a rule is publishing a new SAD, itself
@@ -99,9 +99,9 @@ there is no policy decision service to stand up, scale, or take down.
   `del(org, 2)` leg with no call to the root. Rescinding the lead later stops new grants and leaves
   the trail intact.
 - **A policy change.** The organization tightens a rule — delegated grants now accepted within two
-  hops instead of three. It publishes the new policy SAD and resources adopt the new SAID; the old
-  and new expressions are both permanent anchored objects, so which rule was in force when is
-  answerable after the fact.
+  hops instead of three. It seals the new policy SAD and resources adopt the new SAID; the old and
+  new expressions are both permanent anchored objects, so which rule was in force when is answerable
+  after the fact.
 
 ## What this validates
 

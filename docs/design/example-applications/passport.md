@@ -21,12 +21,15 @@ flowchart LR
     rlib["reader client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("nodes<br/>vdtid + witnessd")]:::svc
+    node[("nodes<br/>logsd · sadd · witnessd · gossipd")]:::svc
   end
-  maker -->|"issue product cred · recall"| node
-  attestor -->|"issue attestation creds"| node
+  pstore[("the registry's stores — off-federation<br/>sadd — dossier record SADs")]:::svc
+  maker -->|"anchor issuances — product cred · recall"| node
+  attestor -->|"anchor issuances — attestation creds"| node
   regapp -->|"append entries committing them"| node
+  regapp -->|"deposit record SADs"| pstore
   rlib -->|"walk the dossier · verify each leg"| node
+  rlib -->|"fetch records"| pstore
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef org fill:#3d2f12,stroke:#f08c00,color:#fff
@@ -53,7 +56,9 @@ Two constructs, joined by reference — each doing only what it is for:
   passport discriminator, entries committing dossier records by SAID
   ([`../primitives/data/event-logs/sel/log.md`](../primitives/data/event-logs/sel/log.md)). The log
   supplies what the credential cannot: an append-only, witnessed **timeline** — the `ledger`
-  composition applied to one product's life ([`ledger.md`](ledger.md)).
+  composition applied to one product's life, storage split included: the spine is a witnessed chain,
+  and the committed record SADs live on the registry's own off-federation stores
+  ([`ledger.md`](ledger.md)).
 - **Third parties attest by credential; the log collects by reference.** An inspector, a service
   shop, an auditor issues its **own** credential — anchored on its own chain, carrying its own
   authority, revocable per its committed revocation rule (by default, by it alone) — and the
@@ -75,7 +80,7 @@ Two constructs, joined by reference — each doing only what it is for:
   committing the credential — the passport exists the moment the product does.
 - **A service visit.** The shop issues a service attestation to its own chain's authority; the
   registry appends an entry committing it. The owner of the good needs no account anywhere — the
-  passport travels with the good's identifier, fetchable and verifiable from any node.
+  passport travels with the good's identifier, fetchable and verifiable from any copy.
 - **An audit.** The auditor reads the whole dossier from any source, verifies every attestation
   against its issuer, and checks the product credential's standing — including whether the maker has
   recalled this unit. Nothing in the read trusts the registry beyond its curation.

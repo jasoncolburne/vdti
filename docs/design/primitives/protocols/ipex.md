@@ -122,13 +122,14 @@ grant = {
 }
 ```
 
-signed over the recomputed `grant.said` by the **presenter's current-tip `t_use` quorum**. That one
-signature does **double duty**. It proves **ownership** — for a targeted disclosure the required
-signer is the disclosed SAD's committed **issuee** (not the self-declared `discloser`), so a valid
-signature means the presenter controls the issuee's `t_use` threshold, which answers "who may
-present" structurally, with no separate challenge — **and** it binds the disclosure to
-`{ audience, nonce, created }` so it cannot be replayed. That is why the baseline is a single round
-trip.
+signed over the recomputed `grant.said` **live by the presenter** — a current member device of the
+issuee's roster (the **base live check**), or **`t_stepup`** devices where the verifier demands
+**step-up**. That signature does **double duty**. It proves **ownership** — for a targeted
+disclosure the required signer is the disclosed SAD's committed **issuee** (not the self-declared
+`discloser`), so a valid signature means the presenter controls the issuee's identity live, which
+answers "who may present" structurally, with no separate challenge — **and** it binds the disclosure
+to `{ audience, nonce, created }` so it cannot be replayed. That is why the baseline is a single
+round trip.
 
 **Signed, not anchored.** A `grant` is **signed**, never anchored — a presentation writes
 **nothing** to the chain. Anchoring every presentation would be infeasible (a witnessed chain event
@@ -148,7 +149,7 @@ trading that correlation for third-party-provable liveness. Baseline presentatio
 - the signature resolves, at the signer's **current witnessed tip** (read from any source), to the
   **required signer** — for a **targeted** disclosed SAD, the SAD's committed **`issuee`** (and
   `discloser` equals it); for an **untargeted** SAD, the `discloser` (a bearer — no ownership
-  binding). Presenting is a live **`t_use` action**, so it is **frozen on any divergence**
+  binding). Presenting is a **live check**, so it is **frozen on any chain that is not Active**
   (`iel/verification.md`): a **forked, disputed, or terminated** signer cannot present — a fork
   freezes actions pending any **T2 seal-out** (`iel/verification.md`), a dispute is unreconcilable,
   a retired identity is done — and the gate refuses (fail-secure);
@@ -170,9 +171,9 @@ disclosed SAD it treats generically.
 
 **Why it holds.** Replay **to me** → the nonce is already consumed. Replay **elsewhere** →
 `audience` mismatches. **Present someone else's targeted credential** → the required signer is that
-credential's committed issuee, whose `t_use` key the impersonator lacks. **Swap the credential**
+credential's committed issuee, whose member keys the impersonator lacks. **Swap the credential**
 into a captured envelope → the recomputed `said` no longer matches the body, and the signature is
-over that recomputed `said`, so it breaks. **Forge** → no `t_use` key. A targeted credential's
+over that recomputed `said`, so it breaks. **Forge** → no member key. A targeted credential's
 copy-and-replay is closed **within a single `grant`** — no verifier-issued challenge required.
 
 **The timestamp is a cache bound, never a trust input.** `created` is self-asserted and forgeable,
@@ -191,7 +192,7 @@ un-replayed. It is a mode, not the baseline.
 ## Targeted vs untargeted disclosures
 
 - **Targeted** — the disclosed SAD names an **issuee**. The verifier's gate requires the `grant`
-  signature to resolve to that committed issuee's current-tip `t_use` quorum (and `discloser` to
+  signature to resolve **live** into that committed issuee's current roster (and `discloser` to
   equal it), so only the issuee can present — enforced against the committed field, never the
   self-declared `discloser`.
 - **Untargeted (bearer)** — the SAD names no issuee. Any holder presents it; there is no ownership
@@ -200,10 +201,11 @@ un-replayed. It is a mode, not the baseline.
   verifier — but a bearer credential copied by an observer can be re-presented by the copier. That
   is inherent to bearer credentials, stated in the credential residuals, not an IPEX defect.
 
-The "who may present" step is an **authentication of the issuee** — satisfy its `t_use` threshold
-(presenting a credential is a **use** act, like issuing one, so it draws on the issuee's `t_use`
-slot) — **not a policy**, and not part of the disclosed SAD's own authorization. IPEX realizes it as
-the `grant`'s `t_use`-quorum signature; a caller never writes a policy for it.
+The "who may present" step is an **authentication of the issuee** — the **base live check** against
+its current roster, stepped up to **`t_stepup`** devices at the relying party's demand (`t_stepup`
+is the identity's published step-up bar; **issuing**, by contrast, is an anchored chain write at
+`t_use`) — **not a policy**, and not part of the disclosed SAD's own authorization. IPEX realizes it
+as the `grant`'s live signature; a caller never writes a policy for it.
 
 ## The boundary — what IPEX is not
 
@@ -257,8 +259,8 @@ original serialization.
 - [`../data/sad/sad.md`](../data/sad/sad.md) / [`../data/sad/kinds.md`](../data/sad/kinds.md) — the
   SAD layer and the naming convention the `vdti/ipex/v1/*` message kinds follow.
 - [`../data/event-logs/iel/events.md`](../data/event-logs/iel/events.md) — the anchor that is proof
-  of issuance, the `t_use` quorum the `grant` signature resolves against, and the revocation
-  declaration the status check reads.
+  of issuance, the roster (and `t_stepup` step-up bar) the `grant` signature resolves against live,
+  and the revocation declaration the status check reads.
 - [`../../substrate/federation/witnessing.md`](../../substrate/federation/witnessing.md) — why the
   anchor is witnessed and how the current tip is read from any source.
 - [`../policy/evaluation.md`](../policy/evaluation.md) — as-issued evaluation, the same discipline

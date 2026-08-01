@@ -1,239 +1,171 @@
-# witnessd — the witness, gossip, and sync daemon
+# witnessd — the witness
 
-`witnessd` is the federation-facing daemon: it holds the node's **witness identity and signing
-keys**, terminates the encrypted mesh, runs the witness role — first-seen signing, receipts,
-sub-gossip, routing — parks events that arrive ahead of their cross-chain dependencies, and drives
-the anti-entropy loops that repair silent divergence between nodes. The witnessing **rules** are the
-federation's ([`../federation/witnessing.md`](../federation/witnessing.md)); this doc states the
-daemon that runs them, and the sync machinery it owns.
+`witnessd` is the witness: a **verify-then-sign service**. It receives a payload, **verifies it via
+the store interfaces**, gates it, signs the SAID, and **persists what it signed**. It runs **no mesh
+and no sync** — routing, bootstrap, anti-entropy, send-side partitioning, and freshness gathering
+are [`gossipd`](gossipd.md)'s; parking is the server compositions'
+([`../../compositions/log-server.md`](../../compositions/log-server.md)) — and it is **never
+public**: only co-located services reach it, over local infrastructure. The witnessing **rules** are
+the federation's ([`../federation/witnessing.md`](../federation/witnessing.md)); this doc states the
+daemon that runs them.
 
-"Gossip" names the **pattern** — the epidemic propagation layer riding the mesh transport
-([`mesh-transport.md`](mesh-transport.md), [`../federation/topics.md`](../federation/topics.md));
-`witnessd` is the service that speaks it.
+The principle, stated once: **the stores expose raw state with no auth gates, and every service
+verifies before acting — everything in the system is a verifier.** `witnessd` re-derives whatever
+the kind in front of it needs, from state it reads itself.
 
 ## The witness identity and key custody
 
 The witness's signing keys — the keys that mint receipts and freshness statements — live in
-`witnessd`, backed by an HSM. This is the reason the daemon boundary exists where it does: `vdtid`
-fronts the public API and carries the larger attack surface, so **a compromised `vdtid` must not be
-able to mint receipts** — attestation capability is custodied one service away, and the two daemons
-are separable onto distinct hosts ([`architecture.md` §Transport](architecture.md#transport)). Key
-rotation follows the federation ceremony — a witness rotation **is** a federation `Wit`, and
-superseded private key material is wiped on rotation and removal
+`witnessd`, backed by an HSM. This is the reason the daemon boundary exists where it does: the store
+daemons front the public API and carry the larger attack surface, so **a compromised store daemon
+must not be able to mint receipts** — signing capability is custodied behind a service that is
+**never public**, reached only over local infrastructure through its kind-gated signing endpoint
+([`architecture.md` §Transport](architecture.md#transport)). Key rotation follows the federation
+ceremony — a witness rotation **is** a federation `Wit`, and superseded private key material is
+wiped on rotation and removal
 ([`../federation/witnessing.md` §The federation clock](../federation/witnessing.md#the-federation-clock)).
 
-## The witness role
+## The signing path — five gates
 
-What `witnessd` runs, per the federation doctrine:
+Witnessing an event is eight steps carrying **five gates**, and every gate is `witnessd`'s own —
+none is delegated to the service that delivered the payload:
 
-- **First-seen signing, per tier, per position.** For each `(prefix, serial)` it is selected for, it
-  signs the first structurally-valid content sibling and the first structurally-valid sealed
-  sibling, and declines every later one — including the seal-cap mirror (a below-seal sealed event
-  is declined, the backdate defense). Structural validity is checked through the core against the
-  chain state held in `vdtid`; a witness signs nothing it has not verified.
-- **Receipts.** Its receipt SAD carries the as-of-position selection context and its asserted time
-  `τ` inside the signed payload
-  ([the witness receipt](../federation/witnessing.md#the-witness-receipt)). Receipts flood
-  roster-wide once an event is witnessed in full; a still-gathering event sub-gossips only among its
-  selected witnesses.
-- **The beacon.** Receipts are keyed at `(prefix, serial)`, so the position-indexed receipt query
-  enumerates every witnessed branch at a position — the detection signal a `disputed` read rests on.
-  `witnessd` answers it from the receipt rows `vdtid` stores.
+> verify via the store interfaces → **re-derive selection** → **block check** on the authoring
+> prefix → **acceptance-time currency gate** → **first-seen check** at this position, tier-scoped →
+> **kind-gate** → sign → persist.
 
-## On-receiving-node routing
+- **Verification is the core's, against state read directly.** Structural validity is checked
+  through the core against the chain state the node's stores hold — a witness signs nothing it has
+  not verified, and the stores expose raw state, so there is nothing between the witness and the
+  bytes it judges.
+- **Selection is re-derived.** A witness acts for each `(prefix, serial)` **it is selected for**,
+  computing `select(prefix, serial, roster, signers)` over the roster it reads itself
+  ([`../federation/witnessing.md` §Deterministic selection](../federation/witnessing.md#deterministic-selection)).
+  Routing lives in `gossipd`, and a reduced witness that signed whatever routing handed it would be
+  consuming another server's answer — the trusted backend RPC this architecture bans — letting a
+  compromised `gossipd` induce receipts at positions the node was never selected for. Re-deriving is
+  what makes that compromise mesh impersonation only.
+- **The block check runs before every signing.** A selected witness **declines to witness an event
+  authored by a blocked prefix** — the federation's per-prefix block toggle
+  ([`../federation/blocking.md` §The witness check](../federation/blocking.md#the-witness-check)).
+  The check must be cheap, so `witnessd` holds the block state as an **on-demand, per-author cache**
+  — a memoized constant-time lookup keyed on the authoring prefix, materialized from the derived
+  block SEL and refreshed over Redis pub-sub — never enumerating the full set (the derived addresses
+  are non-listable), only deriving the one address for the author in front of it.
+- **The acceptance-time currency gate.** A witness **refuses to witness an event whose
+  `federationPin`'s roster membership is not current**
+  ([`../federation/witnessing.md` §As-of-context evaluation](../federation/witnessing.md#as-of-context-evaluation-and-the-currency-gate)).
+  It compares roster **membership** — an add or a cut fires it; a pure rotation does not — and it is
+  establishment-time: it never voids receipts already established, and the stale-in-flight event
+  canon deliberately accommodates still lands.
+- **First-seen, per tier, per position — including the seal-cap mirror.** For each
+  `(prefix, serial)` it is selected for, it signs the **first** structurally-valid **content**
+  sibling and the **first** structurally-valid **sealed** sibling, and declines every later one —
+  including the seal-cap mirror (a below-seal sealed event is declined, the backdate defense). These
+  are declines of events that **pass** verification; first-seen is the foundation of
+  one-sealing-per-position, where a second sealed receipt is collusion proof. The tier scoping is
+  load-bearing: one content sibling _and_ one sealed sibling per position is what makes the
+  split-stall exit's cross-tier co-sign legal.
+- **The kind-gate** dispatches what may be signed at all — receipts and freshness on the internal
+  path, the mesh handshake on the local endpoint below — then the signature is minted under the HSM
+  key and the act is **persisted**.
 
-A user submits to their **preferred witness** — usually not one selected for the position, which is
-fine:
+## The signing record
 
-- The receiving node computes the selection locally — `select(prefix, serial, roster, signers)` over
-  the roster it holds — and routes the event body, **targeted**, to the selected witnesses.
-- The selected witnesses verify, sign, and sub-gossip the body among themselves; their **receipts
-  flood** the roster. The body never floods — it moves targeted to the selected witnesses, and every
-  other node fetches it when the chain's flooded announcement shows a value it lacks
-  ([`../federation/topics.md`](../federation/topics.md)).
-- The preferred witness answers "witnessed yet?" **from receipts alone** — counting `threshold`-many
-  receipts agreeing on `(event SAID, threshold)`. The receipt-carried threshold is a **fast-path
-  hint only**: on pull, the count is honored only on an exact match against the chain-committed
-  witness-config in effect at the position — a mismatched receipt is invalid even if it names a
-  higher bar
-  ([witnessed-in-full is a receipt count](../federation/witnessing.md#query-scoping-and-the-audit-flag)).
+`witnessd` keeps its **own** first-seen record — one row per `(prefix, position, tier)` carrying
+`{ eventSaid, signature }`, written inside the per-prefix lock at the moment it signs, **never
+deleted**, unwritable by any other service, and read **signature-verified** against `witnessd`'s own
+key. The first-seen check reads **this record**, declining only a **different** `eventSaid` — so a
+compromised sync path can neither suppress the record (making the witness double-sign by clock) nor
+plant one (making it decline the legitimate event forever), a re-submitted identical event never
+stalls a position, and the spent vote outlives any staged copy of the event body.
 
-## Freshness-statement service
+Ownership follows the same line: `witnessd` **write-owns the witnessing scope** — receipts in the
+chain store, freshness statements on the expiring side, and this signing record, which no other
+service may write at all. Ownership is of **schema and migrations, never exclusivity**: `gossipd` is
+a runtime writer of receipts, and so is client submission through the receipt admission gate — which
+is exactly why the first-seen check reads `witnessd`'s own record instead of the receipt rows
+([`../../compositions/log-server.md` §Migration ownership](../../compositions/log-server.md#migration-ownership--one-owner-several-writers)).
 
-`witnessd` signs and gathers the freshness statements the consumer-side multi-source bar consumes
-([`architecture.md` §The freshness statement](architecture.md#the-freshness-statement)):
+## Receipts
 
-- **Signing.** On demand, it attests its node's held effective-SAID for a set of prefixes — read
-  from `vdtid`, computed by the core — with `τ` (and a consumer nonce, in the live variant) inside
-  the signed payload, under the HSM key. It caches its own signed statement per prefix and re-signs
-  only when its held value moves or the statement ages out of its serving window (an operational
-  knob; the consumer's own staleness threshold governs acceptance regardless) — so its signing rate
-  is bounded by demanded-prefixes per window, never by decision volume.
-- **Gathering.** As a consumer's home node, it collects statements from peer witnesses over the
-  standing mesh sessions — enough distinct current members to clear the consumer's bar (the
-  federation's witness-config `threshold`, by default) — and hands the bundle to `vdtid` to serve
-  and cache. The statements end-verify, so gathering and relaying are untrusted plumbing; a peer's
-  refusal or silence just shrinks the bundle, and an under-bar bundle makes the consumer refuse.
+Its receipt SAD carries the as-of-position selection context and its asserted time `τ` inside the
+signed payload ([the witness receipt](../federation/witnessing.md#the-witness-receipt)). What
+happens to a receipt after minting is not this daemon's: receipts flood roster-wide once an event is
+witnessed in full, a still-gathering event sub-gossips among its selected witnesses
+([`gossipd.md`](gossipd.md)), and the position-indexed receipt read — **the beacon** — is a named
+`LogServer` query served by [`logsd`](logsd.md) on the public face and `gossipd` on the mesh
+([`logsd.md` §The chain read](logsd.md#the-chain-read--keep-all-data-serve-the-accepted)).
 
-## Bootstrap — a node serves nothing until it is in sync
+## Freshness-statement signing
 
-A fresh node joining the mesh runs a deliberate sequence, and **readiness gates serving** throughout
-([`vdtid.md` §Scaling](vdtid.md#scaling)):
+`witnessd` signs the freshness statements the consumer-side multi-source bar consumes
+([`architecture.md` §The freshness statement](architecture.md#the-freshness-statement));
+**gathering** them from peers is `gossipd`'s
+([`gossipd.md` §Freshness gathering](gossipd.md#freshness-gathering)).
 
-- **Establish identity first.** Two cases, split by whether the identity already exists:
-  - **A fresh replica or re-joining node of an existing member** authenticates as that member — its
-    identity is long witnessed, its admission long landed — and preloads immediately.
-  - **A brand-new witness** has no witnessed identity before admission: its `Fcp`-rooted chain's
-    consent act rides the admitting `Wit` itself (the federation ceremony —
-    [`../federation/witnessing.md` §Roster governance](../federation/witnessing.md#roster-governance)),
-    and the mesh **is** the roster, so pre-admission it can reach neither the encrypted channel nor
-    the member-only listing. Its preload **begins after admission lands** — its first duty cycle is
-    the cold enumeration — and operators MAY warm it beforehand by **operator-arranged
-    point-to-point provisioning** (the same posture genesis has: before the mesh, arrangement is
-    point-to-point — [`../federation/bootstrap.md`](../federation/bootstrap.md)). A just-admitted
-    witness is selectable while still preloading; the receipt redundancy (`signers − threshold`
-    slack) is what makes that safe.
-- **Preload is the anti-entropy enumeration, run cold.** There is no separate bootstrap protocol: a
-  fresh node pages each peer's update-sequence listing from an **empty watermark** — which is the
-  whole listing — and fetches everything that differs, exactly the standing loop below.
-- **Retry as a unit until clean.** The preload passes (each chain type, then the SAD-object pass)
-  repeat until none reports a sync failure — the poll-based backstop beneath park-and-drain, and
-  load-bearing for "we cannot serve until we are in sync." Peers' own readiness is probed before
-  dialing, so a starting cluster does not race ahead of peers still coming up.
-- **Only then mark ready** — and only then join the standing gossip and anti-entropy duty cycle.
+- **On demand, it attests its node's held effective-SAID** for a set of prefixes, with `τ` (and a
+  consumer nonce, in the live variant) inside the signed payload, under the HSM key. It caches its
+  own signed statement per prefix and re-signs only when its held value moves or the statement ages
+  out of its serving window (an operational knob; the consumer's own staleness threshold governs
+  acceptance regardless) — so its signing rate is bounded by demanded-prefixes per window, never by
+  decision volume.
+- **The attested value is re-derived under a verification token**, the effective-SAID reuse gate and
+  `resume` discipline
+  ([`../../protocol-doctrine.md` §Caching and continuation](../../protocol-doctrine.md#caching-and-continuation))
+  — never a bare recompute from held rows. The bare recompute is vacuous: a compromised sync path
+  that flips a prefix's held state would have the recompute return the tampered answer, and
+  freshness is the one signature class that feeds a consumer's trust decision. The token makes the
+  signing **tamper-evident for injected or rewritten state** — a tampered body moves the tip SAID,
+  which moves the effective-SAID, which trips the gate and forces the re-walk, and the re-walk fails
+  on the forged signature.
+- **The claim does not cover rollback, and canon does not need it to.** A writer that **truncates**
+  a prefix to an earlier, genuinely-valid position moves the effective-SAID, trips the gate, and the
+  re-walk **succeeds** — a valid prefix of a valid chain is a valid chain — so the statement asserts
+  a stale tip as current. That is indistinguishable from a lagging node, and it is absorbed where
+  lag already is: the storage surface is **availability and staleness**, converted to refusal by the
+  consumer-side **multi-source bar**, with propagation lag in the standing eclipse/staleness
+  residual ([`architecture.md`](architecture.md#adversarial-framing)).
 
-## Deferred-dependency parking and drain
+## The local sign endpoint — a kind-gate
 
-When `vdtid` answers a submission with the typed deferred-dependencies response
-([`vdtid.md`](vdtid.md#deferred-dependencies--the-typed-response)), `witnessd` **parks** the batch
-and **drains** it when its dependencies land:
-
-- **The park map** lives in Redis: a primary record per parked message, plus secondary indexes by
-  awaited SAID and by awaited chain, each entry carrying the dependency chain's effective-SAID at
-  park time. Writes go **secondaries before primary**, so that a primary, once landed, is **always
-  drain-reachable** — there is no window where a parked record exists unindexed, the failure that
-  would strand a park until its expiry. The crash residue is the benign one: dangling secondary
-  entries, harmless no-op drain triggers — and **every key, primary and secondaries alike, carries
-  the expiry**, so they age out on their own.
-- **Drain triggers.** A parked batch replays when an awaited SAID commits (the post-merge
-  notification), or when an awaited chain's effective-SAID **changes from its parked value** — the
-  chain changed, so the dependency may now be satisfiable. Replay runs through the transfer engine
-  into the ordinary merge path; a replay that defers again re-parks against the new value.
-- **Loss is tolerated by design.** The park map is reconstructible state: a lost park re-arrives by
-  gossip or anti-entropy, so expiry bounds are safety-free — parking is a latency optimization on
-  convergence the sync loops guarantee anyway. That guarantee has a coverage condition: **every
-  parkable dependency type — the chain types and the SAD-object await — runs its own anti-entropy
-  pass** — a park whose record expires while its awaited type has no pass of its own would strand
-  until random-sample luck, so the pass set matches the parkable-dependency set.
-
-## Anti-entropy
-
-Gossip delivers what nodes announce and fetch; **anti-entropy repairs what the announce-and-fetch
-cycle missed** — the periodic loops that find and close silent divergence between this node's held
-state and its peers'. The **effective-SAID is the compare key** throughout
-([the anti-entropy trigger](../../protocol-doctrine.md#effective-said-comparison)): two nodes
-holding the same state compute the same value, so any difference — including a
-real-SAID-versus-synthetic difference — marks a prefix to sync.
-
-- **Phase one — targeted.** Prefixes known stale (a failed forward, a park that aged out, a peer
-  mismatch observed in passing) sit in a Redis stale set — each entry carrying the peer that
-  surfaced the difference, retried **source-first** with backoff and a bounded retry count (an
-  unreachable answer ages out; it does not spin the loop forever). The loop queries peers'
-  effective-SAIDs for them and syncs from any peer whose value differs.
-- **Phase two — random sampling.** A random page of local prefixes against a random peer, skipped
-  when phase one had work — the backstop that finds staleness nothing flagged.
-- **Pull-only, with bounded fan-out.** A node only ever pulls what it lacks: a sample showing the
-  peer **behind** is not this node's work — the peer pulls on its own cycle — so anti-entropy never
-  becomes push-repair or write amplification. Concurrent repair fetches are capped, so a large stale
-  set drains at a bounded rate instead of storming the store.
-- **Echo suppression.** A local commit triggers an announcement (the effective-SAID moved), but a
-  commit whose events just **arrived by gossip** must not re-announce them — the sync path keeps a
-  short-lived record of what it stored so the announcement trigger skips it, breaking the
-  announce-fetch-store-announce feedback loop.
-
-**Enumeration is by the peer's own update sequence.** A syncing node pages a peer's prefix listing
-ordered by the peer's **local, monotone update sequence** — bumped whenever a prefix's held state
-changes, whatever the age of the arriving event — descending from the head down to a per-peer
-**watermark**, comparing each listed prefix's effective-SAID against its own; the watermark then
-advances to the scan-start sequence (anything moving mid-scan re-sorts above it and is caught next
-round). Delivery order is the one sound ordering for this listing: ordering by any **data** time — a
-witnessed timestamp — misses a late-gossiped old event permanently (its data-time sorts below the
-watermark even though the peer's held state just changed). The listing is **mesh-scoped** — a
-member-only surface riding the encrypted channel, never public (a prefix enumeration is itself
-correlation-sensitive data) — and conforming implementations expose the same shape
-([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface) — the serving
-side).
-
-**The fetch is `since` the querier's own last seal.** On a mismatch, the syncing node pulls
-everything after its **own** last seal and dedupes by SAID. Bounded divergence makes this complete
-above the seal: a fork can only form after the last seal, so the response carries the **full
-retained set after the cursor** — the canonical tip, every competing branch after it (live or
-since-settled) with its burying seal-advancer, and the cursor's own siblings (so a node learns if
-the seal it anchors on is itself forked) —
-[`vdtid.md` §The chain read](vdtid.md#the-chain-read--keep-all-data-served). A branch settled below
-**both** parties' seals produces no value mismatch and is not chased — below-cursor evidence is
-forensic, reached by the flat by-prefix read. When a value mismatch persists and `since` cannot
-close it (the escalation backstop — chiefly a cross-implementation synthetic-encoding drift, which
-the byte-exact encoding discipline exists to prevent — pinned at the encoding library, forthcoming;
-[residuals §Owed work](../../residuals.md#11-owed-work-and-unverified-assumptions)), the node
-escalates to a **flat by-prefix fetch**, so the loop converges rather than spins.
-
-**The SAD-object pass.** Standalone SADs sync by the keys an immutable, content-addressed object
-admits: **enumeration** by the peer store's own update-sequence listing of SAD SAIDs (the same
-watermark discipline, the same mesh-only scoping — a SAD enumeration leaks the existence of
-custody-gated objects, priced only for mesh members), **compare = presence** (a SAD is held or not;
-it has no state to diff), and a fetch that **honors replica scope** — a node pulls the
-default-broadcast objects it should hold, plus scoped objects whose replica set names it; custody
-rides with the object, unenforced on this path, because it gates the **consumer** serve, not
-replication ([`vdtid.md` §Mesh endpoints](vdtid.md#mesh-endpoints--the-federation-peer-surface)).
-One deliberate carve-out: **deletion-bearing classes never ride this pass** — a `once` object
-(destructive read) and a recipient-scoped deposit (deleted by acknowledgment) are placed by their
-**sender's** act, and re-syncing them from a peer would resurrect a deliberate deletion; their
-absence is semantic, not loss. An expired object needs no carve-out — a re-arriving copy is refused
-by its own committed `expiry`, the absolute instant every holder reads the same way from the object
-alone ([`availability.md`](../../primitives/data/sad/availability.md)).
-
-## Send-side partitioning
-
-Propagating a divergent chain is a **sender-side** responsibility: a receiving merge handler routes
-batches by content, so a single batch mixing pre-divergence events with a competing branch would be
-part-rejected. The transfer engine partitions a divergent run into sub-batches the receiver accepts
-in order — the shared history first (dedupes harmlessly), then each competing branch so every
-event's parent precedes it, a burying seal-advancer last like any seal-advancer. The atomic fork
-unit — both competing branches plus the burying seal — fits one page by construction
-(`MINIMUM_PAGE_SIZE` covers two capped runs plus the seal —
-[forks are seal-bounded](../../protocol-doctrine.md#forks-are-seal-bounded)); a rarer wider fork's
-extra branches ride later pages.
+`gossipd` needs the node's identity on the mesh handshake, and `witnessd` holds the key. The
+`gossipd`-facing endpoint is a **kind-gate**: sign iff the `kind` is the handshake kind
+(`vdti/gossip/v1/protocols/handshake` — [`mesh-transport.md`](mesh-transport.md)), refuse all else.
+Kind is committed in the SAID, so a compromised `gossipd` cannot dress a receipt as a handshake —
+the custody boundary holds **by construction**. The call is **per-connection, local, and
+low-frequency** — the one named exception to "no backend RPC," which bans per-event cross-service
+_data_ RPC, not a per-connection local sign. `gossipd` → `witnessd` is authenticated by **local
+infrastructure** (socket permissions, a deploy secret, a service account), not a chain identity —
+co-located processes in one trust boundary. Receipt and freshness signing stays a **separate
+internal path** `gossipd` never reaches.
 
 ## Adversarial framing
 
-- **A compromised `vdtid` mints nothing.** Receipts and freshness statements are signed here, under
+- **A compromised `logsd` mints nothing.** Receipts and freshness statements are signed here, under
   HSM custody, against state `witnessd` verifies through the core before signing — the daemon split
   is precisely this containment.
+- **A compromised `gossipd` is mesh impersonation only** — bounded, revocable by rotating the node
+  key — never witnessing forgery: the kind-gate answers only the handshake kind, and selection is
+  re-derived here, so induced routing mints nothing.
 - **A compromised `witnessd` is a compromised witness** — the priced case, not a new one: its
   double-signs are cryptographic proof that names it for eviction, forgery beyond its own signature
   requires the colluding quorum the fork-cost prices, and its withholding is bounded by every other
   node's anti-entropy
   ([fork-cost](../../residuals.md#fork-cost--threshold-colluders-dropping-to-2threshold--signers-under-partition)).
-- **Parking is not a trust surface.** A parked batch replays through the full merge path — parking
-  defers verification, it never substitutes for it; poisoning the park map costs latency, not
-  correctness, and the map's loss-tolerance means its Redis is never load-bearing for safety.
-- **Anti-entropy is fail-secure under partition.** Nodes holding different state never falsely agree
-  — the compare key differs, driving a fetch where the peer is reachable and reading as distrust
-  where it is not. The one thing the loops cannot deliver is a branch no reachable peer holds — the
-  standing eclipse residual, surfaced by the beacon when it heals
-  ([`residuals.md`](../../residuals.md#3-eclipse-and-freshness)).
+- **`witnessd` is never publicly exposed** — an external attacker must first compromise a
+  public-facing service, and even then the kind-gate contains them.
 
 ## Cross-references
 
-- [`architecture.md`](architecture.md) — the decomposition, the transfer engine, the freshness
-  statement and consumer bar.
-- [`vdtid.md`](vdtid.md) — the storage daemon: the merge path this daemon feeds, the typed
-  deferred-dependencies response, receipt storage.
-- [`mesh-transport.md`](mesh-transport.md) — the authenticated, encrypted channel every mesh link
-  runs over.
-- [`../federation/topics.md`](../federation/topics.md) — the gossip channels and the two-scope
-  transport.
+- [`architecture.md`](architecture.md) — the decomposition, the freshness statement and consumer
+  bar.
+- [`gossipd.md`](gossipd.md) — the sync daemon: the mesh, the loops, and the signal path into this
+  daemon.
+- [`logsd.md`](logsd.md) — the chain-log daemon: the merge path, receipt storage, the beacon on the
+  serving face.
+- [`mesh-transport.md`](mesh-transport.md) — the handshake SAD this daemon signs through the
+  kind-gate.
 - [`../federation/witnessing.md`](../federation/witnessing.md) — the witness role's rules:
   selection, first-seen, receipts, the clock and key-windows, query-scoping.
 - [`../../protocol-doctrine.md`](../../protocol-doctrine.md) — federation convergence, the

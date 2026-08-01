@@ -2,8 +2,8 @@
 
 A **Self-Addressed Data** record (SAD) is a serializable object whose own identifier — its
 [SAID](said.md) — is derived from its content. Every content-bearing primitive in VDTI is a SAD:
-chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, replica sets,
-and the content payloads SEL events anchor.
+chain events (KEL / IEL / SEL), credentials, policy declarations, exchange envelopes, and the
+content payloads SEL events anchor.
 
 This doc states the SAD shape and the structural patterns that follow from it. The derivation
 algorithm itself lives in [`said.md`](said.md); compaction and disclosure in
@@ -25,9 +25,9 @@ Every SAD carries a `said` field. From there, one specialization matters at this
   exhaustive-schema rule ([`kinds.md`](kinds.md#schema--exhaustive-and-versioned)) — those fields
   are rejected on a chain event.
 - **Standalone (non-chain-event) SADs** are the rest — credentials, policy SADs, exchange envelopes,
-  replica sets, file payloads, and the content payloads SEL events anchor. Stored in the SAD object
-  store and retrieved by SAID. MAY carry per-object authority via a top-level
-  [`custody`](custody.md) field and per-object replication scope via an independent
+  file payloads, and the content payloads SEL events anchor. Stored in the SAD object store and
+  retrieved by SAID. MAY carry per-object authority via a top-level [`custody`](custody.md) field
+  and per-object retention and one-shot delivery via an independent
   [`availability`](availability.md) field on the same wrapper.
 
 A chain event is a SAD with additional structural commitments — chain identity, monotonic position,
@@ -39,7 +39,7 @@ or "standalone SAD" where the distinction matters.
 flowchart TD
   sad["<b>SAD</b><br/>identity = its own content hash (said)"]:::start
   sad -->|"has chain-linkage fields"| ce["<b>chain event</b><br/>+ prefix · previous · serial · manifest / data<br/><i>indivisible unit — no custody / availability slot</i>"]:::q
-  sad -->|"no chain-linkage fields"| st["<b>standalone SAD</b><br/>credential · policy · envelope · replica-set · file<br/><i>MAY carry custody + availability</i>"]:::doc
+  sad -->|"no chain-linkage fields"| st["<b>standalone SAD</b><br/>credential · policy · envelope · file<br/><i>MAY carry custody + availability</i>"]:::doc
   ce --> ceS[("chain log —<br/>addressed by prefix,<br/>never served by SAID")]:::q
   st --> stS[("SAD object store —<br/>served by SAID")]:::doc
   classDef start fill:#1a2547,stroke:#4263eb,color:#fff
@@ -59,7 +59,7 @@ attacker invert an identity's opaque commitments. The full argument (which uses 
 later) is
 [`protocol-doctrine.md` §Negative checks are positive lookups](../../../protocol-doctrine.md#negative-checks-are-positive-lookups);
 storage-side enforcement is
-[`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md).
+[`../../../substrate/infrastructure/sadd.md`](../../../substrate/infrastructure/sadd.md).
 
 ## Required fields
 
@@ -121,23 +121,38 @@ Composition by SAID (above) is for **structured** children — nested SADs that 
 expand for disclosure. Bulk **opaque** bytes — an encrypted payload, a file, media — are different:
 canonical SADs are JCS text, so inlining raw bytes base64-encodes them, bloating a large payload by
 roughly a third and forcing every reader to carry the whole blob just to verify its parent. So a SAD
-names bulk bytes by **digest** rather than inlining them. The bytes live in the store as a
-**content-addressed blob** — raw, addressed by the Blake3-256 digest of the bytes themselves (a
-`digest`, not a SAID over a canonical SAD) — and the referencing SAD carries a `{ digest, size }`
-reference. Because the SAD's SAID commits that reference, the parent's signature covers the exact
-bytes by binding; a consumer fetches the blob separately and accepts it only when its recomputed
-digest matches.
+names bulk bytes by a **storage key** rather than inlining them. The **client** composes a small
+**bundle** SAD — `{ said, kind, nonce, blobDigest, access?, once?, expiry? }`, the blob's access and
+availability
+([`shapes.md` §The blob bundle](shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object))
+— and the stored object is the **payload**:
 
-A content-addressed blob is **not itself a SAD** — it is opaque bytes, so it carries no `kind`, no
-`custody`, no nested structure. Everything structured about it — its type, who wrote it, who may
-read it, where the bytes live and for how long — rides the **`file` SAD** that names it
-([`shapes.md`](shapes.md)); the blob is only that SAD's payload, governed by the SAD's
-[`availability`](availability.md) (replication scope, expiry, one-shot) and written under an
-authorization the storage service enforces
-([`../../../substrate/infrastructure/vdtid.md`](../../../substrate/infrastructure/vdtid.md)).
+```
+payload = bundle.said ‖ blob        // ‖ is byte concatenation; bundle.blobDigest = hash(blob)
+S       = hash(payload)             // the storage key
+```
+
+`bundle.said` is a fixed-width, self-framing SAID, so the payload splits back into `bundle.said` +
+`blob` unambiguously. The referencing SAD commits **`S`** — never a bare `hash(blob)`. Because the
+SAD's SAID commits `S`, and `S` fixes the payload — hence `bundle.said`, hence every bundle field
+including `blobDigest` — the parent's signature covers the exact bytes **and** the exact access and
+availability by binding. A consumer fetches the payload separately, accepts it only when
+`hash(payload)` recomputes to `S`, splits out the bundle and the blob, and checks
+`hash(blob) == bundle.blobDigest`.
+
+A blob is **not itself a SAD** — it is opaque bytes, so it carries no `kind`, no `custody`, no
+nested structure. Everything structured about it rides two carriers. Its **access and availability**
+ride the bundle — `access?` gates its serve, `once?` is a destructive read, `expiry?` a GC horizon
+([`shapes.md` §The blob bundle](shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object)).
+And its **legitimacy** rides the committing document — the `file` SAD ([`shapes.md`](shapes.md)), a
+message, an unrooted SAD: a blob is admitted only because a verified, anchored document commits its
+`S` ([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)). The bundle itself needs **no
+signature** — availability is anchored **transitively**: the committing document is anchored and
+commits `S`; `S` fixes the payload, hence `bundle.said`, hence every bundle field. Swap the bundle
+or the blob and `S` no longer matches.
 
 The two reference mechanisms hang off one parent — **structured children by SAID**, **bulk bytes by
-digest** — and both are committed by the parent's SAID:
+storage key** — and both are committed by the parent's SAID:
 
 ```mermaid
 flowchart TD
@@ -145,15 +160,15 @@ flowchart TD
   p -->|"commits child by SAID"| c1["child SAD · said"]:::doc
   p -->|"commits child by SAID"| c2["child SAD · said"]:::doc
   c1 -->|"commits by SAID"| g["grandchild SAD · said"]:::doc
-  p -->|"{ digest, size }"| blob[("content-addressed blob<br/>raw bytes · not a SAD<br/>addressed by digest")]:::blob
+  p -->|"commits the storage key S"| blob[("payload · bundle.said ‖ blob<br/>raw bytes · not a SAD<br/>addressed by S")]:::blob
   g -.->|"a changed leaf re-hashes every ancestor SAID"| p
   classDef doc fill:#3d2f12,stroke:#f08c00,color:#fff
   classDef blob fill:#20242a,stroke:#495057,color:#adb5bd
 ```
 
 Structured children canonicalize and expand for disclosure; the opaque blob does not (it carries no
-`kind`, no `custody`, no nesting). Either way, substituting any node changes its SAID — or digest —
-and every ancestor SAID that commits it, so tamper-evidence is transitive through the whole graph.
+`kind`, no `custody`, no nesting). Either way, substituting any node changes its SAID — or `S` — and
+every ancestor SAID that commits it, so tamper-evidence is transitive through the whole graph.
 
 ## Adversarial framing
 

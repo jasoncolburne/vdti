@@ -18,18 +18,24 @@ flowchart LR
     alib["auditor's client — lib/vdti"]:::lib
   end
   subgraph sub["the substrate — federations run it"]
-    node[("any node<br/>vdtid + witnessd")]:::svc
+    node[("any node<br/>logsd · sadd · witnessd · gossipd")]:::svc
+  end
+  subgraph store["the organization's stores — off-federation"]
+    est[("sadd — entry SADs")]:::svc
   end
   app --> lib
-  lib -->|"append: Ixn + entry SAD, witnessed"| node
+  lib -->|"append: SEL Ixn + anchor, witnessed"| node
+  lib -->|"deposit entry SADs"| est
   alib -->|"walk the chain — from any source"| node
+  alib -->|"fetch entries — or use a mirror"| est
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
 ```
 
 Two parties, no service between them: the organization appends through its own client, and the
-auditor walks the chain from any node — including its own mirror.
+auditor walks the chain from any node and fetches the committed entries from the organization's
+stores — or from its own mirror.
 
 ## The composition
 
@@ -59,12 +65,20 @@ small.
 - **Retirement is structural.** Closing the ledger is the SEL's terminal `Trm` — after it, nothing
   appends, and any later "entry" is refused by every verifier rather than by policy
   ([`../primitives/data/event-logs/sel/log.md` §Per-node chain states](../primitives/data/event-logs/sel/log.md#per-node-chain-states)).
+- **The spine is witnessed; the entries live with the organization.** The SEL and every anchor are
+  federation-witnessed chains; the entry SADs are application content, held **off-federation** on
+  the organization's own stores ([`sadd`](../substrate/infrastructure/sadd.md)) — replicated in the
+  service shape mail demonstrates when the trail warrants it
+  ([`mail.md` §The mail service](mail.md#the-mail-service--one-identity-whose-roster-is-its-deployments))
+  — and on every auditor's mirror, since the chain commits them: any copy verifies, so durability is
+  how many parties hold one.
 
 **The audit read is the ordinary walk.** An auditor is handed the ledger's prefix, fetches the chain
-from **any** node — the operator's, their own, a mirror — and walks it: linkage verified, every
-anchor resolved down to the owner identity and its member device signatures, witnessing confirmed at
-each position. Nothing about the read depends on trusting the party being audited, which is the
-property an audit trail exists to have
+from **any** node — the operator's, their own, a mirror — resolves each committed entry SAD from the
+organization's stores or its own mirror, and walks it: linkage verified, every anchor resolved down
+to the owner identity and its member device signatures, witnessing confirmed at each position.
+Nothing about the read depends on trusting the party being audited, which is the property an audit
+trail exists to have
 ([`../system-thesis.md` §End-verifiability](../system-thesis.md#end-verifiability)). Freshness — "am
 I seeing the newest entries, and is this really the current chain state" — is the consumer walk's
 standing machinery, not the operator's word
@@ -78,9 +92,9 @@ content is gated. Selective disclosure inside one entry is the SAD layer's compa
 
 ## Scenarios
 
-- **An append.** The application mints the entry SAD, the organization's `t_use` threshold of
-  devices authors the anchoring `Ixn`, and the witnesses receipt it — the entry exists when the
-  floor says so, not when the operator's database does.
+- **An append.** The application mints the entry SAD and deposits it to the organization's stores;
+  the organization's `t_use` threshold of devices authors the anchoring `Ixn`, and the witnesses
+  receipt it — the entry exists when the floor says so, not when the operator's database does.
 - **An audit.** The auditor is handed the ledger's prefix and walks the chain from any node or their
   own mirror — every check in the composition, none requiring the organization's cooperation or
   honesty.

@@ -14,7 +14,9 @@ authenticate, agree a key, and encrypt each frame — is
 
 ## Two meshes
 
-Gossip runs at two scopes:
+Gossip runs at two scopes — both terminated by
+[`../infrastructure/gossipd.md`](../infrastructure/gossipd.md), which enforces the scoping on the
+wire:
 
 - **Roster-wide (announce and fetch).** Once an event is **witnessed in full**, its receipts and its
   chain's **effective-SAID announcement** flood to every node, and a node whose held value differs
@@ -28,7 +30,8 @@ Gossip runs at two scopes:
   first-seen sibling reaches threshold once it reaches any one honest selected witness. A
   sub-threshold event is returned by a query **only to a selected witness** for that position — to
   every other node it is withheld, which is what keeps a non-witness holding only witnessed-in-full
-  events ([`witnessing.md`](witnessing.md)).
+  events of the **witnessed classes** (an `Fcp`-rooted chain's unwitnessed steps are accepted on the
+  admission dispatch's own grounds instead — [`witnessing.md`](witnessing.md)).
 
 ```mermaid
 flowchart TD

@@ -3,8 +3,8 @@
 **Custody** is the per-SAD authority model for standalone (non-chain-event) [SADs](sad.md): a
 top-level `custody` field on the SAD wrapper whose value is an inline struct with three optional
 sub-fields declaring who may write the object (attested by a direct anchor on the owner's IEL) and
-who may read it. Custody is decoupled from **[availability](availability.md)** (replication and
-lifecycle), which lives in a sibling top-level field on the same wrapper.
+who may read it. Custody is decoupled from **[availability](availability.md)** (retention and
+one-shot delivery), which lives in a sibling top-level field on the same wrapper.
 
 Custody is scoped to the standalone-SAD subset because chain events have a fixed kind-specific
 schema with no slots for custody or availability fields (see
@@ -96,6 +96,13 @@ formula with `owner` = `issuer` and `said` = `cred.said` — the same mechanism 
 custody names. A kind that carries its writer-binding in body fields, like the credential, does
 **not** also populate `custody.owner`/`pin` — the body fields are that instance, and acceptance
 reads them.
+
+This owner-anchored path is the **event-root instance of [rooting](rooting.md)**, the store's
+general admission floor: the SAD is accepted because a chain event — here the owner's `Ixn` —
+commits it, the commitment **blinded** so the raw `said` never appears on the public IEL, confirmed
+by recompute-and-membership. Rooting generalizes this one case to every committed-but-ownerless SAD
+([`rooting.md` §The rule](rooting.md#the-rule)), so the `pin` here is exactly the `event` locator a
+rooting event-root pointer carries ([`shapes.md`](shapes.md)).
 
 - **The `pin` locates the anchor.** `pin` is the SAID of that anchoring `Ixn`'s `previous`, so the
   `Ixn` sits at `pin`'s serial + 1 on the owner's canonical IEL. A verifier goes straight there and
@@ -233,22 +240,38 @@ protocol supports without per-pattern carve-outs:
 
 ## Decoupling from availability
 
-Custody and [`availability`](availability.md) (a sibling top-level field declaring replication
-scope, expiry, and one-shot delivery) are independent axes:
+Custody is orthogonal to **where the bytes live** — the client-chosen placement across the
+[cascading store](../../../substrate/infrastructure/architecture.md#the-cascading-store--one-interface-composed-in-sequence)
+(federation-published, or off-federation on a private
+[`sadd`](../../../substrate/infrastructure/sadd.md)) — and to the SAD's own
+[`availability`](availability.md) `{ expiry, once }` (how long the bytes live, whether retrieval is
+destructive):
 
-- A SAD object can be **widely replicated and custody-gated**: the bytes live on many nodes but
-  every read fetch enforces `readers`.
-- A SAD object can be **unreplicated and permissive**: it lives on one node, but anyone who has its
-  SAID can fetch and read.
-- A SAD object can be **widely replicated and permissive**: a public credential available
-  everywhere.
-- A SAD object can be **unreplicated and custody-gated**: an ephemeral private object scoped to one
-  node.
+- A SAD object can be **federation-published and custody-gated**: the bytes live on every federation
+  witness but every read fetch still enforces `readers` — a read-gated grant value, or the gated
+  `bound` rescind-doc whose cutoff would otherwise enumerate a group's or a shared document's
+  removed members. The custody gate is live on the federation face, not an off-federation nicety.
+- A SAD object can be **off-federation and permissive**: it lives on the owner's own stores — a
+  private [`sadd`](../../../substrate/infrastructure/sadd.md), or a service's replicated roster —
+  and anyone who has its SAID can fetch and read.
+- A SAD object can be **off-federation and custody-gated**: a private object on the owner's own
+  stores, every read fetch enforcing `readers` at whichever store answers.
 
-The decoupling matters because availability is an operational decision (where the bytes live, how
-long they live, whether retrieval is destructive) while custody is an authority decision (who may
-write, who may read). The protocol treats them as orthogonal so application designers can compose
-either axis independently.
+The decoupling matters because placement and availability are operational decisions (where the bytes
+live, how long they live, whether retrieval is destructive) while custody is an authority decision
+(who may write, who may read). The protocol treats them as orthogonal so application designers can
+compose either axis independently.
+
+One custody-domain gate travels with the stored bytes rather than the SAD wrapper: a stored
+**payload**'s read gate is the **`access`** descriptor on its blob bundle
+([`shapes.md` §The blob bundle](shapes.md#the-blob-bundle--access-and-availability-on-the-stored-object))
+— carried on the bundle for content-addressing (the committing SAD's `S` must fix the gate), **not**
+a new availability axis. It dispatches on the same membership abstractions as `readers` — an
+IEL-roster check, or a grant-chain membership check
+([`../../protocols/membership.md`](../../protocols/membership.md)) — enforced by the serving store
+on a live-signed request ([`blobsd.md`](../../../substrate/infrastructure/blobsd.md)), and like
+every serve gate here it is **operational access control, never the confidentiality boundary**
+(below); it authorizes **reads only**.
 
 ## Adversarial framing
 
@@ -271,6 +294,12 @@ and re-checked by consumers.
   once the plaintext bytes escape they are readable — secrecy against a leaky replica or a hostile
   holder requires **encryption**, not `readers` (the residuals catalog states the honest position —
   confidentiality is operational, not cryptographic).
+- **A requester whose chain is not Active is refused.** The read gate resolves a live-signed request
+  to an identity, and that is a live check on the requester's authority — frozen on any chain that
+  is not Active, enforced at the store **for a requester outside that identity's own roster** (a
+  sibling member is identification, not authority — the fleet-mesh case)
+  ([`../event-logs/iel/verification.md`](../event-logs/iel/verification.md#derived-accessors),
+  [`../../protocols/membership.md`](../../protocols/membership.md)).
 - **Custody fields are committed by the parent SAID.** `owner`, `pin`, and `readers` are sub-fields
   of the top-level `custody` struct on the SAD wrapper, so they participate in the SAD's canonical
   serialization and the SAID derivation. An adversary cannot substitute a different `owner` or `pin`
@@ -282,13 +311,17 @@ and re-checked by consumers.
   `custody` struct on a chain event
   ([`../../../protocol-doctrine.md` §Merge verification](../../../protocol-doctrine.md#merge-verification-and-advisory-locking)).
 - **Anonymous writes are not unauthorized writes.** An absent writer-binding (`owner` and `pin` both
-  `None`) declares "no writer attestation" — not "no authorization." A storage service deployment
-  that accepts anonymous writes still applies the operator-configured write-gate (open + rate-limits
-  by default; cred-or-policy-language gated under lockdown) at the storage boundary. The anonymity
-  attribute lives in the SAD; the acceptance decision lives in the operator's policy.
+  `None`) declares "no writer attestation" — not "no authorization." An anonymous SAD lives on an
+  off-federation store, and that store applies its **operator-configured write-gate** at the
+  boundary — open plus rate limits by default, credential-gated where the operator locks an open
+  inbox down. The same lockdown posture exists federation-side as the heavy tier of the federation's
+  own spam story — credential-gated **participation** for chain writes, past rooting and blocking
+  ([`blocking.md`](../../../substrate/federation/blocking.md)). The anonymity attribute lives in the
+  SAD; the acceptance decision lives in the deployment's policy.
 
-The two axes and the four combinations are the protocol-level surface; the consumer-side checks (the
-`readers` membership lookup, the `pin`-located anchor resolution for the `owner` + `pin`
-writer-binding) and the operator-side write-gate are the enforcement surfaces. Both are required —
-the SAD by itself is just data; the structural authority model is what the storage service and
-consumers enforce against it.
+The two axes and the four combinations are the protocol-level surface. The consumer-side checks —
+the `readers` membership lookup, the `pin`-located anchor resolution for the `owner` + `pin`
+writer-binding — are the **trust boundary**: the SAD by itself is just data, and a consumer enforces
+the structural authority model against it wherever the bytes came from. The store-side gates — the
+`readers` serve gate, the operator's write-gate — are the **operational surface**: real, live on the
+federation face as much as off it, and never what a consumer's trust rests on.

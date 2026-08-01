@@ -79,7 +79,7 @@ flowchart BT
   L6 --> L7
   L5 -->|"the app's acceptance policy —<br/>features carry proofs, apps combine"| L8
   L7 --> L8
-  LS["<b>8 · Services layer</b> — how it deploys<br/><i>architecture · vdtid · witnessd</i>"]:::found
+  LS["<b>8 · Services layer</b> — how it deploys<br/><i>architecture · logsd · sadd · witnessd · gossipd</i>"]:::found
   LS -.->|"stores, serves, and witnesses every layer's data"| verified
 
   classDef orient fill:#2a2a2a,stroke:#868e96,color:#adb5bd
@@ -138,10 +138,27 @@ its own reading-order note in `sad.md`.)
    canonicalization — the mechanism that makes end-verifiability work.
 4. [`primitives/data/sad/custody.md`](primitives/data/sad/custody.md) — per-object authority: who
    may write, who may read.
-5. [`primitives/data/sad/availability.md`](primitives/data/sad/availability.md) — where the bytes
-   live: replicas, expiry, one-shot delivery.
+5. [`primitives/data/sad/availability.md`](primitives/data/sad/availability.md) — how long the bytes
+   live and whether retrieval is destructive: expiry, one-shot delivery.
 6. [`primitives/data/sad/compaction.md`](primitives/data/sad/compaction.md) — compaction and
    selective disclosure.
+
+Then the three **dumb store traits** the services layer composes — storage without verification,
+every correctness rule one layer up in the server compositions:
+
+7. [`primitives/stores/log-store.md`](primitives/stores/log-store.md) — the chain-event store trait:
+   paged reads within a prefix, the commit-ordered prefix listing, the decided insert, and the
+   effective-SAID compare key.
+8. [`primitives/stores/sad-store.md`](primitives/stores/sad-store.md) — the standalone-SAD store
+   trait: content-addressed put/get with the capability rules on delete and enumeration, and why
+   there is no existence probe.
+9. [`primitives/stores/blob-store.md`](primitives/stores/blob-store.md) — the blob store trait:
+   payloads by storage key over an object index, with the same paged enumeration and capabilities.
+
+Building on all of these, [`primitives/data/sad/rooting.md`](primitives/data/sad/rooting.md) states
+how the SAD store decides a submitted SAD belongs — the **rooting** admission rule that turns spam
+resistance from an operator knob into a structural floor (paired with a federation's
+[prefix block](substrate/federation/blocking.md) against a valid-identity flood).
 
 Alongside these, three **identifier catalogues** define the naming conventions used surface-wide
 (all on the shared `vdti/{component}/v1/{category}/{name}` convention) — read one when a `kind`,
@@ -150,15 +167,15 @@ Alongside these, three **identifier catalogues** define the naming conventions u
 [`primitives/data/sad/shapes.md`](primitives/data/sad/shapes.md)),
 [`primitives/data/event-logs/tags-and-topics.md`](primitives/data/event-logs/tags-and-topics.md)
 (the derivation `tag`s and SEL `topic`s), and
-[`substrate/federation/topics.md`](substrate/federation/topics.md) (the gossip topics, also at #28).
+[`substrate/federation/topics.md`](substrate/federation/topics.md) (the gossip topics, also at #31).
 
 ## 2 — Cross-cutting doctrine
 
-7. [`protocol-doctrine.md`](protocol-doctrine.md) — the rules that span every primitive: the two
-   capability tiers, the seal and locked-portion bound, divergence and recovery, federation
-   convergence, the verification walk, and the shared terminology. Dense; read it here for the
-   concept map, and revisit its divergence and federation sections after the event-log group — they
-   land deeper once the event shapes are concrete.
+10. [`protocol-doctrine.md`](protocol-doctrine.md) — the rules that span every primitive: the two
+    capability tiers, the seal and locked-portion bound, divergence and recovery, federation
+    convergence, the verification walk, and the shared terminology. Dense; read it here for the
+    concept map, and revisit its divergence and federation sections after the event-log group — they
+    land deeper once the event shapes are concrete.
 
 Alongside the doctrine, [`residuals.md`](residuals.md) is the honest-limits catalog — every risk the
 design does not fully eliminate, ranked by severity (bounded by the property at risk), each with the
@@ -171,80 +188,83 @@ key state expects.
 
 The KEL / IEL / SEL chains — the heart of the protocol.
 
-8. [`primitives/data/event-logs/event-shape.md`](primitives/data/event-logs/event-shape.md) — the
-   event taxonomy, field shape, and per-kind structural rules shared across all three log types. The
-   bridge from SADs to chains.
+11. [`primitives/data/event-logs/event-shape.md`](primitives/data/event-logs/event-shape.md) — the
+    event taxonomy, field shape, and per-kind structural rules shared across all three log types.
+    The bridge from SADs to chains.
 
 Then the KEL (Key Event Log) primitive, in order:
 
-9. [`primitives/data/event-logs/kel/log.md`](primitives/data/event-logs/kel/log.md) — the chain
-   primitive: the four-state per-node machine, the seal / spine / locked-portion, paging.
-10. [`primitives/data/event-logs/kel/events.md`](primitives/data/event-logs/kel/events.md) — the
+12. [`primitives/data/event-logs/kel/log.md`](primitives/data/event-logs/kel/log.md) — the chain
+    primitive: the four-state per-node machine, the seal / spine / locked-portion, paging.
+13. [`primitives/data/event-logs/kel/events.md`](primitives/data/event-logs/kel/events.md) — the
     five-kind taxonomy (plus the founder `Fcp` inception variant), the two-tier capability model,
     the kind-strict anchor matrix, and forward-key commitments.
-11. [`primitives/data/event-logs/kel/verification.md`](primitives/data/event-logs/kel/verification.md)
+14. [`primitives/data/event-logs/kel/verification.md`](primitives/data/event-logs/kel/verification.md)
     — the verifier walk and the verification token: how a chain is read and validated.
-12. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
+15. [`primitives/data/event-logs/kel/merge.md`](primitives/data/event-logs/kel/merge.md) — the write
     path: divergence resolution, burial by position and ascent, and the single-word merge outcomes.
-13. [`primitives/data/event-logs/kel/compromise.md`](primitives/data/event-logs/kel/compromise.md) —
+16. [`primitives/data/event-logs/kel/compromise.md`](primitives/data/event-logs/kel/compromise.md) —
     recovery as a plain burying `Rot`: the reserve defends the signing key, not the rotation key.
-14. [`primitives/data/event-logs/kel/reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md)
+17. [`primitives/data/event-logs/kel/reconciliation.md`](primitives/data/event-logs/kel/reconciliation.md)
     — the exhaustive correctness proof: every divergence case resolved, and the argument that all
     honest nodes converge. The densest doc; read it last.
 
 Then the IEL (Identity Event Log) primitive, in order:
 
-15. [`primitives/data/event-logs/iel/log.md`](primitives/data/event-logs/iel/log.md) — the chain
+18. [`primitives/data/event-logs/iel/log.md`](primitives/data/event-logs/iel/log.md) — the chain
     primitive: an identity as a threshold over member KELs; the four-state machine; the seal,
     locked-portion bound, and seal-cap over the content window versus the sealed spine.
-16. [`primitives/data/event-logs/iel/events.md`](primitives/data/event-logs/iel/events.md) — the
+19. [`primitives/data/event-logs/iel/events.md`](primitives/data/event-logs/iel/events.md) — the
     eight-kind taxonomy (plus the restricted federation set), the threshold vector and its bounds,
     the kind-strict anchor matrix, the `kills[]` revocation declaration, and the facet-dependent
     `Wit`.
-17. [`primitives/data/event-logs/iel/verification.md`](primitives/data/event-logs/iel/verification.md)
+20. [`primitives/data/event-logs/iel/verification.md`](primitives/data/event-logs/iel/verification.md)
     — the verifier walk: threshold anchoring, roster accumulation by delta, root-facet dispatch, and
     the `kills[]` forward-match.
-18. [`primitives/data/event-logs/iel/merge.md`](primitives/data/event-logs/iel/merge.md) — the write
+21. [`primitives/data/event-logs/iel/merge.md`](primitives/data/event-logs/iel/merge.md) — the write
     path: events first-seen **per tier** at their own position (the universal position gate — one
     content, one sealed), sealed record-both, and eviction via a roster `cut`.
-19. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
+22. [`primitives/data/event-logs/iel/reconciliation.md`](primitives/data/event-logs/iel/reconciliation.md)
     — the correctness-proof matrix: the content-versus-sealed divergence enumeration and the verdict
     by witnessed-sealed-branch count (at the last seal).
-20. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
+23. [`primitives/data/event-logs/iel/delegation.md`](primitives/data/event-logs/iel/delegation.md) —
     the delegate / rescind surface: the single-hop grant-and-rescission primitive.
 
 Then the SEL (SAD Event Log) primitive, in order:
 
-21. [`primitives/data/event-logs/sel/log.md`](primitives/data/event-logs/sel/log.md) — the chain
+24. [`primitives/data/event-logs/sel/log.md`](primitives/data/event-logs/sel/log.md) — the chain
     primitive: a single-owner data log that is its own witnessed chain; the four-state machine, the
     seal and its advancers, and the severance a dead owner-IEL anchor causes.
-22. [`primitives/data/event-logs/sel/events.md`](primitives/data/event-logs/sel/events.md) — the
+25. [`primitives/data/event-logs/sel/events.md`](primitives/data/event-logs/sel/events.md) — the
     six-kind taxonomy, the three axes, the kind-strict cross-layer anchor matrix, the typed-value
     `Gnt`, the neutral `Sea` re-seal, and the content and lineage fields.
-23. [`primitives/data/event-logs/sel/verification.md`](primitives/data/event-logs/sel/verification.md)
+26. [`primitives/data/event-logs/sel/verification.md`](primitives/data/event-logs/sel/verification.md)
     — the verifier walk: owner-rooting, the witnessed divergence read, the severance read, the
     `content: true` acceptance biconditional, and the value lineage walk.
-24. [`primitives/data/event-logs/sel/merge.md`](primitives/data/event-logs/sel/merge.md) — the write
+27. [`primitives/data/event-logs/sel/merge.md`](primitives/data/event-logs/sel/merge.md) — the write
     path: witnessed first-seen, seal-advancer burial, and inherited severance.
-25. [`primitives/data/event-logs/sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)
+28. [`primitives/data/event-logs/sel/reconciliation.md`](primitives/data/event-logs/sel/reconciliation.md)
     — the correctness proof: the SEL's own divergence crossed with inherited owner-IEL deadness.
 
 ## 4 — Federation and witnessing
 
 The witnessing layer every KEL, IEL, and SEL rests on for its soundness. A federation is a
 restricted IEL whose roster is witness KELs directly; witnessing is what prevents a content fork
-from forming on an honest chain and makes a sealed fork detectable everywhere.
+from forming on an honest chain and makes a sealed fork detectable everywhere. This group also
+carries [`substrate/federation/blocking.md`](substrate/federation/blocking.md) — the second front of
+spam protection (with [rooting](primitives/data/sad/rooting.md)): a federation refusing to witness
+an abusive prefix, a reversible, quorum-gated per-prefix block against a valid-identity flood.
 
-26. [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — genesis and the
+29. [`substrate/federation/bootstrap.md`](substrate/federation/bootstrap.md) — genesis and the
     configured trust root: the restricted-IEL shape, the dependency-ordered ceremony, and why there
     is no self-witnessing carve-out.
-27. [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md) — the mechanism: the
+30. [`substrate/federation/witnessing.md`](substrate/federation/witnessing.md) — the mechanism: the
     witnessing floor, first-seen (content prevention / sealed detection), fork-cost, deterministic
     selection, as-of-context receipts and the currency gate, the clock, the receipt SAD, rebinding,
     and the recoverability cap.
-28. [`substrate/federation/topics.md`](substrate/federation/topics.md) — the gossip topics (the
+31. [`substrate/federation/topics.md`](substrate/federation/topics.md) — the gossip topics (the
     witness-mesh channels) and the two-scope encrypted transport.
-29. [`substrate/infrastructure/mesh-transport.md`](substrate/infrastructure/mesh-transport.md) — the
+32. [`substrate/infrastructure/mesh-transport.md`](substrate/infrastructure/mesh-transport.md) — the
     authenticated, encrypted channel the mesh runs over: handshake, per-connection session keys, and
     the nonce discipline that makes reuse structural.
 
@@ -254,11 +274,11 @@ Policy sits above the primitives — it governs documents, never the chain event
 (chain-event authorization is structural). (This group carries its own reading-order note in
 `policy.md`.)
 
-30. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
+33. [`primitives/policy/policy.md`](primitives/policy/policy.md) — the policy language (`id` / `del`
     / `pol` / `crd` leaves; `thr` / `wgt` / `and` combinators).
-31. [`primitives/policy/documents.md`](primitives/policy/documents.md) — the anchored issuer context
+34. [`primitives/policy/documents.md`](primitives/policy/documents.md) — the anchored issuer context
     a relying party's policy is matched against, and how a document anchors that context.
-32. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — how a policy is evaluated
+35. [`primitives/policy/evaluation.md`](primitives/policy/evaluation.md) — how a policy is evaluated
     (as-issued) and the seam to the primitives.
 
 ## 6 — The protocol primitives
@@ -268,23 +288,23 @@ credentials and secure messaging are built from, the device-key directory recipi
 through, and the shared group key that chat and shared documents encrypt under. They compose the
 primitives below rather than extending them.
 
-33. [`primitives/protocols/essr.md`](primitives/protocols/essr.md) — the sealed, authenticated
+36. [`primitives/protocols/essr.md`](primitives/protocols/essr.md) — the sealed, authenticated
     one-to-one envelope: confidential to the recipient, provably from the sender, and the two
     identity bindings that make it so.
-34. [`primitives/protocols/ipex.md`](primitives/protocols/ipex.md) — the issuance and presentation
+37. [`primitives/protocols/ipex.md`](primitives/protocols/ipex.md) — the issuance and presentation
     exchange: every exchange a disclosure from a discloser to a disclosee, the anchor and compaction
     as its two proofs, and the single-round-trip freshness envelope that binds a presentation to one
     use.
-35. [`primitives/protocols/receive-key-directory.md`](primitives/protocols/receive-key-directory.md)
+38. [`primitives/protocols/receive-key-directory.md`](primitives/protocols/receive-key-directory.md)
     — the directory of an identity's device receive keys: how a key is published, and how a sender
     resolves one or fans out to all of a recipient's devices.
-36. [`primitives/protocols/group-key.md`](primitives/protocols/group-key.md) — the ratcheting shared
+39. [`primitives/protocols/group-key.md`](primitives/protocols/group-key.md) — the ratcheting shared
     key a group encrypts under: per-device fan-out, epochs, and the ratchet, with chat and shared
     documents as its consumers.
-37. [`primitives/protocols/membership.md`](primitives/protocols/membership.md) — the unbounded,
+40. [`primitives/protocols/membership.md`](primitives/protocols/membership.md) — the unbounded,
     per-requester gated set that authorizes one identity at a time (a chat's store gate, a shared
     document's read/write gate), never materialized as a roster.
-38. [`primitives/protocols/authored-dag.md`](primitives/protocols/authored-dag.md) — the per-writer
+41. [`primitives/protocols/authored-dag.md`](primitives/protocols/authored-dag.md) — the per-writer
     content graph a chat lane and a document version graph are: attribution by lane, monotone order,
     and a single-parent (fork = equivocation) / multi-parent (branch + merge) variant.
 
@@ -293,33 +313,54 @@ primitives below rather than extending them.
 Features compose the primitives into what an application ships: credentials, secure messaging (the
 `exchange` feature), and shared documents.
 
-39. [`features/credentials.md`](features/credentials.md) — issuing a credential and, the core case,
+42. [`features/credentials.md`](features/credentials.md) — issuing a credential and, the core case,
     a relying party accepting a presented one: the anchor and compaction as its proofs, the two
     questions (validly-issued, ownership), IPEX presentation, targeted-vs-bearer, blinded
     claim-gating, revocation, edges, terms-of-use, bulk issuance, and the migration-first registrar.
-40. [`features/exchange.md`](features/exchange.md) — sealed store-and-forward messaging: the two
+43. [`features/exchange.md`](features/exchange.md) — sealed store-and-forward messaging: the two
     modes (one-off ESSR mail and the ratcheting chat session), digest-named payloads, sender-key
     currency, recipient-scoped delivery + the serve-time gate, the `chat-membership` store gate, and
     the per-sender-lane authored DAG.
-41. [`features/shared-documents.md`](features/shared-documents.md) — a document several parties
+44. [`features/shared-documents.md`](features/shared-documents.md) — a document several parties
     co-author, membership and sharing evolving under a creator: the V0 constitution, the three
     `document-*-membership` instances (edit / comment / read, max-capability), the multi-parent
     version DAG, the honored-window predicate, and group-key confidentiality.
 
 ## 8 — The services layer
 
-How the design deploys: the verification core as a library, two thin daemons over it, and the
-consumer-side machinery that keeps trust decisions fresh without trusting any node.
+How the design deploys: dumb store traits under server compositions, thin daemons over those, and
+the consumer-side machinery that keeps trust decisions fresh without trusting any node.
 
-42. [`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md) — the
+45. [`compositions/log-server.md`](compositions/log-server.md) — the chain-log composition: the
+    merge layer every durable event write passes, the admission dispatch, the receipt admission
+    gate, promotion and the validated drag, serving under the acceptance gate, parking, and the
+    capability-token bundles.
+46. [`compositions/sad-server.md`](compositions/sad-server.md) — the SAD composition: verify-first
+    admission dispatched per context, the serve gates, availability enforcement, derived indexes as
+    stated local state, and deletion as the deploying application's predicate.
+47. [`compositions/blob-server.md`](compositions/blob-server.md) — the blob composition: blob
+    admission, the `access` serve gate, and the delete capability — the blob model itself is stated
+    at `blobsd`.
+48. [`substrate/infrastructure/architecture.md`](substrate/infrastructure/architecture.md) — the
     decomposition and its boundary rules: the core as the consumer-linked library, the transfer
     engine, the home-node consumer topology, the token store, and the freshness statement.
-43. [`substrate/infrastructure/vdtid.md`](substrate/infrastructure/vdtid.md) — the chain-log and SAD
-    store daemon: the API surface, the merge write path, the deferred-dependencies response, the
-    SAD-store write path, and the enforced serve-by-SAID rule.
-44. [`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md) — the witness,
-    gossip, and sync daemon: key custody, the witness role and routing, freshness-statement service,
-    deferred-dependency parking, and anti-entropy.
+49. [`substrate/infrastructure/logsd.md`](substrate/infrastructure/logsd.md) — the chain-log daemon:
+    the merge write path, the deferred-dependencies response, the chain read, and the request
+    bounds.
+50. [`substrate/infrastructure/sadd.md`](substrate/infrastructure/sadd.md) — the SAD store daemon,
+    one image for two placements: a federation node runs it with deletes off; off-federation it is
+    the storage tier a client's cascading store reaches — the SAD write path, the layered serve
+    gates, and the `deposits` query; no witness role, no chain log.
+51. [`substrate/infrastructure/blobsd.md`](substrate/infrastructure/blobsd.md) — the off-federation
+    blob store daemon: the bundle-committed payload, blob admission, the `access` serve gate,
+    destructive `once` reads and `expiry`, and deletes under the deploying application's predicate.
+52. [`substrate/infrastructure/witnessd.md`](substrate/infrastructure/witnessd.md) — the witness, a
+    verify-then-sign service: key custody, the five-gate signing path, the signing record, and
+    freshness-statement signing — never public; the mesh and sync loops are `gossipd`'s.
+53. [`substrate/infrastructure/gossipd.md`](substrate/infrastructure/gossipd.md) — the sync daemon:
+    the encrypted mesh's two scopes on the wire, routing, bootstrap, anti-entropy, send-side
+    partitioning, and freshness gathering — one daemon for the federation and an application fleet
+    alike, over whatever stores a deployment wires.
 
 ## 9 — Example applications
 
@@ -327,58 +368,58 @@ Validation by composition: each doc designs one application from the landed laye
 every mechanism it leans on and stating honestly where the composition's edges are. One application
 per distinct feature/primitive combination; the set grows as the docs land.
 
-45. [`example-applications/drive.md`](example-applications/drive.md) — file storage and sync from
+54. [`example-applications/drive.md`](example-applications/drive.md) — file storage and sync from
     data with custody alone: the hash-tree drive, sharing as membership, and the honest edge that
     points at logs.
-46. [`example-applications/ledger.md`](example-applications/ledger.md) — the append-only audit trail
+55. [`example-applications/ledger.md`](example-applications/ledger.md) — the append-only audit trail
     from a log alone: witnessed entries, disinterested timestamps, and the audit read as the
     ordinary walk.
-47. [`example-applications/pds.md`](example-applications/pds.md) — the personal data store from
+56. [`example-applications/pds.md`](example-applications/pds.md) — the personal data store from
     custody plus logs: records as custodied SADs, indexes as owned chains, and the new-device
     recovery story.
-48. [`example-applications/bbs.md`](example-applications/bbs.md) — the public message board from
+57. [`example-applications/bbs.md`](example-applications/bbs.md) — the public message board from
     shared documents alone: posts as comments, moderation as rescission, and the wiki and code host
     absorbed by the version DAG.
-49. [`example-applications/tracker.md`](example-applications/tracker.md) — the issue tracker from
+58. [`example-applications/tracker.md`](example-applications/tracker.md) — the issue tracker from
     shared documents plus credentials: membership gates writing, credentials carry roles, and the
     application combines the proofs.
-50. [`example-applications/sso.md`](example-applications/sso.md) — passwordless sign-in from
+59. [`example-applications/sso.md`](example-applications/sso.md) — passwordless sign-in from
     identity plus credentials: the ownership proof as the login, attestation as a presented
     credential, no provider in the loop.
-51. [`example-applications/permit.md`](example-applications/permit.md) — licensing and permits from
+60. [`example-applications/permit.md`](example-applications/permit.md) — licensing and permits from
     credentials alone: the full lifecycle — issue, delegate, disclose, renew, revoke — and the
     largest absorbed family.
-52. [`example-applications/iam.md`](example-applications/iam.md) — organizational access control
+61. [`example-applications/iam.md`](example-applications/iam.md) — organizational access control
     from credentials plus the policy layer: grants as credentials, rules as committed policy SADs,
     every resource deciding locally with no authorization service.
-53. [`example-applications/passport.md`](example-applications/passport.md) — the digital product
+62. [`example-applications/passport.md`](example-applications/passport.md) — the digital product
     passport from credentials plus a log: the maker's credential, the registry's dossier, and
     third-party attestations collected by reference.
-54. [`example-applications/mail.md`](example-applications/mail.md) — sealed store-and-forward
+63. [`example-applications/mail.md`](example-applications/mail.md) — sealed store-and-forward
     messaging from exchange alone: the one-off mode as an app, with notifications, file transfer,
     and key distribution absorbed.
-55. [`example-applications/chat.md`](example-applications/chat.md) — the ratcheting group
+64. [`example-applications/chat.md`](example-applications/chat.md) — the ratcheting group
     conversation: exchange's session mode, per-writer lanes, epochs, and membership churn from data
     alone.
-56. [`example-applications/edit.md`](example-applications/edit.md) — the collaborative editor from
+65. [`example-applications/edit.md`](example-applications/edit.md) — the collaborative editor from
     shared documents plus exchange: the checkpoint split, confidential collaboration, and the
     sovereignty mode made usable.
-57. [`example-applications/trace.md`](example-applications/trace.md) — track-and-trace provenance
+66. [`example-applications/trace.md`](example-applications/trace.md) — track-and-trace provenance
     from credentials, logs, and exchange: per-actor legs, jointly attested hand-off records, no
     central tracker.
-58. [`example-applications/trade.md`](example-applications/trade.md) — trade documents from all
+67. [`example-applications/trade.md`](example-applications/trade.md) — trade documents from all
     three features: issued instruments, the collaborative transaction file, sealed negotiation, and
     title as issuer re-grant.
-59. [`example-applications/health.md`](example-applications/health.md) — patient-held records from
+68. [`example-applications/health.md`](example-applications/health.md) — patient-held records from
     credentials plus exchange: provider-signed records, selective disclosure, custody without losing
     provider assurance.
-60. [`example-applications/registrar.md`](example-applications/registrar.md) — binding people to
+69. [`example-applications/registrar.md`](example-applications/registrar.md) — binding people to
     identities: the external-authority seam, migration-first enrollment, and the maintained
     one-person-one-prefix invariant.
-61. [`example-applications/vote.md`](example-applications/vote.md) — auditable elections on the
+70. [`example-applications/vote.md`](example-applications/vote.md) — auditable elections on the
     registrar: eligibility credentials, spend-on-cast, anchored ballots, and the recomputable tally
     — with the secret ballot scoped out honestly.
-62. [`example-applications/issuer.md`](example-applications/issuer.md) — the issuing organization's
+71. [`example-applications/issuer.md`](example-applications/issuer.md) — the issuing organization's
     console: kinds, minting, revocation, delegation, and published acceptance policies — the
     building block every other harness instantiates.
 

@@ -21,27 +21,33 @@ flowchart LR
   end
   reader["a shared-folder reader<br/>another identity"]:::ext
   subgraph sub["the substrate — federations run it"]
-    node[("home node<br/>vdtid + witnessd")]:::svc
-    rep[("replica-scoped<br/>storage nodes")]:::svc
+    node[("home node<br/>logsd · sadd · witnessd · gossipd")]:::svc
+  end
+  subgraph cs["the owner's content stores — off-federation"]
+    rep[("sadd + blobsd")]:::svc
   end
   d1 --> lib
   d2 --> lib
-  lib -->|"mint · anchor · fetch by SAID"| node
-  node <-->|replication| rep
-  reader -->|"fetch — the readers gate"| node
+  lib -->|"mint · anchor — chains only"| node
+  lib -->|"file SADs → sadd · payloads → blobsd"| rep
+  reader -->|"fetch — the readers gate"| rep
   classDef app fill:#2b1a3d,stroke:#9c36b5,color:#fff
   classDef lib fill:#1a2547,stroke:#4263eb,color:#fff
   classDef svc fill:#12331c,stroke:#2f9e44,color:#fff
   classDef ext fill:#20263a,stroke:#868e96,color:#e9ecef
 ```
 
-No party runs a server: the drive is client code over the substrate, and a reader is just another
-verifying consumer admitted by membership.
+No party runs a drive server: the drive is client code composing the generic stores, and a reader is
+just another verifying consumer admitted by membership. The federation carries the owner's chains,
+never file bytes.
 
 ## The composition
 
-A file is a **`file` SAD** with its bytes as a content-addressed blob
-([`../primitives/data/sad/shapes.md` §The file payload](../primitives/data/sad/shapes.md#the-file-payload--vdtisadv1schemasfile)):
+A file is a **`file` SAD** whose bytes ride as a content-addressed payload — a bundle carrying the
+blob's access and availability, committed by the **storage key** the wrapper's `digest` field
+carries
+([`../primitives/data/sad/shapes.md` §The file payload](../primitives/data/sad/shapes.md#the-file-payload--vdtisadv1schemasfile),
+[`../primitives/data/sad/sad.md` §Bulk opaque bytes](../primitives/data/sad/sad.md#bulk-opaque-bytes--the-content-addressed-blob)):
 the wrapper carries `digest`, `size`, advisory `mediaType` / `name`, and the mandatory high-entropy
 `nonce` that keeps a private file's SAID unguessable. The two wrapper axes do the rest:
 
@@ -55,13 +61,17 @@ the wrapper carries `digest`, `size`, advisory `mediaType` / `name`, and the man
   omits `readers`. The four custody combinations are exactly the drive's product surface: private
   files, published posts, an inbox folder anyone can deposit into, and shared folders
   ([`../primitives/data/sad/custody.md` §The four combinations](../primitives/data/sad/custody.md#the-four-combinations)).
-- **`availability { replicas, expiry, once }`** — where the bytes live and for how long: `replicas`
-  scopes a file to named storage nodes (a home-region drive, or a personal storage node — a store
-  daemon deployed without a witness beside it,
-  [`../substrate/infrastructure/architecture.md` §The decomposition](../substrate/infrastructure/architecture.md#the-decomposition)),
-  `expiry` gives trash a committed horizon, and `once` stays unused — a drive's files are fetched
-  repeatedly by many devices, the composition one-shot delivery is wrong for
+- **`availability { expiry, once }`** — lifetime and read semantics: `expiry` gives trash a
+  committed horizon, and `once` stays unused — a drive's files are fetched repeatedly by many
+  devices, the composition one-shot delivery is wrong for. The wrapper's `availability` governs the
+  SAD; the payload's rides its bundle, coupled by the covering rule
   ([`../primitives/data/sad/availability.md`](../primitives/data/sad/availability.md)).
+  **Placement** is the client's cascading store, not a field — and every file, published or private,
+  lives **off the federation**: the drive's SADs on a [`sadd`](../substrate/infrastructure/sadd.md)
+  tier, its bytes on a [`blobsd`](../substrate/infrastructure/blobsd.md), the federation holding
+  only the owner's chains and anchors — application data has no federation tier to choose
+  ([`../substrate/infrastructure/architecture.md` §The cascading store](../substrate/infrastructure/architecture.md#the-cascading-store--one-interface-composed-in-sequence)).
+  Published and private differ in the gate and in discovery, never in placement.
 
 **Folders are composition by reference.** A directory is itself a SAD whose content lists its
 children by SAID, so a drive is a hash tree: the root directory's SAID commits, transitively, to
@@ -76,21 +86,36 @@ downward — each SAD gates itself
 under the shared root at share time, never deferred to the next change — a descendant left unstamped
 would keep its old gate.
 
+**Re-gating a subtree re-uploads its bytes — and a re-gate is a revocation only if the prior payload
+is deleted.** A file's read gate rides its content-addressed **bundle**, so changing which sets gate
+a file re-mints its bundle — a new `bundle.said`, a new storage key, the bytes deposited again — on
+top of the subtree re-mint above. And the **old** payload stays live at the old storage key, its
+`access` still naming the removed SEL, whose members are still current members of _that_ set and
+keep reading it — a drive file's typical `availability` carries no `expiry` to run out. So the
+re-gating client issues `delete(S)` on each prior payload, and the authorization is drive's own
+store predicate — the file's `custody.owner`
+([`blobsd.md` §Deletion is the application's](../substrate/infrastructure/blobsd.md#deletion-is-the-applications));
+`readers` never authorizes a delete, and an operator retains an out-of-band administrative delete on
+its own disk — the protocol authorizes requests, it does not bind an operator's `rm`. This is the
+price of a self-gating blob, and it is why a large shared drive that expects to re-gate encrypts
+client-side and publishes an ungated bundle, paying in key management once instead of in bytes per
+re-gate.
+
 **The handle is the root SAID.** Whoever holds the current root SAID holds the drive: every device
 of the owner identity resolves the whole tree from it by SAID fetch — the batch SAD fetch moves a
-directory's resolution set in one round trip, the blob path serves the bytes
-([`../substrate/infrastructure/vdtid.md` §The API surface](../substrate/infrastructure/vdtid.md#the-api-surface))
-— and verifies everything it fetches locally: SAIDs recomputed, blob digests matched, the write
-attribution checked against the owner's IEL through the verification core every consumer links
+directory's resolution set in one round trip ([`sadd.md`](../substrate/infrastructure/sadd.md)), and
+[`blobsd`](../substrate/infrastructure/blobsd.md) serves the bytes — and verifies everything it
+fetches locally: SAIDs recomputed, blob digests matched, the write attribution checked against the
+owner's IEL through the verification core every consumer links
 ([`../substrate/infrastructure/architecture.md` §The core is a library](../substrate/infrastructure/architecture.md#the-core-is-a-library-because-consumers-must-verify)).
 A reader who is handed the root SAID of a shared folder does the same, admitted by membership.
 
 ## Scenarios
 
-- **Save.** A device of the owner mints the changed file and path SADs, uploads the blob against its
-  committing SAD, and anchors the new root's issuance commitment on the owner IEL — a `t_use`
-  content act, witnessed. If another device advanced the IEL first, the tip-atomic mint fails
-  cleanly and re-mints against the new tip.
+- **Save.** A device of the owner mints the changed file and path SADs, deposits them to `sadd` and
+  the payload to `blobsd` — the committing SAD supplied and verified at admission — and anchors the
+  new root's issuance commitment on the owner IEL — a `t_use` content act, witnessed. If another
+  device advanced the IEL first, the tip-atomic mint fails cleanly and re-mints against the new tip.
 - **Sync.** Every other device sees the owner IEL advance (it is a member; the IEL is its own
   identity's chain) and pulls exactly the changed subtree by SAID — the unchanged parts it already
   holds, content addressing makes that dedupe free. It learns the new root SAID by taking part in
@@ -100,9 +125,15 @@ A reader who is handed the root SAID of a shared folder does the same, admitted 
   ([`pds.md`](pds.md)).
 - **Share and un-share.** Grant a reader membership in the folder's read-authorization SEL; rescind
   to un-share. The gate reads **current** membership at fetch time, so an un-shared reader is
-  refused on the next fetch with nothing re-encrypted and no data moved.
-- **Publish.** The blog case: mint with `readers` omitted. The post is publicly fetchable by SAID,
-  and its provenance — this identity wrote it, at an append-only position — travels with it.
+  refused on the next fetch with nothing re-encrypted and no data moved. This ordinary case is free
+  — a membership change inside an existing set touches no SAD, no bundle, no stored byte; changing
+  **which sets gate** a subtree is the re-gate above, and pays.
+- **Publish.** The blog case: mint with `readers` omitted and an ungated bundle. The post's SADs
+  serve by SAID and its bytes by storage key from the owner's content stores — a stranger holding
+  the owner's prefix resolves them through the owner's identity-scoped **content-store lookup**
+  ([`blobsd.md` §Public-blob discovery](../substrate/infrastructure/blobsd.md#public-blob-discovery)),
+  and the provenance — this identity wrote it, at an append-only position — travels with the data.
+  Standing up that lookup is a one-time tier-2 establishment, priced at the mechanism.
 
 ## What this validates
 

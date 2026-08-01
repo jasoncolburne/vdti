@@ -57,7 +57,7 @@ expr     ::= id(prefix)            # an identity
 
 prefix   ::= an entity's IEL prefix        # identity = prefix
 said     ::= the SAID of another policy    # a point-in-time reference
-kind     ::= a registered credential kind, written in full   # e.g. vdti/cred/v1/schemas/triager
+kind     ::= a registered credential kind, written in full   # e.g. vote/cred/v1/schemas/ballot
 M, w     ::= positive integers (≥ 1)
 N        ::= a positive integer (≥ 1) — a delegation hop count; del(X) abbreviates del(X, 1)
 ```
@@ -75,7 +75,10 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
   independently-controlled identities rather than expecting `id(X)` to mean `t_govern`. `id(X)`
   _defers to X_: it accepts whatever rule `X` sets for who acts as `X`, at `X`'s own `t_use`
   threshold. This is the recursive base of the language — a policy that names other identities
-  bottoms out in their IELs, which bottom out in member device keys.
+  bottoms out in their IELs, which bottom out in member device keys. An **`Fcp`-rooted `X` is a dead
+  configuration** — a federation declares no `t_use`, so `id(F)` is unsatisfiable — and authoring
+  tooling refuses it
+  ([`../data/event-logs/sel/log.md` §Prefix derivation](../data/event-logs/sel/log.md#prefix-derivation)).
 
 - **`del(X, N)` — a live delegate of `X`, within `N` hops.** Satisfied by a party that holds a live,
   non-rescinded delegation from `X`, reachable by walking **up** its own delegation chain to `X` in
@@ -105,15 +108,15 @@ one-child `and` is just the child, and an empty `and` is a vacuous gate — and 
 
 - **`crd(K, E)` — a holder of a live credential.** Satisfied by an acting party that **furnishes** a
   credential `C` with `C.kind == K` — a registered credential kind, written **in full**
-  (`vdti/cred/v1/schemas/…`) — whose `issuee` is the party (the credited identity; a **bearer**
-  credential names no issuee and can never satisfy the leaf), whose issuance satisfies `E` **in the
-  issuer slot**, and which is live **now**: not revoked (the positive kill lookup, fail-secure by
-  default) and not past its `expires`. The policy **types** the credential, so the envelope's
-  well-defined fields are checkable — and a composer cannot carry an advisory upward, so inside a
-  policy "expired" folds to **deny**, the same current-mode fold as `del`'s liveness. In the issuer
-  slot the language reads as-issued against `C`'s **own** anchoring position: `id(X)` means `X` is
-  the anchored issuer, `del(X, N)` means `C`'s committed `delegationPath` reaches `X` within `N`
-  live, grandfathered hops ([`documents.md`](documents.md)), and a composer there is the
+  (`{namespace}/cred/v1/schemas/…`) — whose `issuee` is the party (the credited identity; a
+  **bearer** credential names no issuee and can never satisfy the leaf), whose issuance satisfies
+  `E` **in the issuer slot**, and which is live **now**: not revoked (the positive kill lookup,
+  fail-secure by default) and not past its `expires`. The policy **types** the credential, so the
+  envelope's well-defined fields are checkable — and a composer cannot carry an advisory upward, so
+  inside a policy "expired" folds to **deny**, the same current-mode fold as `del`'s liveness. In
+  the issuer slot the language reads as-issued against `C`'s **own** anchoring position: `id(X)`
+  means `X` is the anchored issuer, `del(X, N)` means `C`'s committed `delegationPath` reaches `X`
+  within `N` live, grandfathered hops ([`documents.md`](documents.md)), and a composer there is the
   multi-identity attestation machinery. The credential is **furnished, never discovered** — there is
   no holds-a-credential scan (negative checks are positive lookups); an unfurnished credential is
   simply unsatisfied, fail-secure. The leaf answers **kind and issuer, never claims** — claim

@@ -73,6 +73,15 @@ same fail-secure / fail-open split a credential's revocation check uses:
 
 Both modes check **one identity at a time**. Neither ever builds the set.
 
+**The divergence freeze rides the resolution.** A membership check resolves a live-signed request to
+an identity, and a live check consumes that identity's **authority to act now** — so a store running
+this gate **refuses a requester whose identity's chain is not Active, when the requester is outside
+that identity's own roster** (a sibling member of the same identity is identification, not an
+exercise of authority, so a fleet still serves its own peers). A requester the store **cannot
+resolve** — bound to or rooted on a federation outside its configured trusted set — is refused
+**`unresolvable`**, never "not Active": distinct outcome, same fail-closed refusal
+([`../data/event-logs/iel/verification.md`](../data/event-logs/iel/verification.md#derived-accessors)).
+
 ```mermaid
 flowchart TD
   q["is party X a current member?<br/>(one identity at a time — never the whole set)"]:::start
